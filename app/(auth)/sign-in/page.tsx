@@ -4,7 +4,7 @@ import {
   LoginLink,
 } from "@kinde-oss/kinde-auth-nextjs/components";
 import Image from "next/image";
-import { Key } from "lucide-react"; // Make sure to install react-icons if not already
+import { Key } from "lucide-react";
 
 const AuthPage: React.FC = () => {
   return (
@@ -16,7 +16,7 @@ const AuthPage: React.FC = () => {
             loading="lazy"
             decoding="async"
             fetchPriority="low"
-            src="../favicon.ico"
+            src="/placeholder.svg"
             alt="Logo"
             width={60}
             height={60}
@@ -37,7 +37,15 @@ const AuthPage: React.FC = () => {
         <div>
           <span>
             Don&apos;t have an account?{" "}
-            <RegisterLink className="btn btn-dark">Create account</RegisterLink>
+            <RegisterLink
+              className="btn btn-dark"
+              authUrlParams={{
+                connection_id:
+                  process.env.NEXT_PUBLIC_KINDE_CONNECTION_GOOGLE || "",
+              }}
+            >
+              Create account
+            </RegisterLink>
           </span>
         </div>
       </div>

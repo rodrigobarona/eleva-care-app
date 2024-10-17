@@ -20,7 +20,9 @@ export default async function Header() {
               <LoginLink className="btn btn-ghost sign-in-btn">
                 Sign in
               </LoginLink>
-              <RegisterLink className="btn btn-dark">Sign up</RegisterLink>
+              <RegisterLink className="btn btn-dark">
+                Sign up with Google
+              </RegisterLink>
             </>
           ) : (
             <div className="profile-blob">
