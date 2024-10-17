@@ -1,11 +1,10 @@
-"use client";
-
 import React from "react";
 import "./globals.css";
-import { KindeProvider } from "@kinde-oss/kinde-auth-nextjs";
-import Auth from "./auth";
-
+import type { Metadata } from "next";
 import { Alexandria, JetBrains_Mono, Lora } from "next/font/google";
+
+import Header from "../components/organisms/Header";
+import Footer from "../components/organisms/Footer";
 
 const lora = Lora({
   subsets: ["latin"],
@@ -23,20 +22,42 @@ const jetBrains = JetBrains_Mono({
   variable: "--font-jetbrains",
 });
 
+export const metadata: Metadata = {
+  title: "Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care",
+  description:
+    "Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.",
+  openGraph: {
+    type: "website",
+    url: "https://eleva.care",
+    siteName: "Eleva Care",
+    title: "Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care",
+    description:
+      "Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.",
+    images: [
+      {
+        url: "https://eleva.care/img/eleva-care-share.svg",
+        width: 1200,
+        height: 680,
+        alt: "Eleva Care",
+      },
+    ],
+  },
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <KindeProvider>
-      <html lang="en">
-        <body
-          className={`${lora.variable} ${alexandria.variable} ${jetBrains.variable} min-h-screen bg-background font-sans font-light antialiased`}
-        >
-          <Auth>{children}</Auth>
-        </body>
-      </html>
-    </KindeProvider>
+    <html lang="en">
+      <body
+        className={`${lora.variable} ${alexandria.variable} ${jetBrains.variable} min-h-screen bg-background font-sans font-light antialiased`}
+      >
+        <Header />
+        {children}
+        <Footer />
+      </body>
+    </html>
   );
 }

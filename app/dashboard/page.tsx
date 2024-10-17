@@ -1,12 +1,8 @@
 import React from "react";
-import Header from "../../components/organisms/Header";
-import Footer from "../../components/organisms/Footer";
 
 export default function Dashboard() {
   return (
     <>
-      <Header />
-
       <main>
         <div className="container">
           <div className="card start-hero">
@@ -22,7 +18,6 @@ export default function Dashboard() {
           </section>
         </div>
       </main>
-      <Footer />
     </>
   );
 }

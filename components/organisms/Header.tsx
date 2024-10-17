@@ -1,36 +1,53 @@
-"use client";
-
 import React from "react";
-import { useEffect } from "react";
-import { useKindeAuth } from "@kinde-oss/kinde-auth-nextjs";
+import {
+  RegisterLink,
+  LoginLink,
+  LogoutLink,
+} from "@kinde-oss/kinde-auth-nextjs/components";
+import { getKindeServerSession } from "@kinde-oss/kinde-auth-nextjs/server";
+import Image from "next/image";
 
-export default function Header() {
-  const { user, getToken, getUserOrganizations, isAuthenticated } =
-    useKindeAuth();
-  useEffect(() => {
-    if (isAuthenticated) {
-      console.log(getUserOrganizations());
-      console.log(getToken());
-    }
-  }, [getToken, getUserOrganizations, isAuthenticated]);
+export default async function Header() {
+  const { isAuthenticated, getUser } = getKindeServerSession();
+  const user = await getUser();
   return (
     <header>
       <nav className="nav container">
         <h1 className="text-display-3">KindeAuth</h1>
-        <div className="profile-blob">
-          <div className="avatar">
-            {user?.given_name?.[0]}
-            {user?.family_name?.[0]}
-          </div>
-          <div>
-            <p className="text-heading-2">
-              {user?.given_name} {user?.family_name}
-            </p>
-            {/* eslint-disable-next-line @next/next/no-html-link-for-pages */}
-            <a className="text-subtle" href="/api/auth/logout">
-              Sign out
-            </a>
-          </div>
+        <div>
+          {!(await isAuthenticated()) ? (
+            <>
+              <LoginLink className="btn btn-ghost sign-in-btn">
+                Sign in
+              </LoginLink>
+              <RegisterLink className="btn btn-dark">Sign up</RegisterLink>
+            </>
+          ) : (
+            <div className="profile-blob">
+              {user?.picture ? (
+                <Image
+                  className="avatar"
+                  src={user?.picture}
+                  alt="user profile avatar"
+                  referrerPolicy="no-referrer"
+                  width={150}
+                  height={150}
+                />
+              ) : (
+                <div className="avatar">
+                  {user?.given_name?.[0]}
+                  {user?.family_name?.[0]}
+                </div>
+              )}
+              <div>
+                <p className="text-heading-2">
+                  {user?.given_name} {user?.family_name}
+                </p>
+
+                <LogoutLink className="text-subtle">Log out</LogoutLink>
+              </div>
+            </div>
+          )}
         </div>
       </nav>
     </header>
