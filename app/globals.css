@@ -1,0 +1,100 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer base {
+  :root {
+    /* ELEVA CARE */
+    /* Primary Colors */
+    --eleva-primary: 0 109 119; /* #006D77 - Deep Teal */
+    --eleva-primary-light: 131 197 190; /* #83C5BE - Sage Green */
+
+    /* Secondary Colors */
+    --eleva-secondary: 226 149 120; /* #E29578 - Soft Coral */
+    --eleva-secondary-light: 255 221 210; /* #FFDDD2 - Warm Sand */
+
+    /* Accent Color */
+    --eleva-accent: 224 251 252; /* #E0FBFC - Pale Lavender */
+
+    /* Neutral Colors */
+    --eleva-neutral-100: 247 249 249; /* #F7F9F9 - Soft White */
+    --eleva-neutral-200: 209 209 209; /* #D1D1D1 - Light Grey */
+    --eleva-neutral-900: 51 51 51; /* #333333 - Charcoal*/
+
+    /* Highlight Colors */
+    --eleva-highlight-red: 238 66 102; /* #EE4266 - Vibrant Rose */
+    --eleva-highlight-purple: 84 13 110; /* #540D6E - Deep Purple */
+    --eleva-highlight-yellow: 255 210 63; /* #FFD23F - Sunshine Yellow */
+
+    --background: 210 40% 99%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 185 100% 23%; /* elevaCare #006D77 - Deep Teal */
+    --primary-foreground: 172 39% 64%; /* elevaCare #83C5BE - Sage Green */
+    --secondary: 14 67% 68%; /* elevaCare #E29578 - Soft Coral */
+    --secondary-foreground: 14 100% 91%; /* elevaCare #FFDDD2 - Warm Sand */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.5rem;
+  }
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
