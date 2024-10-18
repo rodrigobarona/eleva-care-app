@@ -22,13 +22,13 @@ export default function SignInPage() {
       <SignIn.Root>
         <Clerk.Loading>
           {(
-            isGlobalLoading: boolean, // Explicitly typing isGlobalLoading as boolean
+            isGlobalLoading: boolean // Explicitly typing isGlobalLoading as boolean
           ) => (
             <>
               <SignIn.Step name="start">
                 <Card className="w-full sm:w-96">
                   <CardHeader>
-                    <CardTitle>Sign in to Acme Co</CardTitle>
+                    <CardTitle>Sign in to Eleva Care</CardTitle>
                     <CardDescription>
                       Welcome back! Please sign in to continue
                     </CardDescription>
@@ -65,7 +65,7 @@ export default function SignInPage() {
                         >
                           <Clerk.Loading scope="provider:google">
                             {(
-                              isLoading: boolean, // Explicitly typing isLoading as boolean
+                              isLoading: boolean // Explicitly typing isLoading as boolean
                             ) =>
                               isLoading ? (
                                 <Icons.spinner className="size-4 animate-spin" />

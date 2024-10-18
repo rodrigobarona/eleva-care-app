@@ -3,9 +3,6 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Alexandria, JetBrains_Mono, Lora } from "next/font/google";
 
-import Header from "../components/organisms/Header";
-import Footer from "../components/organisms/Footer";
-
 import { ClerkProvider } from "@clerk/nextjs";
 
 const lora = Lora({
@@ -57,9 +54,7 @@ export default function RootLayout({
         <body
           className={`${lora.variable} ${alexandria.variable} ${jetBrains.variable} min-h-screen bg-background font-sans font-light antialiased`}
         >
-          <Header />
           {children}
-          <Footer />
         </body>
       </html>
     </ClerkProvider>
