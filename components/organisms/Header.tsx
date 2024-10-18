@@ -1,5 +1,12 @@
 import React from "react";
-import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from "@clerk/nextjs";
+import { Button } from "../ui/button";
 
 export default async function Header() {
   return (
@@ -13,7 +20,12 @@ export default async function Header() {
         </div>
         <div className="profile-blob">
           <SignedOut>
-            <SignInButton />
+            <Button asChild>
+              <SignInButton />
+            </Button>{" "}
+            <Button asChild>
+              <SignUpButton />
+            </Button>
           </SignedOut>
         </div>
       </nav>

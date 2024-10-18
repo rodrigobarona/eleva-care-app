@@ -31,7 +31,7 @@ export const EventTable = pgTable(
   },
   (table) => ({
     clerkUserIdIndex: index("clerkUserIdIndex").on(table.clerkUserId),
-  })
+  }),
 );
 
 // Schedule
