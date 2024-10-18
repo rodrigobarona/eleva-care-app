@@ -1,9 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import {
-  RegisterLink,
-  LoginLink,
-} from "@kinde-oss/kinde-auth-nextjs/components";
+import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 
 export default function HomePage() {
   return (
@@ -11,10 +8,14 @@ export default function HomePage() {
       <h1 className="text-3xl mb-6">Eleva Care</h1>
       <div className="flex gap-2 justify-center">
         <Button asChild>
-          <LoginLink postLoginRedirectURL="/dashboard">Sign in</LoginLink>
+          <SignedOut>
+            <SignInButton />
+          </SignedOut>
         </Button>
         <Button asChild>
-          <RegisterLink postLoginRedirectURL="/welcome">Register</RegisterLink>
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
         </Button>
       </div>
     </div>

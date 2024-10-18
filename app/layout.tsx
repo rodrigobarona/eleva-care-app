@@ -6,6 +6,8 @@ import { Alexandria, JetBrains_Mono, Lora } from "next/font/google";
 import Header from "../components/organisms/Header";
 import Footer from "../components/organisms/Footer";
 
+import { ClerkProvider } from "@clerk/nextjs";
+
 const lora = Lora({
   subsets: ["latin"],
   display: "swap",
@@ -50,14 +52,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${lora.variable} ${alexandria.variable} ${jetBrains.variable} min-h-screen bg-background font-sans font-light antialiased`}
-      >
-        <Header />
-        {children}
-        <Footer />
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body
+          className={`${lora.variable} ${alexandria.variable} ${jetBrains.variable} min-h-screen bg-background font-sans font-light antialiased`}
+        >
+          <Header />
+          {children}
+          <Footer />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }

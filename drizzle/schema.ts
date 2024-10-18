@@ -24,13 +24,13 @@ export const EventTable = pgTable(
     name: text("name").notNull(),
     description: text("description"),
     durationInMinutes: integer("durationInMinutes").notNull(),
-    kindeUserId: text("kindeUserId").notNull(),
+    clerkUserId: text("clerkUserId").notNull(),
     isActive: boolean("isActive").notNull().default(true),
     createdAt,
     updatedAt,
   },
   (table) => ({
-    kindeUserIdIndex: index("kindeUserIdIndex").on(table.kindeUserId),
+    clerkUserIdIndex: index("clerkUserIdIndex").on(table.clerkUserId),
   })
 );
 
@@ -38,12 +38,12 @@ export const EventTable = pgTable(
 export const ScheduleTable = pgTable("schedules", {
   id: uuid("id").primaryKey().defaultRandom(),
   timezone: text("timezone").notNull(),
-  kindeUserId: text("kindeUserId").notNull().unique(),
+  clerkUserId: text("clerkUserId").notNull().unique(),
   createdAt,
   updatedAt,
 });
 
-export const scheduleDayOfWeekEnum = pgEnum("day", )
+export const scheduleDayOfWeekEnum = pgEnum("day");
 
 // Contect the Schedule with the availability
 export const ScheduleAvailabilityTable = pgTable("scheduleAvailabities", {
