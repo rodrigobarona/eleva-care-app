@@ -1,0 +1,8 @@
+import React from "react";
+
+const NewEventPage = () => {
+  // Your component logic here
+  return <div>{/* Your JSX here */}</div>;
+};
+
+export default NewEventPage;
