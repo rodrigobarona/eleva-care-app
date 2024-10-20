@@ -1,3 +1,4 @@
+import { CopyEventButton } from "@/components/atoms/CopyEventButton";
 import { Button } from "@/components/ui/button";
 import {
   Card,

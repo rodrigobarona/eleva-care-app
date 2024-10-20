@@ -1,5 +1,5 @@
 "user client";
-
+import React from "react";
 import { useState } from "react";
 import { Button, ButtonProps } from "../ui/button";
 import { Copy, CopyCheck, CopyX } from "lucide-react";
@@ -19,7 +19,21 @@ export function CopyEventButton({
   const CopyIcon = getCopyIcon(copyState);
 
   return (
-    <Button {...buttonProps} onClick={() => {navigator.clipboard.writeText{`${location.origin}/book/${clerkUserId}/${eventId} `}}}>
+    <Button
+      {...buttonProps}
+      onClick={() => {
+        navigator.clipboard
+          .writeText(`${location.origin}/book/${clerkUserId}/${event} `)
+          .then(() => {
+            setCopyState("copied");
+            setTimeout(() => setCopyState("ilde"), 2000);
+          })
+          .catch(() => {
+            setCopyState("error");
+            setTimeout(() => setCopyState("ilde"), 2000);
+          });
+      }}
+    >
       <CopyIcon className="size-4 mr-2" />
       {getChildern(copyState)}
     </Button>
