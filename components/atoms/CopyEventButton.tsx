@@ -1,20 +1,20 @@
-"user client";
-import React from "react";
+"use client";
+
 import { useState } from "react";
 import { Button, ButtonProps } from "../ui/button";
 import { Copy, CopyCheck, CopyX } from "lucide-react";
 
-type CopyState = "ilde" | "copied" | "error";
+type CopyState = "idle" | "copied" | "error";
 
 export function CopyEventButton({
   eventId,
   clerkUserId,
   ...buttonProps
-}: Omit<ButtonProps, "childern" | "onClick"> & {
+}: Omit<ButtonProps, "children" | "onClick"> & {
   eventId: string;
   clerkUserId: string;
 }) {
-  const [copyState, setCopyState] = useState<CopyState>("ilde");
+  const [copyState, setCopyState] = useState<CopyState>("idle");
 
   const CopyIcon = getCopyIcon(copyState);
 
@@ -23,26 +23,26 @@ export function CopyEventButton({
       {...buttonProps}
       onClick={() => {
         navigator.clipboard
-          .writeText(`${location.origin}/book/${clerkUserId}/${event} `)
+          .writeText(`${location.origin}/book/${clerkUserId}/${eventId}`)
           .then(() => {
             setCopyState("copied");
-            setTimeout(() => setCopyState("ilde"), 2000);
+            setTimeout(() => setCopyState("idle"), 2000);
           })
           .catch(() => {
             setCopyState("error");
-            setTimeout(() => setCopyState("ilde"), 2000);
+            setTimeout(() => setCopyState("idle"), 2000);
           });
       }}
     >
       <CopyIcon className="size-4 mr-2" />
-      {getChildern(copyState)}
+      {getChildren(copyState)}
     </Button>
   );
 }
 
 function getCopyIcon(copyState: CopyState) {
   switch (copyState) {
-    case "ilde":
+    case "idle":
       return Copy;
     case "copied":
       return CopyCheck;
@@ -51,9 +51,9 @@ function getCopyIcon(copyState: CopyState) {
   }
 }
 
-function getChildern(copyState: CopyState) {
+function getChildren(copyState: CopyState) {
   switch (copyState) {
-    case "ilde":
+    case "idle":
       return "Copy Link";
     case "copied":
       return "Copied!";
