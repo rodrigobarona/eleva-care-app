@@ -12,7 +12,7 @@ export default async function Header() {
   return (
     <header>
       <nav className="nav container">
-        <h1 className="text-display-3">KindeAuth</h1>
+        <h1 className="text-display-3">Eleva Care</h1>
         <div>
           <SignedIn>
             <UserButton />

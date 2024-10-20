@@ -1,4 +1,4 @@
-import { DAYS_OF_WEEK_In_ORDER } from "@/app/data/constants"; // Importing constants for days of the week
+import { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants"; // Importing constants for days of the week
 import { relations } from "drizzle-orm"; // Importing relations for defining relationships between tables
 import {
   boolean,
@@ -37,7 +37,7 @@ export const EventTable = pgTable(
   },
   (table) => ({
     clerkUserIdIndex: index("clerkUserIdIndex").on(table.clerkUserId), // Index for quick lookup by clerkUserId
-  }),
+  })
 );
 
 // Schedule Table Definition
@@ -55,7 +55,7 @@ export const scheduleRelations = relations(ScheduleTable, ({ many }) => ({
 }));
 
 // Enum for days of the week
-export const scheduleDayOfWeekEnum = pgEnum("day", DAYS_OF_WEEK_In_ORDER);
+export const scheduleDayOfWeekEnum = pgEnum("day", DAYS_OF_WEEK_IN_ORDER);
 
 // Schedule Availability Table Definition
 export const ScheduleAvailabilityTable = pgTable(
@@ -70,7 +70,7 @@ export const ScheduleAvailabilityTable = pgTable(
   },
   (table) => ({
     scheduleIdIndex: index("scheduleIdIndex").on(table.scheduleId), // Index for quick lookup by scheduleId
-  }),
+  })
 );
 
 // Define relationships for ScheduleAvailabilityTable
@@ -82,7 +82,7 @@ export const ScheduleAvailabilityRelations = relations(
       fields: [ScheduleAvailabilityTable.scheduleId], // Field in ScheduleAvailabilityTable
       references: [ScheduleTable.id], // Reference to the id in ScheduleTable
     }),
-  }),
+  })
 );
 
 // The auditLogs table captures all necessary information for HIPAA compliance,

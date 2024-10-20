@@ -1,4 +1,4 @@
-export const DAYS_OF_WEEK_In_ORDER = [
+export const DAYS_OF_WEEK_IN_ORDER = [
   "monday",
   "tuesday",
   "wednesday",

@@ -4,7 +4,6 @@ import React, { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { eventFormSchema } from "@/schema/events";
 import {
   Form,
   FormField,
@@ -31,28 +30,36 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "../ui/alert-dialog";
+import { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants";
+import { scheduleFormSchema } from "@/schema/schedule";
+import { timeToInt } from "@/lib/utils";
 
-export function EventForm({
-  event,
+type Availability = {
+  startTime: string;
+  endTime: string;
+  dauOfWeek: (typeof DAYS_OF_WEEK_IN_ORDER)[number];
+};
+
+export function ScheduleForm({
+  schedule,
 }: {
-  event?: {
-    id: string;
-    name: string;
-    description?: string;
-    durationInMinutes: number;
-    isActive: boolean;
+  schedule?: {
+    timezone: string;
+    availabilities: Availability[];
   };
 }) {
-  const [isDeletePending, startDeleteTransition] = useTransition();
-  const form = useForm<z.infer<typeof eventFormSchema>>({
-    resolver: zodResolver(eventFormSchema),
-    defaultValues: event ?? {
-      isActive: true,
-      durationInMinutes: 30,
+  const form = useForm<z.infer<typeof scheduleFormSchema>>({
+    resolver: zodResolver(scheduleFormSchema),
+    defaultValues: {
+      timezone:
+        schedule?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+      availabilities: schedule?.availabilities.toSorted((a, b) => {
+        return timeToInt(a.startTime) - timeToInt(b.startTime);
+      }),
     },
   });
 
-  async function onSubmit(values: z.infer<typeof eventFormSchema>) {
+  async function onSubmit(values: z.infer<typeof scheduleFormSchema>) {
     const action =
       event == null ? createEvent : updateEvent.bind(null, event.id);
     const data = await action(values);
@@ -112,7 +119,7 @@ export function EventForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Duration</FormLabel>
               <FormControl>
                 <Textarea className="resize-none h-32" {...field} />
               </FormControl>
