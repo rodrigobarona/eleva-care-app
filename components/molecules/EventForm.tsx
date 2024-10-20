@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,6 +20,7 @@ import Link from "next/link";
 import { Textarea } from "../ui/textarea";
 import { Switch } from "../ui/switch";
 import { createEvent, updateEvent } from "@/server/actions/events";
+import { AlertDialog, AlertDialogTrigger } from "../ui/alert-dialog";
 
 export function EventForm({
   event,
@@ -32,6 +33,7 @@ export function EventForm({
     isActive: boolean;
   };
 }) {
+  const [isDeletePending, setIsDeletePending] = useState();
   const form = useForm<z.infer<typeof eventFormSchema>>({
     resolver: zodResolver(eventFormSchema),
     defaultValues: event ?? {
@@ -135,6 +137,18 @@ export function EventForm({
         />
 
         <div className="flex justify-end gap-2">
+          {event && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructiveGhost"
+                  disabled={isDeletePending || form.formState.isSubmitting}
+                >
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+            </AlertDialog>
+          )}
           <Button type="button" asChild variant="outline">
             <Link href="/events">Cancel</Link>
           </Button>

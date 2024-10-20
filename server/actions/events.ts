@@ -11,8 +11,9 @@ import "use-server";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 
+// CREATE EVENT
 export async function createEvent(
-  unsafeData: z.infer<typeof eventFormSchema>,
+  unsafeData: z.infer<typeof eventFormSchema>
 ): Promise<{ error: boolean } | undefined> {
   const { userId } = auth();
   const headersList = headers();
@@ -45,15 +46,16 @@ export async function createEvent(
     null,
     { ...data },
     ipAddress,
-    userAgent,
+    userAgent
   );
 
   redirect("/events");
 }
 
+// UPDATE EVENT
 export async function updateEvent(
   id: string,
-  unsafeData: z.infer<typeof eventFormSchema>,
+  unsafeData: z.infer<typeof eventFormSchema>
 ): Promise<{ error: boolean } | undefined> {
   const { userId } = auth();
   const headersList = headers();
@@ -98,7 +100,7 @@ export async function updateEvent(
     oldEvent, // Pass the old values here
     { ...data }, // New values
     ipAddress,
-    userAgent,
+    userAgent
   );
 
   redirect("/events");
