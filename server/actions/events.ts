@@ -148,7 +148,7 @@ export async function deleteEvent(
     "events",
     deletedEvent.id,
     oldEvent, // Pass the old values here
-    null,
+    "User requested deletion",
     ipAddress,
     userAgent
   );
