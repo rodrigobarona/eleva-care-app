@@ -74,6 +74,9 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.14)
+      use-server:
+        specifier: ^0.4.9
+        version: 0.4.9
       zod:
         specifier: ^3.23.8
         version: 3.23.8
@@ -1455,6 +1458,9 @@ packages:
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
+  ee-first@1.1.1:
+    resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
+
   emoji-regex@8.0.0:
     resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
 
@@ -1944,6 +1950,9 @@ packages:
     resolution: {integrity: sha512-LvIm3/KWzS9oRFHugab7d+M/GcBXuXX5xZkzPmN+NxihdQlZUQ4dWuSV1xR/sq6upL1TJEDrfBgRepHFdBtSNQ==}
     engines: {node: '>= 0.4'}
 
+  isarray@0.0.1:
+    resolution: {integrity: sha512-D2S+3GLxWH+uhrNEcoh/fnmYeP8E8/zHl644d/jdA0g2uyXvy3sb0qxotE+ne0LtccHknQzWwZEzhak7oJ0COQ==}
+
   isarray@2.0.5:
     resolution: {integrity: sha512-xHjhDr3cNBK0BzdUJSPXZntQUx/mwMS5Rw4A7lPJ90XGAO6ISP/ePDNuo0vhqOZU+UD5JoodwCAAoZQd3FeAKw==}
 
@@ -2148,6 +2157,10 @@ packages:
   obuf@1.1.2:
     resolution: {integrity: sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg==}
 
+  on-finished@2.4.1:
+    resolution: {integrity: sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg==}
+    engines: {node: '>= 0.8'}
+
   once@1.4.0:
     resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
 
@@ -2188,6 +2201,9 @@ packages:
   path-scurry@1.11.1:
     resolution: {integrity: sha512-Xa4Nw17FS9ApQFJ9umLiJS4orGjm7ZzwUrwamcGQuHSzDyth9boKDaycYdDcZDuqYATXw4HFXgaqWTctW/v1HA==}
     engines: {node: '>=16 || 14 >=14.18'}
+
+  path-to-regexp@1.9.0:
+    resolution: {integrity: sha512-xIp7/apCFJuUHdDLWe8O1HIkb0kQrOMb/0u6FXQjemHn/ii5LrIzU6bdECnsiTF/GjZkMEKg1xdiZwNqDYlZ6g==}
 
   pg-int8@1.0.1:
     resolution: {integrity: sha512-WCtabS6t3c8SkpDBUlb1kjOs7l66xsGdKpIPZsg4wR+B3+u9UAum2odSsF9tnvxg80h4ZxLWMy4pRjOsFIqQpw==}
@@ -2728,6 +2744,14 @@ packages:
       '@types/react':
         optional: true
 
+  use-compose@0.4.0:
+    resolution: {integrity: sha512-4iY+jcDqjemiNS1pxFaVWWwAuDRKVFV4avrSlDuAmtwhuz+24jITsZMou8gGZl5rud5QRSUIENvezgQ8K4YeLA==}
+    engines: {node: '>= 4'}
+
+  use-express-middlewares@0.1.0:
+    resolution: {integrity: sha512-5UyU8Amfa9BZ3vbfOHnHfcB4Creq1liE02f3USvRFtlA53ekgt/61wko+atggAx/hu7ITbGL5cwrMBoZKIWgBg==}
+    engines: {node: '>= 4'}
+
   use-isomorphic-layout-effect@1.1.2:
     resolution: {integrity: sha512-49L8yCO3iGT/ZF9QttjwLF/ZD9Iwto5LnH5LmEdk/6cFmXddqi2ulF0edxTwjj+7mqvpVVGQWvbXZdn32wRSHA==}
     peerDependencies:
@@ -2736,6 +2760,14 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  use-router@0.4.2:
+    resolution: {integrity: sha512-QH+PhLcaykVr5K4nWTm7eW9yX6fQCKV+iA47atXhG1qD+iQm8RE7sToJs+gpRvaHIlHviF8B0gPKE1XBpWoFtw==}
+    engines: {node: '>= 4'}
+
+  use-server@0.4.9:
+    resolution: {integrity: sha512-NfjO+xGc0mDXMKWslUrX1+Y4YZXGPxM+CcGa5bTrxP/5E/sMWiaMCbhLqsy+Q8BSX4Ij2NhSJIKWTyenoFN1PA==}
+    engines: {node: '>= 4'}
 
   use-sidecar@1.1.2:
     resolution: {integrity: sha512-epTbsLuzZ7lPClpz2TyryBfztm7m+28DlEv2ZCQ3MDr5ssiwyOwGH/e5F9CkfWjJ1t4clvI58yF822/GUkjjhw==}
@@ -3859,6 +3891,8 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
+  ee-first@1.1.1: {}
+
   emoji-regex@8.0.0: {}
 
   emoji-regex@9.2.2: {}
@@ -4569,6 +4603,8 @@ snapshots:
       call-bind: 1.0.7
       get-intrinsic: 1.2.4
 
+  isarray@0.0.1: {}
+
   isarray@2.0.5: {}
 
   isexe@2.0.0: {}
@@ -4773,6 +4809,10 @@ snapshots:
 
   obuf@1.1.2: {}
 
+  on-finished@2.4.1:
+    dependencies:
+      ee-first: 1.1.1
+
   once@1.4.0:
     dependencies:
       wrappy: 1.0.2
@@ -4812,6 +4852,10 @@ snapshots:
     dependencies:
       lru-cache: 10.4.3
       minipass: 7.1.2
+
+  path-to-regexp@1.9.0:
+    dependencies:
+      isarray: 0.0.1
 
   pg-int8@1.0.1: {}
 
@@ -5336,11 +5380,28 @@ snapshots:
     optionalDependencies:
       '@types/react': 18.3.11
 
+  use-compose@0.4.0: {}
+
+  use-express-middlewares@0.1.0: {}
+
   use-isomorphic-layout-effect@1.1.2(@types/react@18.3.11)(react@18.3.1):
     dependencies:
       react: 18.3.1
     optionalDependencies:
       '@types/react': 18.3.11
+
+  use-router@0.4.2:
+    dependencies:
+      path-to-regexp: 1.9.0
+      use-compose: 0.4.0
+      use-express-middlewares: 0.1.0
+
+  use-server@0.4.9:
+    dependencies:
+      on-finished: 2.4.1
+      use-compose: 0.4.0
+      use-express-middlewares: 0.1.0
+      use-router: 0.4.2
 
   use-sidecar@1.1.2(@types/react@18.3.11)(react@18.3.1):
     dependencies:
