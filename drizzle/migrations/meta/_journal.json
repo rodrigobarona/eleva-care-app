@@ -15,6 +15,13 @@
       "when": 1729399142768,
       "tag": "0001_short_gertrude_yorkes",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1729422734456,
+      "tag": "0002_large_marauders",
+      "breakpoints": true
     }
   ]
 }

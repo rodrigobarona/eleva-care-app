@@ -89,7 +89,7 @@ export const ScheduleAvailabilityRelations = relations(
 // including who performed an action, what action was taken, on which resource, and from where.
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),
-  clerkUserId: text("clerkUserId").notNull().unique(),
+  clerkUserId: text("clerkUserId").notNull(),
   action: varchar("action", { length: 50 }).notNull(),
   resourceType: varchar("resource_type", { length: 50 }).notNull(),
   resourceId: varchar("resource_id", { length: 255 }),
