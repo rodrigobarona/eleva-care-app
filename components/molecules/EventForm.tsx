@@ -15,6 +15,10 @@ import {
   FormMessage,
 } from "../ui/form";
 import { Input } from "../ui/input";
+import { Button } from "../ui/button";
+import Link from "next/link";
+import { Textarea } from "../ui/textarea";
+import { Switch } from "../ui/switch";
 
 export function EventForm() {
   const form = useForm<z.infer<typeof eventFormSchema>>({
@@ -31,7 +35,10 @@ export function EventForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)}>
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex gap-6 flex-col"
+      >
         <FormField
           control={form.control}
           name="name"
@@ -48,6 +55,67 @@ export function EventForm() {
             </FormItem>
           )}
         />
+
+        <FormField
+          control={form.control}
+          name="durationInMinutes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Duration</FormLabel>
+              <FormControl>
+                <Input type="number" {...field} />
+              </FormControl>
+              <FormDescription>In minutes</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Duration</FormLabel>
+              <FormControl>
+                <Textarea className="resize-none h-32" {...field} />
+              </FormControl>
+              <FormDescription>
+                Optinal description of the event
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="isActive"
+          render={({ field }) => (
+            <FormItem>
+              <div className="flex items-center gap-2">
+                <FormControl>
+                  <Switch
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <FormLabel>Active</FormLabel>
+              </div>
+              <FormDescription>
+                Inactive events will not be visable for the users to book
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end gap-4">
+          <Button type="button" asChild variant="outline">
+            <Link href="/events">Cancel</Link>
+          </Button>
+          <Button type="submit">Save</Button>
+        </div>
       </form>
     </Form>
   );
