@@ -1,5 +1,4 @@
 import { DAYS_OF_WEEK_In_ORDER } from "@/app/data/constants"; // Importing constants for days of the week
-import { table } from "console"; // Unused import, can be removed
 import { relations } from "drizzle-orm"; // Importing relations for defining relationships between tables
 import {
   boolean,
@@ -10,6 +9,9 @@ import {
   text,
   timestamp,
   uuid,
+  serial,
+  varchar,
+  jsonb,
 } from "drizzle-orm/pg-core"; // Importing types for defining table columns
 
 // Define a timestamp for when records are created
@@ -82,3 +84,18 @@ export const ScheduleAvailabilityRelations = relations(
     }),
   })
 );
+
+// The auditLogs table captures all necessary information for HIPAA compliance,
+// including who performed an action, what action was taken, on which resource, and from where.
+export const auditLogs = pgTable("audit_logs", {
+  id: serial("id").primaryKey(),
+  clerkUserId: text("clerkUserId").notNull().unique(),
+  action: varchar("action", { length: 50 }).notNull(),
+  resourceType: varchar("resource_type", { length: 50 }).notNull(),
+  resourceId: varchar("resource_id", { length: 255 }),
+  oldValues: jsonb("old_values"),
+  newValues: jsonb("new_values"),
+  ipAddress: varchar("ip_address", { length: 45 }),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
