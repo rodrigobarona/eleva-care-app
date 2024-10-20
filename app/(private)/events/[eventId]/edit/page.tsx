@@ -2,6 +2,7 @@ import { EventForm } from "@/components/molecules/EventForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/drizzle/db";
 import { auth } from "@clerk/nextjs/server";
+import { notFound } from "next/navigation";
 import React from "react";
 
 export default async function EditEventPage({
@@ -18,13 +19,17 @@ export default async function EditEventPage({
       and(eq(clerkUserId, userId), eq(id, eventId)),
   });
 
+  if (event == null) return notFound();
+
   return (
     <Card className="max-w-md max-auto">
       <CardHeader>
         <CardTitle>Edit Event</CardTitle>
       </CardHeader>
       <CardContent>
-        <EventForm event={event} />
+        <EventForm
+          event={{ ...event, description: event.description || undefined }}
+        />
       </CardContent>
     </Card>
   );
