@@ -17,7 +17,7 @@ export function NavLink({ className, ...props }: ComponentProps<typeof Link>) {
         isActive
           ? "text-foreground"
           : "text-muted-foreground hover:text-foreground",
-        className
+        className,
       )}
     />
   );

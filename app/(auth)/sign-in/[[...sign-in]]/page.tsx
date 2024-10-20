@@ -22,7 +22,7 @@ export default function SignInPage() {
       <SignIn.Root>
         <Clerk.Loading>
           {(
-            isGlobalLoading: boolean // Explicitly typing isGlobalLoading as boolean
+            isGlobalLoading: boolean, // Explicitly typing isGlobalLoading as boolean
           ) => (
             <>
               <SignIn.Step name="start">
@@ -65,7 +65,7 @@ export default function SignInPage() {
                         >
                           <Clerk.Loading scope="provider:google">
                             {(
-                              isLoading: boolean // Explicitly typing isLoading as boolean
+                              isLoading: boolean, // Explicitly typing isLoading as boolean
                             ) =>
                               isLoading ? (
                                 <Icons.spinner className="size-4 animate-spin" />

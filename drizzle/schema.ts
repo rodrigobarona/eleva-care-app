@@ -37,7 +37,7 @@ export const EventTable = pgTable(
   },
   (table) => ({
     clerkUserIdIndex: index("clerkUserIdIndex").on(table.clerkUserId), // Index for quick lookup by clerkUserId
-  })
+  }),
 );
 
 // Schedule Table Definition
@@ -70,7 +70,7 @@ export const ScheduleAvailabilityTable = pgTable(
   },
   (table) => ({
     scheduleIdIndex: index("scheduleIdIndex").on(table.scheduleId), // Index for quick lookup by scheduleId
-  })
+  }),
 );
 
 // Define relationships for ScheduleAvailabilityTable
@@ -82,7 +82,7 @@ export const ScheduleAvailabilityRelations = relations(
       fields: [ScheduleAvailabilityTable.scheduleId], // Field in ScheduleAvailabilityTable
       references: [ScheduleTable.id], // Reference to the id in ScheduleTable
     }),
-  })
+  }),
 );
 
 // The auditLogs table captures all necessary information for HIPAA compliance,
