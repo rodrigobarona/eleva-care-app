@@ -1,0 +1,31 @@
+import { EventForm } from "@/components/molecules/EventForm";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { db } from "@/drizzle/db";
+import { auth } from "@clerk/nextjs/server";
+import React from "react";
+
+export default async function EditEventPage({
+  params: { eventId },
+}: {
+  params: { eventId: string };
+}) {
+  const { userId, redirectToSignIn } = auth();
+
+  if (userId == null) return redirectToSignIn();
+
+  const event = await db.query.EventTable.findFirst({
+    where: ({ id, clerkUserId }, { and, eq }) =>
+      and(eq(clerkUserId, userId), eq(id, eventId)),
+  });
+
+  return (
+    <Card className="max-w-md max-auto">
+      <CardHeader>
+        <CardTitle>Edit Event</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <EventForm event={event} />
+      </CardContent>
+    </Card>
+  );
+}
