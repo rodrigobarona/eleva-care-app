@@ -16,6 +16,8 @@ import { CalendarPlus, CalendarRange } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 
+export const revalidate = 0;
+
 export default async function EventsPage() {
   const { userId, redirectToSignIn } = auth();
 
