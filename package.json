@@ -42,6 +42,8 @@
     "@types/node": "^22.7.6",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.1",
+    "@typescript-eslint/eslint-plugin": "^8.10.0",
+    "@typescript-eslint/parser": "^8.10.0",
     "drizzle-kit": "^0.26.2",
     "eslint": "^8.0.0",
     "eslint-config-prettier": "^9.1.0",

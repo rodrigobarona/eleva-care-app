@@ -14,6 +14,7 @@ module.exports = {
     sourceType: "module",
   },
   rules: {
-    // Add your custom ESLint rules here
+    "react/prop-types": "off",
+    "@typescript-eslint/no-empty-interface": "off",
   },
 };

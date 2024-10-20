@@ -1,5 +1,5 @@
 "use client";
-
+import React from "react";
 import { useState } from "react";
 import { Button, ButtonProps } from "../ui/button";
 import { Copy, CopyCheck, CopyX } from "lucide-react";
