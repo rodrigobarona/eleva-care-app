@@ -122,7 +122,7 @@ export function EventForm() {
           )}
         />
 
-        <div className="flex justify-end gap-4">
+        <div className="flex justify-end gap-2">
           <Button type="button" asChild variant="outline">
             <Link href="/events">Cancel</Link>
           </Button>
