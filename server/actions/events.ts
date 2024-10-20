@@ -105,3 +105,54 @@ export async function updateEvent(
 
   redirect("/events");
 }
+
+// DELETE EVENT
+export async function deleteEvent(
+  id: string,
+  unsafeData: z.infer<typeof eventFormSchema>
+): Promise<{ error: boolean } | undefined> {
+  const { userId } = auth();
+  const headersList = headers();
+
+  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
+  const userAgent = headersList.get("user-agent") ?? "Unknown";
+
+  if (userId == null) {
+    return { error: true };
+  }
+
+  // Step 1: Retrieve old values before the update
+  const [oldEvent] = await db
+    .select()
+    .from(EventTable)
+    .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
+    .execute(); // Ensure to execute the query to get the old values
+
+  if (!oldEvent) {
+    return { error: true }; // Event not found
+  }
+
+  // Step 2: Update the event with new values
+  const [deletedEvent] = await db
+    .delete(EventTable)
+    .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
+    .returning({ id: EventTable.id, userId: EventTable.clerkUserId });
+
+  if (!deletedEvent) {
+    return { error: true };
+  }
+
+  await logAuditEvent(
+    db,
+    deletedEvent.userId,
+    "delete",
+    "events",
+    deletedEvent.id,
+    oldEvent, // Pass the old values here
+    null,
+    ipAddress,
+    userAgent
+  );
+
+  redirect("/events");
+}
