@@ -1,7 +1,7 @@
 import React from "react";
 import { ReactNode } from "react";
 import { Leaf } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
+import { OrganizationSwitcher, UserButton } from "@clerk/nextjs";
 import { NavLink } from "@/components/atoms/NavLink";
 
 export default function PrivateLayout({ children }: { children: ReactNode }) {
@@ -15,10 +15,15 @@ export default function PrivateLayout({ children }: { children: ReactNode }) {
           </div>
           <NavLink href="/events">Events</NavLink>
           <NavLink href="/schedule">Schedule</NavLink>
-          <div className="ml-auto size-10">
-            <UserButton
-              appearance={{ elements: { userButtonAvatarBox: "size-full" } }}
-            />
+          <div className="ml-auto flex flex-row gap-4 items-center ">
+            <div className=" flex-1">
+              <OrganizationSwitcher hidePersonal={true} />
+            </div>
+            <div className="size-10 flex-1">
+              <UserButton
+                appearance={{ elements: { userButtonAvatarBox: "size-full" } }}
+              />
+            </div>
           </div>
         </nav>
       </header>

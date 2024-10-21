@@ -24,14 +24,17 @@ export default function OnboardingPage() {
   const [isUpdating, setIsUpdating] = useState(false);
   const [step, setStep] = useState(1);
 
+  // Ensure that user and organization list are loaded before rendering
   if (!isUserLoaded || !isOrgLoaded) {
     return <div>Loading...</div>;
   }
 
+  // Redirect user if not signed in
   if (!user) {
     redirect("/sign-in");
   }
 
+  // Handle profile update
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUpdating(true);
@@ -40,7 +43,7 @@ export default function OnboardingPage() {
         firstName,
         lastName,
       });
-      setStep(2);
+      setStep(2); // Move to the organization creation step
     } catch (error) {
       console.error("Error updating profile:", error);
     } finally {
@@ -48,13 +51,14 @@ export default function OnboardingPage() {
     }
   };
 
+  // Handle organization creation
   const handleCreateOrganization = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsUpdating(true);
     try {
       const organization = await createOrganization({ name: orgName });
       if (organization) {
-        redirect("/dashboard");
+        redirect("/islogedin"); // Redirect to dashboard after organization creation
       }
     } catch (error) {
       console.error("Error creating organization:", error);
