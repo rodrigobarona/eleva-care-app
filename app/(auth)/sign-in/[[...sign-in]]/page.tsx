@@ -1,4 +1,5 @@
 "use client";
+
 import React from "react";
 import * as Clerk from "@clerk/elements/common";
 import * as SignIn from "@clerk/elements/sign-in";
@@ -26,21 +27,13 @@ export default function SignInPage() {
               <SignIn.Step name="start">
                 <Card className="w-full sm:w-96">
                   <CardHeader>
-                    <CardTitle>Sign in to Acme Co</CardTitle>
+                    <CardTitle>Sign in to Eleva Care</CardTitle>
                     <CardDescription>
                       Welcome back! Please sign in to continue
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="grid gap-y-4">
                     <div className="grid grid-cols-1">
-                      <Clerk.Connection name="github" asChild>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          type="button"
-                          disabled={isGlobalLoading}
-                        >
-                          
                       <Clerk.Connection name="google" asChild>
                         <Button
                           size="sm"
@@ -55,7 +48,7 @@ export default function SignInPage() {
                               ) : (
                                 <>
                                   <Icons.google className="mr-2 size-4" />
-                                  Sign-up with Google
+                                  Sing in with Google
                                 </>
                               )
                             }

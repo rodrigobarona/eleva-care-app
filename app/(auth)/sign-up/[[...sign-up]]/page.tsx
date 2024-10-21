@@ -48,7 +48,7 @@ export default function SignUpPage() {
                               ) : (
                                 <>
                                   <Icons.google className="mr-2 size-4" />
-                                  Google
+                                  Sign up with Google
                                 </>
                               )
                             }
