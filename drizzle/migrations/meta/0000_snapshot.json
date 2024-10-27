@@ -1,5 +1,5 @@
 {
-  "id": "6c9c1877-e421-406c-96fa-6d15c6fde38c",
+  "id": "b366e148-d1b9-44ab-85c1-a650348ccd9f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -83,8 +83,8 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "public.scheduleAvailabities": {
-      "name": "scheduleAvailabities",
+    "public.scheduleAvailabilities": {
+      "name": "scheduleAvailabilities",
       "schema": "",
       "columns": {
         "id": {
@@ -102,6 +102,12 @@
         },
         "startTime": {
           "name": "startTime",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "endTime": {
+          "name": "endTime",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -132,12 +138,16 @@
         }
       },
       "foreignKeys": {
-        "scheduleAvailabities_scheduleId_schedules_id_fk": {
-          "name": "scheduleAvailabities_scheduleId_schedules_id_fk",
-          "tableFrom": "scheduleAvailabities",
+        "scheduleAvailabilities_scheduleId_schedules_id_fk": {
+          "name": "scheduleAvailabilities_scheduleId_schedules_id_fk",
+          "tableFrom": "scheduleAvailabilities",
           "tableTo": "schedules",
-          "columnsFrom": ["scheduleId"],
-          "columnsTo": ["id"],
+          "columnsFrom": [
+            "scheduleId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -191,9 +201,83 @@
         "schedules_clerkUserId_unique": {
           "name": "schedules_clerkUserId_unique",
           "nullsNotDistinct": false,
-          "columns": ["clerkUserId"]
+          "columns": [
+            "clerkUserId"
+          ]
         }
       },
+      "checkConstraints": {}
+    },
+    "public.audit_logs": {
+      "name": "audit_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "clerkUserId": {
+          "name": "clerkUserId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_type": {
+          "name": "resource_type",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resource_id": {
+          "name": "resource_id",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "old_values": {
+          "name": "old_values",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "new_values": {
+          "name": "new_values",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ip_address": {
+          "name": "ip_address",
+          "type": "varchar(45)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "user_agent": {
+          "name": "user_agent",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
       "checkConstraints": {}
     }
   },

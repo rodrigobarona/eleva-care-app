@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1729238263447,
-      "tag": "0000_worried_golden_guardian",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1729399142768,
-      "tag": "0001_short_gertrude_yorkes",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1729422734456,
-      "tag": "0002_large_marauders",
+      "when": 1730072408412,
+      "tag": "0000_aspiring_mysterio",
       "breakpoints": true
     }
   ]

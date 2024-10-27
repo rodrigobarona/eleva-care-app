@@ -1,5 +1,5 @@
-import { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants"; // Importing constants for days of the week
-import { relations } from "drizzle-orm"; // Importing relations for defining relationships between tables
+import { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants";
+import { relations } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -12,75 +12,67 @@ import {
   serial,
   varchar,
   jsonb,
-} from "drizzle-orm/pg-core"; // Importing types for defining table columns
+} from "drizzle-orm/pg-core";
 
-// Define a timestamp for when records are created
 const createdAt = timestamp("createdAt").notNull().defaultNow();
-// Define a timestamp for when records are updated, with automatic updates
 const updatedAt = timestamp("updatedAt")
   .notNull()
   .defaultNow()
   .$onUpdate(() => new Date());
 
-// Events Table Definition
 export const EventTable = pgTable(
-  "events", // Name of the table
+  "events",
   {
-    id: uuid("id").primaryKey().defaultRandom(), // Unique identifier for each event
-    name: text("name").notNull(), // Name of the event
-    description: text("description"), // Description of the event
-    durationInMinutes: integer("durationInMinutes").notNull(), // Duration of the event in minutes
-    clerkUserId: text("clerkUserId").notNull(), // ID of the user managing the event
-    isActive: boolean("isActive").notNull().default(true), // Status of the event (active/inactive)
-    createdAt, // Timestamp for creation
-    updatedAt, // Timestamp for last update
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    description: text("description"),
+    durationInMinutes: integer("durationInMinutes").notNull(),
+    clerkUserId: text("clerkUserId").notNull(),
+    isActive: boolean("isActive").notNull().default(true),
+    createdAt,
+    updatedAt,
   },
   (table) => ({
-    clerkUserIdIndex: index("clerkUserIdIndex").on(table.clerkUserId), // Index for quick lookup by clerkUserId
+    clerkUserIdIndex: index("clerkUserIdIndex").on(table.clerkUserId),
   })
 );
 
-// Schedule Table Definition
 export const ScheduleTable = pgTable("schedules", {
-  id: uuid("id").primaryKey().defaultRandom(), // Unique identifier for each schedule
-  timezone: text("timezone").notNull(), // Timezone for the schedule
-  clerkUserId: text("clerkUserId").notNull().unique(), // Unique ID of the user associated with the schedule
-  createdAt, // Timestamp for creation
-  updatedAt, // Timestamp for last update
+  id: uuid("id").primaryKey().defaultRandom(),
+  timezone: text("timezone").notNull(),
+  clerkUserId: text("clerkUserId").notNull().unique(),
+  createdAt,
+  updatedAt,
 });
 
-// Define relationships: Every ScheduleTable has many relations with ScheduleAvailabilityTable
 export const scheduleRelations = relations(ScheduleTable, ({ many }) => ({
-  availabilities: many(ScheduleAvailabilityTable), // One schedule can have many availabilities
+  availabilities: many(ScheduleAvailabilityTable),
 }));
 
-// Enum for days of the week
 export const scheduleDayOfWeekEnum = pgEnum("day", DAYS_OF_WEEK_IN_ORDER);
 
-// Schedule Availability Table Definition
 export const ScheduleAvailabilityTable = pgTable(
-  "scheduleAvailabities", // Name of the table (note: typo in "Availabities")
+  "scheduleAvailabilities",
   {
-    id: uuid("id").primaryKey().defaultRandom(), // Unique identifier for each availability
+    id: uuid("id").primaryKey().defaultRandom(),
     scheduleId: uuid("scheduleId")
       .notNull()
-      .references(() => ScheduleTable.id, { onDelete: "cascade" }), // Foreign key referencing ScheduleTable
-    startTime: text("startTime").notNull(), // Start time of the availability
-    dayOfWeek: scheduleDayOfWeekEnum("dayOfWeek").notNull(), // Day of the week for the availability
+      .references(() => ScheduleTable.id, { onDelete: "cascade" }),
+    startTime: text("startTime").notNull(),
+    endTime: text("endTime").notNull(),
+    dayOfWeek: scheduleDayOfWeekEnum("dayOfWeek").notNull(),
   },
   (table) => ({
-    scheduleIdIndex: index("scheduleIdIndex").on(table.scheduleId), // Index for quick lookup by scheduleId
+    scheduleIdIndex: index("scheduleIdIndex").on(table.scheduleId),
   })
 );
 
-// Define relationships for ScheduleAvailabilityTable
 export const ScheduleAvailabilityRelations = relations(
   ScheduleAvailabilityTable,
   ({ one }) => ({
-    schecule: one(ScheduleTable, {
-      // Relationship to ScheduleTable
-      fields: [ScheduleAvailabilityTable.scheduleId], // Field in ScheduleAvailabilityTable
-      references: [ScheduleTable.id], // Reference to the id in ScheduleTable
+    schedule: one(ScheduleTable, {
+      fields: [ScheduleAvailabilityTable.scheduleId],
+      references: [ScheduleTable.id],
     }),
   })
 );
