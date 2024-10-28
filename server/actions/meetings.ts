@@ -27,51 +27,38 @@ export async function createMeeting(
   });
 
   if (event == null) return { error: true };
+  const startInTimezone = fromZonedTime(data.startTime, data.timezone);
 
-  try {
-    const startInTimezone = fromZonedTime(data.startTime, data.timezone);
-    if (!(startInTimezone instanceof Date) || isNaN(startInTimezone.getTime())) {
-      console.error("Invalid date after timezone conversion", {
-        originalDate: data.startTime,
-        timezone: data.timezone
-      });
-      return { error: true };
-    }
+  const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
+  if (validTimes.length === 0) return { error: true };
 
-    const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
-    if (validTimes.length === 0) return { error: true };
+  const headersList = headers();
 
-    const headersList = headers();
+  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
+  const userAgent = headersList.get("user-agent") ?? "Unknown";
 
-    const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
-    const userAgent = headersList.get("user-agent") ?? "Unknown";
+  await createCalendarEvent({
+    ...data,
+    startTime: startInTimezone,
+    durationInMinutes: event.durationInMinutes,
+    eventName: event.name,
+  });
 
-    await createCalendarEvent({
-      ...data,
-      startTime: startInTimezone,
-      durationInMinutes: event.durationInMinutes,
-      eventName: event.name,
-    });
+  // Log the audit event for meeting creation
+  await logAuditEvent(
+    data.clerkUserId, // User ID (related to the clerk user)
+    "create", // Action type (creating a new meeting)
+    "meetings", // Table name for audit logging
+    data.eventId, // Event ID (foreign key for the event)
+    null, // Previous data (none in this case)
+    { ...data }, // Current data to log
+    ipAddress, // IP address of the user
+    userAgent // User agent for the audit log
+  );
 
-    // Log the audit event for meeting creation
-    await logAuditEvent(
-      data.clerkUserId, // User ID (related to the clerk user)
-      "create", // Action type (creating a new meeting)
-      "meetings", // Table name for audit logging
-      data.eventId, // Event ID (foreign key for the event)
-      null, // Previous data (none in this case)
-      { ...data }, // Current data to log
-      ipAddress, // IP address of the user
-      userAgent // User agent for the audit log
-    );
-
-    redirect(
-      `/book/${data.clerkUserId}/${
-        data.eventId
-      }/success?startTime=${data.startTime.toISOString()}`
-    );
-  } catch (error) {
-    console.error("Error creating meeting", error);
-    return { error: true };
-  }
+  redirect(
+    `/book/${data.clerkUserId}/${
+      data.eventId
+    }/success?startTime=${data.startTime.toISOString()}`
+  );
 }
