@@ -5,7 +5,7 @@ import { addMinutes, endOfDay, startOfDay } from "date-fns";
 
 export async function getCalendarEventTimes(
   clerkUserId: string,
-  { start, end }: { start: Date; end: Date }
+  { start, end }: { start: Date; end: Date },
 ) {
   const oAuthClient = await getOAuthClient(clerkUserId);
 
@@ -93,7 +93,7 @@ export async function createCalendarEvent({
 async function getOAuthClient(clerkUserId: string) {
   const token = await clerkClient().users.getUserOauthAccessToken(
     clerkUserId,
-    "oauth_google"
+    "oauth_google",
   );
 
   if (token.data.length === 0 || token.data[0].token == null) {
@@ -103,7 +103,7 @@ async function getOAuthClient(clerkUserId: string) {
   const client = new google.auth.OAuth2(
     process.env.GOOGLE_OAUTH_CLIENT_ID,
     process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-    process.env.GOOGLE_OAUTH_REDIRECT_URL
+    process.env.GOOGLE_OAUTH_REDIRECT_URL,
   );
 
   client.setCredentials({ access_token: token.data[0].token });

@@ -56,7 +56,7 @@ export default async function BookEventPage({
   // Creates 15-minute intervals and filters them based on schedule
   const validTimes = await getValidTimesFromSchedule(
     eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-    event
+    event,
   );
 
   // If no time slots are available, show the NoTimeSlots component

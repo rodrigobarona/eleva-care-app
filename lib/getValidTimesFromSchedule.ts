@@ -21,7 +21,7 @@ import { fromZonedTime } from "date-fns-tz"; // Utility for converting to zoned 
 // Main function to retrieve valid booking times based on schedule and availability
 export async function getValidTimesFromSchedule(
   timesInOrder: Date[], // Ordered list of potential times for booking
-  event: { clerkUserId: string; durationInMinutes: number } // Event details (user ID and duration)
+  event: { clerkUserId: string; durationInMinutes: number }, // Event details (user ID and duration)
 ) {
   // Determine the start and end of the time range we're checking for availability
   const start = timesInOrder[0];
@@ -41,7 +41,7 @@ export async function getValidTimesFromSchedule(
   // Group availabilities by day of the week for easy access
   const groupedAvailabilities = Object.groupBy(
     schedule.availabilities,
-    (a) => a.dayOfWeek
+    (a) => a.dayOfWeek,
   );
 
   // Get existing calendar events for the user within the specified date range
@@ -56,7 +56,7 @@ export async function getValidTimesFromSchedule(
     const availabilities = getAvailabilities(
       groupedAvailabilities,
       intervalDate,
-      schedule.timezone
+      schedule.timezone,
     );
 
     // Define the time interval for the current event
@@ -89,7 +89,7 @@ function getAvailabilities(
     >
   >,
   date: Date, // The specific date we're checking availability for
-  timezone: string // User's timezone for adjusting times
+  timezone: string, // User's timezone for adjusting times
 ) {
   let availabilities:
     | (typeof ScheduleAvailabilityTable.$inferSelect)[]
@@ -127,18 +127,18 @@ function getAvailabilities(
     const start = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(startTime.split(":")[0])),
-        parseInt(startTime.split(":")[1])
+        parseInt(startTime.split(":")[1]),
       ),
-      timezone
+      timezone,
     );
 
     // Set the end time similarly
     const end = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(endTime.split(":")[0])),
-        parseInt(endTime.split(":")[1])
+        parseInt(endTime.split(":")[1]),
       ),
-      timezone
+      timezone,
     );
 
     // Return the start and end as a time interval object

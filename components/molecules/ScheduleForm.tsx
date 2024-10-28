@@ -7,14 +7,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Button } from "../ui/button";
-import { createEvent, deleteEvent, updateEvent } from "@/server/actions/events";
 import { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants";
 import { scheduleFormSchema } from "@/schema/schedule";
 import { timeToInt } from "@/lib/utils";
@@ -65,7 +63,7 @@ export function ScheduleForm({
 
   const groupedAvailabilityFields = Object.groupBy(
     availabilityFields.map((field, index) => ({ ...field, index })),
-    (availability) => availability.dayOfWeek
+    (availability) => availability.dayOfWeek,
   );
 
   async function onSubmit(values: z.infer<typeof scheduleFormSchema>) {
@@ -192,26 +190,26 @@ export function ScheduleForm({
                       <FormMessage>
                         {
                           form.formState.errors.availabilities?.at?.(
-                            field.index
+                            field.index,
                           )?.root?.message
                         }
                       </FormMessage>
                       <FormMessage>
                         {
                           form.formState.errors.availabilities?.at?.(
-                            field.index
+                            field.index,
                           )?.startTime?.message
                         }
                       </FormMessage>
                       <FormMessage>
                         {
                           form.formState.errors.availabilities?.at?.(
-                            field.index
+                            field.index,
                           )?.endTime?.message
                         }
                       </FormMessage>
                     </div>
-                  )
+                  ),
                 )}
               </div>
             </Fragment>

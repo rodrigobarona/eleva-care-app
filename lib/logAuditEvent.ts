@@ -10,7 +10,7 @@ export async function logAuditEvent(
   oldValues: Record<string, unknown> | null,
   newValues: Record<string, unknown> | string,
   ipAddress: string,
-  userAgent: string
+  userAgent: string,
 ) {
   await db.insert(auditLogs).values({
     clerkUserId,
