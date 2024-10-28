@@ -40,19 +40,22 @@ export async function createMeeting(
   }
 
   // Convert the start time to DB timezone first
-  const dbStartTime = toZonedTime(data.startTime, "Europe/Frankfurt");
-
-  // Add validation to ensure we have a valid date
-  if (!(dbStartTime instanceof Date) || isNaN(dbStartTime.getTime())) {
-    console.log("Debug: Invalid date conversion", {
+  let dbStartTime;
+  try {
+    dbStartTime = toZonedTime(data.startTime, "Europe/Frankfurt");
+    if (!(dbStartTime instanceof Date) || isNaN(dbStartTime.getTime())) {
+      throw new Error("Invalid date after conversion");
+    }
+  } catch (error) {
+    console.log("Debug: Date conversion failed", {
       originalTime: data.startTime,
-      convertedTime: dbStartTime,
+      error: error.message
     });
     return { error: true };
   }
 
   console.log("Debug: Time zones", {
-    originalTime: data.startTime.toISOString(),
+    originalTime: data.startTime instanceof Date ? data.startTime.toISOString() : 'invalid date',
     dbTime: dbStartTime.toISOString(),
     userTimezone: data.timezone,
     dbTimezone: "Europe/Frankfurt",
@@ -60,6 +63,11 @@ export async function createMeeting(
 
   // Generate a range of times around the selected time for validation
   const timeToCheck = new Date(dbStartTime);
+  if (!(timeToCheck instanceof Date) || isNaN(timeToCheck.getTime())) {
+    console.log("Debug: Invalid timeToCheck");
+    return { error: true };
+  }
+
   console.log("Debug: Checking time validity", {
     timeToCheck: timeToCheck.toISOString(),
     eventDuration: event.durationInMinutes,
@@ -102,10 +110,15 @@ export async function createMeeting(
     userAgent, // User agent for the audit log
   );
 
-  // Redirect to success page with the start time of the meeting
-  const safeStartTime = data.startTime instanceof Date && !isNaN(data.startTime.getTime())
-    ? data.startTime.toISOString()
-    : '';
+  // For the redirect URL, ensure we have a valid date string
+  let safeStartTime = '';
+  try {
+    if (data.startTime instanceof Date && !isNaN(data.startTime.getTime())) {
+      safeStartTime = data.startTime.toISOString();
+    }
+  } catch (error) {
+    console.log("Debug: Failed to create safe start time", error);
+  }
 
   redirect(
     `/book/${data.clerkUserId}/${data.eventId}/success?startTime=${safeStartTime}`,
