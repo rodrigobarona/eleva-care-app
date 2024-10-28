@@ -103,9 +103,11 @@ export async function createMeeting(
   );
 
   // Redirect to success page with the start time of the meeting
+  const safeStartTime = data.startTime instanceof Date && !isNaN(data.startTime.getTime())
+    ? data.startTime.toISOString()
+    : '';
+
   redirect(
-    `/book/${data.clerkUserId}/${
-      data.eventId
-    }/success?startTime=${data.startTime.toISOString()}`,
+    `/book/${data.clerkUserId}/${data.eventId}/success?startTime=${safeStartTime}`,
   );
 }
