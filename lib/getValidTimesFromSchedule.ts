@@ -16,7 +16,7 @@ import {
   setHours,
   setMinutes,
 } from "date-fns"; // Date utility functions for managing times and intervals
-import { fromZonedTime } from "date-fns-tz"; // Utility for converting to zoned times
+import { fromZonedTime, zonedTimeToUtc, utcToZonedTime } from "date-fns-tz"; // Utility for converting to zoned times
 
 // Add this helper function at the top of the file
 function groupBy<T>(
@@ -39,6 +39,12 @@ export async function getValidTimesFromSchedule(
   timesInOrder: Date[], // Ordered list of potential times for booking
   event: { clerkUserId: string; durationInMinutes: number }, // Event details (user ID and duration)
 ) {
+  console.log('Debug: Environment', {
+    nodeEnv: process.env.NODE_ENV,
+    serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    dbTimezone: 'Europe/Frankfurt',  // Neon DB timezone
+  });
+
   // Determine the start and end of the time range we're checking for availability
   const start = timesInOrder[0];
   const end = timesInOrder.at(-1);
@@ -66,6 +72,18 @@ export async function getValidTimesFromSchedule(
 
   if (schedule == null) return []; // If no schedule found, return an empty list
 
+  // Convert times to DB timezone
+  const dbStart = utcToZonedTime(start, 'Europe/Frankfurt');
+  const dbEnd = utcToZonedTime(end, 'Europe/Frankfurt');
+
+  console.log('Debug: Time conversions', {
+    originalStart: start.toISOString(),
+    originalEnd: end.toISOString(),
+    dbStart: dbStart.toISOString(),
+    dbEnd: dbEnd.toISOString(),
+    scheduleTimezone: schedule.timezone
+  });
+
   // Group availabilities by day of the week for easy access
   const groupedAvailabilities = groupBy(
     schedule.availabilities,
@@ -75,7 +93,7 @@ export async function getValidTimesFromSchedule(
   // Add more detailed logging
   const availabilities = getAvailabilities(
     groupedAvailabilities,
-    start,
+    dbStart,
     schedule.timezone,
   );
 
@@ -89,23 +107,23 @@ export async function getValidTimesFromSchedule(
 
   // Get existing calendar events for the user within the specified date range
   const eventTimes = await getCalendarEventTimes(event.clerkUserId, {
-    start,
-    end,
+    start: dbStart,
+    end: dbEnd,
   });
 
   // Filter the times to include only those that fit within availability and don’t overlap events
   return timesInOrder.filter((intervalDate) => {
-    // Get the availabilities for the specific date
+    const dbIntervalDate = utcToZonedTime(intervalDate, 'Europe/Frankfurt');
     const availabilities = getAvailabilities(
       groupedAvailabilities,
-      intervalDate,
-      schedule.timezone,
+      dbIntervalDate,
+      schedule.timezone
     );
 
     // Define the time interval for the current event
     const eventInterval = {
-      start: intervalDate,
-      end: addMinutes(intervalDate, event.durationInMinutes),
+      start: dbIntervalDate,
+      end: addMinutes(dbIntervalDate, event.durationInMinutes),
     };
 
     // Return true only if no events overlap and the interval fits within availability

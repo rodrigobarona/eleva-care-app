@@ -8,7 +8,7 @@ import "use-server";
 import { z } from "zod";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { fromZonedTime } from "date-fns-tz";
+import { fromZonedTime, utcToZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>,
@@ -39,17 +39,18 @@ export async function createMeeting(
     return { error: true };
   }
 
-  // Convert the start time to the specified timezone
-  const startInTimezone = fromZonedTime(data.startTime, data.timezone);
-
-  console.log("Debug: Time conversion", {
-    original: data.startTime.toISOString(),
-    converted: startInTimezone.toISOString(),
-    timezone: data.timezone,
+  // Convert the start time to DB timezone first
+  const dbStartTime = utcToZonedTime(data.startTime, 'Europe/Frankfurt');
+  
+  console.log('Debug: Time zones', {
+    originalTime: data.startTime.toISOString(),
+    dbTime: dbStartTime.toISOString(),
+    userTimezone: data.timezone,
+    dbTimezone: 'Europe/Frankfurt'
   });
 
   // Generate a range of times around the selected time for validation
-  const timeToCheck = new Date(startInTimezone);
+  const timeToCheck = new Date(dbStartTime);
   console.log("Debug: Checking time validity", {
     timeToCheck: timeToCheck.toISOString(),
     eventDuration: event.durationInMinutes,
@@ -75,7 +76,7 @@ export async function createMeeting(
   // Create a new calendar event
   await createCalendarEvent({
     ...data,
-    startTime: startInTimezone,
+    startTime: dbStartTime,
     durationInMinutes: event.durationInMinutes,
     eventName: event.name,
   });
