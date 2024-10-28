@@ -18,10 +18,26 @@ import {
 } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
 
+function groupBy<T>(arr: T[], key: (item: T) => string): Record<string, T[]> {
+  return arr.reduce((acc, item) => {
+    const groupKey = key(item);
+    if (!acc[groupKey]) {
+      acc[groupKey] = [];
+    }
+    acc[groupKey].push(item);
+    return acc;
+  }, {} as Record<string, T[]>);
+}
+
 export async function getValidTimesFromSchedule(
   timesInOrder: Date[],
   event: { clerkUserId: string; durationInMinutes: number },
 ) {
+  // Validate input dates
+  timesInOrder = timesInOrder.filter(date => 
+    date instanceof Date && !isNaN(date.getTime())
+  );
+  
   const start = timesInOrder[0];
   const end = timesInOrder.at(-1);
 
@@ -35,7 +51,7 @@ export async function getValidTimesFromSchedule(
 
   if (schedule == null) return [];
 
-  const groupedAvailabilities = Object.groupBy(
+  const groupedAvailabilities = groupBy(
     schedule.availabilities,
     (a) => a.dayOfWeek,
   );

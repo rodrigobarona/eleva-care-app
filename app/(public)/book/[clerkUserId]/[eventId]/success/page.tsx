@@ -28,7 +28,16 @@ export default async function SuccessPage({
   if (event == null) notFound();
 
   const calendarUser = await clerkClient().users.getUser(clerkUserId);
-  const startTimeDate = new Date(startTime);
+
+  let startTimeDate;
+  try {
+    startTimeDate = new Date(startTime);
+    if (isNaN(startTimeDate.getTime())) {
+      throw new Error('Invalid date');
+    }
+  } catch (error) {
+    return notFound();
+  }
 
   return (
     <Card className="max-w-xl mx-auto">
