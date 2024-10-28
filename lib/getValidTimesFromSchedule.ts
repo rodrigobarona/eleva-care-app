@@ -36,12 +36,17 @@ function groupBy<T>(
 
 // Main function to retrieve valid booking times based on schedule and availability
 export async function getValidTimesFromSchedule(
-  timesInOrder: Date[], // Ordered list of potential times for booking
-  event: { clerkUserId: string; durationInMinutes: number } // Event details (user ID and duration)
+  possibleTimes: Date[],
+  event: any,
 ) {
+  console.log('Server timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+  console.log('First possible time:', possibleTimes[0]);
+  console.log('Last possible time:', possibleTimes[possibleTimes.length - 1]);
+  console.log('Event:', JSON.stringify(event, null, 2));
+  
   // Determine the start and end of the time range we're checking for availability
-  const start = timesInOrder[0];
-  const end = timesInOrder.at(-1);
+  const start = possibleTimes[0];
+  const end = possibleTimes.at(-1);
 
   if (start == null || end == null) return []; // If no start or end, return an empty list
 
@@ -67,7 +72,7 @@ export async function getValidTimesFromSchedule(
   });
 
   // Filter the times to include only those that fit within availability and don’t overlap events
-  return timesInOrder.filter((intervalDate) => {
+  return possibleTimes.filter((intervalDate) => {
     // Get the availabilities for the specific date
     const availabilities = getAvailabilities(
       groupedAvailabilities,
