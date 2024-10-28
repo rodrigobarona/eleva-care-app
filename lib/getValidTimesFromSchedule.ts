@@ -39,72 +39,61 @@ export async function getValidTimesFromSchedule(
   timesInOrder: Date[], // Ordered list of potential times for booking
   event: { clerkUserId: string; durationInMinutes: number } // Event details (user ID and duration)
 ) {
-  try {
-    // Determine the start and end of the time range we're checking for availability
-    const start = timesInOrder[0];
-    const end = timesInOrder.at(-1);
+  // Determine the start and end of the time range we're checking for availability
+  const start = timesInOrder[0];
+  const end = timesInOrder.at(-1);
 
-    if (start == null || end == null) {
-      console.error("Invalid time range provided");
-      return [];
-    } // If no start or end, return an empty list
+  if (start == null || end == null) return []; // If no start or end, return an empty list
 
-    // Fetch the user's schedule and associated availabilities from the database
-    const schedule = await db.query.ScheduleTable.findFirst({
-      where: ({ clerkUserId: userIdCol }, { eq }) =>
-        eq(userIdCol, event.clerkUserId),
-      with: { availabilities: true },
-    });
+  // Fetch the user's schedule and associated availabilities from the database
+  const schedule = await db.query.ScheduleTable.findFirst({
+    where: ({ clerkUserId: userIdCol }, { eq }) =>
+      eq(userIdCol, event.clerkUserId),
+    with: { availabilities: true },
+  });
 
-    if (schedule == null) {
-      console.error("No schedule found for user:", event.clerkUserId);
-      return [];
-    } // If no schedule found, return an empty list
+  if (schedule == null) return []; // If no schedule found, return an empty list
 
-    // Group availabilities by day of the week for easy access
-    const groupedAvailabilities = groupBy(
-      schedule.availabilities,
-      (a) => a.dayOfWeek
+  // Group availabilities by day of the week for easy access
+  const groupedAvailabilities = groupBy(
+    schedule.availabilities,
+    (a) => a.dayOfWeek
+  );
+
+  // Get existing calendar events for the user within the specified date range
+  const eventTimes = await getCalendarEventTimes(event.clerkUserId, {
+    start,
+    end,
+  });
+
+  // Filter the times to include only those that fit within availability and don’t overlap events
+  return timesInOrder.filter((intervalDate) => {
+    // Get the availabilities for the specific date
+    const availabilities = getAvailabilities(
+      groupedAvailabilities,
+      intervalDate,
+      schedule.timezone
     );
 
-    // Get existing calendar events for the user within the specified date range
-    const eventTimes = await getCalendarEventTimes(event.clerkUserId, {
-      start,
-      end,
-    });
+    // Define the time interval for the current event
+    const eventInterval = {
+      start: intervalDate,
+      end: addMinutes(intervalDate, event.durationInMinutes),
+    };
 
-    // Filter the times to include only those that fit within availability and don’t overlap events
-    return timesInOrder.filter((intervalDate) => {
-      // Get the availabilities for the specific date
-      const availabilities = getAvailabilities(
-        groupedAvailabilities,
-        intervalDate,
-        schedule.timezone
-      );
-
-      // Define the time interval for the current event
-      const eventInterval = {
-        start: intervalDate,
-        end: addMinutes(intervalDate, event.durationInMinutes),
-      };
-
-      // Return true only if no events overlap and the interval fits within availability
-      return (
-        eventTimes.every((eventTime) => {
-          return !areIntervalsOverlapping(eventTime, eventInterval);
-        }) &&
-        availabilities.some((availability) => {
-          return (
-            isWithinInterval(eventInterval.start, availability) &&
-            isWithinInterval(eventInterval.end, availability)
-          );
-        })
-      );
-    });
-  } catch (error) {
-    console.error("Error in getValidTimesFromSchedule:", error);
-    return [];
-  }
+    // Return true only if no events overlap and the interval fits within availability
+    return (
+      eventTimes.every((eventTime) => {
+        return !areIntervalsOverlapping(eventTime, eventInterval);
+      }) &&
+      availabilities.some((availability) => {
+        return (
+          isWithinInterval(eventInterval.start, availability) &&
+          isWithinInterval(eventInterval.end, availability)
+        );
+      })
+    );
+  });
 }
 
 // Helper function to retrieve availabilities for a specific date
