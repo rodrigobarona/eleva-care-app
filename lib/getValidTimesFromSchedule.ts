@@ -43,6 +43,12 @@ export async function getValidTimesFromSchedule(
   const start = timesInOrder[0];
   const end = timesInOrder.at(-1);
 
+  console.log('Debug: Time range', {
+    start: start?.toISOString(),
+    end: end?.toISOString(),
+    totalSlots: timesInOrder.length
+  });
+
   if (start == null || end == null) return []; // If no start or end, return an empty list
 
   // Fetch the user's schedule and associated availabilities from the database
@@ -52,6 +58,11 @@ export async function getValidTimesFromSchedule(
     with: { availabilities: true },
   });
 
+  console.log('Debug: Schedule found', {
+    hasSchedule: schedule != null,
+    availabilitiesCount: schedule?.availabilities.length
+  });
+
   if (schedule == null) return []; // If no schedule found, return an empty list
 
   // Group availabilities by day of the week for easy access
@@ -59,6 +70,10 @@ export async function getValidTimesFromSchedule(
     schedule.availabilities,
     (a) => a.dayOfWeek
   );
+
+  console.log('Debug: Grouped availabilities', {
+    days: Object.keys(groupedAvailabilities)
+  });
 
   // Get existing calendar events for the user within the specified date range
   const eventTimes = await getCalendarEventTimes(event.clerkUserId, {

@@ -43,21 +43,30 @@ export default async function BookEventPage({
   const calendarUser = await clerkClient().users.getUser(clerkUserId);
 
   // Calculate the booking time range
-  // Start time is rounded up to the nearest 15 minutes from now
   const startDate = roundToNearestMinutes(new Date(), {
-    nearestTo: 15, // range of 15 minutes
+    nearestTo: 15,
     roundingMethod: "ceil",
   });
 
-  // End time is set to the end of day, 2 months from start date
-  const endDate = endOfDay(addMonths(startDate, 2)); // book up to two mouths
+  const endDate = endOfDay(addMonths(startDate, 2));
 
-  // Get all available time slots for booking
-  // Creates 15-minute intervals and filters them based on schedule
-  const validTimes = await getValidTimesFromSchedule(
-    eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-    event,
+  console.log('Debug: Calculating time range', {
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
+  });
+
+  const timeSlots = eachMinuteOfInterval(
+    { start: startDate, end: endDate },
+    { step: 15 }
   );
+
+  console.log('Debug: Generated time slots', {
+    totalSlots: timeSlots.length,
+    firstSlot: timeSlots[0]?.toISOString(),
+    lastSlot: timeSlots[timeSlots.length - 1]?.toISOString(),
+  });
+
+  const validTimes = await getValidTimesFromSchedule(timeSlots, event);
 
   // If no time slots are available, show the NoTimeSlots component
   if (validTimes.length === 0) {
