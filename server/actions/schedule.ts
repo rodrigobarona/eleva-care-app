@@ -3,6 +3,8 @@
 import { db } from "@/drizzle/db";
 import { ScheduleAvailabilityTable, ScheduleTable } from "@/drizzle/schema";
 import { scheduleFormSchema } from "@/schema/schedule";
+import { logAuditEvent } from "@/lib/logAuditEvent";
+import { headers } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 import { BatchItem } from "drizzle-orm/batch";
@@ -13,6 +15,10 @@ export async function saveSchedule(
   unsafeData: z.infer<typeof scheduleFormSchema>
 ) {
   const { userId } = auth();
+  const headersList = headers();
+
+  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
+  const userAgent = headersList.get("user-agent") ?? "Unknown";
   const { success, data } = scheduleFormSchema.safeParse(unsafeData);
 
   if (!success || userId == null) {
@@ -20,6 +26,14 @@ export async function saveSchedule(
   }
 
   const { availabilities, ...scheduleData } = data;
+
+  // Fetch the existing schedule and its availabilities before updating
+  const oldSchedule = await db.query.ScheduleTable.findFirst({
+    where: eq(ScheduleTable.clerkUserId, userId),
+    with: {
+      availabilities: true,
+    },
+  });
 
   const [{ id: scheduleId }] = await db
     .insert(ScheduleTable)
@@ -48,4 +62,17 @@ export async function saveSchedule(
   }
 
   await db.batch(statements);
+
+  // Log audit event for schedule update
+  await logAuditEvent(
+    db,
+    userId,
+    "update",
+    "schedules",
+    scheduleId,
+    oldSchedule, // Pass the old schedule data
+    { ...scheduleData, availabilities }, // New schedule data
+    ipAddress,
+    userAgent
+  );
 }
