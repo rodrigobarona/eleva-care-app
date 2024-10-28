@@ -11,7 +11,7 @@ import { redirect } from "next/navigation";
 import { fromZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
-  unsafeData: z.infer<typeof meetingActionSchema>
+  unsafeData: z.infer<typeof meetingActionSchema>,
 ) {
   // Parse the incoming data with schema validation
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
@@ -24,7 +24,7 @@ export async function createMeeting(
       and(
         eq(isActive, true),
         eq(clerkUserId, data.clerkUserId),
-        eq(id, data.eventId)
+        eq(id, data.eventId),
       ),
   });
 
@@ -59,13 +59,13 @@ export async function createMeeting(
     null, // Previous data (none in this case)
     { ...data }, // Current data to log
     ipAddress, // IP address of the user
-    userAgent // User agent for the audit log
+    userAgent, // User agent for the audit log
   );
 
   // Redirect to success page with the start time of the meeting
   redirect(
     `/book/${data.clerkUserId}/${
       data.eventId
-    }/success?startTime=${data.startTime.toISOString()}`
+    }/success?startTime=${data.startTime.toISOString()}`,
   );
 }

@@ -1,5 +1,4 @@
 import React from "react";
-// import { MeetingForm } from "@/components/forms/MeetingForm";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,6 +19,7 @@ import {
 } from "date-fns";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { MeetingForm } from "@/components/forms/MeetingForm";
 
 // Disable page caching to always fetch fresh data
 export const revalidate = 0;
@@ -56,7 +56,7 @@ export default async function BookEventPage({
   // Creates 15-minute intervals and filters them based on schedule
   const validTimes = await getValidTimesFromSchedule(
     eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-    event
+    event,
   );
 
   // If no time slots are available, show the NoTimeSlots component

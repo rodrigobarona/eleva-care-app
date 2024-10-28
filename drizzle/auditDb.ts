@@ -4,4 +4,4 @@ import * as auditSchema from "./auditSchema";
 
 // Separate audit log database connection
 const auditSql = neon(process.env.AUDITLOG_DATABASE_URL!);
-export const auditDb = drizzle(auditSql, { auditSchema });
+export const auditDb = drizzle(auditSql, { schema: auditSchema });
