@@ -39,7 +39,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
-import { toZonedTime, zonedTimeToUtc } from "date-fns-tz";
+import { utcToZonedTime, zonedTimeToUtc } from "date-fns-tz";
 import { createMeeting } from "@/server/actions/meetings";
 
 export function MeetingForm({
@@ -67,15 +67,16 @@ export function MeetingForm({
     });
 
     const converted = validTimes.map((date) => {
-      const zonedTime = toZonedTime(date, timezone);
+      const utcDate = new Date(date.toISOString());
+      const targetDate = utcToZonedTime(utcDate, timezone);
 
       console.log("Debug: Time conversion", {
         original: date.toISOString(),
-        converted: zonedTime.toISOString(),
+        converted: targetDate.toISOString(),
         timezone,
       });
 
-      return zonedTime;
+      return targetDate;
     });
 
     console.log("Debug: Conversion complete", {
