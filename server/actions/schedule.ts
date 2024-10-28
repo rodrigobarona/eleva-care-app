@@ -12,7 +12,7 @@ import "use-server";
 import { z } from "zod";
 
 export async function saveSchedule(
-  unsafeData: z.infer<typeof scheduleFormSchema>,
+  unsafeData: z.infer<typeof scheduleFormSchema>
 ) {
   const { userId } = auth();
   const headersList = headers();
@@ -56,8 +56,8 @@ export async function saveSchedule(
         availabilities.map((availability) => ({
           ...availability,
           scheduleId,
-        })),
-      ),
+        }))
+      )
     );
   }
 
@@ -65,14 +65,13 @@ export async function saveSchedule(
 
   // Log audit event for schedule update
   await logAuditEvent(
-    db,
     userId,
     "update",
     "schedules",
     scheduleId,
-    oldSchedule, // Pass the old schedule data
+    oldSchedule ?? null, // Pass the old schedule data
     { ...scheduleData, availabilities }, // New schedule data
     ipAddress,
-    userAgent,
+    userAgent
   );
 }

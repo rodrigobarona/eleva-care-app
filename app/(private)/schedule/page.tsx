@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { db } from "@/drizzle/db";
 import { auth } from "@clerk/nextjs/server";
-import { ScheduleForm } from "@/components/molecules/ScheduleForm";
+import { ScheduleForm } from "@/components/forms/ScheduleForm";
 
 export const revalidate = 0;
 

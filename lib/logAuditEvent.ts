@@ -1,8 +1,7 @@
-import { auditLogs } from "@/drizzle/schema";
+import { auditDb } from "@/drizzle/auditDb";
+import { auditLogs } from "@/drizzle/auditSchema";
 
-/* eslint-disable  @typescript-eslint/no-explicit-any */
 export async function logAuditEvent(
-  db: any,
   clerkUserId: string,
   action: string,
   resourceType: string,
@@ -10,9 +9,9 @@ export async function logAuditEvent(
   oldValues: Record<string, unknown> | null,
   newValues: Record<string, unknown> | string,
   ipAddress: string,
-  userAgent: string,
+  userAgent: string
 ) {
-  await db.insert(auditLogs).values({
+  await auditDb.insert(auditLogs).values({
     clerkUserId,
     action,
     resourceType,
@@ -21,5 +20,6 @@ export async function logAuditEvent(
     newValues,
     ipAddress,
     userAgent,
+    createdAt: new Date(),
   });
 }

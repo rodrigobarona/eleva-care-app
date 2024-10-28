@@ -9,9 +9,6 @@ import {
   text,
   timestamp,
   uuid,
-  serial,
-  varchar,
-  jsonb,
 } from "drizzle-orm/pg-core";
 
 const createdAt = timestamp("createdAt").notNull().defaultNow();
@@ -34,7 +31,7 @@ export const EventTable = pgTable(
   },
   (table) => ({
     clerkUserIdIndex: index("clerkUserIdIndex").on(table.clerkUserId),
-  }),
+  })
 );
 
 export const ScheduleTable = pgTable("schedules", {
@@ -64,7 +61,7 @@ export const ScheduleAvailabilityTable = pgTable(
   },
   (table) => ({
     scheduleIdIndex: index("scheduleIdIndex").on(table.scheduleId),
-  }),
+  })
 );
 
 export const ScheduleAvailabilityRelations = relations(
@@ -74,20 +71,5 @@ export const ScheduleAvailabilityRelations = relations(
       fields: [ScheduleAvailabilityTable.scheduleId],
       references: [ScheduleTable.id],
     }),
-  }),
+  })
 );
-
-// The auditLogs table captures all necessary information for HIPAA compliance,
-// including who performed an action, what action was taken, on which resource, and from where.
-export const auditLogs = pgTable("audit_logs", {
-  id: serial("id").primaryKey(),
-  clerkUserId: text("clerkUserId").notNull(),
-  action: varchar("action", { length: 50 }).notNull(),
-  resourceType: varchar("resource_type", { length: 50 }).notNull(),
-  resourceId: varchar("resource_id", { length: 255 }),
-  oldValues: jsonb("old_values"),
-  newValues: jsonb("new_values"),
-  ipAddress: varchar("ip_address", { length: 45 }),
-  userAgent: text("user_agent"),
-  createdAt: timestamp("created_at").defaultNow(),
-});

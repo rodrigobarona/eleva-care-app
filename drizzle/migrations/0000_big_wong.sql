@@ -1,4 +1,12 @@
-CREATE TYPE "public"."day" AS ENUM('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday');--> statement-breakpoint
+DO $$
+BEGIN
+    -- Only create the 'day' type if it doesn't already exist
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'day') THEN
+        CREATE TYPE day AS ENUM ('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday');
+    END IF;
+END $$;
+
+
 CREATE TABLE IF NOT EXISTS "events" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
