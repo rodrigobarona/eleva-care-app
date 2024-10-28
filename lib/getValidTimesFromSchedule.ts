@@ -16,7 +16,7 @@ import {
   setHours,
   setMinutes,
 } from "date-fns"; // Date utility functions for managing times and intervals
-import { fromZonedTime, zonedTimeToUtc, utcToZonedTime } from "date-fns-tz"; // Utility for converting to zoned times
+import { fromZonedTime, toZonedTime } from "date-fns-tz"; // Utility for converting to zoned times
 
 // Add this helper function at the top of the file
 function groupBy<T>(
@@ -39,10 +39,10 @@ export async function getValidTimesFromSchedule(
   timesInOrder: Date[], // Ordered list of potential times for booking
   event: { clerkUserId: string; durationInMinutes: number }, // Event details (user ID and duration)
 ) {
-  console.log('Debug: Environment', {
+  console.log("Debug: Environment", {
     nodeEnv: process.env.NODE_ENV,
     serverTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-    dbTimezone: 'Europe/Frankfurt',  // Neon DB timezone
+    dbTimezone: "Europe/Frankfurt", // Neon DB timezone
   });
 
   // Determine the start and end of the time range we're checking for availability
@@ -73,15 +73,15 @@ export async function getValidTimesFromSchedule(
   if (schedule == null) return []; // If no schedule found, return an empty list
 
   // Convert times to DB timezone
-  const dbStart = utcToZonedTime(start, 'Europe/Frankfurt');
-  const dbEnd = utcToZonedTime(end, 'Europe/Frankfurt');
+  const dbStart = toZonedTime(start, "Europe/Frankfurt");
+  const dbEnd = toZonedTime(end, "Europe/Frankfurt");
 
-  console.log('Debug: Time conversions', {
+  console.log("Debug: Time conversions", {
     originalStart: start.toISOString(),
     originalEnd: end.toISOString(),
     dbStart: dbStart.toISOString(),
     dbEnd: dbEnd.toISOString(),
-    scheduleTimezone: schedule.timezone
+    scheduleTimezone: schedule.timezone,
   });
 
   // Group availabilities by day of the week for easy access
@@ -113,11 +113,11 @@ export async function getValidTimesFromSchedule(
 
   // Filter the times to include only those that fit within availability and don’t overlap events
   return timesInOrder.filter((intervalDate) => {
-    const dbIntervalDate = utcToZonedTime(intervalDate, 'Europe/Frankfurt');
+    const dbIntervalDate = toZonedTime(intervalDate, "Europe/Frankfurt");
     const availabilities = getAvailabilities(
       groupedAvailabilities,
       dbIntervalDate,
-      schedule.timezone
+      schedule.timezone,
     );
 
     // Define the time interval for the current event

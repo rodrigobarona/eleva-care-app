@@ -8,7 +8,7 @@ import "use-server";
 import { z } from "zod";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { fromZonedTime, utcToZonedTime } from "date-fns-tz";
+import { toZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>,
@@ -40,13 +40,13 @@ export async function createMeeting(
   }
 
   // Convert the start time to DB timezone first
-  const dbStartTime = utcToZonedTime(data.startTime, 'Europe/Frankfurt');
-  
-  console.log('Debug: Time zones', {
+  const dbStartTime = toZonedTime(data.startTime, "Europe/Frankfurt");
+
+  console.log("Debug: Time zones", {
     originalTime: data.startTime.toISOString(),
     dbTime: dbStartTime.toISOString(),
     userTimezone: data.timezone,
-    dbTimezone: 'Europe/Frankfurt'
+    dbTimezone: "Europe/Frankfurt",
   });
 
   // Generate a range of times around the selected time for validation
