@@ -18,10 +18,26 @@ import {
 } from "date-fns"; // Date utility functions for managing times and intervals
 import { fromZonedTime } from "date-fns-tz"; // Utility for converting to zoned times
 
+// Add this helper function at the top of the file
+function groupBy<T>(
+  array: T[],
+  keyFn: (item: T) => string
+): Record<string, T[]> {
+  return array.reduce(
+    (groups, item) => {
+      const key = keyFn(item);
+      const group = groups[key] || [];
+      group.push(item);
+      return { ...groups, [key]: group };
+    },
+    {} as Record<string, T[]>
+  );
+}
+
 // Main function to retrieve valid booking times based on schedule and availability
 export async function getValidTimesFromSchedule(
   timesInOrder: Date[], // Ordered list of potential times for booking
-  event: { clerkUserId: string; durationInMinutes: number }, // Event details (user ID and duration)
+  event: { clerkUserId: string; durationInMinutes: number } // Event details (user ID and duration)
 ) {
   // Determine the start and end of the time range we're checking for availability
   const start = timesInOrder[0];
@@ -39,9 +55,9 @@ export async function getValidTimesFromSchedule(
   if (schedule == null) return []; // If no schedule found, return an empty list
 
   // Group availabilities by day of the week for easy access
-  const groupedAvailabilities = Object.groupBy(
+  const groupedAvailabilities = groupBy(
     schedule.availabilities,
-    (a) => a.dayOfWeek,
+    (a) => a.dayOfWeek
   );
 
   // Get existing calendar events for the user within the specified date range
@@ -56,7 +72,7 @@ export async function getValidTimesFromSchedule(
     const availabilities = getAvailabilities(
       groupedAvailabilities,
       intervalDate,
-      schedule.timezone,
+      schedule.timezone
     );
 
     // Define the time interval for the current event
@@ -89,7 +105,7 @@ function getAvailabilities(
     >
   >,
   date: Date, // The specific date we're checking availability for
-  timezone: string, // User's timezone for adjusting times
+  timezone: string // User's timezone for adjusting times
 ) {
   let availabilities:
     | (typeof ScheduleAvailabilityTable.$inferSelect)[]
@@ -127,18 +143,18 @@ function getAvailabilities(
     const start = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(startTime.split(":")[0])),
-        parseInt(startTime.split(":")[1]),
+        parseInt(startTime.split(":")[1])
       ),
-      timezone,
+      timezone
     );
 
     // Set the end time similarly
     const end = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(endTime.split(":")[0])),
-        parseInt(endTime.split(":")[1]),
+        parseInt(endTime.split(":")[1])
       ),
-      timezone,
+      timezone
     );
 
     // Return the start and end as a time interval object
