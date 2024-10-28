@@ -34,10 +34,17 @@ function groupBy<T>(
   );
 }
 
+interface EventType {
+  id: string;
+  clerkUserId: string;
+  durationInMinutes: number;
+  // add other event properties you need
+}
+
 // Main function to retrieve valid booking times based on schedule and availability
 export async function getValidTimesFromSchedule(
   possibleTimes: Date[],
-  event: any,
+  event: EventType,
 ) {
   console.log('Server timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
   console.log('First possible time:', possibleTimes[0]);
