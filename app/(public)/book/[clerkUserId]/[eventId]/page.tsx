@@ -50,17 +50,17 @@ export default async function BookEventPage({
 
   const endDate = endOfDay(addMonths(startDate, 2));
 
-  console.log('Debug: Calculating time range', {
+  console.log("Debug: Calculating time range", {
     startDate: startDate.toISOString(),
     endDate: endDate.toISOString(),
   });
 
   const timeSlots = eachMinuteOfInterval(
     { start: startDate, end: endDate },
-    { step: 15 }
+    { step: 15 },
   );
 
-  console.log('Debug: Generated time slots', {
+  console.log("Debug: Generated time slots", {
     totalSlots: timeSlots.length,
     firstSlot: timeSlots[0]?.toISOString(),
     lastSlot: timeSlots[timeSlots.length - 1]?.toISOString(),

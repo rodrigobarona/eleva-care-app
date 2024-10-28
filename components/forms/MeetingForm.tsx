@@ -61,10 +61,34 @@ export function MeetingForm({
   const timezone = form.watch("timezone");
   const date = form.watch("date");
   const validTimesInTimezone = useMemo(() => {
-    return validTimes.map((date) => toZonedTime(date, timezone));
+    console.log("Debug: Converting times to timezone", {
+      timezone,
+      originalCount: validTimes.length,
+    });
+
+    const converted = validTimes.map((date) => {
+      const zonedTime = toZonedTime(date, timezone);
+      console.log("Debug: Time conversion", {
+        original: date.toISOString(),
+        converted: zonedTime.toISOString(),
+      });
+      return zonedTime;
+    });
+
+    console.log("Debug: Conversion complete", {
+      convertedCount: converted.length,
+    });
+
+    return converted;
   }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
+    console.log("Debug: Submitting form", {
+      values,
+      timezone,
+      originalDate: values.startTime?.toISOString(),
+    });
+
     const data = await createMeeting({
       ...values,
       eventId,
@@ -72,6 +96,7 @@ export function MeetingForm({
     });
 
     if (data?.error) {
+      console.error("Debug: Submission error", data.error);
       form.setError("root", {
         message: "There was an error saving your event",
       });

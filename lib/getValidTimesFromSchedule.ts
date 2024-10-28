@@ -21,7 +21,7 @@ import { fromZonedTime } from "date-fns-tz"; // Utility for converting to zoned 
 // Add this helper function at the top of the file
 function groupBy<T>(
   array: T[],
-  keyFn: (item: T) => string
+  keyFn: (item: T) => string,
 ): Record<string, T[]> {
   return array.reduce(
     (groups, item) => {
@@ -30,23 +30,23 @@ function groupBy<T>(
       group.push(item);
       return { ...groups, [key]: group };
     },
-    {} as Record<string, T[]>
+    {} as Record<string, T[]>,
   );
 }
 
 // Main function to retrieve valid booking times based on schedule and availability
 export async function getValidTimesFromSchedule(
   timesInOrder: Date[], // Ordered list of potential times for booking
-  event: { clerkUserId: string; durationInMinutes: number } // Event details (user ID and duration)
+  event: { clerkUserId: string; durationInMinutes: number }, // Event details (user ID and duration)
 ) {
   // Determine the start and end of the time range we're checking for availability
   const start = timesInOrder[0];
   const end = timesInOrder.at(-1);
 
-  console.log('Debug: Time range', {
+  console.log("Debug: Validating time slot", {
     start: start?.toISOString(),
     end: end?.toISOString(),
-    totalSlots: timesInOrder.length
+    duration: event.durationInMinutes,
   });
 
   if (start == null || end == null) return []; // If no start or end, return an empty list
@@ -58,9 +58,10 @@ export async function getValidTimesFromSchedule(
     with: { availabilities: true },
   });
 
-  console.log('Debug: Schedule found', {
+  console.log("Debug: Schedule check", {
     hasSchedule: schedule != null,
-    availabilitiesCount: schedule?.availabilities.length
+    timezone: schedule?.timezone,
+    availabilitiesCount: schedule?.availabilities.length,
   });
 
   if (schedule == null) return []; // If no schedule found, return an empty list
@@ -68,11 +69,22 @@ export async function getValidTimesFromSchedule(
   // Group availabilities by day of the week for easy access
   const groupedAvailabilities = groupBy(
     schedule.availabilities,
-    (a) => a.dayOfWeek
+    (a) => a.dayOfWeek,
   );
 
-  console.log('Debug: Grouped availabilities', {
-    days: Object.keys(groupedAvailabilities)
+  // Add more detailed logging
+  const availabilities = getAvailabilities(
+    groupedAvailabilities,
+    start,
+    schedule.timezone,
+  );
+
+  console.log("Debug: Available slots", {
+    count: availabilities.length,
+    slots: availabilities.map((slot) => ({
+      start: slot.start.toISOString(),
+      end: slot.end.toISOString(),
+    })),
   });
 
   // Get existing calendar events for the user within the specified date range
@@ -87,7 +99,7 @@ export async function getValidTimesFromSchedule(
     const availabilities = getAvailabilities(
       groupedAvailabilities,
       intervalDate,
-      schedule.timezone
+      schedule.timezone,
     );
 
     // Define the time interval for the current event
@@ -120,8 +132,14 @@ function getAvailabilities(
     >
   >,
   date: Date, // The specific date we're checking availability for
-  timezone: string // User's timezone for adjusting times
+  timezone: string, // User's timezone for adjusting times
 ) {
+  console.log("Debug: Getting availabilities for", {
+    date: date.toISOString(),
+    timezone,
+    dayOfWeek: date.getDay(),
+  });
+
   let availabilities:
     | (typeof ScheduleAvailabilityTable.$inferSelect)[]
     | undefined;
@@ -150,7 +168,15 @@ function getAvailabilities(
   }
 
   // If no availabilities are set for this day, return an empty list
-  if (availabilities == null) return [];
+  if (availabilities == null) {
+    console.log("Debug: No availabilities found for this day");
+    return [];
+  }
+
+  console.log("Debug: Processing availabilities", {
+    count: availabilities.length,
+    firstAvailability: availabilities[0],
+  });
 
   // Map availability times to intervals with adjusted time zones
   return availabilities.map(({ startTime, endTime }) => {
@@ -158,19 +184,24 @@ function getAvailabilities(
     const start = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(startTime.split(":")[0])),
-        parseInt(startTime.split(":")[1])
+        parseInt(startTime.split(":")[1]),
       ),
-      timezone
+      timezone,
     );
 
     // Set the end time similarly
     const end = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(endTime.split(":")[0])),
-        parseInt(endTime.split(":")[1])
+        parseInt(endTime.split(":")[1]),
       ),
-      timezone
+      timezone,
     );
+
+    console.log("Debug: Converted time slot", {
+      original: { startTime, endTime },
+      converted: { start: start.toISOString(), end: end.toISOString() },
+    });
 
     // Return the start and end as a time interval object
     return { start, end };

@@ -13,12 +13,18 @@ import { fromZonedTime } from "date-fns-tz";
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>,
 ) {
-  // Parse the incoming data with schema validation
+  console.log("Debug: Creating meeting with data:", {
+    ...unsafeData,
+    startTime: unsafeData.startTime?.toISOString(),
+  });
+
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
 
-  if (!success) return { error: true }; // Exit if data validation fails
+  if (!success) {
+    console.log("Debug: Schema validation failed");
+    return { error: true };
+  }
 
-  // Retrieve the relevant event if it is active and belongs to the given user
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId, isActive, id }, { eq, and }) =>
       and(
@@ -28,14 +34,38 @@ export async function createMeeting(
       ),
   });
 
-  if (event == null) return { error: true }; // Exit if no valid event is found
+  if (event == null) {
+    console.log("Debug: Event not found");
+    return { error: true };
+  }
 
   // Convert the start time to the specified timezone
   const startInTimezone = fromZonedTime(data.startTime, data.timezone);
 
-  // Check if the chosen start time is valid based on the schedule
-  const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
-  if (validTimes.length === 0) return { error: true }; // Exit if no valid times are found
+  console.log("Debug: Time conversion", {
+    original: data.startTime.toISOString(),
+    converted: startInTimezone.toISOString(),
+    timezone: data.timezone,
+  });
+
+  // Generate a range of times around the selected time for validation
+  const timeToCheck = new Date(startInTimezone);
+  console.log("Debug: Checking time validity", {
+    timeToCheck: timeToCheck.toISOString(),
+    eventDuration: event.durationInMinutes,
+  });
+
+  const validTimes = await getValidTimesFromSchedule([timeToCheck], event);
+
+  console.log("Debug: Validation result", {
+    validTimesCount: validTimes.length,
+    isValid: validTimes.length > 0,
+  });
+
+  if (validTimes.length === 0) {
+    console.log("Debug: No valid times found");
+    return { error: true };
+  }
 
   const headersList = headers();
 
