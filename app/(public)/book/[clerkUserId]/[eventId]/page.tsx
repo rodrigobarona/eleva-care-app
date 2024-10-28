@@ -45,14 +45,9 @@ export default async function BookEventPage({
   // Calculate the booking time range
   // Start time is rounded up to the nearest 15 minutes from now
   const startDate = roundToNearestMinutes(new Date(), {
-    nearestTo: 15,
+    nearestTo: 15, // range of 15 minutes
     roundingMethod: "ceil",
   });
-
-  // Add explicit timezone info
-  const timeZone = 'UTC'; // or your preferred timezone
-  console.log('Start date:', startDate.toISOString());
-  console.log('Timezone:', timeZone);
 
   // End time is set to the end of day, 2 months from start date
   const endDate = endOfDay(addMonths(startDate, 2)); // book up to two mouths
