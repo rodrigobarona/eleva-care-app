@@ -46,16 +46,19 @@ export async function createMeeting(
     if (!(dbStartTime instanceof Date) || isNaN(dbStartTime.getTime())) {
       throw new Error("Invalid date after conversion");
     }
-  } catch (error) {
+  } catch (error: any) {
     console.log("Debug: Date conversion failed", {
       originalTime: data.startTime,
-      error: error.message
+      error: error?.message || "Unknown error",
     });
     return { error: true };
   }
 
   console.log("Debug: Time zones", {
-    originalTime: data.startTime instanceof Date ? data.startTime.toISOString() : 'invalid date',
+    originalTime:
+      data.startTime instanceof Date
+        ? data.startTime.toISOString()
+        : "invalid date",
     dbTime: dbStartTime.toISOString(),
     userTimezone: data.timezone,
     dbTimezone: "Europe/Frankfurt",
@@ -111,7 +114,7 @@ export async function createMeeting(
   );
 
   // For the redirect URL, ensure we have a valid date string
-  let safeStartTime = '';
+  let safeStartTime = "";
   try {
     if (data.startTime instanceof Date && !isNaN(data.startTime.getTime())) {
       safeStartTime = data.startTime.toISOString();
