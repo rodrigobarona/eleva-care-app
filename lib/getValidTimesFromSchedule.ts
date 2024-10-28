@@ -47,6 +47,7 @@ export async function getValidTimesFromSchedule(
   event: EventType,
 ) {
   console.log('Server timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+  console.log('Number of possible times:', possibleTimes.length);
   console.log('First possible time:', possibleTimes[0]);
   console.log('Last possible time:', possibleTimes[possibleTimes.length - 1]);
   console.log('Event:', JSON.stringify(event, null, 2));
@@ -55,7 +56,10 @@ export async function getValidTimesFromSchedule(
   const start = possibleTimes[0];
   const end = possibleTimes.at(-1);
 
-  if (start == null || end == null) return []; // If no start or end, return an empty list
+  if (start == null || end == null || possibleTimes.length === 0) {
+    console.log('No valid time range provided');
+    return []; 
+  }
 
   // Fetch the user's schedule and associated availabilities from the database
   const schedule = await db.query.ScheduleTable.findFirst({
