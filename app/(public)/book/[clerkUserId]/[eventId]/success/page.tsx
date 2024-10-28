@@ -33,10 +33,10 @@ export default async function SuccessPage({
   try {
     startTimeDate = new Date(startTime);
     if (isNaN(startTimeDate.getTime())) {
-      throw new Error('Invalid date');
+      notFound();
     }
-  } catch (error) {
-    return notFound();
+  } catch {
+    notFound();
   }
 
   return (
