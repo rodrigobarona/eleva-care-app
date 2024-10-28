@@ -42,6 +42,15 @@ export async function createMeeting(
   // Convert the start time to DB timezone first
   const dbStartTime = toZonedTime(data.startTime, "Europe/Frankfurt");
 
+  // Add validation to ensure we have a valid date
+  if (!(dbStartTime instanceof Date) || isNaN(dbStartTime.getTime())) {
+    console.log("Debug: Invalid date conversion", {
+      originalTime: data.startTime,
+      convertedTime: dbStartTime,
+    });
+    return { error: true };
+  }
+
   console.log("Debug: Time zones", {
     originalTime: data.startTime.toISOString(),
     dbTime: dbStartTime.toISOString(),
