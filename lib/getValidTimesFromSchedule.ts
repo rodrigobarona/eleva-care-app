@@ -1,7 +1,7 @@
-import { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants";
-import { db } from "@/drizzle/db";
-import { ScheduleAvailabilityTable } from "@/drizzle/schema";
-import { getCalendarEventTimes } from "@/server/googleCalendar";
+import { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants"; // Constants representing days of the week in order
+import { db } from "@/drizzle/db"; // Database connection
+import { ScheduleAvailabilityTable } from "@/drizzle/schema"; // Schema for schedule availability table
+import { getCalendarEventTimes } from "@/server/googleCalendar"; // Function to retrieve calendar events for a user
 import {
   addMinutes,
   areIntervalsOverlapping,
@@ -15,47 +15,57 @@ import {
   isWithinInterval,
   setHours,
   setMinutes,
-} from "date-fns";
-import { fromZonedTime } from "date-fns-tz";
+} from "date-fns"; // Date utility functions for managing times and intervals
+import { fromZonedTime } from "date-fns-tz"; // Utility for converting to zoned times
 
+// Main function to retrieve valid booking times based on schedule and availability
 export async function getValidTimesFromSchedule(
-  timesInOrder: Date[],
-  event: { clerkUserId: string; durationInMinutes: number }
+  timesInOrder: Date[], // Ordered list of potential times for booking
+  event: { clerkUserId: string; durationInMinutes: number } // Event details (user ID and duration)
 ) {
+  // Determine the start and end of the time range we're checking for availability
   const start = timesInOrder[0];
   const end = timesInOrder.at(-1);
 
-  if (start == null || end == null) return [];
+  if (start == null || end == null) return []; // If no start or end, return an empty list
 
+  // Fetch the user's schedule and associated availabilities from the database
   const schedule = await db.query.ScheduleTable.findFirst({
     where: ({ clerkUserId: userIdCol }, { eq }) =>
       eq(userIdCol, event.clerkUserId),
     with: { availabilities: true },
   });
 
-  if (schedule == null) return [];
+  if (schedule == null) return []; // If no schedule found, return an empty list
 
+  // Group availabilities by day of the week for easy access
   const groupedAvailabilities = Object.groupBy(
     schedule.availabilities,
     (a) => a.dayOfWeek
   );
 
+  // Get existing calendar events for the user within the specified date range
   const eventTimes = await getCalendarEventTimes(event.clerkUserId, {
     start,
     end,
   });
 
+  // Filter the times to include only those that fit within availability and don’t overlap events
   return timesInOrder.filter((intervalDate) => {
+    // Get the availabilities for the specific date
     const availabilities = getAvailabilities(
       groupedAvailabilities,
       intervalDate,
       schedule.timezone
     );
+
+    // Define the time interval for the current event
     const eventInterval = {
       start: intervalDate,
       end: addMinutes(intervalDate, event.durationInMinutes),
     };
 
+    // Return true only if no events overlap and the interval fits within availability
     return (
       eventTimes.every((eventTime) => {
         return !areIntervalsOverlapping(eventTime, eventInterval);
@@ -70,6 +80,7 @@ export async function getValidTimesFromSchedule(
   });
 }
 
+// Helper function to retrieve availabilities for a specific date
 function getAvailabilities(
   groupedAvailabilities: Partial<
     Record<
@@ -77,13 +88,14 @@ function getAvailabilities(
       (typeof ScheduleAvailabilityTable.$inferSelect)[]
     >
   >,
-  date: Date,
-  timezone: string
+  date: Date, // The specific date we're checking availability for
+  timezone: string // User's timezone for adjusting times
 ) {
   let availabilities:
     | (typeof ScheduleAvailabilityTable.$inferSelect)[]
     | undefined;
 
+  // Check the day of the week and assign the relevant availabilities
   if (isMonday(date)) {
     availabilities = groupedAvailabilities.monday;
   }
@@ -106,9 +118,12 @@ function getAvailabilities(
     availabilities = groupedAvailabilities.sunday;
   }
 
+  // If no availabilities are set for this day, return an empty list
   if (availabilities == null) return [];
 
+  // Map availability times to intervals with adjusted time zones
   return availabilities.map(({ startTime, endTime }) => {
+    // Set the start time by adjusting the hours and minutes from availability to the given date
     const start = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(startTime.split(":")[0])),
@@ -117,6 +132,7 @@ function getAvailabilities(
       timezone
     );
 
+    // Set the end time similarly
     const end = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(endTime.split(":")[0])),
@@ -125,6 +141,7 @@ function getAvailabilities(
       timezone
     );
 
+    // Return the start and end as a time interval object
     return { start, end };
   });
 }
