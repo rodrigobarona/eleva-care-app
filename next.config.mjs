@@ -8,9 +8,18 @@ const nextConfig = {
       },
     ],
   },
+  reactStrictMode: true,
+  logging: {
+    fetches: {
+      fullUrl: true,
+    },
+  },
   experimental: {
     staleTimes: {
       dynamic: 0,
+    },
+    serverActions: {
+      bodySizeLimit: "2mb",
     },
   },
 };

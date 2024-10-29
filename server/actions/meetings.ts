@@ -13,52 +13,78 @@ import { fromZonedTime } from "date-fns-tz";
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>,
 ) {
-  const { success, data } = meetingActionSchema.safeParse(unsafeData);
+  try {
+    console.log("Debug: Starting meeting creation", { 
+      receivedData: unsafeData 
+    });
 
-  if (!success) return { error: true };
+    const { success, data: validatedData } = meetingActionSchema.safeParse(unsafeData);
 
-  const event = await db.query.EventTable.findFirst({
-    where: ({ clerkUserId, isActive, id }, { eq, and }) =>
-      and(
-        eq(isActive, true),
-        eq(clerkUserId, data.clerkUserId),
-        eq(id, data.eventId),
-      ),
-  });
+    if (!success) {
+      console.error("Debug: Validation failed", { 
+        validationErrors: validatedData.errors 
+      });
+      return { error: true };
+    }
 
-  if (event == null) return { error: true };
-  const startInTimezone = fromZonedTime(data.startTime, data.timezone);
+    console.log("Debug: Attempting database operation");
 
-  const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
-  if (validTimes.length === 0) return { error: true };
+    const event = await db.query.EventTable.findFirst({
+      where: ({ clerkUserId, isActive, id }, { eq, and }) =>
+        and(
+          eq(isActive, true),
+          eq(clerkUserId, validatedData.clerkUserId),
+          eq(id, validatedData.eventId),
+        ),
+    });
 
-  const headersList = headers();
+    if (event == null) return { error: true };
+    const startInTimezone = fromZonedTime(validatedData.startTime, validatedData.timezone);
 
-  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
-  const userAgent = headersList.get("user-agent") ?? "Unknown";
+    const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
+    if (validTimes.length === 0) return { error: true };
 
-  await createCalendarEvent({
-    ...data,
-    startTime: startInTimezone,
-    durationInMinutes: event.durationInMinutes,
-    eventName: event.name,
-  });
+    const headersList = headers();
 
-  // Log the audit event for meeting creation
-  await logAuditEvent(
-    data.clerkUserId, // User ID (related to the clerk user)
-    "create", // Action type (creating a new meeting)
-    "meetings", // Table name for audit logging
-    data.eventId, // Event ID (foreign key for the event)
-    null, // Previous data (none in this case)
-    { ...data }, // Current data to log
-    ipAddress, // IP address of the user
-    userAgent, // User agent for the audit log
-  );
+    const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
+    const userAgent = headersList.get("user-agent") ?? "Unknown";
 
-  redirect(
-    `/book/${data.clerkUserId}/${
-      data.eventId
-    }/success?startTime=${data.startTime.toISOString()}`,
-  );
+    await createCalendarEvent({
+      ...validatedData,
+      startTime: startInTimezone,
+      durationInMinutes: event.durationInMinutes,
+      eventName: event.name,
+    });
+
+    // Log the audit event for meeting creation
+    await logAuditEvent(
+      validatedData.clerkUserId, // User ID (related to the clerk user)
+      "create", // Action type (creating a new meeting)
+      "meetings", // Table name for audit logging
+      validatedData.eventId, // Event ID (foreign key for the event)
+      null, // Previous data (none in this case)
+      { ...validatedData }, // Current data to log
+      ipAddress, // IP address of the user
+      userAgent, // User agent for the audit log
+    );
+
+    redirect(
+      `/book/${validatedData.clerkUserId}/${
+        validatedData.eventId
+      }/success?startTime=${validatedData.startTime.toISOString()}`,
+    );
+
+    console.log("Debug: Database operation complete", { 
+      result: validatedData 
+    });
+
+    return validatedData;
+  } catch (error) {
+    console.error("Debug: Server error in createMeeting", {
+      error,
+      errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+    return { error: true };
+  }
 }
