@@ -1,5 +1,14 @@
 "use server";
 
+/**
+ * Event Management Module
+ * Handles CRUD operations for event types including:
+ * - Creating new event types
+ * - Updating existing events
+ * - Deleting events
+ * - Audit logging for all operations
+ */
+
 import { db } from "@/drizzle/db";
 import { EventTable } from "@/drizzle/schema";
 import { logAuditEvent } from "@/lib/logAuditEvent";

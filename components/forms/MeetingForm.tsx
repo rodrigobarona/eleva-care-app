@@ -38,9 +38,22 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
 import { isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { toZonedTime } from "date-fns-tz";
 import { createMeeting } from "@/server/actions/meetings";
+
+// Add timezone validation and normalization
+const normalizeTimezone = (timezone: string) => {
+  try {
+    // Verify timezone is valid
+    Intl.DateTimeFormat(undefined, { timeZone: timezone });
+    return timezone;
+  } catch (e) {
+    // Fallback to UTC if invalid
+    console.error("Invalid timezone, falling back to UTC", e);
+    return "UTC";
+  }
+};
 
 export function MeetingForm({
   validTimes,
@@ -51,10 +64,14 @@ export function MeetingForm({
   eventId: string;
   clerkUserId: string;
 }) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: normalizeTimezone(
+        Intl.DateTimeFormat().resolvedOptions().timeZone
+      ),
     },
   });
 
@@ -82,26 +99,64 @@ export function MeetingForm({
     return converted;
   }, [validTimes, timezone]);
 
+  // Add this before your onSubmit function
+  const ensureValidDate = (date: Date | null | undefined): Date | null => {
+    if (!date) return null;
+    const timestamp = date.getTime();
+    return isNaN(timestamp) ? null : new Date(timestamp);
+  };
+
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    console.log("Debug: Submitting form", {
-      values,
-      timezone,
-      originalDate: values.startTime?.toISOString(),
-    });
+    try {
+      const safeStartTime = ensureValidDate(values.startTime);
+      if (!safeStartTime) {
+        form.setError("startTime", {
+          message: "Invalid date selected",
+        });
+        return;
+      }
 
-    const data = await createMeeting({
-      ...values,
-      eventId,
-      clerkUserId,
-    });
+      console.log("Debug: Submitting form", {
+        values,
+        timezone: values.timezone,
+        originalDate: safeStartTime.toISOString(),
+        browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
 
-    if (data?.error) {
-      console.error("Debug: Submission error", data.error);
+      const data = await createMeeting({
+        ...values,
+        startTime: safeStartTime,
+        eventId,
+        clerkUserId,
+      });
+
+      if (data?.error) {
+        console.error("Debug: Submission error", {
+          error: data.error,
+          formData: values,
+          timezone: values.timezone,
+        });
+        form.setError("root", {
+          message: "There was an error saving your event. Please try again.",
+        });
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
       form.setError("root", {
-        message: "There was an error saving your event",
+        message: "An unexpected error occurred. Please try again.",
       });
     }
   }
+
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error("Global error caught:", event.error);
+      // Optionally reset form or show error message
+    };
+
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
 
   return (
     <Form {...form}>
@@ -277,8 +332,11 @@ export function MeetingForm({
           >
             <Link href={`/book/${clerkUserId}`}>Cancel</Link>
           </Button>
-          <Button disabled={form.formState.isSubmitting} type="submit">
-            Schedule
+          <Button 
+            disabled={isSubmitting || form.formState.isSubmitting} 
+            type="submit"
+          >
+            {isSubmitting ? "Scheduling..." : "Schedule"}
           </Button>
         </div>
       </form>
