@@ -84,7 +84,14 @@ export async function createCalendarEvent({
         dateTime: addMinutes(startTime, durationInMinutes).toISOString(),
       },
       summary: `${guestName} + ${calendarUser.fullName}: ${eventName}`,
+      conferenceData: {
+        createRequest: {
+          requestId: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
+          conferenceSolutionKey: { type: "hangoutsMeet" },
+        },
+      },
     },
+    conferenceDataVersion: 1,
   });
 
   return calendarEvent.data;
