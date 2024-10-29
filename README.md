@@ -1,36 +1,108 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Meeting Scheduler App
+
+A modern scheduling application built with Next.js that allows users to manage their availability and let others book meetings with them.
+
+## Features
+
+- 📅 Create and manage event types
+- ⏰ Set your weekly availability
+- 🔗 Share booking links with custom usernames
+- 🌍 Timezone support for international scheduling
+- 📧 Email notifications for bookings
+- 📱 Responsive design
+- 🔒 Authentication with Clerk
+- 📊 Google Calendar integration
+
+## Tech Stack
+
+- **Framework**: Next.js 14 with App Router
+- **Authentication**: Clerk
+- **Database**: PostgreSQL with Drizzle ORM
+- **Styling**: Tailwind CSS
+- **UI Components**: shadcn/ui
+- **Calendar Integration**: Google Calendar API
+- **Form Handling**: React Hook Form + Zod
+- **Date/Time**: date-fns
 
 ## Getting Started
 
-First, run the development server:
+1. Clone the repository
+2. Install dependencies:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Set up your environment variables:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```env
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Database
+DATABASE_URL=
+AUDIT_DATABASE_URL=
 
-## Learn More
+# Google Calendar
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+```
 
-To learn more about Next.js, take a look at the following resources:
+4. Run the development server:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm dev
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+5. Open [http://localhost:3000](http://localhost:3000) to see the application
 
-## Deploy on Vercel
+## Project Structure
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```
+├── app/                    # Next.js app router pages
+│   ├── (private)/         # Protected routes
+│   └── (public)/          # Public routes
+├── components/            # React components
+│   ├── atoms/            # Small, reusable components
+│   ├── forms/            # Form components
+│   └── ui/               # UI components from shadcn
+├── drizzle/              # Database schema and config
+├── lib/                  # Utility functions
+├── schema/               # Zod validation schemas
+└── server/               # Server-side code
+    ├── actions/          # Server actions
+    └── googleCalendar.ts # Google Calendar integration
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Key Features Explained
+
+### Event Types
+
+Users can create different types of meetings (e.g., "30min Meeting", "Coffee Chat") with custom durations and descriptions.
+
+### Availability Management
+
+Set your weekly availability with custom time slots for each day of the week.
+
+### Booking Flow
+
+1. Share your booking link (`/book/[username]`)
+2. Guests select an event type
+3. Choose from available time slots
+4. Fill in their details
+5. Receive calendar invitations
+
+### Timezone Handling
+
+- All times are stored in UTC
+- Automatic timezone conversion for users
+- Clear timezone display in the interface
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
