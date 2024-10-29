@@ -21,7 +21,7 @@ import { fromZonedTime } from "date-fns-tz";
 
 export async function getValidTimesFromSchedule(
   timesInOrder: Date[],
-  event: { clerkUserId: string; durationInMinutes: number },
+  event: { clerkUserId: string; durationInMinutes: number }
 ) {
   const start = timesInOrder[0];
   const end = timesInOrder.at(-1);
@@ -36,9 +36,16 @@ export async function getValidTimesFromSchedule(
 
   if (schedule == null) return [];
 
-  const groupedAvailabilities = Object.groupBy(
-    schedule.availabilities,
-    (a) => a.dayOfWeek,
+  const groupedAvailabilities = schedule.availabilities.reduce(
+    (acc, availability) => {
+      const day = availability.dayOfWeek;
+      if (!acc[day]) {
+        acc[day] = [];
+      }
+      acc[day].push(availability);
+      return acc;
+    },
+    {} as Record<string, typeof schedule.availabilities>
   );
 
   const eventTimes = await getCalendarEventTimes(event.clerkUserId, {
@@ -50,7 +57,7 @@ export async function getValidTimesFromSchedule(
     const availabilities = getAvailabilities(
       groupedAvailabilities,
       intervalDate,
-      schedule.timezone,
+      schedule.timezone
     );
     const eventInterval = {
       start: intervalDate,
@@ -79,7 +86,7 @@ function getAvailabilities(
     >
   >,
   date: Date,
-  timezone: string,
+  timezone: string
 ) {
   let availabilities:
     | (typeof ScheduleAvailabilityTable.$inferSelect)[]
@@ -113,17 +120,17 @@ function getAvailabilities(
     const start = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(startTime.split(":")[0])),
-        parseInt(startTime.split(":")[1]),
+        parseInt(startTime.split(":")[1])
       ),
-      timezone,
+      timezone
     );
 
     const end = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(endTime.split(":")[0])),
-        parseInt(endTime.split(":")[1]),
+        parseInt(endTime.split(":")[1])
       ),
-      timezone,
+      timezone
     );
 
     return { start, end };
