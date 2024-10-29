@@ -1,3 +1,4 @@
+import "core-js/actual/object/group-by";
 import { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants";
 import { db } from "@/drizzle/db";
 import { ScheduleAvailabilityTable } from "@/drizzle/schema";
@@ -18,23 +19,6 @@ import {
 } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
 
-function groupBy<K extends PropertyKey, T>(
-  items: T[],
-  keySelector: (item: T) => K,
-): Record<K, T[]> {
-  return items.reduce(
-    (acc, item) => {
-      const key = keySelector(item);
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(item);
-      return acc;
-    },
-    {} as Record<K, T[]>,
-  );
-}
-
 export async function getValidTimesFromSchedule(
   timesInOrder: Date[],
   event: { clerkUserId: string; durationInMinutes: number },
@@ -52,7 +36,7 @@ export async function getValidTimesFromSchedule(
 
   if (schedule == null) return [];
 
-  const groupedAvailabilities = groupBy(
+  const groupedAvailabilities = Object.groupBy(
     schedule.availabilities,
     (a) => a.dayOfWeek,
   );
