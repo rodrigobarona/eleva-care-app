@@ -42,6 +42,8 @@ import { useMemo } from "react";
 import { toZonedTime } from "date-fns-tz";
 import { createMeeting } from "@/server/actions/meetings";
 
+type MeetingFormValues = z.infer<typeof meetingFormSchema>;
+
 export function MeetingForm({
   validTimes,
   eventId,
@@ -98,23 +100,24 @@ export function MeetingForm({
     if (data?.error) {
       console.error("Debug: Submission error", {
         error: data.error,
-        details: typeof data.error === 'object' ? data.error : null,
+        details: typeof data.error === "object" ? data.error : null,
         values,
         eventId,
         clerkUserId,
       });
-      
+
       form.setError("root", {
-        message: typeof data.error === 'string' 
-          ? data.error 
-          : "There was an error saving your event. Please check the console for more details.",
+        message:
+          typeof data.error === "string"
+            ? data.error
+            : "There was an error saving your event. Please check the console for more details.",
       });
-      
+
       // Set specific field errors if they exist
-      if (typeof data.error === 'object') {
+      if (typeof data.error === "object") {
         Object.entries(data.error).forEach(([field, message]) => {
           if (field in form.getValues()) {
-            form.setError(field as any, {
+            form.setError(field as keyof MeetingFormValues, {
               message: message as string,
             });
           }
