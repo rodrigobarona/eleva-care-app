@@ -83,41 +83,22 @@ export function MeetingForm({
   }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    try {
-      console.log("Debug: Starting form submission", {
-        values,
-        timezone,
-        eventId,
-        clerkUserId
-      });
+    console.log("Debug: Submitting form", {
+      values,
+      timezone,
+      originalDate: values.startTime?.toISOString(),
+    });
 
-      const data = await createMeeting({
-        ...values,
-        eventId,
-        clerkUserId,
-      });
+    const data = await createMeeting({
+      ...values,
+      eventId,
+      clerkUserId,
+    });
 
-      console.log("Debug: Meeting creation response", { data });
-
-      if (data?.error) {
-        console.error("Debug: Submission error details", {
-          error: data.error,
-          formData: values
-        });
-        form.setError("root", {
-          message: "There was an error saving your event",
-        });
-        return;
-      }
-
-      console.log("Debug: Meeting created successfully");
-    } catch (error) {
-      console.error("Debug: Unexpected error during submission", {
-        error,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error'
-      });
+    if (data?.error) {
+      console.error("Debug: Submission error", data.error);
       form.setError("root", {
-        message: "An unexpected error occurred",
+        message: "There was an error saving your event",
       });
     }
   }
