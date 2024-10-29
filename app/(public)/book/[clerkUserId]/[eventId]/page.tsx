@@ -28,32 +28,24 @@ export default async function BookEventPage({
 }: {
   params: { clerkUserId: string; eventId: string };
 }) {
-  console.log("Debug: Starting BookEventPage with params:", { clerkUserId, eventId });
-
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId: userIdCol, isActive, id }, { eq, and }) =>
       and(eq(isActive, true), eq(userIdCol, clerkUserId), eq(id, eventId)),
   });
-  console.log("Debug: Found event:", event);
 
   if (event == null) return notFound();
 
   const calendarUser = await clerkClient().users.getUser(clerkUserId);
-  console.log("Debug: Calendar user:", calendarUser);
-
   const startDate = roundToNearestMinutes(new Date(), {
     nearestTo: 15,
     roundingMethod: "ceil",
   });
   const endDate = endOfDay(addMonths(startDate, 2));
-  console.log("Debug: Date range:", { startDate, endDate });
 
   const validTimes = await getValidTimesFromSchedule(
     eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
     event,
   );
-  console.log("Debug: Valid times count:", validTimes.length);
-  console.log("Debug: First few valid times:", validTimes.slice(0, 3));
 
   if (validTimes.length === 0) {
     return <NoTimeSlots event={event} calendarUser={calendarUser} />;
