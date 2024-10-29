@@ -35,17 +35,29 @@ export async function getValidTimesFromSchedule(
 
   if (schedule == null) return [];
 
+  console.log("Debug: Initial availabilities:", schedule.availabilities);
+
   const groupedAvailabilities = schedule.availabilities.reduce(
     (acc, availability) => {
+      console.log("Debug: Processing availability:", {
+        availability,
+        currentDay: availability.dayOfWeek,
+        currentGroups: acc,
+      });
+
       const day = availability.dayOfWeek;
       if (!acc[day]) {
         acc[day] = [];
       }
       acc[day].push(availability);
+
+      console.log("Debug: Updated groups:", acc);
       return acc;
     },
     {} as Record<string, typeof schedule.availabilities>
   );
+
+  console.log("Debug: Final grouped availabilities:", groupedAvailabilities);
 
   const eventTimes = await getCalendarEventTimes(event.clerkUserId, {
     start,

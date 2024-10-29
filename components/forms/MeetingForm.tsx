@@ -51,12 +51,25 @@ export function MeetingForm({
   eventId: string;
   clerkUserId: string;
 }) {
+  console.log("Debug: MeetingForm initialized with props:", {
+    validTimesCount: validTimes.length,
+    eventId,
+    clerkUserId,
+  });
+
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
   });
+
+  // Log form errors whenever they change
+  React.useEffect(() => {
+    if (Object.keys(form.formState.errors).length > 0) {
+      console.log("Debug: Form validation errors:", form.formState.errors);
+    }
+  }, [form.formState.errors]);
 
   const timezone = form.watch("timezone");
   const date = form.watch("date");
@@ -68,10 +81,7 @@ export function MeetingForm({
 
     const converted = validTimes.map((date) => {
       const zonedTime = toZonedTime(date, timezone);
-      console.log("Debug: Time conversion", {
-        original: date.toISOString(),
-        converted: zonedTime.toISOString(),
-      });
+
       return zonedTime;
     });
 
@@ -83,25 +93,49 @@ export function MeetingForm({
   }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    console.log("Debug: Submitting form", {
-      values,
-      timezone,
-      originalDate: values.startTime?.toISOString(),
-    });
+    try {
+      console.log("Debug: Starting form submission", {
+        values,
+        timezone,
+        originalDate: values.startTime?.toISOString(),
+      });
 
-    const data = await createMeeting({
-      ...values,
-      eventId,
-      clerkUserId,
-    });
+      const data = await createMeeting({
+        ...values,
+        eventId,
+        clerkUserId,
+      });
 
-    if (data?.error) {
-      console.error("Debug: Submission error", data.error);
+      console.log("Debug: Create meeting response:", data);
+
+      if (data?.error) {
+        console.error("Debug: Submission error", {
+          error: data.error,
+          formData: values,
+        });
+        form.setError("root", {
+          message: "There was an error saving your event",
+        });
+      } else {
+        console.log("Debug: Meeting created successfully");
+      }
+    } catch (error) {
+      console.error("Debug: Unexpected error during submission:", error);
       form.setError("root", {
-        message: "There was an error saving your event",
+        message: "An unexpected error occurred",
       });
     }
   }
+
+  // Log when form state changes
+  React.useEffect(() => {
+    console.log("Debug: Form state updated:", {
+      isDirty: form.formState.isDirty,
+      isSubmitting: form.formState.isSubmitting,
+      isValid: form.formState.isValid,
+      submitCount: form.formState.submitCount,
+    });
+  }, [form.formState]);
 
   return (
     <Form {...form}>
@@ -153,7 +187,7 @@ export function MeetingForm({
                         variant="outline"
                         className={cn(
                           "pl-3 text-left font-normal flex w-full",
-                          !field.value && "text-muted-foreground",
+                          !field.value && "text-muted-foreground"
                         )}
                       >
                         {field.value ? (
@@ -172,7 +206,7 @@ export function MeetingForm({
                       onSelect={field.onChange}
                       disabled={(date) =>
                         !validTimesInTimezone.some((time) =>
-                          isSameDay(date, time),
+                          isSameDay(date, time)
                         )
                       }
                       initialFocus
