@@ -96,10 +96,30 @@ export function MeetingForm({
     });
 
     if (data?.error) {
-      console.error("Debug: Submission error", data.error);
-      form.setError("root", {
-        message: "There was an error saving your event",
+      console.error("Debug: Submission error", {
+        error: data.error,
+        details: typeof data.error === 'object' ? data.error : null,
+        values,
+        eventId,
+        clerkUserId,
       });
+      
+      form.setError("root", {
+        message: typeof data.error === 'string' 
+          ? data.error 
+          : "There was an error saving your event. Please check the console for more details.",
+      });
+      
+      // Set specific field errors if they exist
+      if (typeof data.error === 'object') {
+        Object.entries(data.error).forEach(([field, message]) => {
+          if (field in form.getValues()) {
+            form.setError(field as any, {
+              message: message as string,
+            });
+          }
+        });
+      }
     }
   }
 
