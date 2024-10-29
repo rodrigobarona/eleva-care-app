@@ -1,15 +1,4 @@
 "use server";
-
-/**
- * Server actions for handling meeting-related operations
- * This file manages the creation of meetings, including:
- * - Validation of meeting data
- * - Checking event existence and validity
- * - Timezone conversion
- * - Google Calendar integration
- * - Audit logging
- */
-
 import { db } from "@/drizzle/db";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
 import { meetingActionSchema } from "@/schema/meetings";
@@ -21,20 +10,8 @@ import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
 import { fromZonedTime } from "date-fns-tz";
 
-/**
- * Creates a new meeting with the following steps:
- * 1. Validates incoming meeting data
- * 2. Checks if the associated event exists and is active
- * 3. Converts time to proper timezone
- * 4. Validates the proposed meeting time against schedule
- * 5. Creates Google Calendar event
- * 6. Logs audit event
- * 7. Redirects to success page
- *
- * @param unsafeData - Raw meeting data that needs validation
- */
 export async function createMeeting(
-  unsafeData: z.infer<typeof meetingActionSchema>
+  unsafeData: z.infer<typeof meetingActionSchema>,
 ) {
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
 
@@ -45,7 +22,7 @@ export async function createMeeting(
       and(
         eq(isActive, true),
         eq(clerkUserId, data.clerkUserId),
-        eq(id, data.eventId)
+        eq(id, data.eventId),
       ),
   });
 
@@ -76,12 +53,12 @@ export async function createMeeting(
     null, // Previous data (none in this case)
     { ...data }, // Current data to log
     ipAddress, // IP address of the user
-    userAgent // User agent for the audit log
+    userAgent, // User agent for the audit log
   );
 
   redirect(
     `/book/${data.clerkUserId}/${
       data.eventId
-    }/success?startTime=${data.startTime.toISOString()}`
+    }/success?startTime=${data.startTime.toISOString()}`,
   );
 }

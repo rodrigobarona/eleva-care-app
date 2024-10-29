@@ -1,28 +1,11 @@
-"use server";
-
-/**
- * Google Calendar Integration Module
- * Handles all interactions with Google Calendar API including:
- * - Fetching existing calendar events
- * - Creating new calendar events
- * - OAuth authentication
- */
-
+import "use-server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { google } from "googleapis";
 import { addMinutes, endOfDay, startOfDay } from "date-fns";
 
-/**
- * Retrieves all calendar events within a specified time range
- * Handles both full-day and time-specific events
- * 
- * @param clerkUserId - User's Clerk ID for OAuth
- * @param timeRange - Start and end dates to fetch events for
- * @returns Array of event intervals with start and end times
- */
 export async function getCalendarEventTimes(
   clerkUserId: string,
-  { start, end }: { start: Date; end: Date }
+  { start, end }: { start: Date; end: Date },
 ) {
   const oAuthClient = await getOAuthClient(clerkUserId);
 
@@ -57,13 +40,6 @@ export async function getCalendarEventTimes(
   );
 }
 
-/**
- * Creates a new calendar event with specified attendees
- * Automatically sends invitations to all participants
- * 
- * @param params - Event details including attendee info and timing
- * @returns Created calendar event data
- */
 export async function createCalendarEvent({
   clerkUserId,
   guestName,
@@ -114,14 +90,10 @@ export async function createCalendarEvent({
   return calendarEvent.data;
 }
 
-/**
- * Internal helper to set up OAuth client for Google Calendar
- * Manages token retrieval and client configuration
- */
 async function getOAuthClient(clerkUserId: string) {
   const token = await clerkClient().users.getUserOauthAccessToken(
     clerkUserId,
-    "oauth_google"
+    "oauth_google",
   );
 
   if (token.data.length === 0 || token.data[0].token == null) {
@@ -131,7 +103,7 @@ async function getOAuthClient(clerkUserId: string) {
   const client = new google.auth.OAuth2(
     process.env.GOOGLE_OAUTH_CLIENT_ID,
     process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-    process.env.GOOGLE_OAUTH_REDIRECT_URL
+    process.env.GOOGLE_OAUTH_REDIRECT_URL,
   );
 
   client.setCredentials({ access_token: token.data[0].token });

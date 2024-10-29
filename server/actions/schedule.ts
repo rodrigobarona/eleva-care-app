@@ -1,13 +1,5 @@
 "use server";
 
-/**
- * Schedule Management Module
- * Handles all schedule-related operations including:
- * - Creating/updating user schedules
- * - Managing availability slots
- * - Audit logging for schedule changes
- */
-
 import { db } from "@/drizzle/db";
 import { ScheduleAvailabilityTable, ScheduleTable } from "@/drizzle/schema";
 import { scheduleFormSchema } from "@/schema/schedule";
@@ -19,16 +11,6 @@ import { BatchItem } from "drizzle-orm/batch";
 import "use-server";
 import { z } from "zod";
 
-/**
- * Saves or updates a user's schedule and availability
- * Performs the following operations:
- * 1. Validates incoming schedule data
- * 2. Updates base schedule information
- * 3. Replaces all availability slots
- * 4. Logs changes for audit purposes
- * 
- * @param unsafeData - Raw schedule data requiring validation
- */
 export async function saveSchedule(
   unsafeData: z.infer<typeof scheduleFormSchema>,
 ) {
