@@ -64,7 +64,7 @@ export function MeetingForm({
   eventId: string;
   clerkUserId: string;
 }) {
-  const [isSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
@@ -154,8 +154,8 @@ export function MeetingForm({
       // Optionally reset form or show error message
     };
 
-    window.addEventListener("error", handleError);
-    return () => window.removeEventListener("error", handleError);
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
   }, []);
 
   return (
@@ -208,7 +208,7 @@ export function MeetingForm({
                         variant="outline"
                         className={cn(
                           "pl-3 text-left font-normal flex w-full",
-                          !field.value && "text-muted-foreground"
+                          !field.value && "text-muted-foreground",
                         )}
                       >
                         {field.value ? (
@@ -227,7 +227,7 @@ export function MeetingForm({
                       onSelect={field.onChange}
                       disabled={(date) =>
                         !validTimesInTimezone.some((time) =>
-                          isSameDay(date, time)
+                          isSameDay(date, time),
                         )
                       }
                       initialFocus
@@ -332,8 +332,8 @@ export function MeetingForm({
           >
             <Link href={`/book/${clerkUserId}`}>Cancel</Link>
           </Button>
-          <Button
-            disabled={isSubmitting || form.formState.isSubmitting}
+          <Button 
+            disabled={isSubmitting || form.formState.isSubmitting} 
             type="submit"
           >
             {isSubmitting ? "Scheduling..." : "Schedule"}
