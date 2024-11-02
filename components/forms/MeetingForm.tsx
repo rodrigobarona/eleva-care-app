@@ -39,7 +39,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
-import { toZonedTime } from "date-fns-tz";
+import { getTimezoneOffset } from 'date-fns-tz';
 import { createMeeting } from "@/server/actions/meetings";
 
 export function MeetingForm({
@@ -61,49 +61,34 @@ export function MeetingForm({
   const timezone = form.watch("timezone");
   const date = form.watch("date");
   const validTimesInTimezone = useMemo(() => {
-    console.log("Debug: Converting times to timezone", {
-      timezone,
-      originalCount: validTimes.length,
+    return validTimes.map((date) => {
+      const offset = getTimezoneOffset(timezone);
+      return new Date(date.getTime() + offset);
     });
-
-    const converted = validTimes.map((date) => {
-      const zonedTime = toZonedTime(date, timezone);
-      console.log("Debug: Time conversion", {
-        original: date.toISOString(),
-        converted: zonedTime.toISOString(),
-      });
-      return zonedTime;
-    });
-
-    console.log("Debug: Conversion complete", {
-      convertedCount: converted.length,
-    });
-
-    return converted;
   }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    console.log("Debug: Submitting form", {
-      values,
-      timezone,
-      originalDate: values.startTime?.toISOString(),
-    });
+    try {
+      const utcStartTime = values.startTime ? 
+        new Date(values.startTime.getTime() + getTimezoneOffset(timezone)) : 
+        values.startTime;
 
-    const utcStartTime = values.startTime ? 
-      new Date(values.startTime.toLocaleString('en-US', { timeZone: 'UTC' })) : 
-      values.startTime;
+      const data = await createMeeting({
+        ...values,
+        startTime: utcStartTime,
+        eventId,
+        clerkUserId,
+      });
 
-    const data = await createMeeting({
-      ...values,
-      startTime: utcStartTime,
-      eventId,
-      clerkUserId,
-    });
-
-    if (data?.error) {
-      console.error("Debug: Submission error", data.error);
+      if (data?.error) {
+        form.setError("root", {
+          message: "There was an error saving your event",
+        });
+      }
+    } catch (error) {
+      console.error("Submission error:", error);
       form.setError("root", {
-        message: "There was an error saving your event",
+        message: "There was an error processing your request",
       });
     }
   }
