@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { getTimezoneOffset } from 'date-fns-tz';
 import { createMeeting } from "@/server/actions/meetings";
+import { formatInTimeZone } from 'date-fns-tz';
 
 export function MeetingForm({
   validTimes,
@@ -62,8 +63,7 @@ export function MeetingForm({
   const date = form.watch("date");
   const validTimesInTimezone = useMemo(() => {
     return validTimes.map((date) => {
-      const offset = getTimezoneOffset(timezone);
-      return new Date(date.getTime() - offset);
+      return new Date(formatInTimeZone(date, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX"));
     });
   }, [validTimes, timezone]);
 
