@@ -8,8 +8,5 @@
         "nodeVersion": "20.x"
       }
     }
-  ],
-  "env": {
-    "TZ": "UTC"
-  }
+  ]
 }
