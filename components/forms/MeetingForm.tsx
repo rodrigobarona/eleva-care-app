@@ -175,7 +175,6 @@ export function MeetingForm({
                           isSameDay(date, time),
                         )
                       }
-                      initialFocus
                     />
                   </PopoverContent>
                   <FormMessage />

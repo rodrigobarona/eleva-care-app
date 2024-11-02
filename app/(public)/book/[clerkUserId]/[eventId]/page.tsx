@@ -20,6 +20,7 @@ import {
 } from "date-fns";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { formatInTimeZone } from "date-fns-tz";
 
 export const revalidate = 0;
 
@@ -36,11 +37,24 @@ export default async function BookEventPage({
   if (event == null) return notFound();
 
   const calendarUser = await clerkClient().users.getUser(clerkUserId);
-  const startDate = roundToNearestMinutes(new Date(), {
-    nearestTo: 15,
-    roundingMethod: "ceil",
-  });
-  const endDate = endOfDay(addMonths(startDate, 2));
+  const startDate = new Date(
+    formatInTimeZone(
+      roundToNearestMinutes(new Date(), {
+        nearestTo: 15,
+        roundingMethod: "ceil",
+      }),
+      "UTC",
+      "yyyy-MM-dd'T'HH:mm:ssX",
+    ),
+  );
+
+  const endDate = new Date(
+    formatInTimeZone(
+      endOfDay(addMonths(startDate, 2)),
+      "UTC",
+      "yyyy-MM-dd'T'HH:mm:ssX",
+    ),
+  );
 
   const validTimes = await getValidTimesFromSchedule(
     eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
