@@ -89,8 +89,13 @@ export function MeetingForm({
       originalDate: values.startTime?.toISOString(),
     });
 
+    const utcStartTime = values.startTime ? 
+      new Date(values.startTime.toLocaleString('en-US', { timeZone: 'UTC' })) : 
+      values.startTime;
+
     const data = await createMeeting({
       ...values,
+      startTime: utcStartTime,
       eventId,
       clerkUserId,
     });
