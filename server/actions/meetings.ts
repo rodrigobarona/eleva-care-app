@@ -35,15 +35,13 @@ export async function createMeeting(
   // Handle timezone conversions
   let startTime: Date;
   if (data.timezone === 'UTC' || data.timezone === 'GMT' || data.timezone === 'Europe/Lisbon') {
-    // For UTC/GMT timezones, we need to subtract a day if it's after certain hour
-    const hour = data.startTime.getUTCHours();
     startTime = new Date(data.startTime);
-    if (hour >= 0 && hour < 8) {  // If time is between 00:00-08:00 UTC
-      startTime.setUTCDate(startTime.getUTCDate() - 1);  // Move back one day
-    }
+    // No adjustment needed - keep the UTC time as is
+    // 11:00 PM GMT (23:00) will be received as 23:00 UTC
+    // which corresponds correctly to 3:00 PM PST
   } else {
     // For other timezones (like PST), keep the existing conversion
-    startTime = new Date(data.startTime.getTime() + (new Date().getTimezoneOffset() * 60000));
+    startTime = new Date(data.startTime.getTime() - (new Date().getTimezoneOffset() * 60000));
   }
 
   console.log("Adjusted time:", {
