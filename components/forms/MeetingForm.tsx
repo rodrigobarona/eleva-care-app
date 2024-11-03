@@ -63,7 +63,7 @@ export function MeetingForm({
   const validTimesInTimezone = useMemo(() => {
     return validTimes.map((date) => {
       const offset = getTimezoneOffset(timezone);
-      return new Date(date.getTime() - offset);
+      return new Date(date.getTime() + offset);
     });
   }, [validTimes, timezone]);
 
