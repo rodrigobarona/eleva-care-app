@@ -34,29 +34,24 @@ export async function createMeeting(
 
   // Handle timezone conversions
   let startTime: Date;
+  if (data.timezone === 'UTC' || data.timezone === 'GMT' || data.timezone === 'Europe/Lisbon') {
+    startTime = new Date(data.startTime);
+    // If we receive a time between 00:00-08:00 UTC, it means it was selected
+    // from the previous day in GMT/Lisbon (between 16:00-23:59)
+    if (startTime.getUTCHours() < 8) {
+      startTime = new Date(startTime.setUTCDate(startTime.getUTCDate() - 1));
+      startTime = new Date(startTime.setUTCHours(startTime.getUTCHours() + 24));
+    }
+  } else {
+    // For other timezones (like PST), keep the existing conversion
+    startTime = new Date(data.startTime.getTime() - (new Date().getTimezoneOffset() * 60000));
+  }
 
-  // Convert the input time to UTC, preserving the intended local time
-  startTime = new Date(data.startTime);
-
-  // Log the original date details for debugging
-  console.log("Original date details:", {
-    localISOString: startTime.toISOString(),
-    localHours: startTime.getHours(),
-    utcHours: startTime.getUTCHours(),
+  console.log("Adjusted time:", {
+    original: data.startTime.toISOString(),
+    adjusted: startTime.toISOString(),
     timezone: data.timezone,
-    timezoneOffset: startTime.getTimezoneOffset(),
-  });
-
-  // No need for special timezone handling - the Date object already handles
-  // the conversion to UTC when created from an ISO string
-  // We just need to ensure the date we're passing represents the correct
-  // local time in the user's timezone
-
-  console.log("Final time:", {
-    utc: startTime.toISOString(),
-    localHours: startTime.getHours(),
-    utcHours: startTime.getUTCHours(),
-    timezone: data.timezone,
+    originalHour: data.startTime.getUTCHours()
   });
 
   const validTimes = await getValidTimesFromSchedule([startTime], event);
@@ -84,20 +79,21 @@ export async function createMeeting(
     eventName: event.name,
   });
 
+  // Log the audit event for meeting creation
   await logAuditEvent(
-    data.clerkUserId,
-    "create",
-    "meetings",
-    data.eventId,
-    null,
-    { ...data },
-    ipAddress,
-    userAgent
+    data.clerkUserId, // User ID (related to the clerk user)
+    "create", // Action type (creating a new meeting)
+    "meetings", // Table name for audit logging
+    data.eventId, // Event ID (foreign key for the event)
+    null, // Previous data (none in this case)
+    { ...data }, // Current data to log
+    ipAddress, // IP address of the user
+    userAgent // User agent for the audit log
   );
 
   redirect(
     `/book/${data.clerkUserId}/${
       data.eventId
-    }/success?startTime=${startTime.toISOString()}`
+    }/success?startTime=${data.startTime.toISOString()}`
   );
 }
