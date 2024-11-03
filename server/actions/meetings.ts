@@ -8,7 +8,6 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { parseISO } from "date-fns";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -33,8 +32,14 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Use the original UTC time directly without conversion
-  const startTime = parseISO(data.startTime.toISOString());
+  // Convert the client's selected time (which is in UTC) back to the intended local time
+  const startTime = new Date(data.startTime.getTime() - (new Date().getTimezoneOffset() * 60000));
+
+  console.log("Adjusted time:", {
+    original: data.startTime.toISOString(),
+    adjusted: startTime.toISOString(),
+    timezone: data.timezone
+  });
 
   const validTimes = await getValidTimesFromSchedule([startTime], event);
 
