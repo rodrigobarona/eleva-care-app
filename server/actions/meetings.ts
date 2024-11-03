@@ -8,7 +8,6 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { toZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -33,39 +32,26 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Convert the time back to the original timezone for validation
-  const startTimeInOriginalTZ = toZonedTime(data.startTime, data.timezone);
+  // Use the received time directly since it's already in UTC
+  const startTime = new Date(data.startTime);
 
   console.log('Time validation:', {
-    receivedTime: data.startTime.toISOString(),
-    startTimeInTZ: startTimeInOriginalTZ.toISOString(),
+    startTime: startTime.toISOString(),
     timezone: data.timezone,
     validationTime: new Date().toISOString()
   });
 
-  // Get valid times in the selected timezone
-  const validTimesInTZ = await getValidTimesFromSchedule(
-    [startTimeInOriginalTZ], 
-    event,
-    data.timezone // Pass timezone to validation function
-  );
-
-  console.log('Valid times:', {
-    requestedTime: startTimeInOriginalTZ.toISOString(),
-    validTimesCount: validTimesInTZ.length,
-    validTimes: validTimesInTZ.map(t => ({
-      iso: t.toISOString(),
-      local: t.toLocaleString('en-US', { timeZone: data.timezone })
-    }))
+  const validTimes = await getValidTimesFromSchedule([startTime], event);
+  
+  console.log('Valid times check:', {
+    validTimesCount: validTimes.length,
+    validTimes: validTimes.map(t => t.toISOString())
   });
 
-  if (validTimesInTZ.length === 0) {
-    console.log('No valid times found in timezone');
+  if (validTimes.length === 0) {
+    console.log('No valid times found');
     return { error: true };
   }
-
-  // Use the validated time for the calendar event
-  const startTime = validTimesInTZ[0];
 
   const headersList = headers();
   const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
