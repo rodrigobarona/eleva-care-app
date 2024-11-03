@@ -8,16 +8,10 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { formatInTimeZone } from "date-fns-tz";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
 ) {
-  console.log('Server received:', {
-    startTime: unsafeData.startTime?.toISOString(),
-    timezone: unsafeData.timezone
-  });
-
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
 
   if (!success) return { error: true };
@@ -33,26 +27,15 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Convert the time to UTC while preserving the intended time in the selected timezone
-  const startTime = new Date(
-    formatInTimeZone(
-      data.startTime,
-      data.timezone,
-      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-    )
-  );
-
-  console.log('Processed time:', {
-    original: data.startTime.toISOString(),
-    converted: startTime.toISOString(),
+  // Ensure we're working with UTC
+  const startTime = new Date(data.startTime);
+  console.log('Server processing:', {
+    receivedTime: startTime.toISOString(),
     timezone: data.timezone
   });
 
   const validTimes = await getValidTimesFromSchedule([startTime], event);
-  if (validTimes.length === 0) {
-    console.log('No valid times found');
-    return { error: true };
-  }
+  if (validTimes.length === 0) return { error: true };
 
   const headersList = headers();
   const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";

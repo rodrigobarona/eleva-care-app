@@ -66,18 +66,27 @@ export function MeetingForm({
         throw new Error("Start time is required");
       }
 
-      // Keep the selected time in the chosen timezone
-      const selectedTime = values.startTime;
-      console.log('Form submission:', {
-        selectedTime: selectedTime.toISOString(),
-        localTime: selectedTime.toLocaleString(),
+      // Explicitly handle UTC conversion
+      const utcStartTime = new Date(
+        Date.UTC(
+          values.startTime.getUTCFullYear(),
+          values.startTime.getUTCMonth(),
+          values.startTime.getUTCDate(),
+          values.startTime.getUTCHours(),
+          values.startTime.getUTCMinutes()
+        )
+      );
+
+      console.log('Submitting meeting:', {
+        originalTime: values.startTime.toISOString(),
+        utcTime: utcStartTime.toISOString(),
         timezone: values.timezone,
-        date: values.date?.toISOString()
+        env: process.env.NODE_ENV
       });
 
       const data = await createMeeting({
         ...values,
-        startTime: selectedTime,
+        startTime: utcStartTime,
         eventId,
         clerkUserId,
       });
@@ -183,15 +192,9 @@ export function MeetingForm({
                 <FormLabel>Time</FormLabel>
                 <Select
                   disabled={date == null || timezone == null}
-                  onValueChange={(value) => {
-                    const selectedDate = new Date(value);
-                    console.log('Time selection:', {
-                      value,
-                      selectedDate: selectedDate.toISOString(),
-                      timezone
-                    });
-                    field.onChange(selectedDate);
-                  }}
+                  onValueChange={(value) =>
+                    field.onChange(new Date(Date.parse(value)))
+                  }
                   defaultValue={field.value?.toISOString()}
                 >
                   <FormControl>
