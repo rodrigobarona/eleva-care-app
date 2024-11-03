@@ -8,22 +8,12 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { formatInTimeZone } from "date-fns-tz";
-import { parseISO } from "date-fns";
+import { fromZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
-  unsafeData: z.infer<typeof meetingActionSchema>,
-): Promise<{ error: boolean } | undefined> {
-  const { success, data } = meetingActionSchema.safeParse({
-    ...unsafeData,
-    startTime: new Date(
-      formatInTimeZone(
-        new Date(unsafeData.startTime),
-        "UTC",
-        "yyyy-MM-dd'T'HH:mm:ssX",
-      ),
-    ),
-  });
+  unsafeData: z.infer<typeof meetingActionSchema>
+) {
+  const { success, data } = meetingActionSchema.safeParse(unsafeData);
 
   if (!success) return { error: true };
 
@@ -32,19 +22,15 @@ export async function createMeeting(
       and(
         eq(isActive, true),
         eq(clerkUserId, data.clerkUserId),
-        eq(id, data.eventId),
+        eq(id, data.eventId)
       ),
   });
 
   if (event == null) return { error: true };
-
-  const startInTimezone = parseISO(
-    formatInTimeZone(data.startTime, data.timezone, "yyyy-MM-dd'T'HH:mm:ssX"),
-  );
+  const startInTimezone = fromZonedTime(data.startTime, data.timezone);
 
   const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
   if (validTimes.length === 0) return { error: true };
-
   const headersList = headers();
 
   const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
@@ -66,12 +52,12 @@ export async function createMeeting(
     null, // Previous data (none in this case)
     { ...data }, // Current data to log
     ipAddress, // IP address of the user
-    userAgent, // User agent for the audit log
+    userAgent // User agent for the audit log
   );
 
   redirect(
     `/book/${data.clerkUserId}/${
       data.eventId
-    }/success?startTime=${data.startTime.toISOString()}`,
+    }/success?startTime=${data.startTime.toISOString()}`
   );
 }
