@@ -8,7 +8,7 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { formatInTimeZone } from "date-fns-tz";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -33,42 +33,17 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Parse the original date
-  const originalDate = data.startTime;
+  // Convert the startTime to the correct timezone
+  const startTime = toZonedTime(data.startTime, data.timezone);
 
-  // Get the UTC timestamp while preserving the intended local time
-  const startTime = new Date(
-    Date.UTC(
-      originalDate.getFullYear(),
-      originalDate.getMonth(),
-      originalDate.getDate(),
-      originalDate.getHours(),
-      originalDate.getMinutes()
-    )
-  );
-
-  // Log the conversion details
   console.log("Time conversion details:", {
-    originalTime: originalDate.toISOString(),
+    originalTime: data.startTime.toISOString(),
     originalLocalTime: formatInTimeZone(
-      originalDate,
+      data.startTime,
       data.timezone,
       "yyyy-MM-dd HH:mm:ss zzz"
     ),
-    convertedUtc: startTime.toISOString(),
-    inLisbon: formatInTimeZone(
-      startTime,
-      "Europe/Lisbon",
-      "yyyy-MM-dd HH:mm:ss zzz"
-    ),
-    inPST: formatInTimeZone(
-      startTime,
-      "America/Los_Angeles",
-      "yyyy-MM-dd HH:mm:ss zzz"
-    ),
-    timezone: data.timezone,
-    originalHours: originalDate.getHours(),
-    originalMinutes: originalDate.getMinutes(),
+    convertedTime: startTime.toISOString(),
   });
 
   const validTimes = await getValidTimesFromSchedule([startTime], event);
