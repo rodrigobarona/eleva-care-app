@@ -8,7 +8,6 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { zonedTimeToUtc, formatInTimeZone } from "date-fns-tz";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -33,25 +32,31 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Convert the local time in the specified timezone to UTC
-  const startTime = zonedTimeToUtc(data.startTime, data.timezone);
+  // Handle timezone conversions
+  let startTime: Date;
 
-  // Log the conversion details
-  console.log("Time conversion details:", {
-    originalTime: data.startTime.toISOString(),
-    originalTimezone: data.timezone,
-    convertedUtc: startTime.toISOString(),
-    // Show the time in both timezones for verification
-    inLisbon: formatInTimeZone(
-      startTime,
-      "Europe/Lisbon",
-      "yyyy-MM-dd HH:mm:ss"
-    ),
-    inPST: formatInTimeZone(
-      startTime,
-      "America/Los_Angeles",
-      "yyyy-MM-dd HH:mm:ss"
-    ),
+  // Convert the input time to UTC, preserving the intended local time
+  startTime = new Date(data.startTime);
+
+  // Log the original date details for debugging
+  console.log("Original date details:", {
+    localISOString: startTime.toISOString(),
+    localHours: startTime.getHours(),
+    utcHours: startTime.getUTCHours(),
+    timezone: data.timezone,
+    timezoneOffset: startTime.getTimezoneOffset(),
+  });
+
+  // No need for special timezone handling - the Date object already handles
+  // the conversion to UTC when created from an ISO string
+  // We just need to ensure the date we're passing represents the correct
+  // local time in the user's timezone
+
+  console.log("Final time:", {
+    utc: startTime.toISOString(),
+    localHours: startTime.getHours(),
+    utcHours: startTime.getUTCHours(),
+    timezone: data.timezone,
   });
 
   const validTimes = await getValidTimesFromSchedule([startTime], event);
