@@ -70,7 +70,13 @@ export function MeetingForm({
         throw new Error("Start time is required");
       }
 
-      // Convert the selected time to UTC while preserving the correct time
+      console.log('Form Values:', {
+        originalStartTime: values.startTime,
+        originalTimezone: values.timezone,
+        originalISOString: values.startTime.toISOString(),
+        originalLocalString: values.startTime.toString(),
+      });
+
       const utcStartTime = new Date(
         Date.UTC(
           values.startTime.getUTCFullYear(),
@@ -80,6 +86,12 @@ export function MeetingForm({
           values.startTime.getUTCMinutes()
         )
       );
+
+      console.log('Converted Time:', {
+        utcStartTime,
+        utcISOString: utcStartTime.toISOString(),
+        utcLocalString: utcStartTime.toString(),
+      });
 
       const data = await createMeeting({
         ...values,
