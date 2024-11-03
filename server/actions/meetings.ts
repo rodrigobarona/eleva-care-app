@@ -8,7 +8,12 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { zonedTimeToUtc, formatInTimeZone } from "date-fns-tz";
+import {
+  utcToZonedTime,
+  zonedTimeToUtc as convertToUtc,
+  format,
+} from "date-fns-tz";
+import { parseISO } from "date-fns";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -33,24 +38,27 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Convert the local time in the specified timezone to UTC
-  const startTime = zonedTimeToUtc(data.startTime, data.timezone);
+  // Parse the date and handle the timezone conversion
+  const originalDate = parseISO(data.startTime.toISOString());
+
+  // Convert to the target timezone first
+  const zonedDate = utcToZonedTime(originalDate, data.timezone);
+
+  // Then convert back to UTC for storage
+  const startTime = convertToUtc(zonedDate, data.timezone);
 
   // Log the conversion details
   console.log("Time conversion details:", {
-    originalTime: data.startTime.toISOString(),
+    originalTime: originalDate.toISOString(),
     originalTimezone: data.timezone,
     convertedUtc: startTime.toISOString(),
-    // Show the time in both timezones for verification
-    inLisbon: formatInTimeZone(
-      startTime,
-      "Europe/Lisbon",
-      "yyyy-MM-dd HH:mm:ss"
-    ),
-    inPST: formatInTimeZone(
-      startTime,
-      "America/Los_Angeles",
-      "yyyy-MM-dd HH:mm:ss"
+    inOriginalTimezone: format(zonedDate, "yyyy-MM-dd HH:mm:ss zzz", {
+      timeZone: data.timezone,
+    }),
+    inPST: format(
+      utcToZonedTime(startTime, "America/Los_Angeles"),
+      "yyyy-MM-dd HH:mm:ss zzz",
+      { timeZone: "America/Los_Angeles" }
     ),
   });
 
