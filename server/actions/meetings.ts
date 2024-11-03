@@ -32,25 +32,15 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Handle timezone conversions
-  let startTime: Date;
-  if (data.timezone === 'UTC' || data.timezone === 'GMT' || data.timezone === 'Europe/Lisbon') {
-    // For UTC/GMT timezones, we need to subtract a day if it's after certain hour
-    const hour = data.startTime.getUTCHours();
-    startTime = new Date(data.startTime);
-    if (hour >= 0 && hour < 8) {  // If time is between 00:00-08:00 UTC
-      startTime.setUTCDate(startTime.getUTCDate() - 1);  // Move back one day
-    }
-  } else {
-    // For other timezones (like PST), keep the existing conversion
-    startTime = new Date(data.startTime.getTime() + (new Date().getTimezoneOffset() * 60000));
-  }
+  // Only adjust the time if the timezone is not UTC/GMT
+  const startTime = data.timezone === 'UTC' || data.timezone === 'GMT' || data.timezone === 'Europe/Lisbon'
+    ? data.startTime  // Keep the original time for UTC/GMT
+    : new Date(data.startTime.getTime() - (new Date().getTimezoneOffset() * 60000));
 
   console.log("Adjusted time:", {
     original: data.startTime.toISOString(),
     adjusted: startTime.toISOString(),
-    timezone: data.timezone,
-    originalHour: data.startTime.getUTCHours()
+    timezone: data.timezone
   });
 
   const validTimes = await getValidTimesFromSchedule([startTime], event);
