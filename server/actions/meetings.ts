@@ -8,14 +8,14 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { utcToZonedTime } from "date-fns-tz";
+import { zonedTimeToUtc } from 'date-fns-tz';
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
 ) {
-  console.log("Server received:", {
+  console.log('Server received:', {
     startTime: unsafeData.startTime?.toISOString(),
-    timezone: unsafeData.timezone,
+    timezone: unsafeData.timezone
   });
 
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
@@ -24,28 +24,24 @@ export async function createMeeting(
 
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId: userIdCol, isActive, id }, { eq, and }) =>
-      and(
-        eq(isActive, true),
-        eq(userIdCol, data.clerkUserId),
-        eq(id, data.eventId)
-      ),
+      and(eq(isActive, true), eq(userIdCol, data.clerkUserId), eq(id, data.eventId)),
   });
 
   if (event == null) return { error: true };
 
   // Convert the time properly considering the timezone
-  const startTime = utcToZonedTime(data.startTime, data.timezone);
+  const startTime = zonedTimeToUtc(data.startTime, data.timezone);
 
   const validTimes = await getValidTimesFromSchedule([startTime], event);
-
-  console.log("Validation:", {
+  
+  console.log('Validation:', {
     requestedTime: startTime.toISOString(),
     validTimesCount: validTimes.length,
-    validTimes: validTimes.map((t) => t.toISOString()),
+    validTimes: validTimes.map(t => t.toISOString())
   });
 
   if (validTimes.length === 0) {
-    console.log("No valid times found");
+    console.log('No valid times found');
     return { error: true };
   }
 
