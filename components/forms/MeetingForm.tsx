@@ -61,15 +61,45 @@ export function MeetingForm({
   }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    const data = await createMeeting({
-      ...values,
-      eventId,
-      clerkUserId,
-    });
+    try {
+      if (!values.startTime) {
+        throw new Error("Start time is required");
+      }
 
-    if (data?.error) {
+      // Explicitly handle UTC conversion
+      const utcStartTime = new Date(
+        Date.UTC(
+          values.startTime.getUTCFullYear(),
+          values.startTime.getUTCMonth(),
+          values.startTime.getUTCDate(),
+          values.startTime.getUTCHours(),
+          values.startTime.getUTCMinutes()
+        )
+      );
+
+      console.log('Submitting meeting:', {
+        originalTime: values.startTime.toISOString(),
+        utcTime: utcStartTime.toISOString(),
+        timezone: values.timezone,
+        env: process.env.NODE_ENV
+      });
+
+      const data = await createMeeting({
+        ...values,
+        startTime: utcStartTime,
+        eventId,
+        clerkUserId,
+      });
+
+      if (data?.error) {
+        form.setError("root", {
+          message: "There was an error saving your event",
+        });
+      }
+    } catch (error) {
+      console.error('Submission error:', error);
       form.setError("root", {
-        message: "There was an error saving your event",
+        message: "There was an error processing your request",
       });
     }
   }
