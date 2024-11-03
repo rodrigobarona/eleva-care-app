@@ -11,11 +11,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from "../ui/form";
 import { Input } from "../ui/input";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "../ui/button";
+import { Textarea } from "../ui/textarea";
 import { meetingFormSchema } from "@/schema/meetings";
 import {
   Select,
@@ -23,23 +23,19 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "../ui/select";
 import {
   formatDate,
   formatTimeString,
   formatTimezoneOffset,
 } from "@/lib/formatters";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
+import { Calendar } from "../ui/calendar";
 import { isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
-import { toZonedTime } from 'date-fns-tz';
+import { toZonedTime } from "date-fns-tz";
 import { createMeeting } from "@/server/actions/meetings";
 
 export function MeetingForm({
@@ -61,54 +57,19 @@ export function MeetingForm({
   const timezone = form.watch("timezone");
   const date = form.watch("date");
   const validTimesInTimezone = useMemo(() => {
-    return validTimes.map(date => toZonedTime(date, timezone))
+    return validTimes.map((date) => toZonedTime(date, timezone));
   }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    try {
-      if (!values.startTime) {
-        throw new Error("Start time is required");
-      }
+    const data = await createMeeting({
+      ...values,
+      eventId,
+      clerkUserId,
+    });
 
-      console.log('Form Values:', {
-        originalStartTime: values.startTime,
-        originalTimezone: values.timezone,
-        originalISOString: values.startTime.toISOString(),
-        originalLocalString: values.startTime.toString(),
-      });
-
-      const utcStartTime = new Date(
-        Date.UTC(
-          values.startTime.getUTCFullYear(),
-          values.startTime.getUTCMonth(),
-          values.startTime.getUTCDate(),
-          values.startTime.getUTCHours(),
-          values.startTime.getUTCMinutes()
-        )
-      );
-
-      console.log('Converted Time:', {
-        utcStartTime,
-        utcISOString: utcStartTime.toISOString(),
-        utcLocalString: utcStartTime.toString(),
-      });
-
-      const data = await createMeeting({
-        ...values,
-        startTime: utcStartTime,
-        eventId,
-        clerkUserId,
-      });
-
-      if (data?.error) {
-        form.setError("root", {
-          message: "There was an error saving your event",
-        });
-      }
-    } catch (error) {
-      console.error("Submission error:", error);
+    if (data?.error) {
       form.setError("root", {
-        message: "There was an error processing your request",
+        message: "There was an error saving your event",
       });
     }
   }
@@ -163,7 +124,7 @@ export function MeetingForm({
                         variant="outline"
                         className={cn(
                           "pl-3 text-left font-normal flex w-full",
-                          !field.value && "text-muted-foreground",
+                          !field.value && "text-muted-foreground"
                         )}
                       >
                         {field.value ? (
@@ -182,9 +143,10 @@ export function MeetingForm({
                       onSelect={field.onChange}
                       disabled={(date) =>
                         !validTimesInTimezone.some((time) =>
-                          isSameDay(date, time),
+                          isSameDay(date, time)
                         )
                       }
+                      initialFocus
                     />
                   </PopoverContent>
                   <FormMessage />
