@@ -67,10 +67,11 @@ export function MeetingForm({
       }
 
       console.log('Form submission:', {
-        selectedTime: values.startTime.toISOString(),
-        localTime: values.startTime.toLocaleString(),
+        rawStartTime: values.startTime,
+        startTimeISO: values.startTime.toISOString(),
+        startTimeLocal: values.startTime.toLocaleString(),
         timezone: values.timezone,
-        date: values.date?.toISOString()
+        browserTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
       });
 
       const data = await createMeeting({

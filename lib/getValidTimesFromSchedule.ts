@@ -21,8 +21,7 @@ import { fromZonedTime, toZonedTime } from "date-fns-tz";
 
 export async function getValidTimesFromSchedule(
   timesInOrder: Date[],
-  event: { clerkUserId: string; durationInMinutes: number },
-  timezone?: string
+  event: { clerkUserId: string; durationInMinutes: number }
 ) {
   const start = timesInOrder[0];
   const end = timesInOrder.at(-1);
@@ -31,8 +30,7 @@ export async function getValidTimesFromSchedule(
 
   console.log('Validating times:', {
     start: start.toISOString(),
-    end: end.toISOString(),
-    timezone
+    end: end.toISOString()
   });
 
   const schedule = await db.query.ScheduleTable.findFirst({
@@ -43,8 +41,6 @@ export async function getValidTimesFromSchedule(
 
   if (schedule == null) return [];
 
-  const scheduleTimezone = timezone || schedule.timezone;
-  
   const groupedAvailabilities = Object.groupBy(
     schedule.availabilities,
     (a) => a.dayOfWeek,
@@ -56,17 +52,15 @@ export async function getValidTimesFromSchedule(
   });
 
   return timesInOrder.filter((intervalDate) => {
-    const dateInTZ = timezone ? toZonedTime(intervalDate, timezone) : intervalDate;
-    
     const availabilities = getAvailabilities(
       groupedAvailabilities,
-      dateInTZ,
-      scheduleTimezone
+      intervalDate,
+      schedule.timezone
     );
 
     const eventInterval = {
-      start: dateInTZ,
-      end: addMinutes(dateInTZ, event.durationInMinutes),
+      start: intervalDate,
+      end: addMinutes(intervalDate, event.durationInMinutes),
     };
 
     return (
