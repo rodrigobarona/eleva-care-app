@@ -8,6 +8,7 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
+import { toZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -19,10 +20,7 @@ export async function createMeeting(
 
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
 
-  if (!success) {
-    console.log('Validation failed:', meetingActionSchema.safeParse(unsafeData).error);
-    return { error: true };
-  }
+  if (!success) return { error: true };
 
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId, isActive, id }, { eq, and }) =>
@@ -35,21 +33,43 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Use the startTime directly without conversion
-  const startTime = new Date(data.startTime);
+  // Convert the time back to the original timezone for validation
+  const startTimeInOriginalTZ = toZonedTime(data.startTime, data.timezone);
 
-  const validTimes = await getValidTimesFromSchedule([startTime], event);
-  
-  console.log('Validation check:', {
-    requestedTime: startTime.toISOString(),
-    validTimesCount: validTimes.length,
-    validTimes: validTimes.map(t => t.toISOString())
+  console.log('Time validation:', {
+    receivedTime: data.startTime.toISOString(),
+    startTimeInTZ: startTimeInOriginalTZ.toISOString(),
+    timezone: data.timezone,
+    validationTime: new Date().toISOString()
   });
 
-  if (validTimes.length === 0) {
-    console.log('No valid times found');
+  // Get valid times in the selected timezone
+  const validTimesInTZ = await getValidTimesFromSchedule(
+    [startTimeInOriginalTZ], 
+    event,
+    data.timezone // Pass timezone to validation function
+  );
+
+  console.log('Valid times:', {
+    requestedTime: startTimeInOriginalTZ.toISOString(),
+    validTimesCount: validTimesInTZ.length,
+    validTimes: validTimesInTZ.map(t => ({
+      iso: t.toISOString(),
+      local: t.toLocaleString('en-US', { timeZone: data.timezone })
+    }))
+  });
+
+  if (validTimesInTZ.length === 0) {
+    console.log('No valid times found in timezone');
     return { error: true };
   }
+
+  // Use the validated time for the calendar event
+  const startTime = validTimesInTZ[0];
+
+  const headersList = headers();
+  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
+  const userAgent = headersList.get("user-agent") ?? "Unknown";
 
   await createCalendarEvent({
     ...data,
@@ -57,6 +77,18 @@ export async function createMeeting(
     durationInMinutes: event.durationInMinutes,
     eventName: event.name,
   });
+
+  // Log the audit event
+  await logAuditEvent(
+    data.clerkUserId,
+    "create",
+    "meetings",
+    data.eventId,
+    null,
+    { ...data },
+    ipAddress,
+    userAgent
+  );
 
   redirect(
     `/book/${data.clerkUserId}/${data.eventId}/success?startTime=${startTime.toISOString()}`
