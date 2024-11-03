@@ -39,7 +39,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
-import { formatInTimeZone, toDate } from 'date-fns-tz';
+import { toZonedTime } from 'date-fns-tz';
 import { createMeeting } from "@/server/actions/meetings";
 
 export function MeetingForm({
@@ -61,22 +61,13 @@ export function MeetingForm({
   const timezone = form.watch("timezone");
   const date = form.watch("date");
   const validTimesInTimezone = useMemo(() => {
-    return validTimes.map((date) => {
-      return new Date(formatInTimeZone(date, timezone, "yyyy-MM-dd'T'HH:mm:ssXXX"));
-    });
+    return validTimes.map(date => toZonedTime(date, timezone))
   }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
     try {
-      const utcStartTime = values.startTime ? 
-        toDate(`${values.startTime.toISOString().split('T')[0]}T${values.startTime.toISOString().split('T')[1]}`, { 
-          timeZone: values.timezone 
-        }) : 
-        values.startTime;
-
       const data = await createMeeting({
         ...values,
-        startTime: utcStartTime,
         eventId,
         clerkUserId,
       });
