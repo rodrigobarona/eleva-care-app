@@ -66,8 +66,13 @@ export function MeetingForm({
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
     try {
+      const utcStartTime = values.startTime ? 
+        new Date(values.startTime.toISOString()) : 
+        null;
+
       const data = await createMeeting({
         ...values,
+        startTime: utcStartTime,
         eventId,
         clerkUserId,
       });
