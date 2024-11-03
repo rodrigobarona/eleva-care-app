@@ -8,11 +8,7 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import {
-  utcToZonedTime,
-  zonedTimeToUtc as convertToUtc,
-  format,
-} from "date-fns-tz";
+import { toZonedTime, formatInTimeZone } from "date-fns-tz";
 import { parseISO } from "date-fns";
 
 export async function createMeeting(
@@ -38,28 +34,42 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Parse the date and handle the timezone conversion
-  const originalDate = parseISO(data.startTime.toISOString());
+  // Parse the original date
+  const originalDate = data.startTime;
 
-  // Convert to the target timezone first
-  const zonedDate = utcToZonedTime(originalDate, data.timezone);
-
-  // Then convert back to UTC for storage
-  const startTime = convertToUtc(zonedDate, data.timezone);
+  // Get the UTC timestamp while preserving the intended local time
+  const startTime = new Date(
+    Date.UTC(
+      originalDate.getFullYear(),
+      originalDate.getMonth(),
+      originalDate.getDate(),
+      originalDate.getHours(),
+      originalDate.getMinutes()
+    )
+  );
 
   // Log the conversion details
   console.log("Time conversion details:", {
     originalTime: originalDate.toISOString(),
-    originalTimezone: data.timezone,
-    convertedUtc: startTime.toISOString(),
-    inOriginalTimezone: format(zonedDate, "yyyy-MM-dd HH:mm:ss zzz", {
-      timeZone: data.timezone,
-    }),
-    inPST: format(
-      utcToZonedTime(startTime, "America/Los_Angeles"),
-      "yyyy-MM-dd HH:mm:ss zzz",
-      { timeZone: "America/Los_Angeles" }
+    originalLocalTime: formatInTimeZone(
+      originalDate,
+      data.timezone,
+      "yyyy-MM-dd HH:mm:ss zzz"
     ),
+    convertedUtc: startTime.toISOString(),
+    inLisbon: formatInTimeZone(
+      startTime,
+      "Europe/Lisbon",
+      "yyyy-MM-dd HH:mm:ss zzz"
+    ),
+    inPST: formatInTimeZone(
+      startTime,
+      "America/Los_Angeles",
+      "yyyy-MM-dd HH:mm:ss zzz"
+    ),
+    timezone: data.timezone,
+    originalHours: originalDate.getHours(),
+    originalMinutes: originalDate.getMinutes(),
   });
 
   const validTimes = await getValidTimesFromSchedule([startTime], event);
