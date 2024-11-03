@@ -8,6 +8,7 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
+import { fromZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -26,41 +27,37 @@ export async function createMeeting(
   });
 
   if (event == null) return { error: true };
+  const startInTimezone = fromZonedTime(data.startTime, data.timezone);
 
-  // Ensure we're working with UTC
-  const startTime = new Date(data.startTime);
-  console.log('Server processing:', {
-    receivedTime: startTime.toISOString(),
-    timezone: data.timezone
-  });
-
-  const validTimes = await getValidTimesFromSchedule([startTime], event);
+  const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
   if (validTimes.length === 0) return { error: true };
-
   const headersList = headers();
+
   const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
   const userAgent = headersList.get("user-agent") ?? "Unknown";
 
   await createCalendarEvent({
     ...data,
-    startTime,
+    startTime: startInTimezone,
     durationInMinutes: event.durationInMinutes,
     eventName: event.name,
   });
 
-  // Log the audit event
+  // Log the audit event for meeting creation
   await logAuditEvent(
-    data.clerkUserId,
-    "create",
-    "meetings",
-    data.eventId,
-    null,
-    { ...data },
-    ipAddress,
-    userAgent
+    data.clerkUserId, // User ID (related to the clerk user)
+    "create", // Action type (creating a new meeting)
+    "meetings", // Table name for audit logging
+    data.eventId, // Event ID (foreign key for the event)
+    null, // Previous data (none in this case)
+    { ...data }, // Current data to log
+    ipAddress, // IP address of the user
+    userAgent // User agent for the audit log
   );
 
   redirect(
-    `/book/${data.clerkUserId}/${data.eventId}/success?startTime=${startTime.toISOString()}`
+    `/book/${data.clerkUserId}/${
+      data.eventId
+    }/success?startTime=${data.startTime.toISOString()}`
   );
 }
