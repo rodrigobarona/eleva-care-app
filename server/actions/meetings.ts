@@ -8,7 +8,7 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { toZonedTime } from "date-fns-tz";
+import { parseISO } from "date-fns";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -33,8 +33,8 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Convert the time properly considering the timezone
-  const startTime = toZonedTime(data.startTime, data.timezone);
+  // Use the original UTC time directly without conversion
+  const startTime = parseISO(data.startTime.toISOString());
 
   const validTimes = await getValidTimesFromSchedule([startTime], event);
 
