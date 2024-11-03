@@ -32,10 +32,8 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Only adjust the time if the timezone is not UTC/GMT
-  const startTime = data.timezone === 'UTC' || data.timezone === 'GMT' || data.timezone === 'Europe/Lisbon'
-    ? data.startTime  // Keep the original time for UTC/GMT
-    : new Date(data.startTime.getTime() - (new Date().getTimezoneOffset() * 60000));
+  // Convert the client's selected time (which is in UTC) to the intended local time
+  const startTime = new Date(data.startTime.getTime() + (new Date().getTimezoneOffset() * 60000));
 
   console.log("Adjusted time:", {
     original: data.startTime.toISOString(),
