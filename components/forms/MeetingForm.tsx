@@ -66,13 +66,24 @@ export function MeetingForm({
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
     try {
-      const utcStartTime = values.startTime ? 
-        new Date(values.startTime.toISOString()) : 
-        null;
+      if (!values.startTime) {
+        throw new Error("Start time is required");
+      }
+
+      // Convert the selected time to UTC while preserving the correct time
+      const utcStartTime = new Date(
+        Date.UTC(
+          values.startTime.getUTCFullYear(),
+          values.startTime.getUTCMonth(),
+          values.startTime.getUTCDate(),
+          values.startTime.getUTCHours(),
+          values.startTime.getUTCMinutes()
+        )
+      );
 
       const data = await createMeeting({
         ...values,
-        startTime: utcStartTime ?? new Date(),
+        startTime: utcStartTime,
         eventId,
         clerkUserId,
       });
