@@ -66,18 +66,16 @@ export function MeetingForm({
         throw new Error("Start time is required");
       }
 
-      // Keep the selected time in the chosen timezone
-      const selectedTime = values.startTime;
       console.log('Form submission:', {
-        selectedTime: selectedTime.toISOString(),
-        localTime: selectedTime.toLocaleString(),
+        selectedTime: values.startTime.toISOString(),
+        localTime: values.startTime.toLocaleString(),
         timezone: values.timezone,
         date: values.date?.toISOString()
       });
 
       const data = await createMeeting({
         ...values,
-        startTime: selectedTime,
+        startTime: values.startTime,
         eventId,
         clerkUserId,
       });

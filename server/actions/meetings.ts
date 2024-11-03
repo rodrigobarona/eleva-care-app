@@ -8,7 +8,6 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { formatInTimeZone } from "date-fns-tz";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -33,22 +32,22 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Convert the time to UTC while preserving the intended time in the selected timezone
-  const startTime = new Date(
-    formatInTimeZone(
-      data.startTime,
-      data.timezone,
-      "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'"
-    )
-  );
+  // Use the received time directly since it's already in UTC
+  const startTime = new Date(data.startTime);
 
-  console.log('Processed time:', {
-    original: data.startTime.toISOString(),
-    converted: startTime.toISOString(),
-    timezone: data.timezone
+  console.log('Time validation:', {
+    startTime: startTime.toISOString(),
+    timezone: data.timezone,
+    validationTime: new Date().toISOString()
   });
 
   const validTimes = await getValidTimesFromSchedule([startTime], event);
+  
+  console.log('Valid times check:', {
+    validTimesCount: validTimes.length,
+    validTimes: validTimes.map(t => t.toISOString())
+  });
+
   if (validTimes.length === 0) {
     console.log('No valid times found');
     return { error: true };
