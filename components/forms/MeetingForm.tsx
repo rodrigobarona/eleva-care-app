@@ -124,7 +124,7 @@ export function MeetingForm({
                         variant="outline"
                         className={cn(
                           "pl-3 text-left font-normal flex w-full",
-                          !field.value && "text-muted-foreground"
+                          !field.value && "text-muted-foreground",
                         )}
                       >
                         {field.value ? (
@@ -143,7 +143,7 @@ export function MeetingForm({
                       onSelect={field.onChange}
                       disabled={(date) =>
                         !validTimesInTimezone.some((time) =>
-                          isSameDay(date, time)
+                          isSameDay(date, time),
                         )
                       }
                       initialFocus
@@ -162,9 +162,14 @@ export function MeetingForm({
                 <FormLabel>Time</FormLabel>
                 <Select
                   disabled={date == null || timezone == null}
-                  onValueChange={(value) =>
-                    field.onChange(new Date(Date.parse(value)))
-                  }
+                  onValueChange={(value) => {
+                    console.log('Selected time:', {
+                      value,
+                      parsedDate: new Date(value),
+                      timezone
+                    });
+                    field.onChange(new Date(value));
+                  }}
                   defaultValue={field.value?.toISOString()}
                 >
                   <FormControl>
@@ -181,17 +186,23 @@ export function MeetingForm({
                   <SelectContent>
                     {validTimesInTimezone
                       .filter((time) => isSameDay(time, date))
-                      .map((time) => (
-                        <SelectItem
-                          key={time.toISOString()}
-                          value={time.toISOString()}
-                        >
-                          {formatTimeString(time)}
-                        </SelectItem>
-                      ))}
+                      .map((time) => {
+                        console.log('Available time:', {
+                          time,
+                          isoString: time.toISOString(),
+                          formattedTime: formatTimeString(time)
+                        });
+                        return (
+                          <SelectItem
+                            key={time.toISOString()}
+                            value={time.toISOString()}
+                          >
+                            {formatTimeString(time)}
+                          </SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
-
                 <FormMessage />
               </FormItem>
             )}
