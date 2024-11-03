@@ -36,12 +36,9 @@ export async function createMeeting(
   let startTime: Date;
   if (data.timezone === 'UTC' || data.timezone === 'GMT' || data.timezone === 'Europe/Lisbon') {
     startTime = new Date(data.startTime);
-    // If we receive a time between 00:00-08:00 UTC, it means it was selected
-    // from the previous day in GMT/Lisbon (between 16:00-23:59)
-    if (startTime.getUTCHours() < 8) {
-      startTime = new Date(startTime.setUTCDate(startTime.getUTCDate() - 1));
-      startTime = new Date(startTime.setUTCHours(startTime.getUTCHours() + 24));
-    }
+    // No adjustment needed - keep the UTC time as is
+    // 11:00 PM GMT (23:00) will be received as 23:00 UTC
+    // which corresponds correctly to 3:00 PM PST
   } else {
     // For other timezones (like PST), keep the existing conversion
     startTime = new Date(data.startTime.getTime() - (new Date().getTimezoneOffset() * 60000));
