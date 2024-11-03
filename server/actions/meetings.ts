@@ -32,8 +32,8 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Convert the client's selected time (which is in UTC) to the intended local time
-  const startTime = new Date(data.startTime.getTime() + (new Date().getTimezoneOffset() * 60000));
+  // Convert the client's selected time (which is in UTC) back to the intended local time
+  const startTime = new Date(data.startTime.getTime() - (new Date().getTimezoneOffset() * 60000));
 
   console.log("Adjusted time:", {
     original: data.startTime.toISOString(),
