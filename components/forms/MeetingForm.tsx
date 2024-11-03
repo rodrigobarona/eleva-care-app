@@ -69,7 +69,9 @@ export function MeetingForm({
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
     try {
       const utcStartTime = values.startTime ? 
-        toDate(values.startTime, { timeZone: values.timezone }) : 
+        toDate(`${values.startTime.toISOString().split('T')[0]}T${values.startTime.toISOString().split('T')[1]}`, { 
+          timeZone: values.timezone 
+        }) : 
         values.startTime;
 
       const data = await createMeeting({
