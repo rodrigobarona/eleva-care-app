@@ -72,7 +72,7 @@ export function MeetingForm({
 
       const data = await createMeeting({
         ...values,
-        startTime: utcStartTime,
+        startTime: utcStartTime ?? new Date(),
         eventId,
         clerkUserId,
       });
