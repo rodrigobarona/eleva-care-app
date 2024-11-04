@@ -45,15 +45,17 @@ export async function createMeeting(
     timezone: data.timezone,
   });
 
-  // Let getValidTimesFromSchedule handle the timezone conversion since it already has access
-  // to the schedule timezone
-  const validTimes = await getValidTimesFromSchedule([data.startTime], event);
+  // Convert the input time from guest timezone to schedule timezone for validation
+  const scheduleTimezone = event.scheduleTimezone; // Or however you store the schedule timezone
+  const startTimeForValidation = data.startTime;
   
   console.log("Meeting Creation - Time Conversion:", {
     originalTimeUTC: data.startTime,
     guestTimezone: data.timezone,
+    scheduleTimezone,
   });
 
+  const validTimes = await getValidTimesFromSchedule([startTimeForValidation], event);
   console.log("Meeting Creation - Valid Times Check:", {
     validTimesCount: validTimes.length,
     startInTimezone,
