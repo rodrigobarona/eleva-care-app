@@ -127,10 +127,14 @@ function getAvailabilities(
   date: Date,
   timezone: string,
 ) {
-  console.log("getAvailabilities - Input:", {
-    date: date.toISOString(),
+  const utcDate = new Date(date.toISOString());
+  
+  console.log("getAvailabilities - Processing:", {
+    inputDate: date.toISOString(),
+    utcDate: utcDate.toISOString(),
+    dayOfWeek: utcDate.getUTCDay(),
     timezone,
-    dayOfWeek: date.getDay(),
+    region: process.env.VERCEL_REGION
   });
 
   let availabilities:
@@ -161,45 +165,36 @@ function getAvailabilities(
 
   if (availabilities == null) return [];
 
-  // Ensure UTC date
-  const utcDate = new Date(date.toISOString());
-
-  console.log("getAvailabilities - Time Processing:", {
-    inputDate: date.toISOString(),
-    utcDate: utcDate.toISOString(),
-    timezone,
-    region: process.env.VERCEL_REGION ?? "local",
-  });
-
   return availabilities.map(({ startTime, endTime }) => {
-    // Explicit UTC conversion for availability times
-    const start = new Date(
-      fromZonedTime(
-        setMinutes(
-          setHours(utcDate, parseInt(startTime.split(":")[0])),
-          parseInt(startTime.split(":")[1]),
-        ),
-        timezone,
-      ).toISOString(),
+    // Convert schedule times to UTC
+    const scheduleStart = fromZonedTime(
+      setMinutes(
+        setHours(utcDate, parseInt(startTime.split(":")[0])),
+        parseInt(startTime.split(":")[1])
+      ),
+      timezone
     );
 
-    const end = new Date(
-      fromZonedTime(
-        setMinutes(
-          setHours(utcDate, parseInt(endTime.split(":")[0])),
-          parseInt(endTime.split(":")[1]),
-        ),
-        timezone,
-      ).toISOString(),
+    const scheduleEnd = fromZonedTime(
+      setMinutes(
+        setHours(utcDate, parseInt(endTime.split(":")[0])),
+        parseInt(endTime.split(":")[1])
+      ),
+      timezone
     );
 
-    console.log("getAvailabilities - Slot:", {
+    console.log("getAvailabilities - Slot Conversion:", {
       originalStart: startTime,
       originalEnd: endTime,
-      convertedStart: start.toISOString(),
-      convertedEnd: end.toISOString(),
+      convertedStartUTC: scheduleStart.toISOString(),
+      convertedEndUTC: scheduleEnd.toISOString(),
+      timezone,
+      region: process.env.VERCEL_REGION
     });
 
-    return { start, end };
+    return { 
+      start: scheduleStart,
+      end: scheduleEnd 
+    };
   });
 }
