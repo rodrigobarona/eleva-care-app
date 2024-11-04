@@ -8,7 +8,6 @@ import "use-server";
 import { z } from "zod";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { fromZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>,
@@ -39,7 +38,7 @@ export async function createMeeting(
     return { error: true };
   }
 
-  const startInTimezone = fromZonedTime(data.startTime, data.timezone);
+  const startInTimezone = data.startTime;
   console.log("Meeting Creation - Time Conversion:", {
     originalTime: data.startTime,
     convertedTime: startInTimezone,
