@@ -63,32 +63,20 @@ export function MeetingForm({
   });
 
   const validTimesInTimezone = useMemo(() => {
-    console.log("MeetingForm - Time Conversion Start:", {
-      timezone,
+    console.log("MeetingForm - Converting Times:", {
+      currentTimezone: timezone,
       validTimesCount: validTimes.length,
-      firstValidTime: validTimes[0]?.toISOString(),
-      userSelectedTime: date?.toISOString()
     });
 
-    return validTimes.map((date) => {
-      const convertedTime = toZonedTime(date, timezone);
-      console.log("MeetingForm - Individual Time Conversion:", {
-        originalUTC: date.toISOString(),
-        convertedTime: convertedTime.toISOString(),
-        timezone,
-        localDisplay: convertedTime.toLocaleTimeString(),
-      });
-      return convertedTime;
-    });
-  }, [validTimes, timezone, date]);
+    return validTimes.map((date) => toZonedTime(date, timezone));
+  }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    console.log("MeetingForm - Submit Values:", {
-      selectedTime: values.startTime?.toLocaleTimeString(),
-      selectedTimeUTC: values.startTime?.toISOString(),
-      timezone: values.timezone,
-      date: values.date?.toISOString(),
-      region: process.env.NEXT_PUBLIC_VERCEL_REGION ?? 'local'
+    console.log("MeetingForm - Submit Details:", {
+      localTime: values.startTime?.toLocaleString(),
+      utcTime: values.startTime?.toISOString(),
+      selectedTimezone: values.timezone,
+      timezoneOffset: new Date().getTimezoneOffset(),
     });
 
     const data = await createMeeting({
