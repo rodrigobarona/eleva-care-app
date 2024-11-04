@@ -68,14 +68,14 @@ export function MeetingForm({
       validTimesCount: validTimes.length,
     });
 
-    return validTimes.map((utcTime) => {
-      const localDate = new Date(utcTime);
+    return validTimes.map((date) => {
+      const zonedTime = toZonedTime(date, timezone);
       console.log("MeetingForm - Time Conversion:", {
-        utc: utcTime.toISOString(),
-        local: localDate.toLocaleString('en-US', { timeZone: timezone }),
+        original: date.toISOString(),
+        converted: zonedTime.toISOString(),
         timezone,
       });
-      return localDate;
+      return zonedTime;
     });
   }, [validTimes, timezone]);
 
@@ -212,7 +212,7 @@ export function MeetingForm({
                           key={time.toISOString()}
                           value={time.toISOString()}
                         >
-                          {formatTimeString(time, timezone)}
+                          {formatTimeString(time)}
                         </SelectItem>
                       ))}
                   </SelectContent>

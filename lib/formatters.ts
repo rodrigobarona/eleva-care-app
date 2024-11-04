@@ -26,13 +26,12 @@ export function formatDate(date: Date) {
   return dateFormatter.format(date);
 }
 
-export function formatTimeString(date: Date, timezone?: string) {
-  return date.toLocaleTimeString('en-US', {
-    timeZone: timezone,
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true
-  });
+const timeFormatter = new Intl.DateTimeFormat(undefined, {
+  timeStyle: "short",
+});
+
+export function formatTimeString(date: Date) {
+  return timeFormatter.format(date);
 }
 
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
