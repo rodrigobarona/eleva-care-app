@@ -11,26 +11,53 @@ import { redirect } from "next/navigation";
 import { fromZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
-  unsafeData: z.infer<typeof meetingActionSchema>
+  unsafeData: z.infer<typeof meetingActionSchema>,
 ) {
-  const { success, data } = meetingActionSchema.safeParse(unsafeData);
+  console.log("Meeting Creation - Input Data:", {
+    startTime: unsafeData.startTime,
+    timezone: unsafeData.timezone,
+    rawData: unsafeData,
+  });
 
-  if (!success) return { error: true };
+  const { success, data } = meetingActionSchema.safeParse(unsafeData);
+  if (!success) {
+    console.error("Meeting Creation - Validation Failed:", unsafeData);
+    return { error: true };
+  }
 
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId, isActive, id }, { eq, and }) =>
       and(
         eq(isActive, true),
         eq(clerkUserId, data.clerkUserId),
-        eq(id, data.eventId)
+        eq(id, data.eventId),
       ),
   });
 
-  if (event == null) return { error: true };
+  if (event == null) {
+    console.error("Meeting Creation - Event Not Found");
+    return { error: true };
+  }
+
   const startInTimezone = fromZonedTime(data.startTime, data.timezone);
+  console.log("Meeting Creation - Time Conversion:", {
+    originalTime: data.startTime,
+    convertedTime: startInTimezone,
+    timezone: data.timezone,
+  });
 
   const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
-  if (validTimes.length === 0) return { error: true };
+  console.log("Meeting Creation - Valid Times Check:", {
+    validTimesCount: validTimes.length,
+    startInTimezone,
+    firstValidTime: validTimes[0],
+  });
+
+  if (validTimes.length === 0) {
+    console.error("Meeting Creation - No Valid Times Available");
+    return { error: true };
+  }
+
   const headersList = headers();
 
   const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
@@ -52,12 +79,12 @@ export async function createMeeting(
     null, // Previous data (none in this case)
     { ...data }, // Current data to log
     ipAddress, // IP address of the user
-    userAgent // User agent for the audit log
+    userAgent, // User agent for the audit log
   );
 
   redirect(
     `/book/${data.clerkUserId}/${
       data.eventId
-    }/success?startTime=${data.startTime.toISOString()}`
+    }/success?startTime=${data.startTime.toISOString()}`,
   );
 }

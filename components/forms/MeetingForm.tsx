@@ -46,6 +46,12 @@ export function MeetingForm({
   eventId: string;
   clerkUserId: string;
 }) {
+  console.log("MeetingForm - Initial Props:", {
+    validTimesCount: validTimes.length,
+    firstValidTime: validTimes[0],
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+  });
+
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
@@ -55,11 +61,31 @@ export function MeetingForm({
 
   const timezone = form.watch("timezone");
   const date = form.watch("date");
+
   const validTimesInTimezone = useMemo(() => {
-    return validTimes.map((date) => toZonedTime(date, timezone));
+    console.log("MeetingForm - Converting Times:", {
+      currentTimezone: timezone,
+      validTimesCount: validTimes.length,
+    });
+
+    return validTimes.map((date) => {
+      const zonedTime = toZonedTime(date, timezone);
+      console.log("MeetingForm - Time Conversion:", {
+        original: date.toISOString(),
+        converted: zonedTime.toISOString(),
+        timezone,
+      });
+      return zonedTime;
+    });
   }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
+    console.log("MeetingForm - Form Submission:", {
+      values,
+      timezone,
+      date,
+    });
+
     const data = await createMeeting({
       ...values,
       eventId,
@@ -67,6 +93,7 @@ export function MeetingForm({
     });
 
     if (data?.error) {
+      console.error("MeetingForm - Submission Error");
       form.setError("root", {
         message: "There was an error saving your event",
       });
@@ -123,7 +150,7 @@ export function MeetingForm({
                         variant="outline"
                         className={cn(
                           "pl-3 text-left font-normal flex w-full",
-                          !field.value && "text-muted-foreground"
+                          !field.value && "text-muted-foreground",
                         )}
                       >
                         {field.value ? (
@@ -142,7 +169,7 @@ export function MeetingForm({
                       onSelect={field.onChange}
                       disabled={(date) =>
                         !validTimesInTimezone.some((time) =>
-                          isSameDay(date, time)
+                          isSameDay(date, time),
                         )
                       }
                       initialFocus
