@@ -1,28 +1,18 @@
-import "core-js/actual/object/group-by";
+import { DateTime, Interval } from "luxon";
 import { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants";
 import { db } from "@/drizzle/db";
 import { ScheduleAvailabilityTable } from "@/drizzle/schema";
 import { getCalendarEventTimes } from "@/server/googleCalendar";
-import {
-  addMinutes,
-  areIntervalsOverlapping,
-  isFriday,
-  isMonday,
-  isSaturday,
-  isSunday,
-  isThursday,
-  isTuesday,
-  isWednesday,
-  isWithinInterval,
-  setHours,
-  setMinutes,
-} from "date-fns";
-import { fromZonedTime } from "date-fns-tz";
 
 export async function getValidTimesFromSchedule(
   timesInOrder: Date[],
   event: { clerkUserId: string; durationInMinutes: number },
 ) {
+  console.log("getValidTimes - Input:", {
+    firstTime: timesInOrder[0]?.toISOString(),
+    lastTime: timesInOrder.at(-1)?.toISOString(),
+  });
+
   const start = timesInOrder[0];
   const end = timesInOrder.at(-1);
 
@@ -47,24 +37,54 @@ export async function getValidTimesFromSchedule(
   });
 
   return timesInOrder.filter((intervalDate) => {
+    const dateTime = DateTime.fromJSDate(intervalDate);
+
     const availabilities = getAvailabilities(
       groupedAvailabilities,
-      intervalDate,
+      dateTime,
       schedule.timezone,
     );
-    const eventInterval = {
-      start: intervalDate,
-      end: addMinutes(intervalDate, event.durationInMinutes),
-    };
+
+    const eventInterval = Interval.fromDateTimes(
+      dateTime,
+      dateTime.plus({ minutes: event.durationInMinutes }),
+    );
+
+    if (!eventInterval.isValid) {
+      console.log("getValidTimes - Invalid Interval:", {
+        date: dateTime.toISO(),
+        error: eventInterval.invalidReason,
+      });
+      return false;
+    }
+
+    console.log("getValidTimes - Checking Interval:", {
+      date: dateTime.toISO(),
+      timezone: schedule.timezone,
+      availabilitiesCount: availabilities.length,
+      eventInterval: {
+        start: eventInterval.start?.toISO() ?? "invalid",
+        end: eventInterval.end?.toISO() ?? "invalid",
+        isValid: eventInterval.isValid,
+      },
+    });
 
     return (
       eventTimes.every((eventTime) => {
-        return !areIntervalsOverlapping(eventTime, eventInterval);
+        const existingEventInterval = Interval.fromDateTimes(
+          DateTime.fromJSDate(eventTime.start),
+          DateTime.fromJSDate(eventTime.end),
+        );
+
+        if (!existingEventInterval.isValid) return true;
+
+        return !eventInterval.overlaps(existingEventInterval);
       }) &&
       availabilities.some((availability) => {
+        if (!availability.isValid) return false;
         return (
-          isWithinInterval(eventInterval.start, availability) &&
-          isWithinInterval(eventInterval.end, availability)
+          availability.contains(eventInterval.start) &&
+          availability.contains(eventInterval.end)
         );
       })
     );
@@ -78,54 +98,66 @@ function getAvailabilities(
       (typeof ScheduleAvailabilityTable.$inferSelect)[]
     >
   >,
-  date: Date,
+  date: DateTime,
   timezone: string,
 ) {
   let availabilities:
     | (typeof ScheduleAvailabilityTable.$inferSelect)[]
     | undefined;
 
-  if (isMonday(date)) {
-    availabilities = groupedAvailabilities.monday;
-  }
-  if (isTuesday(date)) {
-    availabilities = groupedAvailabilities.tuesday;
-  }
-  if (isWednesday(date)) {
-    availabilities = groupedAvailabilities.wednesday;
-  }
-  if (isThursday(date)) {
-    availabilities = groupedAvailabilities.thursday;
-  }
-  if (isFriday(date)) {
-    availabilities = groupedAvailabilities.friday;
-  }
-  if (isSaturday(date)) {
-    availabilities = groupedAvailabilities.saturday;
-  }
-  if (isSunday(date)) {
-    availabilities = groupedAvailabilities.sunday;
+  // Get day of week using Luxon
+  const dayOfWeek = date.setZone(timezone).weekday;
+
+  // Map Luxon's 1-7 to our day names
+  switch (dayOfWeek) {
+    case 1:
+      availabilities = groupedAvailabilities.monday;
+      break;
+    case 2:
+      availabilities = groupedAvailabilities.tuesday;
+      break;
+    case 3:
+      availabilities = groupedAvailabilities.wednesday;
+      break;
+    case 4:
+      availabilities = groupedAvailabilities.thursday;
+      break;
+    case 5:
+      availabilities = groupedAvailabilities.friday;
+      break;
+    case 6:
+      availabilities = groupedAvailabilities.saturday;
+      break;
+    case 7:
+      availabilities = groupedAvailabilities.sunday;
+      break;
   }
 
   if (availabilities == null) return [];
 
   return availabilities.map(({ startTime, endTime }) => {
-    const start = fromZonedTime(
-      setMinutes(
-        setHours(date, parseInt(startTime.split(":")[0])),
-        parseInt(startTime.split(":")[1]),
-      ),
-      timezone,
-    );
+    const [startHour, startMinute] = startTime.split(":").map(Number);
+    const [endHour, endMinute] = endTime.split(":").map(Number);
 
-    const end = fromZonedTime(
-      setMinutes(
-        setHours(date, parseInt(endTime.split(":")[0])),
-        parseInt(endTime.split(":")[1]),
-      ),
-      timezone,
-    );
+    const start = date
+      .setZone(timezone)
+      .set({ hour: startHour, minute: startMinute });
 
-    return { start, end };
+    const end = date
+      .setZone(timezone)
+      .set({ hour: endHour, minute: endMinute });
+
+    const interval = Interval.fromDateTimes(start, end);
+
+    console.log("getAvailabilities - Slot:", {
+      originalStart: startTime,
+      originalEnd: endTime,
+      convertedStart: start.toISO(),
+      convertedEnd: end.toISO(),
+      timezone,
+      isValid: interval.isValid,
+    });
+
+    return interval;
   });
 }

@@ -34,8 +34,8 @@ import { Calendar } from "../ui/calendar";
 import { isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
-import { toZonedTime } from "date-fns-tz";
 import { createMeeting } from "@/server/actions/meetings";
+import { DateTime } from "luxon";
 
 export function MeetingForm({
   validTimes,
@@ -55,11 +55,36 @@ export function MeetingForm({
 
   const timezone = form.watch("timezone");
   const date = form.watch("date");
+
+  // Convert valid times to the selected timezone
   const validTimesInTimezone = useMemo(() => {
-    return validTimes.map((date) => toZonedTime(date, timezone));
+    console.log("MeetingForm - Initial Times:", {
+      timezone,
+      validTimesCount: validTimes.length,
+      firstValidTime: validTimes[0]?.toISOString(),
+    });
+
+    return validTimes.map((date) => {
+      const dateTime = DateTime.fromJSDate(date).setZone(timezone);
+
+      console.log("MeetingForm - Time Conversion:", {
+        originalUTC: date.toISOString(),
+        convertedLocal: dateTime.toISO(),
+        timezone,
+        offset: dateTime.offset,
+      });
+
+      return dateTime.toJSDate();
+    });
   }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
+    console.log("MeetingForm - Submit:", {
+      startTime: values.startTime?.toISOString(),
+      timezone: values.timezone,
+      date: values.date?.toISOString(),
+    });
+
     const data = await createMeeting({
       ...values,
       eventId,

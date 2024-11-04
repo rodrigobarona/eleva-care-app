@@ -76,6 +76,9 @@ importers:
       lucide-react:
         specifier: ^0.453.0
         version: 0.453.0(react@18.3.1)
+      luxon:
+        specifier: ^3.5.0
+        version: 3.5.0
       next:
         specifier: 14.2.15
         version: 14.2.15(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -104,6 +107,9 @@ importers:
         specifier: ^3.23.8
         version: 3.23.8
     devDependencies:
+      "@types/luxon":
+        specifier: ^3.4.2
+        version: 3.4.2
       "@types/node":
         specifier: ^20.0.0
         version: 20.17.5
@@ -1640,6 +1646,12 @@ packages:
     resolution:
       {
         integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==,
+      }
+
+  "@types/luxon@3.4.2":
+    resolution:
+      {
+        integrity: sha512-TifLZlFudklWlMBfhubvgqTXRzLDI5pCbGa4P8a3wPyUQSW+1xQ5eDsreP9DWHX3tjq1ke96uYG/nwundroWcA==,
       }
 
   "@types/node@20.17.5":
@@ -3482,6 +3494,13 @@ packages:
       }
     peerDependencies:
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0-rc
+
+  luxon@3.5.0:
+    resolution:
+      {
+        integrity: sha512-rh+Zjr6DNfUYR3bPwJEnuwDdqMbxZW7LOQfUN4B54+Cl+0o5zaU9RJ6bcidfDtC1cWCZXQ+nvX8bf6bAji37QQ==,
+      }
+    engines: { node: ">=12" }
 
   map-obj@4.3.0:
     resolution:
@@ -5612,6 +5631,8 @@ snapshots:
 
   "@types/json5@0.0.29": {}
 
+  "@types/luxon@3.4.2": {}
+
   "@types/node@20.17.5":
     dependencies:
       undici-types: 6.19.8
@@ -6912,6 +6933,8 @@ snapshots:
   lucide-react@0.453.0(react@18.3.1):
     dependencies:
       react: 18.3.1
+
+  luxon@3.5.0: {}
 
   map-obj@4.3.0: {}
 
