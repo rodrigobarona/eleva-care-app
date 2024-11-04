@@ -55,11 +55,30 @@ export function MeetingForm({
 
   const timezone = form.watch("timezone");
   const date = form.watch("date");
+
+  console.log("MeetingForm - Initial Props:", {
+    validTimesCount: validTimes.length,
+    firstValidTime: validTimes[0]?.toISOString(),
+    timezone,
+  });
+
   const validTimesInTimezone = useMemo(() => {
+    console.log("MeetingForm - Converting Times:", {
+      currentTimezone: timezone,
+      validTimesCount: validTimes.length,
+    });
+
     return validTimes.map((date) => toZonedTime(date, timezone));
   }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
+    console.log("MeetingForm - Submit Details:", {
+      localTime: values.startTime?.toLocaleString(),
+      utcTime: values.startTime?.toISOString(),
+      selectedTimezone: values.timezone,
+      timezoneOffset: new Date().getTimezoneOffset(),
+    });
+
     const data = await createMeeting({
       ...values,
       eventId,
@@ -67,6 +86,7 @@ export function MeetingForm({
     });
 
     if (data?.error) {
+      console.log("MeetingForm - Submission Error");
       form.setError("root", {
         message: "There was an error saving your event",
       });
