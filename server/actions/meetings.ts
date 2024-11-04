@@ -25,6 +25,21 @@ export async function createMeeting(
   if (!result.success) return { error: true };
   const data = result.data;
 
+  // Get event details
+  const event = await db.query.EventTable.findFirst({
+    where: ({ clerkUserId, isActive, id }, { eq, and }) =>
+      and(
+        eq(isActive, true),
+        eq(clerkUserId, data.clerkUserId),
+        eq(id, data.eventId),
+      ),
+  });
+
+  if (!event) {
+    console.log("Meeting Creation - Event Not Found");
+    return { error: true };
+  }
+
   // Convert time explicitly
   const userDateTime = new Date(data.startTime);
   const startInTimezone = fromZonedTime(userDateTime, data.timezone);
@@ -38,8 +53,11 @@ export async function createMeeting(
     region: process.env.VERCEL_REGION
   });
 
-  // Validate times
-  const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
+  // Validate times with the found event
+  const validTimes = await getValidTimesFromSchedule([startInTimezone], {
+    clerkUserId: event.clerkUserId,
+    durationInMinutes: event.durationInMinutes
+  });
 
   console.log("Meeting Creation - Validation:", {
     validTimesCount: validTimes.length,
