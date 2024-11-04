@@ -14,7 +14,10 @@ import {
   isTuesday,
   isWednesday,
   isWithinInterval,
+  setHours,
+  setMinutes,
 } from "date-fns";
+import { fromZonedTime } from "date-fns-tz";
 
 export async function getValidTimesFromSchedule(
   timesInOrder: Date[],
@@ -62,6 +65,7 @@ export async function getValidTimesFromSchedule(
     const availabilities = getAvailabilities(
       groupedAvailabilities,
       intervalDate,
+      schedule.timezone,
     );
 
     console.log("getValidTimes - Checking Interval:", {
@@ -103,6 +107,7 @@ function getAvailabilities(
     >
   >,
   date: Date,
+  timezone: string,
 ) {
   let availabilities:
     | (typeof ScheduleAvailabilityTable.$inferSelect)[]
