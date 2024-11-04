@@ -13,38 +13,9 @@ import { fromZonedTime } from "date-fns-tz";
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>,
 ) {
-  console.log("Meeting Creation - Input Data:", {
-    startTime: unsafeData.startTime?.toISOString(),
-    timezone: unsafeData.timezone,
-    rawData: unsafeData,
-  });
-
-  // Add region and server info logging
-  console.log("Meeting Creation - Server Environment:", {
-    region: process.env.VERCEL_REGION ?? "local",
-    serverTime: new Date().toISOString(),
-    serverTimeLocal: new Date().toLocaleString(),
-  });
-
-  // Force UTC handling for dates
-  const inputStartTime = new Date(unsafeData.startTime!.toISOString());
-
-  console.log("Meeting Creation - Input Processing:", {
-    rawStartTime: unsafeData.startTime?.toISOString(),
-    normalizedStartTime: inputStartTime.toISOString(),
-    timezone: unsafeData.timezone,
-  });
-
   // Validate input data
-  const result = meetingActionSchema.safeParse(unsafeData);
-  if (!result.success) {
-    console.log("Meeting Creation - Validation Failed:", {
-      errors: result.error.format(),
-    });
-    return { error: true };
-  }
-
-  const data = result.data;
+  const { success, data } = meetingActionSchema.safeParse(unsafeData);
+  if (!success) return { error: true };
 
   // Get event details from database
   const event = await db.query.EventTable.findFirst({
@@ -59,30 +30,13 @@ export async function createMeeting(
   if (event == null) return { error: true };
 
   // Convert the selected time from user's timezone to UTC
-  const startInTimezone = new Date(
-    fromZonedTime(data.startTime, data.timezone).toISOString(),
-  );
-
-  console.log("Meeting Creation - Time Conversion:", {
-    originalTime: data.startTime.toISOString(),
-    convertedTime: startInTimezone.toISOString(),
-    timezone: data.timezone,
-    region: process.env.VERCEL_REGION ?? "local",
-  });
+  // data.startTime is in UTC (from form submission)
+  // data.timezone is the user's selected timezone (e.g., 'Europe/Zurich')
+  const startInTimezone = fromZonedTime(data.startTime, data.timezone);
 
   // Validate if the converted time is within available slots
   const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
-
-  console.log("Meeting Creation - Valid Times Check:", {
-    validTimesCount: validTimes.length,
-    startInTimezone: startInTimezone.toISOString(),
-    firstValidTime: validTimes[0]?.toISOString(),
-  });
-
-  if (validTimes.length === 0) {
-    console.log("Meeting Creation - No Valid Times Available");
-    return { error: true };
-  }
+  if (validTimes.length === 0) return { error: true };
 
   // Create calendar event using the UTC time
   await createCalendarEvent({

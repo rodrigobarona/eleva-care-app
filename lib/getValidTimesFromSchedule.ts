@@ -23,12 +23,6 @@ export async function getValidTimesFromSchedule(
   timesInOrder: Date[],
   event: { clerkUserId: string; durationInMinutes: number },
 ) {
-  console.log("getValidTimes - Input:", {
-    firstTime: timesInOrder[0]?.toISOString(),
-    lastTime: timesInOrder.at(-1)?.toISOString(),
-    eventDetails: event,
-  });
-
   const start = timesInOrder[0];
   const end = timesInOrder.at(-1);
 
@@ -38,11 +32,6 @@ export async function getValidTimesFromSchedule(
     where: ({ clerkUserId: userIdCol }, { eq }) =>
       eq(userIdCol, event.clerkUserId),
     with: { availabilities: true },
-  });
-
-  console.log("getValidTimes - Schedule Found:", {
-    scheduleTimezone: schedule?.timezone,
-    availabilitiesCount: schedule?.availabilities.length,
   });
 
   if (schedule == null) return [];
@@ -57,51 +46,16 @@ export async function getValidTimesFromSchedule(
     end,
   });
 
-  console.log("getValidTimes - Calendar Events:", {
-    eventTimesCount: eventTimes.length,
-  });
-
-  // Add server environment logging
-  console.log("getValidTimes - Server Environment:", {
-    region: process.env.VERCEL_REGION ?? "local",
-    serverTime: new Date().toISOString(),
-    serverTimeLocal: new Date().toLocaleString(),
-  });
-
-  // Ensure UTC dates
-  const utcTimes = timesInOrder.map((time) => new Date(time.toISOString()));
-
-  console.log("getValidTimes - Time Normalization:", {
-    originalFirstTime: timesInOrder[0]?.toISOString(),
-    normalizedFirstTime: utcTimes[0]?.toISOString(),
-  });
-
-  return utcTimes.filter((intervalDate) => {
-    // Ensure UTC for interval checks
-    const utcIntervalDate = new Date(intervalDate.toISOString());
-
+  return timesInOrder.filter((intervalDate) => {
     const availabilities = getAvailabilities(
       groupedAvailabilities,
-      utcIntervalDate,
+      intervalDate,
       schedule.timezone,
     );
-
-    console.log("getValidTimes - Interval Check:", {
-      originalDate: intervalDate.toISOString(),
-      utcDate: utcIntervalDate.toISOString(),
-      scheduleTimezone: schedule.timezone,
-      region: process.env.VERCEL_REGION ?? "local",
-    });
-
     const eventInterval = {
       start: intervalDate,
       end: addMinutes(intervalDate, event.durationInMinutes),
     };
-
-    console.log("getValidTimes - Checking Interval:", {
-      intervalDate: intervalDate.toISOString(),
-      availabilitiesCount: availabilities.length,
-    });
 
     return (
       eventTimes.every((eventTime) => {
@@ -127,12 +81,6 @@ function getAvailabilities(
   date: Date,
   timezone: string,
 ) {
-  console.log("getAvailabilities - Input:", {
-    date: date.toISOString(),
-    timezone,
-    dayOfWeek: date.getDay(),
-  });
-
   let availabilities:
     | (typeof ScheduleAvailabilityTable.$inferSelect)[]
     | undefined;
@@ -161,44 +109,22 @@ function getAvailabilities(
 
   if (availabilities == null) return [];
 
-  // Ensure UTC date
-  const utcDate = new Date(date.toISOString());
-
-  console.log("getAvailabilities - Time Processing:", {
-    inputDate: date.toISOString(),
-    utcDate: utcDate.toISOString(),
-    timezone,
-    region: process.env.VERCEL_REGION ?? "local",
-  });
-
   return availabilities.map(({ startTime, endTime }) => {
-    // Explicit UTC conversion for availability times
-    const start = new Date(
-      fromZonedTime(
-        setMinutes(
-          setHours(utcDate, parseInt(startTime.split(":")[0])),
-          parseInt(startTime.split(":")[1]),
-        ),
-        timezone,
-      ).toISOString(),
+    const start = fromZonedTime(
+      setMinutes(
+        setHours(date, parseInt(startTime.split(":")[0])),
+        parseInt(startTime.split(":")[1]),
+      ),
+      timezone,
     );
 
-    const end = new Date(
-      fromZonedTime(
-        setMinutes(
-          setHours(utcDate, parseInt(endTime.split(":")[0])),
-          parseInt(endTime.split(":")[1]),
-        ),
-        timezone,
-      ).toISOString(),
+    const end = fromZonedTime(
+      setMinutes(
+        setHours(date, parseInt(endTime.split(":")[0])),
+        parseInt(endTime.split(":")[1]),
+      ),
+      timezone,
     );
-
-    console.log("getAvailabilities - Slot:", {
-      originalStart: startTime,
-      originalEnd: endTime,
-      convertedStart: start.toISOString(),
-      convertedEnd: end.toISOString(),
-    });
 
     return { start, end };
   });
