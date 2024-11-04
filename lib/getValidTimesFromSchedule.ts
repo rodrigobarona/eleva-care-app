@@ -1,3 +1,4 @@
+import "core-js/actual/object/group-by";
 import { DateTime, Interval } from "luxon";
 import { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants";
 import { db } from "@/drizzle/db";
@@ -6,7 +7,7 @@ import { getCalendarEventTimes } from "@/server/googleCalendar";
 
 export async function getValidTimesFromSchedule(
   timesInOrder: Date[],
-  event: { clerkUserId: string; durationInMinutes: number },
+  event: { clerkUserId: string; durationInMinutes: number }
 ) {
   console.log("getValidTimes - Input:", {
     firstTime: timesInOrder[0]?.toISOString(),
@@ -28,7 +29,7 @@ export async function getValidTimesFromSchedule(
 
   const groupedAvailabilities = Object.groupBy(
     schedule.availabilities,
-    (a) => a.dayOfWeek,
+    (a) => a.dayOfWeek
   );
 
   const eventTimes = await getCalendarEventTimes(event.clerkUserId, {
@@ -42,12 +43,12 @@ export async function getValidTimesFromSchedule(
     const availabilities = getAvailabilities(
       groupedAvailabilities,
       dateTime,
-      schedule.timezone,
+      schedule.timezone
     );
 
     const eventInterval = Interval.fromDateTimes(
       dateTime,
-      dateTime.plus({ minutes: event.durationInMinutes }),
+      dateTime.plus({ minutes: event.durationInMinutes })
     );
 
     if (!eventInterval.isValid) {
@@ -73,7 +74,7 @@ export async function getValidTimesFromSchedule(
       eventTimes.every((eventTime) => {
         const existingEventInterval = Interval.fromDateTimes(
           DateTime.fromJSDate(eventTime.start),
-          DateTime.fromJSDate(eventTime.end),
+          DateTime.fromJSDate(eventTime.end)
         );
 
         if (!existingEventInterval.isValid) return true;
@@ -99,7 +100,7 @@ function getAvailabilities(
     >
   >,
   date: DateTime,
-  timezone: string,
+  timezone: string
 ) {
   let availabilities:
     | (typeof ScheduleAvailabilityTable.$inferSelect)[]
