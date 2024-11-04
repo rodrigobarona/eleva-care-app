@@ -11,34 +11,37 @@ import { redirect } from "next/navigation";
 import { fromZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
-  unsafeData: z.infer<typeof meetingActionSchema>
+  unsafeData: z.infer<typeof meetingActionSchema>,
 ) {
+  // Validate input data
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
-
   if (!success) return { error: true };
 
+  // Get event details from database
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId, isActive, id }, { eq, and }) =>
       and(
         eq(isActive, true),
         eq(clerkUserId, data.clerkUserId),
-        eq(id, data.eventId)
+        eq(id, data.eventId),
       ),
   });
 
   if (event == null) return { error: true };
+
+  // Convert the selected time from user's timezone to UTC
+  // data.startTime is in UTC (from form submission)
+  // data.timezone is the user's selected timezone (e.g., 'Europe/Zurich')
   const startInTimezone = fromZonedTime(data.startTime, data.timezone);
 
+  // Validate if the converted time is within available slots
   const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
   if (validTimes.length === 0) return { error: true };
-  const headersList = headers();
 
-  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
-  const userAgent = headersList.get("user-agent") ?? "Unknown";
-
+  // Create calendar event using the UTC time
   await createCalendarEvent({
     ...data,
-    startTime: startInTimezone,
+    startTime: startInTimezone, // Using UTC time for calendar creation
     durationInMinutes: event.durationInMinutes,
     eventName: event.name,
   });
@@ -51,13 +54,13 @@ export async function createMeeting(
     data.eventId, // Event ID (foreign key for the event)
     null, // Previous data (none in this case)
     { ...data }, // Current data to log
-    ipAddress, // IP address of the user
-    userAgent // User agent for the audit log
+    headers().get("x-forwarded-for") ?? "Unknown", // IP address of the user
+    headers().get("user-agent") ?? "Unknown", // User agent for the audit log
   );
 
   redirect(
     `/book/${data.clerkUserId}/${
       data.eventId
-    }/success?startTime=${data.startTime.toISOString()}`
+    }/success?startTime=${data.startTime.toISOString()}`,
   );
 }
