@@ -38,32 +38,33 @@ export async function createMeeting(
     startTimeUTC.getTime() + event.durationInMinutes * 60000
   );
 
+  // Step 6: Create calendar event in Google Calendar first
+  const calendarEvent = await createCalendarEvent({
+    clerkUserId: data.clerkUserId,
+    guestName: data.guestName,
+    guestEmail: data.guestEmail,
+    startTime: startTimeUTC,
+    guestNotes: data.guestNotes,
+    durationInMinutes: event.durationInMinutes,
+    eventName: event.name,
+  });
+
   // Step 5: Create the meeting record in the database
   await db.insert(MeetingTable).values({
     eventId: data.eventId,
     clerkUserId: data.clerkUserId,
     guestEmail: data.guestEmail,
     guestName: data.guestName,
-    durationInMinutes: event.durationInMinutes,
     guestNotes: data.guestNotes,
     startTime: startTimeUTC,
     endTime: endTimeUTC,
     timezone: data.timezone,
+    meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
   });
 
   // Step 6: Parallel operations:
-  // - Create calendar event in Google Calendar
   // - Log audit event for tracking
   await Promise.all([
-    createCalendarEvent({
-      clerkUserId: data.clerkUserId,
-      guestName: data.guestName,
-      guestEmail: data.guestEmail,
-      startTime: startTimeUTC,
-      guestNotes: data.guestNotes,
-      durationInMinutes: event.durationInMinutes,
-      eventName: event.name,
-    }),
     logAuditEvent(
       data.clerkUserId,
       "create",
