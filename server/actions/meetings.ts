@@ -29,19 +29,17 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Convert the selected time from user's timezone to UTC
-  // data.startTime is in UTC (from form submission)
-  // data.timezone is the user's selected timezone (e.g., 'Europe/Zurich')
-  const startInTimezone = fromZonedTime(data.startTime, data.timezone);
+  // Remove the timezone conversion since data.startTime is already in UTC
+  const startTime = data.startTime;
 
-  // Validate if the converted time is within available slots
-  const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
+  // Validate if the time is within available slots
+  const validTimes = await getValidTimesFromSchedule([startTime], event);
   if (validTimes.length === 0) return { error: true };
 
-  // Create calendar event using the UTC time
+  // Create calendar event using UTC time directly
   await createCalendarEvent({
     ...data,
-    startTime: startInTimezone, // Using UTC time for calendar creation
+    startTime, // Using UTC time directly
     durationInMinutes: event.durationInMinutes,
     eventName: event.name,
   });

@@ -110,20 +110,14 @@ function getAvailabilities(
   if (availabilities == null) return [];
 
   return availabilities.map(({ startTime, endTime }) => {
-    const start = fromZonedTime(
-      setMinutes(
-        setHours(date, parseInt(startTime.split(":")[0])),
-        parseInt(startTime.split(":")[1]),
-      ),
-      timezone,
+    const start = setMinutes(
+      setHours(date, parseInt(startTime.split(":")[0])),
+      parseInt(startTime.split(":")[1])
     );
 
-    const end = fromZonedTime(
-      setMinutes(
-        setHours(date, parseInt(endTime.split(":")[0])),
-        parseInt(endTime.split(":")[1]),
-      ),
-      timezone,
+    const end = setMinutes(
+      setHours(date, parseInt(endTime.split(":")[0])),
+      parseInt(endTime.split(":")[1])
     );
 
     return { start, end };

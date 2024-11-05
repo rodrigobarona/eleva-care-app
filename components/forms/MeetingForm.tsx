@@ -49,7 +49,7 @@ export function MeetingForm({
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     },
   });
 
@@ -57,11 +57,10 @@ export function MeetingForm({
   const date = form.watch("date");
   const validTimesInTimezone = useMemo(() => {
     return validTimes.map((date) => {
-      console.log("[PROD] Original date:", date);
-      console.log("[PROD] Timezone:", timezone);
+      console.log('[PROD] Original UTC date:', date);
+      console.log('[PROD] Target timezone:', timezone);
       const converted = toZonedTime(date, timezone);
-      console.log("[PROD] Converted date:", converted);
-      console.log("[PROD] Timezone offset:", new Date().getTimezoneOffset());
+      console.log('[PROD] Date in target timezone:', converted);
       return converted;
     });
   }, [validTimes, timezone]);
