@@ -31,7 +31,7 @@ const timeFormatter = new Intl.DateTimeFormat(undefined, {
 });
 
 export function formatTimeString(date: Date) {
-  return timeFormatter.format(new Date(date));
+  return timeFormatter.format(date);
 }
 
 const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
@@ -40,5 +40,5 @@ const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
 });
 
 export function formatDateTime(date: Date) {
-  return dateTimeFormatter.format(new Date(date));
+  return dateTimeFormatter.format(date);
 }
