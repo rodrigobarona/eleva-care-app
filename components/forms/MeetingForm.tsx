@@ -33,7 +33,7 @@ import { CalendarIcon } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 import { isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { toZonedTime } from "date-fns-tz";
 import { createMeeting } from "@/server/actions/meetings";
 
@@ -46,26 +46,94 @@ export function MeetingForm({
   eventId: string;
   clerkUserId: string;
 }) {
-  // Initialize with the user's local timezone
-  const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // Get browser's timezone on client side
+  const defaultTimezone = useMemo(() => {
+    if (typeof window !== 'undefined') {
+      const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      console.log('[PROD] Initial browser timezone:', {
+        timezone: browserTz,
+        offset: formatTimezoneOffset(browserTz)
+      });
+      return browserTz;
+    }
+    return 'UTC';
+  }, []);
 
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
-      timezone: defaultTimezone, // Set default timezone
+      timezone: defaultTimezone,
     },
   });
 
-  const timezone = form.watch("timezone");
+  // Watch for browser timezone changes
+  useEffect(() => {
+    const handleTimezoneChange = () => {
+      const newBrowserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const currentTz = form.getValues('timezone');
+      
+      console.log('[PROD] Detected timezone change:', {
+        from: `${currentTz} (${formatTimezoneOffset(currentTz)})`,
+        to: `${newBrowserTz} (${formatTimezoneOffset(newBrowserTz)})`
+      });
+
+      // Update form timezone if it matches the previous browser timezone
+      if (currentTz === defaultTimezone) {
+        const currentStartTime = form.getValues('startTime');
+        
+        console.log('[PROD] Updating form timezone:', {
+          startTimeBefore: currentStartTime ? {
+            time: currentStartTime.toISOString(),
+            formatted: formatTimeString(currentStartTime, currentTz)
+          } : null
+        });
+
+        form.setValue('timezone', newBrowserTz);
+        
+        // Adjust the selected time if exists
+        if (currentStartTime) {
+          const adjustedTime = toZonedTime(currentStartTime, newBrowserTz);
+          form.setValue('startTime', adjustedTime);
+          
+          console.log('[PROD] Time adjusted:', {
+            startTimeAfter: {
+              time: adjustedTime.toISOString(),
+              formatted: formatTimeString(adjustedTime, newBrowserTz)
+            }
+          });
+        }
+      }
+    };
+
+    // Check for timezone changes when window regains focus
+    window.addEventListener('focus', handleTimezoneChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleTimezoneChange);
+    };
+  }, [defaultTimezone, form]);
+
+  const timezone = form.watch("timezone") || defaultTimezone;
   const date = form.watch("date");
   const validTimesInTimezone = useMemo(() => {
     return validTimes.map((date) => {
-      console.log('[PROD] Original UTC date:', date);
-      console.log('[PROD] Target timezone:', timezone || defaultTimezone);
-      // Always use a timezone (either selected or default)
-      const converted = toZonedTime(date, timezone || defaultTimezone);
-      console.log('[PROD] Date in target timezone:', converted);
-      console.log('[PROD] Formatted time:', formatTimeString(converted, timezone || defaultTimezone));
+      console.log('[PROD] Time conversion:', {
+        original: {
+          date: date.toISOString(),
+          timezone: 'UTC',
+        },
+        target: {
+          timezone: timezone,
+          offset: formatTimezoneOffset(timezone)
+        }
+      });
+
+      const converted = toZonedTime(date, timezone);
+      console.log('[PROD] Converted result:', {
+        date: converted.toISOString(),
+        formatted: formatTimeString(converted, timezone)
+      });
+
       return converted;
     });
   }, [validTimes, timezone]);
@@ -202,9 +270,7 @@ export function MeetingForm({
                 <FormLabel>Time</FormLabel>
                 <Select
                   disabled={date == null || timezone == null}
-                  onValueChange={(value) =>
-                    field.onChange(new Date(Date.parse(value)))
-                  }
+                  onValueChange={(value) => field.onChange(new Date(Date.parse(value)))}
                   defaultValue={field.value?.toISOString()}
                 >
                   <FormControl>
@@ -221,17 +287,24 @@ export function MeetingForm({
                   <SelectContent>
                     {validTimesInTimezone
                       .filter((time) => isSameDay(time, date))
-                      .map((time) => (
-                        <SelectItem
-                          key={time.toISOString()}
-                          value={time.toISOString()}
-                        >
-                          {formatTimeString(time, timezone || defaultTimezone)}
-                        </SelectItem>
-                      ))}
+                      .map((time) => {
+                        const localTime = formatTimeString(time, timezone);
+                        console.log('[PROD] Time option:', {
+                          utc: time.toISOString(),
+                          localDisplay: localTime,
+                          timezone: `${timezone} (${formatTimezoneOffset(timezone)})`
+                        });
+                        return (
+                          <SelectItem
+                            key={time.toISOString()}
+                            value={time.toISOString()}
+                          >
+                            {localTime}
+                          </SelectItem>
+                        );
+                      })}
                   </SelectContent>
                 </Select>
-
                 <FormMessage />
               </FormItem>
             )}
