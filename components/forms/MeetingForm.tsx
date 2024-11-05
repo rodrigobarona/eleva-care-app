@@ -50,9 +50,15 @@ export function MeetingForm({
   const defaultTimezone = useMemo(() => {
     if (typeof window !== 'undefined') {
       const browserTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      console.log('[PROD] Initial browser timezone:', {
-        timezone: browserTz,
-        offset: formatTimezoneOffset(browserTz)
+      console.log('[PROD] Initial timezone detection:', {
+        browser: {
+          timezone: browserTz,
+          offset: formatTimezoneOffset(browserTz)
+        },
+        server: {
+          timezone: 'UTC',
+          offset: formatTimezoneOffset('UTC')
+        }
       });
       return browserTz;
     }
@@ -116,27 +122,42 @@ export function MeetingForm({
   const timezone = form.watch("timezone") || defaultTimezone;
   const date = form.watch("date");
   const validTimesInTimezone = useMemo(() => {
-    return validTimes.map((date) => {
-      console.log('[PROD] Time conversion:', {
-        original: {
-          date: date.toISOString(),
-          timezone: 'UTC',
+    console.log('[PROD] Current timezone context:', {
+      default: {
+        timezone: defaultTimezone,
+        offset: formatTimezoneOffset(defaultTimezone)
+      },
+      selected: {
+        timezone: timezone,
+        offset: formatTimezoneOffset(timezone)
+      }
+    });
+
+    return validTimes.map((utcDate) => {
+      console.log('[PROD] Time conversion details:', {
+        utc: {
+          raw: utcDate.toISOString(),
+          display: formatTimeString(utcDate, 'UTC'),
+          offset: formatTimezoneOffset('UTC')
         },
-        target: {
+        browserLocal: {
+          timezone: defaultTimezone,
+          display: formatTimeString(utcDate, defaultTimezone),
+          offset: formatTimezoneOffset(defaultTimezone)
+        },
+        selected: {
           timezone: timezone,
+          display: formatTimeString(utcDate, timezone),
           offset: formatTimezoneOffset(timezone)
         }
       });
 
-      const converted = toZonedTime(date, timezone);
-      console.log('[PROD] Converted result:', {
-        date: converted.toISOString(),
-        formatted: formatTimeString(converted, timezone)
-      });
-
-      return converted;
+      return {
+        utcDate,
+        displayTime: formatTimeString(utcDate, timezone)
+      };
     });
-  }, [validTimes, timezone]);
+  }, [validTimes, timezone, defaultTimezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
     const data = await createMeeting({
@@ -170,46 +191,56 @@ export function MeetingForm({
             <FormItem>
               <FormLabel>Timezone</FormLabel>
               <Select
-                onValueChange={(value) => {
-                  const oldOffset = formatTimezoneOffset(field.value);
-                  const newOffset = formatTimezoneOffset(value);
-                  console.log('[PROD] Timezone changed:', {
-                    from: `${field.value} (${oldOffset})`,
-                    to: `${value} (${newOffset})`
+                onValueChange={(newTimezone) => {
+                  const oldTimezone = field.value;
+                  console.log('[PROD] Timezone selection changing:', {
+                    from: {
+                      timezone: oldTimezone,
+                      offset: formatTimezoneOffset(oldTimezone),
+                      example: formatTimeString(new Date(), oldTimezone)
+                    },
+                    to: {
+                      timezone: newTimezone,
+                      offset: formatTimezoneOffset(newTimezone),
+                      example: formatTimeString(new Date(), newTimezone)
+                    },
+                    browser: {
+                      timezone: defaultTimezone,
+                      offset: formatTimezoneOffset(defaultTimezone),
+                      example: formatTimeString(new Date(), defaultTimezone)
+                    },
+                    utc: {
+                      timezone: 'UTC',
+                      offset: formatTimezoneOffset('UTC'),
+                      example: formatTimeString(new Date(), 'UTC')
+                    }
                   });
                   
-                  console.log('[PROD] Current form values:', form.getValues());
-                  field.onChange(value);
+                  field.onChange(newTimezone);
                   
+                  // If there's a selected time, keep the UTC value but update display
                   const currentStartTime = form.getValues('startTime');
                   if (currentStartTime) {
-                    console.log('[PROD] Time adjustment:', {
-                      before: {
-                        time: currentStartTime,
-                        formatted: formatTimeString(currentStartTime, field.value),
-                        timezone: `${field.value} (${oldOffset})`
-                      },
-                      after: {
-                        time: toZonedTime(currentStartTime, value),
-                        formatted: formatTimeString(currentStartTime, value),
-                        timezone: `${value} (${newOffset})`
-                      }
+                    console.log('[PROD] Updating selected time display:', {
+                      utc: currentStartTime.toISOString(),
+                      oldDisplay: formatTimeString(currentStartTime, oldTimezone),
+                      newDisplay: formatTimeString(currentStartTime, newTimezone)
                     });
-                    form.setValue('startTime', toZonedTime(currentStartTime, value));
                   }
                 }}
                 defaultValue={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {field.value && `${field.value} (${formatTimezoneOffset(field.value)})`}
+                    </SelectValue>
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {Intl.supportedValuesOf("timeZone").map((timezone) => (
-                    <SelectItem key={timezone} value={timezone}>
-                      {timezone}
-                      {` (${formatTimezoneOffset(timezone)})`}
+                  {Intl.supportedValuesOf("timeZone").map((tz) => (
+                    <SelectItem key={tz} value={tz}>
+                      {`${tz} (${formatTimezoneOffset(tz)})`}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -250,8 +281,8 @@ export function MeetingForm({
                       selected={field.value}
                       onSelect={field.onChange}
                       disabled={(date) =>
-                        !validTimesInTimezone.some((time) =>
-                          isSameDay(date, time)
+                        !validTimesInTimezone.some(({ utcDate }) =>
+                          isSameDay(date, utcDate)
                         )
                       }
                       initialFocus
@@ -286,23 +317,15 @@ export function MeetingForm({
                   </FormControl>
                   <SelectContent>
                     {validTimesInTimezone
-                      .filter((time) => isSameDay(time, date))
-                      .map((time) => {
-                        const localTime = formatTimeString(time, timezone);
-                        console.log('[PROD] Time option:', {
-                          utc: time.toISOString(),
-                          localDisplay: localTime,
-                          timezone: `${timezone} (${formatTimezoneOffset(timezone)})`
-                        });
-                        return (
-                          <SelectItem
-                            key={time.toISOString()}
-                            value={time.toISOString()}
-                          >
-                            {localTime}
-                          </SelectItem>
-                        );
-                      })}
+                      .filter(({ utcDate }) => isSameDay(utcDate, date))
+                      .map(({ utcDate, displayTime }) => (
+                        <SelectItem
+                          key={utcDate.toISOString()}
+                          value={utcDate.toISOString()}
+                        >
+                          {displayTime}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
                 <FormMessage />
