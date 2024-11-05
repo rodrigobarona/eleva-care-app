@@ -34,7 +34,6 @@ import { Calendar } from "../ui/calendar";
 import { isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
-import { toZonedTime } from "date-fns-tz";
 import { createMeeting } from "@/server/actions/meetings";
 
 export function MeetingForm({
@@ -55,14 +54,26 @@ export function MeetingForm({
 
   const timezone = form.watch("timezone");
   const date = form.watch("date");
+
   const validTimesInTimezone = useMemo(() => {
-    return validTimes.map((date) => {
-      console.log("[PROD] Original date:", date);
-      console.log("[PROD] Timezone:", timezone);
-      const converted = toZonedTime(date, timezone);
-      console.log("[PROD] Converted date:", converted);
-      console.log("[PROD] Timezone offset:", new Date().getTimezoneOffset());
-      return converted;
+    return validTimes.map((utcDate) => {
+      console.log('[PROD] Processing time slot:', {
+        utc: {
+          date: utcDate.toISOString(),
+          display: formatTimeString(utcDate, 'UTC')
+        },
+        userTimezone: {
+          timezone: timezone,
+          display: formatTimeString(utcDate, timezone),
+          offset: formatTimezoneOffset(timezone)
+        }
+      });
+
+      // Keep UTC time for storage, but display in user's timezone
+      return {
+        utcDate,
+        displayTime: formatTimeString(utcDate, timezone)
+      };
     });
   }, [validTimes, timezone]);
 
@@ -156,7 +167,7 @@ export function MeetingForm({
                       onSelect={field.onChange}
                       disabled={(date) =>
                         !validTimesInTimezone.some((time) =>
-                          isSameDay(date, time)
+                          isSameDay(date, time.utcDate)
                         )
                       }
                       initialFocus
@@ -193,13 +204,13 @@ export function MeetingForm({
                   </FormControl>
                   <SelectContent>
                     {validTimesInTimezone
-                      .filter((time) => isSameDay(time, date))
-                      .map((time) => (
+                      .filter(({ utcDate }) => isSameDay(utcDate, date))
+                      .map(({ utcDate, displayTime }) => (
                         <SelectItem
-                          key={time.toISOString()}
-                          value={time.toISOString()}
+                          key={utcDate.toISOString()}
+                          value={utcDate.toISOString()}
                         >
-                          {formatTimeString(time)}
+                          {displayTime}
                         </SelectItem>
                       ))}
                   </SelectContent>

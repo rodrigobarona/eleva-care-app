@@ -8,42 +8,46 @@ import "use-server";
 import { z } from "zod";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { fromZonedTime } from "date-fns-tz";
+import { formatTimezoneOffset } from "@/lib/formatters";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>,
 ) {
-  // Validate input data
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
   if (!success) return { error: true };
 
-  // Get event details from database
+  console.log('[PROD] Creating meeting:', {
+    startTime: {
+      raw: data.startTime,
+      iso: data.startTime.toISOString(),
+      timezone: data.timezone
+    }
+  });
+
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId, isActive, id }, { eq, and }) =>
-      and(
-        eq(isActive, true),
-        eq(clerkUserId, data.clerkUserId),
-        eq(id, data.eventId),
-      ),
+      and(eq(isActive, true), eq(clerkUserId, data.clerkUserId), eq(id, data.eventId)),
   });
 
   if (event == null) return { error: true };
 
-  // Convert the selected time from user's timezone to UTC
-  // data.startTime is in UTC (from form submission)
-  // data.timezone is the user's selected timezone (e.g., 'Europe/Zurich')
-  const startInTimezone = fromZonedTime(data.startTime, data.timezone);
+  // Keep startTime in UTC throughout the process
+  const startTimeUTC = data.startTime;
+  
+  console.log('[PROD] Validating time:', {
+    utc: startTimeUTC.toISOString(),
+    userTimezone: `${data.timezone} (${formatTimezoneOffset(data.timezone)})`
+  });
 
-  // Validate if the converted time is within available slots
-  const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
+  const validTimes = await getValidTimesFromSchedule([startTimeUTC], event);
   if (validTimes.length === 0) return { error: true };
 
-  // Create calendar event using the UTC time
   await createCalendarEvent({
     ...data,
-    startTime: startInTimezone, // Using UTC time for calendar creation
+    startTime: startTimeUTC,
     durationInMinutes: event.durationInMinutes,
     eventName: event.name,
+    timezone: data.timezone // Pass timezone to calendar creation
   });
 
   // Log the audit event for meeting creation

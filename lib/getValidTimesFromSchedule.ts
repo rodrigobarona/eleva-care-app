@@ -113,17 +113,17 @@ function getAvailabilities(
     const start = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(startTime.split(":")[0])),
-        parseInt(startTime.split(":")[1]),
+        parseInt(startTime.split(":")[1])
       ),
-      timezone,
+      timezone
     );
 
     const end = fromZonedTime(
       setMinutes(
         setHours(date, parseInt(endTime.split(":")[0])),
-        parseInt(endTime.split(":")[1]),
+        parseInt(endTime.split(":")[1])
       ),
-      timezone,
+      timezone
     );
 
     return { start, end };
