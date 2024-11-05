@@ -43,11 +43,13 @@ export async function createMeeting(
   if (validTimes.length === 0) return { error: true };
 
   await createCalendarEvent({
-    ...data,
+    clerkUserId: data.clerkUserId,
+    guestName: data.guestName,
+    guestEmail: data.guestEmail,
     startTime: startTimeUTC,
+    guestNotes: data.guestNotes,
     durationInMinutes: event.durationInMinutes,
     eventName: event.name,
-    timezone: data.timezone // Pass timezone to calendar creation
   });
 
   // Log the audit event for meeting creation
