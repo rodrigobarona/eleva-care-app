@@ -1,7 +1,9 @@
 import { z } from "zod";
+import { slugSchema } from "@/lib/validations/slug";
 
 export const eventFormSchema = z.object({
   name: z.string().min(1, "Required"),
+  slug: slugSchema,
   description: z.string().optional(),
   isActive: z.boolean().default(true),
   durationInMinutes: z.coerce

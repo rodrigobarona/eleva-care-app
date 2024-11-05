@@ -31,6 +31,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "../ui/alert-dialog";
+import { slugify } from "@/lib/validations/slug";
 
 export function EventForm({
   event,
@@ -38,6 +39,7 @@ export function EventForm({
   event?: {
     id: string;
     name: string;
+    slug: string;
     description?: string;
     durationInMinutes: number;
     isActive: boolean;
@@ -51,6 +53,18 @@ export function EventForm({
       durationInMinutes: 30,
     },
   });
+
+  React.useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'name') {
+        form.setValue('slug', slugify(value.name as string), {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
 
   async function onSubmit(values: z.infer<typeof eventFormSchema>) {
     const action =
@@ -140,6 +154,23 @@ export function EventForm({
               </div>
               <FormDescription>
                 Inactive events will not be visable for the users to book
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>URL Slug</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormDescription>
+                URL-friendly version of the event name. Can contain lowercase letters, numbers, and hyphens.
               </FormDescription>
               <FormMessage />
             </FormItem>
