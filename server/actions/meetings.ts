@@ -1,22 +1,18 @@
 "use server";
-import { DateTime } from "luxon";
 import { db } from "@/drizzle/db";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
 import { meetingActionSchema } from "@/schema/meetings";
 import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
+import "use-server";
 import { z } from "zod";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
+import { fromZonedTime } from "date-fns-tz";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>,
 ) {
-  console.log("Meeting Creation - Input:", {
-    startTime: unsafeData.startTime?.toISOString(),
-    timezone: unsafeData.timezone,
-  });
-
   // Validate input data
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
   if (!success) return { error: true };
@@ -34,48 +30,37 @@ export async function createMeeting(
   if (event == null) return { error: true };
 
   // Convert the selected time from user's timezone to UTC
-  const startDateTime = DateTime.fromJSDate(data.startTime)
-    .setZone(data.timezone)
-    .toUTC();
-
-  console.log("Meeting Creation - Time Conversion:", {
-    originalTime: data.startTime.toISOString(),
-    convertedTime: startDateTime.toISO(),
-    timezone: data.timezone,
-  });
+  // data.startTime is in UTC (from form submission)
+  // data.timezone is the user's selected timezone (e.g., 'Europe/Zurich')
+  const startInTimezone = fromZonedTime(data.startTime, data.timezone);
 
   // Validate if the converted time is within available slots
-  const validTimes = await getValidTimesFromSchedule(
-    [startDateTime.toJSDate()],
-    event,
-  );
-
+  const validTimes = await getValidTimesFromSchedule([startInTimezone], event);
   if (validTimes.length === 0) return { error: true };
 
   // Create calendar event using the UTC time
   await createCalendarEvent({
     ...data,
-    startTime: startDateTime.toJSDate(),
+    startTime: startInTimezone, // Using UTC time for calendar creation
     durationInMinutes: event.durationInMinutes,
     eventName: event.name,
   });
 
-  // Log audit event
+  // Log the audit event for meeting creation
   await logAuditEvent(
-    data.clerkUserId,
-    "create",
-    "meetings",
-    data.eventId,
-    null,
-    {
-      ...data,
-      startTime: startDateTime.toISO(),
-    },
-    headers().get("x-forwarded-for") ?? "Unknown",
-    headers().get("user-agent") ?? "Unknown",
+    data.clerkUserId, // User ID (related to the clerk user)
+    "create", // Action type (creating a new meeting)
+    "meetings", // Table name for audit logging
+    data.eventId, // Event ID (foreign key for the event)
+    null, // Previous data (none in this case)
+    { ...data }, // Current data to log
+    headers().get("x-forwarded-for") ?? "Unknown", // IP address of the user
+    headers().get("user-agent") ?? "Unknown", // User agent for the audit log
   );
 
   redirect(
-    `/book/${data.clerkUserId}/${data.eventId}/success?startTime=${startDateTime.toISO()}`,
+    `/book/${data.clerkUserId}/${
+      data.eventId
+    }/success?startTime=${data.startTime.toISOString()}`,
   );
 }
