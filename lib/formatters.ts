@@ -26,17 +26,19 @@ export function formatDate(date: Date) {
   return dateFormatter.format(date);
 }
 
-export function formatTimeString(date: Date, timezone?: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    timeStyle: "short",
-    timeZone: timezone
-  }).format(new Date(date));
+const timeFormatter = new Intl.DateTimeFormat(undefined, {
+  timeStyle: "short",
+});
+
+export function formatTimeString(date: Date) {
+  return timeFormatter.format(new Date(date));
 }
 
-export function formatDateTime(date: Date, timezone?: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    dateStyle: "medium",
-    timeStyle: "short",
-    timeZone: timezone
-  }).format(new Date(date));
+const dateTimeFormatter = new Intl.DateTimeFormat(undefined, {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
+export function formatDateTime(date: Date) {
+  return dateTimeFormatter.format(new Date(date));
 }
