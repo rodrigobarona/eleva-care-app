@@ -39,7 +39,6 @@ export async function createMeeting(
     guestEmail: data.guestEmail,
     guestName: data.guestName,
     durationInMinutes: event.durationInMinutes,
-    eventName: event.name,
     guestNotes: data.guestNotes,
     startTime: startTimeUTC,
     endTime: endTimeUTC,
@@ -57,7 +56,6 @@ export async function createMeeting(
       startTime: startTimeUTC,
       guestNotes: data.guestNotes,
       durationInMinutes: event.durationInMinutes,
-      eventName: event.name,
     }),
     logAuditEvent(
       data.clerkUserId,

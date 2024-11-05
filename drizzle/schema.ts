@@ -89,7 +89,6 @@ export const MeetingTable = pgTable(
     endTime: timestamp("endTime").notNull(),
     timezone: text("timezone").notNull(),
     durationInMinutes: integer("durationInMinutes").notNull(),
-    eventName: text("eventName").notNull(),
     createdAt,
     updatedAt,
   },
