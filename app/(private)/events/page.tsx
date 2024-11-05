@@ -103,7 +103,7 @@ function EventCard({
           />
         )}
         <Button asChild>
-          <Link href={`/events/${id}/edit`}>Edit</Link>
+          <Link href={`/events/${slug}/edit`}>Edit</Link>
         </Button>
       </CardFooter>
     </Card>
