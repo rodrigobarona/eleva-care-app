@@ -71,7 +71,10 @@ export async function createMeeting(
       "meetings",
       data.eventId,
       null,
-      { ...data },
+      { 
+        ...data,
+        meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null 
+      },
       headers().get("x-forwarded-for") ?? "Unknown",
       headers().get("user-agent") ?? "Unknown"
     ),
