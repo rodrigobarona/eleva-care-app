@@ -14,20 +14,26 @@ import { notFound } from "next/navigation";
 export const revalidate = 0;
 
 export default async function SuccessPage({
-  params: { clerkUserId, eventSlug },
+  params: { username, eventSlug },
   searchParams: { startTime },
 }: {
-  params: { clerkUserId: string; eventSlug: string };
+  params: { username: string; eventSlug: string };
   searchParams: { startTime: string };
 }) {
+  const users = await clerkClient().users.getUserList({
+    username: [username],
+  });
+  const user = users.data[0];
+  if (!user) return notFound();
+
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId: userIdCol, isActive, slug }, { eq, and }) =>
-      and(eq(isActive, true), eq(userIdCol, clerkUserId), eq(slug, eventSlug)),
+      and(eq(isActive, true), eq(userIdCol, user.id), eq(slug, eventSlug)),
   });
 
   if (event == null) notFound();
 
-  const calendarUser = await clerkClient().users.getUser(clerkUserId);
+  const calendarUser = await clerkClient().users.getUser(user.id);
   const startTimeDate = new Date(startTime);
 
   return (

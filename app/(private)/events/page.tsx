@@ -15,6 +15,7 @@ import { auth } from "@clerk/nextjs/server";
 import { CalendarPlus, CalendarRange } from "lucide-react";
 import Link from "next/link";
 import React from "react";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export const revalidate = 0;
 
@@ -22,6 +23,10 @@ export default async function EventsPage() {
   const { userId, redirectToSignIn } = auth();
 
   if (userId == null) return redirectToSignIn;
+
+  const user = await clerkClient.users.getUser(userId);
+  const username = user.username ?? userId;
+
   const events = await db.query.EventTable.findMany({
     where: ({ clerkUserId }, { eq }) => eq(clerkUserId, userId),
     orderBy: ({ createdAt }, { desc }) => desc(createdAt),
@@ -42,7 +47,7 @@ export default async function EventsPage() {
       {events.length > 0 ? (
         <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(400px,1fr))]">
           {events.map((event) => (
-            <EventCard key={event.id} {...event} />
+            <EventCard key={event.id} username={username} {...event} />
           ))}
         </div>
       ) : (
@@ -63,23 +68,21 @@ export default async function EventsPage() {
 }
 
 type EventCardProps = {
-  id: string;
   slug: string;
   isActive: boolean;
   name: string;
   description: string | null;
   durationInMinutes: number;
-  clerkUserId: string;
+  username: string;
 };
 
 function EventCard({
-  id,
   slug,
   isActive,
   name,
   description,
   durationInMinutes,
-  clerkUserId,
+  username,
 }: EventCardProps) {
   return (
     <Card className={cn("flex flex-col", !isActive && "border-secondary/50")}>
@@ -99,7 +102,7 @@ function EventCard({
           <CopyEventButton
             variant="outline"
             eventSlug={slug}
-            clerkUserId={clerkUserId}
+            username={username}
           />
         )}
         <Button asChild>

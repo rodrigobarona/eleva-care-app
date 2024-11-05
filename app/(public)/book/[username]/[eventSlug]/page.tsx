@@ -25,18 +25,24 @@ import { formatInTimeZone } from "date-fns-tz";
 export const revalidate = 0;
 
 export default async function BookEventPage({
-  params: { clerkUserId, eventSlug },
+  params: { username, eventSlug },
 }: {
-  params: { clerkUserId: string; eventSlug: string };
+  params: { username: string; eventSlug: string };
 }) {
+  const users = await clerkClient().users.getUserList({
+    username: [username],
+  });
+  const user = users.data[0];
+  if (!user) return notFound();
+
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId: userIdCol, isActive, slug }, { eq, and }) =>
-      and(eq(isActive, true), eq(userIdCol, clerkUserId), eq(slug, eventSlug)),
+      and(eq(isActive, true), eq(userIdCol, user.id), eq(slug, eventSlug)),
   });
 
   if (event == null) return notFound();
 
-  const calendarUser = await clerkClient().users.getUser(clerkUserId);
+  const calendarUser = await clerkClient().users.getUser(user.id);
   const startDate = new Date(
     formatInTimeZone(
       roundToNearestMinutes(new Date(), {
@@ -44,21 +50,21 @@ export default async function BookEventPage({
         roundingMethod: "ceil",
       }),
       "UTC",
-      "yyyy-MM-dd'T'HH:mm:ssX",
-    ),
+      "yyyy-MM-dd'T'HH:mm:ssX"
+    )
   );
 
   const endDate = new Date(
     formatInTimeZone(
       endOfDay(addMonths(startDate, 2)),
       "UTC",
-      "yyyy-MM-dd'T'HH:mm:ssX",
-    ),
+      "yyyy-MM-dd'T'HH:mm:ssX"
+    )
   );
 
   const validTimes = await getValidTimesFromSchedule(
     eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-    event,
+    event
   );
 
   if (validTimes.length === 0) {
@@ -79,9 +85,10 @@ export default async function BookEventPage({
         <MeetingForm
           validTimes={validTimes}
           eventId={event.id}
-          clerkUserId={clerkUserId}
+          clerkUserId={user.id}
         />
       </CardContent>
+      <CardFooter></CardFooter>
     </Card>
   );
 }

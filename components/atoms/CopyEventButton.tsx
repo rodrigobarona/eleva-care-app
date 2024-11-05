@@ -8,11 +8,11 @@ type CopyState = "idle" | "copied" | "error";
 
 export function CopyEventButton({
   eventSlug,
-  clerkUserId,
+  username,
   ...buttonProps
 }: Omit<ButtonProps, "children" | "onClick"> & {
   eventSlug: string;
-  clerkUserId: string;
+  username: string;
 }) {
   const [copyState, setCopyState] = useState<CopyState>("idle");
 
@@ -23,7 +23,7 @@ export function CopyEventButton({
       {...buttonProps}
       onClick={() => {
         navigator.clipboard
-          .writeText(`${location.origin}/book/${clerkUserId}/${eventSlug}`)
+          .writeText(`${location.origin}/book/${username}/${eventSlug}`)
           .then(() => {
             setCopyState("copied");
             setTimeout(() => setCopyState("idle"), 2000);
