@@ -22,6 +22,7 @@ export const EventTable = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
     name: text("name").notNull(),
+    slug: text("slug").notNull(),
     description: text("description"),
     durationInMinutes: integer("durationInMinutes").notNull(),
     clerkUserId: text("clerkUserId").notNull(),
@@ -30,7 +31,7 @@ export const EventTable = pgTable(
     updatedAt,
   },
   (table) => ({
-    clerkUserIdIndex: index("clerkUserIdIndex").on(table.clerkUserId),
+    clerkUserIdIndex: index("events_clerk_user_id_idx").on(table.clerkUserId),
   }),
 );
 

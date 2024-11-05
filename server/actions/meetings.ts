@@ -11,7 +11,7 @@ import { redirect } from "next/navigation";
 import { MeetingTable } from "@/drizzle/schema";
 
 export async function createMeeting(
-  unsafeData: z.infer<typeof meetingActionSchema>,
+  unsafeData: z.infer<typeof meetingActionSchema>
 ) {
   // Step 1: Validate the incoming data against our schema
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
@@ -20,7 +20,11 @@ export async function createMeeting(
   // Step 2: Find the associated event and verify it exists and is active
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId, isActive, id }, { eq, and }) =>
-      and(eq(isActive, true), eq(clerkUserId, data.clerkUserId), eq(id, data.eventId)),
+      and(
+        eq(isActive, true),
+        eq(clerkUserId, data.clerkUserId),
+        eq(id, data.eventId)
+      ),
   });
   if (event == null) return { error: true };
 
@@ -30,7 +34,9 @@ export async function createMeeting(
   if (validTimes.length === 0) return { error: true };
 
   // Step 4: Calculate the end time based on event duration
-  const endTimeUTC = new Date(startTimeUTC.getTime() + event.durationInMinutes * 60000);
+  const endTimeUTC = new Date(
+    startTimeUTC.getTime() + event.durationInMinutes * 60000
+  );
 
   // Step 5: Create the meeting record in the database
   await db.insert(MeetingTable).values({
@@ -56,6 +62,7 @@ export async function createMeeting(
       startTime: startTimeUTC,
       guestNotes: data.guestNotes,
       durationInMinutes: event.durationInMinutes,
+      eventName: event.name,
     }),
     logAuditEvent(
       data.clerkUserId,
@@ -65,10 +72,12 @@ export async function createMeeting(
       null,
       { ...data },
       headers().get("x-forwarded-for") ?? "Unknown",
-      headers().get("user-agent") ?? "Unknown",
-    )
+      headers().get("user-agent") ?? "Unknown"
+    ),
   ]);
 
   // Step 7: Redirect to success page with the booked time
-  redirect(`/book/${data.clerkUserId}/${data.eventId}/success?startTime=${data.startTime.toISOString()}`);
+  redirect(
+    `/book/${data.clerkUserId}/${data.eventId}/success?startTime=${data.startTime.toISOString()}`
+  );
 }
