@@ -46,13 +46,10 @@ export function MeetingForm({
   eventId: string;
   clerkUserId: string;
 }) {
-  // Initialize with the user's local timezone
-  const defaultTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
-      timezone: defaultTimezone, // Set default timezone
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
     },
   });
 
@@ -61,11 +58,9 @@ export function MeetingForm({
   const validTimesInTimezone = useMemo(() => {
     return validTimes.map((date) => {
       console.log('[PROD] Original UTC date:', date);
-      console.log('[PROD] Target timezone:', timezone || defaultTimezone);
-      // Always use a timezone (either selected or default)
-      const converted = toZonedTime(date, timezone || defaultTimezone);
+      console.log('[PROD] Target timezone:', timezone);
+      const converted = toZonedTime(date, timezone);
       console.log('[PROD] Date in target timezone:', converted);
-      console.log('[PROD] Formatted time:', formatTimeString(converted, timezone || defaultTimezone));
       return converted;
     });
   }, [validTimes, timezone]);
@@ -103,32 +98,9 @@ export function MeetingForm({
               <FormLabel>Timezone</FormLabel>
               <Select
                 onValueChange={(value) => {
-                  const oldOffset = formatTimezoneOffset(field.value);
-                  const newOffset = formatTimezoneOffset(value);
-                  console.log('[PROD] Timezone changed:', {
-                    from: `${field.value} (${oldOffset})`,
-                    to: `${value} (${newOffset})`
-                  });
-                  
-                  console.log('[PROD] Current form values:', form.getValues());
+                  console.log("Timezone changed to:", value);
+                  console.log("Current date value:", date);
                   field.onChange(value);
-                  
-                  const currentStartTime = form.getValues('startTime');
-                  if (currentStartTime) {
-                    console.log('[PROD] Time adjustment:', {
-                      before: {
-                        time: currentStartTime,
-                        formatted: formatTimeString(currentStartTime, field.value),
-                        timezone: `${field.value} (${oldOffset})`
-                      },
-                      after: {
-                        time: toZonedTime(currentStartTime, value),
-                        formatted: formatTimeString(currentStartTime, value),
-                        timezone: `${value} (${newOffset})`
-                      }
-                    });
-                    form.setValue('startTime', toZonedTime(currentStartTime, value));
-                  }
                 }}
                 defaultValue={field.value}
               >
@@ -226,7 +198,7 @@ export function MeetingForm({
                           key={time.toISOString()}
                           value={time.toISOString()}
                         >
-                          {formatTimeString(time, timezone || defaultTimezone)}
+                          {formatTimeString(time, timezone)}
                         </SelectItem>
                       ))}
                   </SelectContent>
