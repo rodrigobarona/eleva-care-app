@@ -8,29 +8,32 @@ import "use-server";
 import { z } from "zod";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
-import { formatTimezoneOffset } from "@/lib/formatters";
 import { MeetingTable } from "@/drizzle/schema";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>,
 ) {
+  // Step 1: Validate the incoming data against our schema
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
   if (!success) return { error: true };
 
+  // Step 2: Find the associated event and verify it exists and is active
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId, isActive, id }, { eq, and }) =>
       and(eq(isActive, true), eq(clerkUserId, data.clerkUserId), eq(id, data.eventId)),
   });
-
   if (event == null) return { error: true };
 
+  // Step 3: Verify the requested time slot is valid according to the schedule
   const startTimeUTC = data.startTime;
   const validTimes = await getValidTimesFromSchedule([startTimeUTC], event);
   if (validTimes.length === 0) return { error: true };
 
+  // Step 4: Calculate the end time based on event duration
   const endTimeUTC = new Date(startTimeUTC.getTime() + event.durationInMinutes * 60000);
 
-  const newMeeting = await db.insert(MeetingTable).values({
+  // Step 5: Create the meeting record in the database
+  await db.insert(MeetingTable).values({
     eventId: data.eventId,
     clerkUserId: data.clerkUserId,
     guestEmail: data.guestEmail,
@@ -41,8 +44,11 @@ export async function createMeeting(
     startTime: startTimeUTC,
     endTime: endTimeUTC,
     timezone: data.timezone,
-  }).returning();
+  });
 
+  // Step 6: Parallel operations:
+  // - Create calendar event in Google Calendar
+  // - Log audit event for tracking
   await Promise.all([
     createCalendarEvent({
       clerkUserId: data.clerkUserId,
@@ -65,5 +71,6 @@ export async function createMeeting(
     )
   ]);
 
+  // Step 7: Redirect to success page with the booked time
   redirect(`/book/${data.clerkUserId}/${data.eventId}/success?startTime=${data.startTime.toISOString()}`);
 }
