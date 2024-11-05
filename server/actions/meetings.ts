@@ -9,20 +9,13 @@ import { z } from "zod";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
 import { formatTimezoneOffset } from "@/lib/formatters";
+import { MeetingTable } from "@/drizzle/schema";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>,
 ) {
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
   if (!success) return { error: true };
-
-  console.log('[PROD] Creating meeting:', {
-    startTime: {
-      raw: data.startTime,
-      iso: data.startTime.toISOString(),
-      timezone: data.timezone
-    }
-  });
 
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId, isActive, id }, { eq, and }) =>
@@ -31,42 +24,46 @@ export async function createMeeting(
 
   if (event == null) return { error: true };
 
-  // Keep startTime in UTC throughout the process
   const startTimeUTC = data.startTime;
-  
-  console.log('[PROD] Validating time:', {
-    utc: startTimeUTC.toISOString(),
-    userTimezone: `${data.timezone} (${formatTimezoneOffset(data.timezone)})`
-  });
-
   const validTimes = await getValidTimesFromSchedule([startTimeUTC], event);
   if (validTimes.length === 0) return { error: true };
 
-  await createCalendarEvent({
+  const endTimeUTC = new Date(startTimeUTC.getTime() + event.durationInMinutes * 60000);
+
+  const newMeeting = await db.insert(MeetingTable).values({
+    eventId: data.eventId,
     clerkUserId: data.clerkUserId,
-    guestName: data.guestName,
     guestEmail: data.guestEmail,
-    startTime: startTimeUTC,
-    guestNotes: data.guestNotes,
+    guestName: data.guestName,
     durationInMinutes: event.durationInMinutes,
     eventName: event.name,
-  });
+    guestNotes: data.guestNotes,
+    startTime: startTimeUTC,
+    endTime: endTimeUTC,
+    timezone: data.timezone,
+  }).returning();
 
-  // Log the audit event for meeting creation
-  await logAuditEvent(
-    data.clerkUserId, // User ID (related to the clerk user)
-    "create", // Action type (creating a new meeting)
-    "meetings", // Table name for audit logging
-    data.eventId, // Event ID (foreign key for the event)
-    null, // Previous data (none in this case)
-    { ...data }, // Current data to log
-    headers().get("x-forwarded-for") ?? "Unknown", // IP address of the user
-    headers().get("user-agent") ?? "Unknown", // User agent for the audit log
-  );
+  await Promise.all([
+    createCalendarEvent({
+      clerkUserId: data.clerkUserId,
+      guestName: data.guestName,
+      guestEmail: data.guestEmail,
+      startTime: startTimeUTC,
+      guestNotes: data.guestNotes,
+      durationInMinutes: event.durationInMinutes,
+      eventName: event.name,
+    }),
+    logAuditEvent(
+      data.clerkUserId,
+      "create",
+      "meetings",
+      data.eventId,
+      null,
+      { ...data },
+      headers().get("x-forwarded-for") ?? "Unknown",
+      headers().get("user-agent") ?? "Unknown",
+    )
+  ]);
 
-  redirect(
-    `/book/${data.clerkUserId}/${
-      data.eventId
-    }/success?startTime=${data.startTime.toISOString()}`,
-  );
+  redirect(`/book/${data.clerkUserId}/${data.eventId}/success?startTime=${data.startTime.toISOString()}`);
 }
