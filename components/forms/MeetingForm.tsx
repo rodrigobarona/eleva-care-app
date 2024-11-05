@@ -56,7 +56,14 @@ export function MeetingForm({
   const timezone = form.watch("timezone");
   const date = form.watch("date");
   const validTimesInTimezone = useMemo(() => {
-    return validTimes.map((date) => toZonedTime(date, timezone));
+    return validTimes.map((date) => {
+      console.log("[PROD] Original date:", date);
+      console.log("[PROD] Timezone:", timezone);
+      const converted = toZonedTime(date, timezone);
+      console.log("[PROD] Converted date:", converted);
+      console.log("[PROD] Timezone offset:", new Date().getTimezoneOffset());
+      return converted;
+    });
   }, [validTimes, timezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
@@ -90,7 +97,14 @@ export function MeetingForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Timezone</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={(value) => {
+                  console.log("Timezone changed to:", value);
+                  console.log("Current date value:", date);
+                  field.onChange(value);
+                }}
+                defaultValue={field.value}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue />
@@ -123,7 +137,7 @@ export function MeetingForm({
                         variant="outline"
                         className={cn(
                           "pl-3 text-left font-normal flex w-full",
-                          !field.value && "text-muted-foreground",
+                          !field.value && "text-muted-foreground"
                         )}
                       >
                         {field.value ? (
@@ -142,7 +156,7 @@ export function MeetingForm({
                       onSelect={field.onChange}
                       disabled={(date) =>
                         !validTimesInTimezone.some((time) =>
-                          isSameDay(date, time),
+                          isSameDay(date, time)
                         )
                       }
                       initialFocus
