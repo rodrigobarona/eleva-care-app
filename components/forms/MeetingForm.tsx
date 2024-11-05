@@ -198,7 +198,7 @@ export function MeetingForm({
                           key={time.toISOString()}
                           value={time.toISOString()}
                         >
-                          {formatTimeString(time)}
+                          {formatTimeString(time, timezone)}
                         </SelectItem>
                       ))}
                   </SelectContent>
