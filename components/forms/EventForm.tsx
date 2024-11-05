@@ -32,6 +32,13 @@ import {
   AlertDialogAction,
 } from "../ui/alert-dialog";
 import { slugify } from "@/lib/validations/slug";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 
 export function EventForm({
   event,
@@ -65,6 +72,37 @@ export function EventForm({
     });
     return () => subscription.unsubscribe();
   }, [form]);
+
+  const onSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const currentValue = e.target.value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/--+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+
+    form.setValue('slug', currentValue, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
+  const onSlugKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+      const input = e.target as HTMLInputElement;
+      const newValue = input.value + '-';
+      form.setValue('slug', newValue, {
+        shouldValidate: true,
+        shouldDirty: true,
+      });
+      setTimeout(() => {
+        input.selectionStart = input.selectionEnd = newValue.length;
+      }, 0);
+    }
+  };
 
   async function onSubmit(values: z.infer<typeof eventFormSchema>) {
     const action =
@@ -112,10 +150,23 @@ export function EventForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Duration</FormLabel>
-              <FormControl>
-                <Input type="number" {...field} />
-              </FormControl>
-              <FormDescription>In minutes</FormDescription>
+              <Select
+                onValueChange={(value) => field.onChange(Number(value))}
+                defaultValue={field.value.toString()}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select duration" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="15">15 minutes</SelectItem>
+                  <SelectItem value="30">30 minutes</SelectItem>
+                  <SelectItem value="45">45 minutes</SelectItem>
+                  <SelectItem value="60">60 minutes</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormDescription>Meeting duration</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -167,7 +218,7 @@ export function EventForm({
             <FormItem>
               <FormLabel>URL Slug</FormLabel>
               <FormControl>
-                <Input {...field} />
+                <Input {...field} onChange={onSlugChange} onKeyDown={onSlugKeyDown} />
               </FormControl>
               <FormDescription>
                 URL-friendly version of the event name. Can contain lowercase letters, numbers, and hyphens.
