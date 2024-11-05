@@ -9,6 +9,7 @@ import { z } from "zod";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
 import { MeetingTable } from "@/drizzle/schema";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -81,8 +82,11 @@ export async function createMeeting(
     ),
   ]);
 
-  // Step 7: Redirect to success page with the booked time
+  // Step 7: Get username and use event slug for the redirect
+  const user = await clerkClient.users.getUser(data.clerkUserId);
+  const username = user.username ?? data.clerkUserId;
+
   redirect(
-    `/book/${data.clerkUserId}/${data.eventId}/success?startTime=${data.startTime.toISOString()}`
+    `/book/${username}/${event.slug}/success?startTime=${data.startTime.toISOString()}`
   );
 }

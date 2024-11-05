@@ -40,10 +40,12 @@ export function MeetingForm({
   validTimes,
   eventId,
   clerkUserId,
+  username,
 }: {
   validTimes: Date[];
   eventId: string;
   clerkUserId: string;
+  username: string;
 }) {
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
@@ -270,7 +272,7 @@ export function MeetingForm({
             asChild
             variant="outline"
           >
-            <Link href={`/book/${clerkUserId}`}>Cancel</Link>
+            <Link href={`/book/${username}`}>Cancel</Link>
           </Button>
           <Button disabled={form.formState.isSubmitting} type="submit">
             Schedule
