@@ -7,11 +7,11 @@ import { Copy, CopyCheck, CopyX } from "lucide-react";
 type CopyState = "idle" | "copied" | "error";
 
 export function CopyEventButton({
-  eventId,
+  eventSlug,
   clerkUserId,
   ...buttonProps
 }: Omit<ButtonProps, "children" | "onClick"> & {
-  eventId: string;
+  eventSlug: string;
   clerkUserId: string;
 }) {
   const [copyState, setCopyState] = useState<CopyState>("idle");
@@ -23,7 +23,7 @@ export function CopyEventButton({
       {...buttonProps}
       onClick={() => {
         navigator.clipboard
-          .writeText(`${location.origin}/book/${clerkUserId}/${eventId}`)
+          .writeText(`${location.origin}/book/${clerkUserId}/${eventSlug}`)
           .then(() => {
             setCopyState("copied");
             setTimeout(() => setCopyState("idle"), 2000);

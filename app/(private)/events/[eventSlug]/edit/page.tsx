@@ -8,17 +8,17 @@ import React from "react";
 export const revalidate = 0;
 
 export default async function EditEventPage({
-  params: { eventId },
+  params: { eventSlug },
 }: {
-  params: { eventId: string };
+  params: { eventSlug: string };
 }) {
   const { userId, redirectToSignIn } = auth();
 
   if (userId == null) return redirectToSignIn();
 
   const event = await db.query.EventTable.findFirst({
-    where: ({ id, clerkUserId }, { and, eq }) =>
-      and(eq(clerkUserId, userId), eq(id, eventId)),
+    where: ({ slug, clerkUserId }, { and, eq }) =>
+      and(eq(clerkUserId, userId), eq(slug, eventSlug)),
   });
 
   if (event == null) return notFound();

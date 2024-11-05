@@ -14,15 +14,15 @@ import { notFound } from "next/navigation";
 export const revalidate = 0;
 
 export default async function SuccessPage({
-  params: { clerkUserId, eventId },
+  params: { clerkUserId, eventSlug },
   searchParams: { startTime },
 }: {
-  params: { clerkUserId: string; eventId: string };
+  params: { clerkUserId: string; eventSlug: string };
   searchParams: { startTime: string };
 }) {
   const event = await db.query.EventTable.findFirst({
-    where: ({ clerkUserId: userIdCol, isActive, id }, { eq, and }) =>
-      and(eq(isActive, true), eq(userIdCol, clerkUserId), eq(id, eventId)),
+    where: ({ clerkUserId: userIdCol, isActive, slug }, { eq, and }) =>
+      and(eq(isActive, true), eq(userIdCol, clerkUserId), eq(slug, eventSlug)),
   });
 
   if (event == null) notFound();

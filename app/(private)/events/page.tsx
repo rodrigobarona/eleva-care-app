@@ -64,6 +64,7 @@ export default async function EventsPage() {
 
 type EventCardProps = {
   id: string;
+  slug: string;
   isActive: boolean;
   name: string;
   description: string | null;
@@ -73,6 +74,7 @@ type EventCardProps = {
 
 function EventCard({
   id,
+  slug,
   isActive,
   name,
   description,
@@ -96,7 +98,7 @@ function EventCard({
         {isActive && (
           <CopyEventButton
             variant="outline"
-            eventId={id}
+            eventSlug={slug}
             clerkUserId={clerkUserId}
           />
         )}

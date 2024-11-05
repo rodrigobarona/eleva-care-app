@@ -25,13 +25,13 @@ import { formatInTimeZone } from "date-fns-tz";
 export const revalidate = 0;
 
 export default async function BookEventPage({
-  params: { clerkUserId, eventId },
+  params: { clerkUserId, eventSlug },
 }: {
-  params: { clerkUserId: string; eventId: string };
+  params: { clerkUserId: string; eventSlug: string };
 }) {
   const event = await db.query.EventTable.findFirst({
-    where: ({ clerkUserId: userIdCol, isActive, id }, { eq, and }) =>
-      and(eq(isActive, true), eq(userIdCol, clerkUserId), eq(id, eventId)),
+    where: ({ clerkUserId: userIdCol, isActive, slug }, { eq, and }) =>
+      and(eq(isActive, true), eq(userIdCol, clerkUserId), eq(slug, eventSlug)),
   });
 
   if (event == null) return notFound();
