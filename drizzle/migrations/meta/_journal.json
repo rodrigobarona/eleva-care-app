@@ -15,6 +15,13 @@
       "when": 1730800386845,
       "tag": "0001_spotty_the_initiative",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1731053340287,
+      "tag": "0002_free_guardsmen",
+      "breakpoints": true
     }
   ]
 }

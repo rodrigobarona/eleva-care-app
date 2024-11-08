@@ -9,6 +9,7 @@ import {
   text,
   timestamp,
   uuid,
+  json,
 } from "drizzle-orm/pg-core";
 
 const createdAt = timestamp("createdAt").notNull().defaultNow();
@@ -104,4 +105,34 @@ export const meetingRelations = relations(MeetingTable, ({ one }) => ({
     fields: [MeetingTable.eventId],
     references: [EventTable.id],
   }),
+}));
+
+export const ProfileTable = pgTable(
+  "profiles",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clerkUserId: text("clerkUserId").notNull().unique(),
+    profilePicture: text("profilePicture"),
+    fullName: text("fullName").notNull(),
+    role: text("role"),
+    shortBio: text("shortBio"),
+    longBio: text("longBio"),
+    socialLinks: json("socialLinks").$type<Array<{
+      name: string;
+      url: string;
+    }>>(),
+    isVerified: boolean("isVerified").notNull().default(false),
+    isTopExpert: boolean("isTopExpert").notNull().default(false),
+    promotion: text("promotion"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    clerkUserIdIndex: index("profiles_clerk_user_id_idx").on(table.clerkUserId),
+  })
+);
+
+export const profileRelations = relations(ProfileTable, ({ many }) => ({
+  meetings: many(MeetingTable),
+  events: many(EventTable),
 }));

@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import { Leaf } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 import { NavLink } from "@/components/atoms/NavLink";
+import { Toaster } from "@/components/ui/toaster";
 
 export default function PrivateLayout({ children }: { children: ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export default function PrivateLayout({ children }: { children: ReactNode }) {
           </div>
           <NavLink href="/events">Events</NavLink>
           <NavLink href="/schedule">Schedule</NavLink>
+          <NavLink href="/my-account/profile">Profile</NavLink>
           <div className="ml-auto flex flex-row gap-4 items-center ">
             <div className="size-10 flex-1">
               <UserButton
@@ -25,6 +27,7 @@ export default function PrivateLayout({ children }: { children: ReactNode }) {
         </nav>
       </header>
       <main className="container my-6 mx-auto">{children}</main>
+      <Toaster />
     </>
   );
 }
