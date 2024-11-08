@@ -19,6 +19,7 @@ import { profileFormSchema } from "@/schema/profile";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser, useClerk } from "@clerk/nextjs";
+import Image from "next/image";
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
@@ -31,48 +32,70 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const { user: clerkUser } = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      fullName: "",  // Start empty, will be populated by useEffect
-      ...initialData,  // Spread initialData after default values
+      fullName: "",
+      profilePicture: user?.imageUrl || "",
+      ...initialData,
     },
   });
 
-  // Reset form with user data when it becomes available
   React.useEffect(() => {
     if (isUserLoaded && user) {
-      const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ");
-      console.log("Setting full name to:", fullName);
-      
-      form.setValue('fullName', fullName);
+      const fullName = [user.firstName, user.lastName]
+        .filter(Boolean)
+        .join(" ");
+      form.setValue("fullName", fullName);
+      form.setValue("profilePicture", user.imageUrl || "");
     }
   }, [isUserLoaded, user, form]);
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Store the file for later upload
+    setSelectedFile(file);
+
+    // Create a temporary URL for preview
+    const previewUrl = URL.createObjectURL(file);
+    form.setValue("profilePicture", previewUrl);
+  };
 
   async function onSubmit(data: ProfileFormValues) {
     try {
       setIsLoading(true);
-      
+
+      // Upload image to Clerk if a new file was selected
+      if (selectedFile && clerkUser) {
+        await clerkUser.setProfileImage({ file: selectedFile });
+      }
+
       const response = await fetch("/api/profile", {
         method: "POST",
         body: JSON.stringify(data),
       });
-      
+
       if (!response.ok) {
         throw new Error("Failed to update profile");
       }
-      
+
       if (clerkUser && data.fullName !== user?.fullName) {
         await clerkUser.update({
-          firstName: data.fullName.split(' ')[0],
-          lastName: data.fullName.split(' ').slice(1).join(' ')
+          firstName: data.fullName.split(" ")[0],
+          lastName: data.fullName.split(" ").slice(1).join(" "),
         });
       }
-      
+
       toast({
         description: "Profile updated successfully",
       });
+
+      // Clear the selected file after successful upload
+      setSelectedFile(null);
     } catch (error) {
       console.error(error);
       toast({
@@ -92,10 +115,35 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           name="profilePicture"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Profile Picture URL</FormLabel>
-              <FormControl>
-                <Input placeholder="https://..." {...field} />
-              </FormControl>
+              <FormLabel>Profile Picture</FormLabel>
+              <div className="space-y-4">
+                {field.value && (
+                  <div className="relative aspect-square w-full overflow-hidden rounded-lg">
+                    <Image
+                      src={field.value}
+                      alt="Profile picture"
+                      sizes="(max-width: 768px) 100vw, 800px"
+                      className="object-cover"
+                      priority
+                      width={1200}
+                      height={1200}
+                    />
+                  </div>
+                )}
+                <FormControl>
+                  <div className="flex items-center gap-4">
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="cursor-pointer"
+                    />
+                  </div>
+                </FormControl>
+              </div>
+              <FormDescription>
+                Upload a profile picture (max 10MB)
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
