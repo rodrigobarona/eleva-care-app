@@ -1,6 +1,5 @@
 import React from "react";
 import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
 import { db } from "@/drizzle/db";
 import { ProfileTable } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -8,6 +7,11 @@ import { ProfileForm } from "@/components/forms/ProfileForm";
 
 export default async function ProfilePage() {
   const { userId } = auth();
+  
+  if (!userId) {
+    return null; // or redirect to login
+  }
+
   const profile = await db.query.ProfileTable.findFirst({
     where: eq(ProfileTable.clerkUserId, userId),
   });
@@ -15,7 +19,7 @@ export default async function ProfilePage() {
   // Transform the profile data to match the expected type
   const transformedProfile = profile ? {
     ...profile,
-    socialLinks: profile.socialLinks || [], // Convert null to empty array
+    socialLinks: profile.socialLinks || [],
     role: profile.role || undefined,
     profilePicture: profile.profilePicture || undefined,
     shortBio: profile.shortBio || undefined,
