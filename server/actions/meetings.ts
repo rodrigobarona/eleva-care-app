@@ -78,7 +78,7 @@ export async function createMeeting(
         meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
       },
       headers().get("x-forwarded-for") ?? "Unknown",
-      headers().get("user-agent") ?? "Unknown",
+      headers().get("user-agent") ?? "Unknown"
     ),
   ]);
 
@@ -87,6 +87,6 @@ export async function createMeeting(
   const username = user.username ?? data.clerkUserId;
 
   redirect(
-    `/book/${username}/${event.slug}/success?startTime=${data.startTime.toISOString()}`,
+    `/${username}/${event.slug}/success?startTime=${data.startTime.toISOString()}`
   );
 }

@@ -50,21 +50,21 @@ export default async function BookEventPage({
         roundingMethod: "ceil",
       }),
       "UTC",
-      "yyyy-MM-dd'T'HH:mm:ssX",
-    ),
+      "yyyy-MM-dd'T'HH:mm:ssX"
+    )
   );
 
   const endDate = new Date(
     formatInTimeZone(
       endOfDay(addMonths(startDate, 2)),
       "UTC",
-      "yyyy-MM-dd'T'HH:mm:ssX",
-    ),
+      "yyyy-MM-dd'T'HH:mm:ssX"
+    )
   );
 
   const validTimes = await getValidTimesFromSchedule(
     eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-    event,
+    event
   );
 
   if (validTimes.length === 0) {
@@ -117,7 +117,7 @@ function NoTimeSlots({
       </CardContent>
       <CardFooter>
         <Button asChild>
-          <Link href={`/book/${calendarUser.id}`}>Choose Another Event</Link>
+          <Link href={`/${calendarUser.id}`}>Choose Another Event</Link>
         </Button>
       </CardFooter>
     </Card>

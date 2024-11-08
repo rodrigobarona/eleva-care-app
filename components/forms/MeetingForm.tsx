@@ -333,7 +333,7 @@ export function MeetingForm({
             asChild
             variant="outline"
           >
-            <Link href={`/book/${username}`}>Cancel</Link>
+            <Link href={`/${username}`}>Cancel</Link>
           </Button>
           <Button disabled={form.formState.isSubmitting} type="submit">
             Schedule

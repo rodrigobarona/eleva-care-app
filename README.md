@@ -87,7 +87,7 @@ Set your weekly availability with custom time slots for each day of the week.
 
 ### Booking Flow
 
-1. Share your booking link (`/book/[username]`)
+1. Share your booking link (`/[username]`)
 2. Guests select an event type
 3. Choose from available time slots
 4. Fill in their details

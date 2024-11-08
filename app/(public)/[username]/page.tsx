@@ -82,7 +82,7 @@ function EventCard({
       {description != null && <CardContent>{description}</CardContent>}
       <CardFooter className="flex justify-end gap-2 mt-auto">
         <Button asChild>
-          <Link href={`/book/${username}/${slug}`}>Select</Link>
+          <Link href={`/${username}/${slug}`}>Select</Link>
         </Button>
       </CardFooter>
     </Card>

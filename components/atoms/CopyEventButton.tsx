@@ -23,7 +23,7 @@ export function CopyEventButton({
       {...buttonProps}
       onClick={() => {
         navigator.clipboard
-          .writeText(`${location.origin}/book/${username}/${eventSlug}`)
+          .writeText(`${location.origin}/${username}/${eventSlug}`)
           .then(() => {
             setCopyState("copied");
             setTimeout(() => setCopyState("idle"), 2000);
