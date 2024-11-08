@@ -32,6 +32,7 @@ import { useMemo } from "react";
 import { createMeeting } from "@/server/actions/meetings";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
+import { Switch } from "../ui/switch";
 
 export function MeetingForm({
   validTimes,
@@ -44,6 +45,8 @@ export function MeetingForm({
   clerkUserId: string;
   username: string;
 }) {
+  const [use24Hour, setUse24Hour] = React.useState(false);
+
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
@@ -63,7 +66,7 @@ export function MeetingForm({
       const displayTime = formatInTimeZone(
         utcDate,  // Original UTC date
         timezone, // Target timezone
-        'h:mm a'  // Time format
+        use24Hour ? 'HH:mm' : 'h:mm a'  // Changed format based on use24Hour
       );
 
       // Get the date in target timezone for grouping
@@ -86,7 +89,7 @@ export function MeetingForm({
         displayTime
       };
     });
-  }, [validTimes, timezone]);
+  }, [validTimes, timezone, use24Hour]);
 
   // Group times by local date
   const timesByDate = useMemo(() => {
@@ -116,6 +119,17 @@ export function MeetingForm({
       });
     }
   }
+
+  const timeFormatToggle = (
+    <div className="flex items-center justify-end space-x-2 mb-2">
+      <span className="text-sm">24h</span>
+      <Switch
+        checked={use24Hour}
+        onCheckedChange={setUse24Hour}
+        aria-label="Toggle 24 hour time format"
+      />
+    </div>
+  );
 
   return (
     <Form {...form}>
@@ -203,46 +217,49 @@ export function MeetingForm({
               </Popover>
             )}
           />
-          <FormField
-            control={form.control}
-            name="startTime"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel>Time</FormLabel>
-                <Select
-                  disabled={date == null || timezone == null}
-                  onValueChange={(value) => field.onChange(new Date(value))}
-                  defaultValue={field.value?.toISOString()}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue
-                        placeholder={
-                          date == null || timezone == null
-                            ? "Select a date/timezone first"
-                            : "Select a meeting time"
-                        }
-                      />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {date &&
-                      timesByDate[startOfDay(date).toISOString()]?.map(
-                        ({ utcDate, displayTime }) => (
-                          <SelectItem
-                            key={utcDate.toISOString()}
-                            value={utcDate.toISOString()}
-                          >
-                            {displayTime}
-                          </SelectItem>
-                        )
-                      )}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="flex-1">
+            {timeFormatToggle}
+            <FormField
+              control={form.control}
+              name="startTime"
+              render={({ field }) => (
+                <FormItem className="flex-1">
+                  <FormLabel>Time</FormLabel>
+                  <Select
+                    disabled={date == null || timezone == null}
+                    onValueChange={(value) => field.onChange(new Date(value))}
+                    defaultValue={field.value?.toISOString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            date == null || timezone == null
+                              ? "Select a date/timezone first"
+                              : "Select a meeting time"
+                          }
+                        />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {date &&
+                        timesByDate[startOfDay(date).toISOString()]?.map(
+                          ({ utcDate, displayTime }) => (
+                            <SelectItem
+                              key={utcDate.toISOString()}
+                              value={utcDate.toISOString()}
+                            >
+                              {displayTime}
+                            </SelectItem>
+                          )
+                        )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </div>
         <div className="flex gap-4 flex-col md:flex-row">
           <FormField
