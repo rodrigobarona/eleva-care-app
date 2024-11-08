@@ -72,16 +72,6 @@ export function MeetingForm({
       // Get the date in target timezone for grouping
       const localDateOnly = startOfDay(zonedDate);
 
-      // Debug logging
-      console.log("[DEBUG] Time conversion:", {
-        originalUTC: utcDate.toISOString(),
-        timezone,
-        displayTime,
-        zonedDate: zonedDate.toISOString(),
-        localDateOnly: localDateOnly.toISOString(),
-        offset: getTimezoneOffset(timezone),
-      });
-
       return {
         utcDate, // Original UTC date for form submission
         localDate: zonedDate,
@@ -172,10 +162,15 @@ export function MeetingForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Timezone</FormLabel>
-              <Suspense fallback={
-                <div className="h-10 w-full rounded-md border animate-pulse bg-muted" />
-              }>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Suspense
+                fallback={
+                  <div className="h-10 w-full rounded-md border animate-pulse bg-muted" />
+                }
+              >
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />
@@ -246,9 +241,11 @@ export function MeetingForm({
               render={({ field }) => (
                 <FormItem className="flex-1">
                   <FormLabel>Time</FormLabel>
-                  <Suspense fallback={
-                    <div className="h-10 w-full rounded-md border animate-pulse bg-muted" />
-                  }>
+                  <Suspense
+                    fallback={
+                      <div className="h-10 w-full rounded-md border animate-pulse bg-muted" />
+                    }
+                  >
                     <Select
                       disabled={date == null || timezone == null}
                       onValueChange={(value) => field.onChange(new Date(value))}
