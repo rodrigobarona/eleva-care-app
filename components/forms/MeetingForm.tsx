@@ -342,10 +342,3 @@ export function MeetingForm({
     </Form>
   );
 }
-
-// Helper function to get timezone offset
-function getTimezoneOffset(timeZone: string) {
-  const now = new Date();
-  const tzTime = new Date(now.toLocaleString("en-US", { timeZone }));
-  return (tzTime.getTime() - now.getTime()) / (1000 * 60);
-}
