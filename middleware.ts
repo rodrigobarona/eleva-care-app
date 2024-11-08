@@ -4,8 +4,8 @@ const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
   "/sign-up(.*)",
-  // Clerk's username pattern
-  "/[a-zA-Z0-9][a-zA-Z0-9_-]{3,63}(.*)", // Matches Clerk's username constraints
+  "/:username", // Allow access to user profile pages like /barona
+  "/:username/(.*)", // Allow access to all routes under username like /barona/event-name
 ]);
 
 export default clerkMiddleware((auth, req) => {
