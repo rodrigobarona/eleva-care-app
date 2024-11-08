@@ -8,11 +8,20 @@ import { ProfileForm } from "@/components/forms/ProfileForm";
 
 export default async function ProfilePage() {
   const { userId } = auth();
-  if (!userId) redirect("/sign-in");
-
   const profile = await db.query.ProfileTable.findFirst({
     where: eq(ProfileTable.clerkUserId, userId),
   });
+
+  // Transform the profile data to match the expected type
+  const transformedProfile = profile ? {
+    ...profile,
+    socialLinks: profile.socialLinks || [], // Convert null to empty array
+    role: profile.role || undefined,
+    profilePicture: profile.profilePicture || undefined,
+    shortBio: profile.shortBio || undefined,
+    longBio: profile.longBio || undefined,
+    promotion: profile.promotion || undefined,
+  } : null;
 
   return (
     <div className="container max-w-4xl py-8">
@@ -22,7 +31,7 @@ export default async function ProfilePage() {
           Manage your public profile information
         </p>
       </div>
-      <ProfileForm initialData={profile || null} />
+      <ProfileForm initialData={transformedProfile} />
     </div>
   );
 }
