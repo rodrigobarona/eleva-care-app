@@ -32,6 +32,7 @@ import { useMemo } from "react";
 import { createMeeting } from "@/server/actions/meetings";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
+import { Suspense } from "react";
 
 export function MeetingForm({
   validTimes,
@@ -171,28 +172,25 @@ export function MeetingForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>Timezone</FormLabel>
-              <Select
-                onValueChange={(value) => {
-                  console.log("Timezone changed to:", value);
-                  console.log("Current date value:", date);
-                  field.onChange(value);
-                }}
-                defaultValue={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {Intl.supportedValuesOf("timeZone").map((timezone) => (
-                    <SelectItem key={timezone} value={timezone}>
-                      {timezone}
-                      {` (${formatTimezoneOffset(timezone)})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Suspense fallback={
+                <div className="h-10 w-full rounded-md border animate-pulse bg-muted" />
+              }>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {Intl.supportedValuesOf("timeZone").map((timezone) => (
+                      <SelectItem key={timezone} value={timezone}>
+                        {timezone}
+                        {` (${formatTimezoneOffset(timezone)})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </Suspense>
               <FormMessage />
             </FormItem>
           )}
@@ -248,36 +246,40 @@ export function MeetingForm({
               render={({ field }) => (
                 <FormItem className="flex-1">
                   <FormLabel>Time</FormLabel>
-                  <Select
-                    disabled={date == null || timezone == null}
-                    onValueChange={(value) => field.onChange(new Date(value))}
-                    defaultValue={field.value?.toISOString()}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            date == null || timezone == null
-                              ? "Select a date/timezone first"
-                              : "Select a meeting time"
-                          }
-                        />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {date &&
-                        timesByDate[startOfDay(date).toISOString()]?.map(
-                          ({ utcDate, displayTime }) => (
-                            <SelectItem
-                              key={utcDate.toISOString()}
-                              value={utcDate.toISOString()}
-                            >
-                              {displayTime}
-                            </SelectItem>
-                          )
-                        )}
-                    </SelectContent>
-                  </Select>
+                  <Suspense fallback={
+                    <div className="h-10 w-full rounded-md border animate-pulse bg-muted" />
+                  }>
+                    <Select
+                      disabled={date == null || timezone == null}
+                      onValueChange={(value) => field.onChange(new Date(value))}
+                      defaultValue={field.value?.toISOString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              date == null || timezone == null
+                                ? "Select a date/timezone first"
+                                : "Select a meeting time"
+                            }
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {date &&
+                          timesByDate[startOfDay(date).toISOString()]?.map(
+                            ({ utcDate, displayTime }) => (
+                              <SelectItem
+                                key={utcDate.toISOString()}
+                                value={utcDate.toISOString()}
+                              >
+                                {displayTime}
+                              </SelectItem>
+                            )
+                          )}
+                      </SelectContent>
+                    </Select>
+                  </Suspense>
                   <FormMessage />
                 </FormItem>
               )}
