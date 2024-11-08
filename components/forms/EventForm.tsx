@@ -63,8 +63,8 @@ export function EventForm({
 
   React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
-      if (name === 'name') {
-        form.setValue('slug', slugify(value.name as string), {
+      if (name === "name") {
+        form.setValue("slug", slugify(value.name as string), {
           shouldValidate: true,
           shouldDirty: true,
         });
@@ -75,26 +75,26 @@ export function EventForm({
 
   const onSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const currentValue = e.target.value
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
-      .replace(/--+/g, '-')
-      .replace(/^-+/, '')
-      .replace(/-+$/, '');
+      .replace(/[^a-z0-9-]/g, "-")
+      .replace(/--+/g, "-")
+      .replace(/^-+/, "")
+      .replace(/-+$/, "");
 
-    form.setValue('slug', currentValue, {
+    form.setValue("slug", currentValue, {
       shouldValidate: true,
       shouldDirty: true,
     });
   };
 
   const onSlugKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === ' ') {
+    if (e.key === " ") {
       e.preventDefault();
       const input = e.target as HTMLInputElement;
-      const newValue = input.value + '-';
-      form.setValue('slug', newValue, {
+      const newValue = input.value + "-";
+      form.setValue("slug", newValue, {
         shouldValidate: true,
         shouldDirty: true,
       });
@@ -218,10 +218,15 @@ export function EventForm({
             <FormItem>
               <FormLabel>URL Slug</FormLabel>
               <FormControl>
-                <Input {...field} onChange={onSlugChange} onKeyDown={onSlugKeyDown} />
+                <Input
+                  {...field}
+                  onChange={onSlugChange}
+                  onKeyDown={onSlugKeyDown}
+                />
               </FormControl>
               <FormDescription>
-                URL-friendly version of the event name. Can contain lowercase letters, numbers, and hyphens.
+                URL-friendly version of the event name. Can contain lowercase
+                letters, numbers, and hyphens.
               </FormDescription>
               <FormMessage />
             </FormItem>

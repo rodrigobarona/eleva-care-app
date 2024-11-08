@@ -32,7 +32,7 @@ export const EventTable = pgTable(
   },
   (table) => ({
     clerkUserIdIndex: index("events_clerk_user_id_idx").on(table.clerkUserId),
-  })
+  }),
 );
 
 export const ScheduleTable = pgTable("schedules", {
@@ -62,7 +62,7 @@ export const ScheduleAvailabilityTable = pgTable(
   },
   (table) => ({
     scheduleIdIndex: index("scheduleIdIndex").on(table.scheduleId),
-  })
+  }),
 );
 
 export const ScheduleAvailabilityRelations = relations(
@@ -72,7 +72,7 @@ export const ScheduleAvailabilityRelations = relations(
       fields: [ScheduleAvailabilityTable.scheduleId],
       references: [ScheduleTable.id],
     }),
-  })
+  }),
 );
 
 export const MeetingTable = pgTable(
@@ -96,7 +96,7 @@ export const MeetingTable = pgTable(
   (table) => ({
     clerkUserIdIndex: index("meetings_clerkUserId_idx").on(table.clerkUserId),
     eventIdIndex: index("meetings_eventId_idx").on(table.eventId),
-  })
+  }),
 );
 
 export const meetingRelations = relations(MeetingTable, ({ one }) => ({

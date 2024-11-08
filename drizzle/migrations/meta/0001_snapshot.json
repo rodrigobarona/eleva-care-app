@@ -206,12 +206,8 @@
           "name": "meetings_eventId_events_id_fk",
           "tableFrom": "meetings",
           "tableTo": "events",
-          "columnsFrom": [
-            "eventId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["eventId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -279,12 +275,8 @@
           "name": "scheduleAvailabilities_scheduleId_schedules_id_fk",
           "tableFrom": "scheduleAvailabilities",
           "tableTo": "schedules",
-          "columnsFrom": [
-            "scheduleId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["scheduleId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -338,9 +330,7 @@
         "schedules_clerkUserId_unique": {
           "name": "schedules_clerkUserId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "clerkUserId"
-          ]
+          "columns": ["clerkUserId"]
         }
       },
       "checkConstraints": {}

@@ -22,7 +22,7 @@ export const slugSchema = z
   .max(100)
   .regex(
     /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-    "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen"
+    "Slug must contain only lowercase letters, numbers, and hyphens, and cannot start or end with a hyphen",
   )
   .transform((val) => slugify(val));
 

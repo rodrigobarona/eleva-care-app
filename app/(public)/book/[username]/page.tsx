@@ -71,7 +71,6 @@ function EventCard({
   slug,
   username,
 }: EventCardProps) {
-  
   return (
     <Card className="flex flex-col">
       <CardHeader>

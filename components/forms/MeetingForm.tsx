@@ -59,22 +59,22 @@ export function MeetingForm({
 
   const validTimesInTimezone = useMemo(() => {
     return validTimes.map((utcDate) => {
-      console.log('[PROD] Processing time slot:', {
+      console.log("[PROD] Processing time slot:", {
         utc: {
           date: utcDate.toISOString(),
-          display: formatTimeString(utcDate, 'UTC')
+          display: formatTimeString(utcDate, "UTC"),
         },
         userTimezone: {
           timezone: timezone,
           display: formatTimeString(utcDate, timezone),
-          offset: formatTimezoneOffset(timezone)
-        }
+          offset: formatTimezoneOffset(timezone),
+        },
       });
 
       // Keep UTC time for storage, but display in user's timezone
       return {
         utcDate,
-        displayTime: formatTimeString(utcDate, timezone)
+        displayTime: formatTimeString(utcDate, timezone),
       };
     });
   }, [validTimes, timezone]);
@@ -150,7 +150,7 @@ export function MeetingForm({
                         variant="outline"
                         className={cn(
                           "pl-3 text-left font-normal flex w-full",
-                          !field.value && "text-muted-foreground"
+                          !field.value && "text-muted-foreground",
                         )}
                       >
                         {field.value ? (
@@ -169,7 +169,7 @@ export function MeetingForm({
                       onSelect={field.onChange}
                       disabled={(date) =>
                         !validTimesInTimezone.some((time) =>
-                          isSameDay(date, time.utcDate)
+                          isSameDay(date, time.utcDate),
                         )
                       }
                       initialFocus

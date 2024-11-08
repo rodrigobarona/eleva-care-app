@@ -29,7 +29,7 @@ export function formatDate(date: Date) {
 export function formatTimeString(date: Date, timezone?: string) {
   return new Intl.DateTimeFormat(undefined, {
     timeStyle: "short",
-    timeZone: timezone
+    timeZone: timezone,
   }).format(date);
 }
 
@@ -37,6 +37,6 @@ export function formatDateTime(date: Date, timezone?: string) {
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: "medium",
     timeStyle: "short",
-    timeZone: timezone
+    timeZone: timezone,
   }).format(date);
 }
