@@ -32,7 +32,6 @@ import { useMemo } from "react";
 import { createMeeting } from "@/server/actions/meetings";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
-import { Switch } from "../ui/switch";
 
 export function MeetingForm({
   validTimes,
@@ -61,32 +60,32 @@ export function MeetingForm({
     return validTimes.map((utcDate) => {
       // Convert UTC date to target timezone
       const zonedDate = toZonedTime(utcDate, timezone);
-      
+
       // Get the display time in the target timezone
       const displayTime = formatInTimeZone(
-        utcDate,  // Original UTC date
+        utcDate, // Original UTC date
         timezone, // Target timezone
-        use24Hour ? 'HH:mm' : 'h:mm a'  // Changed format based on use24Hour
+        use24Hour ? "HH:mm" : "h:mm a" // Changed format based on use24Hour
       );
 
       // Get the date in target timezone for grouping
       const localDateOnly = startOfDay(zonedDate);
 
       // Debug logging
-      console.log('[DEBUG] Time conversion:', {
+      console.log("[DEBUG] Time conversion:", {
         originalUTC: utcDate.toISOString(),
         timezone,
         displayTime,
         zonedDate: zonedDate.toISOString(),
         localDateOnly: localDateOnly.toISOString(),
-        offset: getTimezoneOffset(timezone)
+        offset: getTimezoneOffset(timezone),
       });
 
       return {
-        utcDate,        // Original UTC date for form submission
+        utcDate, // Original UTC date for form submission
         localDate: zonedDate,
         localDateOnly,
-        displayTime
+        displayTime,
       };
     });
   }, [validTimes, timezone, use24Hour]);
@@ -122,12 +121,36 @@ export function MeetingForm({
 
   const timeFormatToggle = (
     <div className="flex items-center justify-end space-x-2 mb-2">
-      <span className="text-sm">24h</span>
-      <Switch
-        checked={use24Hour}
-        onCheckedChange={setUse24Hour}
-        aria-label="Toggle 24 hour time format"
-      />
+      <div className="bg-muted p-1 rounded-full flex">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "rounded-full px-4 text-sm font-normal",
+            !use24Hour
+              ? "bg-background shadow-sm text-foreground"
+              : "text-muted-foreground hover:bg-transparent hover:text-foreground"
+          )}
+          onClick={() => setUse24Hour(false)}
+        >
+          12h
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={cn(
+            "rounded-full px-4 text-sm font-normal",
+            use24Hour
+              ? "bg-background shadow-sm text-foreground"
+              : "text-muted-foreground hover:bg-transparent hover:text-foreground"
+          )}
+          onClick={() => setUse24Hour(true)}
+        >
+          24h
+        </Button>
+      </div>
     </div>
   );
 
@@ -324,6 +347,6 @@ export function MeetingForm({
 // Helper function to get timezone offset
 function getTimezoneOffset(timeZone: string) {
   const now = new Date();
-  const tzTime = new Date(now.toLocaleString('en-US', { timeZone }));
+  const tzTime = new Date(now.toLocaleString("en-US", { timeZone }));
   return (tzTime.getTime() - now.getTime()) / (1000 * 60);
 }
