@@ -23,18 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import {
-  formatDate,
-  formatTimeString,
-  formatTimezoneOffset,
-} from "@/lib/formatters";
+import { formatDate, formatTimezoneOffset } from "@/lib/formatters";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "../ui/calendar";
-import { isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { createMeeting } from "@/server/actions/meetings";
+import { formatInTimeZone, toZonedTime } from "date-fns-tz";
+import { startOfDay } from "date-fns";
 
 export function MeetingForm({
   validTimes,
@@ -59,25 +56,52 @@ export function MeetingForm({
 
   const validTimesInTimezone = useMemo(() => {
     return validTimes.map((utcDate) => {
-      console.log("[PROD] Processing time slot:", {
-        utc: {
-          date: utcDate.toISOString(),
-          display: formatTimeString(utcDate, "UTC"),
-        },
-        userTimezone: {
-          timezone: timezone,
-          display: formatTimeString(utcDate, timezone),
-          offset: formatTimezoneOffset(timezone),
-        },
+      // Convert UTC date to target timezone
+      const zonedDate = toZonedTime(utcDate, timezone);
+      
+      // Get the display time in the target timezone
+      const displayTime = formatInTimeZone(
+        utcDate,  // Original UTC date
+        timezone, // Target timezone
+        'h:mm a'  // Time format
+      );
+
+      // Get the date in target timezone for grouping
+      const localDateOnly = startOfDay(zonedDate);
+
+      // Debug logging
+      console.log('[DEBUG] Time conversion:', {
+        originalUTC: utcDate.toISOString(),
+        timezone,
+        displayTime,
+        zonedDate: zonedDate.toISOString(),
+        localDateOnly: localDateOnly.toISOString(),
+        offset: getTimezoneOffset(timezone)
       });
 
-      // Keep UTC time for storage, but display in user's timezone
       return {
-        utcDate,
-        displayTime: formatTimeString(utcDate, timezone),
+        utcDate,        // Original UTC date for form submission
+        localDate: zonedDate,
+        localDateOnly,
+        displayTime
       };
     });
   }, [validTimes, timezone]);
+
+  // Group times by local date
+  const timesByDate = useMemo(() => {
+    return validTimesInTimezone.reduce(
+      (acc, time) => {
+        const dateKey = time.localDateOnly.toISOString();
+        if (!acc[dateKey]) {
+          acc[dateKey] = [];
+        }
+        acc[dateKey].push(time);
+        return acc;
+      },
+      {} as Record<string, typeof validTimesInTimezone>
+    );
+  }, [validTimesInTimezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
     const data = await createMeeting({
@@ -150,7 +174,7 @@ export function MeetingForm({
                         variant="outline"
                         className={cn(
                           "pl-3 text-left font-normal flex w-full",
-                          !field.value && "text-muted-foreground",
+                          !field.value && "text-muted-foreground"
                         )}
                       >
                         {field.value ? (
@@ -167,11 +191,10 @@ export function MeetingForm({
                       mode="single"
                       selected={field.value}
                       onSelect={field.onChange}
-                      disabled={(date) =>
-                        !validTimesInTimezone.some((time) =>
-                          isSameDay(date, time.utcDate),
-                        )
-                      }
+                      disabled={(date) => {
+                        const dateKey = startOfDay(date).toISOString();
+                        return !timesByDate[dateKey];
+                      }}
                       initialFocus
                     />
                   </PopoverContent>
@@ -188,9 +211,7 @@ export function MeetingForm({
                 <FormLabel>Time</FormLabel>
                 <Select
                   disabled={date == null || timezone == null}
-                  onValueChange={(value) =>
-                    field.onChange(new Date(Date.parse(value)))
-                  }
+                  onValueChange={(value) => field.onChange(new Date(value))}
                   defaultValue={field.value?.toISOString()}
                 >
                   <FormControl>
@@ -205,19 +226,19 @@ export function MeetingForm({
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    {validTimesInTimezone
-                      .filter(({ utcDate }) => isSameDay(utcDate, date))
-                      .map(({ utcDate, displayTime }) => (
-                        <SelectItem
-                          key={utcDate.toISOString()}
-                          value={utcDate.toISOString()}
-                        >
-                          {displayTime}
-                        </SelectItem>
-                      ))}
+                    {date &&
+                      timesByDate[startOfDay(date).toISOString()]?.map(
+                        ({ utcDate, displayTime }) => (
+                          <SelectItem
+                            key={utcDate.toISOString()}
+                            value={utcDate.toISOString()}
+                          >
+                            {displayTime}
+                          </SelectItem>
+                        )
+                      )}
                   </SelectContent>
                 </Select>
-
                 <FormMessage />
               </FormItem>
             )}
@@ -281,4 +302,11 @@ export function MeetingForm({
       </form>
     </Form>
   );
+}
+
+// Helper function to get timezone offset
+function getTimezoneOffset(timeZone: string) {
+  const now = new Date();
+  const tzTime = new Date(now.toLocaleString('en-US', { timeZone }));
+  return (tzTime.getTime() - now.getTime()) / (1000 * 60);
 }

@@ -12,7 +12,7 @@ import { MeetingTable } from "@/drizzle/schema";
 import { clerkClient } from "@clerk/nextjs/server";
 
 export async function createMeeting(
-  unsafeData: z.infer<typeof meetingActionSchema>,
+  unsafeData: z.infer<typeof meetingActionSchema>
 ) {
   // Step 1: Validate the incoming data against our schema
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
@@ -24,7 +24,7 @@ export async function createMeeting(
       and(
         eq(isActive, true),
         eq(clerkUserId, data.clerkUserId),
-        eq(id, data.eventId),
+        eq(id, data.eventId)
       ),
   });
   if (event == null) return { error: true };
@@ -36,7 +36,7 @@ export async function createMeeting(
 
   // Step 4: Calculate the end time based on event duration
   const endTimeUTC = new Date(
-    startTimeUTC.getTime() + event.durationInMinutes * 60000,
+    startTimeUTC.getTime() + event.durationInMinutes * 60000
   );
 
   // Step 6: Create calendar event in Google Calendar first

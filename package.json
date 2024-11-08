@@ -68,5 +68,8 @@
     "tailwindcss": "^3.4.14",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
+  },
+  "overrides": {
+    "punycode": "^2.3.1"
   }
 }
