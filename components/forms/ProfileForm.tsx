@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { profileFormSchema } from "@/schema/profile";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useUser, useClerk } from "@clerk/nextjs";
 
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
@@ -26,26 +27,33 @@ interface ProfileFormProps {
 }
 
 export function ProfileForm({ initialData }: ProfileFormProps) {
+  const { user, isLoaded: isUserLoaded } = useUser();
+  const { user: clerkUser } = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues: initialData || {
-      fullName: "",
-      role: "",
-      shortBio: "",
-      longBio: "",
-      socialLinks: [],
-      isVerified: false,
-      isTopExpert: false,
-      promotion: "",
+    defaultValues: {
+      fullName: "",  // Start empty, will be populated by useEffect
+      ...initialData,  // Spread initialData after default values
     },
   });
+
+  // Reset form with user data when it becomes available
+  React.useEffect(() => {
+    if (isUserLoaded && user) {
+      const fullName = [user.firstName, user.lastName].filter(Boolean).join(" ");
+      console.log("Setting full name to:", fullName);
+      
+      form.setValue('fullName', fullName);
+    }
+  }, [isUserLoaded, user, form]);
 
   async function onSubmit(data: ProfileFormValues) {
     try {
       setIsLoading(true);
+      
       const response = await fetch("/api/profile", {
         method: "POST",
         body: JSON.stringify(data),
@@ -53,6 +61,13 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
       
       if (!response.ok) {
         throw new Error("Failed to update profile");
+      }
+      
+      if (clerkUser && data.fullName !== user?.fullName) {
+        await clerkUser.update({
+          firstName: data.fullName.split(' ')[0],
+          lastName: data.fullName.split(' ').slice(1).join(' ')
+        });
       }
       
       toast({

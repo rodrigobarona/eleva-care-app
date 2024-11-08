@@ -2,7 +2,7 @@ import React from "react";
 import "./globals.css";
 import type { Metadata } from "next";
 import { Alexandria, JetBrains_Mono, Lora } from "next/font/google";
-
+import { defaultTheme } from "@clerk/themes";
 import { ClerkProvider } from "@clerk/nextjs";
 
 const lora = Lora({
@@ -49,7 +49,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider appearance={defaultTheme}>
       <html lang="en">
         <body
           className={`${lora.variable} ${alexandria.variable} ${jetBrains.variable} min-h-screen bg-background font-sans font-light antialiased`}

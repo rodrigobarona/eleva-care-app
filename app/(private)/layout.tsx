@@ -17,6 +17,7 @@ export default function PrivateLayout({ children }: { children: ReactNode }) {
           <NavLink href="/events">Events</NavLink>
           <NavLink href="/schedule">Schedule</NavLink>
           <NavLink href="/my-account/profile">Profile</NavLink>
+          <NavLink href="/my-account/">Profile Clerk</NavLink>
           <div className="ml-auto flex flex-row gap-4 items-center ">
             <div className="size-10 flex-1">
               <UserButton
