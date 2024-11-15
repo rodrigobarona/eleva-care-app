@@ -6,7 +6,7 @@ import {
   SignedOut,
   UserButton,
 } from "@clerk/nextjs";
-import { Button } from "../ui/button";
+import { Button } from "../atoms/button";
 
 export default async function Header() {
   return (

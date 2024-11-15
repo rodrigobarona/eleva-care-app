@@ -5,7 +5,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/atoms/card";
 import { db } from "@/drizzle/db";
 import { formatDateTime } from "@/lib/formatters";
 import { clerkClient } from "@clerk/nextjs/server";

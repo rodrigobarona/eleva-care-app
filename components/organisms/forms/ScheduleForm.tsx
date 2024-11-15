@@ -11,8 +11,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Button } from "../ui/button";
+} from "@/components/molecules/form";
+import { Button } from "@/components/atoms/button";
 import { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants";
 import { scheduleFormSchema } from "@/schema/schedule";
 import { timeToInt } from "@/lib/utils";
@@ -22,11 +22,11 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/molecules/select";
 import { formatTimezoneOffset } from "@/lib/formatters";
 import { Fragment, useState } from "react";
 import { Plus, X } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/atoms/input";
 import { saveSchedule } from "@/server/actions/schedule";
 
 type Availability = {
@@ -63,7 +63,7 @@ export function ScheduleForm({
 
   const groupedAvailabilityFields = Object.groupBy(
     availabilityFields.map((field, index) => ({ ...field, index })),
-    (availability) => availability.dayOfWeek,
+    (availability) => availability.dayOfWeek
   );
 
   async function onSubmit(values: z.infer<typeof scheduleFormSchema>) {
@@ -190,26 +190,26 @@ export function ScheduleForm({
                       <FormMessage>
                         {
                           form.formState.errors.availabilities?.at?.(
-                            field.index,
+                            field.index
                           )?.root?.message
                         }
                       </FormMessage>
                       <FormMessage>
                         {
                           form.formState.errors.availabilities?.at?.(
-                            field.index,
+                            field.index
                           )?.startTime?.message
                         }
                       </FormMessage>
                       <FormMessage>
                         {
                           form.formState.errors.availabilities?.at?.(
-                            field.index,
+                            field.index
                           )?.endTime?.message
                         }
                       </FormMessage>
                     </div>
-                  ),
+                  )
                 )}
               </div>
             </Fragment>

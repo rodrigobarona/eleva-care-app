@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useState } from "react";
-import { Button, ButtonProps } from "../ui/button";
+import { Button, ButtonProps } from "@/components/atoms/button";
 import { Copy, CopyCheck, CopyX } from "lucide-react";
 
 type CopyState = "idle" | "copied" | "error";

@@ -3,11 +3,11 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/drizzle/db";
 import { ProfileTable } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
-import { ProfileForm } from "@/components/forms/ProfileForm";
+import { ProfileForm } from "@/components/organisms/forms/ProfileForm";
 
 export default async function ProfilePage() {
   const { userId } = auth();
-  
+
   if (!userId) {
     return null; // or redirect to login
   }
@@ -17,15 +17,17 @@ export default async function ProfilePage() {
   });
 
   // Transform the profile data to match the expected type
-  const transformedProfile = profile ? {
-    ...profile,
-    socialLinks: profile.socialLinks || [],
-    role: profile.role || undefined,
-    profilePicture: profile.profilePicture || undefined,
-    shortBio: profile.shortBio || undefined,
-    longBio: profile.longBio || undefined,
-    promotion: profile.promotion || undefined,
-  } : null;
+  const transformedProfile = profile
+    ? {
+        ...profile,
+        socialLinks: profile.socialLinks || [],
+        role: profile.role || undefined,
+        profilePicture: profile.profilePicture || undefined,
+        shortBio: profile.shortBio || undefined,
+        longBio: profile.longBio || undefined,
+        promotion: profile.promotion || undefined,
+      }
+    : null;
 
   return (
     <div className="container max-w-4xl py-8">

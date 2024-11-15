@@ -1,5 +1,5 @@
-import { CopyEventButton } from "@/components/atoms/CopyEventButton";
-import { Button } from "@/components/ui/button";
+import { CopyEventButton } from "@/components/molecules/CopyEventButton";
+import { Button } from "@/components/atoms/button";
 import {
   Card,
   CardContent,
@@ -7,7 +7,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/atoms/card";
 import { db } from "@/drizzle/db";
 import { formatEventDescription } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,7 @@ export default async function EventsPage() {
 
   if (!userId) {
     return redirectToSignIn({
-      returnBackUrl: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
+      returnBackUrl: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL,
     });
   }
 

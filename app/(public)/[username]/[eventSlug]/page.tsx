@@ -1,6 +1,6 @@
 import React from "react";
-import { MeetingForm } from "@/components/forms/MeetingForm";
-import { Button } from "@/components/ui/button";
+import { MeetingForm } from "@/components/organisms/forms/MeetingForm";
+import { Button } from "@/components/atoms/button";
 import {
   Card,
   CardContent,
@@ -8,7 +8,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
+} from "@/components/atoms/card";
 import { db } from "@/drizzle/db";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
 import { clerkClient } from "@clerk/nextjs/server";

@@ -1,5 +1,10 @@
-import { EventForm } from "@/components/forms/EventForm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EventForm } from "@/components/organisms/forms/EventForm";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/atoms/card";
 import { db } from "@/drizzle/db";
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";

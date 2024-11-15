@@ -3,7 +3,7 @@ import React from "react";
 import * as Clerk from "@clerk/elements/common";
 import * as SignUp from "@clerk/elements/sign-up";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/atoms/button";
 import {
   Card,
   CardContent,
@@ -11,10 +11,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Icons } from "@/components/ui/icons";
+} from "@/components/atoms/card";
+import { Input } from "@/components/atoms/input";
+import { Label } from "@/components/atoms/label";
+import { Icons } from "@/components/atoms/icons";
 import { cn } from "@/lib/utils";
 
 export default function SignUpPage() {
@@ -170,7 +170,7 @@ export default function SignUpPage() {
                                         "z-10 ring-2 ring-ring ring-offset-background":
                                           status === "cursor" ||
                                           status === "selected",
-                                      },
+                                      }
                                     )}
                                   >
                                     {value}

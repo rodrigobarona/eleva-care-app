@@ -10,11 +10,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "../ui/form";
-import { Input } from "../ui/input";
+} from "@/components/molecules/form";
+import { Input } from "@/components/atoms/input";
 import Link from "next/link";
-import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
+import { Button } from "@/components/atoms/button";
+import { Textarea } from "@/components/atoms/textarea";
 import { meetingFormSchema } from "@/schema/meetings";
 import {
   Select,
@@ -22,11 +22,15 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "@/components/molecules/select";
 import { formatDate, formatTimezoneOffset } from "@/lib/formatters";
-import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/atoms/popover";
 import { CalendarIcon } from "lucide-react";
-import { Calendar } from "../ui/calendar";
+import { Calendar } from "@/components/molecules/calendar";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { createMeeting } from "@/server/actions/meetings";

@@ -1,9 +1,13 @@
 import React, { ReactNode } from "react";
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import {
+  SidebarProvider,
+  SidebarTrigger,
+  SidebarInset,
+} from "@/components/organisms/sidebar";
 import { AppSidebar } from "@/components/organisms/AppSidebar";
 import { AppBreadcrumb } from "@/components/organisms/AppBreadcrumb";
-import { Toaster } from "@/components/ui/toaster";
-import { Separator } from "@/components/ui/separator";
+import { Toaster } from "@/components/molecules/toaster";
+import { Separator } from "@/components/atoms/separator";
 
 export default function PrivateLayout({ children }: { children: ReactNode }) {
   return (
@@ -18,9 +22,7 @@ export default function PrivateLayout({ children }: { children: ReactNode }) {
               <AppBreadcrumb />
             </div>
           </header>
-          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-            {children}
-          </div>
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">{children}</div>
         </SidebarInset>
       </div>
       <Toaster />

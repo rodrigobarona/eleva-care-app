@@ -13,12 +13,12 @@ import {
   FormControl,
   FormDescription,
   FormMessage,
-} from "../ui/form";
-import { Input } from "../ui/input";
-import { Button } from "../ui/button";
+} from "../../molecules/form";
+import { Input } from "../../atoms/input";
+import { Button } from "../../atoms/button";
 import Link from "next/link";
-import { Textarea } from "../ui/textarea";
-import { Switch } from "../ui/switch";
+import { Textarea } from "../../atoms/textarea";
+import { Switch } from "../../atoms/switch";
 import { createEvent, deleteEvent, updateEvent } from "@/server/actions/events";
 import {
   AlertDialog,
@@ -30,7 +30,7 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
   AlertDialogAction,
-} from "../ui/alert-dialog";
+} from "../../molecules/alert-dialog";
 import { slugify } from "@/lib/validations/slug";
 import {
   Select,
@@ -38,7 +38,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../ui/select";
+} from "../../molecules/select";
 
 export function EventForm({
   event,

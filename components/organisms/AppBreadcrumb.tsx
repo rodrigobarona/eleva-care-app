@@ -9,7 +9,7 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
+} from "@/components/molecules/breadcrumb";
 
 export function AppBreadcrumb() {
   const pathname = usePathname();

@@ -3,8 +3,8 @@
 import React, { useState } from "react";
 import { useUser, useOrganizationList } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/atoms/button";
+import { Input } from "@/components/atoms/input";
 import {
   Card,
   CardContent,
@@ -12,8 +12,8 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+} from "@/components/atoms/card";
+import { Label } from "@/components/atoms/label";
 
 export default function OnboardingPage() {
   const { user, isLoaded: isUserLoaded } = useUser();

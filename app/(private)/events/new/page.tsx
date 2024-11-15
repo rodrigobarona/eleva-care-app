@@ -1,5 +1,10 @@
-import { EventForm } from "@/components/forms/EventForm";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EventForm } from "@/components/organisms/forms/EventForm";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/atoms/card";
 import React from "react";
 
 export default function NewEventPage() {

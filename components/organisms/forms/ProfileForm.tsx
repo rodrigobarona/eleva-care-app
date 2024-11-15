@@ -3,7 +3,7 @@ import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/components/atoms/button";
 import {
   Form,
   FormControl,
@@ -12,9 +12,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+} from "@/components/molecules/form";
+import { Input } from "@/components/atoms/input";
+import { Textarea } from "@/components/atoms/textarea";
 import { profileFormSchema } from "@/schema/profile";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
