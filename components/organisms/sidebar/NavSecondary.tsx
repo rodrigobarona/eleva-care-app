@@ -9,6 +9,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/organisms/sidebar/sidebar";
+import Link from "next/link";
 
 interface NavSecondaryProps
   extends React.ComponentPropsWithoutRef<typeof SidebarGroup> {
@@ -27,10 +28,10 @@ export function NavSecondary({ items, ...props }: NavSecondaryProps) {
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild size="sm">
-                <a href={item.url}>
+                <Link href={item.url} prefetch>
                   <item.icon className="size-4" />
                   <span>{item.title}</span>
-                </a>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           ))}

@@ -2,13 +2,13 @@
 
 import React from "react";
 import {
-  Calendar,
-  Home,
   User,
   Leaf,
   LifeBuoy,
-  Send,
   type LucideIcon,
+  Link,
+  Clock,
+  ExternalLink,
 } from "lucide-react";
 import {
   Sidebar,
@@ -22,6 +22,7 @@ import {
 import { NavUser } from "@/components/organisms/sidebar/NavUser";
 import { NavMain } from "@/components/organisms/sidebar/NavMain";
 import { NavSecondary } from "@/components/organisms/sidebar/NavSecondary";
+import { useUser } from "@clerk/nextjs";
 
 interface SidebarItem {
   title: string;
@@ -35,48 +36,42 @@ interface SidebarItem {
 
 const mainItems: SidebarItem[] = [
   {
-    title: "Events",
+    title: "Events Types",
     url: "/events",
-    icon: Calendar,
+    icon: Link,
     items: [
       { title: "All Events", url: "/events" },
       { title: "Create Event", url: "/events/new" },
     ],
   },
   {
-    title: "Schedule",
+    title: "Availability",
     url: "/schedule",
-    icon: Home,
-    items: [
-      { title: "My Schedule", url: "/schedule" },
-      { title: "Availability", url: "/schedule/availability" },
-    ],
+    icon: Clock,
   },
   {
-    title: "Profile",
-    url: "/my-account/profile",
+    title: "Expert Profile",
+    url: "/expert",
     icon: User,
-    items: [
-      { title: "Settings", url: "/my-account/profile" },
-      { title: "Account", url: "/my-account" },
-    ],
-  },
-];
-
-const secondaryItems: SidebarItem[] = [
-  {
-    title: "Support",
-    url: "#",
-    icon: LifeBuoy,
-  },
-  {
-    title: "Feedback",
-    url: "#",
-    icon: Send,
   },
 ];
 
 export function AppSidebar() {
+  const { user } = useUser();
+
+  const secondaryItems: SidebarItem[] = [
+    {
+      title: "Public Expert Profile",
+      url: user?.username ? `/${user.username}` : "#",
+      icon: ExternalLink,
+    },
+    {
+      title: "Need help?",
+      url: "#",
+      icon: LifeBuoy,
+    },
+  ];
+
   return (
     <Sidebar variant="inset">
       <SidebarHeader>
