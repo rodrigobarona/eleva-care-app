@@ -18,7 +18,7 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
   return (
     <ErrorBoundary>
       <SidebarProvider>
-        <div className="flex min-h-screen w-full bg-neutral-300 p-2">
+        <div className="flex min-h-screen w-full bg-eleva-neutral-200/50 pl-2">
           <AppSidebar />
           <SidebarInset className="w-full rounded-xl bg-background">
             <header className="flex h-16 shrink-0 items-center gap-2 rounded-t-xl border-b">
