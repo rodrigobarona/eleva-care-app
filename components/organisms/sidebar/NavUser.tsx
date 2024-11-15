@@ -24,7 +24,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/organisms/sidebar";
+} from "@/components/organisms/sidebar/sidebar";
 
 export function NavUser() {
   const { user } = useUser();

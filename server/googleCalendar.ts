@@ -1,11 +1,11 @@
 import "use-server";
-import { clerkClient } from "@clerk/nextjs/server";
+import { createClerkClient } from "@clerk/nextjs/server";
 import { google } from "googleapis";
 import { addMinutes, endOfDay, startOfDay } from "date-fns";
 
 export async function getCalendarEventTimes(
   clerkUserId: string,
-  { start, end }: { start: Date; end: Date },
+  { start, end }: { start: Date; end: Date }
 ) {
   const oAuthClient = await getOAuthClient(clerkUserId);
 
@@ -58,7 +58,10 @@ export async function createCalendarEvent({
   eventName: string;
 }) {
   const oAuthClient = await getOAuthClient(clerkUserId);
-  const calendarUser = await clerkClient().users.getUser(clerkUserId);
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
+  const calendarUser = await clerk.users.getUser(clerkUserId);
   if (calendarUser.primaryEmailAddress == null) {
     throw new Error("Clerk user has no email");
   }
@@ -98,9 +101,12 @@ export async function createCalendarEvent({
 }
 
 async function getOAuthClient(clerkUserId: string) {
-  const token = await clerkClient().users.getUserOauthAccessToken(
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
+  const token = await clerk.users.getUserOauthAccessToken(
     clerkUserId,
-    "oauth_google",
+    "oauth_google"
   );
 
   if (token.data.length === 0 || token.data[0].token == null) {
@@ -110,7 +116,7 @@ async function getOAuthClient(clerkUserId: string) {
   const client = new google.auth.OAuth2(
     process.env.GOOGLE_OAUTH_CLIENT_ID,
     process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-    process.env.GOOGLE_OAUTH_REDIRECT_URL,
+    process.env.GOOGLE_OAUTH_REDIRECT_URL
   );
 
   client.setCredentials({ access_token: token.data[0].token });

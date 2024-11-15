@@ -11,7 +11,7 @@ import {
 } from "@/components/atoms/card";
 import { db } from "@/drizzle/db";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
-import { clerkClient } from "@clerk/nextjs/server";
+import { createClerkClient } from "@clerk/nextjs/server";
 import {
   addMonths,
   eachMinuteOfInterval,
@@ -29,7 +29,11 @@ export default async function BookEventPage({
 }: {
   params: { username: string; eventSlug: string };
 }) {
-  const users = await clerkClient.users.getUserList({
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
+  
+  const users = await clerk.users.getUserList({
     username: [username],
   });
   const user = users.data[0];
@@ -42,7 +46,7 @@ export default async function BookEventPage({
 
   if (event == null) return notFound();
 
-  const calendarUser = await clerkClient.users.getUser(user.id);
+  const calendarUser = await clerk.users.getUser(user.id);
   const startDate = new Date(
     formatInTimeZone(
       roundToNearestMinutes(new Date(), {

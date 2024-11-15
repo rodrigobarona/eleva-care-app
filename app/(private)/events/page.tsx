@@ -15,7 +15,7 @@ import { auth } from "@clerk/nextjs/server";
 import { CalendarPlus, CalendarRange } from "lucide-react";
 import Link from "next/link";
 import React from "react";
-import { clerkClient } from "@clerk/nextjs/server";
+import { createClerkClient } from "@clerk/nextjs/server";
 
 export const revalidate = 0;
 
@@ -28,7 +28,10 @@ export default async function EventsPage() {
     });
   }
 
-  const user = await clerkClient.users.getUser(userId);
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
+  const user = await clerk.users.getUser(userId);
   const username = user.username ?? userId;
 
   const events = await db.query.EventTable.findMany({

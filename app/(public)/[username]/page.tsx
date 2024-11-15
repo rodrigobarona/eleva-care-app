@@ -10,7 +10,7 @@ import {
 } from "@/components/atoms/card";
 import { db } from "@/drizzle/db";
 import { formatEventDescription } from "@/lib/formatters";
-import { clerkClient } from "@clerk/nextjs/server";
+import { createClerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -21,7 +21,10 @@ export default async function BookingPage({
 }: {
   params: { username: string };
 }) {
-  const users = await clerkClient.users.getUserList({
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
+  const users = await clerk.users.getUserList({
     username: [username],
   });
 

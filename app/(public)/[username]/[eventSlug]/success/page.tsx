@@ -8,7 +8,7 @@ import {
 } from "@/components/atoms/card";
 import { db } from "@/drizzle/db";
 import { formatDateTime } from "@/lib/formatters";
-import { clerkClient } from "@clerk/nextjs/server";
+import { createClerkClient } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 
 export const revalidate = 0;
@@ -20,7 +20,11 @@ export default async function SuccessPage({
   params: { username: string; eventSlug: string };
   searchParams: { startTime: string };
 }) {
-  const users = await clerkClient.users.getUserList({
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
+  
+  const users = await clerk.users.getUserList({
     username: [username],
   });
   const user = users.data[0];
@@ -33,7 +37,7 @@ export default async function SuccessPage({
 
   if (event == null) notFound();
 
-  const calendarUser = await clerkClient.users.getUser(user.id);
+  const calendarUser = await clerk.users.getUser(user.id);
   const startTimeDate = new Date(startTime);
 
   return (

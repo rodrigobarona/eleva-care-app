@@ -9,7 +9,7 @@ import { z } from "zod";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
 import { MeetingTable } from "@/drizzle/schema";
-import { clerkClient } from "@clerk/nextjs/server";
+import { createClerkClient } from "@clerk/nextjs/server";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -83,7 +83,10 @@ export async function createMeeting(
   ]);
 
   // Step 7: Get username and use event slug for the redirect
-  const user = await clerkClient.users.getUser(data.clerkUserId);
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
+  const user = await clerk.users.getUser(data.clerkUserId);
   const username = user.username ?? data.clerkUserId;
 
   redirect(
