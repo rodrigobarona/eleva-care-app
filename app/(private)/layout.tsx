@@ -1,34 +1,29 @@
-import React from "react";
-import { ReactNode } from "react";
-import { Leaf } from "lucide-react";
-import { UserButton } from "@clerk/nextjs";
-import { NavLink } from "@/components/atoms/NavLink";
+import React, { ReactNode } from "react";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/organisms/AppSidebar";
+import { AppBreadcrumb } from "@/components/organisms/AppBreadcrumb";
 import { Toaster } from "@/components/ui/toaster";
+import { Separator } from "@/components/ui/separator";
 
 export default function PrivateLayout({ children }: { children: ReactNode }) {
   return (
-    <>
-      <header className="flex py-2 border-b bg-card">
-        <nav className=" font-medium flex items-center text-sm gap-6 container ">
-          <div className="flex items-center gap-2 font-bold mr-auto">
-            <Leaf className="size-6" />
-            <span className="sr-only md:not-sr-only">Eleva Care</span>
-          </div>
-          <NavLink href="/events">Events</NavLink>
-          <NavLink href="/schedule">Schedule</NavLink>
-          <NavLink href="/my-account/profile">Profile</NavLink>
-          <NavLink href="/my-account/">Profile Clerk</NavLink>
-          <div className="ml-auto flex flex-row gap-4 items-center ">
-            <div className="size-10 flex-1">
-              <UserButton
-                appearance={{ elements: { userButtonAvatarBox: "size-full" } }}
-              />
+    <SidebarProvider>
+      <div className="flex min-h-screen">
+        <AppSidebar />
+        <SidebarInset>
+          <header className="flex h-16 shrink-0 items-center gap-2">
+            <div className="flex items-center gap-2 px-4">
+              <SidebarTrigger className="-ml-1" />
+              <Separator orientation="vertical" className="mr-2 h-4" />
+              <AppBreadcrumb />
             </div>
+          </header>
+          <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+            {children}
           </div>
-        </nav>
-      </header>
-      <main className="container my-6 mx-auto">{children}</main>
+        </SidebarInset>
+      </div>
       <Toaster />
-    </>
+    </SidebarProvider>
   );
 }
