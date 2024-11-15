@@ -22,7 +22,11 @@ export const revalidate = 0;
 export default async function EventsPage() {
   const { userId, redirectToSignIn } = auth();
 
-  if (userId == null) return redirectToSignIn;
+  if (!userId) {
+    return redirectToSignIn({
+      returnBackUrl: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL
+    });
+  }
 
   const user = await clerkClient.users.getUser(userId);
   const username = user.username ?? userId;

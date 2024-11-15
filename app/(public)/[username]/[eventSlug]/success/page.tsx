@@ -20,7 +20,7 @@ export default async function SuccessPage({
   params: { username: string; eventSlug: string };
   searchParams: { startTime: string };
 }) {
-  const users = await clerkClient().users.getUserList({
+  const users = await clerkClient.users.getUserList({
     username: [username],
   });
   const user = users.data[0];
@@ -33,7 +33,7 @@ export default async function SuccessPage({
 
   if (event == null) notFound();
 
-  const calendarUser = await clerkClient().users.getUser(user.id);
+  const calendarUser = await clerkClient.users.getUser(user.id);
   const startTimeDate = new Date(startTime);
 
   return (

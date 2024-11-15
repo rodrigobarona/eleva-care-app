@@ -21,7 +21,7 @@ export default async function BookingPage({
 }: {
   params: { username: string };
 }) {
-  const users = await clerkClient().users.getUserList({
+  const users = await clerkClient.users.getUserList({
     username: [username],
   });
 
