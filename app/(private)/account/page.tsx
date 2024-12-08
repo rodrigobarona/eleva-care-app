@@ -44,17 +44,19 @@ export default function ProfilePage() {
   async function onSubmit(values: z.infer<typeof profileFormSchema>) {
     setIsLoading(true);
     try {
-      // Here you would implement the actual update logic using Clerk
       await user?.update({
         firstName: values.firstName,
         lastName: values.lastName,
         username: values.username,
       });
       toast.success("Profile updated successfully");
-    } catch (error) {
-      toast.error("Something went wrong");
+    } catch (error: unknown) {
+      toast.error(
+        `Failed to update profile: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }
 
   const copyUserId = () => {
@@ -62,19 +64,21 @@ export default function ProfilePage() {
     toast.success("User ID copied to clipboard");
   };
 
-  const handleDeleteAccount = async () => {
+  async function handleDeleteAccount() {
     if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
       setIsLoading(true);
       try {
         await user?.delete();
         toast.success("Account deleted successfully");
-        // Redirect to home or sign-in page will happen automatically via Clerk
-      } catch (error) {
-        toast.error("Failed to delete account");
+      } catch (error: unknown) {
+        toast.error(
+          `Failed to delete account: ${error instanceof Error ? error.message : "Unknown error"}`
+        );
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     }
-  };
+  }
 
   return (
     <div className="space-y-6">

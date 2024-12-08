@@ -14,7 +14,18 @@ import { toast } from "sonner";
 import { Laptop, Mail, Smartphone } from "lucide-react";
 import type { SessionWithActivitiesResource } from "@clerk/types";
 import { useSession } from "@clerk/nextjs";
-import { OAuthProvider } from "@clerk/types";
+import type { OAuthProvider } from "@clerk/types";
+import { z } from "zod";
+
+const passwordSchema = z.object({
+  password: z
+    .string()
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
+  code: z.string().min(6, "Verification code must be 6 characters"),
+});
 
 export default function SecurityPage() {
   const { user } = useUser();
@@ -65,15 +76,20 @@ export default function SecurityPage() {
       return;
     }
 
+    if (!signIn) {
+      toast.error("Sign-in service not available");
+      return;
+    }
+
     try {
       setIsLoading(true);
-      await signIn?.create({
+      await signIn.create({
         strategy: "reset_password_email_code",
         identifier: user.primaryEmailAddress.emailAddress,
       });
       setShowPasswordForm(true);
       toast.success("Verification code sent to your email");
-    } catch (error) {
+    } catch (error: unknown) {
       toast.error(
         `Failed to send verification code: ${error instanceof Error ? error.message : "Unknown error"}`
       );
@@ -85,8 +101,10 @@ export default function SecurityPage() {
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!password || !code) {
-      toast.error("Please fill in all fields");
+    const validation = passwordSchema.safeParse({ password, code });
+    if (!validation.success) {
+      const errors = validation.error.errors;
+      toast.error(errors[0].message);
       return;
     }
 
@@ -106,7 +124,7 @@ export default function SecurityPage() {
       } else {
         toast.error("Failed to set password. Please try again.");
       }
-    } catch (error) {
+    } catch (error: unknown) {
       toast.error(
         `Failed to set password: ${error instanceof Error ? error.message : "Unknown error"}`
       );
