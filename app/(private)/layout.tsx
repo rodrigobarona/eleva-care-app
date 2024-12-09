@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { type ReactNode } from "react";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -6,7 +6,6 @@ import {
 } from "@/components/organisms/sidebar/sidebar";
 import { AppSidebar } from "@/components/organisms/sidebar/AppSidebar";
 import { AppBreadcrumb } from "@/components/organisms/sidebar/AppBreadcrumb";
-import { Toaster } from "@/components/molecules/toaster";
 import { Separator } from "@/components/atoms/separator";
 import { ErrorBoundary } from "@/components/molecules/error-boundary";
 
@@ -33,7 +32,6 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
             </div>
           </SidebarInset>
         </div>
-        <Toaster />
       </SidebarProvider>
     </ErrorBoundary>
   );
