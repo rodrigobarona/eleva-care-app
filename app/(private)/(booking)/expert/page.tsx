@@ -26,7 +26,8 @@ export default async function ProfilePage() {
         shortBio: profile.shortBio || undefined,
         longBio: profile.longBio || undefined,
         promotion: profile.promotion || undefined,
-        fullName: profile.fullName || "",
+        firstName: profile.firstName || "",
+        lastName: profile.lastName || "",
         isVerified: profile.isVerified || false,
         isTopExpert: profile.isTopExpert || false,
       }

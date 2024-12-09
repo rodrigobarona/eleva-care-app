@@ -33,7 +33,7 @@ export const EventTable = pgTable(
   },
   (table) => ({
     clerkUserIdIndex: index("events_clerk_user_id_idx").on(table.clerkUserId),
-  }),
+  })
 );
 
 export const ScheduleTable = pgTable("schedules", {
@@ -63,7 +63,7 @@ export const ScheduleAvailabilityTable = pgTable(
   },
   (table) => ({
     scheduleIdIndex: index("scheduleIdIndex").on(table.scheduleId),
-  }),
+  })
 );
 
 export const ScheduleAvailabilityRelations = relations(
@@ -73,7 +73,7 @@ export const ScheduleAvailabilityRelations = relations(
       fields: [ScheduleAvailabilityTable.scheduleId],
       references: [ScheduleTable.id],
     }),
-  }),
+  })
 );
 
 export const MeetingTable = pgTable(
@@ -97,7 +97,7 @@ export const MeetingTable = pgTable(
   (table) => ({
     clerkUserIdIndex: index("meetings_clerkUserId_idx").on(table.clerkUserId),
     eventIdIndex: index("meetings_eventId_idx").on(table.eventId),
-  }),
+  })
 );
 
 export const meetingRelations = relations(MeetingTable, ({ one }) => ({
@@ -113,14 +113,17 @@ export const ProfileTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     clerkUserId: text("clerkUserId").notNull().unique(),
     profilePicture: text("profilePicture"),
-    fullName: text("fullName").notNull(),
+    firstName: text("firstName").notNull(),
+    lastName: text("lastName").notNull(),
     role: text("role"),
     shortBio: text("shortBio"),
     longBio: text("longBio"),
-    socialLinks: json("socialLinks").$type<Array<{
-      name: string;
-      url: string;
-    }>>(),
+    socialLinks: json("socialLinks").$type<
+      Array<{
+        name: string;
+        url: string;
+      }>
+    >(),
     isVerified: boolean("isVerified").notNull().default(false),
     isTopExpert: boolean("isTopExpert").notNull().default(false),
     promotion: text("promotion"),

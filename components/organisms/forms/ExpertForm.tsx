@@ -37,7 +37,8 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
   const form = useForm<ExpertFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      fullName: "",
+      firstName: "",
+      lastName: "",
       profilePicture: initialData?.profilePicture || user?.imageUrl || "",
       ...initialData,
     },
@@ -45,10 +46,8 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
 
   React.useEffect(() => {
     if (isUserLoaded && user) {
-      const fullName = [user.firstName, user.lastName]
-        .filter(Boolean)
-        .join(" ");
-      form.setValue("fullName", fullName);
+      form.setValue("firstName", user.firstName || "");
+      form.setValue("lastName", user.lastName || "");
       if (!initialData?.profilePicture) {
         form.setValue("profilePicture", user.imageUrl || "");
       }
@@ -201,19 +200,34 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
           )}
         />
 
-        <FormField
-          control={form.control}
-          name="fullName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Full Name</FormLabel>
-              <FormControl>
-                <Input placeholder="John Doe" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="firstName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>First Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="John" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="lastName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Last Name</FormLabel>
+                <FormControl>
+                  <Input placeholder="Doe" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}

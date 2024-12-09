@@ -8,15 +8,24 @@ const socialLinkSchema = z.object({
 const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB in bytes
 
 export const profileFormSchema = z.object({
-  profilePicture: z.string()
-    .refine((val) => !val || val.startsWith('http') || val.startsWith('blob:'), {
-      message: 'Profile picture must be a valid URL',
-    })
-    .refine((val): val is string => !val.startsWith('blob:') || val.length <= MAX_FILE_SIZE, {
-      message: "File size must be less than 4.5MB",
-      params: { maxSize: MAX_FILE_SIZE }
-    }),
-  fullName: z.string().min(2, "Name must be at least 2 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  profilePicture: z
+    .string()
+    .refine(
+      (val) => !val || val.startsWith("http") || val.startsWith("blob:"),
+      {
+        message: "Profile picture must be a valid URL",
+      }
+    )
+    .refine(
+      (val): val is string =>
+        !val.startsWith("blob:") || val.length <= MAX_FILE_SIZE,
+      {
+        message: "File size must be less than 4.5MB",
+        params: { maxSize: MAX_FILE_SIZE },
+      }
+    ),
   role: z.string().min(2, "Role must be at least 2 characters").optional(),
   shortBio: z
     .string()
