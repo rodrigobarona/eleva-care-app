@@ -2,7 +2,7 @@
 
 import React, { useTransition } from "react";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
+import type { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { eventFormSchema } from "@/schema/events";
 import {
@@ -93,7 +93,7 @@ export function EventForm({
     if (e.key === " ") {
       e.preventDefault();
       const input = e.target as HTMLInputElement;
-      const newValue = input.value + "-";
+      const newValue = `${input.value}-`;
       form.setValue("slug", newValue, {
         shouldValidate: true,
         shouldDirty: true,

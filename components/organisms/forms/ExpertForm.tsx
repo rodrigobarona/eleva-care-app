@@ -2,7 +2,7 @@
 import React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import * as z from "zod";
+import type * as z from "zod";
 import { Button } from "@/components/atoms/button";
 import {
   Form,
@@ -18,27 +18,26 @@ import { Textarea } from "@/components/atoms/textarea";
 import { profileFormSchema } from "@/schema/profile";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useUser, useClerk } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 
-type ProfileFormValues = z.infer<typeof profileFormSchema>;
+type ExpertFormValues = z.infer<typeof profileFormSchema>;
 
-interface ProfileFormProps {
-  initialData: ProfileFormValues | null;
+interface ExpertFormProps {
+  initialData: ExpertFormValues | null;
 }
 
-export function ProfileForm({ initialData }: ProfileFormProps) {
+export function ExpertForm({ initialData }: ExpertFormProps) {
   const { user, isLoaded: isUserLoaded } = useUser();
-  const { user: clerkUser } = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const form = useForm<ProfileFormValues>({
+  const form = useForm<ExpertFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
       fullName: "",
-      profilePicture: user?.imageUrl || "",
+      profilePicture: initialData?.profilePicture || user?.imageUrl || "",
       ...initialData,
     },
   });
@@ -49,45 +48,62 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         .filter(Boolean)
         .join(" ");
       form.setValue("fullName", fullName);
-      form.setValue("profilePicture", user.imageUrl || "");
+      if (!initialData?.profilePicture) {
+        form.setValue("profilePicture", user.imageUrl || "");
+      }
     }
-  }, [isUserLoaded, user, form]);
+  }, [isUserLoaded, user, form, initialData]);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Store the file for later upload
-    setSelectedFile(file);
+    if (file.size > 4.5 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        description: "Image must be less than 4.5MB",
+      });
+      return;
+    }
 
-    // Create a temporary URL for preview
+    setSelectedFile(file);
     const previewUrl = URL.createObjectURL(file);
     form.setValue("profilePicture", previewUrl);
   };
 
-  async function onSubmit(data: ProfileFormValues) {
+  async function onSubmit(data: ExpertFormValues) {
     try {
       setIsLoading(true);
 
-      // Upload image to Clerk if a new file was selected
-      if (selectedFile && clerkUser) {
-        await clerkUser.setProfileImage({ file: selectedFile });
+      // Upload image to Vercel Blob if a new file was selected
+      let profilePictureUrl = data.profilePicture;
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        const response = await fetch(`/api/profile/upload?filename=${selectedFile.name}`, {
+          method: "POST",
+          body: selectedFile,
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to upload image");
+        }
+
+        const blob = await response.json();
+        profilePictureUrl = blob.url;
       }
 
       const response = await fetch("/api/profile", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          profilePicture: profilePictureUrl,
+          oldProfilePicture: initialData?.profilePicture, // Pass the old URL for deletion
+        }),
       });
 
       if (!response.ok) {
         throw new Error("Failed to update profile");
-      }
-
-      if (clerkUser && data.fullName !== user?.fullName) {
-        await clerkUser.update({
-          firstName: data.fullName.split(" ")[0],
-          lastName: data.fullName.split(" ").slice(1).join(" "),
-        });
       }
 
       toast({
@@ -142,7 +158,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 </FormControl>
               </div>
               <FormDescription>
-                Upload a profile picture (max 10MB)
+                Upload a profile picture (max 4.5MB)
               </FormDescription>
               <FormMessage />
             </FormItem>

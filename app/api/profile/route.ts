@@ -1,7 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import { db } from "@/drizzle/db";
-import { ProfileTable } from "@/drizzle/schema";
-import { profileActionSchema } from "@/schema/profile";
+import { updateProfile } from "@/server/actions/profile";
 
 export async function POST(req: Request) {
   try {
@@ -11,15 +9,11 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const data = profileActionSchema.parse({
-      ...body,
-      clerkUserId: userId,
-    });
+    const result = await updateProfile(userId, body);
 
-    await db.insert(ProfileTable).values(data).onConflictDoUpdate({
-      target: ProfileTable.clerkUserId,
-      set: data,
-    });
+    if (result.error) {
+      return new Response(result.error, { status: 500 });
+    }
 
     return new Response("OK");
   } catch (error) {

@@ -10,6 +10,11 @@ const nextConfig = {
         protocol: "https",
         hostname: "*.clerk.com",
       },
+      {
+        protocol: "https",
+        hostname: "*.public.blob.vercel-storage.com",
+        pathname: "/**",
+      },
     ],
   },
   experimental: {

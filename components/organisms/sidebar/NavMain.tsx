@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { MoreHorizontal, type LucideIcon, ChevronLeft } from "lucide-react";
 import {
   DropdownMenu,

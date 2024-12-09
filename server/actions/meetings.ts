@@ -5,7 +5,7 @@ import { meetingActionSchema } from "@/schema/meetings";
 import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import "use-server";
-import { z } from "zod";
+import type { z } from "zod";
 import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
 import { MeetingTable } from "@/drizzle/schema";

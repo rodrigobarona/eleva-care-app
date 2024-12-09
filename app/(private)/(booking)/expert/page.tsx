@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { db } from "@/drizzle/db";
 import { ProfileTable } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
-import { ProfileForm } from "@/components/organisms/forms/ProfileForm";
+import { ExpertForm } from "@/components/organisms/forms/ExpertForm";
 
 export default async function ProfilePage() {
   const { userId } = auth();
@@ -37,7 +37,7 @@ export default async function ProfilePage() {
           Manage your public profile information
         </p>
       </div>
-      <ProfileForm initialData={transformedProfile} />
+      <ExpertForm initialData={transformedProfile} />
     </div>
   );
 }
