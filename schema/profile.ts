@@ -15,12 +15,6 @@ export const profileFormSchema = z.object({
     .refine((val): val is string => !val.startsWith('blob:') || val.length <= MAX_FILE_SIZE, {
       message: "File size must be less than 4.5MB",
       params: { maxSize: MAX_FILE_SIZE }
-    })
-    .transform((val) => {
-      if (val) {
-        return { value: val, previousValue: val };
-      }
-      return { value: val, previousValue: null };
     }),
   fullName: z.string().min(2, "Name must be at least 2 characters"),
   role: z.string().min(2, "Role must be at least 2 characters").optional(),

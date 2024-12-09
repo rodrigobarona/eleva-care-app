@@ -22,10 +22,13 @@ export default async function ProfilePage() {
         ...profile,
         socialLinks: profile.socialLinks || [],
         role: profile.role || undefined,
-        profilePicture: profile.profilePicture || undefined,
+        profilePicture: profile.profilePicture || "",
         shortBio: profile.shortBio || undefined,
         longBio: profile.longBio || undefined,
         promotion: profile.promotion || undefined,
+        fullName: profile.fullName || "",
+        isVerified: profile.isVerified || false,
+        isTopExpert: profile.isTopExpert || false,
       }
     : null;
 

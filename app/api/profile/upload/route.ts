@@ -13,7 +13,9 @@ export async function POST(request: Request): Promise<NextResponse> {
     return NextResponse.json({ error: "Request body is required" }, { status: 400 });
   }
 
-  const blob = await put(filename, request.body, {
+  const blobFilename = `profiles/${filename}`;
+  
+  const blob = await put(blobFilename, request.body, {
     access: "public",
   });
 

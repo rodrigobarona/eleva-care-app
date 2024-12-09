@@ -32,6 +32,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const form = useForm<ExpertFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -66,21 +67,32 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       return;
     }
 
-    setSelectedFile(file);
-    const previewUrl = URL.createObjectURL(file);
-    form.setValue("profilePicture", previewUrl);
+    setIsUploading(true);
+    try {
+      setSelectedFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      form.setValue("profilePicture", previewUrl);
+    } catch {
+      toast({
+        variant: "destructive",
+        description: "Failed to process image. Please try again.",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   async function onSubmit(data: ExpertFormValues) {
     try {
       setIsLoading(true);
 
-      // Upload image to Vercel Blob if a new file was selected
       let profilePictureUrl = data.profilePicture;
       if (selectedFile) {
+        setIsUploading(true);
         const formData = new FormData();
         formData.append('file', selectedFile);
-        const response = await fetch(`/api/profile/upload?filename=${selectedFile.name}`, {
+        const filename = `${user?.id}-${selectedFile.name}`;
+        const response = await fetch(`/api/profile/upload?filename=${encodeURIComponent(filename)}`, {
           method: "POST",
           body: selectedFile,
         });
@@ -91,37 +103,59 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
 
         const blob = await response.json();
         profilePictureUrl = blob.url;
+        setIsUploading(false);
+
+        if (initialData?.profilePicture?.includes("public.blob.vercel-storage.com")) {
+          try {
+            await fetch(`/api/profile/upload?url=${encodeURIComponent(initialData.profilePicture)}`, {
+              method: "DELETE",
+            });
+          } catch (error) {
+            console.error("Failed to delete old profile picture:", error);
+          }
+        }
       }
 
       const response = await fetch("/api/profile", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           ...data,
           profilePicture: profilePictureUrl,
-          oldProfilePicture: initialData?.profilePicture, // Pass the old URL for deletion
         }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update profile");
+        throw new Error(await response.text() || "Failed to update profile");
       }
 
       toast({
         description: "Profile updated successfully",
       });
 
-      // Clear the selected file after successful upload
       setSelectedFile(null);
     } catch (error) {
       console.error(error);
       toast({
         variant: "destructive",
-        description: "Something went wrong",
+        description: error instanceof Error ? error.message : "Something went wrong",
       });
     } finally {
       setIsLoading(false);
     }
   }
+
+  React.useEffect(() => {
+    return () => {
+      // Cleanup blob URLs when component unmounts
+      const profilePicture = form.getValues("profilePicture");
+      if (profilePicture?.startsWith("blob:")) {
+        URL.revokeObjectURL(profilePicture);
+      }
+    };
+  }, [form]);
 
   return (
     <Form {...form}>
@@ -153,7 +187,9 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                       accept="image/*"
                       onChange={handleImageChange}
                       className="cursor-pointer"
+                      disabled={isUploading}
                     />
+                    {isUploading && <span className="text-sm text-muted-foreground">Uploading...</span>}
                   </div>
                 </FormControl>
               </div>
@@ -248,8 +284,8 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
           )}
         />
 
-        <Button type="submit" disabled={isLoading}>
-          {isLoading ? "Saving..." : "Save Changes"}
+        <Button type="submit" disabled={isLoading || isUploading}>
+          {isLoading || isUploading ? "Saving..." : "Save Changes"}
         </Button>
       </form>
     </Form>
