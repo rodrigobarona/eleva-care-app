@@ -120,7 +120,7 @@ export const ProfileTable = pgTable(
     longBio: text("longBio"),
     socialLinks: json("socialLinks").$type<
       Array<{
-        name: string;
+        name: "tiktok" | "twitter" | "linkedin" | "instagram" | "youtube";
         url: string;
       }>
     >(),

@@ -82,19 +82,19 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
       .values({
         ...validatedData,
         clerkUserId: userId,
-        socialLinks: validatedData.socialLinks as {
-          name: string;
+        socialLinks: validatedData.socialLinks as Array<{
+          name: "tiktok" | "twitter" | "linkedin" | "instagram" | "youtube";
           url: string;
-        }[],
+        }>,
       })
       .onConflictDoUpdate({
         target: ProfileTable.clerkUserId,
         set: {
           ...validatedData,
-          socialLinks: validatedData.socialLinks as {
-            name: string;
+          socialLinks: validatedData.socialLinks as Array<{
+            name: "tiktok" | "twitter" | "linkedin" | "instagram" | "youtube";
             url: string;
-          }[],
+          }>,
         },
       });
 
