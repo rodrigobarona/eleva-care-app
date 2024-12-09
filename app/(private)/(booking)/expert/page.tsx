@@ -21,7 +21,7 @@ export default async function ProfilePage() {
     ? {
         ...profile,
         socialLinks: profile.socialLinks || [],
-        role: profile.role || undefined,
+        headline: profile.headline || undefined,
         profilePicture: profile.profilePicture || "",
         shortBio: profile.shortBio || undefined,
         longBio: profile.longBio || undefined,

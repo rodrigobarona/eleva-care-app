@@ -89,12 +89,15 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       if (selectedFile) {
         setIsUploading(true);
         const formData = new FormData();
-        formData.append('file', selectedFile);
+        formData.append("file", selectedFile);
         const filename = `${user?.id}-${selectedFile.name}`;
-        const response = await fetch(`/api/profile/upload?filename=${encodeURIComponent(filename)}`, {
-          method: "POST",
-          body: selectedFile,
-        });
+        const response = await fetch(
+          `/api/profile/upload?filename=${encodeURIComponent(filename)}`,
+          {
+            method: "POST",
+            body: selectedFile,
+          }
+        );
 
         if (!response.ok) {
           throw new Error("Failed to upload image");
@@ -104,11 +107,18 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
         profilePictureUrl = blob.url;
         setIsUploading(false);
 
-        if (initialData?.profilePicture?.includes("public.blob.vercel-storage.com")) {
+        if (
+          initialData?.profilePicture?.includes(
+            "public.blob.vercel-storage.com"
+          )
+        ) {
           try {
-            await fetch(`/api/profile/upload?url=${encodeURIComponent(initialData.profilePicture)}`, {
-              method: "DELETE",
-            });
+            await fetch(
+              `/api/profile/upload?url=${encodeURIComponent(initialData.profilePicture)}`,
+              {
+                method: "DELETE",
+              }
+            );
           } catch (error) {
             console.error("Failed to delete old profile picture:", error);
           }
@@ -127,7 +137,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       });
 
       if (!response.ok) {
-        throw new Error(await response.text() || "Failed to update profile");
+        throw new Error((await response.text()) || "Failed to update profile");
       }
 
       toast({
@@ -139,7 +149,8 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       console.error(error);
       toast({
         variant: "destructive",
-        description: error instanceof Error ? error.message : "Something went wrong",
+        description:
+          error instanceof Error ? error.message : "Something went wrong",
       });
     } finally {
       setIsLoading(false);
@@ -188,7 +199,11 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                       className="cursor-pointer"
                       disabled={isUploading}
                     />
-                    {isUploading && <span className="text-sm text-muted-foreground">Uploading...</span>}
+                    {isUploading && (
+                      <span className="text-sm text-muted-foreground">
+                        Uploading...
+                      </span>
+                    )}
                   </div>
                 </FormControl>
               </div>
@@ -231,13 +246,20 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
 
         <FormField
           control={form.control}
-          name="role"
+          name="headline"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Role</FormLabel>
+              <FormLabel>Headline</FormLabel>
               <FormControl>
-                <Input placeholder="Senior Developer" {...field} />
+                <Input
+                  placeholder="Women's Health Expert & Researcher"
+                  {...field}
+                />
               </FormControl>
+              <FormDescription>
+                In one line, describe who you are, what you are best know for ,
+                or expertise.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -248,15 +270,17 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
           name="shortBio"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Short Bio</FormLabel>
+              <FormLabel>About Me (Preview)</FormLabel>
               <FormControl>
                 <Textarea
-                  placeholder="Brief introduction (160 characters)"
+                  placeholder="Brief introduction (100 characters)"
+                  maxLength={100}
                   {...field}
                 />
               </FormControl>
-              <FormDescription>
-                This will be displayed in cards and previews
+              <FormDescription className="flex justify-between">
+                <span>This will be displayed in cards and previews</span>
+                <span>{field.value?.length || 0}/100</span>
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -268,7 +292,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
           name="longBio"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Long Bio</FormLabel>
+              <FormLabel>About Me</FormLabel>
               <FormControl>
                 <Textarea
                   placeholder="Detailed information about you"
@@ -280,6 +304,77 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
             </FormItem>
           )}
         />
+
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium">Social Media Links</h3>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              control={form.control}
+              name={`socialLinks.${0}.url` as const}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Instagram Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="@username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`socialLinks.${1}.url` as const}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Twitter/X Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="@username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`socialLinks.${2}.url` as const}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>LinkedIn Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`socialLinks.${3}.url` as const}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>YouTube Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="@username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`socialLinks.${4}.url` as const}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>TikTok Username</FormLabel>
+                  <FormControl>
+                    <Input placeholder="@username" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
 
         <FormField
           control={form.control}

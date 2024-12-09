@@ -115,7 +115,7 @@ export const ProfileTable = pgTable(
     profilePicture: text("profilePicture"),
     firstName: text("firstName").notNull(),
     lastName: text("lastName").notNull(),
-    role: text("role"),
+    headline: text("headline"),
     shortBio: text("shortBio"),
     longBio: text("longBio"),
     socialLinks: json("socialLinks").$type<

@@ -26,7 +26,10 @@ export const profileFormSchema = z.object({
         params: { maxSize: MAX_FILE_SIZE },
       }
     ),
-  role: z.string().min(2, "Role must be at least 2 characters").optional(),
+  headline: z
+    .string()
+    .min(2, "Headline must be at least 2 characters")
+    .optional(),
   shortBio: z
     .string()
     .max(160, "Short bio must be less than 160 characters")
