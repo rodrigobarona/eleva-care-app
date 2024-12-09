@@ -459,7 +459,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                     </FormLabel>
                     <div className="flex w-full items-center overflow-hidden rounded-md border">
                       <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
-                        {platform.baseUrl}
+                        {platform.baseUrl.replace(/^https?:\/\//, '')}
                       </div>
                       <div className="w-px self-stretch bg-border" />
                       <FormControl>

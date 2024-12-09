@@ -4,17 +4,19 @@ import { db } from "@/drizzle/db";
 import { ProfileTable } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { ExpertForm } from "@/components/organisms/forms/ExpertForm";
+import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
   const { userId } = auth();
-
-  if (!userId) {
-    return null; // or redirect to login
-  }
+  if (!userId) return redirect("/sign-in");
 
   const profile = await db.query.ProfileTable.findFirst({
     where: eq(ProfileTable.clerkUserId, userId),
   });
+
+  if (!profile) {
+    return redirect("/sign-in"); // or wherever you want to redirect unauthorized users
+  }
 
   // Transform the profile data to match the expected type
   const transformedProfile = profile

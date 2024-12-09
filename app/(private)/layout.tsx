@@ -1,4 +1,6 @@
 import React, { type ReactNode } from "react";
+import { auth, redirectToSignIn } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 import {
   SidebarProvider,
   SidebarTrigger,
@@ -13,7 +15,15 @@ interface PrivateLayoutProps {
   children: ReactNode;
 }
 
-export default function PrivateLayout({ children }: PrivateLayoutProps) {
+export default async function PrivateLayout({ children }: PrivateLayoutProps) {
+  const { userId, redirectToSignIn } = auth();
+
+  if (!userId) {
+    return redirectToSignIn({
+      returnBackUrl: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL,
+    });
+  }
+
   return (
     <ErrorBoundary>
       <SidebarProvider>

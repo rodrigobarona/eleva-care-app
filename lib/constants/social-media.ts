@@ -5,7 +5,7 @@ export const SOCIAL_MEDIA = {
     prefix: "",
   },
   TWITTER: {
-    name: "twitter" as const,
+    name: "x/Twitter" as const,
     baseUrl: "https://x.com/",
     prefix: "",
   },

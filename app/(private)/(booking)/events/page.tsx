@@ -20,13 +20,7 @@ import { createClerkClient } from "@clerk/nextjs/server";
 export const revalidate = 0;
 
 export default async function EventsPage() {
-  const { userId, redirectToSignIn } = auth();
-
-  if (!userId) {
-    return redirectToSignIn({
-      returnBackUrl: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL,
-    });
-  }
+  const { userId } = auth();
 
   const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,

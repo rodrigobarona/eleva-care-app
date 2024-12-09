@@ -16,6 +16,16 @@ import type { SessionWithActivitiesResource } from "@clerk/types";
 import { useSession } from "@clerk/nextjs";
 import type { OAuthProvider } from "@clerk/types";
 import { z } from "zod";
+import { Copy } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/molecules/dialog";
+import { Input } from "@/components/atoms/input";
 
 const passwordSchema = z.object({
   password: z
@@ -38,13 +48,15 @@ export default function SecurityPage() {
   const [sessions, setSessions] = useState<SessionWithActivitiesResource[]>([]);
   const [currentSession, setCurrentSession] =
     useState<SessionWithActivitiesResource | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [canDelete, setCanDelete] = useState(false);
 
   const loadSessions = useCallback(async () => {
     if (!user) return;
     try {
       const sessions = await user.getSessions();
       setSessions(sessions);
-      setCurrentSession(sessions.find(s => s.id === session?.id) || null);
+      setCurrentSession(sessions.find((s) => s.id === session?.id) || null);
     } catch (error: unknown) {
       toast.error(
         `Failed to load sessions: ${error instanceof Error ? error.message : "Unknown error"}`
@@ -144,31 +156,25 @@ export default function SecurityPage() {
         connected: true,
       })) || [];
 
-  const handleRevokeDevice = async (sessionId: string) => {
-    if (sessionId === currentSession?.id) {
-      toast.error("Cannot revoke current session");
-      return;
-    }
+  const copyUserId = () => {
+    navigator.clipboard.writeText(user?.id || "");
+    toast.success("User ID copied to clipboard");
+  };
 
+  async function handleDeleteAccount() {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const session = sessions.find((s) => s.id === sessionId);
-      if (!session) {
-        toast.error("Session not found");
-        return;
-      }
-
-      await session.revoke();
-      await loadSessions(); // Refresh the sessions list
-      toast.success("Device access revoked");
+      await user?.delete();
+      toast.success("Account deleted successfully");
+      setIsDialogOpen(false);
     } catch (error: unknown) {
       toast.error(
-        `Failed to revoke device access: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to delete account: ${error instanceof Error ? error.message : "Unknown error"}`
       );
     } finally {
       setIsLoading(false);
     }
-  };
+  }
 
   return (
     <div className="space-y-6">
@@ -209,10 +215,14 @@ export default function SecurityPage() {
               ) : (
                 <form onSubmit={handleSetPassword} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label
+                      htmlFor="new-password"
+                      className="block text-sm font-medium mb-1"
+                    >
                       New Password
                     </label>
                     <input
+                      id="new-password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
@@ -220,10 +230,14 @@ export default function SecurityPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">
+                    <label
+                      htmlFor="verification-code"
+                      className="block text-sm font-medium mb-1"
+                    >
                       Verification Code
                     </label>
                     <input
+                      id="verification-code"
                       type="text"
                       value={code}
                       onChange={(e) => setCode(e.target.value)}
@@ -314,6 +328,104 @@ export default function SecurityPage() {
               </div>
             ))}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Add User ID section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Your User ID</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-x-2 bg-muted p-3 rounded-md">
+            <code className="text-sm">{user?.id}</code>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={copyUserId}
+              className="ml-auto"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Add Delete Account section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Delete Account</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <fieldset className="border-2 border-destructive/20 rounded-lg p-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Permanently delete your workspace, custom domain, and all
+              associated links + their stats. This action cannot be undone -
+              please proceed with caution.
+            </p>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="destructive">Delete Account</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="text-destructive">
+                    Delete Account
+                  </DialogTitle>
+                  <DialogDescription className="pt-4">
+                    <div className="space-y-4">
+                      <p className="font-semibold text-foreground">
+                        Warning: This will permanently delete your account and
+                        all associated data:
+                      </p>
+                      <ul className="list-disc pl-4 text-sm space-y-2">
+                        <li>All your workspaces and settings</li>
+                        <li>Custom domains configurations</li>
+                        <li>All links and their analytics data</li>
+                        <li>Profile information and preferences</li>
+                      </ul>
+                      <div className="space-y-4 pt-4">
+                        <div>
+                          <label
+                            htmlFor="delete-confirmation"
+                            className="text-sm font-medium"
+                          >
+                            To verify, type &quot;delete my account&quot; below:
+                          </label>
+                          <Input
+                            id="delete-confirmation"
+                            className="mt-2"
+                            placeholder="delete my account"
+                            onChange={(e) => {
+                              const isValid =
+                                e.target.value === "delete my account";
+                              setCanDelete(isValid);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-end gap-3 mt-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                    disabled={isLoading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteAccount}
+                    disabled={isLoading || !canDelete}
+                  >
+                    {isLoading ? "Deleting..." : "Permanently Delete Account"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </fieldset>
         </CardContent>
       </Card>
     </div>
