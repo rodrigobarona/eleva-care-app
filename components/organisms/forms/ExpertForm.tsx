@@ -28,6 +28,7 @@ import {
 } from "@/components/atoms/popover";
 import { Badge } from "@/components/atoms/badge";
 import { toast } from "sonner";
+import { SOCIAL_MEDIA_LIST } from "@/lib/constants/social-media";
 
 type ExpertFormValues = z.infer<typeof profileFormSchema> & {
   isVerified?: boolean;
@@ -53,46 +54,10 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       headline: initialData?.headline || "",
       shortBio: initialData?.shortBio || "",
       longBio: initialData?.longBio || "",
-      socialLinks: [
-        {
-          name: "instagram",
-          url:
-            initialData?.socialLinks?.[0]?.url?.replace(
-              "https://instagram.com/",
-              ""
-            ) || "",
-        },
-        {
-          name: "twitter",
-          url:
-            initialData?.socialLinks?.[1]?.url?.replace("https://x.com/", "") ||
-            "",
-        },
-        {
-          name: "linkedin",
-          url:
-            initialData?.socialLinks?.[2]?.url?.replace(
-              "https://linkedin.com/in/",
-              ""
-            ) || "",
-        },
-        {
-          name: "youtube",
-          url:
-            initialData?.socialLinks?.[3]?.url?.replace(
-              "https://youtube.com/@",
-              ""
-            ) || "",
-        },
-        {
-          name: "tiktok",
-          url:
-            initialData?.socialLinks?.[4]?.url?.replace(
-              "https://tiktok.com/@",
-              ""
-            ) || "",
-        },
-      ],
+      socialLinks: SOCIAL_MEDIA_LIST.map((platform) => ({
+        name: platform.name,
+        url: initialData?.socialLinks?.find(link => link.name === platform.name)?.url?.replace(platform.baseUrl, "") || "",
+      })),
     },
   });
 
@@ -146,35 +111,16 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       const transformedData = {
         ...data,
         socialLinks: data.socialLinks.map((link) => {
+          const platform = SOCIAL_MEDIA_LIST.find(p => p.name === link.name);
+          if (!platform) return link;
+          
           const username = link.url?.trim();
           if (!username) return { name: link.name, url: "" };
 
-          switch (link.name) {
-            case "instagram":
-              return {
-                name: link.name,
-                url: `https://instagram.com/${username}`,
-              };
-            case "twitter":
-              return { name: link.name, url: `https://x.com/${username}` };
-            case "linkedin":
-              return {
-                name: link.name,
-                url: `https://linkedin.com/in/${username}`,
-              };
-            case "youtube":
-              return {
-                name: link.name,
-                url: `https://youtube.com/@${username}`,
-              };
-            case "tiktok":
-              return {
-                name: link.name,
-                url: `https://tiktok.com/@${username}`,
-              };
-            default:
-              return link;
-          }
+          return {
+            name: link.name,
+            url: `${platform.baseUrl}${username.replace(/^@/, '')}`
+          };
         }),
       };
 
@@ -494,126 +440,33 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
             Social Media Links
           </legend>
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name={`socialLinks.${0}.url` as const}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Instagram</FormLabel>
-                  <div className="flex w-full items-center overflow-hidden rounded-md border">
-                    <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
-                      instagram.com/
+            {SOCIAL_MEDIA_LIST.map((platform, index) => (
+              <FormField
+                key={platform.name}
+                control={form.control}
+                name={`socialLinks.${index}.url` as const}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{platform.name.charAt(0).toUpperCase() + platform.name.slice(1)}</FormLabel>
+                    <div className="flex w-full items-center overflow-hidden rounded-md border">
+                      <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
+                        {platform.baseUrl}
+                      </div>
+                      <div className="w-px self-stretch bg-border" />
+                      <FormControl>
+                        <Input
+                          placeholder="username"
+                          {...field}
+                          className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+                        />
+                      </FormControl>
                     </div>
-                    <div className="w-px self-stretch bg-border" />
-                    <FormControl>
-                      <Input
-                        placeholder="username"
-                        {...field}
-                        className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </FormControl>
-                  </div>
-                  <FormDescription>Username without @ symbol</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name={`socialLinks.${1}.url` as const}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>X/Twitter</FormLabel>
-                  <div className="flex w-full items-center overflow-hidden rounded-md border">
-                    <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
-                      x.com/
-                    </div>
-                    <div className="w-px self-stretch bg-border" />
-                    <FormControl>
-                      <Input
-                        placeholder="username"
-                        {...field}
-                        className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </FormControl>
-                  </div>
-                  <FormDescription>Username without @ symbol</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name={`socialLinks.${2}.url` as const}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>LinkedIn</FormLabel>
-                  <div className="flex w-full items-center overflow-hidden rounded-md border">
-                    <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
-                      linkedin.com/in/
-                    </div>
-                    <div className="w-px self-stretch bg-border" />
-                    <FormControl>
-                      <Input
-                        placeholder="username"
-                        {...field}
-                        className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </FormControl>
-                  </div>
-                  <FormDescription>Username without @ symbol</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name={`socialLinks.${3}.url` as const}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>YouTube</FormLabel>
-                  <div className="flex w-full items-center overflow-hidden rounded-md border">
-                    <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
-                      youtube.com/@
-                    </div>
-                    <div className="w-px self-stretch bg-border" />
-                    <FormControl>
-                      <Input
-                        placeholder="username"
-                        {...field}
-                        className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </FormControl>
-                  </div>
-                  <FormDescription>Username without @ symbol</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name={`socialLinks.${4}.url` as const}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>TikTok</FormLabel>
-                  <div className="flex w-full items-center overflow-hidden rounded-md border">
-                    <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
-                      tiktok.com/@
-                    </div>
-                    <div className="w-px self-stretch bg-border" />
-                    <FormControl>
-                      <Input
-                        placeholder="username"
-                        {...field}
-                        className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                    </FormControl>
-                  </div>
-                  <FormDescription>Username without @ symbol</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    <FormDescription>Username without @ symbol</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            ))}
           </div>
         </fieldset>
 

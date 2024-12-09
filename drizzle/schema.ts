@@ -11,6 +11,7 @@ import {
   uuid,
   json,
 } from "drizzle-orm/pg-core";
+import type { SocialMediaPlatform } from "@/lib/constants/social-media";
 
 const createdAt = timestamp("createdAt").notNull().defaultNow();
 const updatedAt = timestamp("updatedAt")
@@ -120,7 +121,7 @@ export const ProfileTable = pgTable(
     longBio: text("longBio"),
     socialLinks: json("socialLinks").$type<
       Array<{
-        name: "tiktok" | "twitter" | "linkedin" | "instagram" | "youtube";
+        name: SocialMediaPlatform;
         url: string;
       }>
     >(),
