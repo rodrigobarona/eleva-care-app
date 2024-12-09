@@ -20,6 +20,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 type ExpertFormValues = z.infer<typeof profileFormSchema>;
 
@@ -44,11 +45,44 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       shortBio: initialData?.shortBio || "",
       longBio: initialData?.longBio || "",
       socialLinks: [
-        { name: "instagram", url: initialData?.socialLinks?.[0]?.url?.replace("https://instagram.com/", "") || "" },
-        { name: "twitter", url: initialData?.socialLinks?.[1]?.url?.replace("https://x.com/", "") || "" },
-        { name: "linkedin", url: initialData?.socialLinks?.[2]?.url?.replace("https://linkedin.com/in/", "") || "" },
-        { name: "youtube", url: initialData?.socialLinks?.[3]?.url?.replace("https://youtube.com/@", "") || "" },
-        { name: "tiktok", url: initialData?.socialLinks?.[4]?.url?.replace("https://tiktok.com/@", "") || "" },
+        {
+          name: "instagram",
+          url:
+            initialData?.socialLinks?.[0]?.url?.replace(
+              "https://instagram.com/",
+              ""
+            ) || "",
+        },
+        {
+          name: "twitter",
+          url:
+            initialData?.socialLinks?.[1]?.url?.replace("https://x.com/", "") ||
+            "",
+        },
+        {
+          name: "linkedin",
+          url:
+            initialData?.socialLinks?.[2]?.url?.replace(
+              "https://linkedin.com/in/",
+              ""
+            ) || "",
+        },
+        {
+          name: "youtube",
+          url:
+            initialData?.socialLinks?.[3]?.url?.replace(
+              "https://youtube.com/@",
+              ""
+            ) || "",
+        },
+        {
+          name: "tiktok",
+          url:
+            initialData?.socialLinks?.[4]?.url?.replace(
+              "https://tiktok.com/@",
+              ""
+            ) || "",
+        },
       ],
       promotion: initialData?.promotion || "",
     },
@@ -104,15 +138,27 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
 
           switch (link.name) {
             case "instagram":
-              return { name: link.name, url: `https://instagram.com/${username}` };
+              return {
+                name: link.name,
+                url: `https://instagram.com/${username}`,
+              };
             case "twitter":
               return { name: link.name, url: `https://x.com/${username}` };
             case "linkedin":
-              return { name: link.name, url: `https://linkedin.com/in/${username}` };
+              return {
+                name: link.name,
+                url: `https://linkedin.com/in/${username}`,
+              };
             case "youtube":
-              return { name: link.name, url: `https://youtube.com/@${username}` };
+              return {
+                name: link.name,
+                url: `https://youtube.com/@${username}`,
+              };
             case "tiktok":
-              return { name: link.name, url: `https://tiktok.com/@${username}` };
+              return {
+                name: link.name,
+                url: `https://tiktok.com/@${username}`,
+              };
             default:
               return link;
           }
@@ -213,43 +259,76 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
             control={form.control}
             name="profilePicture"
             render={({ field }) => (
-              <FormItem>
+              <FormItem className="col-span-full">
                 <FormLabel>Profile Picture</FormLabel>
                 <div className="space-y-4">
-                  {field.value && (
-                    <div className="relative aspect-square w-full overflow-hidden rounded-lg">
-                      <Image
-                        src={field.value}
-                        alt="Profile picture"
-                        sizes="(max-width: 768px) 100vw, 800px"
-                        className="object-cover"
-                        priority
-                        width={1200}
-                        height={1200}
-                      />
-                    </div>
-                  )}
-                  <FormControl>
-                    <div className="flex items-center gap-4">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageChange}
-                        className="cursor-pointer"
-                        disabled={isUploading}
-                      />
-                      {isUploading && (
-                        <span className="text-sm text-muted-foreground">
-                          Uploading...
-                        </span>
-                      )}
-                    </div>
-                  </FormControl>
+                  <div className="flex items-center gap-8">
+                    {field.value && (
+                      <div className="relative h-96 w-64 overflow-hidden rounded-lg border-2 border-border">
+                        <Image
+                          src={field.value}
+                          alt="Profile picture"
+                          fill
+                          className="object-cover"
+                          priority
+                        />
+                      </div>
+                    )}
+                    <FormControl>
+                      <div className="flex flex-col gap-2">
+                        <label
+                          htmlFor="picture-upload"
+                          className={cn(
+                            "flex h-9 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                            isUploading && "pointer-events-none opacity-50"
+                          )}
+                        >
+                          {field.value ? "Change picture" : "Upload picture"}
+                        </label>
+                        <Input
+                          id="picture-upload"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="hidden"
+                          disabled={isUploading}
+                        />
+                        {field.value &&
+                          isUserLoaded &&
+                          field.value !== user?.imageUrl && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                form.setValue(
+                                  "profilePicture",
+                                  user?.imageUrl || ""
+                                );
+                                setSelectedFile(null);
+                              }}
+                              className={cn(
+                                "flex h-9 items-center justify-center rounded-md border border-destructive bg-destructive/10 px-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+                                isUploading && "pointer-events-none opacity-50"
+                              )}
+                              disabled={isUploading}
+                            >
+                              Reset to Account Picture
+                            </button>
+                          )}
+                        {isUploading && (
+                          <span className="text-sm text-muted-foreground flex items-center gap-2">
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                            Uploading...
+                          </span>
+                        )}
+                      </div>
+                    </FormControl>
+                  </div>
+                  <FormDescription>
+                    Upload a profile picture (max 4.5MB). A portrait (2:3) image
+                    is recommended.
+                  </FormDescription>
+                  <FormMessage />
                 </div>
-                <FormDescription>
-                  Upload a profile picture (max 4.5MB)
-                </FormDescription>
-                <FormMessage />
               </FormItem>
             )}
           />
@@ -288,7 +367,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
           <legend className="px-2 text-lg font-medium">
             Professional Profile
           </legend>
-          
+
           <FormField
             control={form.control}
             name="headline"
