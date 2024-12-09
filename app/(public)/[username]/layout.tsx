@@ -3,6 +3,22 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { db } from "@/drizzle/db";
+import { Icons } from "@/components/atoms/icons";
+import {
+  Instagram,
+  Twitter,
+  Linkedin,
+  Youtube,
+  Music,
+} from "lucide-react";
+
+const SOCIAL_ICONS = {
+  instagram: Instagram,
+  twitter: Twitter,
+  linkedin: Linkedin,
+  youtube: Youtube,
+  tiktok: Music, // Using Music icon for TikTok since there's no TikTok icon in Lucide
+} as const;
 
 export default async function UserLayout({
   children,
@@ -41,7 +57,9 @@ export default async function UserLayout({
           </div>
           <div className="space-y-4">
             <div>
-              <h1 className="text-3xl font-bold">{user.fullName}</h1>
+              <h1 className="text-3xl font-bold">
+                {profile ? `${profile.firstName} ${profile.lastName}` : user.fullName}
+              </h1>
               <p className="text-muted-foreground">@{user.username}</p>
             </div>
             {profile?.headline && (
@@ -57,17 +75,22 @@ export default async function UserLayout({
             )}
             {profile?.socialLinks && profile.socialLinks.length > 0 && (
               <div className="flex gap-4">
-                {profile.socialLinks.map((link) => (
-                  <a
-                    key={link.name}
-                    href={link.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    {link.name}
-                  </a>
-                ))}
+                {profile.socialLinks.map((link) => {
+                  if (!link.url) return null;
+                  const Icon = SOCIAL_ICONS[link.name];
+                  return (
+                    <a
+                      key={link.name}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      {Icon && <Icon className="h-5 w-5" />}
+                      <span className="sr-only">{link.name}</span>
+                    </a>
+                  );
+                })}
               </div>
             )}
           </div>
