@@ -16,11 +16,16 @@ import { CalendarPlus, CalendarRange } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { createClerkClient } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
 export const revalidate = 0;
 
 export default async function EventsPage() {
   const { userId } = auth();
+
+  if (!userId) {
+    redirect("/sign-in");
+  }
 
   const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,

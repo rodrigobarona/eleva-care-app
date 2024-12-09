@@ -12,7 +12,6 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { ProfileTable } from "@/drizzle/schema";
 
 export default async function BookingPage({
   params: { username },

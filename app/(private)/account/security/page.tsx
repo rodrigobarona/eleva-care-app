@@ -176,6 +176,21 @@ export default function SecurityPage() {
     }
   }
 
+  const handleRevokeDevice = async (sessionId: string) => {
+    try {
+      setIsLoading(true);
+      await fetch(`/api/sessions/${sessionId}`, {
+        method: 'DELETE',
+      });
+      // Optionally refresh the page or update the UI
+      window.location.reload();
+    } catch (error) {
+      console.error('Failed to revoke device:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
