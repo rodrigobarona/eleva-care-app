@@ -3,14 +3,7 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { db } from "@/drizzle/db";
-import { Icons } from "@/components/atoms/icons";
-import {
-  Instagram,
-  Twitter,
-  Linkedin,
-  Youtube,
-  Music,
-} from "lucide-react";
+import { Instagram, Twitter, Linkedin, Youtube, Music } from "lucide-react";
 
 const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -58,7 +51,9 @@ export default async function UserLayout({
           <div className="space-y-4">
             <div>
               <h1 className="text-3xl font-bold">
-                {profile ? `${profile.firstName} ${profile.lastName}` : user.fullName}
+                {profile
+                  ? `${profile.firstName} ${profile.lastName}`
+                  : user.fullName}
               </h1>
               <p className="text-muted-foreground">@{user.username}</p>
             </div>
