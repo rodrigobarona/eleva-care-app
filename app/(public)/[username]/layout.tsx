@@ -13,6 +13,8 @@ const SOCIAL_ICONS = {
   tiktok: Music, // Using Music icon for TikTok since there's no TikTok icon in Lucide
 } as const;
 
+export const revalidate = 0;
+
 export default async function UserLayout({
   children,
   params: { username },

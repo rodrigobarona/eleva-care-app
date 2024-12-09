@@ -12,6 +12,8 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+export const revalidate = 0;
+
 export default async function BookingPage({
   params: { username },
 }: {
