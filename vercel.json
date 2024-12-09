@@ -8,5 +8,11 @@
         "nodeVersion": "20.x"
       }
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/keep-alive",
+      "schedule": "0 0 * * *"
+    }
   ]
 }
