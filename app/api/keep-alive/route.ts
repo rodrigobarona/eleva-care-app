@@ -1,13 +1,17 @@
 import { auditDb } from "@/drizzle/auditDb";
 import { db } from "@/drizzle/db";
 import { sql } from "drizzle-orm";
-export async function GET() {
-  try {
-    // Keep main database alive with a simple query
-    await db.execute(sql`SELECT 1`);
 
-    // Keep audit database alive (assuming you have a separate connection)
-    // If you have a separate audit db connection, uncomment and adjust:
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const token = searchParams.get('token');
+
+    if (token !== process.env.KEEP_ALIVE_TOKEN) {
+      return new Response("Unauthorized", { status: 401 });
+    }
+
+    await db.execute(sql`SELECT 1`);
     await auditDb.execute(sql`SELECT 1`);
 
     return new Response("Databases pinged successfully", { status: 200 });
