@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
 
-    if (token !== process.env.KEEP_ALIVE_TOKEN) {
+    if (!process.env.VERCEL_DEPLOYMENT_ID || token !== process.env.VERCEL_DEPLOYMENT_ID) {
       return new Response("Unauthorized", { status: 401 });
     }
 
