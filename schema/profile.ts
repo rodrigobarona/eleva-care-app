@@ -56,10 +56,6 @@ export const profileFormSchema = z.object({
   socialLinks: z.array(socialLinkSchema),
   isVerified: z.boolean().default(false),
   isTopExpert: z.boolean().default(false),
-  promotion: z
-    .string()
-    .max(500, "Promotion text must be less than 500 characters")
-    .optional(),
 });
 
 export const profileActionSchema = profileFormSchema.extend({

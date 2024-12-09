@@ -25,7 +25,6 @@ export default async function ProfilePage() {
         profilePicture: profile.profilePicture || "",
         shortBio: profile.shortBio || undefined,
         longBio: profile.longBio || undefined,
-        promotion: profile.promotion || undefined,
         firstName: profile.firstName || "",
         lastName: profile.lastName || "",
         isVerified: profile.isVerified || false,

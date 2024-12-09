@@ -1,8 +1,9 @@
-import React from "react";
+import type React from "react";
 import "./globals.css";
 import type { Metadata } from "next";
 import { Alexandria, JetBrains_Mono, Lora } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { Toaster } from "sonner";
 
 const lora = Lora({
   subsets: ["latin"],
@@ -54,6 +55,7 @@ export default function RootLayout({
           className={`${lora.variable} ${alexandria.variable} ${jetBrains.variable} min-h-screen bg-background font-sans font-light antialiased`}
         >
           {children}
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>

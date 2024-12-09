@@ -126,7 +126,6 @@ export const ProfileTable = pgTable(
     >(),
     isVerified: boolean("isVerified").notNull().default(false),
     isTopExpert: boolean("isTopExpert").notNull().default(false),
-    promotion: text("promotion"),
     createdAt,
     updatedAt,
   },

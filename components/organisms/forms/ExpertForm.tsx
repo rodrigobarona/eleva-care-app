@@ -17,12 +17,22 @@ import { Input } from "@/components/atoms/input";
 import { Textarea } from "@/components/atoms/textarea";
 import { profileFormSchema } from "@/schema/profile";
 import { useState } from "react";
-import { useToast } from "@/hooks/use-toast";
 import { useUser } from "@clerk/nextjs";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { InfoCircledIcon } from "@radix-ui/react-icons";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/atoms/popover";
+import { Badge } from "@/components/atoms/badge";
+import { toast } from "sonner";
 
-type ExpertFormValues = z.infer<typeof profileFormSchema>;
+type ExpertFormValues = z.infer<typeof profileFormSchema> & {
+  isVerified?: boolean;
+  isTopExpert?: boolean;
+};
 
 interface ExpertFormProps {
   initialData: ExpertFormValues | null;
@@ -31,7 +41,6 @@ interface ExpertFormProps {
 export function ExpertForm({ initialData }: ExpertFormProps) {
   const { user, isLoaded: isUserLoaded } = useUser();
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -84,7 +93,6 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
             ) || "",
         },
       ],
-      promotion: initialData?.promotion || "",
     },
   });
 
@@ -102,10 +110,15 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Clear the input value so the same file can be selected again
+    e.target.value = "";
+
+    console.log("File size:", file.size / (1024 * 1024), "MB");
+
     if (file.size > 4.5 * 1024 * 1024) {
-      toast({
-        variant: "destructive",
-        description: "Image must be less than 4.5MB",
+      console.log("File too large, showing error");
+      toast.error("Image must be less than 4.5MB", {
+        description: "Please choose a smaller image file.",
       });
       return;
     }
@@ -115,10 +128,10 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       setSelectedFile(file);
       const previewUrl = URL.createObjectURL(file);
       form.setValue("profilePicture", previewUrl);
-    } catch {
-      toast({
-        variant: "destructive",
-        description: "Failed to process image. Please try again.",
+    } catch (error) {
+      console.error("Error processing image:", error);
+      toast.error("Failed to process image", {
+        description: "Please try again with a different image.",
       });
     } finally {
       setIsUploading(false);
@@ -220,18 +233,14 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
         throw new Error((await response.text()) || "Failed to update profile");
       }
 
-      toast({
-        description: "Profile updated successfully",
-      });
+      toast.success("Profile updated successfully");
 
       setSelectedFile(null);
     } catch (error) {
       console.error(error);
-      toast({
-        variant: "destructive",
-        description:
-          error instanceof Error ? error.message : "Something went wrong",
-      });
+      toast.error(
+        error instanceof Error ? error.message : "Something went wrong"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -361,6 +370,56 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               )}
             />
           </div>
+
+          <div className="flex items-center gap-4 pt-2">
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={initialData?.isVerified ? "default" : "secondary"}
+                className="cursor-default"
+              >
+                {initialData?.isVerified ? "Verified" : "Unverified"}
+              </Badge>
+              <Popover>
+                <PopoverTrigger>
+                  <InfoCircledIcon className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Verified Expert Status</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Verified experts have had their credentials and expertise
+                      validated by our team. This badge helps users identify
+                      trusted professionals on our platform.
+                    </p>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Badge
+                variant={initialData?.isTopExpert ? "default" : "secondary"}
+                className="cursor-default"
+              >
+                {initialData?.isTopExpert ? "Top Expert" : "Community Expert"}
+              </Badge>
+              <Popover>
+                <PopoverTrigger>
+                  <InfoCircledIcon className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="space-y-2">
+                    <h4 className="font-medium">Top Expert Status</h4>
+                    <p className="text-sm text-muted-foreground">
+                      Top Experts are recognized leaders in their field with
+                      exceptional contributions and engagement on our platform.
+                      This status is awarded to our most distinguished members.
+                    </p>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
         </fieldset>
 
         <fieldset className="space-y-4 rounded-lg border p-4">
@@ -394,7 +453,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
             name="shortBio"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>About Me (Preview)</FormLabel>
+                <FormLabel>Brief Introduction</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Brief introduction (100 characters)"
@@ -454,9 +513,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                       />
                     </FormControl>
                   </div>
-                  <FormDescription>
-                    Enter your Instagram username without the @ symbol
-                  </FormDescription>
+                  <FormDescription>Username without @ symbol</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -480,6 +537,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                       />
                     </FormControl>
                   </div>
+                  <FormDescription>Username without @ symbol</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -503,6 +561,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                       />
                     </FormControl>
                   </div>
+                  <FormDescription>Username without @ symbol</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -526,6 +585,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                       />
                     </FormControl>
                   </div>
+                  <FormDescription>Username without @ symbol</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -549,29 +609,13 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                       />
                     </FormControl>
                   </div>
+                  <FormDescription>Username without @ symbol</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
         </fieldset>
-
-        <FormField
-          control={form.control}
-          name="promotion"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Promotion/Claim</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Special offer or promotional message"
-                  {...field}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
         <Button type="submit" disabled={isLoading || isUploading}>
           {isLoading || isUploading ? "Saving..." : "Save Changes"}
