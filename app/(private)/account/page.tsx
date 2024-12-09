@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -15,7 +15,6 @@ import {
 import { Input } from "@/components/atoms/input";
 import { useUser } from "@clerk/nextjs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/atoms/avatar";
-import { useState } from "react";
 import { toast } from "sonner";
 import { Copy } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/atoms/alert";
@@ -28,18 +27,31 @@ const profileFormSchema = z.object({
 });
 
 export default function ProfilePage() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   const form = useForm<z.infer<typeof profileFormSchema>>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      username: user?.username || "",
-      firstName: user?.firstName || "",
-      lastName: user?.lastName || "",
-      email: user?.primaryEmailAddress?.emailAddress || "",
+      username: "",
+      firstName: "",
+      lastName: "",
+      email: "",
     },
   });
+
+  // Update form values when Clerk user data is loaded
+  React.useEffect(() => {
+    if (isLoaded && user) {
+      form.reset({
+        username: user.username || "",
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.primaryEmailAddress?.emailAddress || "",
+      });
+    }
+  }, [isLoaded, user, form]);
 
   async function onSubmit(values: z.infer<typeof profileFormSchema>) {
     setIsLoading(true);
@@ -65,7 +77,11 @@ export default function ProfilePage() {
   };
 
   async function handleDeleteAccount() {
-    if (window.confirm("Are you sure you want to delete your account? This action cannot be undone.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete your account? This action cannot be undone."
+      )
+    ) {
       setIsLoading(true);
       try {
         await user?.delete();
@@ -77,6 +93,36 @@ export default function ProfilePage() {
       } finally {
         setIsLoading(false);
       }
+    }
+  }
+
+  async function handleAvatarChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    event.target.value = "";
+
+    if (file.size > 4.5 * 1024 * 1024) {
+      toast.error("Image must be less than 4.5MB", {
+        description: "Please choose a smaller image file.",
+      });
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      await user?.setProfileImage({
+        file,
+      });
+      toast.success("Avatar updated successfully");
+    } catch (error) {
+      toast.error(
+        `Failed to update avatar: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    } finally {
+      setIsUploadingAvatar(false);
     }
   }
 
@@ -97,7 +143,22 @@ export default function ProfilePage() {
             {user?.lastName?.charAt(0)}
           </AvatarFallback>
         </Avatar>
-        <Button variant="outline">Change Avatar</Button>
+        <div>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            className="hidden"
+            id="avatar-upload"
+          />
+          <Button
+            variant="outline"
+            disabled={isUploadingAvatar}
+            onClick={() => document.getElementById("avatar-upload")?.click()}
+          >
+            {isUploadingAvatar ? "Uploading..." : "Change Avatar"}
+          </Button>
+        </div>
       </div>
 
       <Form {...form}>
@@ -186,8 +247,9 @@ export default function ProfilePage() {
         <Alert variant="destructive">
           <AlertTitle>Warning</AlertTitle>
           <AlertDescription>
-            Permanently delete your Eleva Care account, all of your workspaces, links and their respective stats. 
-            This action cannot be undone - please proceed with caution.
+            Permanently delete your Eleva Care account, all of your workspaces,
+            links and their respective stats. This action cannot be undone -
+            please proceed with caution.
           </AlertDescription>
         </Alert>
         <Button
