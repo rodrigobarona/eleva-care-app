@@ -4,10 +4,9 @@ import { sql } from "drizzle-orm";
 
 export async function GET(request: Request) {
   try {
-    const { searchParams } = new URL(request.url);
-    const token = searchParams.get('token');
-
-    if (!process.env.VERCEL_DEPLOYMENT_ID || token !== process.env.VERCEL_DEPLOYMENT_ID) {
+    const authHeader = request.headers.get('authorization');
+    
+    if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return new Response("Unauthorized", { status: 401 });
     }
 
