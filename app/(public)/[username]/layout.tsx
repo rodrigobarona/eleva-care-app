@@ -1,22 +1,14 @@
-import React from "react";
-import { Button } from "@/components/atoms/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/atoms/card";
-import { db } from "@/drizzle/db";
-import { formatEventDescription } from "@/lib/formatters";
+import type React from "react";
 import { createClerkClient } from "@clerk/nextjs/server";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import { ProfileTable } from "@/drizzle/schema";
+import { db } from "@/drizzle/db";
 
-export default async function BookingPage({
+export default async function UserLayout({
+  children,
   params: { username },
 }: {
+  children: React.ReactNode;
   params: { username: string };
 }) {
   const clerk = createClerkClient({
@@ -32,14 +24,6 @@ export default async function BookingPage({
   const profile = await db.query.ProfileTable.findFirst({
     where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
   });
-
-  const events = await db.query.EventTable.findMany({
-    where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
-      and(eq(userIdCol, user.id), eq(isActive, true)),
-    orderBy: ({ name }, { asc, sql }) => asc(sql`lower(${name})`),
-  });
-
-  if (events.length === 0) return notFound();
 
   return (
     <div className="container max-w-7xl py-10">
@@ -89,55 +73,9 @@ export default async function BookingPage({
           </div>
         </div>
 
-        {/* Right Column - Booking Options */}
-        <div className="space-y-6">
-          <h2 className="text-2xl font-semibold">Book a session</h2>
-          <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-            {events.map((event) => (
-              <EventCard key={event.id} {...event} username={username} />
-            ))}
-          </div>
-        </div>
+        {/* Right Column - Content */}
+        <div className="space-y-6">{children}</div>
       </div>
     </div>
-  );
-}
-
-type EventCardProps = {
-  id: string;
-  name: string;
-  clerkUserId: string;
-  description: string | null;
-  durationInMinutes: number;
-  slug: string;
-  username: string;
-};
-
-function EventCard({
-  name,
-  description,
-  durationInMinutes,
-  slug,
-  username,
-}: EventCardProps) {
-  return (
-    <Card className="flex flex-col h-full">
-      <CardHeader>
-        <CardTitle className="text-xl">{name}</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          {formatEventDescription(durationInMinutes)}
-        </p>
-      </CardHeader>
-      {description != null && (
-        <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </CardContent>
-      )}
-      <CardContent className="pt-0">
-        <Button className="w-full" asChild>
-          <Link href={`/${username}/${slug}`}>Select Time</Link>
-        </Button>
-      </CardContent>
-    </Card>
   );
 }
