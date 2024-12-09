@@ -33,6 +33,7 @@ import { SOCIAL_MEDIA_LIST } from "@/lib/constants/social-media";
 type ExpertFormValues = z.infer<typeof profileFormSchema> & {
   isVerified?: boolean;
   isTopExpert?: boolean;
+  profilePicture: string;
 };
 
 interface ExpertFormProps {
@@ -48,25 +49,30 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
   const form = useForm<ExpertFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      firstName: initialData?.firstName || "",
-      lastName: initialData?.lastName || "",
+      firstName: initialData?.firstName || user?.firstName || "",
+      lastName: initialData?.lastName || user?.lastName || "",
       profilePicture: initialData?.profilePicture || user?.imageUrl || "",
       headline: initialData?.headline || "",
       shortBio: initialData?.shortBio || "",
       longBio: initialData?.longBio || "",
       socialLinks: SOCIAL_MEDIA_LIST.map((platform) => ({
         name: platform.name,
-        url: initialData?.socialLinks?.find(link => link.name === platform.name)?.url?.replace(platform.baseUrl, "") || "",
+        url:
+          initialData?.socialLinks
+            ?.find((link) => link.name === platform.name)
+            ?.url?.replace(platform.baseUrl, "") || "",
       })),
     },
   });
 
   React.useEffect(() => {
     if (isUserLoaded && user) {
-      form.setValue("firstName", user.firstName || "");
-      form.setValue("lastName", user.lastName || "");
-      if (!initialData?.profilePicture) {
-        form.setValue("profilePicture", user.imageUrl || "");
+      // Set values if there's no initialData or if the fields are empty
+      if (!initialData?.firstName || form.getValues('firstName') === '') {
+        form.setValue("firstName", user.firstName || "");
+      }
+      if (!initialData?.lastName || form.getValues('lastName') === '') {
+        form.setValue("lastName", user.lastName || "");
       }
     }
   }, [isUserLoaded, user, form, initialData]);
@@ -111,15 +117,15 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       const transformedData = {
         ...data,
         socialLinks: data.socialLinks.map((link) => {
-          const platform = SOCIAL_MEDIA_LIST.find(p => p.name === link.name);
+          const platform = SOCIAL_MEDIA_LIST.find((p) => p.name === link.name);
           if (!platform) return link;
-          
+
           const username = link.url?.trim();
           if (!username) return { name: link.name, url: "" };
 
           return {
             name: link.name,
-            url: `${platform.baseUrl}${username.replace(/^@/, '')}`
+            url: `${platform.baseUrl}${username.replace(/^@/, "")}`,
           };
         }),
       };
@@ -447,7 +453,10 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                 name={`socialLinks.${index}.url` as const}
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{platform.name.charAt(0).toUpperCase() + platform.name.slice(1)}</FormLabel>
+                    <FormLabel>
+                      {platform.name.charAt(0).toUpperCase() +
+                        platform.name.slice(1)}
+                    </FormLabel>
                     <div className="flex w-full items-center overflow-hidden rounded-md border">
                       <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
                         {platform.baseUrl}
