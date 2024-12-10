@@ -160,10 +160,16 @@ export function EventForm({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="15">Quick - 15 minutes</SelectItem>
-                  <SelectItem value="30">Regular - 30 minutes</SelectItem>
-                  <SelectItem value="45">Extra - 45 minutes</SelectItem>
-                  <SelectItem value="60">All Access - 60 minutes</SelectItem>
+                  <SelectItem value="10">Quick Chat (10 minutes)</SelectItem>
+                  <SelectItem value="30">
+                    Standard Session (30 minutes)
+                  </SelectItem>
+                  <SelectItem value="45">
+                    Comprehensive Session (45 minutes)
+                  </SelectItem>
+                  <SelectItem value="60">
+                    In-Depth Session (60 minutes)
+                  </SelectItem>
                 </SelectContent>
               </Select>
               <FormDescription>Meeting duration</FormDescription>
