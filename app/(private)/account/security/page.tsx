@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/molecules/dialog";
+} from "@/components/ui/dialog";
 import { Input } from "@/components/atoms/input";
 
 const passwordSchema = z.object({

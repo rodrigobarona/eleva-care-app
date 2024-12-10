@@ -72,7 +72,11 @@ export async function createCalendarEvent({
     sendUpdates: "all",
     requestBody: {
       attendees: [
-        { email: guestEmail, displayName: guestName },
+        {
+          email: guestEmail,
+          displayName: guestName,
+          responseStatus: "accepted",
+        },
         {
           email: calendarUser.primaryEmailAddress.emailAddress,
           displayName: calendarUser.fullName,
