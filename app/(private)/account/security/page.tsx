@@ -24,7 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/molecules/dialog";
 import { Input } from "@/components/atoms/input";
 
 const passwordSchema = z.object({
@@ -180,12 +180,12 @@ export default function SecurityPage() {
     try {
       setIsLoading(true);
       await fetch(`/api/sessions/${sessionId}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
       // Optionally refresh the page or update the UI
       window.location.reload();
     } catch (error) {
-      console.error('Failed to revoke device:', error);
+      console.error("Failed to revoke device:", error);
     } finally {
       setIsLoading(false);
     }
