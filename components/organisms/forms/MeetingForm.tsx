@@ -37,6 +37,7 @@ import { createMeeting } from "@/server/actions/meetings";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
 import { Suspense } from "react";
+import { format } from "date-fns";
 
 export function MeetingForm({
   validTimes,
@@ -114,62 +115,24 @@ export function MeetingForm({
     }
   }
 
-  const timeFormatToggle = (
-    <div className="flex items-center justify-end space-x-2 mb-2">
-      <div className="bg-muted p-1 rounded-full flex">
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "rounded-full px-4 text-sm font-normal",
-            !use24Hour
-              ? "bg-background shadow-sm text-foreground"
-              : "text-muted-foreground hover:bg-transparent hover:text-foreground"
-          )}
-          onClick={() => setUse24Hour(false)}
-        >
-          12h
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "rounded-full px-4 text-sm font-normal",
-            use24Hour
-              ? "bg-background shadow-sm text-foreground"
-              : "text-muted-foreground hover:bg-transparent hover:text-foreground"
-          )}
-          onClick={() => setUse24Hour(true)}
-        >
-          24h
-        </Button>
-      </div>
-    </div>
-  );
+  React.useEffect(() => {
+    // Set the first available date as default when component mounts
+    if (validTimes.length > 0 && !form.getValues("date")) {
+      const firstAvailableDate = startOfDay(validTimes[0]);
+      form.setValue("date", firstAvailableDate);
+    }
+  }, [validTimes, form]);
 
   return (
-    <Form {...form} className="bg-white shadow-md rounded-lg p-6">
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="flex gap-6 flex-col"
-      >
-        {form.formState.errors.root && (
-          <div className="text-destructive text-sm mb-4">
-            {form.formState.errors.root.message}
-          </div>
-        )}
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <FormField
           control={form.control}
           name="timezone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="font-semibold">Timezone</FormLabel>
-              <Select
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-              >
+              <FormLabel className="text-lg font-semibold">Timezone</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue />
@@ -188,91 +151,145 @@ export function MeetingForm({
             </FormItem>
           )}
         />
-        <div className="flex gap-4 flex-col md:flex-row">
-          <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-              <Popover>
-                <FormItem className="flex-1">
-                  <FormLabel className="font-semibold">Date</FormLabel>
-                  <PopoverTrigger asChild>
-                    <FormControl>
-                      <Button
-                        variant="outline"
-                        className="pl-3 text-left font-normal flex w-full"
-                      >
-                        {field.value ? (
-                          formatDate(field.value)
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                        <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                      </Button>
-                    </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={field.onChange}
-                      disabled={(date) => {
-                        const dateKey = startOfDay(date).toISOString();
-                        return !timesByDate[dateKey];
-                      }}
-                      initialFocus
-                    />
-                  </PopoverContent>
+
+        <div className="grid md:grid-cols-[minmax(auto,800px),300px] gap-8">
+          <div>
+            <FormLabel className="text-lg font-semibold mb-4 block">
+              Select a Date
+            </FormLabel>
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <Calendar
+                    mode="single"
+                    selected={field.value}
+                    onSelect={field.onChange}
+                    disabled={(date) => {
+                      const dateKey = startOfDay(date).toISOString();
+                      return !timesByDate[dateKey];
+                    }}
+                    className="rounded-md border w-full p-4"
+                    showOutsideDays
+                    fixedWeeks
+                    modifiersStyles={{
+                      selected: {
+                        backgroundColor: "hsl(var(--primary))",
+                        color: "white",
+                      },
+                      disabled: {
+                        color: "hsl(var(--muted-foreground))",
+                      },
+                    }}
+                    styles={{
+                      head_cell: {
+                        width: "100%",
+                        fontSize: "0.875rem",
+                        fontWeight: "600",
+                        padding: "0.75rem 0",
+                      },
+                      cell: {
+                        width: "100%",
+                        height: "2.5rem",
+                        fontSize: "0.875rem",
+                      },
+                      nav_button_previous: {
+                        width: "2rem",
+                        height: "2rem",
+                      },
+                      nav_button_next: {
+                        width: "2rem",
+                        height: "2rem",
+                      },
+                      caption: {
+                        fontSize: "1rem",
+                        padding: "1rem 0",
+                      },
+                    }}
+                  />
                   <FormMessage />
                 </FormItem>
-              </Popover>
-            )}
-          />
-          <div className="flex-1">
-            {timeFormatToggle}
+              )}
+            />
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <FormLabel className="text-lg font-semibold">
+                {date ? format(date, "EE, MMM d") : "Available Times"}
+              </FormLabel>
+              <div className="bg-muted p-1 rounded-full flex">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "rounded-full px-4 text-sm font-normal",
+                    !use24Hour
+                      ? "bg-background shadow-sm text-foreground"
+                      : "text-muted-foreground hover:bg-transparent hover:text-foreground"
+                  )}
+                  onClick={() => setUse24Hour(false)}
+                >
+                  12h
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "rounded-full px-4 text-sm font-normal",
+                    use24Hour
+                      ? "bg-background shadow-sm text-foreground"
+                      : "text-muted-foreground hover:bg-transparent hover:text-foreground"
+                  )}
+                  onClick={() => setUse24Hour(true)}
+                >
+                  24h
+                </Button>
+              </div>
+            </div>
             <FormField
               control={form.control}
               name="startTime"
               render={({ field }) => (
-                <FormItem className="flex-1">
-                  <FormLabel className="font-semibold">Time</FormLabel>
-                  <Select
-                    disabled={date == null || timezone == null}
-                    onValueChange={(value) => field.onChange(new Date(value))}
-                    defaultValue={field.value?.toISOString()}
-                    className="border rounded-md"
+                <FormItem>
+                  <div
+                    className="grid gap-2 overflow-y-auto pr-4"
+                    style={{
+                      maxHeight: "calc(400px - 3rem)", // Increased height
+                      scrollbarGutter: "stable",
+                    }}
                   >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue
-                          placeholder={
-                            date == null || timezone == null
-                              ? "Select a date/timezone first"
-                              : "Select a meeting time"
-                          }
-                        />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {date &&
-                        timesByDate[startOfDay(date).toISOString()]?.map(
-                          ({ utcDate, displayTime }) => (
-                            <SelectItem
-                              key={utcDate.toISOString()}
-                              value={utcDate.toISOString()}
-                            >
-                              {displayTime}
-                            </SelectItem>
-                          )
-                        )}
-                    </SelectContent>
-                  </Select>
+                    {date &&
+                      timesByDate[startOfDay(date).toISOString()]?.map(
+                        ({ utcDate, displayTime }) => (
+                          <Button
+                            key={utcDate.toISOString()}
+                            type="button"
+                            variant="outline"
+                            className={cn(
+                              "justify-center text-center h-12 text-base",
+                              field.value?.toISOString() ===
+                                utcDate.toISOString()
+                                ? "border-primary bg-primary/5 font-medium"
+                                : "hover:border-primary/50"
+                            )}
+                            onClick={() => field.onChange(utcDate)}
+                          >
+                            {displayTime}
+                          </Button>
+                        )
+                      )}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
         </div>
+
         <div className="flex gap-4 flex-col md:flex-row">
           <FormField
             control={form.control}
@@ -294,7 +311,11 @@ export function MeetingForm({
               <FormItem className="flex-1">
                 <FormLabel className="font-semibold">Your Email</FormLabel>
                 <FormControl>
-                  <Input type="email" {...field} className="border rounded-md" />
+                  <Input
+                    type="email"
+                    {...field}
+                    className="border rounded-md"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -308,7 +329,10 @@ export function MeetingForm({
             <FormItem>
               <FormLabel className="font-semibold">Notes</FormLabel>
               <FormControl>
-                <Textarea className="resize-none border rounded-md" {...field} />
+                <Textarea
+                  className="resize-none border rounded-md"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
