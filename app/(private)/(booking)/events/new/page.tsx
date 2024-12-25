@@ -1,21 +1,16 @@
 import { EventForm } from "@/components/organisms/forms/EventForm";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/atoms/card";
 import React from "react";
 
 export default function NewEventPage() {
   return (
-    <Card className="max-w-md max-auto">
-      <CardHeader>
-        <CardTitle>New Event</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <EventForm />
-      </CardContent>
-    </Card>
+    <div className="container max-w-3xl py-8 space-y-6">
+      <div className="space-y-0.5">
+        <h2 className="text-2xl font-bold tracking-tight">New Event</h2>
+        <p className="text-muted-foreground">
+          Create a new event that users can book appointments for.
+        </p>
+      </div>
+      <EventForm />
+    </div>
   );
 }

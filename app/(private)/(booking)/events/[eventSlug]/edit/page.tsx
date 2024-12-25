@@ -1,10 +1,4 @@
 import { EventForm } from "@/components/organisms/forms/EventForm";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/atoms/card";
 import { db } from "@/drizzle/db";
 import { auth } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
@@ -29,15 +23,16 @@ export default async function EditEventPage({
   if (event == null) return notFound();
 
   return (
-    <Card className="max-w-md max-auto">
-      <CardHeader>
-        <CardTitle>Edit Event</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <EventForm
-          event={{ ...event, description: event.description || undefined }}
-        />
-      </CardContent>
-    </Card>
+    <div className="container max-w-3xl py-8 space-y-6">
+      <div className="space-y-0.5">
+        <h2 className="text-2xl font-bold tracking-tight">Edit Event</h2>
+        <p className="text-muted-foreground">
+          Make changes to your event settings and information.
+        </p>
+      </div>
+      <EventForm
+        event={{ ...event, description: event.description || undefined }}
+      />
+    </div>
   );
 }
