@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useTransition } from "react";
+import React, { useTransition, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +17,6 @@ import {
 import { Input } from "../../atoms/input";
 import { Button } from "../../atoms/button";
 import Link from "next/link";
-import { Textarea } from "../../atoms/textarea";
 import { Switch } from "../../atoms/switch";
 import { createEvent, deleteEvent, updateEvent } from "@/server/actions/events";
 import {
@@ -39,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../molecules/select";
+import SimpleRichTextEditor from "../../molecules/RichTextEditor";
 
 export function EventForm({
   event,
@@ -60,6 +60,12 @@ export function EventForm({
       durationInMinutes: 30,
     },
   });
+
+  const [description, setDescription] = React.useState(event?.description || "");
+
+  useEffect(() => {
+    form.setValue("description", description);
+  }, [description, form]);
 
   React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
@@ -104,7 +110,7 @@ export function EventForm({
     }
   };
 
-  async function onSubmit(values: z.infer<typeof eventFormSchema>) {
+  const handleSubmit = async (values: z.infer<typeof eventFormSchema>) => {
     const action =
       event == null ? createEvent : updateEvent.bind(null, event.id);
     const data = await action(values);
@@ -114,12 +120,12 @@ export function EventForm({
         message: "There was an error saving your event",
       });
     }
-  }
+  };
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(handleSubmit)}
         className="flex gap-6 flex-col"
       >
         {form.formState.errors.root && (
@@ -182,10 +188,13 @@ export function EventForm({
             <FormItem>
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <Textarea className="resize-none h-32" {...field} />
+                <SimpleRichTextEditor
+                  value={description}
+                  onChange={setDescription}
+                />
               </FormControl>
               <FormDescription>
-                Optinal description of the event
+                Optional description of the event
               </FormDescription>
               <FormMessage />
             </FormItem>
