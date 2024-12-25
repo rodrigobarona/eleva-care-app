@@ -1,13 +1,19 @@
 "use client";
 import { CopyEventButton } from "@/components/molecules/CopyEventButton";
 import { Button } from "@/components/atoms/button";
-import { Card, CardDescription } from "@/components/atoms/card";
+import {
+  Card,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/atoms/card";
 import { formatEventDescription } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { CalendarPlus, CalendarRange, GripVertical } from "lucide-react";
+import { CalendarPlus, CalendarRange, GripVertical, Clock } from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { toast } from "sonner";
+import Markdown from "react-markdown";
 import {
   DndContext,
   closestCenter,
@@ -52,22 +58,22 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
-    
+
     if (over && active.id !== over.id) {
       const promise = new Promise((resolve, reject) => {
         try {
           setEvents((items) => {
             const oldIndex = items.findIndex((item) => item.id === active.id);
             const newIndex = items.findIndex((item) => item.id === over.id);
-            
+
             const newItems = arrayMove(items, oldIndex, newIndex);
-            
+
             // Create updates array with new order values
             const updates = newItems.map((item, index) => ({
               id: item.id,
               order: index,
             }));
-            
+
             // Immediately update the database
             updateEventOrder(updates)
               .then(() => resolve(true))
@@ -76,7 +82,7 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
                 setEvents(items); // Revert on error
                 reject(error);
               });
-            
+
             return newItems;
           });
         } catch (error) {
@@ -85,9 +91,9 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
       });
 
       toast.promise(promise, {
-        loading: 'Updating event order...',
-        success: 'Event order updated',
-        error: 'Failed to update event order'
+        loading: "Updating event order...",
+        success: "Event order updated",
+        error: "Failed to update event order",
       });
     }
   };
@@ -202,9 +208,15 @@ function SortableEventCard({
               >
                 {event.name}
               </h3>
-              <CardDescription>
-                {formatEventDescription(event.durationInMinutes)}
-              </CardDescription>
+              <CardDescription>{`/${username}/${event.slug}`}</CardDescription>
+              <CardFooter className="p-0 mt-2">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    {formatEventDescription(event.durationInMinutes)}
+                  </span>
+                </span>
+              </CardFooter>
             </div>
             {!event.isActive && (
               <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full flex-shrink-0">
