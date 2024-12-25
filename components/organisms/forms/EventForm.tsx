@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "../../molecules/select";
 import SimpleRichTextEditor from "../../molecules/RichTextEditor";
+import { useUser } from "@clerk/nextjs";
 
 export function EventForm({
   event,
@@ -52,6 +53,7 @@ export function EventForm({
     isActive: boolean;
   };
 }) {
+  const { user } = useUser();
   const [isDeletePending, startDeleteTransition] = useTransition();
   const form = useForm<z.infer<typeof eventFormSchema>>({
     resolver: zodResolver(eventFormSchema),
@@ -234,13 +236,21 @@ export function EventForm({
           render={({ field }) => (
             <FormItem>
               <FormLabel>URL Slug</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  onChange={onSlugChange}
-                  onKeyDown={onSlugKeyDown}
-                />
-              </FormControl>
+              <div className="flex w-full items-center overflow-hidden rounded-md border">
+                <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
+                  eleva.care/{user?.username || 'username'}/
+                </div>
+                <div className="w-px self-stretch bg-border" />
+                <FormControl>
+                  <Input
+                    {...field}
+                    onChange={onSlugChange}
+                    onKeyDown={onSlugKeyDown}
+                    className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+                    placeholder="event-name"
+                  />
+                </FormControl>
+              </div>
               <FormDescription>
                 URL-friendly version of the event name. Can contain lowercase
                 letters, numbers, and hyphens.
