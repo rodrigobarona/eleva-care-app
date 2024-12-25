@@ -2,7 +2,7 @@
 import React from "react";
 import { useState } from "react";
 import { Button, type ButtonProps } from "@/components/atoms/button";
-import { Copy, CopyCheck, CopyX, Link2 } from "lucide-react";
+import { CopyCheck, CopyX, Link2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
