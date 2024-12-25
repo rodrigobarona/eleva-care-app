@@ -8,12 +8,13 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import "use-server";
-import { z } from "zod";
+import type { z } from "zod";
 import { and, eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 
 // CREATE EVENT
 export async function createEvent(
-  unsafeData: z.infer<typeof eventFormSchema>,
+  unsafeData: z.infer<typeof eventFormSchema>
 ): Promise<{ error: boolean } | undefined> {
   const { userId } = auth();
   const headersList = headers();
@@ -45,7 +46,7 @@ export async function createEvent(
     null,
     { ...data },
     ipAddress,
-    userAgent,
+    userAgent
   );
 
   redirect("/events");
@@ -54,7 +55,7 @@ export async function createEvent(
 // UPDATE EVENT
 export async function updateEvent(
   id: string,
-  unsafeData: z.infer<typeof eventFormSchema>,
+  unsafeData: z.infer<typeof eventFormSchema>
 ): Promise<{ error: boolean } | undefined> {
   const { userId } = auth();
   const headersList = headers();
@@ -98,7 +99,7 @@ export async function updateEvent(
     oldEvent, // Pass the old values here
     { ...data }, // New values
     ipAddress,
-    userAgent,
+    userAgent
   );
 
   redirect("/events");
@@ -106,7 +107,7 @@ export async function updateEvent(
 
 // DELETE EVENT
 export async function deleteEvent(
-  id: string,
+  id: string
 ): Promise<{ error: boolean } | undefined> {
   const { userId } = auth();
   const headersList = headers();
@@ -147,8 +148,27 @@ export async function deleteEvent(
     oldEvent, // Pass the old values here
     "User requested deletion",
     ipAddress,
-    userAgent,
+    userAgent
   );
 
   redirect("/events");
+}
+
+export async function updateEventOrder(updates: { id: string; order: number }[]) {
+  try {
+    // Update each record individually since we can't use transactions
+    for (const { id, order } of updates) {
+      await db
+        .update(EventTable)
+        .set({ order })
+        .where(eq(EventTable.id, id));
+    }
+
+    // Revalidate the events page to reflect the new order
+    revalidatePath('/events');
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to update event order:", error);
+    return { error: "Failed to update event order" };
+  }
 }
