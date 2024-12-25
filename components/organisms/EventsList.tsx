@@ -11,6 +11,8 @@ import {
   Clock,
   ExternalLink,
   Pencil,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -33,7 +35,10 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { updateEventOrder, updateEventActiveState } from "@/server/actions/events";
+import {
+  updateEventOrder,
+  updateEventActiveState,
+} from "@/server/actions/events";
 import {
   Tooltip,
   TooltipContent,
@@ -126,7 +131,9 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
           .catch((error) => {
             setEvents((prevEvents) =>
               prevEvents.map((event) =>
-                event.id === eventId ? { ...event, isActive: currentState } : event
+                event.id === eventId
+                  ? { ...event, isActive: currentState }
+                  : event
               )
             );
             reject(error);
@@ -170,16 +177,18 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
             items={events}
             strategy={verticalListSortingStrategy}
           >
-            <div className="space-y-2">
-              {events.map((event) => (
-                <SortableEventCard
-                  key={event.id}
-                  event={event}
-                  username={username}
-                  onToggleActive={handleToggleActive}
-                />
-              ))}
-            </div>
+            <Card className="overflow-hidden">
+              <div className="divide-y divide-border">
+                {events.map((event) => (
+                  <SortableEventCard
+                    key={event.id}
+                    event={event}
+                    username={username}
+                    onToggleActive={handleToggleActive}
+                  />
+                ))}
+              </div>
+            </Card>
           </SortableContext>
         </DndContext>
       ) : (
@@ -230,32 +239,51 @@ function SortableEventCard({
       style={style}
       className={cn("relative", isDragging && "z-50")}
     >
-      <Card
+      <div
         className={cn(
-          "flex items-center gap-4 p-4",
+          "flex items-center gap-4 p-4 bg-background",
           !event.isActive && "bg-muted/50",
           isDragging && "shadow-lg"
         )}
       >
-        <button
-          {...attributes}
-          {...listeners}
-          className="touch-none p-2 -m-2 hover:text-foreground text-muted-foreground"
-        >
-          <GripVertical className="h-5 w-5" />
-        </button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                {...attributes}
+                {...listeners}
+                className="touch-none p-2 -m-2 hover:bg-muted rounded-md group cursor-move"
+              >
+                <div className="flex flex-col items-center gap-0.5 text-muted-foreground group-hover:text-foreground ">
+                  <ChevronUp className="h-3 w-3" />
+                  <GripVertical className="h-4 w-4" />
+                  <ChevronDown className="h-3 w-3" />
+                </div>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Drag to reorder</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
 
         <div className="flex-grow min-w-0">
           <div className="flex items-start justify-between gap-4 mb-1">
             <div>
-              <h3
-                className={cn(
-                  "font-semibold truncate",
-                  !event.isActive && "text-muted-foreground"
-                )}
+              <Link
+                href={`/events/${event.slug}/edit`}
+                className="group inline-flex items-center gap-2 hover:text-foreground"
               >
-                {event.name}
-              </h3>
+                <h3
+                  className={cn(
+                    "font-semibold truncate",
+                    !event.isActive && "text-muted-foreground"
+                  )}
+                >
+                  {event.name}
+                </h3>
+                <Pencil className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+              </Link>
               <CardDescription>{`/${username}/${event.slug}`}</CardDescription>
               <CardFooter className="p-0 mt-2">
                 <span className="inline-flex items-center gap-1.5">
@@ -328,7 +356,7 @@ function SortableEventCard({
             </TooltipProvider>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
