@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useTransition, useEffect } from "react";
+import React, { useTransition } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -67,10 +67,6 @@ export function EventForm({
     event?.description || ""
   );
 
-  useEffect(() => {
-    form.setValue("description", description);
-  }, [description, form]);
-
   React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === "name") {
@@ -128,140 +124,142 @@ export function EventForm({
 
   return (
     <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(handleSubmit)}
-        className="flex gap-6 flex-col"
-      >
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
         {form.formState.errors.root && (
           <div className="text-destructive text-sm">
             {form.formState.errors.root.message}
           </div>
         )}
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Event Name</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormDescription>
-                The name user will see when booking
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem className="space-y-2">
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <div className="prose-container">
-                  <SimpleRichTextEditor
-                    value={description}
-                    onChange={(value) => {
-                      setDescription(value);
-                      field.onChange(value);
-                    }}
-                  />
-                </div>
-              </FormControl>
-              <FormDescription>
-                Describe your event. You can use formatting to make it more
-                readable.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="space-y-6">
+          <div className="rounded-lg border p-4 space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    The name users will see when booking
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="slug"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL Slug</FormLabel>
-              <div className="flex w-full items-center overflow-hidden rounded-md border">
-                <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
-                  eleva.care/{user?.username || "username"}/
-                </div>
-                <div className="w-px self-stretch bg-border" />
-                <FormControl>
-                  <Input
-                    {...field}
-                    onChange={onSlugChange}
-                    onKeyDown={onSlugKeyDown}
-                    className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-                    placeholder="event-name"
-                  />
-                </FormControl>
-              </div>
-              <FormDescription>
-                URL-friendly version of the event name. Can contain lowercase
-                letters, numbers, and hyphens.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <SimpleRichTextEditor
+                      value={description}
+                      onChange={(value) => {
+                        setDescription(value);
+                        field.onChange(value);
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Describe your event. You can use formatting to make it more
+                    readable.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <FormField
-          control={form.control}
-          name="durationInMinutes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Duration</FormLabel>
-              <Select
-                onValueChange={(value) => field.onChange(Number(value))}
-                defaultValue={field.value.toString()}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select duration" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="10">10 minutes session</SelectItem>
-                  <SelectItem value="30">30 minutes session</SelectItem>
-                  <SelectItem value="45">45 minutes session</SelectItem>
-                  <SelectItem value="60">60 minutes session</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormDescription>
-                Choose the appropriate session duration based on the depth of
-                discussion or activity required
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="slug"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>URL</FormLabel>
+                  <div className="flex w-full items-center overflow-hidden rounded-md border">
+                    <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
+                      eleva.care/{user?.username || "username"}/
+                    </div>
+                    <div className="w-px self-stretch bg-border" />
+                    <FormControl>
+                      <Input
+                        {...field}
+                        onChange={onSlugChange}
+                        onKeyDown={onSlugKeyDown}
+                        className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+                        placeholder="event-name"
+                      />
+                    </FormControl>
+                  </div>
+                  <FormDescription>
+                    URL-friendly version of the event name
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-        <FormField
-          control={form.control}
-          name="isActive"
-          render={({ field }) => (
-            <FormItem>
-              <div className="flex items-center gap-2">
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <FormLabel>Active</FormLabel>
-              </div>
-              <FormDescription>
-                Inactive events will not be visable for the users to book
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <div className="rounded-lg border p-4 space-y-4">
+            <FormField
+              control={form.control}
+              name="durationInMinutes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Duration</FormLabel>
+                  <Select
+                    onValueChange={(value) => field.onChange(Number(value))}
+                    defaultValue={field.value.toString()}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="10">10 minutes session</SelectItem>
+                      <SelectItem value="30">30 minutes session</SelectItem>
+                      <SelectItem value="45">45 minutes session</SelectItem>
+                      <SelectItem value="60">60 minutes session</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Choose the appropriate session duration
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="rounded-lg border p-4 space-y-4">
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <FormLabel className="!mt-0">Active</FormLabel>
+                  </div>
+                  <FormDescription>
+                    Inactive events will not be visible for users to book
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
 
         <div className="flex justify-end gap-2">
           {event && (
@@ -278,8 +276,8 @@ export function EventForm({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action can not be undone. This will be permanently
-                    delete your event.
+                    This action cannot be undone. This will permanently delete
+                    your event.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -290,7 +288,6 @@ export function EventForm({
                     onClick={() => {
                       startDeleteTransition(async () => {
                         const data = await deleteEvent(event.id);
-
                         if (data?.error) {
                           form.setError("root", {
                             message: "There was an error deleting your event",
