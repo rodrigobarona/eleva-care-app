@@ -2,6 +2,7 @@
 import React from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
+import { Markdown } from "tiptap-markdown";
 import Link from "@tiptap/extension-link";
 import BulletList from "@tiptap/extension-bullet-list";
 import ListItem from "@tiptap/extension-list-item";
@@ -16,23 +17,37 @@ interface SimpleRichTextEditorProps {
 const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onChange }) => {
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
+      Markdown.configure({
+        html: true,
+        tightLists: true,
+        bulletListMarker: '-',
+        breaks: true,
+        transformPastedText: true,
+      }),
       BulletList,
       ListItem,
       Link.configure({
         openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline hover:text-primary/80',
+        },
       }),
     ],
     content: value,
     editorProps: {
       attributes: {
-        class: "prose max-w-none focus:outline-none",
+        class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[100px] px-3 py-2",
       },
     },
   });
 
   React.useEffect(() => {
-    if (editor) {
+    if (editor && value !== editor.storage.markdown.getMarkdown()) {
       editor.commands.setContent(value);
     }
   }, [value, editor]);
@@ -40,7 +55,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
   React.useEffect(() => {
     if (editor) {
       editor.on('update', () => {
-        const markdownContent = editor.getMarkdown();
+        const markdownContent = editor.storage.markdown.getMarkdown();
         onChange(markdownContent);
       });
     }
@@ -51,8 +66,8 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
   }
 
   return (
-    <div className="border rounded-md p-4">
-      <div className="mb-4 flex gap-2">
+    <div className="border rounded-md overflow-hidden">
+      <div className="border-b bg-muted/50 p-2 flex gap-2">
         <Button
           type="button"
           variant="outline"

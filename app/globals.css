@@ -114,3 +114,26 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Tiptap editor styles */
+.prose-container .ProseMirror p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Ensure proper spacing in the editor */
+.prose-container .ProseMirror {
+  min-height: 100px;
+}
+
+.prose-container .ProseMirror p {
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.prose-container .ProseMirror > * + * {
+  margin-top: 0.5em;
+}

@@ -185,16 +185,21 @@ export function EventForm({
           control={form.control}
           name="description"
           render={({ field }) => (
-            <FormItem>
+            <FormItem className="space-y-2">
               <FormLabel>Description</FormLabel>
               <FormControl>
-                <SimpleRichTextEditor
-                  value={description}
-                  onChange={setDescription}
-                />
+                <div className="prose-container">
+                  <SimpleRichTextEditor
+                    value={description}
+                    onChange={(value) => {
+                      setDescription(value);
+                      field.onChange(value);
+                    }}
+                  />
+                </div>
               </FormControl>
               <FormDescription>
-                Optional description of the event
+                Describe your event. You can use formatting to make it more readable.
               </FormDescription>
               <FormMessage />
             </FormItem>
