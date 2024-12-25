@@ -1,19 +1,21 @@
 "use client";
 import { CopyEventButton } from "@/components/molecules/CopyEventButton";
 import { Button } from "@/components/atoms/button";
-import {
-  Card,
-  CardDescription,
-  CardContent,
-  CardFooter,
-} from "@/components/atoms/card";
+import { Card, CardDescription, CardFooter } from "@/components/atoms/card";
 import { formatEventDescription } from "@/lib/formatters";
 import { cn } from "@/lib/utils";
-import { CalendarPlus, CalendarRange, GripVertical, Clock } from "lucide-react";
+import {
+  CalendarPlus,
+  CalendarRange,
+  GripVertical,
+  Clock,
+  ExternalLink,
+  Pencil,
+} from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { toast } from "sonner";
-import Markdown from "react-markdown";
+
 import {
   DndContext,
   closestCenter,
@@ -31,7 +33,14 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { updateEventOrder } from "@/server/actions/events";
+import { updateEventOrder, updateEventActiveState } from "@/server/actions/events";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/atoms/tooltip";
+import { Switch } from "@/components/atoms/switch";
 
 type Event = {
   id: string;
@@ -98,6 +107,42 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
     }
   };
 
+  const handleToggleActive = async (eventId: string, currentState: boolean) => {
+    const promise = new Promise((resolve, reject) => {
+      try {
+        // Optimistically update the UI
+        setEvents((prevEvents) =>
+          prevEvents.map((event) =>
+            event.id === eventId ? { ...event, isActive: !currentState } : event
+          )
+        );
+
+        // Update the database
+        updateEventActiveState(eventId, !currentState)
+          .then((result) => {
+            if (result?.error) throw new Error("Failed to update event");
+            resolve(true);
+          })
+          .catch((error) => {
+            setEvents((prevEvents) =>
+              prevEvents.map((event) =>
+                event.id === eventId ? { ...event, isActive: currentState } : event
+              )
+            );
+            reject(error);
+          });
+      } catch (error) {
+        reject(error);
+      }
+    });
+
+    toast.promise(promise, {
+      loading: "Updating event...",
+      success: `Event ${currentState ? "deactivated" : "activated"}`,
+      error: "Failed to update event",
+    });
+  };
+
   return (
     <div className="container py-8 space-y-6">
       <div className="flex justify-between items-center">
@@ -131,6 +176,7 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
                   key={event.id}
                   event={event}
                   username={username}
+                  onToggleActive={handleToggleActive}
                 />
               ))}
             </div>
@@ -158,9 +204,11 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
 function SortableEventCard({
   event,
   username,
+  onToggleActive,
 }: {
   event: Event;
   username: string;
+  onToggleActive: (eventId: string, currentState: boolean) => Promise<void>;
 }) {
   const {
     attributes,
@@ -218,25 +266,67 @@ function SortableEventCard({
                 </span>
               </CardFooter>
             </div>
-            {!event.isActive && (
-              <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full flex-shrink-0">
-                Inactive
-              </span>
-            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-2 ml-4">
-          {event.isActive && (
-            <CopyEventButton
-              variant="outline"
-              eventSlug={event.slug}
-              username={username}
+        <div className="flex items-center gap-4 ml-4">
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={event.isActive}
+              onCheckedChange={() => onToggleActive(event.id, event.isActive)}
             />
-          )}
-          <Button asChild variant="default">
-            <Link href={`/events/${event.slug}/edit`}>Edit</Link>
-          </Button>
+            <span className="text-sm text-muted-foreground">
+              {event.isActive ? "Active" : "Inactive"}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 border-l pl-4">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button asChild size="icon" variant="ghost">
+                    <a
+                      href={`/${username}/${event.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Open event page</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <CopyEventButton
+                    variant="ghost"
+                    size="icon"
+                    eventSlug={event.slug}
+                    username={username}
+                  />
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Copy event link</p>
+                </TooltipContent>
+              </Tooltip>
+
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button asChild size="icon" variant="ghost">
+                    <Link href={`/events/${event.slug}/edit`}>
+                      <Pencil className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit event</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
         </div>
       </Card>
     </div>

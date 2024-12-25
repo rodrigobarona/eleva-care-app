@@ -154,21 +154,71 @@ export async function deleteEvent(
   redirect("/events");
 }
 
-export async function updateEventOrder(updates: { id: string; order: number }[]) {
+export async function updateEventOrder(
+  updates: { id: string; order: number }[]
+) {
   try {
     // Update each record individually since we can't use transactions
     for (const { id, order } of updates) {
-      await db
-        .update(EventTable)
-        .set({ order })
-        .where(eq(EventTable.id, id));
+      await db.update(EventTable).set({ order }).where(eq(EventTable.id, id));
     }
 
     // Revalidate the events page to reflect the new order
-    revalidatePath('/events');
+    revalidatePath("/events");
     return { success: true };
   } catch (error) {
     console.error("Failed to update event order:", error);
     return { error: "Failed to update event order" };
   }
+}
+
+export async function updateEventActiveState(
+  id: string,
+  isActive: boolean
+): Promise<{ error: boolean } | undefined> {
+  const { userId } = auth();
+  const headersList = headers();
+
+  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
+  const userAgent = headersList.get("user-agent") ?? "Unknown";
+
+  if (!userId) {
+    return { error: true };
+  }
+
+  // Get the old event data
+  const [oldEvent] = await db
+    .select()
+    .from(EventTable)
+    .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
+    .execute();
+
+  if (!oldEvent) {
+    return { error: true };
+  }
+
+  // Update the event
+  const [updatedEvent] = await db
+    .update(EventTable)
+    .set({ isActive })
+    .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
+    .returning({ id: EventTable.id, userId: EventTable.clerkUserId });
+
+  if (!updatedEvent) {
+    return { error: true };
+  }
+
+  await logAuditEvent(
+    updatedEvent.userId,
+    "update",
+    "events",
+    updatedEvent.id,
+    oldEvent,
+    { isActive },
+    ipAddress,
+    userAgent
+  );
+
+  revalidatePath("/events");
+  return { error: false };
 }

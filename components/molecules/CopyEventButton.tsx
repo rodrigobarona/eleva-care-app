@@ -2,7 +2,7 @@
 import React from "react";
 import { useState } from "react";
 import { Button, ButtonProps } from "@/components/atoms/button";
-import { Copy, CopyCheck, CopyX } from "lucide-react";
+import { Copy, CopyCheck, CopyX, Link2 } from "lucide-react";
 
 type CopyState = "idle" | "copied" | "error";
 
@@ -17,10 +17,16 @@ export function CopyEventButton({
   const [copyState, setCopyState] = useState<CopyState>("idle");
 
   const CopyIcon = getCopyIcon(copyState);
+  const ariaLabel = copyState === "copied" 
+    ? "Link copied to clipboard" 
+    : copyState === "error" 
+    ? "Failed to copy link" 
+    : "Copy event link";
 
   return (
     <Button
       {...buttonProps}
+      aria-label={ariaLabel}
       onClick={() => {
         navigator.clipboard
           .writeText(`${location.origin}/${username}/${eventSlug}`)
@@ -34,8 +40,7 @@ export function CopyEventButton({
           });
       }}
     >
-      <CopyIcon className="size-4 mr-2" />
-      {getChildren(copyState)}
+      <CopyIcon className="h-4 w-4" />
     </Button>
   );
 }
@@ -43,21 +48,10 @@ export function CopyEventButton({
 function getCopyIcon(copyState: CopyState) {
   switch (copyState) {
     case "idle":
-      return Copy;
+      return Link2;
     case "copied":
       return CopyCheck;
     case "error":
       return CopyX;
-  }
-}
-
-function getChildren(copyState: CopyState) {
-  switch (copyState) {
-    case "idle":
-      return "Copy Link";
-    case "copied":
-      return "Copied!";
-    case "error":
-      return "Error";
   }
 }
