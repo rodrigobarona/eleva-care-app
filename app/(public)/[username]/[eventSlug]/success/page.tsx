@@ -46,9 +46,7 @@ export default async function SuccessPage({
         <CardTitle>
           Successfully Booked {event.name} with {calendarUser.fullName}
         </CardTitle>
-        <CardDescription>
-          <div>{formatDateTime(startTimeDate)}</div>
-        </CardDescription>
+        <CardDescription>{formatDateTime(startTimeDate)}</CardDescription>
       </CardHeader>
       <CardContent>
         You should receive an email confirmation shortly. You can safely close
