@@ -150,13 +150,13 @@ export function MeetingForm({
   );
 
   return (
-    <Form {...form}>
+    <Form {...form} className="bg-white shadow-md rounded-lg p-6">
       <form
         onSubmit={form.handleSubmit(onSubmit)}
         className="flex gap-6 flex-col"
       >
         {form.formState.errors.root && (
-          <div className="text-destructive text-sm">
+          <div className="text-destructive text-sm mb-4">
             {form.formState.errors.root.message}
           </div>
         )}
@@ -165,31 +165,25 @@ export function MeetingForm({
           name="timezone"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Timezone</FormLabel>
-              <Suspense
-                fallback={
-                  <div className="h-10 w-full rounded-md border animate-pulse bg-muted" />
-                }
+              <FormLabel className="font-semibold">Timezone</FormLabel>
+              <Select
+                onValueChange={field.onChange}
+                defaultValue={field.value}
               >
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Intl.supportedValuesOf("timeZone").map((timezone) => (
-                      <SelectItem key={timezone} value={timezone}>
-                        {timezone}
-                        {` (${formatTimezoneOffset(timezone)})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </Suspense>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {Intl.supportedValuesOf("timeZone").map((timezone) => (
+                    <SelectItem key={timezone} value={timezone}>
+                      {timezone}
+                      {` (${formatTimezoneOffset(timezone)})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               <FormMessage />
             </FormItem>
           )}
@@ -201,15 +195,12 @@ export function MeetingForm({
             render={({ field }) => (
               <Popover>
                 <FormItem className="flex-1">
-                  <FormLabel>Date</FormLabel>
+                  <FormLabel className="font-semibold">Date</FormLabel>
                   <PopoverTrigger asChild>
                     <FormControl>
                       <Button
                         variant="outline"
-                        className={cn(
-                          "pl-3 text-left font-normal flex w-full",
-                          !field.value && "text-muted-foreground"
-                        )}
+                        className="pl-3 text-left font-normal flex w-full"
                       >
                         {field.value ? (
                           formatDate(field.value)
@@ -244,43 +235,38 @@ export function MeetingForm({
               name="startTime"
               render={({ field }) => (
                 <FormItem className="flex-1">
-                  <FormLabel>Time</FormLabel>
-                  <Suspense
-                    fallback={
-                      <div className="h-10 w-full rounded-md border animate-pulse bg-muted" />
-                    }
+                  <FormLabel className="font-semibold">Time</FormLabel>
+                  <Select
+                    disabled={date == null || timezone == null}
+                    onValueChange={(value) => field.onChange(new Date(value))}
+                    defaultValue={field.value?.toISOString()}
+                    className="border rounded-md"
                   >
-                    <Select
-                      disabled={date == null || timezone == null}
-                      onValueChange={(value) => field.onChange(new Date(value))}
-                      defaultValue={field.value?.toISOString()}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue
-                            placeholder={
-                              date == null || timezone == null
-                                ? "Select a date/timezone first"
-                                : "Select a meeting time"
-                            }
-                          />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {date &&
-                          timesByDate[startOfDay(date).toISOString()]?.map(
-                            ({ utcDate, displayTime }) => (
-                              <SelectItem
-                                key={utcDate.toISOString()}
-                                value={utcDate.toISOString()}
-                              >
-                                {displayTime}
-                              </SelectItem>
-                            )
-                          )}
-                      </SelectContent>
-                    </Select>
-                  </Suspense>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            date == null || timezone == null
+                              ? "Select a date/timezone first"
+                              : "Select a meeting time"
+                          }
+                        />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {date &&
+                        timesByDate[startOfDay(date).toISOString()]?.map(
+                          ({ utcDate, displayTime }) => (
+                            <SelectItem
+                              key={utcDate.toISOString()}
+                              value={utcDate.toISOString()}
+                            >
+                              {displayTime}
+                            </SelectItem>
+                          )
+                        )}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -293,9 +279,9 @@ export function MeetingForm({
             name="guestName"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel>Your Name</FormLabel>
+                <FormLabel className="font-semibold">Your Name</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} className="border rounded-md" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -306,9 +292,9 @@ export function MeetingForm({
             name="guestEmail"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel>Your Email</FormLabel>
+                <FormLabel className="font-semibold">Your Email</FormLabel>
                 <FormControl>
-                  <Input type="email" {...field} />
+                  <Input type="email" {...field} className="border rounded-md" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -320,9 +306,9 @@ export function MeetingForm({
           name="guestNotes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Notes</FormLabel>
+              <FormLabel className="font-semibold">Notes</FormLabel>
               <FormControl>
-                <Textarea className="resize-none" {...field} />
+                <Textarea className="resize-none border rounded-md" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

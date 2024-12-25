@@ -1,4 +1,5 @@
 import React from "react";
+import ReactMarkdown from "react-markdown";
 import { MeetingForm } from "@/components/organisms/forms/MeetingForm";
 import { Button } from "@/components/atoms/button";
 import {
@@ -32,7 +33,7 @@ export default async function BookEventPage({
   const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
   });
-  
+
   const users = await clerk.users.getUserList({
     username: [username],
   });
@@ -76,16 +77,20 @@ export default async function BookEventPage({
   }
 
   return (
-    <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>
+    <Card className="max-w-4xl mx-auto shadow-lg rounded-lg overflow-hidden">
+      <CardHeader className="bg-gray-100 p-6">
+        <CardTitle className="text-2xl font-semibold text-gray-800">
           Book {event.name} with {calendarUser.fullName}
         </CardTitle>
         {event.description && (
-          <CardDescription>{event.description}</CardDescription>
+          <CardDescription>
+            <div className="text-gray-600 prose prose-sm">
+              <ReactMarkdown>{event.description}</ReactMarkdown>
+            </div>
+          </CardDescription>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
         <MeetingForm
           validTimes={validTimes}
           eventId={event.id}
@@ -93,7 +98,9 @@ export default async function BookEventPage({
           username={username}
         />
       </CardContent>
-      <CardFooter></CardFooter>
+      <CardFooter className="bg-gray-100 p-4">
+        {/* Optional footer content */}
+      </CardFooter>
     </Card>
   );
 }
@@ -112,7 +119,11 @@ function NoTimeSlots({
           Book {event.name} with {calendarUser.fullName}
         </CardTitle>
         {event.description && (
-          <CardDescription>{event.description}</CardDescription>
+          <CardDescription>
+            <div className="prose prose-sm">
+              <ReactMarkdown>{event.description}</ReactMarkdown>
+            </div>
+          </CardDescription>
         )}
       </CardHeader>
       <CardContent>
