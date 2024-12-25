@@ -63,7 +63,9 @@ export function EventForm({
     },
   });
 
-  const [description, setDescription] = React.useState(event?.description || "");
+  const [description, setDescription] = React.useState(
+    event?.description || ""
+  );
 
   useEffect(() => {
     form.setValue("description", description);
@@ -154,6 +156,62 @@ export function EventForm({
 
         <FormField
           control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <div className="prose-container">
+                  <SimpleRichTextEditor
+                    value={description}
+                    onChange={(value) => {
+                      setDescription(value);
+                      field.onChange(value);
+                    }}
+                  />
+                </div>
+              </FormControl>
+              <FormDescription>
+                Describe your event. You can use formatting to make it more
+                readable.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>URL Slug</FormLabel>
+              <div className="flex w-full items-center overflow-hidden rounded-md border">
+                <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
+                  eleva.care/{user?.username || "username"}/
+                </div>
+                <div className="w-px self-stretch bg-border" />
+                <FormControl>
+                  <Input
+                    {...field}
+                    onChange={onSlugChange}
+                    onKeyDown={onSlugKeyDown}
+                    className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+                    placeholder="event-name"
+                  />
+                </FormControl>
+              </div>
+              <FormDescription>
+                URL-friendly version of the event name. Can contain lowercase
+                letters, numbers, and hyphens.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
           name="durationInMinutes"
           render={({ field }) => (
             <FormItem>
@@ -185,31 +243,6 @@ export function EventForm({
 
         <FormField
           control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem className="space-y-2">
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <div className="prose-container">
-                  <SimpleRichTextEditor
-                    value={description}
-                    onChange={(value) => {
-                      setDescription(value);
-                      field.onChange(value);
-                    }}
-                  />
-                </div>
-              </FormControl>
-              <FormDescription>
-                Describe your event. You can use formatting to make it more readable.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
           name="isActive"
           render={({ field }) => (
             <FormItem>
@@ -224,36 +257,6 @@ export function EventForm({
               </div>
               <FormDescription>
                 Inactive events will not be visable for the users to book
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="slug"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>URL Slug</FormLabel>
-              <div className="flex w-full items-center overflow-hidden rounded-md border">
-                <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
-                  eleva.care/{user?.username || 'username'}/
-                </div>
-                <div className="w-px self-stretch bg-border" />
-                <FormControl>
-                  <Input
-                    {...field}
-                    onChange={onSlugChange}
-                    onKeyDown={onSlugKeyDown}
-                    className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-                    placeholder="event-name"
-                  />
-                </FormControl>
-              </div>
-              <FormDescription>
-                URL-friendly version of the event name. Can contain lowercase
-                letters, numbers, and hyphens.
               </FormDescription>
               <FormMessage />
             </FormItem>
