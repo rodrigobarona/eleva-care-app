@@ -1,48 +1,64 @@
 "use client";
 import React from "react";
 import { useState } from "react";
-import { Button, ButtonProps } from "@/components/atoms/button";
+import { Button, type ButtonProps } from "@/components/atoms/button";
 import { Copy, CopyCheck, CopyX, Link2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/atoms/tooltip";
 
 type CopyState = "idle" | "copied" | "error";
 
 export function CopyEventButton({
   eventSlug,
   username,
+  wrapped = false,
   ...buttonProps
 }: Omit<ButtonProps, "children" | "onClick"> & {
   eventSlug: string;
   username: string;
+  wrapped?: boolean;
 }) {
   const [copyState, setCopyState] = useState<CopyState>("idle");
-
   const CopyIcon = getCopyIcon(copyState);
-  const ariaLabel = copyState === "copied" 
-    ? "Link copied to clipboard" 
-    : copyState === "error" 
-    ? "Failed to copy link" 
-    : "Copy event link";
 
-  return (
-    <Button
-      {...buttonProps}
-      aria-label={ariaLabel}
-      onClick={() => {
-        navigator.clipboard
-          .writeText(`${location.origin}/${username}/${eventSlug}`)
-          .then(() => {
-            setCopyState("copied");
-            setTimeout(() => setCopyState("idle"), 2000);
-          })
-          .catch(() => {
-            setCopyState("error");
-            setTimeout(() => setCopyState("idle"), 2000);
-          });
-      }}
-    >
-      <CopyIcon className="h-4 w-4" />
-    </Button>
+  const tooltipContent = (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          {...buttonProps}
+          onClick={() => {
+            navigator.clipboard
+              .writeText(`${location.origin}/${username}/${eventSlug}`)
+              .then(() => {
+                setCopyState("copied");
+                setTimeout(() => setCopyState("idle"), 2000);
+              })
+              .catch(() => {
+                setCopyState("error");
+                setTimeout(() => setCopyState("idle"), 2000);
+              });
+          }}
+        >
+          <CopyIcon className="h-4 w-4" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>
+          {copyState === "copied"
+            ? "Link copied!"
+            : copyState === "error"
+            ? "Failed to copy"
+            : "Copy event link"}
+        </p>
+      </TooltipContent>
+    </Tooltip>
   );
+
+  return wrapped ? tooltipContent : <TooltipProvider>{tooltipContent}</TooltipProvider>;
 }
 
 function getCopyIcon(copyState: CopyState) {

@@ -298,63 +298,81 @@ function SortableEventCard({
         </div>
 
         <div className="flex items-center gap-4 ml-4">
-          <div className="flex items-center gap-2">
-            <Switch
-              checked={event.isActive}
-              onCheckedChange={() => onToggleActive(event.id, event.isActive)}
-            />
-            <span className="text-sm text-muted-foreground">
-              {event.isActive ? "Active" : "Inactive"}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 border-l pl-4">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button asChild size="icon" variant="ghost">
-                    <a
-                      href={`/${username}/${event.slug}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Open event page</p>
-                </TooltipContent>
-              </Tooltip>
-
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <CopyEventButton
-                    variant="ghost"
-                    size="icon"
-                    eventSlug={event.slug}
-                    username={username}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2">
+                  {!event.isActive && (
+                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-0.5 rounded-full flex-shrink-0">
+                      Inactive
+                    </span>
+                  )}
+                  <Switch
+                    checked={event.isActive}
+                    onCheckedChange={() =>
+                      onToggleActive(event.id, event.isActive)
+                    }
                   />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Copy event link</p>
-                </TooltipContent>
-              </Tooltip>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{event.isActive ? "Deactivate event" : "Activate event"}</p>
+              </TooltipContent>
+            </Tooltip>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button asChild size="icon" variant="ghost">
-                    <Link href={`/events/${event.slug}/edit`}>
-                      <Pencil className="h-4 w-4" />
-                    </Link>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Edit event</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+            <div className="flex items-center gap-1 border-l pl-4">
+              <div className="inline-flex items-center rounded-md border">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      asChild 
+                      size="icon" 
+                      variant="ghost"
+                      className="rounded-r-none border-r"
+                    >
+                      <a
+                        href={`/${username}/${event.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Open event page</p>
+                  </TooltipContent>
+                </Tooltip>
+
+                <CopyEventButton
+                  variant="ghost"
+                  size="icon"
+                  eventSlug={event.slug}
+                  username={username}
+                  wrapped
+                  className="rounded-none border-r"
+                />
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      asChild 
+                      size="icon" 
+                      variant="ghost"
+                      className="rounded-l-none"
+                    >
+                      <Link href={`/events/${event.slug}/edit`}>
+                        <Pencil className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Edit event</p>
+                  </TooltipContent>
+                </Tooltip>
+              </div>
+            </div>
+          </TooltipProvider>
         </div>
       </div>
     </div>
