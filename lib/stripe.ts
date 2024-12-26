@@ -1,4 +1,5 @@
 import { loadStripe } from "@stripe/stripe-js";
+import type Stripe from "stripe";
 import { STRIPE_CONFIG } from "@/config/stripe";
 
 // Client-side Stripe promise

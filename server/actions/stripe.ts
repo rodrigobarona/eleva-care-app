@@ -18,6 +18,7 @@ export async function createStripeProduct({
   clerkUserId: string;
 }) {
   try {
+    const stripe = await getServerStripe();
     const product = await stripe.products.create({
       name,
       description,
@@ -60,6 +61,7 @@ export async function updateStripeProduct({
   clerkUserId: string;
 }) {
   try {
+    const stripe = await getServerStripe();
     // Update the product
     await stripe.products.update(stripeProductId, {
       name,
@@ -108,14 +110,6 @@ export async function createPaymentIntent(eventId: string) {
     payment_method_options: {
       card: {
         request_three_d_secure: "automatic",
-      },
-      multibanco: {
-        expires_after_days: 2, // Number of days until the Multibanco reference expires
-      },
-      sepa_debit: {
-        mandate_options: {
-          interval: 'one_time'
-        }
       }
     },
     metadata: {
