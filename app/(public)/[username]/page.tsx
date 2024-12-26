@@ -130,13 +130,7 @@ function EventCard({
               {price === 0 ? (
                 "Free"
               ) : (
-                <>
-                  €{" "}
-                  {(price / 100).toLocaleString("pt-PT", {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 2,
-                  })}
-                </>
+                <>€ {(price / 100).toFixed(2).replace(/\.00$/, "")}</>
               )}
             </div>
             <div className="text-sm text-muted-foreground mb-6">

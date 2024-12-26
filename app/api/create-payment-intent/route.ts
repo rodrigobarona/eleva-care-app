@@ -1,23 +1,29 @@
 import { NextResponse } from "next/server";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2024-12-18.acacia",
-});
+import { stripe, PAYMENT_METHODS } from "@/lib/stripe";
 
 export async function POST(request: Request) {
   try {
     const { eventId, price, meetingData } = await request.json();
 
-    // Stripe expects amount in cents/smallest currency unit
-    const amount = Math.round(price);
+    if (!price || price <= 0) {
+      return NextResponse.json(
+        { error: "Invalid price for payment intent" },
+        { status: 400 }
+      );
+    }
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount, // Convert price to cents
+      amount: Math.round(price),
       currency: "eur",
+      payment_method_types: PAYMENT_METHODS,
       metadata: {
         eventId,
         meetingData: JSON.stringify(meetingData),
+      },
+      payment_method_options: {
+        card: {
+          request_three_d_secure: "automatic",
+        },
       },
     });
 
