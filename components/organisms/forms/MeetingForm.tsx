@@ -128,6 +128,7 @@ export function MeetingForm({
   const [step, setStep] = React.useState(1);
   const [clientSecret, setClientSecret] = React.useState<string>();
   const [paymentCompleted, setPaymentCompleted] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
@@ -180,8 +181,8 @@ export function MeetingForm({
   }, [validTimesInTimezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    if (step === 3 && !paymentCompleted) {
-      return; // Don't submit until payment is completed
+    if (step === 3 && !paymentCompleted && price > 0) {
+      return; // Don't submit until payment is completed for paid meetings
     }
 
     try {
@@ -196,8 +197,9 @@ export function MeetingForm({
           message: "There was an error saving your event",
         });
       } else {
-        // Handle successful submission (e.g., redirect or show success message)
-        window.location.href = '/success'; // Or your preferred success route
+        // Redirect to success page with startTime parameter, including the event path
+        const eventPath = window.location.pathname; // Gets the current path which includes username/eventSlug
+        window.location.href = `${eventPath}/success?startTime=${values.startTime.toISOString()}`;
       }
     } catch (error) {
       console.error('Error creating meeting:', error);
@@ -237,36 +239,47 @@ export function MeetingForm({
 
   // Modify the step handling
   const handleNextStep = async (currentStep: number) => {
-    if (currentStep === 2) {
-      try {
+    setIsSubmitting(true);
+    try {
+      if (currentStep === 2) {
+        if (price === 0) {
+          // For free meetings, submit directly
+          await form.handleSubmit(onSubmit)();
+          return;
+        }
+
         const response = await fetch('/api/create-payment-intent', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
             eventId,
-            price: Number(price),
-            meetingData: form.getValues()
+            price,
+            meetingData: {
+              ...form.getValues(),
+              startTime: form.getValues("startTime")?.toISOString(),
+            },
           }),
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Failed to create payment intent');
+          throw new Error("Failed to create payment intent");
         }
 
         const data = await response.json();
         if (data.clientSecret) {
           setClientSecret(data.clientSecret);
           setStep(3);
-        } else {
-          throw new Error('No client secret received');
         }
-      } catch (error) {
-        console.error('Error creating payment intent:', error);
-        // You might want to show an error message to the user here
+      } else {
+        setStep(currentStep + 1);
       }
-    } else {
-      setStep(currentStep + 1);
+    } catch (error) {
+      console.error('Error:', error);
+      form.setError("root", {
+        message: "Failed to process request",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -528,11 +541,24 @@ export function MeetingForm({
             />
 
             <div className="flex gap-2 justify-end">
-              <Button type="button" variant="outline" onClick={() => setStep(1)}>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setStep(1)}
+                disabled={isSubmitting}
+              >
                 Back
               </Button>
-              <Button type="button" onClick={() => handleNextStep(2)}>
-                Continue to Payment
+              <Button 
+                type="button" 
+                onClick={() => handleNextStep(2)}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  "Processing..."
+                ) : (
+                  price === 0 ? "Confirm Booking" : "Continue to Payment"
+                )}
               </Button>
             </div>
           </>
