@@ -93,29 +93,32 @@ export async function updateStripeProduct({
   }
 }
 
-export async function createPaymentIntent(eventId: string) {
-  const stripe = await getServerStripe();
-  const event = await db.query.EventTable.findFirst({
-    where: (events, { eq }) => eq(events.id, eventId),
-  });
+export async function createPaymentIntent(eventId: string, meetingData: any) {
+  try {
+    const stripe = await getServerStripe();
+    const event = await db.query.EventTable.findFirst({
+      where: (events, { eq }) => eq(events.id, eventId),
+    });
 
-  if (!event || !event.stripePriceId) {
-    throw new Error("Event or price not found");
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: event.price,
+      currency: event.currency || STRIPE_CONFIG.CURRENCY,
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      metadata: {
+        eventId: event.id,
+        meetingData: JSON.stringify(meetingData),
+      },
+    });
+
+    return { clientSecret: paymentIntent.client_secret };
+  } catch (error) {
+    console.error('Payment intent creation failed:', error);
+    return { error: 'Failed to create payment intent' };
   }
-
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: event.price,
-    currency: event.currency || STRIPE_CONFIG.CURRENCY,
-    payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
-    payment_method_options: {
-      card: {
-        request_three_d_secure: "automatic",
-      }
-    },
-    metadata: {
-      eventId: event.id,
-    },
-  });
-
-  return paymentIntent;
 }

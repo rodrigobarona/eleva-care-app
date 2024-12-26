@@ -31,8 +31,9 @@ import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
 import { format } from "date-fns";
 import { Globe } from "lucide-react";
-import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { Elements } from '@stripe/react-stripe-js';
 import { getStripePromise } from "@/lib/stripe";
+import { PaymentStep } from './PaymentStep';
 
 // Replace the existing stripePromise initialization with:
 const stripePromise = getStripePromise();
@@ -43,95 +44,6 @@ type MeetingFormProps = {
   clerkUserId: string;
   price: number;
 };
-
-// Add PaymentStep component
-function PaymentStep({ price, onBack, onSuccess }: { 
-  price: number; 
-  onBack: () => void;
-  onSuccess: () => void;
-}) {
-  const stripe = useStripe();
-  const elements = useElements();
-  const [error, setError] = React.useState<string>();
-  const [status, setStatus] = React.useState<'idle' | 'processing' | 'succeeded' | 'failed'>('idle');
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!stripe || !elements) {
-      console.error('Stripe not initialized');
-      return;
-    }
-
-    setStatus('processing');
-    try {
-      const { error: submitError } = await elements.submit();
-      if (submitError) {
-        setError(submitError.message);
-        setStatus('failed');
-        return;
-      }
-
-      const result = await stripe.confirmPayment({
-        elements,
-        confirmParams: {
-          return_url: `${window.location.origin + window.location.pathname}/payment-processing`,
-        },
-      });
-
-      if (result.error) {
-        setError(result.error.message);
-        setStatus('failed');
-        return;
-      }
-
-      setStatus('succeeded');
-      onSuccess();
-      
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Payment failed');
-      setStatus('failed');
-    }
-  };
-
-  if (!stripe || !elements) {
-    return <div>Loading payment form...</div>;
-  }
-
-  return (
-    <div className="max-w-md mx-auto">
-      <h2 className="text-lg font-semibold mb-4">Payment Details</h2>
-      <p className="text-muted-foreground mb-6">
-        Session price: €{(price / 100).toFixed(2)}
-      </p>
-      <form onSubmit={handleSubmit}>
-        <PaymentElement />
-        {error && (
-          <p className="text-destructive text-sm mt-2">{error}</p>
-        )}
-        <div className="flex justify-between mt-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onBack}
-            disabled={status === 'processing'}
-          >
-            Back
-          </Button>
-          <Button 
-            type="submit"
-            disabled={!stripe || status === 'processing'}
-          >
-            {status === 'processing' ? (
-              "Processing..."
-            ) : (
-              `Pay €${(price / 100).toFixed(2)}`
-            )}
-          </Button>
-        </div>
-      </form>
-    </div>
-  );
-}
 
 export function MeetingForm({
   validTimes,
@@ -585,6 +497,9 @@ export function MeetingForm({
               clientSecret,
               appearance: {
                 theme: 'stripe',
+                variables: {
+                  colorPrimary: '#1c1c1c',
+                },
               },
             }}
           >
