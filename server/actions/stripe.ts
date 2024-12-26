@@ -1,6 +1,7 @@
 'use server'
 
-import { stripe, STRIPE_CONFIG } from "@/lib/stripe";
+import { getServerStripe } from "@/lib/stripe";
+import { STRIPE_CONFIG } from "@/config/stripe";
 import { db } from "@/drizzle/db";
 
 export async function createStripeProduct({
@@ -91,6 +92,7 @@ export async function updateStripeProduct({
 }
 
 export async function createPaymentIntent(eventId: string) {
+  const stripe = await getServerStripe();
   const event = await db.query.EventTable.findFirst({
     where: (events, { eq }) => eq(events.id, eventId),
   });
@@ -103,6 +105,19 @@ export async function createPaymentIntent(eventId: string) {
     amount: event.price,
     currency: event.currency || STRIPE_CONFIG.CURRENCY,
     payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
+    payment_method_options: {
+      card: {
+        request_three_d_secure: "automatic",
+      },
+      multibanco: {
+        expires_after_days: 2, // Number of days until the Multibanco reference expires
+      },
+      sepa_debit: {
+        mandate_options: {
+          interval: 'one_time'
+        }
+      }
+    },
     metadata: {
       eventId: event.id,
     },

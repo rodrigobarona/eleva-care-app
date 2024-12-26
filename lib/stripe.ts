@@ -1,22 +1,19 @@
-import Stripe from "stripe";
 import { loadStripe } from "@stripe/stripe-js";
+import { STRIPE_CONFIG } from "@/config/stripe";
 
-// Constants for Stripe configuration
-export const STRIPE_CONFIG = {
-  PAYMENT_METHODS: ['card', 'sepa_debit', 'multibanco'] as string[],
-  CURRENCY: 'eur',
-  API_VERSION: '2024-12-18.acacia' as const,
-} as const;
+// Client-side Stripe promise
+export const getStripePromise = () => 
+  loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "");
 
-// Create a singleton instance of Stripe
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: STRIPE_CONFIG.API_VERSION,
-});
+// Server-side Stripe (lazy initialization)
+let _stripe: Stripe | null = null;
 
-// Add a helper for the frontend
-export const getStripePromise = () => {
-  return loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "");
+export const getServerStripe = async () => {
+  if (!_stripe) {
+    const Stripe = (await import('stripe')).default;
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+      apiVersion: STRIPE_CONFIG.API_VERSION,
+    });
+  }
+  return _stripe;
 };
-
-// Type for supported payment methods
-export type SupportedPaymentMethod = (typeof STRIPE_CONFIG.PAYMENT_METHODS)[number];
