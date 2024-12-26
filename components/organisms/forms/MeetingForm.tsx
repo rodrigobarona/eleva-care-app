@@ -23,22 +23,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/molecules/select";
-import { formatDate, formatTimezoneOffset } from "@/lib/formatters";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/atoms/popover";
-import { CalendarIcon } from "lucide-react";
+import { formatTimezoneOffset } from "@/lib/formatters";
 import { Calendar } from "@/components/molecules/calendar";
 import { cn } from "@/lib/utils";
 import { useMemo } from "react";
 import { createMeeting } from "@/server/actions/meetings";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
-import { Suspense } from "react";
 import { format } from "date-fns";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { Globe } from "lucide-react";
 
 export function MeetingForm({
   validTimes,
@@ -127,37 +120,46 @@ export function MeetingForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <FormField
-          control={form.control}
-          name="timezone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-lg font-semibold">Timezone</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {Intl.supportedValuesOf("timeZone").map((timezone) => (
-                    <SelectItem key={timezone} value={timezone}>
-                      {timezone}
-                      {` (${formatTimezoneOffset(timezone)})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
         <div className="grid md:grid-cols-[minmax(auto,800px),300px] gap-8">
           <div>
-            <FormLabel className="text-lg font-semibold mb-4 block">
-              Select a Date
-            </FormLabel>
+            <div className="flex items-center justify-between mb-4">
+              <FormLabel className="text-lg font-semibold">
+                Select a Date
+              </FormLabel>
+              <FormField
+                control={form.control}
+                name="timezone"
+                render={({ field }) => (
+                  <FormItem className="flex-shrink-0">
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="w-70 h-9 text-sm border-0 shadow-none">
+                          <div className="flex items-center gap-2">
+                            <Globe className="h-4 w-4" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Intl.supportedValuesOf("timeZone").map((timezone) => (
+                          <SelectItem
+                            key={timezone}
+                            value={timezone}
+                            className="text-sm"
+                          >
+                            {timezone}
+                            {` (${formatTimezoneOffset(timezone)})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="date"

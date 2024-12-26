@@ -15,7 +15,7 @@ export function formatTimezoneOffset(timezone: string) {
     timeZoneName: "shortOffset",
   })
     .formatToParts(new Date())
-    .find((part) => part.type == "timeZoneName")?.value;
+    .find((part) => part.type === "timeZoneName")?.value;
 }
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
