@@ -7,6 +7,10 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
+import { format, toZonedTime } from "date-fns-tz";
+import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
+import { addMonths } from "date-fns";
+import { eachMinuteOfInterval } from "date-fns";
 
 export const revalidate = 0;
 
@@ -37,9 +41,17 @@ export default async function BookingPage({
     <div className="max-w-4xl mx-auto px-4 py-12">
       <h1 className="text-4xl font-bold mb-12">Book a session</h1>
       <div className="space-y-6">
-        {events.map((event) => (
-          <EventCard key={event.id} {...event} username={username} />
-        ))}
+        {events.map(async (event) => {
+          const validTimes = await getValidTimesForEvent(event.id);
+          return (
+            <EventCard
+              key={event.id}
+              {...event}
+              username={username}
+              validTimes={validTimes}
+            />
+          );
+        })}
       </div>
     </div>
   );
@@ -53,6 +65,8 @@ type EventCardProps = {
   durationInMinutes: number;
   slug: string;
   username: string;
+  price: number;
+  validTimes: Date[];
 };
 
 function EventCard({
@@ -61,7 +75,20 @@ function EventCard({
   durationInMinutes,
   slug,
   username,
+  price,
+  validTimes,
 }: EventCardProps) {
+  const nextAvailable =
+    validTimes.length > 0
+      ? format(
+          toZonedTime(
+            validTimes[0],
+            Intl.DateTimeFormat().resolvedOptions().timeZone
+          ),
+          "h:mmaaa"
+        )
+      : null;
+
   return (
     <Card className="overflow-hidden border-2 hover:border-primary/50 transition-colors duration-200">
       <div className="flex flex-col lg:flex-row">
@@ -98,10 +125,24 @@ function EventCard({
 
         <div className="p-6 lg:p-8 lg:w-72 lg:border-l flex flex-col justify-between bg-gray-50">
           <div>
-            <div className="text-lg font-semibold mb-1">Starting at</div>
-            <div className="text-3xl font-bold mb-4">$100</div>
+            <div className="text-lg font-semibold mb-1">Session</div>
+            <div className="text-3xl font-bold mb-4">
+              {price === 0 ? (
+                "Free"
+              ) : (
+                <>
+                  €{" "}
+                  {(price / 100).toLocaleString("pt-PT", {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2,
+                  })}
+                </>
+              )}
+            </div>
             <div className="text-sm text-muted-foreground mb-6">
-              Next available — 5:00pm today
+              {nextAvailable
+                ? `Next available — ${nextAvailable}`
+                : "No times available"}
             </div>
           </div>
 
@@ -114,5 +155,21 @@ function EventCard({
         </div>
       </div>
     </Card>
+  );
+}
+
+async function getValidTimesForEvent(eventId: string) {
+  const event = await db.query.EventTable.findFirst({
+    where: ({ id }, { eq }) => eq(id, eventId),
+  });
+
+  if (!event) return [];
+
+  const startDate = new Date();
+  const endDate = addMonths(startDate, 2);
+
+  return getValidTimesFromSchedule(
+    eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
+    event
   );
 }

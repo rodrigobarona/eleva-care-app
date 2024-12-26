@@ -40,6 +40,10 @@ import {
 } from "../../molecules/select";
 import SimpleRichTextEditor from "../../molecules/RichTextEditor";
 import { useUser } from "@clerk/nextjs";
+import {
+  createStripeProduct,
+  updateStripeProduct,
+} from "@/server/actions/stripe";
 
 export function EventForm({
   event,
@@ -51,15 +55,24 @@ export function EventForm({
     description?: string;
     durationInMinutes: number;
     isActive: boolean;
+    price: number;
+    stripeProductId?: string;
+    stripePriceId?: string;
   };
 }) {
   const { user } = useUser();
   const [isDeletePending, startDeleteTransition] = useTransition();
+  const [isStripeProcessing, setIsStripeProcessing] = React.useState(false);
+
   const form = useForm<z.infer<typeof eventFormSchema>>({
     resolver: zodResolver(eventFormSchema),
     defaultValues: event ?? {
       isActive: true,
       durationInMinutes: 30,
+      price: 0,
+      currency: "eur",
+      name: "",
+      slug: "",
     },
   });
 
@@ -111,16 +124,118 @@ export function EventForm({
   };
 
   const handleSubmit = async (values: z.infer<typeof eventFormSchema>) => {
-    const action =
-      event == null ? createEvent : updateEvent.bind(null, event.id);
-    const data = await action(values);
+    try {
+      setIsStripeProcessing(true);
+      
+      // First handle Stripe if price > 0
+      let stripeData = null;
+      if (values.price > 0) {
+        if (!event?.stripeProductId) {
+          stripeData = await createStripeProduct({
+            name: values.name,
+            description: values.description || undefined,
+            price: values.price,
+            currency: values.currency,
+            clerkUserId: user?.id || '',
+          });
+        } else if (event.stripeProductId && event.stripePriceId) {
+          stripeData = await updateStripeProduct({
+            stripeProductId: event.stripeProductId,
+            stripePriceId: event.stripePriceId,
+            name: values.name,
+            description: values.description || undefined,
+            price: values.price,
+            currency: values.currency,
+            clerkUserId: user?.id || '',
+          });
+        } else {
+          form.setError("root", {
+            message: "Invalid Stripe product configuration",
+          });
+          return;
+        }
 
-    if (data?.error) {
-      form.setError("root", {
-        message: "There was an error saving your event",
+        if (stripeData?.error) {
+          form.setError("root", {
+            message: "Failed to sync with Stripe: " + stripeData.error,
+          });
+          return;
+        }
+      }
+
+      // Then create/update the event
+      const action = event == null ? createEvent : updateEvent.bind(null, event.id);
+      const eventData = await action({
+        ...values,
+        stripeProductId: stripeData?.productId || event?.stripeProductId,
+        stripePriceId: stripeData?.priceId || event?.stripePriceId,
       });
+
+      if (eventData?.error) {
+        form.setError("root", {
+          message: "Failed to save event",
+        });
+        return;
+      }
+
+      // Use router.push instead of window.location for better navigation
+      window.location.href = "/events";
+
+    } catch (error) {
+      console.error("Form submission error:", error);
+      form.setError("root", {
+        message: "An unexpected error occurred",
+      });
+    } finally {
+      setIsStripeProcessing(false);
     }
   };
+
+  // Update the price field to show loading state when processing Stripe
+  const PriceField = () => (
+    <FormField
+      control={form.control}
+      name="price"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Price</FormLabel>
+          <div className="flex items-center gap-2">
+            <FormControl>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                {...field}
+                disabled={isStripeProcessing}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  field.onChange(Math.round(value * 100));
+                }}
+                value={field.value / 100}
+                className="w-32"
+              />
+            </FormControl>
+            <span className="text-muted-foreground">EUR</span>
+            {isStripeProcessing && (
+              <span className="text-sm text-muted-foreground">
+                Syncing with Stripe...
+              </span>
+            )}
+          </div>
+          <FormDescription>
+            {event?.stripeProductId ? (
+              <>
+                Connected to Stripe Product: {event.stripeProductId.slice(0, 8)}...
+              </>
+            ) : (
+              "Set to 0 for free events. Price in euros."
+            )}
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
 
   return (
     <Form {...form}>
@@ -259,6 +374,10 @@ export function EventForm({
               )}
             />
           </div>
+
+          <div className="rounded-lg border p-4 space-y-4">
+            <PriceField />
+          </div>
         </div>
 
         <div className="flex justify-end gap-2">
@@ -302,10 +421,20 @@ export function EventForm({
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Button type="button" asChild variant="outline">
+          <Button 
+            type="button" 
+            asChild 
+            variant="outline"
+            disabled={isStripeProcessing || form.formState.isSubmitting}
+          >
             <Link href="/events">Cancel</Link>
           </Button>
-          <Button type="submit">Save</Button>
+          <Button 
+            type="submit"
+            disabled={isStripeProcessing || form.formState.isSubmitting}
+          >
+            {isStripeProcessing ? "Processing..." : "Save"}
+          </Button>
         </div>
       </form>
     </Form>

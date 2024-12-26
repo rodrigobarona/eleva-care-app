@@ -78,7 +78,7 @@ export default async function BookEventPage({
 
   return (
     <Card className="max-w-4xl mx-auto border-none shadow-none p-0 rounded-none">
-      <CardHeader className=" gap-2 p-0">
+      <CardHeader className="gap-2 p-0">
         <CardTitle className="text-2xl font-bold">
           Book a video call: {event.name}
         </CardTitle>
@@ -87,12 +87,18 @@ export default async function BookEventPage({
             <ReactMarkdown>{event.description}</ReactMarkdown>
           </div>
         )}
+        {event.price > 0 && (
+          <p className="text-sm text-muted-foreground">
+            Price: €{(event.price / 100).toFixed(2)}
+          </p>
+        )}
       </CardHeader>
       <CardContent className="p-0 pt-8">
         <MeetingForm
           validTimes={validTimes}
           eventId={event.id}
           clerkUserId={user.id}
+          price={event.price}
         />
       </CardContent>
     </Card>

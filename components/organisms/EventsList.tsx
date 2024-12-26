@@ -13,6 +13,7 @@ import {
   Pencil,
   ChevronUp,
   ChevronDown,
+  Euro,
 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -54,6 +55,7 @@ type Event = {
   name: string;
   description: string | null;
   durationInMinutes: number;
+  price: number;
 };
 
 interface EventsListProps {
@@ -291,6 +293,12 @@ function SortableEventCard({
                     <Clock className="h-3 w-3" />
                     {formatEventDescription(event.durationInMinutes)}
                   </span>
+                  <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                    <Euro className="h-3 w-3" />
+                    {event.price === 0
+                      ? "Free"
+                      : `${(event.price / 100).toFixed(2).replace(/\.00$/, "")}`}
+                  </span>
                 </span>
               </CardFooter>
             </div>
@@ -324,9 +332,9 @@ function SortableEventCard({
               <div className="inline-flex items-center rounded-md border">
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      asChild 
-                      size="icon" 
+                    <Button
+                      asChild
+                      size="icon"
                       variant="ghost"
                       className="rounded-r-none border-r"
                     >
@@ -355,9 +363,9 @@ function SortableEventCard({
 
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button 
-                      asChild 
-                      size="icon" 
+                    <Button
+                      asChild
+                      size="icon"
                       variant="ghost"
                       className="rounded-l-none"
                     >

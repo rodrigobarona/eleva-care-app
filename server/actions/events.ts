@@ -15,7 +15,7 @@ import { revalidatePath } from "next/cache";
 // CREATE EVENT
 export async function createEvent(
   unsafeData: z.infer<typeof eventFormSchema>
-): Promise<{ error: boolean } | undefined> {
+): Promise<{ error: boolean; message?: string } | undefined> {
   const { userId } = auth();
   const headersList = headers();
 
@@ -25,31 +25,37 @@ export async function createEvent(
   const { success, data } = eventFormSchema.safeParse(unsafeData);
 
   if (!success || userId == null) {
-    return { error: true };
+    return { error: true, message: "Invalid form data" };
   }
 
-  // Insert event and retrieve the generated ID
-  const [insertedEvent] = await db
-    .insert(EventTable)
-    .values({ ...data, clerkUserId: userId })
-    .returning({ id: EventTable.id, userId: EventTable.clerkUserId });
+  try {
+    // Insert event and retrieve the generated ID
+    const [insertedEvent] = await db
+      .insert(EventTable)
+      .values({ ...data, clerkUserId: userId })
+      .returning({ id: EventTable.id, userId: EventTable.clerkUserId });
 
-  if (!insertedEvent) {
-    return { error: true };
+    if (!insertedEvent) {
+      return { error: true, message: "Failed to create event" };
+    }
+
+    await logAuditEvent(
+      insertedEvent.userId,
+      "create",
+      "events",
+      insertedEvent.id,
+      null,
+      { ...data },
+      ipAddress,
+      userAgent
+    );
+
+    // Return success instead of redirecting
+    return { error: false };
+  } catch (error) {
+    console.error("Create event error:", error);
+    return { error: true, message: "Database error occurred" };
   }
-
-  await logAuditEvent(
-    insertedEvent.userId,
-    "create",
-    "events",
-    insertedEvent.id,
-    null,
-    { ...data },
-    ipAddress,
-    userAgent
-  );
-
-  redirect("/events");
 }
 
 // UPDATE EVENT

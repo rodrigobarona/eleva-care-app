@@ -32,15 +32,18 @@ import { startOfDay } from "date-fns";
 import { format } from "date-fns";
 import { Globe } from "lucide-react";
 
+type MeetingFormProps = {
+  validTimes: Date[];
+  eventId: string;
+  clerkUserId: string;
+  price: number;
+};
+
 export function MeetingForm({
   validTimes,
   eventId,
   clerkUserId,
-}: {
-  validTimes: Date[];
-  eventId: string;
-  clerkUserId: string;
-}) {
+}: MeetingFormProps) {
   const [use24Hour, setUse24Hour] = React.useState(false);
   const [step, setStep] = React.useState(1);
 
