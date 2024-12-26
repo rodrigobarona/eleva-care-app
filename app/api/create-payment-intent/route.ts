@@ -9,12 +9,11 @@ export async function POST(request: Request) {
   try {
     const { eventId, price, meetingData } = await request.json();
 
-    // Stripe expects amount in cents/smallest currency unit
-    const amount = Math.round(price);
-
+    // Create payment intent with specific payment methods
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount, // Convert price to cents
+      amount: Math.round(price),
       currency: "eur",
+      payment_method_types: ['card', 'sepa_debit', 'multibanco'],
       metadata: {
         eventId,
         meetingData: JSON.stringify(meetingData),

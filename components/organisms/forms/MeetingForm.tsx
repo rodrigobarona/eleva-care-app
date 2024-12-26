@@ -31,11 +31,11 @@ import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
 import { format } from "date-fns";
 import { Globe } from "lucide-react";
-import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { getStripePromise } from "@/lib/stripe";
 
-// Initialize Stripe
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '');
+// Replace the existing stripePromise initialization with:
+const stripePromise = getStripePromise();
 
 type MeetingFormProps = {
   validTimes: Date[];
@@ -64,7 +64,6 @@ function PaymentStep({ price, onBack, onSuccess }: {
 
     setStatus('processing');
     try {
-      // Submit the form data to Stripe
       const { error: submitError } = await elements.submit();
       if (submitError) {
         setError(submitError.message);
@@ -72,10 +71,11 @@ function PaymentStep({ price, onBack, onSuccess }: {
         return;
       }
 
-      // Confirm the payment
       const result = await stripe.confirmPayment({
         elements,
-        redirect: 'if_required',
+        confirmParams: {
+          return_url: `${window.location.origin + window.location.pathname}/payment-processing`,
+        },
       });
 
       if (result.error) {
@@ -84,7 +84,6 @@ function PaymentStep({ price, onBack, onSuccess }: {
         return;
       }
 
-      // Payment successful
       setStatus('succeeded');
       onSuccess();
       

@@ -1,11 +1,7 @@
 'use server'
 
-import Stripe from "stripe";
+import { stripe, STRIPE_CONFIG } from "@/lib/stripe";
 import { db } from "@/drizzle/db";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2024-12-18.acacia",
-});
 
 export async function createStripeProduct({
   name,
@@ -105,8 +101,8 @@ export async function createPaymentIntent(eventId: string) {
 
   const paymentIntent = await stripe.paymentIntents.create({
     amount: event.price,
-    currency: event.currency,
-    payment_method_types: ["card"],
+    currency: event.currency || STRIPE_CONFIG.CURRENCY,
+    payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
     metadata: {
       eventId: event.id,
     },
