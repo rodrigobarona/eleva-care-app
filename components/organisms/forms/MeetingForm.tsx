@@ -31,19 +31,11 @@ import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
 import { format } from "date-fns";
 import { Globe } from "lucide-react";
-import { loadStripe } from "@stripe/stripe-js";
-import {
-  Elements,
-  PaymentElement,
-  useStripe,
-  useElements,
-} from "@stripe/react-stripe-js";
-import { PAYMENT_METHODS } from "@/lib/stripe";
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 // Initialize Stripe
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""
-);
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '');
 
 type MeetingFormProps = {
   validTimes: Date[];
@@ -53,12 +45,8 @@ type MeetingFormProps = {
 };
 
 // Add PaymentStep component
-function PaymentStep({
-  price,
-  onBack,
-  onSuccess,
-}: {
-  price: number;
+function PaymentStep({ price, onBack, onSuccess }: { 
+  price: number; 
   onBack: () => void;
   onSuccess: () => void;
 }) {
@@ -70,23 +58,23 @@ function PaymentStep({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!stripe || !elements) {
-      console.error("Stripe not initialized");
+      console.error('Stripe not initialized');
       return;
     }
 
     setProcessing(true);
     try {
+      // Submit the form data to Stripe
       const { error: submitError } = await elements.submit();
       if (submitError) {
         setError(submitError.message);
         return;
       }
 
+      // Confirm the payment
       const result = await stripe.confirmPayment({
         elements,
-        confirmParams: {
-          return_url: `${window.location.origin}/success`, // Add your success URL
-        },
+        redirect: 'if_required',
       });
 
       if (result.error) {
@@ -94,9 +82,11 @@ function PaymentStep({
         return;
       }
 
+      // Payment successful
       onSuccess();
+      
     } catch (error) {
-      setError(error instanceof Error ? error.message : "Payment failed");
+      setError(error instanceof Error ? error.message : 'Payment failed');
     } finally {
       setProcessing(false);
     }
@@ -110,23 +100,10 @@ function PaymentStep({
     <div className="max-w-md mx-auto">
       <h2 className="text-lg font-semibold mb-4">Payment Details</h2>
       <p className="text-muted-foreground mb-6">
-        Session price: €{(price / 100).toFixed(2).replace(/\.00$/, "")}
+        Session price: ${price}
       </p>
       <form onSubmit={handleSubmit}>
-        <PaymentElement
-          className="mb-6"
-          options={{
-            layout: "tabs",
-            paymentMethodOrder: [...PAYMENT_METHODS],
-            defaultValues: {
-              billingDetails: {
-                address: {
-                  country: "PT",
-                },
-              },
-            },
-          }}
-        />
+        <PaymentElement className="mb-6" />
         {error && <div className="text-red-500 mb-4">{error}</div>}
         <div className="flex gap-2 justify-end">
           <Button type="button" variant="outline" onClick={onBack}>
@@ -220,10 +197,10 @@ export function MeetingForm({
         });
       } else {
         // Handle successful submission (e.g., redirect or show success message)
-        window.location.href = "/success"; // Or your preferred success route
+        window.location.href = '/success'; // Or your preferred success route
       }
     } catch (error) {
-      console.error("Error creating meeting:", error);
+      console.error('Error creating meeting:', error);
       form.setError("root", {
         message: "There was an error saving your event",
       });
@@ -260,35 +237,33 @@ export function MeetingForm({
 
   // Modify the step handling
   const handleNextStep = async (currentStep: number) => {
-    if (currentStep === 2 && price > 0) {
+    if (currentStep === 2) {
       try {
-        const response = await fetch("/api/create-payment-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        const response = await fetch('/api/create-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
             eventId,
-            price, // Price is already in cents
-            meetingData: {
-              ...form.getValues(),
-              startTime: form.getValues("startTime")?.toISOString(),
-            },
+            price: Number(price),
+            meetingData: form.getValues()
           }),
         });
 
         if (!response.ok) {
-          throw new Error("Failed to create payment intent");
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create payment intent');
         }
 
         const data = await response.json();
         if (data.clientSecret) {
           setClientSecret(data.clientSecret);
           setStep(3);
+        } else {
+          throw new Error('No client secret received');
         }
       } catch (error) {
-        console.error("Error creating payment intent:", error);
-        form.setError("root", {
-          message: "Failed to initialize payment",
-        });
+        console.error('Error creating payment intent:', error);
+        // You might want to show an error message to the user here
       }
     } else {
       setStep(currentStep + 1);
@@ -553,11 +528,7 @@ export function MeetingForm({
             />
 
             <div className="flex gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setStep(1)}
-              >
+              <Button type="button" variant="outline" onClick={() => setStep(1)}>
                 Back
               </Button>
               <Button type="button" onClick={() => handleNextStep(2)}>
@@ -566,17 +537,17 @@ export function MeetingForm({
             </div>
           </>
         ) : step === 3 && clientSecret ? (
-          <Elements
-            stripe={stripePromise}
+          <Elements 
+            stripe={stripePromise} 
             options={{
               clientSecret,
               appearance: {
-                theme: "stripe",
-              }
+                theme: 'stripe',
+              },
             }}
           >
-            <PaymentStep
-              price={price}
+            <PaymentStep 
+              price={price} 
               onBack={() => setStep(2)}
               onSuccess={handlePaymentSuccess}
             />

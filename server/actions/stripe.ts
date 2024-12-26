@@ -1,7 +1,11 @@
 'use server'
 
-import { stripe, PAYMENT_METHODS } from "@/lib/stripe";
+import Stripe from "stripe";
 import { db } from "@/drizzle/db";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+  apiVersion: "2024-12-18.acacia",
+});
 
 export async function createStripeProduct({
   name,
@@ -95,16 +99,18 @@ export async function createPaymentIntent(eventId: string) {
     where: (events, { eq }) => eq(events.id, eventId),
   });
 
-  if (!event?.stripePriceId) {
+  if (!event || !event.stripePriceId) {
     throw new Error("Event or price not found");
   }
 
-  return stripe.paymentIntents.create({
+  const paymentIntent = await stripe.paymentIntents.create({
     amount: event.price,
     currency: event.currency,
-    payment_method_types:PAYMENT_METHODS,
+    payment_method_types: ["card"],
     metadata: {
       eventId: event.id,
     },
   });
+
+  return paymentIntent;
 }

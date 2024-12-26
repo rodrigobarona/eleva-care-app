@@ -1,5 +1,4 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { validateStripeConfig } from '@/lib/stripe';
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -14,11 +13,6 @@ export default clerkMiddleware((auth, req) => {
     auth().protect();
   }
 });
-
-export function middleware() {
-  // Validate Stripe configuration on startup
-  validateStripeConfig();
-}
 
 export const config = {
   matcher: [
