@@ -102,7 +102,7 @@ export async function createPaymentIntent(eventId: string) {
   return stripe.paymentIntents.create({
     amount: event.price,
     currency: event.currency,
-    payment_method_types: [...PAYMENT_METHODS],
+    payment_method_types:PAYMENT_METHODS,
     metadata: {
       eventId: event.id,
     },
