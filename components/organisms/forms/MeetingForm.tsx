@@ -53,7 +53,7 @@ function PaymentStep({ price, onBack, onSuccess }: {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = React.useState<string>();
-  const [processing, setProcessing] = React.useState(false);
+  const [status, setStatus] = React.useState<'idle' | 'processing' | 'succeeded' | 'failed'>('idle');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,12 +62,13 @@ function PaymentStep({ price, onBack, onSuccess }: {
       return;
     }
 
-    setProcessing(true);
+    setStatus('processing');
     try {
       // Submit the form data to Stripe
       const { error: submitError } = await elements.submit();
       if (submitError) {
         setError(submitError.message);
+        setStatus('failed');
         return;
       }
 
@@ -79,16 +80,17 @@ function PaymentStep({ price, onBack, onSuccess }: {
 
       if (result.error) {
         setError(result.error.message);
+        setStatus('failed');
         return;
       }
 
       // Payment successful
+      setStatus('succeeded');
       onSuccess();
       
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Payment failed');
-    } finally {
-      setProcessing(false);
+      setStatus('failed');
     }
   };
 
@@ -100,17 +102,31 @@ function PaymentStep({ price, onBack, onSuccess }: {
     <div className="max-w-md mx-auto">
       <h2 className="text-lg font-semibold mb-4">Payment Details</h2>
       <p className="text-muted-foreground mb-6">
-        Session price: ${price}
+        Session price: €{(price / 100).toFixed(2)}
       </p>
       <form onSubmit={handleSubmit}>
-        <PaymentElement className="mb-6" />
-        {error && <div className="text-red-500 mb-4">{error}</div>}
-        <div className="flex gap-2 justify-end">
-          <Button type="button" variant="outline" onClick={onBack}>
+        <PaymentElement />
+        {error && (
+          <p className="text-destructive text-sm mt-2">{error}</p>
+        )}
+        <div className="flex justify-between mt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBack}
+            disabled={status === 'processing'}
+          >
             Back
           </Button>
-          <Button disabled={!stripe || processing} type="submit">
-            {processing ? "Processing..." : "Pay Now"}
+          <Button 
+            type="submit"
+            disabled={!stripe || status === 'processing'}
+          >
+            {status === 'processing' ? (
+              "Processing..."
+            ) : (
+              `Pay €${(price / 100).toFixed(2)}`
+            )}
           </Button>
         </div>
       </form>
@@ -127,8 +143,8 @@ export function MeetingForm({
   const [use24Hour, setUse24Hour] = React.useState(false);
   const [step, setStep] = React.useState(1);
   const [clientSecret, setClientSecret] = React.useState<string>();
-  const [paymentCompleted, setPaymentCompleted] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [paymentCompleted, setPaymentCompleted] = React.useState(false);
 
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
@@ -197,8 +213,8 @@ export function MeetingForm({
           message: "There was an error saving your event",
         });
       } else {
-        // Redirect to success page with startTime parameter, including the event path
-        const eventPath = window.location.pathname; // Gets the current path which includes username/eventSlug
+        // Redirect to success page with startTime parameter
+        const eventPath = window.location.pathname;
         window.location.href = `${eventPath}/success?startTime=${values.startTime.toISOString()}`;
       }
     } catch (error) {
@@ -212,8 +228,9 @@ export function MeetingForm({
   // Handle successful payment
   const handlePaymentSuccess = async () => {
     setPaymentCompleted(true);
-    // Submit the form after successful payment
-    await form.handleSubmit(onSubmit)();
+    // Get the current path which includes username/eventSlug
+    const eventPath = window.location.pathname;
+    window.location.href = `${eventPath}/payment-processing?startTime=${form.getValues("startTime").toISOString()}`;
   };
 
   React.useEffect(() => {
