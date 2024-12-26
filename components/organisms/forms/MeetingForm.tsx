@@ -31,6 +31,11 @@ import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
 import { format } from "date-fns";
 import { Globe } from "lucide-react";
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+// Initialize Stripe
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? '');
 
 type MeetingFormProps = {
   validTimes: Date[];
@@ -39,13 +44,74 @@ type MeetingFormProps = {
   price: number;
 };
 
+// Add PaymentStep component
+function PaymentStep({ price, onBack }: { price: number; onBack: () => void }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [error, setError] = React.useState<string>();
+  const [processing, setProcessing] = React.useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) {
+      console.error('Stripe not initialized');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      const { error: submitError } = await elements.submit();
+      if (submitError) {
+        setError(submitError.message);
+        setProcessing(false);
+        return;
+      }
+
+      // Here you would confirm the payment
+      // Add your payment confirmation logic here
+      
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Payment failed');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  if (!stripe || !elements) {
+    return <div>Loading payment form...</div>;
+  }
+
+  return (
+    <div className="max-w-md mx-auto">
+      <h2 className="text-lg font-semibold mb-4">Payment Details</h2>
+      <p className="text-muted-foreground mb-6">
+        Session price: ${price}
+      </p>
+      <form onSubmit={handleSubmit}>
+        <PaymentElement className="mb-6" />
+        {error && <div className="text-red-500 mb-4">{error}</div>}
+        <div className="flex gap-2 justify-end">
+          <Button type="button" variant="outline" onClick={onBack}>
+            Back
+          </Button>
+          <Button disabled={!stripe || processing} type="submit">
+            {processing ? "Processing..." : "Pay Now"}
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export function MeetingForm({
   validTimes,
   eventId,
   clerkUserId,
+  price,
 }: MeetingFormProps) {
   const [use24Hour, setUse24Hour] = React.useState(false);
   const [step, setStep] = React.useState(1);
+  const [clientSecret, setClientSecret] = React.useState<string>();
 
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
@@ -131,6 +197,41 @@ export function MeetingForm({
       }
     }
   }, [date, form, step]);
+
+  // Modify the step handling
+  const handleNextStep = async (currentStep: number) => {
+    if (currentStep === 2) {
+      try {
+        const response = await fetch('/api/create-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            eventId,
+            price: Number(price),
+            meetingData: form.getValues()
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Failed to create payment intent');
+        }
+
+        const data = await response.json();
+        if (data.clientSecret) {
+          setClientSecret(data.clientSecret);
+          setStep(3);
+        } else {
+          throw new Error('No client secret received');
+        }
+      } catch (error) {
+        console.error('Error creating payment intent:', error);
+        // You might want to show an error message to the user here
+      }
+    } else {
+      setStep(currentStep + 1);
+    }
+  };
 
   return (
     <Form {...form}>
@@ -323,7 +424,7 @@ export function MeetingForm({
               </div>
             </div>
           </>
-        ) : (
+        ) : step === 2 ? (
           <>
             <div className="mb-8">
               <h2 className="text-lg font-semibold mb-2">
@@ -390,18 +491,31 @@ export function MeetingForm({
             />
 
             <div className="flex gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setStep(1)}
-              >
+              <Button type="button" variant="outline" onClick={() => setStep(1)}>
                 Back
               </Button>
-              <Button disabled={form.formState.isSubmitting} type="submit">
-                Schedule
+              <Button type="button" onClick={() => handleNextStep(2)}>
+                Continue to Payment
               </Button>
             </div>
           </>
+        ) : step === 3 && clientSecret ? (
+          <Elements 
+            stripe={stripePromise} 
+            options={{
+              clientSecret,
+              appearance: {
+                theme: 'stripe',
+              },
+            }}
+          >
+            <PaymentStep 
+              price={price} 
+              onBack={() => setStep(2)} 
+            />
+          </Elements>
+        ) : (
+          <div>Loading payment form...</div>
         )}
       </form>
     </Form>

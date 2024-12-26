@@ -7,10 +7,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
 
 export async function POST(request: Request) {
   try {
-    const { eventId, meetingData } = await request.json();
+    const { eventId, price, meetingData } = await request.json();
+
+    // Stripe expects amount in cents/smallest currency unit
+    const amount = Math.round(price * 100);
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: meetingData.price,
+      amount: amount, // Convert price to cents
       currency: "eur",
       metadata: {
         eventId,
