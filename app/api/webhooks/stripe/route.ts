@@ -29,18 +29,26 @@ export async function POST(req: Request) {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         const meetingData = JSON.parse(paymentIntent.metadata.meetingData);
         
-        await createMeeting({
-          eventId: paymentIntent.metadata.eventId,
-          clerkUserId: meetingData.clerkUserId,
-          guestEmail: meetingData.guestEmail,
-          guestName: meetingData.guestName,
-          timezone: meetingData.timezone,
-          startTime: new Date(meetingData.startTime),
-          guestNotes: meetingData.guestNotes,
-        });
-        break;
+        try {
+          await createMeeting({
+            eventId: paymentIntent.metadata.eventId,
+            clerkUserId: meetingData.clerkUserId,
+            guestEmail: meetingData.guestEmail,
+            guestName: meetingData.guestName,
+            timezone: meetingData.timezone,
+            startTime: new Date(meetingData.startTime),
+            guestNotes: meetingData.guestNotes || '',
+          });
+          
+          return NextResponse.json({ received: true });
+        } catch (error) {
+          console.error('Error creating meeting:', error);
+          return NextResponse.json(
+            { error: 'Failed to create meeting' },
+            { status: 500 }
+          );
+        }
       }
-      // ... handle other events as needed ...
     }
 
     return NextResponse.json({ received: true });

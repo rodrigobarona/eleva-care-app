@@ -71,7 +71,18 @@ function PaymentStep({ price, onBack, onSuccess }: {
         return;
       }
 
-      // Call onSuccess to trigger the meeting creation
+      // Confirm the payment
+      const result = await stripe.confirmPayment({
+        elements,
+        redirect: 'if_required',
+      });
+
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+
+      // Payment successful
       onSuccess();
       
     } catch (error) {
