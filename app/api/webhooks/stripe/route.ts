@@ -24,36 +24,30 @@ export async function POST(req: Request) {
       webhookSecret
     );
 
-    // Handle the event
     switch (event.type) {
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        const meetingData = paymentIntent.metadata;
-        
-        // Parse the startTime from metadata since it's stored as string
-        const startTime = new Date(meetingData.startTime);
+        const meetingData = JSON.parse(paymentIntent.metadata.meetingData);
         
         await createMeeting({
-          eventId: meetingData.eventId,
+          eventId: paymentIntent.metadata.eventId,
           clerkUserId: meetingData.clerkUserId,
           guestEmail: meetingData.guestEmail,
           guestName: meetingData.guestName,
           timezone: meetingData.timezone,
+          startTime: new Date(meetingData.startTime),
           guestNotes: meetingData.guestNotes,
-          startTime, // Already converted Date object
         });
         break;
       }
-      default:
-        console.log(`Unhandled event type ${event.type}`);
+      // ... handle other events as needed ...
     }
 
     return NextResponse.json({ received: true });
   } catch (err) {
-    const error = err as Error;
-    console.error("Webhook error:", error.message);
+    console.error("Webhook error:", err);
     return NextResponse.json(
-      { error: `Webhook Error: ${error.message}` },
+      { error: `Webhook Error: ${err instanceof Error ? err.message : 'Unknown error'}` },
       { status: 400 }
     );
   }

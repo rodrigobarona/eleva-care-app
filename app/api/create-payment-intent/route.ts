@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     const { eventId, price, meetingData } = await request.json();
 
     // Stripe expects amount in cents/smallest currency unit
-    const amount = Math.round(price * 100);
+    const amount = Math.round(price);
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount, // Convert price to cents

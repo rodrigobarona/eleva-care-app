@@ -45,7 +45,11 @@ type MeetingFormProps = {
 };
 
 // Add PaymentStep component
-function PaymentStep({ price, onBack }: { price: number; onBack: () => void }) {
+function PaymentStep({ price, onBack, onSuccess }: { 
+  price: number; 
+  onBack: () => void;
+  onSuccess: () => void;
+}) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = React.useState<string>();
@@ -60,15 +64,15 @@ function PaymentStep({ price, onBack }: { price: number; onBack: () => void }) {
 
     setProcessing(true);
     try {
+      // Submit the form data to Stripe
       const { error: submitError } = await elements.submit();
       if (submitError) {
         setError(submitError.message);
-        setProcessing(false);
         return;
       }
 
-      // Here you would confirm the payment
-      // Add your payment confirmation logic here
+      // Call onSuccess to trigger the meeting creation
+      onSuccess();
       
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Payment failed');
@@ -112,6 +116,7 @@ export function MeetingForm({
   const [use24Hour, setUse24Hour] = React.useState(false);
   const [step, setStep] = React.useState(1);
   const [clientSecret, setClientSecret] = React.useState<string>();
+  const [paymentCompleted, setPaymentCompleted] = React.useState(false);
 
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
@@ -164,18 +169,39 @@ export function MeetingForm({
   }, [validTimesInTimezone]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    const data = await createMeeting({
-      ...values,
-      eventId,
-      clerkUserId,
-    });
+    if (step === 3 && !paymentCompleted) {
+      return; // Don't submit until payment is completed
+    }
 
-    if (data?.error) {
+    try {
+      const data = await createMeeting({
+        ...values,
+        eventId,
+        clerkUserId,
+      });
+
+      if (data?.error) {
+        form.setError("root", {
+          message: "There was an error saving your event",
+        });
+      } else {
+        // Handle successful submission (e.g., redirect or show success message)
+        window.location.href = '/success'; // Or your preferred success route
+      }
+    } catch (error) {
+      console.error('Error creating meeting:', error);
       form.setError("root", {
         message: "There was an error saving your event",
       });
     }
   }
+
+  // Handle successful payment
+  const handlePaymentSuccess = async () => {
+    setPaymentCompleted(true);
+    // Submit the form after successful payment
+    await form.handleSubmit(onSubmit)();
+  };
 
   React.useEffect(() => {
     // Set the first available date as default when component mounts
@@ -511,7 +537,8 @@ export function MeetingForm({
           >
             <PaymentStep 
               price={price} 
-              onBack={() => setStep(2)} 
+              onBack={() => setStep(2)}
+              onSuccess={handlePaymentSuccess}
             />
           </Elements>
         ) : (
