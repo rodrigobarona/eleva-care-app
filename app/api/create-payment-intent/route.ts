@@ -15,7 +15,7 @@ export async function POST(request: Request) {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: Math.round(price),
       currency: "eur",
-      payment_method_types: [...PAYMENT_METHODS],
+      payment_method_types: PAYMENT_METHODS,
       metadata: {
         eventId,
         meetingData: JSON.stringify(meetingData),
