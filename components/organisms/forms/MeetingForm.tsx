@@ -139,7 +139,9 @@ export function MeetingForm({
                         <SelectTrigger className="w-70 h-9 text-sm border-0 shadow-none">
                           <div className="flex items-center gap-2">
                             <Globe className="h-4 w-4" />
-                            <SelectValue />
+                            <SelectValue
+                              placeholder={timezone.replace("_", " ")}
+                            />
                           </div>
                         </SelectTrigger>
                       </FormControl>
@@ -150,7 +152,7 @@ export function MeetingForm({
                             value={timezone}
                             className="text-sm"
                           >
-                            {timezone}
+                            {timezone.replace("_", " ").replace("/", " - ")}
                             {` (${formatTimezoneOffset(timezone)})`}
                           </SelectItem>
                         ))}

@@ -21,6 +21,7 @@ import {
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
+import ReactMarkdown from "react-markdown";
 
 export const revalidate = 0;
 
@@ -32,7 +33,7 @@ export default async function BookEventPage({
   const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
   });
-  
+
   const users = await clerk.users.getUserList({
     username: [username],
   });
@@ -76,16 +77,18 @@ export default async function BookEventPage({
   }
 
   return (
-    <Card className="max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>
-          Book {event.name} with {calendarUser.fullName}
+    <Card className="max-w-4xl mx-auto border-none shadow-none p-0 rounded-none">
+      <CardHeader className=" gap-2 p-0">
+        <CardTitle className="text-2xl font-bold">
+          Book a video call: {event.name}
         </CardTitle>
         {event.description && (
-          <CardDescription>{event.description}</CardDescription>
+          <div className="prose mt-2 text-sm text-muted-foreground">
+            <ReactMarkdown>{event.description}</ReactMarkdown>
+          </div>
         )}
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-0 pt-8">
         <MeetingForm
           validTimes={validTimes}
           eventId={event.id}
@@ -93,7 +96,6 @@ export default async function BookEventPage({
           username={username}
         />
       </CardContent>
-      <CardFooter></CardFooter>
     </Card>
   );
 }
@@ -112,7 +114,9 @@ function NoTimeSlots({
           Book {event.name} with {calendarUser.fullName}
         </CardTitle>
         {event.description && (
-          <CardDescription>{event.description}</CardDescription>
+          <CardDescription>
+            <ReactMarkdown>{event.description}</ReactMarkdown>
+          </CardDescription>
         )}
       </CardHeader>
       <CardContent>
