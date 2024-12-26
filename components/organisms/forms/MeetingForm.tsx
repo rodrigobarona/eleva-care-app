@@ -12,7 +12,6 @@ import {
   FormMessage,
 } from "@/components/molecules/form";
 import { Input } from "@/components/atoms/input";
-import Link from "next/link";
 import { Button } from "@/components/atoms/button";
 import { Textarea } from "@/components/atoms/textarea";
 import { meetingFormSchema } from "@/schema/meetings";
@@ -37,12 +36,10 @@ export function MeetingForm({
   validTimes,
   eventId,
   clerkUserId,
-  username,
 }: {
   validTimes: Date[];
   eventId: string;
   clerkUserId: string;
-  username: string;
 }) {
   const [use24Hour, setUse24Hour] = React.useState(false);
   const [step, setStep] = React.useState(1);
@@ -121,7 +118,10 @@ export function MeetingForm({
 
   // Watch for changes in date
   React.useEffect(() => {
-    if (date && form.getValues('date')?.toDateString() !== date.toDateString()) {
+    if (
+      date &&
+      form.getValues("date")?.toDateString() !== date.toDateString()
+    ) {
       form.setValue("startTime", null as unknown as Date);
       if (step === 2) {
         setStep(1);

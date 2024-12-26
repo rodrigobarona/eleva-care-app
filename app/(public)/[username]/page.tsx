@@ -1,11 +1,6 @@
 import React from "react";
 import { Button } from "@/components/atoms/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/atoms/card";
+import { Card } from "@/components/atoms/card";
 import { db } from "@/drizzle/db";
 import { formatEventDescription } from "@/lib/formatters";
 import { createClerkClient } from "@clerk/nextjs/server";

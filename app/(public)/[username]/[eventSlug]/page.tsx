@@ -93,7 +93,6 @@ export default async function BookEventPage({
           validTimes={validTimes}
           eventId={event.id}
           clerkUserId={user.id}
-          username={username}
         />
       </CardContent>
     </Card>
