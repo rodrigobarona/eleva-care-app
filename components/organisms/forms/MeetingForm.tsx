@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useMemo, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -25,7 +25,6 @@ import {
 import { formatTimezoneOffset } from "@/lib/formatters";
 import { Calendar } from "@/components/molecules/calendar";
 import { cn } from "@/lib/utils";
-import { useMemo } from "react";
 import { createMeeting } from "@/server/actions/meetings";
 import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
@@ -34,6 +33,13 @@ import { Globe } from "lucide-react";
 import { Elements } from '@stripe/react-stripe-js';
 import { getStripePromise } from "@/lib/stripe";
 import { PaymentStep } from './PaymentStep';
+import { 
+  useQueryStates, 
+  parseAsString, 
+  parseAsIsoDate, 
+  parseAsIsoDateTime, 
+  parseAsStringLiteral 
+} from 'nuqs';
 
 // Replace the existing stripePromise initialization with:
 const stripePromise = getStripePromise();
@@ -51,40 +57,57 @@ export function MeetingForm({
   clerkUserId,
   price,
 }: MeetingFormProps) {
+  // State management
   const [use24Hour, setUse24Hour] = React.useState(false);
-  const [step, setStep] = React.useState(1);
   const [clientSecret, setClientSecret] = React.useState<string>();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [paymentCompleted, setPaymentCompleted] = React.useState(false);
 
+  // Query state configuration
+  const queryStateParsers = useMemo(() => ({
+    step: parseAsStringLiteral(['1', '2', '3'] as const).withDefault('1'),
+    date: parseAsIsoDate.withDefault(''),
+    time: parseAsIsoDateTime.withDefault(''),
+    name: parseAsString.withDefault(''),
+    email: parseAsString.withDefault(''),
+    timezone: parseAsString.withDefault('')
+  }), []);
+
+  const [queryStates, setQueryStates] = useQueryStates(queryStateParsers, {
+    history: 'push',
+    shallow: true
+  });
+
+  // Extract current step from queryStates
+  const currentStep = queryStates.step;
+
+  // Form initialization
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      // Use timezone from URL if available, otherwise use browser default
+      timezone: queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
   });
 
+  // Memoized values
   const timezone = form.watch("timezone");
   const date = form.watch("date");
   const startTime = form.watch("startTime");
 
+  // Memoize timezone calculations
   const validTimesInTimezone = useMemo(() => {
     return validTimes.map((utcDate) => {
-      // Convert UTC date to target timezone
       const zonedDate = toZonedTime(utcDate, timezone);
-
-      // Get the display time in the target timezone
       const displayTime = formatInTimeZone(
-        utcDate, // Original UTC date
-        timezone, // Target timezone
-        use24Hour ? "HH:mm" : "h:mm a" // Changed format based on use24Hour
+        utcDate,
+        timezone,
+        use24Hour ? "HH:mm" : "h:mm a"
       );
-
-      // Get the date in target timezone for grouping
       const localDateOnly = startOfDay(zonedDate);
 
       return {
-        utcDate, // Original UTC date for form submission
+        utcDate,
         localDate: zonedDate,
         localDateOnly,
         displayTime,
@@ -92,23 +115,132 @@ export function MeetingForm({
     });
   }, [validTimes, timezone, use24Hour]);
 
-  // Group times by local date
+  // Memoize time grouping
   const timesByDate = useMemo(() => {
-    return validTimesInTimezone.reduce(
-      (acc, time) => {
-        const dateKey = time.localDateOnly.toISOString();
-        if (!acc[dateKey]) {
-          acc[dateKey] = [];
-        }
-        acc[dateKey].push(time);
-        return acc;
-      },
-      {} as Record<string, typeof validTimesInTimezone>
-    );
+    return validTimesInTimezone.reduce((acc, time) => {
+      const dateKey = time.localDateOnly.toISOString();
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+      acc[dateKey].push(time);
+      return acc;
+    }, {} as Record<string, typeof validTimesInTimezone>);
   }, [validTimesInTimezone]);
 
+  // Initialize form with first available date and timezone
+  useEffect(() => {
+    // Skip if already initialized with date
+    if (!validTimes.length || queryStates.date) return;
+
+    const firstAvailableDate = startOfDay(validTimes[0]);
+    const initialTimezone = queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Set initial form values
+    form.setValue("date", firstAvailableDate);
+    form.setValue("timezone", initialTimezone);
+
+    // Update URL with initial values
+    setQueryStates({
+      date: firstAvailableDate,
+      timezone: initialTimezone,
+      step: '1'
+    });
+
+  }, [validTimes, form, queryStates.date, queryStates.timezone, setQueryStates]);
+
+  // Sync URL timezone to form
+  useEffect(() => {
+    if (queryStates.timezone && queryStates.timezone !== form.getValues('timezone')) {
+      form.setValue('timezone', queryStates.timezone);
+    }
+  }, [queryStates.timezone, form]);
+
+  // Helper function for date comparison
+  const areDatesEqual = useCallback((date1: Date | null | undefined, date2: Date | null | undefined) => {
+    if (!date1 || !date2) return false;
+    return date1.getTime() === date2.getTime();
+  }, []);
+
+  // Sync form changes to URL - Modified to prevent loops
+  useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      if (type === 'change') {
+        const updates: Partial<typeof queryStates> = {};
+        
+        switch (name) {
+          case 'date':
+            if (value.date && !areDatesEqual(value.date, queryStates.date)) {
+              updates.date = value.date;
+            }
+            break;
+          case 'startTime':
+            if (value.startTime && !areDatesEqual(value.startTime, queryStates.time)) {
+              updates.time = value.startTime;
+            }
+            break;
+          case 'guestName':
+            if (value.guestName !== queryStates.name) {
+              updates.name = value.guestName || '';
+            }
+            break;
+          case 'guestEmail':
+            if (value.guestEmail !== queryStates.email) {
+              updates.email = value.guestEmail || '';
+            }
+            break;
+        }
+
+        if (Object.keys(updates).length > 0) {
+          setQueryStates(updates);
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [queryStates, form, setQueryStates, areDatesEqual]);
+
+  // Sync URL params to form - Modified to prevent loops
+  useEffect(() => {
+    const { date, time, name, email, timezone } = queryStates;
+    
+    const currentDate = form.getValues('date');
+    const currentTime = form.getValues('startTime');
+    const currentName = form.getValues('guestName');
+    const currentEmail = form.getValues('guestEmail');
+    const currentTimezone = form.getValues('timezone');
+
+    // Only update if values are different
+    if (date && !areDatesEqual(date, currentDate)) {
+      form.setValue('date', date);
+    }
+    if (time && !areDatesEqual(time, currentTime)) {
+      form.setValue('startTime', time);
+    }
+    if (name !== currentName) {
+      form.setValue('guestName', name);
+    }
+    if (email !== currentEmail) {
+      form.setValue('guestEmail', email);
+    }
+    if (timezone && timezone !== currentTimezone) {
+      form.setValue('timezone', timezone);
+    }
+  }, [queryStates, form, areDatesEqual]);
+
+  const availableTimezones = useMemo(
+    () => Intl.supportedValuesOf("timeZone"),
+    []
+  );
+
+  const formattedTimezones = useMemo(() => {
+    return availableTimezones.map(timezone => ({
+      value: timezone,
+      label: `${timezone.replace("_", " ").replace("/", " - ")} (${formatTimezoneOffset(timezone)})`
+    }));
+  }, [availableTimezones]);
+
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    if (step === 3 && !paymentCompleted && price > 0) {
+    if (currentStep === '3' && !paymentCompleted && price > 0) {
       return; // Don't submit until payment is completed for paid meetings
     }
 
@@ -144,62 +276,43 @@ export function MeetingForm({
     window.location.href = `${eventPath}/payment-processing?startTime=${form.getValues("startTime").toISOString()}`;
   };
 
-  React.useEffect(() => {
-    // Set the first available date as default when component mounts
-    if (validTimes.length > 0 && !form.getValues("date")) {
-      const firstAvailableDate = startOfDay(validTimes[0]);
-      form.setValue("date", firstAvailableDate);
-    }
-  }, [validTimes, form]);
-
-  // Watch for changes in date
-  React.useEffect(() => {
-    if (
-      date &&
-      form.getValues("date")?.toDateString() !== date.toDateString()
-    ) {
-      form.setValue("startTime", null as unknown as Date);
-      if (step === 2) {
-        setStep(1);
-      }
-    }
-  }, [date, form, step]);
-
-  // Modify the step handling
-  const handleNextStep = async (currentStep: number) => {
+  // Modified step handling
+  const handleNextStep = async (nextStep: typeof currentStep) => {
     setIsSubmitting(true);
+    
     try {
-      if (currentStep === 2) {
-        if (price === 0) {
-          // For free meetings, submit directly
-          await form.handleSubmit(onSubmit)();
-          return;
-        }
+      if (nextStep !== '3') {
+        setQueryStates({ step: nextStep });
+        return;
+      }
 
-        const response = await fetch('/api/create-payment-intent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            eventId,
-            price,
-            meetingData: {
-              ...form.getValues(),
-              startTime: form.getValues("startTime")?.toISOString(),
-            },
-          }),
-        });
+      // Handle step 3
+      if (price === 0) {
+        await form.handleSubmit(onSubmit)();
+        return;
+      }
 
-        if (!response.ok) {
-          throw new Error("Failed to create payment intent");
-        }
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          eventId,
+          price,
+          meetingData: {
+            ...form.getValues(),
+            startTime: form.getValues("startTime")?.toISOString(),
+          },
+        }),
+      });
 
-        const data = await response.json();
-        if (data.clientSecret) {
-          setClientSecret(data.clientSecret);
-          setStep(3);
-        }
-      } else {
-        setStep(currentStep + 1);
+      if (!response.ok) {
+        throw new Error("Failed to create payment intent");
+      }
+
+      const { clientSecret } = await response.json();
+      if (clientSecret) {
+        setClientSecret(clientSecret);
+        setQueryStates({ step: '3' });
       }
     } catch (error) {
       console.error('Error:', error);
@@ -214,7 +327,7 @@ export function MeetingForm({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        {step === 1 ? (
+        {currentStep === '1' ? (
           <>
             <div className="grid md:grid-cols-[minmax(auto,800px),300px] gap-8">
               <div>
@@ -242,17 +355,14 @@ export function MeetingForm({
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {Intl.supportedValuesOf("timeZone").map(
+                            {formattedTimezones.map(
                               (timezone) => (
                                 <SelectItem
-                                  key={timezone}
-                                  value={timezone}
+                                  key={timezone.value}
+                                  value={timezone.value}
                                   className="text-sm"
                                 >
-                                  {timezone
-                                    .replace("_", " ")
-                                    .replace("/", " - ")}
-                                  {` (${formatTimezoneOffset(timezone)})`}
+                                  {timezone.label}
                                 </SelectItem>
                               )
                             )}
@@ -270,7 +380,10 @@ export function MeetingForm({
                       <Calendar
                         mode="single"
                         selected={field.value}
-                        onSelect={field.onChange}
+                        onSelect={(date) => {
+                          field.onChange(date);
+                          setQueryStates({ date });
+                        }}
                         disabled={(date) => {
                           const dateKey = startOfDay(date).toISOString();
                           return !timesByDate[dateKey];
@@ -385,9 +498,8 @@ export function MeetingForm({
                                 )}
                                 onClick={() => {
                                   field.onChange(utcDate);
-                                  if (date) {
-                                    setStep(2);
-                                  }
+                                  setQueryStates({ time: utcDate });
+                                  handleNextStep('2');
                                 }}
                               >
                                 {displayTime}
@@ -402,7 +514,7 @@ export function MeetingForm({
               </div>
             </div>
           </>
-        ) : step === 2 ? (
+        ) : currentStep === '2' ? (
           <>
             <div className="mb-8">
               <h2 className="text-lg font-semibold mb-2">
@@ -427,7 +539,13 @@ export function MeetingForm({
                   <FormItem className="flex-1">
                     <FormLabel className="font-semibold">Your Name</FormLabel>
                     <FormControl>
-                      <Input {...field} className="border rounded-md" />
+                      <Input
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setQueryStates({ name: e.target.value });
+                        }}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -443,7 +561,10 @@ export function MeetingForm({
                       <Input
                         type="email"
                         {...field}
-                        className="border rounded-md"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setQueryStates({ email: e.target.value });
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -472,14 +593,14 @@ export function MeetingForm({
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => setStep(1)}
+                onClick={() => setQueryStates({ step: '1' })}
                 disabled={isSubmitting}
               >
                 Back
               </Button>
               <Button 
                 type="button" 
-                onClick={() => handleNextStep(2)}
+                onClick={() => handleNextStep('3')}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -490,7 +611,7 @@ export function MeetingForm({
               </Button>
             </div>
           </>
-        ) : step === 3 && clientSecret ? (
+        ) : currentStep === '3' && clientSecret ? (
           <Elements 
             stripe={stripePromise} 
             options={{
@@ -505,7 +626,7 @@ export function MeetingForm({
           >
             <PaymentStep 
               price={price} 
-              onBack={() => setStep(2)}
+              onBack={() => setQueryStates({ step: '2' })}
               onSuccess={handlePaymentSuccess}
             />
           </Elements>

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Alexandria, JetBrains_Mono, Lora } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 
 const lora = Lora({
   subsets: ["latin"],
@@ -54,7 +55,7 @@ export default function RootLayout({
         <body
           className={`${lora.variable} ${alexandria.variable} ${jetBrains.variable} min-h-screen bg-background font-sans font-light antialiased`}
         >
-          {children}
+          <NuqsAdapter>{children}</NuqsAdapter>
           <Toaster />
         </body>
       </html>

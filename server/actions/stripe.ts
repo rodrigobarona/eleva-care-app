@@ -1,4 +1,4 @@
-'use server'
+"use server";
 
 import { getServerStripe } from "@/lib/stripe";
 import { STRIPE_CONFIG } from "@/config/stripe";
@@ -8,7 +8,7 @@ export async function createStripeProduct({
   name,
   description,
   price,
-  currency = 'eur',
+  currency = "eur",
   clerkUserId,
 }: {
   name: string;
@@ -38,8 +38,8 @@ export async function createStripeProduct({
       priceId: stripePrice.id,
     };
   } catch (error) {
-    console.error('Stripe product creation failed:', error);
-    return { error: 'Failed to create Stripe product' };
+    console.error("Stripe product creation failed:", error);
+    return { error: "Failed to create Stripe product" };
   }
 }
 
@@ -49,7 +49,7 @@ export async function updateStripeProduct({
   name,
   description,
   price,
-  currency = 'eur',
+  currency = "eur",
   clerkUserId,
 }: {
   stripeProductId: string;
@@ -88,8 +88,8 @@ export async function updateStripeProduct({
       priceId: newPrice.id,
     };
   } catch (error) {
-    console.error('Stripe product update failed:', error);
-    return { error: 'Failed to update Stripe product' };
+    console.error("Stripe product update failed:", error);
+    return { error: "Failed to update Stripe product" };
   }
 }
 
@@ -107,9 +107,14 @@ export async function createPaymentIntent(eventId: string, meetingData: any) {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: event.price,
       currency: event.currency || STRIPE_CONFIG.CURRENCY,
-      automatic_payment_methods: {
-        enabled: true,
+      payment_method_types: ["card"],
+      payment_method_options: {
+        card: {
+          request_three_d_secure: "automatic",
+        },
       },
+      capture_method: "automatic",
+      confirmation_method: "automatic",
       metadata: {
         eventId: event.id,
         meetingData: JSON.stringify(meetingData),
@@ -118,7 +123,7 @@ export async function createPaymentIntent(eventId: string, meetingData: any) {
 
     return { clientSecret: paymentIntent.client_secret };
   } catch (error) {
-    console.error('Payment intent creation failed:', error);
-    return { error: 'Failed to create payment intent' };
+    console.error("Payment intent creation failed:", error);
+    return { error: "Failed to create payment intent" };
   }
 }
