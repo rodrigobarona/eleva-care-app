@@ -66,12 +66,18 @@ export function MeetingForm({
   // Query state configuration
   const queryStateParsers = useMemo(() => ({
     step: parseAsStringLiteral(['1', '2', '3'] as const).withDefault('1'),
-    date: parseAsIsoDate.withDefault(''),
-    time: parseAsIsoDateTime.withDefault(''),
+    date: parseAsIsoDate.withDefault(
+      validTimes.length > 0 ? startOfDay(validTimes[0]) : new Date()
+    ),
+    time: parseAsIsoDateTime.withDefault(
+      validTimes.length > 0 ? validTimes[0] : new Date()
+    ),
     name: parseAsString.withDefault(''),
     email: parseAsString.withDefault(''),
-    timezone: parseAsString.withDefault('')
-  }), []);
+    timezone: parseAsString.withDefault(
+      Intl.DateTimeFormat().resolvedOptions().timeZone
+    )
+  }), [validTimes]);
 
   const [queryStates, setQueryStates] = useQueryStates(queryStateParsers, {
     history: 'push',
@@ -85,8 +91,7 @@ export function MeetingForm({
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
-      // Use timezone from URL if available, otherwise use browser default
-      timezone: queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: queryStates.timezone,
     },
   });
 
