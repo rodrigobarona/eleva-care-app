@@ -46,7 +46,7 @@ export default async function BookingPage({
   const events = await db.query.EventTable.findMany({
     where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
       and(eq(userIdCol, user.id), eq(isActive, true)),
-    orderBy: ({ name }, { asc, sql }) => asc(sql`lower(${name})`),
+    orderBy: ({ order }, { asc }) => asc(order),
   });
 
   if (events.length === 0) return notFound();
