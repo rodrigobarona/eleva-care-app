@@ -1,32 +1,29 @@
-import { db } from "@/drizzle/db";
 import { NextResponse } from "next/server";
+import { db } from "@/drizzle/db";
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const startTime = searchParams.get("startTime");
-  const eventSlug = searchParams.get("eventSlug");
-
-  if (!startTime || !eventSlug) {
-    return NextResponse.json(
-      { error: "Missing required parameters" },
-      { status: 400 }
-    );
-  }
-
   try {
-    // First get the event
-    const event = await db.query.EventTable.findFirst({
-      where: ({ slug }, { eq }) => eq(slug, eventSlug),
-    });
+    const { searchParams } = new URL(request.url);
+    const startTime = searchParams.get("startTime");
+    const eventSlug = searchParams.get("eventSlug");
 
-    if (!event) {
+    if (!startTime || !eventSlug) {
       return NextResponse.json(
-        { error: "Event not found" },
-        { status: 404 }
+        { error: "Missing required parameters" },
+        { status: 400 }
       );
     }
 
-    // Then check if meeting exists
+    // First get the event by slug
+    const event = await db.query.EventTable.findFirst({
+      where: (events, { eq }) => eq(events.slug, eventSlug),
+    });
+
+    if (!event) {
+      return NextResponse.json({ error: "Event not found" }, { status: 404 });
+    }
+
+    // Then check for the meeting
     const meeting = await db.query.MeetingTable.findFirst({
       where: ({ eventId, startTime: meetingStartTime }, { eq, and }) =>
         and(
@@ -37,6 +34,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       status: meeting ? "created" : "pending",
+      meeting: meeting ? { id: meeting.id } : null,
     });
   } catch (error) {
     console.error("Error checking meeting status:", error);

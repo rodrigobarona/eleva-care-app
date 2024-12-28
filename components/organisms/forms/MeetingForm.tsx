@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useEffect, useCallback } from "react";
+import React, { useMemo, useEffect, useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -58,10 +58,9 @@ export function MeetingForm({
   price,
 }: MeetingFormProps) {
   // State management
-  const [use24Hour, setUse24Hour] = React.useState(false);
-  const [clientSecret, setClientSecret] = React.useState<string>();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [paymentCompleted, setPaymentCompleted] = React.useState(false);
+  const [use24Hour, setUse24Hour] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string>();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Query state configuration
   const queryStateParsers = useMemo(
@@ -277,7 +276,7 @@ export function MeetingForm({
   }, [availableTimezones]);
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    if (currentStep === "3" && !paymentCompleted && price > 0) {
+    if (currentStep === "3" && price > 0) {
       return; // Don't submit until payment is completed for paid meetings
     }
 
@@ -305,14 +304,6 @@ export function MeetingForm({
     }
   }
 
-  // Handle successful payment
-  const handlePaymentSuccess = async () => {
-    setPaymentCompleted(true);
-    // Get the current path which includes username/eventSlug
-    const eventPath = window.location.pathname;
-    window.location.href = `${eventPath}/payment-processing?startTime=${form.getValues("startTime").toISOString()}`;
-  };
-
   // Modified step handling
   const handleNextStep = async (nextStep: typeof currentStep) => {
     setIsSubmitting(true);
@@ -337,6 +328,7 @@ export function MeetingForm({
           price,
           meetingData: {
             ...form.getValues(),
+            clerkUserId,
             startTime: form.getValues("startTime")?.toISOString(),
           },
         }),
@@ -662,7 +654,6 @@ export function MeetingForm({
             <PaymentStep
               price={price}
               onBack={() => setQueryStates({ step: "2" })}
-              onSuccess={handlePaymentSuccess}
             />
           </Elements>
         ) : (

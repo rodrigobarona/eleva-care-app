@@ -38,7 +38,6 @@ export async function POST(req: Request) {
 
     switch (event.type) {
       case "payment_intent.created": {
-        // Log the creation but don't take action yet
         console.log("Payment intent created:", event.data.object.id);
         return NextResponse.json({ received: true });
       }
@@ -46,6 +45,11 @@ export async function POST(req: Request) {
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.log("Processing successful payment:", paymentIntent.id);
+
+        if (!paymentIntent.metadata.meetingData) {
+          console.error("No meeting data found in payment intent metadata");
+          return NextResponse.json({ error: "Invalid payment intent data" }, { status: 400 });
+        }
 
         const meetingData = JSON.parse(paymentIntent.metadata.meetingData);
 
@@ -59,11 +63,12 @@ export async function POST(req: Request) {
         });
 
         if (existingMeeting) {
+          console.log("Meeting already exists:", existingMeeting.id);
           return NextResponse.json({ received: true });
         }
 
         try {
-          await createMeeting({
+          const meeting = await createMeeting({
             eventId: paymentIntent.metadata.eventId,
             clerkUserId: meetingData.clerkUserId,
             guestEmail: meetingData.guestEmail,
@@ -74,6 +79,7 @@ export async function POST(req: Request) {
             paymentIntentId: paymentIntent.id,
           });
 
+          console.log("Meeting created successfully:", meeting);
           return NextResponse.json({ received: true });
         } catch (error) {
           console.error("Error creating meeting:", error);
@@ -83,9 +89,12 @@ export async function POST(req: Request) {
           );
         }
       }
-    }
 
-    return NextResponse.json({ received: true });
+      default: {
+        console.log("Unhandled event type:", event.type);
+        return NextResponse.json({ received: true });
+      }
+    }
   } catch (err) {
     console.error("Webhook error:", err);
     return NextResponse.json(

@@ -10,10 +10,9 @@ import { Button } from "@/components/atoms/button";
 type PaymentStepProps = {
   price: number;
   onBack: () => void;
-  onSuccess: () => void;
 };
 
-export function PaymentStep({ price, onBack, onSuccess }: PaymentStepProps) {
+export function PaymentStep({ price, onBack }: PaymentStepProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
