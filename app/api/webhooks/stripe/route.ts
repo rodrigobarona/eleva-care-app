@@ -7,6 +7,12 @@ import { db } from "@/drizzle/db";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 
+const relevantEvents = new Set([
+  'payment_intent.succeeded',
+  'payment_intent.payment_failed',
+  'payment_intent.canceled'
+]);
+
 // Add GET handler to explain the endpoint
 export async function GET() {
   return NextResponse.json(
@@ -20,30 +26,40 @@ export async function POST(req: Request) {
     const body = await req.text();
     const signature = headers().get("stripe-signature");
 
-    console.log("Webhook received", {
-      hasSignature: !!signature,
-      bodyLength: body.length,
-      method: req.method,
-    });
+    console.log(`🔔 Webhook received with signature: ${signature?.slice(0, 10)}...`);
 
-    if (!signature) {
-      console.error("Missing stripe-signature header");
+    if (!signature || !webhookSecret) {
+      console.error('❌ Missing webhook secret or signature');
       return NextResponse.json(
-        { error: "Missing stripe-signature header" },
+        { error: "Configuration error" },
         { status: 400 }
       );
     }
 
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    );
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      console.log(`✅ Webhook verified: ${event.type}`);
+    } catch (err) {
+      console.error('❌ Webhook signature verification failed:', err);
+      return NextResponse.json(
+        { error: `Webhook Error: ${err instanceof Error ? err.message : 'Unknown error'}` },
+        { status: 400 }
+      );
+    }
 
     console.log("Webhook event:", {
       type: event.type,
       id: event.id,
     });
+
+    if (!relevantEvents.has(event.type)) {
+      console.log(`🔕 Unhandled event type: ${event.type}`);
+      return NextResponse.json(
+        { error: `Unhandled event type: ${event.type}` },
+        { status: 400 }
+      );
+    }
 
     switch (event.type) {
       case "payment_intent.succeeded": {
@@ -52,16 +68,17 @@ export async function POST(req: Request) {
 
         const meetingData = JSON.parse(paymentIntent.metadata.meetingData);
 
-        // Check if meeting already exists to prevent duplicates
+        // Check if we've already processed this event
         const existingMeeting = await db.query.MeetingTable.findFirst({
-          where: ({ eventId, startTime }, { eq, and }) =>
+          where: ({ eventId, stripePaymentIntentId }, { eq, and }) =>
             and(
               eq(eventId, paymentIntent.metadata.eventId),
-              eq(startTime, new Date(meetingData.startTime))
+              eq(stripePaymentIntentId, paymentIntent.id)
             ),
         });
 
         if (existingMeeting) {
+          console.log(`⏭️ Skipping duplicate payment: ${paymentIntent.id}`);
           return NextResponse.json({ received: true });
         }
 
@@ -89,6 +106,16 @@ export async function POST(req: Request) {
           );
         }
       }
+      case "payment_intent.payment_failed":
+        console.log(`❌ Payment failed: ${event.data.object.id}`);
+        // Handle failed payment
+        break;
+      case "payment_intent.canceled":
+        console.log(`🚫 Payment canceled: ${event.data.object.id}`);
+        // Handle canceled payment
+        break;
+      default:
+        throw new Error('Unhandled relevant event!');
     }
 
     return NextResponse.json({ received: true });

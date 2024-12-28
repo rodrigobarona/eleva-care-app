@@ -51,45 +51,42 @@ export async function createMeeting(
   });
 
   // Step 5: Create the meeting record in the database
-  await db.insert(MeetingTable).values({
-    eventId: data.eventId,
-    clerkUserId: data.clerkUserId,
-    guestEmail: data.guestEmail,
-    guestName: data.guestName,
-    guestNotes: data.guestNotes,
-    startTime: startTimeUTC,
-    endTime: endTimeUTC,
-    timezone: data.timezone,
-    meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
+  await db.transaction(async (tx) => {
+    const meeting = await tx.insert(MeetingTable).values({
+      ...data,
+      stripePaymentIntentId: data.paymentIntentId,
+      paymentStatus: 'succeeded',
+      lastProcessedAt: new Date(),
+    });
+
+    // Step 6: Parallel operations:
+    // - Log audit event for tracking
+    await Promise.all([
+      logAuditEvent(
+        data.clerkUserId,
+        "create",
+        "meetings",
+        data.eventId,
+        null,
+        {
+          ...data,
+          endTime: endTimeUTC,
+          meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
+        },
+        headers().get("x-forwarded-for") ?? "Unknown",
+        headers().get("user-agent") ?? "Unknown"
+      ),
+    ]);
+
+    // Step 7: Get username and use event slug for the redirect
+    const clerk = createClerkClient({
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
+    const user = await clerk.users.getUser(data.clerkUserId);
+    const username = user.username ?? data.clerkUserId;
+
+    redirect(
+      `/${username}/${event.slug}/success?startTime=${data.startTime.toISOString()}`
+    );
   });
-
-  // Step 6: Parallel operations:
-  // - Log audit event for tracking
-  await Promise.all([
-    logAuditEvent(
-      data.clerkUserId,
-      "create",
-      "meetings",
-      data.eventId,
-      null,
-      {
-        ...data,
-        endTime: endTimeUTC,
-        meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
-      },
-      headers().get("x-forwarded-for") ?? "Unknown",
-      headers().get("user-agent") ?? "Unknown"
-    ),
-  ]);
-
-  // Step 7: Get username and use event slug for the redirect
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-  const user = await clerk.users.getUser(data.clerkUserId);
-  const username = user.username ?? data.clerkUserId;
-
-  redirect(
-    `/${username}/${event.slug}/success?startTime=${data.startTime.toISOString()}`
-  );
 }
