@@ -67,8 +67,8 @@ export function MeetingForm({
   const queryStateParsers = useMemo(
     () => ({
       step: parseAsStringLiteral(["1", "2", "3"] as const).withDefault("1"),
-      date: parseAsIsoDate.withDefault(""),
-      time: parseAsIsoDateTime.withDefault(""),
+      date: parseAsIsoDate,
+      time: parseAsIsoDateTime,
       name: parseAsString.withDefault(""),
       email: parseAsString.withDefault(""),
       timezone: parseAsString.withDefault(""),
