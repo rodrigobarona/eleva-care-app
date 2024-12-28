@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { createMeeting } from "@/server/actions/meetings";
+import { db } from "@/drizzle/db";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
@@ -28,7 +29,20 @@ export async function POST(req: Request) {
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         const meetingData = JSON.parse(paymentIntent.metadata.meetingData);
-        
+
+        // Check if meeting already exists to prevent duplicates
+        const existingMeeting = await db.query.MeetingTable.findFirst({
+          where: ({ eventId, startTime }, { eq, and }) =>
+            and(
+              eq(eventId, paymentIntent.metadata.eventId),
+              eq(startTime, new Date(meetingData.startTime))
+            ),
+        });
+
+        if (existingMeeting) {
+          return NextResponse.json({ received: true });
+        }
+
         try {
           await createMeeting({
             eventId: paymentIntent.metadata.eventId,
@@ -37,14 +51,14 @@ export async function POST(req: Request) {
             guestName: meetingData.guestName,
             timezone: meetingData.timezone,
             startTime: new Date(meetingData.startTime),
-            guestNotes: meetingData.guestNotes || '',
+            guestNotes: meetingData.guestNotes || "",
           });
-          
+
           return NextResponse.json({ received: true });
         } catch (error) {
-          console.error('Error creating meeting:', error);
+          console.error("Error creating meeting:", error);
           return NextResponse.json(
-            { error: 'Failed to create meeting' },
+            { error: "Failed to create meeting" },
             { status: 500 }
           );
         }
@@ -55,7 +69,9 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("Webhook error:", err);
     return NextResponse.json(
-      { error: `Webhook Error: ${err instanceof Error ? err.message : 'Unknown error'}` },
+      {
+        error: `Webhook Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+      },
       { status: 400 }
     );
   }

@@ -18,7 +18,8 @@ export default function PaymentProcessingPage({
 }) {
   const router = useRouter();
   const [attempts, setAttempts] = useState(0);
-  const maxAttempts = 10;
+  const maxAttempts = 15;
+  const checkInterval = 2000;
 
   useEffect(() => {
     const checkMeetingStatus = async () => {
@@ -42,7 +43,7 @@ export default function PaymentProcessingPage({
       }
     };
 
-    const timer = setTimeout(checkMeetingStatus, 2000);
+    const timer = setTimeout(checkMeetingStatus, checkInterval);
     return () => clearTimeout(timer);
   }, [attempts, eventSlug, router, startTime, username]);
 

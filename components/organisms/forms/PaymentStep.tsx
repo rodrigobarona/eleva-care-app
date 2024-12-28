@@ -1,7 +1,11 @@
-import type React from 'react';
-import { useState } from 'react';
-import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
-import { Button } from '@/components/atoms/button';
+import type React from "react";
+import { useState } from "react";
+import {
+  PaymentElement,
+  useStripe,
+  useElements,
+} from "@stripe/react-stripe-js";
+import { Button } from "@/components/atoms/button";
 
 interface PaymentStepProps {
   price: number;
@@ -30,13 +34,14 @@ export function PaymentStep({ price, onBack, onSuccess }: PaymentStepProps) {
       confirmParams: {
         return_url: `${window.location.origin}${window.location.pathname}/payment-processing`,
       },
-      redirect: 'if_required',
+      redirect: "if_required",
     });
 
     if (error) {
-      setErrorMessage(error.message ?? 'An unexpected error occurred.');
+      setErrorMessage(error.message ?? "An unexpected error occurred.");
       setIsProcessing(false);
     } else {
+      // Payment successful without 3D Secure
       onSuccess();
     }
   };
@@ -46,20 +51,18 @@ export function PaymentStep({ price, onBack, onSuccess }: PaymentStepProps) {
       <div className="flex justify-between items-center">
         <h2 className="text-lg font-semibold">Payment Details</h2>
         <div className="text-lg font-semibold">
-          {new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'EUR',
+          {new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "EUR",
           }).format(price / 100)}
         </div>
       </div>
 
       <form onSubmit={handleSubmit}>
         <PaymentElement />
-        
+
         {errorMessage && (
-          <div className="mt-4 text-red-600 text-sm">
-            {errorMessage}
-          </div>
+          <div className="mt-4 text-red-600 text-sm">{errorMessage}</div>
         )}
 
         <div className="mt-6 flex gap-2 justify-end">
@@ -71,14 +74,11 @@ export function PaymentStep({ price, onBack, onSuccess }: PaymentStepProps) {
           >
             Back
           </Button>
-          <Button
-            type="submit"
-            disabled={!stripe || isProcessing}
-          >
+          <Button type="submit" disabled={!stripe || isProcessing}>
             {isProcessing ? "Processing..." : "Pay now"}
           </Button>
         </div>
       </form>
     </div>
   );
-} 
+}
