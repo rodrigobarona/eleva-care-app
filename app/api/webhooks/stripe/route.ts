@@ -7,12 +7,27 @@ import { db } from "@/drizzle/db";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 
+// Add GET handler to explain the endpoint
+export async function GET() {
+  return NextResponse.json(
+    { error: "This endpoint only accepts POST requests from Stripe webhooks" },
+    { status: 405 }
+  );
+}
+
 export async function POST(req: Request) {
   try {
     const body = await req.text();
     const signature = headers().get("stripe-signature");
 
+    console.log("Webhook received", {
+      hasSignature: !!signature,
+      bodyLength: body.length,
+      method: req.method,
+    });
+
     if (!signature) {
+      console.error("Missing stripe-signature header");
       return NextResponse.json(
         { error: "Missing stripe-signature header" },
         { status: 400 }
@@ -25,9 +40,16 @@ export async function POST(req: Request) {
       webhookSecret
     );
 
+    console.log("Webhook event:", {
+      type: event.type,
+      id: event.id,
+    });
+
     switch (event.type) {
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        console.log("Processing payment intent:", paymentIntent.id);
+
         const meetingData = JSON.parse(paymentIntent.metadata.meetingData);
 
         // Check if meeting already exists to prevent duplicates
@@ -54,6 +76,10 @@ export async function POST(req: Request) {
             guestNotes: meetingData.guestNotes || "",
           });
 
+          console.log(
+            "Meeting created successfully for payment:",
+            paymentIntent.id
+          );
           return NextResponse.json({ received: true });
         } catch (error) {
           console.error("Error creating meeting:", error);
