@@ -1,20 +1,15 @@
 import { loadStripe } from "@stripe/stripe-js";
-import type Stripe from "stripe";
-import { STRIPE_CONFIG } from "@/config/stripe";
+import type { Stripe as StripeJS } from '@stripe/stripe-js';
+import { stripe as serverStripe } from "@/lib/stripe-server";
 
-// Client-side Stripe promise
-export const getStripePromise = () => 
-  loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? "");
+export const stripe = serverStripe;
 
-// Server-side Stripe (lazy initialization)
-let _stripe: Stripe | null = null;
-
-export const getServerStripe = async () => {
-  if (!_stripe) {
-    const Stripe = (await import('stripe')).default;
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-      apiVersion: STRIPE_CONFIG.API_VERSION,
-    });
+let stripePromise: Promise<StripeJS | null>;
+export const getStripePromise = () => {
+  if (!stripePromise) {
+    stripePromise = loadStripe(
+      process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? ""
+    );
   }
-  return _stripe;
+  return stripePromise;
 };

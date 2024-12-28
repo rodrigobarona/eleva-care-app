@@ -40,6 +40,7 @@ import {
   parseAsIsoDateTime,
   parseAsStringLiteral,
 } from "nuqs";
+import { createPaymentIntent } from "@/server/actions/stripe";
 
 // Replace the existing stripePromise initialization with:
 const stripePromise = getStripePromise();
@@ -305,51 +306,36 @@ export function MeetingForm({
   }
 
   // Modified step handling
-  const handleNextStep = async (nextStep: typeof currentStep) => {
-    setIsSubmitting(true);
-
-    try {
-      if (nextStep !== "3") {
-        setQueryStates({ step: nextStep });
-        return;
-      }
-
-      // Handle step 3
+  const handleNextStep = async (nextStep: "1" | "2" | "3") => {
+    if (nextStep === "3") {
       if (price === 0) {
-        await form.handleSubmit(onSubmit)();
+        // If free event, submit directly
+        await onSubmit(form.getValues());
         return;
       }
 
-      const response = await fetch("/api/create-payment-intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId,
-          price,
-          meetingData: {
-            ...form.getValues(),
-            clerkUserId,
-            startTime: form.getValues("startTime")?.toISOString(),
-          },
-        }),
-      });
+      setIsSubmitting(true);
+      try {
+        const result = await createPaymentIntent(eventId, form.getValues());
+        
+        if (result.error) {
+          form.setError("root", { message: result.error });
+          return;
+        }
 
-      if (!response.ok) {
-        throw new Error("Failed to create payment intent");
+        // Now TypeScript knows clientSecret is defined
+        setClientSecret(result.clientSecret);
+        setQueryStates({ step: nextStep });
+      } catch (error) {
+        console.error("Payment setup error:", error);
+        form.setError("root", { 
+          message: "Failed to setup payment" 
+        });
+      } finally {
+        setIsSubmitting(false);
       }
-
-      const { clientSecret } = await response.json();
-      if (clientSecret) {
-        setClientSecret(clientSecret);
-        setQueryStates({ step: "3" });
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      form.setError("root", {
-        message: "Failed to process request",
-      });
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      setQueryStates({ step: nextStep });
     }
   };
 
