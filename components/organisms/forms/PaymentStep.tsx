@@ -34,22 +34,45 @@ export function PaymentStep({ price, onBack, onSuccess }: PaymentStepProps) {
       const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}${window.location.pathname}/success`,
+          // Make sure to change this to your payment completion page
+          return_url: `${window.location.origin}${window.location.pathname}/payment-processing`,
         },
         redirect: "if_required",
       });
 
       if (error) {
-        console.error("Payment error:", error);
-        setErrorMessage(error.message || "An error occurred with your payment");
+        // Handle specific error cases
+        if (error.type === "card_error" || error.type === "validation_error") {
+          setErrorMessage(
+            error.message || "An error occurred with your payment"
+          );
+        } else {
+          setErrorMessage("An unexpected error occurred");
+        }
         setIsProcessing(false);
         return;
       }
 
-      if (paymentIntent?.status === "succeeded") {
+      // Check PaymentIntent status
+      if (paymentIntent && paymentIntent.status === "succeeded") {
+        // Payment successful without 3D Secure
         onSuccess();
-      } else if (paymentIntent?.next_action) {
-        window.location.href = `${window.location.pathname}/payment-processing?startTime=${form.getValues("startTime").toISOString()}`;
+      } else if (paymentIntent?.next_action && paymentIntent.client_secret) {
+        // 3D Secure is required - handle redirect
+        const { error: redirectError } = await stripe.handleNextAction({
+          clientSecret: paymentIntent.client_secret,
+        });
+
+        if (redirectError) {
+          setErrorMessage(
+            redirectError.message || "Payment authentication failed"
+          );
+          setIsProcessing(false);
+          return;
+        }
+      } else {
+        // Redirect to processing page to wait for webhook
+        onSuccess();
       }
     } catch (err) {
       console.error("Payment error:", err);
