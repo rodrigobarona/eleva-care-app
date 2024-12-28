@@ -2,7 +2,6 @@ import { headers } from "next/headers";
 import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { createMeeting } from "@/server/actions/meetings";
-import { db } from "@/drizzle/db";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
@@ -28,11 +27,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      webhookSecret
-    );
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        webhookSecret
+      );
+    } catch (err) {
+      console.error("Webhook signature verification failed:", err);
+      return NextResponse.json(
+        { error: "Webhook signature verification failed" },
+        { status: 400 }
+      );
+    }
 
     console.log("Processing webhook event:", event.type);
 
@@ -46,28 +54,20 @@ export async function POST(req: Request) {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         console.log("Processing successful payment:", paymentIntent.id);
 
-        if (!paymentIntent.metadata.meetingData) {
-          console.error("No meeting data found in payment intent metadata");
-          return NextResponse.json({ error: "Invalid payment intent data" }, { status: 400 });
-        }
-
-        const meetingData = JSON.parse(paymentIntent.metadata.meetingData);
-
-        // Check if meeting already exists
-        const existingMeeting = await db.query.MeetingTable.findFirst({
-          where: ({ eventId, startTime }, { eq, and }) =>
-            and(
-              eq(eventId, paymentIntent.metadata.eventId),
-              eq(startTime, new Date(meetingData.startTime))
-            ),
-        });
-
-        if (existingMeeting) {
-          console.log("Meeting already exists:", existingMeeting.id);
-          return NextResponse.json({ received: true });
-        }
-
         try {
+          if (!paymentIntent.metadata.meetingData) {
+            console.error("No meeting data found in payment intent metadata");
+            return NextResponse.json(
+              { error: "Missing meeting data" },
+              { status: 400 }
+            );
+          }
+
+          const meetingData = JSON.parse(paymentIntent.metadata.meetingData);
+          
+          // Log the parsed meeting data
+          console.log("Parsed meeting data:", meetingData);
+
           const meeting = await createMeeting({
             eventId: paymentIntent.metadata.eventId,
             clerkUserId: meetingData.clerkUserId,
@@ -82,9 +82,9 @@ export async function POST(req: Request) {
           console.log("Meeting created successfully:", meeting);
           return NextResponse.json({ received: true });
         } catch (error) {
-          console.error("Error creating meeting:", error);
+          console.error("Error processing payment success:", error);
           return NextResponse.json(
-            { error: "Failed to create meeting" },
+            { error: "Failed to process payment success" },
             { status: 500 }
           );
         }
