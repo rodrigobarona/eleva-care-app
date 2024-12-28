@@ -1,9 +1,8 @@
 "use server";
 
-import { stripe } from "@/lib/stripe-server";
+import { getServerStripe } from "@/lib/stripe";
+import { STRIPE_CONFIG } from "@/config/stripe";
 import { db } from "@/drizzle/db";
-import type { z } from "zod";
-import type { meetingFormSchema } from "@/schema/meetings";
 
 export async function createStripeProduct({
   name,
@@ -19,6 +18,7 @@ export async function createStripeProduct({
   clerkUserId: string;
 }) {
   try {
+    const stripe = await getServerStripe();
     const product = await stripe.products.create({
       name,
       description,
@@ -61,6 +61,7 @@ export async function updateStripeProduct({
   clerkUserId: string;
 }) {
   try {
+    const stripe = await getServerStripe();
     // Update the product
     await stripe.products.update(stripeProductId, {
       name,
@@ -92,41 +93,37 @@ export async function updateStripeProduct({
   }
 }
 
-type PaymentIntentResult = 
-  | { clientSecret: string; error?: never }
-  | { clientSecret?: never; error: string };
-
-export async function createPaymentIntent(
-  eventId: string,
-  meetingData: z.infer<typeof meetingFormSchema>
-): Promise<PaymentIntentResult> {
+export async function createPaymentIntent(eventId: string, meetingData: any) {
   try {
+    const stripe = await getServerStripe();
     const event = await db.query.EventTable.findFirst({
-      where: ({ id }, { eq }) => eq(id, eventId),
+      where: (events, { eq }) => eq(events.id, eventId),
     });
 
     if (!event) {
-      return { error: "Event not found" };
+      throw new Error("Event not found");
     }
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: event.price,
-      currency: event.currency,
+      currency: event.currency || STRIPE_CONFIG.CURRENCY,
+      payment_method_types: ["card"],
+      payment_method_options: {
+        card: {
+          request_three_d_secure: "automatic",
+        },
+      },
+      capture_method: "automatic",
+      confirmation_method: "automatic",
       metadata: {
         eventId: event.id,
-        guestEmail: meetingData.guestEmail,
-        guestName: meetingData.guestName,
-        startTime: meetingData.startTime.toISOString(),
+        meetingData: JSON.stringify(meetingData),
       },
     });
 
-    if (!paymentIntent.client_secret) {
-      return { error: "Failed to create payment intent" };
-    }
-
     return { clientSecret: paymentIntent.client_secret };
   } catch (error) {
-    console.error("Error creating payment intent:", error);
+    console.error("Payment intent creation failed:", error);
     return { error: "Failed to create payment intent" };
   }
 }
