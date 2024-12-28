@@ -79,6 +79,15 @@ export function MeetingForm({
   const [queryStates, setQueryStates] = useQueryStates(queryStateParsers, {
     history: "push",
     shallow: true,
+    // Optional: Use shorter URL keys
+    urlKeys: {
+      step: "s",
+      date: "d",
+      time: "t",
+      name: "n",
+      email: "e",
+      timezone: "tz",
+    },
   });
 
   // Extract current step from queryStates
@@ -194,7 +203,10 @@ export function MeetingForm({
             }
             break;
           case "startTime":
-            if (value.startTime && !areDatesEqual(value.startTime, queryStates.time)) {
+            if (
+              value.startTime &&
+              !areDatesEqual(value.startTime, queryStates.time)
+            ) {
               updates.time = value.startTime;
             }
             break;
