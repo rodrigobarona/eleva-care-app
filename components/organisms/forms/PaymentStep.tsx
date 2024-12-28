@@ -38,22 +38,25 @@ export function PaymentStep({ price, onBack }: PaymentStepProps) {
       }
 
       // Then confirm the payment
-      const { error } = await stripe.confirmPayment({
+      const { error, paymentIntent } = await stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: `${window.location.origin}${window.location.pathname}/payment-processing`,
         },
-        redirect: "always", // Force redirect for all payments
+        redirect: "if_required",
       });
 
-      // We should not reach this point as we're using redirect: "always"
       if (error) {
-        setErrorMessage(error.message || "An error occurred with your payment");
+        // Payment failed - show error and let user try again
+        setErrorMessage(error.message || "Payment failed. Please try again.");
         setIsProcessing(false);
+      } else if (paymentIntent.status === "succeeded") {
+        // Payment succeeded - redirect to processing page
+        window.location.href = `${window.location.pathname}/payment-processing?startTime=${new URLSearchParams(window.location.search).get('startTime')}`;
       }
     } catch (error) {
       console.error("Payment error:", error);
-      setErrorMessage("An error occurred while processing your payment");
+      setErrorMessage("An error occurred while processing your payment. Please try again.");
       setIsProcessing(false);
     }
   };
@@ -74,7 +77,12 @@ export function PaymentStep({ price, onBack }: PaymentStepProps) {
         <PaymentElement />
 
         {errorMessage && (
-          <div className="mt-4 text-red-600 text-sm">{errorMessage}</div>
+          <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-600 text-sm">{errorMessage}</p>
+            <p className="text-sm text-gray-600 mt-1">
+              Please check your payment details and try again.
+            </p>
+          </div>
         )}
 
         <div className="mt-6 flex gap-2 justify-end">
