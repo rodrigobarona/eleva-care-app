@@ -19,5 +19,6 @@ export const meetingActionSchema = z
   .object({
     eventId: z.string().min(1, "Required"),
     clerkUserId: z.string().min(1, "Required"),
+    paymentIntentId: z.string().optional(),
   })
   .merge(meetingSchemaBase);
