@@ -14,7 +14,19 @@ import { eachMinuteOfInterval } from "date-fns";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/atoms/skeleton";
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
+
+type Event = {
+  id: string;
+  name: string;
+  clerkUserId: string;
+  description: string | null;
+  durationInMinutes: number;
+  slug: string;
+  isActive: boolean;
+  price: number;
+};
 
 export default async function BookingPage({
   params: { username },
@@ -57,7 +69,7 @@ async function EventCardWrapper({
   event, 
   username 
 }: { 
-  event: typeof events[0], 
+  event: Event,
   username: string 
 }) {
   const validTimes = await getValidTimesForEvent(event.id);

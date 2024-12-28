@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { db } from "@/drizzle/db";
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -43,4 +45,8 @@ export async function GET(request: Request) {
       { status: 500 }
     );
   }
+}
+
+export async function POST() {
+  return NextResponse.json({ message: "Method not implemented" }, { status: 501 });
 } 
