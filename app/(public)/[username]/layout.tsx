@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { db } from "@/drizzle/db";
 import { Instagram, Twitter, Linkedin, Youtube, Music } from "lucide-react";
+import ReactMarkdown from 'react-markdown'
+import Link from "next/link";
 
 const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -57,7 +59,9 @@ export default async function UserLayout({
                   ? `${profile.firstName} ${profile.lastName}`
                   : user.fullName}
               </h1>
-              <p className="text-muted-foreground">@{user.username}</p>
+              <Link href={`/${user.username}`} className="text-muted-foreground hover:text-foreground">
+                @{user.username}
+              </Link>
             </div>
             {profile?.headline && (
               <p className="text-lg font-medium">{profile.headline}</p>
@@ -67,14 +71,14 @@ export default async function UserLayout({
             )}
             {profile?.longBio && (
               <div className="prose prose-sm dark:prose-invert">
-                <p>{profile.longBio}</p>
+                <ReactMarkdown>{profile.longBio}</ReactMarkdown>
               </div>
             )}
             {profile?.socialLinks && profile.socialLinks.length > 0 && (
               <div className="flex gap-4">
                 {profile.socialLinks.map((link) => {
                   if (!link.url) return null;
-                  const Icon = SOCIAL_ICONS[link.name];
+                  const Icon = SOCIAL_ICONS[link.name as keyof typeof SOCIAL_ICONS];
                   return (
                     <a
                       key={link.name}

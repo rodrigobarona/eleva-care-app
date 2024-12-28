@@ -29,11 +29,13 @@ import {
 import { Badge } from "@/components/atoms/badge";
 import { toast } from "sonner";
 import { SOCIAL_MEDIA_LIST } from "@/lib/constants/social-media";
+import SimpleRichTextEditor from "@/components/molecules/RichTextEditor";
 
 type ExpertFormValues = z.infer<typeof profileFormSchema> & {
   isVerified?: boolean;
   isTopExpert?: boolean;
   profilePicture: string;
+  username?: string;
 };
 
 interface ExpertFormProps {
@@ -112,6 +114,21 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
   async function onSubmit(data: ExpertFormValues) {
     try {
       setIsLoading(true);
+
+      // Update username in Clerk if it has changed
+      if (data.username && data.username !== user?.username) {
+        try {
+          await user?.update({
+            username: data.username,
+          });
+        } catch (error) {
+          console.error("Failed to update Clerk username:", error);
+          toast.error("Failed to update username", {
+            description: error instanceof Error ? error.message : "Please try again",
+          });
+          return;
+        }
+      }
 
       // Transform usernames to full URLs
       const transformedData = {
@@ -323,6 +340,27 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
             />
           </div>
 
+          <FormField
+            control={form.control}
+            name="username"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Username</FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="username" 
+                    {...field}
+                    defaultValue={user?.username || ''}
+                  />
+                </FormControl>
+                <FormDescription>
+                  Choose a unique username for your profile
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
           <div className="flex items-center gap-4 pt-2">
             <div className="flex items-center gap-2">
               <Badge
@@ -429,12 +467,14 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               <FormItem>
                 <FormLabel>About Me</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder="Detailed information about you"
-                    className="h-32"
-                    {...field}
+                  <SimpleRichTextEditor
+                    value={field.value || ''}
+                    onChange={field.onChange}
                   />
                 </FormControl>
+                <FormDescription>
+                  You can use Markdown formatting to style your text. Add links, lists, and basic formatting.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
