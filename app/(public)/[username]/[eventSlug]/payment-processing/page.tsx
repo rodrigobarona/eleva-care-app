@@ -9,6 +9,9 @@ import {
 } from "@/components/atoms/card";
 import { Icons } from "@/components/atoms/icons";
 
+const MAX_ATTEMPTS = 15;
+const CHECK_INTERVAL = 2000;
+
 export default function PaymentProcessingPage({
   params: { username, eventSlug },
   searchParams: { startTime },
@@ -18,8 +21,6 @@ export default function PaymentProcessingPage({
 }) {
   const router = useRouter();
   const [attempts, setAttempts] = useState(0);
-  const maxAttempts = 15;
-  const checkInterval = 2000;
 
   useEffect(() => {
     const checkMeetingStatus = async () => {
@@ -28,12 +29,10 @@ export default function PaymentProcessingPage({
           `/api/meetings/status?startTime=${startTime}&eventSlug=${eventSlug}`
         );
         const data = await response.json();
-
+        
         if (data.status === "created") {
-          router.push(
-            `/${username}/${eventSlug}/success?startTime=${startTime}`
-          );
-        } else if (attempts >= maxAttempts) {
+          router.push(`/${username}/${eventSlug}/success?startTime=${startTime}`);
+        } else if (attempts >= MAX_ATTEMPTS) {
           router.push(`/${username}/${eventSlug}?error=payment-timeout`);
         } else {
           setAttempts((prev) => prev + 1);
@@ -43,7 +42,7 @@ export default function PaymentProcessingPage({
       }
     };
 
-    const timer = setTimeout(checkMeetingStatus, checkInterval);
+    const timer = setTimeout(checkMeetingStatus, CHECK_INTERVAL);
     return () => clearTimeout(timer);
   }, [attempts, eventSlug, router, startTime, username]);
 

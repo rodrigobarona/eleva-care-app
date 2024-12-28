@@ -30,6 +30,7 @@ export function PaymentStep({ price, onBack, onSuccess }: PaymentStepProps) {
     setErrorMessage(null);
 
     try {
+      // First submit the payment details
       const { error: submitError } = await elements.submit();
       if (submitError) {
         setErrorMessage(submitError.message ?? "An error occurred");
@@ -37,25 +38,20 @@ export function PaymentStep({ price, onBack, onSuccess }: PaymentStepProps) {
         return;
       }
 
+      // Then confirm the payment
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
           return_url: `${window.location.origin}${window.location.pathname}/payment-processing`,
         },
+        redirect: "always", // Force redirect for all payments
       });
 
+      // We should not reach this point as we're using redirect: "always"
       if (error) {
-        if (error.type === "card_error" || error.type === "validation_error") {
-          setErrorMessage(error.message || "An error occurred with your payment");
-        } else {
-          setErrorMessage("An unexpected error occurred");
-        }
+        setErrorMessage(error.message || "An error occurred with your payment");
         setIsProcessing(false);
-        return;
       }
-
-      // Payment successful - redirect to processing page
-      onSuccess();
     } catch (error) {
       console.error("Payment error:", error);
       setErrorMessage("An error occurred while processing your payment");
