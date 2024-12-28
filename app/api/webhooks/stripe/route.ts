@@ -20,12 +20,6 @@ export async function POST(req: Request) {
     const body = await req.text();
     const signature = headers().get("stripe-signature");
 
-    console.log("Webhook received", {
-      hasSignature: !!signature,
-      bodyLength: body.length,
-      method: req.method,
-    });
-
     if (!signature) {
       console.error("Missing stripe-signature header");
       return NextResponse.json(
@@ -40,19 +34,22 @@ export async function POST(req: Request) {
       webhookSecret
     );
 
-    console.log("Webhook event:", {
-      type: event.type,
-      id: event.id,
-    });
+    console.log("Processing webhook event:", event.type);
 
     switch (event.type) {
+      case "payment_intent.created": {
+        // Log the creation but don't take action yet
+        console.log("Payment intent created:", event.data.object.id);
+        return NextResponse.json({ received: true });
+      }
+
       case "payment_intent.succeeded": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        console.log("Processing payment intent:", paymentIntent.id);
+        console.log("Processing successful payment:", paymentIntent.id);
 
         const meetingData = JSON.parse(paymentIntent.metadata.meetingData);
 
-        // Check if meeting already exists to prevent duplicates
+        // Check if meeting already exists
         const existingMeeting = await db.query.MeetingTable.findFirst({
           where: ({ eventId, startTime }, { eq, and }) =>
             and(
@@ -74,12 +71,9 @@ export async function POST(req: Request) {
             timezone: meetingData.timezone,
             startTime: new Date(meetingData.startTime),
             guestNotes: meetingData.guestNotes || "",
+            paymentIntentId: paymentIntent.id,
           });
 
-          console.log(
-            "Meeting created successfully for payment:",
-            paymentIntent.id
-          );
           return NextResponse.json({ received: true });
         } catch (error) {
           console.error("Error creating meeting:", error);
@@ -95,9 +89,7 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("Webhook error:", err);
     return NextResponse.json(
-      {
-        error: `Webhook Error: ${err instanceof Error ? err.message : "Unknown error"}`,
-      },
+      { error: `Webhook Error: ${err instanceof Error ? err.message : "Unknown error"}` },
       { status: 400 }
     );
   }
