@@ -38,21 +38,31 @@ export default async function SuccessPage({
   if (event == null) notFound();
 
   const calendarUser = await clerk.users.getUser(user.id);
-  const startTimeDate = new Date(startTime);
+  
+  // Validate startTime before creating Date object
+  let startTimeDate: Date;
+  try {
+    if (!startTime) throw new Error("Missing startTime");
+    startTimeDate = new Date(startTime);
+    if (Number.isNaN(startTimeDate.getTime())) throw new Error("Invalid date");
+  } catch (error) {
+    console.error("Invalid startTime:", startTime, error);
+    return notFound();
+  }
 
   // Verify that the meeting was actually created
   const meeting = await db.query.MeetingTable.findFirst({
     where: ({ eventId, startTime: meetingStartTime }, { eq, and }) =>
       and(
         eq(eventId, event.id),
-        eq(meetingStartTime, new Date(startTime))
+        eq(meetingStartTime, startTimeDate)
       ),
   });
 
   // If paid event but no meeting found, payment might not be confirmed yet
   if (event.price > 0 && !meeting) {
-    // Redirect to a payment processing page or show loading state
-    redirect(`/${username}/${eventSlug}/payment-processing?startTime=${startTime}`);
+    // Redirect to payment processing page
+    redirect(`/${username}/${eventSlug}/payment-processing?startTime=${startTimeDate.toISOString()}`);
   }
 
   // If free event but no meeting, something went wrong

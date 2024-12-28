@@ -277,7 +277,7 @@ export function MeetingForm({
 
   async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
     if (currentStep === "3" && price > 0) {
-      return; // Don't submit until payment is completed for paid meetings
+      return;
     }
 
     try {
@@ -292,9 +292,9 @@ export function MeetingForm({
           message: "There was an error saving your event",
         });
       } else {
-        // Redirect to success page with startTime parameter
-        const eventPath = window.location.pathname;
-        window.location.href = `${eventPath}/success?startTime=${values.startTime.toISOString()}`;
+        // Ensure proper date formatting
+        const startTimeISO = values.startTime.toISOString();
+        window.location.href = `${window.location.pathname}/success?startTime=${encodeURIComponent(startTimeISO)}`;
       }
     } catch (error) {
       console.error("Error creating meeting:", error);
