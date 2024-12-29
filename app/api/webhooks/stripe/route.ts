@@ -4,11 +4,10 @@ import { NextResponse } from "next/server";
 import { createMeeting } from "@/server/actions/meetings";
 
 // Export config to disable body parsing
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const preferredRegion = 'auto';
+export const maxDuration = 60;
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
