@@ -52,11 +52,13 @@ export function PaymentStep({ price, onBack }: PaymentStepProps) {
         setIsProcessing(false);
       } else if (paymentIntent.status === "succeeded") {
         // Payment succeeded - redirect to processing page
-        window.location.href = `${window.location.pathname}/payment-processing?startTime=${new URLSearchParams(window.location.search).get('startTime')}`;
+        window.location.href = `${window.location.pathname}/payment-processing?startTime=${new URLSearchParams(window.location.search).get("startTime")}`;
       }
     } catch (error) {
       console.error("Payment error:", error);
-      setErrorMessage("An error occurred while processing your payment. Please try again.");
+      setErrorMessage(
+        "An error occurred while processing your payment. Please try again."
+      );
       setIsProcessing(false);
     }
   };

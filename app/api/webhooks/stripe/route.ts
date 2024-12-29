@@ -3,6 +3,13 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { createMeeting } from "@/server/actions/meetings";
 
+// Export config to disable body parsing
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 
@@ -16,6 +23,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    // Get the raw request body as a buffer
     const body = await req.text();
     const signature = headers().get("stripe-signature");
 
@@ -29,13 +37,17 @@ export async function POST(req: Request) {
 
     let event: Stripe.Event;
     try {
+      // Verify the event with the raw body
       event = stripe.webhooks.constructEvent(
         body,
         signature,
         webhookSecret
       );
+      console.log("✅ Webhook signature verified successfully for event:", event.type);
     } catch (err) {
-      console.error("Webhook signature verification failed:", err);
+      console.error("❌ Webhook signature verification failed:", err);
+      console.error("Received signature:", signature);
+      console.error("Webhook secret:", `${webhookSecret.slice(0, 4)}...${webhookSecret.slice(-4)}`);
       return NextResponse.json(
         { error: "Webhook signature verification failed" },
         { status: 400 }
