@@ -26,6 +26,13 @@ export function formatDate(date: Date) {
   return dateFormatter.format(date);
 }
 
+export function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("pt-PT", {
+    style: "currency",
+    currency: "EUR",
+  }).format(amount);
+}
+
 export function formatTimeString(date: Date, timezone?: string) {
   return new Intl.DateTimeFormat(undefined, {
     timeStyle: "short",

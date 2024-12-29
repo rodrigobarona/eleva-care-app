@@ -1,27 +1,18 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { STRIPE_CONFIG } from "@/config/stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2024-12-18.acacia",
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "");
 
-export async function POST(request: Request) {
+export async function POST(req: Request) {
   try {
-    const { eventId, price, meetingData } = await request.json();
+    const { price, eventId, meetingData } = await req.json();
 
-    // Create payment intent with specific configuration
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(price),
+      amount: price,
       currency: "eur",
-      payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
-      capture_method: "automatic",
-      confirmation_method: "automatic",
-      setup_future_usage: undefined,
-      payment_method_options: {
-        card: {
-          request_three_d_secure: "automatic",
-        },
+      // Enable automatic payment methods
+      automatic_payment_methods: {
+        enabled: true,
       },
       metadata: {
         eventId,
@@ -31,12 +22,11 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
     });
   } catch (error) {
-    console.error("Payment intent creation failed:", error);
+    console.error("Error creating payment intent:", error);
     return NextResponse.json(
-      { error: "Payment intent creation failed" },
+      { error: "Failed to create payment intent" },
       { status: 500 }
     );
   }
