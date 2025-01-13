@@ -99,6 +99,8 @@ export default async function BookEventPage({
           eventId={event.id}
           clerkUserId={user.id}
           price={event.price}
+          username={username}
+          eventSlug={eventSlug}
         />
       </CardContent>
     </Card>

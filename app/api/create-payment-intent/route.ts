@@ -3,40 +3,52 @@ import Stripe from "stripe";
 import { STRIPE_CONFIG } from "@/config/stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-  apiVersion: "2024-12-18.acacia",
+  apiVersion: STRIPE_CONFIG.API_VERSION,
 });
 
 export async function POST(request: Request) {
   try {
-    const { eventId, price, meetingData } = await request.json();
+    const { eventId, price, meetingData, username, eventSlug } =
+      await request.json();
 
-    // Create payment intent with specific configuration
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(price),
-      currency: "eur",
-      payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
-      capture_method: "automatic",
-      confirmation_method: "automatic",
-      setup_future_usage: undefined,
-      payment_method_options: {
-        card: {
-          request_three_d_secure: "automatic",
+    // Create a Checkout Session
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      mode: "payment",
+      payment_intent_data: {
+        metadata: {
+          eventId,
+          meetingData: JSON.stringify(meetingData),
         },
       },
+      line_items: [
+        {
+          price_data: {
+            currency: STRIPE_CONFIG.CURRENCY,
+            product_data: {
+              name: "Consultation Booking",
+              description: `Booking for ${meetingData.guestName} on ${new Date(meetingData.startTime).toLocaleString()}`,
+            },
+            unit_amount: Math.round(price),
+          },
+          quantity: 1,
+        },
+      ],
       metadata: {
         eventId,
         meetingData: JSON.stringify(meetingData),
       },
+      success_url: `${request.headers.get("origin")}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(meetingData.startTime)}`,
+      cancel_url: `${request.headers.get("origin")}/${username}/${eventSlug}/book?step=2`,
     });
 
     return NextResponse.json({
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id,
+      url: session.url,
     });
   } catch (error) {
-    console.error("Payment intent creation failed:", error);
+    console.error("Checkout session creation failed:", error);
     return NextResponse.json(
-      { error: "Payment intent creation failed" },
+      { error: "Checkout session creation failed" },
       { status: 500 }
     );
   }

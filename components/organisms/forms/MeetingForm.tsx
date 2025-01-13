@@ -1,5 +1,5 @@
 "use client";
-import React, { useMemo, useEffect, useCallback, useState } from "react";
+import * as React from "react";
 import { useForm } from "react-hook-form";
 import type { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,9 +30,6 @@ import { formatInTimeZone, toZonedTime } from "date-fns-tz";
 import { startOfDay } from "date-fns";
 import { format } from "date-fns";
 import { Globe } from "lucide-react";
-import { Elements } from "@stripe/react-stripe-js";
-import { getStripePromise } from "@/lib/stripe";
-import { PaymentStep } from "./PaymentStep";
 import {
   useQueryStates,
   parseAsString,
@@ -41,14 +38,13 @@ import {
   parseAsStringLiteral,
 } from "nuqs";
 
-// Replace the existing stripePromise initialization with:
-const stripePromise = getStripePromise();
-
 type MeetingFormProps = {
   validTimes: Date[];
   eventId: string;
   clerkUserId: string;
   price: number;
+  username: string;
+  eventSlug: string;
 };
 
 export function MeetingForm({
@@ -56,14 +52,15 @@ export function MeetingForm({
   eventId,
   clerkUserId,
   price,
+  username,
+  eventSlug,
 }: MeetingFormProps) {
   // State management
-  const [use24Hour, setUse24Hour] = useState(false);
-  const [clientSecret, setClientSecret] = useState<string>();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [use24Hour, setUse24Hour] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   // Query state configuration
-  const queryStateParsers = useMemo(
+  const queryStateParsers = React.useMemo(
     () => ({
       step: parseAsStringLiteral(["1", "2", "3"] as const).withDefault("1"),
       date: parseAsIsoDate,
@@ -78,7 +75,6 @@ export function MeetingForm({
   const [queryStates, setQueryStates] = useQueryStates(queryStateParsers, {
     history: "push",
     shallow: true,
-    // Optional: Use shorter URL keys
     urlKeys: {
       step: "s",
       date: "d",
@@ -96,12 +92,26 @@ export function MeetingForm({
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
-      // Use timezone from URL if available, otherwise use browser default
       timezone:
         queryStates.timezone ||
         Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
   });
+
+  // Initialize form with first available date and timezone
+  React.useEffect(() => {
+    if (!validTimes.length || queryStates.date) return;
+
+    const firstAvailableTime = validTimes[0];
+    const zonedTime = toZonedTime(
+      firstAvailableTime,
+      form.getValues("timezone")
+    );
+    const localDate = startOfDay(zonedTime);
+
+    form.setValue("date", localDate);
+    setQueryStates({ date: localDate });
+  }, [validTimes, queryStates.date, form, setQueryStates]);
 
   // Memoized values
   const timezone = form.watch("timezone");
@@ -109,7 +119,7 @@ export function MeetingForm({
   const startTime = form.watch("startTime");
 
   // Memoize timezone calculations
-  const validTimesInTimezone = useMemo(() => {
+  const validTimesInTimezone = React.useMemo(() => {
     return validTimes.map((utcDate) => {
       const zonedDate = toZonedTime(utcDate, timezone);
       const displayTime = formatInTimeZone(
@@ -129,7 +139,7 @@ export function MeetingForm({
   }, [validTimes, timezone, use24Hour]);
 
   // Memoize time grouping
-  const timesByDate = useMemo(() => {
+  const timesByDate = React.useMemo(() => {
     return validTimesInTimezone.reduce(
       (acc, time) => {
         const dateKey = time.localDateOnly.toISOString();
@@ -143,219 +153,113 @@ export function MeetingForm({
     );
   }, [validTimesInTimezone]);
 
-  // Initialize form with first available date and timezone
-  useEffect(() => {
-    // Skip if already initialized with date
-    if (!validTimes.length || queryStates.date) return;
-
-    const firstAvailableDate = startOfDay(validTimes[0]);
-    const initialTimezone =
-      queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-    // Set initial form values
-    form.setValue("date", firstAvailableDate);
-    form.setValue("timezone", initialTimezone);
-
-    // Update URL with initial values
-    setQueryStates({
-      date: firstAvailableDate,
-      timezone: initialTimezone,
-      step: "1",
-    });
-  }, [
-    validTimes,
-    form,
-    queryStates.date,
-    queryStates.timezone,
-    setQueryStates,
-  ]);
-
-  // Sync URL timezone to form
-  useEffect(() => {
-    if (
-      queryStates.timezone &&
-      queryStates.timezone !== form.getValues("timezone")
-    ) {
-      form.setValue("timezone", queryStates.timezone);
-    }
-  }, [queryStates.timezone, form]);
-
-  // Helper function for date comparison
-  const areDatesEqual = useCallback(
-    (date1: Date | null | undefined, date2: Date | null | undefined) => {
-      if (!date1 || !date2) return false;
-      return date1.getTime() === date2.getTime();
-    },
-    []
-  );
-
-  // Sync form changes to URL - Add timezone to the existing effect
-  useEffect(() => {
-    const subscription = form.watch((value, { name, type }) => {
-      if (type === "change") {
-        const updates: Partial<typeof queryStates> = {};
-
-        switch (name) {
-          case "date":
-            if (value.date && !areDatesEqual(value.date, queryStates.date)) {
-              updates.date = value.date;
-            }
-            break;
-          case "startTime":
-            if (
-              value.startTime &&
-              !areDatesEqual(value.startTime, queryStates.time)
-            ) {
-              updates.time = value.startTime;
-            }
-            break;
-          case "guestName":
-            if (value.guestName !== queryStates.name) {
-              updates.name = value.guestName || "";
-            }
-            break;
-          case "guestEmail":
-            if (value.guestEmail !== queryStates.email) {
-              updates.email = value.guestEmail || "";
-            }
-            break;
-          case "timezone":
-            if (value.timezone !== queryStates.timezone) {
-              updates.timezone = value.timezone;
-            }
-            break;
-        }
-
-        if (Object.keys(updates).length > 0) {
-          setQueryStates(updates);
-        }
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [queryStates, form, setQueryStates, areDatesEqual]);
-
-  // Sync URL params to form - Add timezone to the existing effect
-  useEffect(() => {
-    const { date, time, name, email, timezone } = queryStates;
-
-    const currentDate = form.getValues("date");
-    const currentTime = form.getValues("startTime");
-    const currentName = form.getValues("guestName");
-    const currentEmail = form.getValues("guestEmail");
-    const currentTimezone = form.getValues("timezone");
-
-    // Only update if values are different
-    if (date && !areDatesEqual(date, currentDate)) {
-      form.setValue("date", date);
-    }
-    if (time && !areDatesEqual(time, currentTime)) {
-      form.setValue("startTime", time);
-    }
-    if (name !== currentName) {
-      form.setValue("guestName", name);
-    }
-    if (email !== currentEmail) {
-      form.setValue("guestEmail", email);
-    }
-    if (timezone && timezone !== currentTimezone) {
-      form.setValue("timezone", timezone);
-    }
-  }, [queryStates, form, areDatesEqual]);
-
-  const availableTimezones = useMemo(
+  const availableTimezones = React.useMemo(
     () => Intl.supportedValuesOf("timeZone"),
     []
   );
 
-  const formattedTimezones = useMemo(() => {
+  const formattedTimezones = React.useMemo(() => {
     return availableTimezones.map((timezone) => ({
       value: timezone,
       label: `${timezone.replace("_", " ").replace("/", " - ")} (${formatTimezoneOffset(timezone)})`,
     }));
   }, [availableTimezones]);
 
-  async function onSubmit(values: z.infer<typeof meetingFormSchema>) {
-    if (currentStep === "3" && price > 0) {
-      return;
-    }
+  const onSubmit = React.useCallback(
+    async (values: z.infer<typeof meetingFormSchema>) => {
+      if (currentStep === "3" && price > 0) {
+        return;
+      }
 
-    try {
-      const data = await createMeeting({
-        ...values,
-        eventId,
-        clerkUserId,
-      });
+      try {
+        const data = await createMeeting({
+          ...values,
+          eventId,
+          clerkUserId,
+        });
 
-      if (data?.error) {
+        if (data?.error) {
+          form.setError("root", {
+            message: "There was an error saving your event",
+          });
+        } else {
+          const startTimeISO = values.startTime.toISOString();
+          window.location.href = `${window.location.pathname}/success?startTime=${encodeURIComponent(startTimeISO)}`;
+        }
+      } catch (error) {
+        console.error("Error creating meeting:", error);
         form.setError("root", {
           message: "There was an error saving your event",
         });
-      } else {
-        // Ensure proper date formatting
-        const startTimeISO = values.startTime.toISOString();
-        window.location.href = `${window.location.pathname}/success?startTime=${encodeURIComponent(startTimeISO)}`;
       }
-    } catch (error) {
-      console.error("Error creating meeting:", error);
-      form.setError("root", {
-        message: "There was an error saving your event",
-      });
-    }
-  }
+    },
+    [currentStep, price, eventId, clerkUserId, form]
+  );
 
-  // Modified step handling
-  const handleNextStep = async (nextStep: typeof currentStep) => {
-    setIsSubmitting(true);
+  const handleNextStep = React.useCallback(
+    async (nextStep: typeof currentStep) => {
+      setIsSubmitting(true);
 
-    try {
-      if (nextStep !== "3") {
-        setQueryStates({ step: nextStep });
-        return;
+      try {
+        if (nextStep !== "3") {
+          setQueryStates({ step: nextStep });
+          return;
+        }
+
+        // Handle step 3
+        if (price === 0) {
+          await form.handleSubmit(onSubmit)();
+          return;
+        }
+
+        const response = await fetch("/api/create-payment-intent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            eventId,
+            price,
+            username,
+            eventSlug,
+            meetingData: {
+              ...form.getValues(),
+              clerkUserId,
+              startTime: form.getValues("startTime")?.toISOString(),
+            },
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to create checkout session");
+        }
+
+        const { url } = await response.json();
+        if (url) {
+          window.location.href = url;
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        form.setError("root", {
+          message: "Failed to process request",
+        });
+      } finally {
+        setIsSubmitting(false);
       }
-
-      // Handle step 3
-      if (price === 0) {
-        await form.handleSubmit(onSubmit)();
-        return;
-      }
-
-      const response = await fetch("/api/create-payment-intent", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId,
-          price,
-          meetingData: {
-            ...form.getValues(),
-            clerkUserId,
-            startTime: form.getValues("startTime")?.toISOString(),
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create payment intent");
-      }
-
-      const { clientSecret } = await response.json();
-      if (clientSecret) {
-        setClientSecret(clientSecret);
-        setQueryStates({ step: "3" });
-      }
-    } catch (error) {
-      console.error("Error:", error);
-      form.setError("root", {
-        message: "Failed to process request",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    },
+    [
+      form,
+      price,
+      eventId,
+      clerkUserId,
+      onSubmit,
+      setQueryStates,
+      username,
+      eventSlug,
+    ]
+  );
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form className="space-y-6">
         {currentStep === "1" ? (
           <>
             <div className="grid md:grid-cols-[minmax(auto,800px),300px] gap-8">
@@ -638,26 +542,8 @@ export function MeetingForm({
               </Button>
             </div>
           </>
-        ) : currentStep === "3" && clientSecret ? (
-          <Elements
-            stripe={stripePromise}
-            options={{
-              clientSecret,
-              appearance: {
-                theme: "stripe",
-                variables: {
-                  colorPrimary: "#1c1c1c",
-                },
-              },
-            }}
-          >
-            <PaymentStep
-              price={price}
-              onBack={() => setQueryStates({ step: "2" })}
-            />
-          </Elements>
         ) : (
-          <div>Loading payment form...</div>
+          <div>Redirecting to payment...</div>
         )}
       </form>
     </Form>

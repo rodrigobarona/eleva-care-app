@@ -22,6 +22,7 @@ export function PaymentStep({ price, onBack }: PaymentStepProps) {
     e.preventDefault();
 
     if (!stripe || !elements) {
+      console.error("Stripe or Elements not initialized");
       return;
     }
 
@@ -29,30 +30,66 @@ export function PaymentStep({ price, onBack }: PaymentStepProps) {
     setErrorMessage(null);
 
     try {
-      // First submit the payment details
+      // Get all the parameters from the URL
+      const searchParams = new URLSearchParams(window.location.search);
+      const startTime = searchParams.get("time");
+      const name = searchParams.get("name");
+      const email = searchParams.get("email");
+
+      if (!startTime) {
+        console.error(
+          "No time found in URL parameters",
+          searchParams.toString()
+        );
+        setErrorMessage("Missing appointment time. Please try again.");
+        setIsProcessing(false);
+        return;
+      }
+
+      // Create the success URL with all necessary parameters
+      const successUrl = new URL(
+        `${window.location.pathname}/success`,
+        window.location.origin
+      );
+      successUrl.searchParams.set("startTime", startTime);
+      if (name) successUrl.searchParams.set("name", name);
+      if (email) successUrl.searchParams.set("email", email);
+
+      // First, validate the payment element
       const { error: submitError } = await elements.submit();
       if (submitError) {
-        setErrorMessage(submitError.message ?? "An error occurred");
+        console.error("Error submitting payment element:", submitError);
+        setErrorMessage(
+          submitError.message || "Please check your card details."
+        );
         setIsProcessing(false);
         return;
       }
 
       // Then confirm the payment
-      const { error, paymentIntent } = await stripe.confirmPayment({
+      const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}${window.location.pathname}/payment-processing`,
+          return_url: successUrl.toString(),
+          payment_method_data: {
+            billing_details: {
+              name: name || undefined,
+              email: email || undefined,
+            },
+          },
         },
-        redirect: "if_required",
       });
 
+      // Only handle immediate errors here
+      // Successful payments will redirect to the return_url
       if (error) {
-        // Payment failed - show error and let user try again
-        setErrorMessage(error.message || "Payment failed. Please try again.");
+        console.error("Payment confirmation error:", error);
+        if (error.type === "card_error" || error.type === "validation_error") {
+          setErrorMessage(error.message || "Payment failed. Please try again.");
+        } else {
+          setErrorMessage("An unexpected error occurred. Please try again.");
+        }
         setIsProcessing(false);
-      } else if (paymentIntent.status === "succeeded") {
-        // Payment succeeded - redirect to processing page
-        window.location.href = `${window.location.pathname}/payment-processing?startTime=${new URLSearchParams(window.location.search).get("startTime")}`;
       }
     } catch (error) {
       console.error("Payment error:", error);
@@ -87,7 +124,7 @@ export function PaymentStep({ price, onBack }: PaymentStepProps) {
           </div>
         )}
 
-        <div className="mt-6 flex gap-2 justify-end">
+        <div className="flex gap-2 justify-end">
           <Button
             type="button"
             variant="outline"
