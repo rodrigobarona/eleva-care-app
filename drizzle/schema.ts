@@ -97,12 +97,16 @@ export const MeetingTable = pgTable(
     endTime: timestamp("endTime").notNull(),
     timezone: text("timezone").notNull(),
     meetingUrl: text("meetingUrl"),
+    paymentIntentId: text("paymentIntentId"),
     createdAt,
     updatedAt,
   },
   (table) => ({
     clerkUserIdIndex: index("meetings_clerkUserId_idx").on(table.clerkUserId),
     eventIdIndex: index("meetings_eventId_idx").on(table.eventId),
+    paymentIntentIdIndex: index("meetings_paymentIntentId_idx").on(
+      table.paymentIntentId
+    ),
   })
 );
 
