@@ -26,7 +26,6 @@ import {
   DialogTrigger,
 } from "@/components/molecules/dialog";
 import { Input } from "@/components/atoms/input";
-import { UserProfile } from "@clerk/nextjs";
 
 const passwordSchema = z.object({
   password: z
@@ -194,19 +193,6 @@ export default function SecurityPage() {
 
   return (
     <div className="space-y-6">
-      {/* Add User Profile Widget at the top */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Settings</CardTitle>
-          <CardDescription>
-            Manage your account settings and preferences.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <UserProfile />
-        </CardContent>
-      </Card>
-
       <div>
         <h3 className="text-lg font-medium">Security Settings</h3>
         <p className="text-sm text-muted-foreground">
@@ -351,37 +337,9 @@ export default function SecurityPage() {
                     </p>
                   </div>
                 </div>
-                <Clerk.Connection
-                  name="google"
-                  asChild
-                  options={{
-                    accessType: "offline",
-                    scope:
-                      "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar",
-                  }}
-                >
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    type="button"
-                    disabled={isLoading}
-                  >
-                    <Clerk.Loading scope="provider:google">
-                      {(isLoading) =>
-                        isLoading ? (
-                          <Icons.spinner className="size-4 animate-spin" />
-                        ) : (
-                          <>
-                            <Icons.google className="mr-2 size-4" />
-                            {connectedAccounts.length > 0
-                              ? "Reconnect Google Account"
-                              : "Connect Google Account"}
-                          </>
-                        )
-                      }
-                    </Clerk.Loading>
-                  </Button>
-                </Clerk.Connection>
+                <Button variant="outline" disabled={isLoading}>
+                  Disconnect
+                </Button>
               </div>
             ))}
           </div>
