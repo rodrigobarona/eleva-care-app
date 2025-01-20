@@ -26,7 +26,6 @@ import {
   DialogTrigger,
 } from "@/components/molecules/dialog";
 import { Input } from "@/components/atoms/input";
-import { UserProfile } from "@clerk/nextjs";
 
 const passwordSchema = z.object({
   password: z
@@ -194,19 +193,6 @@ export default function SecurityPage() {
 
   return (
     <div className="space-y-6">
-      {/* Add User Profile Widget at the top */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Settings</CardTitle>
-          <CardDescription>
-            Manage your account settings and preferences.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <UserProfile />
-        </CardContent>
-      </Card>
-
       <div>
         <h3 className="text-lg font-medium">Security Settings</h3>
         <p className="text-sm text-muted-foreground">
