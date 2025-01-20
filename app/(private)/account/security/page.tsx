@@ -14,7 +14,6 @@ import { toast } from "sonner";
 import { Laptop, Mail, Smartphone } from "lucide-react";
 import type { SessionWithActivitiesResource } from "@clerk/types";
 import { useSession } from "@clerk/nextjs";
-import type { OAuthProvider } from "@clerk/types";
 import { z } from "zod";
 import { Copy } from "lucide-react";
 import {
@@ -194,12 +193,12 @@ export default function SecurityPage() {
     }
   };
 
-  const handleDisconnectAccount = async (provider: OAuthProvider) => {
+  const handleDisconnectAccount = async () => {
     try {
       setIsLoading(true);
       // Find the account to disconnect
-      const accountToDisconnect = user?.externalAccounts.find(
-        (account) => account.provider === provider
+      const accountToDisconnect = user?.externalAccounts.find((account) =>
+        account.provider.includes("google")
       );
 
       if (!accountToDisconnect) {
@@ -219,12 +218,12 @@ export default function SecurityPage() {
     }
   };
 
-  const handleConnectAccount = async (provider: OAuthProvider) => {
+  const handleConnectAccount = async () => {
     try {
       setIsLoading(true);
       await user?.createExternalAccount({
-        strategy: provider,
-        redirect_url: window.location.href,
+        strategy: "oauth_google",
+        redirectUrl: window.location.href,
       });
     } catch (error: unknown) {
       toast.error(
@@ -373,7 +372,7 @@ export default function SecurityPage() {
                 </p>
                 <Button
                   variant="outline"
-                  onClick={() => handleConnectAccount("oauth_google")}
+                  onClick={() => handleConnectAccount()}
                   disabled={isLoading}
                 >
                   Connect Google Account
@@ -396,7 +395,7 @@ export default function SecurityPage() {
                   </div>
                   <Button
                     variant="outline"
-                    onClick={() => handleDisconnectAccount("oauth_google")}
+                    onClick={() => handleDisconnectAccount()}
                     disabled={isLoading}
                   >
                     {isLoading ? "Disconnecting..." : "Disconnect"}
