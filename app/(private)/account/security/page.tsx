@@ -147,8 +147,11 @@ export default function SecurityPage() {
 
   const connectedAccounts =
     user?.externalAccounts
-      .filter(
-        (account) => account.provider === ("oauth_google" as OAuthProvider)
+      .filter((account) =>
+        // Clerk uses different provider strings, let's check for common Google variants
+        ["oauth_google", "google", "google_oauth2"].includes(
+          account.provider as string
+        )
       )
       .map((account) => ({
         provider: "google",
@@ -187,6 +190,46 @@ export default function SecurityPage() {
     } catch (error) {
       console.error("Failed to revoke device:", error);
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDisconnectAccount = async (provider: OAuthProvider) => {
+    try {
+      setIsLoading(true);
+      // Find the account to disconnect
+      const accountToDisconnect = user?.externalAccounts.find(
+        (account) => account.provider === provider
+      );
+
+      if (!accountToDisconnect) {
+        throw new Error("Account not found");
+      }
+
+      await accountToDisconnect.destroy();
+      toast.success("Account disconnected successfully");
+      // Reload user data
+      await user?.reload();
+    } catch (error: unknown) {
+      toast.error(
+        `Failed to disconnect account: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleConnectAccount = async (provider: OAuthProvider) => {
+    try {
+      setIsLoading(true);
+      await user?.createExternalAccount({
+        strategy: provider,
+        redirect_url: window.location.href,
+      });
+    } catch (error: unknown) {
+      toast.error(
+        `Failed to connect account: ${error instanceof Error ? error.message : "Unknown error"}`
+      );
       setIsLoading(false);
     }
   };
@@ -323,25 +366,44 @@ export default function SecurityPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {connectedAccounts.map((account) => (
-              <div
-                key={account.provider}
-                className="flex items-center justify-between p-4 border rounded-lg"
-              >
-                <div className="flex items-center gap-4">
-                  <Mail className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">Google Account</p>
-                    <p className="text-sm text-muted-foreground">
-                      {account.email}
-                    </p>
-                  </div>
-                </div>
-                <Button variant="outline" disabled={isLoading}>
-                  Disconnect
+            {connectedAccounts.length === 0 ? (
+              <div className="flex flex-col items-start gap-4">
+                <p className="text-sm text-muted-foreground">
+                  No connected accounts found.
+                </p>
+                <Button
+                  variant="outline"
+                  onClick={() => handleConnectAccount("oauth_google")}
+                  disabled={isLoading}
+                >
+                  Connect Google Account
                 </Button>
               </div>
-            ))}
+            ) : (
+              connectedAccounts.map((account) => (
+                <div
+                  key={account.provider}
+                  className="flex items-center justify-between p-4 border rounded-lg"
+                >
+                  <div className="flex items-center gap-4">
+                    <Mail className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium">Google Account</p>
+                      <p className="text-sm text-muted-foreground">
+                        {account.email}
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleDisconnectAccount("oauth_google")}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "Disconnecting..." : "Disconnect"}
+                  </Button>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
