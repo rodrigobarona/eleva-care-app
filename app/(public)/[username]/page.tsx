@@ -14,7 +14,7 @@ import { eachMinuteOfInterval } from "date-fns";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/atoms/skeleton";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type Event = {
@@ -65,21 +65,44 @@ export default async function BookingPage({
   );
 }
 
-async function EventCardWrapper({ 
-  event, 
-  username 
-}: { 
-  event: Event,
-  username: string 
+async function getValidTimesForEvent(eventId: string) {
+  try {
+    const event = await db.query.EventTable.findFirst({
+      where: ({ id }, { eq }) => eq(id, eventId),
+    });
+
+    if (!event) return [];
+
+    const startDate = new Date();
+    const endDate = addMonths(startDate, 2);
+
+    return getValidTimesFromSchedule(
+      eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
+      event
+    );
+  } catch (error) {
+    console.error("Error getting valid times:", error);
+    // Return empty array if there's an error with calendar integration
+    return [];
+  }
+}
+
+async function EventCardWrapper({
+  event,
+  username,
+}: {
+  event: Event;
+  username: string;
 }) {
-  const validTimes = await getValidTimesForEvent(event.id);
-  return (
-    <EventCard
-      {...event}
-      username={username}
-      validTimes={validTimes}
-    />
-  );
+  let validTimes: Date[] = [];
+  try {
+    validTimes = await getValidTimesForEvent(event.id);
+  } catch (error) {
+    console.error("Error getting valid times:", error);
+    // Continue with empty valid times if calendar integration fails
+  }
+
+  return <EventCard {...event} username={username} validTimes={validTimes} />;
 }
 
 type EventCardProps = {
@@ -180,22 +203,6 @@ function EventCard({
         </div>
       </div>
     </Card>
-  );
-}
-
-async function getValidTimesForEvent(eventId: string) {
-  const event = await db.query.EventTable.findFirst({
-    where: ({ id }, { eq }) => eq(id, eventId),
-  });
-
-  if (!event) return [];
-
-  const startDate = new Date();
-  const endDate = addMonths(startDate, 2);
-
-  return getValidTimesFromSchedule(
-    eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-    event
   );
 }
 
