@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/atoms/card";
 import { Button } from "@/components/atoms/button";
-import { Loader2 } from "lucide-react";
+import { Loader2, CreditCard, Plus } from "lucide-react"; // Removed PayPal as it is not exported
 import { toast } from "sonner";
 
 interface BillingInfo {
@@ -26,6 +26,14 @@ interface BillingInfo {
     status: string;
     date: string;
     invoice_pdf: string | null;
+  }[];
+  paymentMethods: {
+    id: string;
+    brand: string;
+    last4: string;
+    expiryMonth: number;
+    expiryYear: number;
+    isDefault: boolean;
   }[];
 }
 
@@ -66,6 +74,38 @@ export default function BillingPage() {
       toast.error("Failed to open billing portal");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAddPaymentMethod = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch("/api/billing/payment-methods/add", {
+        method: "POST",
+      });
+      const { url } = await response.json();
+      window.location.href = url;
+    } catch (err) {
+      console.error("Failed to add payment method:", err);
+      toast.error("Failed to add payment method");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSetDefaultPaymentMethod = async (paymentMethodId: string) => {
+    try {
+      await fetch(`/api/billing/payment-methods/${paymentMethodId}/default`, {
+        method: "POST",
+      });
+      toast.success("Default payment method updated");
+      // Refresh billing info
+      const response = await fetch("/api/billing");
+      const data = await response.json();
+      setBillingInfo(data);
+    } catch (err) {
+      console.error("Failed to update default payment method:", err);
+      toast.error("Failed to update default payment method");
     }
   };
 
@@ -143,6 +183,71 @@ export default function BillingPage() {
               </Button>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Payment Methods */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Methods</CardTitle>
+          <CardDescription>
+            Manage your payment methods and billing preferences.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {billingInfo?.paymentMethods &&
+            billingInfo.paymentMethods.length > 0 ? (
+              <>
+                {billingInfo.paymentMethods.map((method) => (
+                  <div
+                    key={method.id}
+                    className="flex items-center justify-between p-4 border rounded-lg"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <CreditCard className="h-6 w-6" />
+                      <div>
+                        <p className="font-medium">
+                          {method.brand} •••• {method.last4}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Expires {method.expiryMonth}/{method.expiryYear}
+                        </p>
+                      </div>
+                    </div>
+                    {!method.isDefault && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSetDefaultPaymentMethod(method.id)}
+                      >
+                        Make Default
+                      </Button>
+                    )}
+                    {method.isDefault && (
+                      <span className="text-sm text-muted-foreground">
+                        Default
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No payment methods added
+              </p>
+            )}
+            <div className="mt-4">
+              <Button
+                onClick={handleAddPaymentMethod}
+                disabled={isLoading}
+                className="w-full"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Payment Method
+              </Button>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
