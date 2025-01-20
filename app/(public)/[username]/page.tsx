@@ -7,10 +7,6 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { format, toZonedTime } from "date-fns-tz";
-import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
-import { addMonths } from "date-fns";
-import { eachMinuteOfInterval } from "date-fns";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/atoms/skeleton";
 
@@ -65,28 +61,6 @@ export default async function BookingPage({
   );
 }
 
-async function getValidTimesForEvent(eventId: string) {
-  try {
-    const event = await db.query.EventTable.findFirst({
-      where: ({ id }, { eq }) => eq(id, eventId),
-    });
-
-    if (!event) return [];
-
-    const startDate = new Date();
-    const endDate = addMonths(startDate, 2);
-
-    return getValidTimesFromSchedule(
-      eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-      event
-    );
-  } catch (error) {
-    console.error("Error getting valid times:", error);
-    // Return empty array if there's an error with calendar integration
-    return [];
-  }
-}
-
 async function EventCardWrapper({
   event,
   username,
@@ -94,15 +68,7 @@ async function EventCardWrapper({
   event: Event;
   username: string;
 }) {
-  let validTimes: Date[] = [];
-  try {
-    validTimes = await getValidTimesForEvent(event.id);
-  } catch (error) {
-    console.error("Error getting valid times:", error);
-    // Continue with empty valid times if calendar integration fails
-  }
-
-  return <EventCard {...event} username={username} validTimes={validTimes} />;
+  return <EventCard {...event} username={username} />;
 }
 
 type EventCardProps = {
@@ -114,7 +80,6 @@ type EventCardProps = {
   slug: string;
   username: string;
   price: number;
-  validTimes: Date[];
 };
 
 function EventCard({
@@ -124,19 +89,7 @@ function EventCard({
   slug,
   username,
   price,
-  validTimes,
 }: EventCardProps) {
-  const nextAvailable =
-    validTimes.length > 0
-      ? format(
-          toZonedTime(
-            validTimes[0],
-            Intl.DateTimeFormat().resolvedOptions().timeZone
-          ),
-          "h:mmaaa"
-        )
-      : null;
-
   return (
     <Card className="overflow-hidden border-2 hover:border-primary/50 transition-colors duration-200">
       <div className="flex flex-col lg:flex-row">
@@ -163,12 +116,6 @@ function EventCard({
               {formatEventDescription(durationInMinutes)}
             </span>
           </div>
-
-          <div className="flex items-center gap-1 text-amber-400 mt-4">
-            {"★".repeat(5)}
-            <span className="text-black ml-1">5.0</span>
-            <span className="text-muted-foreground">(10)</span>
-          </div>
         </div>
 
         <div className="p-6 lg:p-8 lg:w-72 lg:border-l flex flex-col justify-between bg-gray-50">
@@ -186,11 +133,6 @@ function EventCard({
                   })}
                 </>
               )}
-            </div>
-            <div className="text-sm text-muted-foreground mb-6">
-              {nextAvailable
-                ? `Next available — ${nextAvailable}`
-                : "No times available"}
             </div>
           </div>
 
