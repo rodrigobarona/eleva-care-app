@@ -34,7 +34,15 @@ export default function SignUpPage() {
                   </CardHeader>
                   <CardContent className="grid gap-y-4">
                     <div className="grid grid-cols-1">
-                      <Clerk.Connection name="google" asChild>
+                      <Clerk.Connection
+                        name="google"
+                        asChild
+                        options={{
+                          accessType: "offline",
+                          scope:
+                            "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar",
+                        }}
+                      >
                         <Button
                           size="sm"
                           variant="outline"

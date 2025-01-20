@@ -34,7 +34,15 @@ export default function SignInPage() {
                   </CardHeader>
                   <CardContent className="grid gap-y-4">
                     <div className="grid grid-cols-1">
-                      <Clerk.Connection name="google" asChild>
+                      <Clerk.Connection
+                        name="google"
+                        asChild
+                        options={{
+                          accessType: "offline",
+                          scope:
+                            "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar",
+                        }}
+                      >
                         <Button
                           size="sm"
                           variant="outline"
@@ -48,7 +56,7 @@ export default function SignInPage() {
                               ) : (
                                 <>
                                   <Icons.google className="mr-2 size-4" />
-                                  Sing in with Google
+                                  Sign in with Google
                                 </>
                               )
                             }
