@@ -2,11 +2,10 @@
 import React from "react";
 import {
   BadgeCheck,
-  Bell,
   ChevronsUpDown,
   CreditCard,
   LogOut,
-  Sparkles,
+  Lock,
 } from "lucide-react";
 import { useUser, useClerk } from "@clerk/nextjs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/atoms/avatar";
@@ -88,13 +87,7 @@ export function NavUser() {
               </Link>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
+
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
                 <Link href="/account">
@@ -102,13 +95,17 @@ export function NavUser() {
                   Personal Information
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Billing
+              <DropdownMenuItem asChild>
+                <Link href="/account/security">
+                  <Lock className="mr-2 h-4 w-4" />
+                  Security
+                </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell className="mr-2 h-4 w-4" />
-                Notifications
+              <DropdownMenuItem asChild>
+                <Link href="/account/billing">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Billing
+                </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
