@@ -7,14 +7,14 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { format, toZonedTime } from "date-fns-tz";
+import { format, isToday, isTomorrow } from "date-fns";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
 import { addMonths } from "date-fns";
 import { eachMinuteOfInterval } from "date-fns";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/atoms/skeleton";
 
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 type Event = {
@@ -65,21 +65,15 @@ export default async function BookingPage({
   );
 }
 
-async function EventCardWrapper({ 
-  event, 
-  username 
-}: { 
-  event: Event,
-  username: string 
+async function EventCardWrapper({
+  event,
+  username,
+}: {
+  event: Event;
+  username: string;
 }) {
   const validTimes = await getValidTimesForEvent(event.id);
-  return (
-    <EventCard
-      {...event}
-      username={username}
-      validTimes={validTimes}
-    />
-  );
+  return <EventCard {...event} username={username} validTimes={validTimes} />;
 }
 
 type EventCardProps = {
@@ -103,16 +97,17 @@ function EventCard({
   price,
   validTimes,
 }: EventCardProps) {
-  const nextAvailable =
-    validTimes.length > 0
-      ? format(
-          toZonedTime(
-            validTimes[0],
-            Intl.DateTimeFormat().resolvedOptions().timeZone
-          ),
-          "h:mmaaa"
-        )
-      : null;
+  const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
+
+  const formatNextAvailable = (date: Date) => {
+    if (isToday(date)) {
+      return `Today at ${format(date, "h:mma")}`;
+    }
+    if (isTomorrow(date)) {
+      return `Tomorrow at ${format(date, "h:mma")}`;
+    }
+    return format(date, "EEEE, h:mma");
+  };
 
   return (
     <Card className="overflow-hidden border-2 hover:border-primary/50 transition-colors duration-200">
@@ -166,7 +161,7 @@ function EventCard({
             </div>
             <div className="text-sm text-muted-foreground mb-6">
               {nextAvailable
-                ? `Next available — ${nextAvailable}`
+                ? `Next available — ${formatNextAvailable(nextAvailable)}`
                 : "No times available"}
             </div>
           </div>
@@ -190,7 +185,11 @@ async function getValidTimesForEvent(eventId: string) {
 
   if (!event) return [];
 
-  const startDate = new Date();
+  const now = new Date();
+  // Round up to the next 15 minutes
+  const startDate = new Date(
+    Math.ceil(now.getTime() / (15 * 60000)) * (15 * 60000)
+  );
   const endDate = addMonths(startDate, 2);
 
   return getValidTimesFromSchedule(

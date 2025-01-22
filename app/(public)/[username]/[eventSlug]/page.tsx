@@ -22,6 +22,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
 import ReactMarkdown from "react-markdown";
+import { Clock as ClockIcon, WalletCards as WalletCardsIcon } from "lucide-react";
 
 export const revalidate = 0;
 
@@ -77,26 +78,33 @@ export default async function BookEventPage({
   }
 
   return (
-    <Card className="max-w-4xl mx-auto border-none shadow-none p-0 rounded-none">
-      <CardHeader className="gap-2 p-0">
-        <CardTitle className="text-2xl font-bold">
-          Book a video call: {event.name}
-        </CardTitle>
-        {event.description && (
-          <div className="prose mt-2 text-sm text-muted-foreground">
-            <ReactMarkdown>{event.description}</ReactMarkdown>
+    <Card className="max-w-4xl mx-auto border-none shadow-none p-0 sm:rounded-none">
+      <CardHeader className="gap-4 p-4 sm:p-0">
+        <div>
+          <CardTitle className="text-xl sm:text-2xl font-bold">
+            Book a video call: {event.name}
+          </CardTitle>
+          {event.description && (
+            <div className="prose mt-2 text-sm text-muted-foreground">
+              <ReactMarkdown>{event.description}</ReactMarkdown>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-muted-foreground border-y py-3">
+          <div className="flex items-center gap-2">
+            <ClockIcon className="h-4 w-4" />
+            <span>{event.durationInMinutes} minutes</span>
           </div>
-        )}
-        <p className="text-sm text-muted-foreground">
-          Duration: {event.durationInMinutes} minutes
-        </p>
-        {event.price > 0 && (
-          <p className="text-sm text-muted-foreground">
-            Price: €{(event.price / 100).toFixed(2)}
-          </p>
-        )}
+          {event.price > 0 && (
+            <div className="flex items-center gap-2">
+              <WalletCardsIcon className="h-4 w-4" />
+              <span>€{(event.price / 100).toFixed(2)}</span>
+            </div>
+          )}
+        </div>
       </CardHeader>
-      <CardContent className="p-0 pt-8">
+      <CardContent className="p-4 sm:p-0 sm:pt-8">
         <MeetingForm
           validTimes={validTimes}
           eventId={event.id}
