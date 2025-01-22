@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  SignInButton,
-  SignOutButton,
-  SignedIn,
-  SignedOut,
-} from "@clerk/nextjs";
+import { SignInButton, SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
 import { Button } from "../atoms/button";
 import type React from "react";
 import { useState, useEffect } from "react";
@@ -97,12 +92,14 @@ const Header: React.FC = () => {
             {t.nav.newsletter}
           </Link>
 
-          <Button>
+          <Button asChild>
             <SignedOut>
               <SignInButton>{t.nav.signIn}</SignInButton>
             </SignedOut>
+          </Button>
+          <Button asChild>
             <SignedIn>
-              <SignOutButton>{t.nav.signOut}</SignOutButton>
+              <UserButton />
             </SignedIn>
           </Button>
 

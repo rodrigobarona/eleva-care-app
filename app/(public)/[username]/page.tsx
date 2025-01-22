@@ -104,7 +104,7 @@ function EventCard({
 
   const formatNextAvailable = (date: Date) => {
     const zonedDate = toZonedTime(date, userTimeZone);
-    const timeFormat = "h:mma";
+    const timeFormat = "h:mm a";
 
     // Get current date in user's timezone
     const now = toZonedTime(new Date(), userTimeZone);
@@ -124,11 +124,13 @@ function EventCard({
       return isToday(date1, tomorrow);
     };
 
+    const formattedTime = format(zonedDate, timeFormat);
+
     if (isToday(zonedDate, now)) {
-      return `Today at ${format(zonedDate, timeFormat)}`;
+      return `Today at ${formattedTime}`;
     }
     if (isTomorrow(zonedDate, now)) {
-      return `Tomorrow at ${format(zonedDate, timeFormat)}`;
+      return `Tomorrow at ${formattedTime}`;
     }
     return format(zonedDate, `EE, ${timeFormat}`);
   };
