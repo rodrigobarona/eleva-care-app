@@ -87,6 +87,9 @@ export default async function BookEventPage({
             <ReactMarkdown>{event.description}</ReactMarkdown>
           </div>
         )}
+        <p className="text-sm text-muted-foreground">
+          Duration: {event.durationInMinutes} minutes
+        </p>
         {event.price > 0 && (
           <p className="text-sm text-muted-foreground">
             Price: €{(event.price / 100).toFixed(2)}
