@@ -24,7 +24,6 @@ import { translations as en } from "@/public/locales/en";
 import { translations as pt } from "@/public/locales/pt";
 import { translations as br } from "@/public/locales/br";
 import { translations as es } from "@/public/locales/es";
-import { User } from "lucide-react";
 
 const languageMap = {
   en,

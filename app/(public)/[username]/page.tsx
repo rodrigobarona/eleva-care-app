@@ -7,7 +7,7 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { format, isToday, isTomorrow } from "date-fns";
+import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
 import { addMonths } from "date-fns";

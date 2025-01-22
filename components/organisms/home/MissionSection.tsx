@@ -1,7 +1,7 @@
-import React from 'react';
-import { Button } from '@/components/ui/button'; // Adjust the import path as necessary
-import { ChevronRight } from 'lucide-react';
-import FadeInSection from '../ui/FadeInSection';
+import type React from "react";
+import { Button } from "@/components/atoms/button";
+import { ChevronRight } from "lucide-react";
+import FadeInSection from "@/components/atoms/FadeInSection";
 
 type MissionSectionProps = {
   title: string;
@@ -35,9 +35,15 @@ const MissionSection: React.FC<MissionSectionProps> = ({
           </div>
           <div className="grid items-center gap-6 lg:grid-cols-2">
             <div>
-              <p className="mb-6 text-xl text-elevaNeutral-900">{description}</p>
-              <h3 className="mb-2 text-2xl font-bold text-elevaPrimary">{vision.title}</h3>
-              <p className="mb-6 text-xl text-elevaNeutral-900">{vision.description}</p>
+              <p className="mb-6 text-xl text-elevaNeutral-900">
+                {description}
+              </p>
+              <h3 className="mb-2 text-2xl font-bold text-elevaPrimary">
+                {vision.title}
+              </h3>
+              <p className="mb-6 text-xl text-elevaNeutral-900">
+                {vision.description}
+              </p>
 
               <Button className="mt-4 bg-[#0d6c70] text-elevaNeutral-100 hover:bg-[#0d6c70]/90">
                 {cta}
@@ -46,8 +52,13 @@ const MissionSection: React.FC<MissionSectionProps> = ({
             </div>
             <div className="grid grid-cols-2 gap-4">
               {stats.map((stat, index) => (
-                <div key={index} className="rounded-lg bg-[#f0f8f8] p-6 text-center">
-                  <div className="text-3xl font-bold text-elevaPrimary">{stat.value}</div>
+                <div
+                  key={index}
+                  className="rounded-lg bg-[#f0f8f8] p-6 text-center"
+                >
+                  <div className="text-3xl font-bold text-elevaPrimary">
+                    {stat.value}
+                  </div>
                   <div className="text-elevaNeutral-900">{stat.label}</div>
                 </div>
               ))}

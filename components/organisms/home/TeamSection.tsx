@@ -1,15 +1,15 @@
-import React from 'react';
+import type React from "react";
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselPrevious,
   CarouselNext,
-} from '@/components/ui/carousel'; // Adjust the import path as necessary
-import { Card, CardContent } from '@/components/ui/card'; // Adjust the import path as necessary
-import Image from 'next/image';
+} from "@/components/molecules/carousel"; // Adjust the import path as necessary
+import { Card, CardContent } from "@/components/atoms/card"; // Adjust the import path as necessary
+import Image from "next/image";
 
-import FadeInSection from '../ui/FadeInSection'; // Adjust the import path based on your types definition
+import FadeInSection from "@/components/atoms/FadeInSection"; // Adjust the import path based on your types definition
 
 // Define the type for team members
 export type TeamMember = {
@@ -34,10 +34,18 @@ type TeamSectionProps = {
   members: TeamMember[]; // Assuming you have a TeamMember type defined
 };
 
-const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description, members }) => {
+const TeamSection: React.FC<TeamSectionProps> = ({
+  title,
+  subtitle,
+  description,
+  members,
+}) => {
   return (
     <FadeInSection>
-      <section id="team" className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
+      <section
+        id="team"
+        className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32"
+      >
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <div className="mb-12">
             <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60">
@@ -54,13 +62,16 @@ const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description,
             <Carousel
               className="mt-12"
               opts={{
-                align: 'start',
+                align: "start",
                 loop: false,
               }}
             >
               <CarouselContent className="-ml-4">
                 {members.map((member, index) => (
-                  <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                  <CarouselItem
+                    key={index}
+                    className="pl-4 md:basis-1/2 lg:basis-1/3"
+                  >
                     <Card className="relative flex aspect-[9/15] overflow-hidden rounded-3xl border-elevaNeutral-200">
                       <CardContent className="flex flex-col items-center justify-end p-0">
                         <Image
@@ -77,7 +88,10 @@ const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description,
                         <figure className="relative z-20 p-10">
                           <blockquote>
                             <p className="relative text-pretty text-sm/4 text-elevaNeutral-100 lg:text-xl/7">
-                              <span aria-hidden="true" className="absolute -translate-x-full">
+                              <span
+                                aria-hidden="true"
+                                className="absolute -translate-x-full"
+                              >
                                 “
                               </span>
                               {member.quote}

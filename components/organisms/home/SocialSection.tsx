@@ -1,8 +1,8 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
-import { Linkedin, Instagram, Facebook, Twitter, BookOpen } from 'lucide-react';
-import Link from 'next/link';
-import FadeInSection from '@/components/ui/FadeInSection';
+import type React from "react";
+import { Button } from "@/components/atoms/button";
+import { Linkedin, Instagram, Facebook, Twitter, BookOpen } from "lucide-react";
+import Link from "next/link";
+import FadeInSection from "@/components/atoms/FadeInSection";
 
 interface SocialSectionProps {
   title: string;
@@ -76,7 +76,11 @@ const SocialSection: React.FC<SocialSectionProps> = ({
               className="border-[#0d6c70] text-elevaPrimary hover:bg-[#0d6c70] hover:text-elevaNeutral-100"
               asChild
             >
-              <Link href="https://x.com/eleva.care" target="_blank" rel="noopener noreferrer">
+              <Link
+                href="https://x.com/eleva.care"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <Twitter className="mr-2 h-4 w-4" />
                 {twitter}
               </Link>

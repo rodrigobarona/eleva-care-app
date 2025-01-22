@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from "react";
 
 const HeroSection: React.FC<{
   t: { hero: { title: string; subtitle: string } };

@@ -1,45 +1,38 @@
-import type React from "react";
-import { useState, useRef, useEffect } from "react";
-import { useSpring, animated, config } from "@react-spring/web";
+"use client";
 
-// Define the FadeInSection component with children type
+import type React from "react";
+import { motion } from "motion/react";
+
+const variants = {
+  hidden: {
+    opacity: 0,
+    y: 50,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.8,
+      ease: "easeOut",
+    },
+  },
+};
+
 const FadeInSection: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [isVisible, setVisible] = useState(false);
-  const domRef = useRef<HTMLDivElement>(null);
-  const props = useSpring({
-    opacity: isVisible ? 1 : 0,
-    transform: isVisible ? "translateY(0px)" : "translateY(50px)",
-    config: config.molasses,
-  });
-
-  useEffect(() => {
-    const observer = new IntersectionObserver((entries) => {
-      for (const entry of entries) {
-        setVisible(entry.isIntersecting);
-      }
-    });
-
-    // Check if domRef.current is not null before observing
-    if (domRef.current) {
-      observer.observe(domRef.current);
-    }
-
-    const currentRef = domRef.current; // Store the current ref
-
-    return () => {
-      if (currentRef) {
-        // Use the stored variable
-        observer.unobserve(currentRef);
-      }
-    };
-  }, []);
-
   return (
-    <animated.div ref={domRef} style={props}>
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true }}
+      variants={variants}
+      style={{
+        willChange: "transform, opacity",
+      }}
+    >
       {children}
-    </animated.div>
+    </motion.div>
   );
 };
 
