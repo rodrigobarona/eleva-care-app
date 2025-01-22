@@ -30,7 +30,7 @@ const ServiceSection: React.FC = () => {
   const t = languageMap[lang];
 
   return (
-    <FadeInSection>
+    <FadeInSection asChild>
       <section
         id="services"
         className="w-full bg-elevaNeutral-100 px-6 py-12 md:py-24 lg:px-8 lg:py-32"

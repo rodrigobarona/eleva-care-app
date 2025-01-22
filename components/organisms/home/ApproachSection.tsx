@@ -22,7 +22,7 @@ const ApproachSection: React.FC = () => {
   const t = languageMap[lang];
 
   return (
-    <FadeInSection>
+    <FadeInSection asChild>
       <section
         id="approach"
         className="mx-2 mt-24 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple py-10 lg:mt-32 lg:rounded-5xl lg:bg-[linear-gradient(115deg,var(--tw-gradient-stops))] lg:pb-32 lg:pt-20"
