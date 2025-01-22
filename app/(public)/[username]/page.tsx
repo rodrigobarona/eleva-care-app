@@ -8,6 +8,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { format, isToday, isTomorrow } from "date-fns";
+import { toZonedTime } from "date-fns-tz";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
 import { addMonths } from "date-fns";
 import { eachMinuteOfInterval } from "date-fns";
@@ -97,16 +98,19 @@ function EventCard({
   price,
   validTimes,
 }: EventCardProps) {
-  const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const nextAvailable =
+    validTimes.length > 0 ? toZonedTime(validTimes[0], userTimeZone) : null;
 
   const formatNextAvailable = (date: Date) => {
-    if (isToday(date)) {
-      return `Today at ${format(date, "h:mma")}`;
+    const zonedDate = toZonedTime(date, userTimeZone);
+    if (isToday(zonedDate)) {
+      return `Today at ${format(zonedDate, "h:mma")}`;
     }
-    if (isTomorrow(date)) {
-      return `Tomorrow at ${format(date, "h:mma")}`;
+    if (isTomorrow(zonedDate)) {
+      return `Tomorrow at ${format(zonedDate, "h:mma")}`;
     }
-    return format(date, "EEEE, h:mma");
+    return format(zonedDate, "EEEE, h:mma");
   };
 
   return (
@@ -114,7 +118,7 @@ function EventCard({
       <div className="flex flex-col lg:flex-row">
         <div className="flex-grow p-6 lg:p-8">
           <div className="inline-block px-3 py-1 mb-4 text-sm font-medium bg-black text-white rounded-full">
-            Book a video call
+            Book a 1-on-1 video call
           </div>
 
           <h3 className="text-2xl font-bold mb-2">{name}</h3>
