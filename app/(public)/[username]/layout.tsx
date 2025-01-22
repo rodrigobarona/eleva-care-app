@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { db } from "@/drizzle/db";
 import { Instagram, Twitter, Linkedin, Youtube, Music } from "lucide-react";
-import ReactMarkdown from 'react-markdown'
+import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 
 const SOCIAL_ICONS = {
@@ -39,7 +39,7 @@ export default async function UserLayout({
   });
 
   return (
-    <div className="container max-w-7xl py-10">
+    <div className="container max-w-7xl pt-32 pb-10">
       <div className="grid grid-cols-1 md:grid-cols-[400px_1fr] gap-8">
         {/* Left Column - Profile Info */}
         <div className="space-y-6">
@@ -59,7 +59,10 @@ export default async function UserLayout({
                   ? `${profile.firstName} ${profile.lastName}`
                   : user.fullName}
               </h1>
-              <Link href={`/${user.username}`} className="text-muted-foreground hover:text-foreground">
+              <Link
+                href={`/${user.username}`}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 @{user.username}
               </Link>
             </div>
@@ -78,7 +81,8 @@ export default async function UserLayout({
               <div className="flex gap-4">
                 {profile.socialLinks.map((link) => {
                   if (!link.url) return null;
-                  const Icon = SOCIAL_ICONS[link.name as keyof typeof SOCIAL_ICONS];
+                  const Icon =
+                    SOCIAL_ICONS[link.name as keyof typeof SOCIAL_ICONS];
                   return (
                     <a
                       key={link.name}
