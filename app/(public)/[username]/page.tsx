@@ -105,10 +105,29 @@ function EventCard({
   const formatNextAvailable = (date: Date) => {
     const zonedDate = toZonedTime(date, userTimeZone);
     const timeFormat = "h:mma";
-    if (isToday(zonedDate)) {
+
+    // Get current date in user's timezone
+    const now = toZonedTime(new Date(), userTimeZone);
+
+    // Compare dates in the same timezone
+    const isToday = (date1: Date, date2: Date) => {
+      return (
+        date1.getFullYear() === date2.getFullYear() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getDate() === date2.getDate()
+      );
+    };
+
+    const isTomorrow = (date1: Date, date2: Date) => {
+      const tomorrow = new Date(date2);
+      tomorrow.setDate(date2.getDate() + 1);
+      return isToday(date1, tomorrow);
+    };
+
+    if (isToday(zonedDate, now)) {
       return `Today at ${format(zonedDate, timeFormat)}`;
     }
-    if (isTomorrow(zonedDate)) {
+    if (isTomorrow(zonedDate, now)) {
       return `Tomorrow at ${format(zonedDate, timeFormat)}`;
     }
     return format(zonedDate, `EE, ${timeFormat}`);
