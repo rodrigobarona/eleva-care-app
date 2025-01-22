@@ -35,7 +35,7 @@ export const translations = {
       "Accede a cuidados personalizados con profesionales altamente cualificados en salud femenina en todo el mundo. Te conectamos con la experiencia que necesitas, desde consultas en línea hasta recursos locales, todo adaptado a tu viaje de salud.",
     items: [
       {
-        icon: <Baby className="h-12 w-12 text-elevaPrimary" />,
+        icon: <Baby className="h-12 w-12 text-eleva-primary" />,
         title: "Embarazo y Postparto",
         description:
           "Atención integral para apoyar a las mujeres durante el transformador viaje del embarazo y la maternidad temprana.",
@@ -51,7 +51,7 @@ export const translations = {
         cta: "Leer más",
       },
       {
-        icon: <Droplets className="h-12 w-12 text-elevaPrimary" />,
+        icon: <Droplets className="h-12 w-12 text-eleva-primary" />,
         title: "Salud Pélvica",
         description:
           "Cuidado especializado que satisface las necesidades únicas de la salud pélvica de las mujeres a lo largo de su vida.",
@@ -64,7 +64,7 @@ export const translations = {
         cta: "Leer más",
       },
       {
-        icon: <Flower2 className="h-12 w-12 text-elevaPrimary" />,
+        icon: <Flower2 className="h-12 w-12 text-eleva-primary" />,
         title: "En Todas las Etapas",
         description:
           "Apoyo holístico para las preocupaciones de salud femenina, desde la adolescencia hasta la menopausia y más allá.",
@@ -79,7 +79,7 @@ export const translations = {
         cta: "Leer más",
       },
       {
-        icon: <Ribbon className="h-12 w-12 text-elevaPrimary" />,
+        icon: <Ribbon className="h-12 w-12 text-eleva-primary" />,
         title: "Acompañándote en tu jornada contra el Cáncer",
         description:
           "Apoyo especializado para mujeres que se enfrentan al cáncer de mama y ginecológico, proporcionando atención integral desde el diagnóstico hasta la supervivencia.",

@@ -34,7 +34,7 @@ export const translations = {
       "Access personalized care from top-rated women's health professionals worldwide. We connect you with the expertise you need, from online consultations to local resources, all tailored to your unique health journey.",
     items: [
       {
-        icon: <Baby className="h-12 w-12 text-elevaPrimary" />,
+        icon: <Baby className="h-12 w-12 text-eleva-primary" />,
         title: "Pregnancy & Postpartum",
         description:
           "Comprehensive care to support women through the transformative journey of pregnancy and early motherhood.",
@@ -50,7 +50,7 @@ export const translations = {
         cta: "Learn more",
       },
       {
-        icon: <Droplets className="h-12 w-12 text-elevaPrimary" />,
+        icon: <Droplets className="h-12 w-12 text-eleva-primary" />,
         title: "Pelvic Health",
         description:
           "Specialized care addressing the unique pelvic health needs of women throughout their lives.",
@@ -63,7 +63,7 @@ export const translations = {
         cta: "Learn more",
       },
       {
-        icon: <Flower2 className="h-12 w-12 text-elevaPrimary" />,
+        icon: <Flower2 className="h-12 w-12 text-eleva-primary" />,
         title: "Through Every Stage",
         description:
           "Holistic support for women's health concerns from adolescence through menopause and beyond.",
@@ -78,7 +78,7 @@ export const translations = {
         cta: "Learn more",
       },
       {
-        icon: <Ribbon className="h-12 w-12 text-elevaPrimary" />,
+        icon: <Ribbon className="h-12 w-12 text-eleva-primary" />,
         title: "Empowering Your Cancer Journey",
         description:
           "Specialized support for women facing breast and gynecological cancers, providing comprehensive care from diagnosis through survivorship.",
