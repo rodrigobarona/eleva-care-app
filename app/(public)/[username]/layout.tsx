@@ -80,9 +80,6 @@ export default async function UserLayout({
 // Separate component for profile info
 async function ProfileInfo({ username }: { username: string }) {
   // Only delay in development
-  if (process.env.NODE_ENV === "development") {
-    await delay(3000);
-  }
 
   const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
@@ -107,6 +104,9 @@ async function ProfileInfo({ username }: { username: string }) {
           fill
           className="object-cover"
           priority
+          sizes="(max-width: 768px) 100vw, 50vw"
+          placeholder="blur"
+          blurDataURL={profile?.profilePicture || user.imageUrl}
         />
       </div>
       <div className="space-y-4">
