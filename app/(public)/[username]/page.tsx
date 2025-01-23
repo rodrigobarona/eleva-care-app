@@ -97,46 +97,8 @@ function EventCard({
   slug,
   username,
   price,
-  validTimes,
-}: EventCardProps) {
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  // validTimes are in UTC, convert the next available time to user's timezone
-  const nextAvailable =
-    validTimes.length > 0 ? toZonedTime(validTimes[0], timezone) : null;
-
-  const formatNextAvailable = (date: Date) => {
-    const timeFormat = "h:mm a z";
-
-    // Get current date in user's timezone
-    const now = toZonedTime(new Date(), timezone);
-
-    const isToday = (date1: Date, date2: Date) => {
-      return (
-        date1.getFullYear() === date2.getFullYear() &&
-        date1.getMonth() === date2.getMonth() &&
-        date1.getDate() === date2.getDate()
-      );
-    };
-
-    const isTomorrow = (date1: Date, date2: Date) => {
-      const tomorrow = new Date(date2);
-      tomorrow.setDate(date2.getDate() + 1);
-      return isToday(date1, tomorrow);
-    };
-
-    // Use formatInTimeZone to properly format the time in the user's timezone
-    const formattedTime = formatInTimeZone(date, timezone, timeFormat);
-
-    if (isToday(date, now)) {
-      return `Today at ${formattedTime}`;
-    }
-    if (isTomorrow(date, now)) {
-      return `Tomorrow at ${formattedTime}`;
-    }
-    return format(date, `EE, ${timeFormat}`);
-  };
-
+  id,
+}: Omit<EventCardProps, "validTimes">) {
   return (
     <Card className="overflow-hidden border-2 hover:border-primary/50 transition-colors duration-200">
       <div className="flex flex-col lg:flex-row">
@@ -187,11 +149,9 @@ function EventCard({
                 </>
               )}
             </div>
-            <div className="text-sm text-muted-foreground mb-6">
-              {nextAvailable
-                ? `Next available — ${formatNextAvailable(nextAvailable)}`
-                : "No times available"}
-            </div>
+            <Suspense fallback={<NextAvailableTimeSkeleton />}>
+              <NextAvailableTime eventId={id} />
+            </Suspense>
           </div>
 
           <Button
@@ -203,6 +163,63 @@ function EventCard({
         </div>
       </div>
     </Card>
+  );
+}
+
+// New component for the next available time
+async function NextAvailableTime({ eventId }: { eventId: string }) {
+  const validTimes = await getValidTimesForEvent(eventId);
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const nextAvailable =
+    validTimes.length > 0 ? toZonedTime(validTimes[0], timezone) : null;
+
+  const formatNextAvailable = (date: Date) => {
+    const timeFormat = "h:mm a z";
+
+    // Get current date in user's timezone
+    const now = toZonedTime(new Date(), timezone);
+
+    const isToday = (date1: Date, date2: Date) => {
+      return (
+        date1.getFullYear() === date2.getFullYear() &&
+        date1.getMonth() === date2.getMonth() &&
+        date1.getDate() === date2.getDate()
+      );
+    };
+
+    const isTomorrow = (date1: Date, date2: Date) => {
+      const tomorrow = new Date(date2);
+      tomorrow.setDate(date2.getDate() + 1);
+      return isToday(date1, tomorrow);
+    };
+
+    // Use formatInTimeZone to properly format the time in the user's timezone
+    const formattedTime = formatInTimeZone(date, timezone, timeFormat);
+
+    if (isToday(date, now)) {
+      return `Today at ${formattedTime}`;
+    }
+    if (isTomorrow(date, now)) {
+      return `Tomorrow at ${formattedTime}`;
+    }
+    return format(date, `EE, ${timeFormat}`);
+  };
+
+  return (
+    <div className="text-sm text-muted-foreground mb-6">
+      {nextAvailable
+        ? `Next available — ${formatNextAvailable(nextAvailable)}`
+        : "No times available"}
+    </div>
+  );
+}
+
+function NextAvailableTimeSkeleton() {
+  return (
+    <div className="mb-6">
+      <Skeleton className="h-5 w-40" />
+    </div>
   );
 }
 
