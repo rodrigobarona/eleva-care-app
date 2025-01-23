@@ -7,7 +7,6 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { toZonedTime } from "date-fns-tz";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
 import { addMonths } from "date-fns";
 import { eachMinuteOfInterval } from "date-fns";
@@ -37,6 +36,7 @@ export default async function BookingPage({
   const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
   });
+
   const users = await clerk.users.getUserList({
     username: [username],
   });
@@ -117,43 +117,46 @@ async function EventCardWrapper({
 // New server component for next available time
 async function NextAvailableTimeServer({ eventId }: { eventId: string }) {
   const validTimes = await getValidTimesForEvent(eventId);
-  const userTimeZone = "UTC"; // Default to UTC on server, will be adjusted on client
-  const nextAvailable =
-    validTimes.length > 0 ? toZonedTime(validTimes[0], userTimeZone) : null;
-
+  // Just pass the raw date to the client component
+  const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
   return <NextAvailableTimeClient date={nextAvailable} />;
 }
 
 // Client component to handle timezone formatting
+
 function NextAvailableTimeClient({ date }: { date: Date | null }) {
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   const formatNextAvailable = (date: Date) => {
     const timeFormat = "h:mm a";
-    const visitorDate = toZonedTime(date, userTimeZone);
-    const visitorNow = toZonedTime(new Date(), userTimeZone);
+    const now = new Date();
 
-    const isToday = (date1: Date, date2: Date) => {
+    const isToday = (date: Date) => {
       return (
-        date1.getFullYear() === date2.getFullYear() &&
-        date1.getMonth() === date2.getMonth() &&
-        date1.getDate() === date2.getDate()
+        date.getFullYear() === now.getFullYear() &&
+        date.getMonth() === now.getMonth() &&
+        date.getDate() === now.getDate()
       );
     };
 
-    const isTomorrow = (date1: Date, date2: Date) => {
-      const tomorrow = new Date(date2);
-      tomorrow.setDate(date2.getDate() + 1);
-      return isToday(date1, tomorrow);
+    const isTomorrow = (date: Date) => {
+      const tomorrow = new Date(now);
+      tomorrow.setDate(now.getDate() + 1);
+      return (
+        date.getFullYear() === tomorrow.getFullYear() &&
+        date.getMonth() === tomorrow.getMonth() &&
+        date.getDate() === tomorrow.getDate()
+      );
     };
 
     const formattedTime = formatInTimeZone(date, userTimeZone, timeFormat);
-    const timezoneName = formatInTimeZone(date, userTimeZone, "zzz");
+    // Use 'z' instead of 'zzz' for timezone abbreviation
+    const timezoneName = formatInTimeZone(date, userTimeZone, "z");
 
-    if (isToday(visitorDate, visitorNow)) {
+    if (isToday(date)) {
       return `Today at ${formattedTime} ${timezoneName}`;
     }
-    if (isTomorrow(visitorDate, visitorNow)) {
+    if (isTomorrow(date)) {
       return `Tomorrow at ${formattedTime} ${timezoneName}`;
     }
     return formatInTimeZone(
