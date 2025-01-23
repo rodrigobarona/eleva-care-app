@@ -7,7 +7,6 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
 import { addMonths } from "date-fns";
@@ -74,83 +73,32 @@ async function EventCardWrapper({
   event: Event;
   username: string;
 }) {
-  const validTimes = await getValidTimesForEvent(event.id);
-  return <EventCard {...event} username={username} validTimes={validTimes} />;
-}
-
-type EventCardProps = {
-  id: string;
-  name: string;
-  clerkUserId: string;
-  description: string | null;
-  durationInMinutes: number;
-  slug: string;
-  username: string;
-  price: number;
-  validTimes: Date[];
-};
-
-function EventCard({
-  name,
-  description,
-  durationInMinutes,
-  slug,
-  username,
-  price,
-  id,
-}: Omit<EventCardProps, "validTimes">) {
   return (
     <Card className="overflow-hidden border-2 hover:border-primary/50 transition-colors duration-200">
       <div className="flex flex-col lg:flex-row">
-        <div className="flex-grow p-6 lg:p-8">
-          <div className="inline-block px-3 py-1 mb-4 text-sm font-medium bg-black text-white rounded-full">
-            Book a 1-on-1 video call
-          </div>
-
-          <h3 className="text-2xl font-bold mb-2">{name}</h3>
-
-          {description ? (
-            <ReactMarkdown className="prose text-muted-foreground mb-4 text-base">
-              {description}
-            </ReactMarkdown>
-          ) : (
-            <p className="text-muted-foreground mb-4 text-base">
-              No description available.
-            </p>
-          )}
-
-          <div className="flex items-center gap-2 mb-1">
-            <span className="font-semibold">Duration:</span>
-            <span className="text-muted-foreground">
-              {formatEventDescription(durationInMinutes)}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1 text-amber-400 mt-4">
-            {"★".repeat(5)}
-            <span className="text-black ml-1">5.0</span>
-            <span className="text-muted-foreground">(10)</span>
-          </div>
-        </div>
-
+        <EventCardDetails
+          name={event.name}
+          description={event.description}
+          durationInMinutes={event.durationInMinutes}
+        />
         <div className="p-6 lg:p-8 lg:w-72 lg:border-l flex flex-col justify-between bg-gray-50">
           <div>
             <div className="text-lg font-semibold mb-1">Session</div>
             <div className="text-3xl font-bold mb-4">
-              {price === 0 ? (
+              {event.price === 0 ? (
                 "Free"
               ) : (
                 <>
                   €{" "}
-                  {(price / 100).toLocaleString("pt-PT", {
+                  {(event.price / 100).toLocaleString("pt-PT", {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 2,
                   })}
                 </>
               )}
             </div>
-            <Suspense fallback={<NextAvailableTimeSkeleton />}>
-              <NextAvailableTime eventId={id} />
+            <Suspense fallback={<Skeleton className="h-5 w-40 mb-6" />}>
+              <NextAvailableTimeServer eventId={event.id} />
             </Suspense>
           </div>
 
@@ -158,7 +106,7 @@ function EventCard({
             className="w-full py-6 text-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white"
             asChild
           >
-            <Link href={`/${username}/${slug}`}>See times</Link>
+            <Link href={`/${username}/${event.slug}`}>See times</Link>
           </Button>
         </div>
       </div>
@@ -166,19 +114,24 @@ function EventCard({
   );
 }
 
-// New component for the next available time
-async function NextAvailableTime({ eventId }: { eventId: string }) {
+// New server component for next available time
+async function NextAvailableTimeServer({ eventId }: { eventId: string }) {
   const validTimes = await getValidTimesForEvent(eventId);
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
+  const userTimeZone = "UTC"; // Default to UTC on server, will be adjusted on client
   const nextAvailable =
-    validTimes.length > 0 ? toZonedTime(validTimes[0], timezone) : null;
+    validTimes.length > 0 ? toZonedTime(validTimes[0], userTimeZone) : null;
+
+  return <NextAvailableTimeClient date={nextAvailable} />;
+}
+
+// Client component to handle timezone formatting
+function NextAvailableTimeClient({ date }: { date: Date | null }) {
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   const formatNextAvailable = (date: Date) => {
-    const timeFormat = "h:mm a z";
-
-    // Get current date in user's timezone
-    const now = toZonedTime(new Date(), timezone);
+    const timeFormat = "h:mm a";
+    const visitorDate = toZonedTime(date, userTimeZone);
+    const visitorNow = toZonedTime(new Date(), userTimeZone);
 
     const isToday = (date1: Date, date2: Date) => {
       return (
@@ -194,31 +147,71 @@ async function NextAvailableTime({ eventId }: { eventId: string }) {
       return isToday(date1, tomorrow);
     };
 
-    // Use formatInTimeZone to properly format the time in the user's timezone
-    const formattedTime = formatInTimeZone(date, timezone, timeFormat);
+    const formattedTime = formatInTimeZone(date, userTimeZone, timeFormat);
+    const timezoneName = formatInTimeZone(date, userTimeZone, "zzz");
 
-    if (isToday(date, now)) {
-      return `Today at ${formattedTime}`;
+    if (isToday(visitorDate, visitorNow)) {
+      return `Today at ${formattedTime} ${timezoneName}`;
     }
-    if (isTomorrow(date, now)) {
-      return `Tomorrow at ${formattedTime}`;
+    if (isTomorrow(visitorDate, visitorNow)) {
+      return `Tomorrow at ${formattedTime} ${timezoneName}`;
     }
-    return format(date, `EE, ${timeFormat}`);
+    return formatInTimeZone(
+      date,
+      userTimeZone,
+      `EEE, ${timeFormat} ${timezoneName}`
+    );
   };
 
   return (
     <div className="text-sm text-muted-foreground mb-6">
-      {nextAvailable
-        ? `Next available — ${formatNextAvailable(nextAvailable)}`
+      {date
+        ? `Next available — ${formatNextAvailable(date)}`
         : "No times available"}
     </div>
   );
 }
 
-function NextAvailableTimeSkeleton() {
+// Separate component for the main card details
+function EventCardDetails({
+  name,
+  description,
+  durationInMinutes,
+}: {
+  name: string;
+  description: string | null;
+  durationInMinutes: number;
+}) {
   return (
-    <div className="mb-6">
-      <Skeleton className="h-5 w-40" />
+    <div className="flex-grow p-6 lg:p-8">
+      <div className="inline-block px-3 py-1 mb-4 text-sm font-medium bg-black text-white rounded-full">
+        Book a {durationInMinutes} minute video call
+      </div>
+
+      <h3 className="text-2xl font-bold mb-2">{name}</h3>
+
+      {description ? (
+        <ReactMarkdown className="prose text-muted-foreground mb-4 text-base">
+          {description}
+        </ReactMarkdown>
+      ) : (
+        <p className="text-muted-foreground mb-4 text-base">
+          No description available.
+        </p>
+      )}
+
+      <div className="flex items-center gap-2 mb-1">
+        <span className="font-semibold">Duration:</span>
+        <span className="text-muted-foreground">
+          {formatEventDescription(durationInMinutes)}
+        </span>
+      </div>
+
+      <div className="flex items-center gap-1 text-amber-400 mt-4">
+        {"★".repeat(5)}
+        <span className="text-black ml-1">5.0</span>
+        <span className="text-muted-foreground">(10)</span>
+      </div>
     </div>
   );
 }
