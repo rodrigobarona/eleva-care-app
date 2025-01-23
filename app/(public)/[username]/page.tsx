@@ -14,6 +14,7 @@ import { addMonths } from "date-fns";
 import { eachMinuteOfInterval } from "date-fns";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/atoms/skeleton";
+import { formatInTimeZone } from "date-fns-tz";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -98,13 +99,17 @@ function EventCard({
   price,
   validTimes,
 }: EventCardProps) {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  // validTimes are in UTC, convert the next available time to user's timezone
   const nextAvailable =
-    validTimes.length > 0 ? new Date(validTimes[0].getTime()) : null;
+    validTimes.length > 0 ? toZonedTime(validTimes[0], timezone) : null;
 
   const formatNextAvailable = (date: Date) => {
     const timeFormat = "h:mm a z";
 
-    const now = new Date();
+    // Get current date in user's timezone
+    const now = toZonedTime(new Date(), timezone);
 
     const isToday = (date1: Date, date2: Date) => {
       return (
@@ -120,7 +125,8 @@ function EventCard({
       return isToday(date1, tomorrow);
     };
 
-    const formattedTime = format(date, timeFormat);
+    // Use formatInTimeZone to properly format the time in the user's timezone
+    const formattedTime = formatInTimeZone(date, timezone, timeFormat);
 
     if (isToday(date, now)) {
       return `Today at ${formattedTime}`;
