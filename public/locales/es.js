@@ -234,4 +234,8 @@ export const translations = {
     privacy: "Política de privacidad",
     terms: "Términos y condiciones",
   },
+  experts: {
+    title: "Expertos Destacados",
+    subtitle: "El acceso a los mejores nunca ha sido más fácil",
+  },
 };

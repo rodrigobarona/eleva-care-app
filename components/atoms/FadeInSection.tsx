@@ -6,12 +6,16 @@ import { motion } from "motion/react";
 const containerVariants = {
   hidden: {
     opacity: 0,
+    y: 20,
   },
   visible: {
     opacity: 1,
+    y: 0,
     transition: {
       when: "beforeChildren",
-      staggerChildren: 0.2, // Stagger children animations by 0.2s
+      duration: 0.5,
+      ease: "easeOut",
+      staggerChildren: 0.1,
     },
   },
 };
@@ -19,13 +23,13 @@ const containerVariants = {
 const itemVariants = {
   hidden: {
     opacity: 0,
-    y: 50,
+    y: 20,
   },
   visible: {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.8,
+      duration: 0.5,
       ease: "easeOut",
     },
   },
@@ -48,7 +52,11 @@ const FadeInSection: React.FC<FadeInSectionProps> = ({
     <Component
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: "-100px" }}
+      viewport={{
+        once: true,
+        amount: 0.1,
+        margin: "100px 0px",
+      }}
       variants={containerVariants}
       className={className}
       style={{
@@ -58,7 +66,6 @@ const FadeInSection: React.FC<FadeInSectionProps> = ({
       {React.Children.map(children, (child) => {
         if (!React.isValidElement(child)) return child;
 
-        // Use child's key if available, otherwise fallback to a generated key
         const elementKey =
           child.key || `fade-${Math.random().toString(36).substr(2, 9)}`;
 

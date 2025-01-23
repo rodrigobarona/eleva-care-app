@@ -232,4 +232,8 @@ export const translations = {
     terms: "Terms of Service",
     privacy: "Privacy",
   },
+  experts: {
+    title: "Top Experts",
+    subtitle: "Access to the best has never been easier",
+  },
 };
