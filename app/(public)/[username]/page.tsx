@@ -98,18 +98,14 @@ function EventCard({
   price,
   validTimes,
 }: EventCardProps) {
-  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const nextAvailable =
-    validTimes.length > 0 ? toZonedTime(validTimes[0], userTimeZone) : null;
+    validTimes.length > 0 ? new Date(validTimes[0].getTime()) : null;
 
   const formatNextAvailable = (date: Date) => {
-    const zonedDate = toZonedTime(date, userTimeZone);
     const timeFormat = "h:mm a z";
 
-    // Get current date in user's timezone
-    const now = toZonedTime(new Date(), userTimeZone);
+    const now = new Date();
 
-    // Compare dates in the same timezone
     const isToday = (date1: Date, date2: Date) => {
       return (
         date1.getFullYear() === date2.getFullYear() &&
@@ -124,15 +120,15 @@ function EventCard({
       return isToday(date1, tomorrow);
     };
 
-    const formattedTime = format(zonedDate, timeFormat);
+    const formattedTime = format(date, timeFormat);
 
-    if (isToday(zonedDate, now)) {
+    if (isToday(date, now)) {
       return `Today at ${formattedTime}`;
     }
-    if (isTomorrow(zonedDate, now)) {
+    if (isTomorrow(date, now)) {
       return `Tomorrow at ${formattedTime}`;
     }
-    return format(zonedDate, `EE, ${timeFormat}`);
+    return format(date, `EE, ${timeFormat}`);
   };
 
   return (
