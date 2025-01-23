@@ -7,7 +7,6 @@ import { createClerkClient } from "@clerk/nextjs/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
-import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
 import { addMonths } from "date-fns";
@@ -15,6 +14,7 @@ import { eachMinuteOfInterval } from "date-fns";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/atoms/skeleton";
 import { formatInTimeZone } from "date-fns-tz";
+import { delay } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -85,8 +85,8 @@ type EventCardProps = {
   description: string | null;
   durationInMinutes: number;
   slug: string;
-  username: string;
   price: number;
+  username: string;
   validTimes: Date[];
 };
 
@@ -97,8 +97,8 @@ function EventCard({
   slug,
   username,
   price,
-  id,
-}: Omit<EventCardProps, "validTimes">) {
+  validTimes,
+}: EventCardProps) {
   return (
     <Card className="overflow-hidden border-2 hover:border-primary/50 transition-colors duration-200">
       <div className="flex flex-col lg:flex-row">
@@ -149,8 +149,8 @@ function EventCard({
                 </>
               )}
             </div>
-            <Suspense fallback={<NextAvailableTimeSkeleton />}>
-              <NextAvailableTime eventId={id} />
+            <Suspense fallback={<Skeleton className="h-5 w-40 mb-6" />}>
+              <NextAvailableTime validTimes={validTimes} />
             </Suspense>
           </div>
 
@@ -166,19 +166,21 @@ function EventCard({
   );
 }
 
-// New component for the next available time
-async function NextAvailableTime({ eventId }: { eventId: string }) {
-  const validTimes = await getValidTimesForEvent(eventId);
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+async function NextAvailableTime({ validTimes }: { validTimes: Date[] }) {
+  // Add artificial delay to test suspense
+  // Only delay in development
+  if (process.env.NODE_ENV === "development") {
+    await delay(3000);
+  }
 
+  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const nextAvailable =
-    validTimes.length > 0 ? toZonedTime(validTimes[0], timezone) : null;
+    validTimes.length > 0 ? toZonedTime(validTimes[0], userTimeZone) : null;
 
   const formatNextAvailable = (date: Date) => {
-    const timeFormat = "h:mm a z";
-
-    // Get current date in user's timezone
-    const now = toZonedTime(new Date(), timezone);
+    const timeFormat = "h:mm a";
+    const visitorDate = toZonedTime(date, userTimeZone);
+    const visitorNow = toZonedTime(new Date(), userTimeZone);
 
     const isToday = (date1: Date, date2: Date) => {
       return (
@@ -194,16 +196,20 @@ async function NextAvailableTime({ eventId }: { eventId: string }) {
       return isToday(date1, tomorrow);
     };
 
-    // Use formatInTimeZone to properly format the time in the user's timezone
-    const formattedTime = formatInTimeZone(date, timezone, timeFormat);
+    const formattedTime = formatInTimeZone(date, userTimeZone, timeFormat);
+    const timezoneName = formatInTimeZone(date, userTimeZone, "zzz");
 
-    if (isToday(date, now)) {
-      return `Today at ${formattedTime}`;
+    if (isToday(visitorDate, visitorNow)) {
+      return `Today at ${formattedTime} ${timezoneName}`;
     }
-    if (isTomorrow(date, now)) {
-      return `Tomorrow at ${formattedTime}`;
+    if (isTomorrow(visitorDate, visitorNow)) {
+      return `Tomorrow at ${formattedTime} ${timezoneName}`;
     }
-    return format(date, `EE, ${timeFormat}`);
+    return formatInTimeZone(
+      date,
+      userTimeZone,
+      `EEE, ${timeFormat} ${timezoneName}`
+    );
   };
 
   return (
@@ -211,14 +217,6 @@ async function NextAvailableTime({ eventId }: { eventId: string }) {
       {nextAvailable
         ? `Next available — ${formatNextAvailable(nextAvailable)}`
         : "No times available"}
-    </div>
-  );
-}
-
-function NextAvailableTimeSkeleton() {
-  return (
-    <div className="mb-6">
-      <Skeleton className="h-5 w-40" />
     </div>
   );
 }
