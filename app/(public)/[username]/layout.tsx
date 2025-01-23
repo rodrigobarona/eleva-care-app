@@ -7,7 +7,6 @@ import { Instagram, Twitter, Linkedin, Youtube, Music } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 import { Skeleton } from "@/components/atoms/skeleton";
-import { delay } from "@/lib/utils";
 
 const SOCIAL_ICONS = {
   instagram: Instagram,

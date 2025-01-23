@@ -19,6 +19,7 @@ export default function HomePage() {
 
         <ServicesSection />
         <ApproachSection />
+        
       </main>
       <Footer />
     </>
