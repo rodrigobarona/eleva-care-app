@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import Hero from "@/components/organisms/home/Hero";
 import ServicesSection from "@/components/organisms/home/Services";
 import ApproachSection from "@/components/organisms/home/ApproachSection";
+import ExpertsSection from "@/components/organisms/home/ExpertsSection";
 
 export default function HomePage() {
   const { userId } = auth();
@@ -19,7 +20,7 @@ export default function HomePage() {
 
         <ServicesSection />
         <ApproachSection />
-        
+        <ExpertsSection />
       </main>
       <Footer />
     </>
