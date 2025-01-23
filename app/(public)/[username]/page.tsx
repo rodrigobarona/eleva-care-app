@@ -104,7 +104,7 @@ function EventCard({
 
   const formatNextAvailable = (date: Date) => {
     const zonedDate = toZonedTime(date, userTimeZone);
-    const timeFormat = "h:mm a";
+    const timeFormat = "h:mm a z";
 
     // Get current date in user's timezone
     const now = toZonedTime(new Date(), userTimeZone);
