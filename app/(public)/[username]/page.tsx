@@ -168,7 +168,6 @@ function EventCard({
 
 async function NextAvailableTime({ validTimes }: { validTimes: Date[] }) {
   // Add artificial delay to test suspense
-  // Only delay in development
   if (process.env.NODE_ENV === "development") {
     await delay(3000);
   }
@@ -197,7 +196,7 @@ async function NextAvailableTime({ validTimes }: { validTimes: Date[] }) {
     };
 
     const formattedTime = formatInTimeZone(date, userTimeZone, timeFormat);
-    const timezoneName = formatInTimeZone(date, userTimeZone, "zzz");
+    const timezoneName = formatInTimeZone(date, userTimeZone, "z");
 
     if (isToday(visitorDate, visitorNow)) {
       return `Today at ${formattedTime} ${timezoneName}`;
