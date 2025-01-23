@@ -12,7 +12,7 @@ import { addMonths } from "date-fns";
 import { eachMinuteOfInterval } from "date-fns";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/atoms/skeleton";
-import { formatInTimeZone } from "date-fns-tz";
+import NextAvailableTimeClient from "@/lib/NextAvailableTimeClient";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -120,59 +120,6 @@ async function NextAvailableTimeServer({ eventId }: { eventId: string }) {
   // Just pass the raw date to the client component
   const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
   return <NextAvailableTimeClient date={nextAvailable} />;
-}
-
-// Client component to handle timezone formatting
-
-function NextAvailableTimeClient({ date }: { date: Date | null }) {
-  const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
-  const formatNextAvailable = (date: Date) => {
-    const timeFormat = "h:mm a";
-    const now = new Date();
-
-    const isToday = (date: Date) => {
-      return (
-        date.getFullYear() === now.getFullYear() &&
-        date.getMonth() === now.getMonth() &&
-        date.getDate() === now.getDate()
-      );
-    };
-
-    const isTomorrow = (date: Date) => {
-      const tomorrow = new Date(now);
-      tomorrow.setDate(now.getDate() + 1);
-      return (
-        date.getFullYear() === tomorrow.getFullYear() &&
-        date.getMonth() === tomorrow.getMonth() &&
-        date.getDate() === tomorrow.getDate()
-      );
-    };
-
-    const formattedTime = formatInTimeZone(date, userTimeZone, timeFormat);
-    // Use 'z' instead of 'zzz' for timezone abbreviation
-    const timezoneName = formatInTimeZone(date, userTimeZone, "z");
-
-    if (isToday(date)) {
-      return `Today at ${formattedTime} ${timezoneName}`;
-    }
-    if (isTomorrow(date)) {
-      return `Tomorrow at ${formattedTime} ${timezoneName}`;
-    }
-    return formatInTimeZone(
-      date,
-      userTimeZone,
-      `EEE, ${timeFormat} ${timezoneName}`
-    );
-  };
-
-  return (
-    <div className="text-sm text-muted-foreground mb-6">
-      {date
-        ? `Next available — ${formatNextAvailable(date)}`
-        : "No times available"}
-    </div>
-  );
 }
 
 // Separate component for the main card details
