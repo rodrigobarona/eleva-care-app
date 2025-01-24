@@ -98,7 +98,7 @@ async function EventCardWrapper({
               )}
             </div>
             <Suspense fallback={<Skeleton className="h-5 w-40 mb-6" />}>
-              <NextAvailableTimeServer eventId={event.id} />
+              <NextAvailableTimeServer eventId={event.id} username={username} />
             </Suspense>
           </div>
 
@@ -115,11 +115,28 @@ async function EventCardWrapper({
 }
 
 // New server component for next available time
-async function NextAvailableTimeServer({ eventId }: { eventId: string }) {
+async function NextAvailableTimeServer({
+  eventId,
+  username,
+}: {
+  eventId: string;
+  username: string;
+}) {
   const validTimes = await getValidTimesForEvent(eventId);
-  // Just pass the raw date to the client component
+  const event = await db.query.EventTable.findFirst({
+    where: ({ id }, { eq }) => eq(id, eventId),
+  });
+
   const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
-  return <NextAvailableTimeClient date={nextAvailable} />;
+
+  return (
+    <NextAvailableTimeClient
+      date={nextAvailable}
+      eventName={event?.name ?? ""}
+      eventSlug={event?.slug ?? ""}
+      username={username}
+    />
+  );
 }
 
 // Separate component for the main card details
