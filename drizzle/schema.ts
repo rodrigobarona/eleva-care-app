@@ -144,7 +144,57 @@ export const ProfileTable = pgTable(
   })
 );
 
-export const profileRelations = relations(ProfileTable, ({ many }) => ({
+export const profileRelations = relations(ProfileTable, ({ many, one }) => ({
   meetings: many(MeetingTable),
   events: many(EventTable),
+  user: one(UserTable, {
+    fields: [ProfileTable.clerkUserId],
+    references: [UserTable.clerkUserId],
+  }),
+}));
+
+export const subscriptionStatusEnum = pgEnum("subscription_status", [
+  "active",
+  "canceled",
+  "incomplete",
+  "incomplete_expired",
+  "past_due",
+  "trialing",
+  "unpaid",
+]);
+
+export const UserTable = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clerkUserId: text("clerkUserId").notNull().unique(),
+    stripeCustomerId: text("stripeCustomerId").unique(),
+    subscriptionId: text("subscriptionId"),
+    subscriptionStatus: subscriptionStatusEnum("subscriptionStatus"),
+    subscriptionPriceId: text("subscriptionPriceId"),
+    subscriptionCurrentPeriodEnd: timestamp("subscriptionCurrentPeriodEnd"),
+    subscriptionCanceledAt: timestamp("subscriptionCanceledAt"),
+    hasHadSubscription: boolean("hasHadSubscription").default(false),
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    clerkUserIdIndex: index("users_clerk_user_id_idx").on(table.clerkUserId),
+    stripeCustomerIdIndex: index("users_stripe_customer_id_idx").on(
+      table.stripeCustomerId
+    ),
+  })
+);
+
+export const userRelations = relations(UserTable, ({ many, one }) => ({
+  events: many(EventTable),
+  meetings: many(MeetingTable),
+  profile: one(ProfileTable),
+}));
+
+export const eventRelations = relations(EventTable, ({ one }) => ({
+  user: one(UserTable, {
+    fields: [EventTable.clerkUserId],
+    references: [UserTable.clerkUserId],
+  }),
 }));
