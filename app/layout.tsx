@@ -6,6 +6,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { Toaster } from "sonner";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { LanguageProvider } from "@/components/molecules/LanguageProvider";
+import { ThirdPartyScripts } from "@/components/molecules/ThirdPartyScripts";
 
 const lora = Lora({
   subsets: ["latin"],
@@ -53,6 +54,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en">
+        <ThirdPartyScripts />
         <body
           className={`${lora.variable} ${alexandria.variable} ${jetBrains.variable} min-h-screen bg-background font-sans font-light antialiased`}
         >
