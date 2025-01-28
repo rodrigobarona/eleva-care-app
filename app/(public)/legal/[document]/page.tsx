@@ -142,7 +142,7 @@ This Privacy Policy is subject to change. Please check back regularly for update
     title: "Data Processing Agreement",
     content: `# Data Processing Agreement (DPA) between Búzios e Tartarugas, Lda. (Eleva.care) and Data Processors
 
-**Effective Date:** [Insert Effective Date]
+_Last Updated:_ January 27, 2025
 
 ## Parties:
 

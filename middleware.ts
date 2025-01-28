@@ -6,6 +6,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/:username", // Allow access to user profile pages like /barona
   "/:username/(.*)", // Allow access to all routes under username like /barona/event-name
+  "/legal/(.*)", // Allow access to legal pages like /legal/privacy-policy
 ]);
 
 export default clerkMiddleware((auth, req) => {
