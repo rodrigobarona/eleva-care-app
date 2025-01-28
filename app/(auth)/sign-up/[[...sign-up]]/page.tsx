@@ -99,6 +99,7 @@ export default function SignUpPage() {
                           Already have an account? Sign in
                         </Link>
                       </Button>
+                      <div id="clerk-captcha" />
                     </div>
                   </CardFooter>
                 </Card>
