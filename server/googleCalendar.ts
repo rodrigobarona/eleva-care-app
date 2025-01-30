@@ -48,14 +48,12 @@ class GoogleCalendarService {
         expiry_date: tokenExpiryDate?.getTime(),
       });
 
-      if (
-        isExpired ||
-        (tokenExpiryDate && tokenExpiryDate.getTime() - Date.now() < 300000)
-      ) {
+      // Check if token needs refresh before returning
+      const credentials = client.credentials;
+      if (this.shouldRefreshToken(credentials)) {
         try {
-          const { credentials } = await client.refreshAccessToken();
-          client.setCredentials(credentials);
-
+          await client.refreshAccessToken();
+          // Save the new tokens if needed
           await clerk.users.updateUser(clerkUserId, {
             privateMetadata: {
               ...user.privateMetadata,
@@ -64,7 +62,10 @@ class GoogleCalendarService {
             },
           });
         } catch (error) {
-          console.error("Failed to refresh token:", error);
+          console.error(
+            `Failed to refresh token for user ${clerkUserId}:`,
+            error
+          );
           throw new Error("Failed to refresh Google Calendar access token");
         }
       }
@@ -87,6 +88,15 @@ class GoogleCalendarService {
       console.error("Error obtaining OAuth client:", error);
       throw new Error("Unable to obtain Google OAuth client");
     }
+  }
+
+  private shouldRefreshToken(credentials: any) {
+    if (!credentials.expiry_date) return true;
+
+    // Refresh if token expires in less than 5 minutes
+    const expiryDate = new Date(credentials.expiry_date);
+    const fiveMinutes = 5 * 60 * 1000;
+    return Date.now() + fiveMinutes >= expiryDate.getTime();
   }
 
   async getCalendarEventTimes(
