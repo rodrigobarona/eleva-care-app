@@ -13,10 +13,6 @@
     {
       "path": "/api/keep-alive",
       "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/refresh-tokens",
-      "schedule": "0 0 * * *"
     }
   ]
 }
