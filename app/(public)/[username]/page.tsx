@@ -13,6 +13,7 @@ import { eachMinuteOfInterval } from "date-fns";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/atoms/skeleton";
 import NextAvailableTimeClient from "@/lib/NextAvailableTimeClient";
+import GoogleCalendarService from "@/server/googleCalendar";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -122,21 +123,32 @@ async function NextAvailableTimeServer({
   eventId: string;
   username: string;
 }) {
-  const validTimes = await getValidTimesForEvent(eventId);
-  const event = await db.query.EventTable.findFirst({
-    where: ({ id }, { eq }) => eq(id, eventId),
-  });
+  try {
+    const event = await db.query.EventTable.findFirst({
+      where: ({ id }, { eq }) => eq(id, eventId),
+    });
 
-  const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
+    if (!event) return null;
 
-  return (
-    <NextAvailableTimeClient
-      date={nextAvailable}
-      eventName={event?.name ?? ""}
-      eventSlug={event?.slug ?? ""}
-      username={username}
-    />
-  );
+    // Ensure token is valid before making API request
+    await GoogleCalendarService.getInstance().getOAuthClient(event.clerkUserId);
+
+    const validTimes = await getValidTimesForEvent(eventId);
+    const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
+
+    return (
+      <NextAvailableTimeClient
+        date={nextAvailable}
+        eventName={event?.name ?? ""}
+        eventSlug={event?.slug ?? ""}
+        username={username}
+      />
+    );
+  } catch (error) {
+    console.error("Error loading availability:", error);
+    // Provide a fallback UI or message
+    return <div>Unable to load calendar events. Please try again later.</div>;
+  }
 }
 
 // Separate component for the main card details

@@ -21,7 +21,6 @@ import {
 } from "@/components/molecules/dropdown-menu";
 import {
   SidebarMenu,
-  SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from "@/components/organisms/sidebar/sidebar";
@@ -146,5 +145,3 @@ export function NavUser() {
 
 // Attach Skeleton component as a static property
 NavUser.Skeleton = NavUserSkeleton;
-
-export { NavUser };
