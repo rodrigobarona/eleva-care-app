@@ -7,12 +7,12 @@ import { logAuditEvent } from "@/lib/logAuditEvent";
 import { headers } from "next/headers";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
-import { BatchItem } from "drizzle-orm/batch";
+import type { BatchItem } from "drizzle-orm/batch";
 import "use-server";
-import { z } from "zod";
+import type { z } from "zod";
 
 export async function saveSchedule(
-  unsafeData: z.infer<typeof scheduleFormSchema>,
+  unsafeData: z.infer<typeof scheduleFormSchema>
 ) {
   const { userId } = auth();
   const headersList = headers();
@@ -56,8 +56,8 @@ export async function saveSchedule(
         availabilities.map((availability) => ({
           ...availability,
           scheduleId,
-        })),
-      ),
+        }))
+      )
     );
   }
 
@@ -72,6 +72,6 @@ export async function saveSchedule(
     oldSchedule ?? null, // Pass the old schedule data
     { ...scheduleData, availabilities }, // New schedule data
     ipAddress,
-    userAgent,
+    userAgent
   );
 }
