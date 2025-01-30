@@ -2,6 +2,9 @@ import "use-server";
 import { createClerkClient } from "@clerk/nextjs/server";
 import { google } from "googleapis";
 import { addMinutes, endOfDay, startOfDay } from "date-fns";
+import { db } from "@/drizzle/db";
+import { TokenTable } from "@/drizzle/schema";
+import { eq } from "drizzle-orm";
 
 class GoogleCalendarService {
   private static instance: GoogleCalendarService | null = null;
@@ -220,6 +223,31 @@ class GoogleCalendarService {
     });
 
     console.log("Token updated for user:", clerkUserId);
+  }
+
+  async getTokens(userId: string) {
+    const tokenRecord = await db.query.TokenTable.findFirst({
+      where: eq(TokenTable.clerkUserId, userId),
+    });
+
+    if (!tokenRecord) {
+      return null;
+    }
+
+    return {
+      access_token: tokenRecord.accessToken,
+      refresh_token: tokenRecord.refreshToken,
+      expiry_date: tokenRecord.expiryDate?.getTime(),
+    };
+  }
+
+  async hasValidTokens(userId: string): Promise<boolean> {
+    try {
+      const tokens = await this.getTokens(userId);
+      return Boolean(tokens?.refresh_token);
+    } catch {
+      return false;
+    }
   }
 }
 

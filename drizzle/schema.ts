@@ -198,3 +198,19 @@ export const eventRelations = relations(EventTable, ({ one }) => ({
     references: [UserTable.clerkUserId],
   }),
 }));
+
+export const TokenTable = pgTable(
+  "tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clerkUserId: text("clerkUserId").notNull().unique(),
+    accessToken: text("accessToken").notNull(),
+    refreshToken: text("refreshToken").notNull(),
+    expiryDate: timestamp("expiryDate"),
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    clerkUserIdIndex: index("tokens_clerk_user_id_idx").on(table.clerkUserId),
+  })
+);
