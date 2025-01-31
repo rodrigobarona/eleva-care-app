@@ -37,6 +37,11 @@ import {
   parseAsIsoDateTime,
   parseAsStringLiteral,
 } from "nuqs";
+import {
+  getCalendarEventTimes,
+  hasValidTokens,
+} from "@/lib/googleCalendarClient";
+import { useRouter } from "next/navigation";
 
 type MeetingFormProps = {
   validTimes: Date[];
@@ -55,9 +60,12 @@ export function MeetingForm({
   username,
   eventSlug,
 }: MeetingFormProps) {
+  const router = useRouter();
+
   // State management
   const [use24Hour, setUse24Hour] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isCalendarSynced, setIsCalendarSynced] = React.useState(true);
 
   // Query state configuration
   const queryStateParsers = React.useMemo(
@@ -85,9 +93,6 @@ export function MeetingForm({
     },
   });
 
-  // Extract current step from queryStates
-  const currentStep = queryStates.step;
-
   // Form initialization
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
@@ -98,27 +103,13 @@ export function MeetingForm({
     },
   });
 
-  // Initialize form with first available date and timezone
-  React.useEffect(() => {
-    if (!validTimes.length || queryStates.date) return;
-
-    const firstAvailableTime = validTimes[0];
-    const zonedTime = toZonedTime(
-      firstAvailableTime,
-      form.getValues("timezone")
-    );
-    const localDate = startOfDay(zonedTime);
-
-    form.setValue("date", localDate);
-    setQueryStates({ date: localDate });
-  }, [validTimes, queryStates.date, form, setQueryStates]);
-
-  // Memoized values
+  // Extract values we'll use in memos
   const timezone = form.watch("timezone");
   const date = form.watch("date");
   const startTime = form.watch("startTime");
+  const currentStep = queryStates.step;
 
-  // Memoize timezone calculations
+  // All memoized values
   const validTimesInTimezone = React.useMemo(() => {
     return validTimes.map((utcDate) => {
       const zonedDate = toZonedTime(utcDate, timezone);
@@ -138,7 +129,6 @@ export function MeetingForm({
     });
   }, [validTimes, timezone, use24Hour]);
 
-  // Memoize time grouping
   const timesByDate = React.useMemo(() => {
     return validTimesInTimezone.reduce(
       (acc, time) => {
@@ -256,6 +246,75 @@ export function MeetingForm({
       eventSlug,
     ]
   );
+
+  // Effects
+  React.useEffect(() => {
+    if (!validTimes.length || queryStates.date) return;
+
+    const firstAvailableTime = validTimes[0];
+    const zonedTime = toZonedTime(
+      firstAvailableTime,
+      form.getValues("timezone")
+    );
+    const localDate = startOfDay(zonedTime);
+
+    form.setValue("date", localDate);
+    setQueryStates({ date: localDate });
+  }, [validTimes, queryStates.date, form, setQueryStates]);
+
+  React.useEffect(() => {
+    const checkCalendarAccess = async () => {
+      try {
+        const hasValidAccess = await hasValidTokens(clerkUserId);
+
+        if (!hasValidAccess) {
+          setIsCalendarSynced(false);
+          router.push(
+            `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`
+          );
+          return;
+        }
+
+        // Verify we can fetch calendar events
+        const now = new Date();
+        const endDate = new Date();
+        endDate.setMonth(endDate.getMonth() + 2);
+
+        await getCalendarEventTimes(clerkUserId, {
+          start: now,
+          end: endDate,
+        });
+
+        setIsCalendarSynced(true);
+      } catch (error) {
+        console.error("Calendar sync error:", error);
+        setIsCalendarSynced(false);
+      }
+    };
+
+    checkCalendarAccess();
+  }, [clerkUserId, router]);
+
+  // Early return for calendar sync check
+  if (!isCalendarSynced) {
+    return (
+      <div className="text-center py-8">
+        <h2 className="text-lg font-semibold mb-4">Calendar Sync Required</h2>
+        <p className="text-muted-foreground mb-4">
+          We need access to your Google Calendar to show available time slots.
+        </p>
+        <Button
+          onClick={() =>
+            router.push(
+              `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`
+            )
+          }
+        >
+          Connect Google Calendar
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>

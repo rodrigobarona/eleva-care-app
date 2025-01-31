@@ -10,6 +10,8 @@ import { createCalendarEvent } from "../googleCalendar";
 import { redirect } from "next/navigation";
 import { MeetingTable } from "@/drizzle/schema";
 import { createClerkClient } from "@clerk/nextjs/server";
+import GoogleCalendarService from "@/server/googleCalendar";
+import { addMinutes } from "date-fns";
 
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
@@ -31,7 +33,22 @@ export async function createMeeting(
 
   // Step 3: Verify the requested time slot is valid according to the schedule
   const startTimeUTC = data.startTime;
-  const validTimes = await getValidTimesFromSchedule([startTimeUTC], event);
+
+  // Get calendar events for the time slot
+  const calendarService = GoogleCalendarService.getInstance();
+  const calendarEvents = await calendarService.getCalendarEventTimes(
+    event.clerkUserId,
+    {
+      start: startTimeUTC,
+      end: addMinutes(startTimeUTC, event.durationInMinutes),
+    }
+  );
+
+  const validTimes = await getValidTimesFromSchedule(
+    [startTimeUTC],
+    event,
+    calendarEvents
+  );
   if (validTimes.length === 0) return { error: true };
 
   // Step 4: Calculate the end time based on event duration

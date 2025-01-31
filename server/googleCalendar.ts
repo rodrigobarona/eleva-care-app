@@ -24,6 +24,7 @@ class GoogleCalendarService {
     });
 
     try {
+      // Get the OAuth tokens from Clerk
       const tokenResponse = await clerk.users.getUserOauthAccessToken(
         clerkUserId,
         "oauth_google"
@@ -34,11 +35,17 @@ class GoogleCalendarService {
       }
 
       const token = tokenResponse.data[0];
-      const user = await clerk.users.getUser(clerkUserId);
-      const tokenExpiryDate = user.privateMetadata?.googleTokenExpiry
-        ? new Date(user.privateMetadata.googleTokenExpiry as number)
-        : null;
-      const isExpired = tokenExpiryDate ? tokenExpiryDate < new Date() : true;
+
+      // Get the refresh token from Clerk
+      const oauthTokens = await clerk.users.getUserOauthAccessToken(
+        clerkUserId,
+        "oauth_google"
+      );
+
+      const refreshToken = oauthTokens.data[0]?.token;
+      if (!refreshToken) {
+        throw new Error("No refresh token found");
+      }
 
       const client = new google.auth.OAuth2(
         process.env.GOOGLE_OAUTH_CLIENT_ID,
@@ -46,43 +53,28 @@ class GoogleCalendarService {
         process.env.GOOGLE_OAUTH_REDIRECT_URL
       );
 
+      // Set both access and refresh tokens
       client.setCredentials({
         access_token: token.token,
-        expiry_date: tokenExpiryDate?.getTime(),
+        refresh_token: refreshToken,
       });
 
-      // Check if token needs refresh before returning
-      const credentials = client.credentials;
-      if (this.shouldRefreshToken(credentials)) {
-        try {
-          await client.refreshAccessToken();
-          // Save the new tokens if needed
-          await clerk.users.updateUser(clerkUserId, {
-            privateMetadata: {
-              ...user.privateMetadata,
-              googleAccessToken: credentials.access_token,
-              googleTokenExpiry: credentials.expiry_date,
-            },
-          });
-        } catch (error) {
-          console.error(
-            `Failed to refresh token for user ${clerkUserId}:`,
-            error
-          );
-          throw new Error("Failed to refresh Google Calendar access token");
-        }
-      }
-
+      // Set up token refresh handler
       client.on("tokens", async (tokens) => {
         if (tokens.access_token) {
-          const updatedUser = await clerk.users.getUser(clerkUserId);
-          await clerk.users.updateUser(clerkUserId, {
-            privateMetadata: {
-              ...updatedUser.privateMetadata,
-              googleAccessToken: tokens.access_token,
-              googleTokenExpiry: tokens.expiry_date,
-            },
-          });
+          try {
+            // Store the new token in user's private metadata
+            const user = await clerk.users.getUser(clerkUserId);
+            await clerk.users.updateUser(clerkUserId, {
+              privateMetadata: {
+                ...user.privateMetadata,
+                googleAccessToken: tokens.access_token,
+                googleTokenExpiry: tokens.expiry_date,
+              },
+            });
+          } catch (error) {
+            console.error("Failed to update token:", error);
+          }
         }
       });
 
@@ -93,7 +85,7 @@ class GoogleCalendarService {
     }
   }
 
-  private shouldRefreshToken(credentials: any) {
+  private shouldRefreshToken(credentials: { expiry_date?: number | null }) {
     if (!credentials.expiry_date) return true;
 
     // Refresh if token expires in less than 5 minutes
@@ -251,22 +243,10 @@ class GoogleCalendarService {
   }
 }
 
-// Export the class and its methods
+// Export server-only methods
 export { GoogleCalendarService as default };
 
-export async function getCalendarEventTimes(
-  clerkUserId: string,
-  { start, end }: { start: Date; end: Date }
-) {
-  return GoogleCalendarService.getInstance().getCalendarEventTimes(
-    clerkUserId,
-    {
-      start,
-      end,
-    }
-  );
-}
-
+// Export specific methods for server usage
 export async function createCalendarEvent(params: {
   clerkUserId: string;
   guestName: string;

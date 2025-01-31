@@ -1,11 +1,10 @@
+import "server-only";
 import "core-js/actual/object/group-by";
 import type { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants";
 import { db } from "@/drizzle/db";
 import type { ScheduleAvailabilityTable } from "@/drizzle/schema";
-import { getCalendarEventTimes } from "@/server/googleCalendar";
 import {
   addMinutes,
-  areIntervalsOverlapping,
   isFriday,
   isMonday,
   isSaturday,
@@ -19,15 +18,16 @@ import {
 } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
 
+interface ScheduleEvent {
+  clerkUserId: string;
+  durationInMinutes: number;
+}
+
 export async function getValidTimesFromSchedule(
-  timesInOrder: Date[],
-  event: { clerkUserId: string; durationInMinutes: number }
+  times: Date[],
+  event: ScheduleEvent,
+  calendarEvents: Array<{ start: Date; end: Date }>
 ) {
-  const start = timesInOrder[0];
-  const end = timesInOrder.at(-1);
-
-  if (start == null || end == null) return [];
-
   const schedule = await db.query.ScheduleTable.findFirst({
     where: ({ clerkUserId: userIdCol }, { eq }) =>
       eq(userIdCol, event.clerkUserId),
@@ -36,39 +36,47 @@ export async function getValidTimesFromSchedule(
 
   if (schedule == null) return [];
 
-  const groupedAvailabilities = Object.groupBy(
-    schedule.availabilities,
-    (a) => a.dayOfWeek
-  );
+  const validTimes = [];
+  for (const time of times) {
+    // Check if time conflicts with any calendar event
+    const hasCalendarConflict = calendarEvents.some((calendarEvent) => {
+      const meetingEnd = addMinutes(time, event.durationInMinutes);
+      return (
+        (time >= calendarEvent.start && time < calendarEvent.end) ||
+        (meetingEnd > calendarEvent.start && meetingEnd <= calendarEvent.end) ||
+        (time <= calendarEvent.start && meetingEnd >= calendarEvent.end)
+      );
+    });
 
-  const eventTimes = await getCalendarEventTimes(event.clerkUserId, {
-    start,
-    end,
-  });
+    if (hasCalendarConflict) continue;
 
-  return timesInOrder.filter((intervalDate) => {
+    const groupedAvailabilities = Object.groupBy(
+      schedule.availabilities,
+      (a) => a.dayOfWeek
+    );
+
     const availabilities = getAvailabilities(
       groupedAvailabilities,
-      intervalDate,
+      time,
       schedule.timezone
     );
     const eventInterval = {
-      start: intervalDate,
-      end: addMinutes(intervalDate, event.durationInMinutes),
+      start: time,
+      end: addMinutes(time, event.durationInMinutes),
     };
 
-    return (
-      eventTimes.every((eventTime) => {
-        return !areIntervalsOverlapping(eventTime, eventInterval);
-      }) &&
-      availabilities.some((availability) => {
-        return (
-          isWithinInterval(eventInterval.start, availability) &&
-          isWithinInterval(eventInterval.end, availability)
-        );
-      })
+    const isTimeValid = availabilities.some(
+      (availability) =>
+        isWithinInterval(eventInterval.start, availability) &&
+        isWithinInterval(eventInterval.end, availability)
     );
-  });
+
+    if (isTimeValid) {
+      validTimes.push(time);
+    }
+  }
+
+  return validTimes;
 }
 
 function getAvailabilities(
@@ -112,16 +120,16 @@ function getAvailabilities(
   return availabilities.map(({ startTime, endTime }) => {
     const start = fromZonedTime(
       setMinutes(
-        setHours(date, parseInt(startTime.split(":")[0])),
-        parseInt(startTime.split(":")[1])
+        setHours(date, Number.parseInt(startTime.split(":")[0])),
+        Number.parseInt(startTime.split(":")[1])
       ),
       timezone
     );
 
     const end = fromZonedTime(
       setMinutes(
-        setHours(date, parseInt(endTime.split(":")[0])),
-        parseInt(endTime.split(":")[1])
+        setHours(date, Number.parseInt(endTime.split(":")[0])),
+        Number.parseInt(endTime.split(":")[1])
       ),
       timezone
     );

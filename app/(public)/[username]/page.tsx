@@ -209,9 +209,17 @@ async function getValidTimesForEvent(eventId: string) {
   );
   const endDate = addMonths(startDate, 2);
 
+  // Get calendar events for the time range
+  const calendarService = GoogleCalendarService.getInstance();
+  const calendarEvents = await calendarService.getCalendarEventTimes(
+    event.clerkUserId,
+    { start: startDate, end: endDate }
+  );
+
   return getValidTimesFromSchedule(
     eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-    event
+    event,
+    calendarEvents
   );
 }
 

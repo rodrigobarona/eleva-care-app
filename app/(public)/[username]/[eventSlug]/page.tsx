@@ -23,6 +23,7 @@ import { notFound } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
 import ReactMarkdown from "react-markdown";
 import { Clock as ClockIcon, WalletCards as WalletCardsIcon } from "lucide-react";
+import GoogleCalendarService from "@/server/googleCalendar";
 
 export const revalidate = 0;
 
@@ -68,9 +69,33 @@ export default async function BookEventPage({
     )
   );
 
+  const calendarService = GoogleCalendarService.getInstance();
+  
+  // Verify calendar access before fetching times
+  const hasValidTokens = await calendarService.hasValidTokens(user.id);
+  if (!hasValidTokens) {
+    return (
+      <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle>Calendar Access Required</CardTitle>
+          <CardDescription>
+            The calendar owner needs to reconnect their Google Calendar to show available times.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  // Get calendar events and calculate valid times
+  const calendarEvents = await calendarService.getCalendarEventTimes(
+    user.id,
+    { start: startDate, end: endDate }
+  );
+
   const validTimes = await getValidTimesFromSchedule(
     eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-    event
+    event,
+    calendarEvents // Pass calendar events to consider when calculating valid times
   );
 
   if (validTimes.length === 0) {
