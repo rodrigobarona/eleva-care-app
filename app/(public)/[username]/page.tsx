@@ -1,6 +1,11 @@
 import React from "react";
 import { Button } from "@/components/atoms/button";
-import { Card } from "@/components/atoms/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/atoms/card";
 import { db } from "@/drizzle/db";
 import { formatEventDescription } from "@/lib/formatters";
 import { createClerkClient } from "@clerk/nextjs/server";
@@ -8,8 +13,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
-import { addMonths } from "date-fns";
-import { eachMinuteOfInterval } from "date-fns";
+import { addMonths, eachMinuteOfInterval } from "date-fns";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/atoms/skeleton";
 import NextAvailableTimeClient from "@/lib/NextAvailableTimeClient";
@@ -29,6 +33,30 @@ type Event = {
   price: number;
 };
 
+async function getCalendarStatus(clerkUserId: string) {
+  try {
+    const calendarService = GoogleCalendarService.getInstance();
+    const hasValidTokens = await calendarService.hasValidTokens(clerkUserId);
+
+    if (!hasValidTokens) {
+      return { isConnected: false, error: "Calendar not connected" };
+    }
+
+    // Verify we can actually access the calendar
+    const now = new Date();
+    const endDate = addMonths(now, 1);
+    await calendarService.getCalendarEventTimes(clerkUserId, {
+      start: now,
+      end: endDate,
+    });
+
+    return { isConnected: true, error: null };
+  } catch (error) {
+    console.error("Calendar status check failed:", error);
+    return { isConnected: false, error: "Calendar access error" };
+  }
+}
+
 export default async function BookingPage({
   params: { username },
 }: {
@@ -44,6 +72,23 @@ export default async function BookingPage({
 
   const user = users.data[0];
   if (!user) return notFound();
+
+  // Check calendar status early
+  const calendarStatus = await getCalendarStatus(user.id);
+  if (!calendarStatus.isConnected) {
+    return (
+      <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle>Calendar Access Required</CardTitle>
+          <CardDescription>
+            {calendarStatus.error === "Calendar not connected"
+              ? "The calendar owner needs to connect their Google Calendar to show available times."
+              : "Unable to access calendar. Please try again later."}
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 
   const events = await db.query.EventTable.findMany({
     where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
