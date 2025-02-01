@@ -12,9 +12,6 @@ type StripeConnectSession = Stripe.Checkout.Session & {
 };
 
 // Use new Next.js route segment config
-export const fetchCache = "force-no-store";
-export const revalidate = 0;
-export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const preferredRegion = "auto";
 export const maxDuration = 60;
@@ -286,14 +283,7 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
   }
 }
 
-// Add config to disable body parsing
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
-export async function POST(req: Request) {
+export const POST = async (req: Request) => {
   try {
     // Get the raw body
     const rawBody = await req.text();
@@ -337,7 +327,7 @@ export async function POST(req: Request) {
 
     try {
       // If this is a Connect account event, use the connected account's Stripe instance
-      const stripeAccount = event.account
+      const stripeInstance = event.account
         ? new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
             apiVersion: STRIPE_CONFIG.API_VERSION,
             stripeAccount: event.account,
@@ -357,14 +347,17 @@ export async function POST(req: Request) {
       switch (event.type) {
         case "payment_intent.succeeded": {
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          // Retrieve full payment intent from the appropriate Stripe instance
+          const fullPaymentIntent =
+            await stripeInstance.paymentIntents.retrieve(paymentIntent.id);
           console.log("Processing payment intent succeeded:", {
-            paymentIntentId: paymentIntent.id,
-            amount: paymentIntent.amount,
-            metadata: paymentIntent.metadata,
+            paymentIntentId: fullPaymentIntent.id,
+            amount: fullPaymentIntent.amount,
+            metadata: fullPaymentIntent.metadata,
             connectedAccountId: event.account,
             livemode: event.livemode,
           });
-          await handlePaymentIntentSucceeded(paymentIntent);
+          await handlePaymentIntentSucceeded(fullPaymentIntent);
           break;
         }
         case "payment_intent.payment_failed": {
@@ -419,4 +412,4 @@ export async function POST(req: Request) {
       { status: 500 }
     );
   }
-}
+};
