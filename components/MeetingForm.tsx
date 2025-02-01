@@ -1,21 +1,34 @@
-import React, { useState } from "react";
-import { useRouter } from "next/router";
+"use client";
 
-const MeetingForm: React.FC = () => {
-  const router = useRouter();
+import { useState, type FormEvent } from "react";
+import * as React from "react";
+
+interface MeetingFormProps {
+  defaultPrice?: number;
+  defaultEventId?: string;
+  defaultUsername?: string;
+  defaultEventSlug?: string;
+}
+
+export default function MeetingForm({
+  defaultPrice = 0,
+  defaultEventId = "",
+  defaultUsername = "",
+  defaultEventSlug = "",
+}: MeetingFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const [price, setPrice] = useState("");
+  const [price] = useState(defaultPrice);
   const [guestEmail, setGuestEmail] = useState("");
   const [guestName, setGuestName] = useState("");
   const [startTime, setStartTime] = useState("");
   const [date, setDate] = useState("");
   const [timezone, setTimezone] = useState("");
-  const [eventId, setEventId] = useState("");
-  const [username, setUsername] = useState("");
-  const [eventSlug, setEventSlug] = useState("");
+  const [eventId] = useState(defaultEventId);
+  const [username] = useState(defaultUsername);
+  const [eventSlug] = useState(defaultEventSlug);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
@@ -101,7 +114,87 @@ const MeetingForm: React.FC = () => {
     }
   };
 
-  return <div>{/* Render your form here */}</div>;
-};
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="space-y-2">
+        <label htmlFor="guestName" className="block text-sm font-medium">
+          Name
+        </label>
+        <input
+          id="guestName"
+          type="text"
+          value={guestName}
+          onChange={(e) => setGuestName(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+      </div>
 
-export default MeetingForm;
+      <div className="space-y-2">
+        <label htmlFor="guestEmail" className="block text-sm font-medium">
+          Email
+        </label>
+        <input
+          id="guestEmail"
+          type="email"
+          value={guestEmail}
+          onChange={(e) => setGuestEmail(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="date" className="block text-sm font-medium">
+          Date
+        </label>
+        <input
+          id="date"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="startTime" className="block text-sm font-medium">
+          Time
+        </label>
+        <input
+          id="startTime"
+          type="time"
+          value={startTime}
+          onChange={(e) => setStartTime(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="timezone" className="block text-sm font-medium">
+          Timezone
+        </label>
+        <input
+          id="timezone"
+          type="text"
+          value={timezone}
+          onChange={(e) => setTimezone(e.target.value)}
+          className="w-full p-2 border rounded"
+          required
+        />
+      </div>
+
+      {error && <div className="text-red-600 text-sm mt-2">{error}</div>}
+
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 disabled:opacity-50"
+      >
+        {isLoading ? "Processing..." : "Continue to Payment"}
+      </button>
+    </form>
+  );
+}

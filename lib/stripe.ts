@@ -158,16 +158,46 @@ export async function getOrCreateStripeCustomer(
       throw new Error("Email is required");
     }
 
-    // Verify Redis connection
-    const isRedisConnected = await verifyRedisConnection();
-    if (!isRedisConnected) {
-      console.warn("Redis connection failed, proceeding with Stripe-only flow");
+    const normalizedEmail = email.toLowerCase();
+
+    // First check if customer exists in Stripe
+    console.log("Checking for existing customer with email:", normalizedEmail);
+    const existingCustomers = await stripe.customers.list({
+      email: normalizedEmail,
+      limit: 1,
+    });
+
+    if (existingCustomers.data.length > 0) {
+      const existingCustomer = existingCustomers.data[0];
+      console.log("Found existing customer:", existingCustomer.id);
+
+      // Update customer metadata if needed
+      if (userId && !existingCustomer.metadata?.userId) {
+        await stripe.customers.update(existingCustomer.id, {
+          metadata: {
+            ...existingCustomer.metadata,
+            userId,
+            isGuest: userId ? "false" : "true",
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      }
+
+      // Try to sync to KV if Redis is connected
+      const isRedisConnected = await verifyRedisConnection();
+      if (isRedisConnected) {
+        await syncStripeDataToKV(existingCustomer.id).catch((error) => {
+          console.error("Failed to sync existing customer to KV:", error);
+        });
+      }
+
+      return existingCustomer.id;
     }
 
-    // Create new customer for each unique email
-    console.log("Creating new Stripe customer:", { email, userId });
+    // If no customer exists, create a new one
+    console.log("Creating new customer for email:", normalizedEmail);
     const newCustomer = await stripe.customers.create({
-      email: email.toLowerCase(),
+      email: normalizedEmail,
       metadata: {
         ...(userId ? { userId } : {}),
         isGuest: userId ? "false" : "true",
@@ -176,6 +206,7 @@ export async function getOrCreateStripeCustomer(
     });
 
     // Try to sync to KV if Redis is connected
+    const isRedisConnected = await verifyRedisConnection();
     if (isRedisConnected) {
       await syncStripeDataToKV(newCustomer.id).catch((error) => {
         console.error("Failed to sync new customer to KV:", error);
