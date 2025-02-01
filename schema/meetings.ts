@@ -15,10 +15,16 @@ export const meetingFormSchema = z
   })
   .merge(meetingSchemaBase);
 
-export const meetingActionSchema = z
-  .object({
-    eventId: z.string().min(1, "Required"),
-    clerkUserId: z.string().min(1, "Required"),
-    paymentIntentId: z.string().optional(),
-  })
-  .merge(meetingSchemaBase);
+export const meetingActionSchema = z.object({
+  eventId: z.string().uuid(),
+  clerkUserId: z.string(),
+  guestEmail: z.string().email(),
+  guestName: z.string(),
+  timezone: z.string(),
+  startTime: z.date(),
+  guestNotes: z.string().optional(),
+  stripePaymentIntentId: z.string().optional(),
+  stripePaymentStatus: z.string().optional(),
+  stripeAmount: z.number().optional(),
+  stripeApplicationFeeAmount: z.number().optional(),
+});

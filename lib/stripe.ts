@@ -1,6 +1,9 @@
 import Stripe from "stripe";
 import { STRIPE_CONFIG } from "@/config/stripe";
 import { Redis } from "@upstash/redis";
+import { db } from "@/drizzle/db";
+import { UserTable, EventTable } from "@/drizzle/schema";
+import { eq } from "drizzle-orm";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
   apiVersion: STRIPE_CONFIG.API_VERSION,
@@ -11,6 +14,13 @@ const redis = new Redis({
   url: process.env.KV_REST_API_URL ?? "",
   token: process.env.KV_REST_API_TOKEN ?? "",
 });
+
+// Platform fee percentage for revenue sharing
+// This fee is automatically handled by Stripe Connect and can be monitored
+// in the Stripe Connect dashboard (https://dashboard.stripe.com/connect)
+const PLATFORM_FEE_PERCENTAGE = Number(
+  process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? "0.15"
+); // Default 15% if not set
 
 interface StripeCustomerData {
   stripeCustomerId: string;
@@ -216,6 +226,141 @@ export async function getOrCreateStripeCustomer(
     return newCustomer.id;
   } catch (error) {
     console.error("Error in getOrCreateStripeCustomer:", error);
+    throw error;
+  }
+}
+
+export async function createPaymentIntent({
+  eventId,
+  customerEmail,
+  meetingData,
+}: {
+  eventId: string;
+  customerEmail: string;
+  meetingData: Record<string, unknown>;
+}) {
+  try {
+    // Get event details
+    const event = await db.query.EventTable.findFirst({
+      where: eq(EventTable.id, eventId),
+    });
+
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    // Get expert's Stripe Connect account
+    const expert = await db.query.UserTable.findFirst({
+      where: eq(UserTable.id, event.clerkUserId),
+    });
+
+    if (
+      !expert?.stripeConnectAccountId ||
+      !expert.stripeConnectOnboardingComplete
+    ) {
+      throw new Error("Expert's Stripe account not found or setup incomplete");
+    }
+
+    // Calculate application fee
+    const amount = event.price;
+    const applicationFeeAmount = Math.round(amount * PLATFORM_FEE_PERCENTAGE);
+
+    // Create or get customer
+    const customer = await stripe.customers.list({
+      email: customerEmail,
+      limit: 1,
+    });
+
+    const customerId =
+      customer.data.length > 0
+        ? customer.data[0].id
+        : (
+            await stripe.customers.create({
+              email: customerEmail,
+              metadata: {
+                eventId,
+              },
+            })
+          ).id;
+
+    // Create payment intent
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: "usd",
+      customer: customerId,
+      automatic_payment_methods: {
+        enabled: true,
+      },
+      metadata: {
+        eventId,
+        meetingData: JSON.stringify(meetingData),
+      },
+      application_fee_amount: applicationFeeAmount,
+      transfer_data: {
+        destination: expert.stripeConnectAccountId,
+      },
+    });
+
+    return { clientSecret: paymentIntent.client_secret };
+  } catch (error) {
+    console.error("Error creating payment intent:", error);
+    throw error;
+  }
+}
+
+export async function createStripeConnectAccount(userId: string) {
+  try {
+    const user = await db.query.UserTable.findFirst({
+      where: eq(UserTable.id, userId),
+    });
+
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Create a Connect account
+    const account = await stripe.accounts.create({
+      type: "express",
+      email: user.email,
+      metadata: {
+        userId,
+      },
+    });
+
+    // Update user with Connect account ID
+    await db
+      .update(UserTable)
+      .set({
+        stripeConnectAccountId: account.id,
+        updatedAt: new Date(),
+      })
+      .where(eq(UserTable.id, userId));
+
+    // Create account link for onboarding
+    const accountLink = await stripe.accountLinks.create({
+      account: account.id,
+      refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/account/billing?refresh=true`,
+      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/account/billing?success=true`,
+      type: "account_onboarding",
+    });
+
+    return { url: accountLink.url };
+  } catch (error) {
+    console.error("Error creating Connect account:", error);
+    throw error;
+  }
+}
+
+export async function getStripeConnectAccountStatus(accountId: string) {
+  try {
+    const account = await stripe.accounts.retrieve(accountId);
+    return {
+      detailsSubmitted: account.details_submitted,
+      chargesEnabled: account.charges_enabled,
+      payoutsEnabled: account.payouts_enabled,
+    };
+  } catch (error) {
+    console.error("Error retrieving Connect account status:", error);
     throw error;
   }
 }

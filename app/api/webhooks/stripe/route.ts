@@ -4,6 +4,8 @@ import { NextResponse } from "next/server";
 import { createMeeting } from "@/server/actions/meetings";
 import { STRIPE_CONFIG } from "@/config/stripe";
 import { db } from "@/drizzle/db";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import { MeetingTable } from "@/drizzle/schema";
 
 // Export config to disable body parsing
 export const runtime = "nodejs";
@@ -19,13 +21,19 @@ const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
 // Maximum number of retries for database operations
 const MAX_RETRIES = 3;
 
-interface MeetingData {
+interface MeetingCreationData {
   clerkUserId: string;
+  timezone: string;
+  startTime: Date;
+  endTime: Date;
+  eventId: string;
   guestEmail: string;
   guestName: string;
-  timezone: string;
-  startTime: string;
   guestNotes?: string;
+  stripePaymentIntentId: string;
+  stripePaymentStatus?: string;
+  stripeAmount?: number;
+  stripeApplicationFeeAmount?: number;
 }
 
 // Add GET handler to explain the endpoint
@@ -45,7 +53,7 @@ async function handlePaymentIntentSucceeded(
       // Check if meeting already exists by payment intent ID
       const existingMeetingByPayment = await db.query.MeetingTable.findFirst({
         where: (fields, operators) =>
-          operators.eq(fields.paymentIntentId, paymentIntent.id),
+          operators.eq(fields.stripePaymentIntentId, paymentIntent.id),
       });
 
       if (existingMeetingByPayment) {
@@ -58,7 +66,7 @@ async function handlePaymentIntentSucceeded(
       }
 
       // Parse meeting data and check by time and event
-      const meetingData: MeetingData = JSON.parse(
+      const meetingData: MeetingCreationData = JSON.parse(
         paymentIntent.metadata.meetingData
       );
       const existingMeetingByTime = await db.query.MeetingTable.findFirst({
@@ -99,7 +107,11 @@ async function handlePaymentIntentSucceeded(
         timezone: meetingData.timezone,
         startTime: new Date(meetingData.startTime),
         guestNotes: meetingData.guestNotes || "",
-        paymentIntentId: paymentIntent.id,
+        stripePaymentIntentId: paymentIntent.id,
+        stripePaymentStatus: paymentIntent.status,
+        stripeAmount: paymentIntent.amount,
+        stripeApplicationFeeAmount:
+          paymentIntent.application_fee_amount || undefined,
       });
 
       if (result?.error) {

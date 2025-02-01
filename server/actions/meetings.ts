@@ -78,6 +78,15 @@ export async function createMeeting(
     endTime: endTimeUTC,
     timezone: data.timezone,
     meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
+    stripePaymentIntentId: data.stripePaymentIntentId,
+    stripePaymentStatus: data.stripePaymentStatus as
+      | "pending"
+      | "processing"
+      | "succeeded"
+      | "failed"
+      | "refunded",
+    stripeAmount: data.stripeAmount,
+    stripeApplicationFeeAmount: data.stripeApplicationFeeAmount,
   });
 
   // Step 6: Parallel operations:

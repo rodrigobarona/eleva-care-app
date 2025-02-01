@@ -97,7 +97,16 @@ export const MeetingTable = pgTable(
     endTime: timestamp("endTime").notNull(),
     timezone: text("timezone").notNull(),
     meetingUrl: text("meetingUrl"),
-    paymentIntentId: text("paymentIntentId"),
+    stripePaymentIntentId: text("stripePaymentIntentId").unique(),
+    stripePaymentStatus: text("stripePaymentStatus", {
+      enum: ["pending", "processing", "succeeded", "failed", "refunded"],
+    }).default("pending"),
+    stripeAmount: integer("stripeAmount"),
+    stripeApplicationFeeAmount: integer("stripeApplicationFeeAmount"),
+    stripeApplicationFeeId: text("stripeApplicationFeeId").unique(),
+    stripeRefundId: text("stripeRefundId").unique(),
+    stripeMetadata: json("stripeMetadata"),
+    lastProcessedAt: timestamp("lastProcessedAt"),
     createdAt,
     updatedAt,
   },
@@ -105,7 +114,7 @@ export const MeetingTable = pgTable(
     clerkUserIdIndex: index("meetings_clerkUserId_idx").on(table.clerkUserId),
     eventIdIndex: index("meetings_eventId_idx").on(table.eventId),
     paymentIntentIdIndex: index("meetings_paymentIntentId_idx").on(
-      table.paymentIntentId
+      table.stripePaymentIntentId
     ),
   })
 );
@@ -175,6 +184,17 @@ export const UserTable = pgTable(
     subscriptionCurrentPeriodEnd: timestamp("subscriptionCurrentPeriodEnd"),
     subscriptionCanceledAt: timestamp("subscriptionCanceledAt"),
     hasHadSubscription: boolean("hasHadSubscription").default(false),
+    email: text("email").notNull(),
+    firstName: text("first_name"),
+    lastName: text("last_name"),
+    imageUrl: text("image_url"),
+    role: text("role", { enum: ["user", "expert", "admin"] })
+      .default("user")
+      .notNull(),
+    stripeConnectAccountId: text("stripe_connect_account_id"),
+    stripeConnectOnboardingComplete: boolean(
+      "stripe_connect_onboarding_complete"
+    ).default(false),
     createdAt,
     updatedAt,
   },
