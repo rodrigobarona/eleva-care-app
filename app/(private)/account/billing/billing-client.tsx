@@ -9,7 +9,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/atoms/card";
-import { handleConnectStripe } from "@/server/actions/billing";
+import {
+  handleConnectStripe,
+  getConnectLoginLink,
+} from "@/server/actions/billing";
+import { toast } from "sonner";
 
 interface BillingPageClientProps {
   userId: string;
@@ -28,6 +32,35 @@ export function BillingPageClient({
   dbUser,
   accountStatus,
 }: BillingPageClientProps) {
+  const [isConnecting, setIsConnecting] = React.useState(false);
+  const [isLoadingDashboard, setIsLoadingDashboard] = React.useState(false);
+
+  const handleConnect = async () => {
+    try {
+      setIsConnecting(true);
+      await handleConnectStripe(userId);
+    } catch (error) {
+      console.error("Error connecting to Stripe:", error);
+      toast.error("Failed to connect to Stripe. Please try again.");
+      setIsConnecting(false);
+    }
+  };
+
+  const handleDashboardClick = async () => {
+    if (!dbUser.stripeConnectAccountId) return;
+
+    try {
+      setIsLoadingDashboard(true);
+      const url = await getConnectLoginLink(dbUser.stripeConnectAccountId);
+      window.open(url, "_blank");
+    } catch (error) {
+      console.error("Error accessing Stripe dashboard:", error);
+      toast.error("Failed to access Stripe dashboard. Please try again.");
+    } finally {
+      setIsLoadingDashboard(false);
+    }
+  };
+
   return (
     <div className="container mx-auto py-10">
       <div className="space-y-6">
@@ -87,26 +120,17 @@ export function BillingPageClient({
                   </div>
                 </div>
                 <div className="flex gap-4">
-                  <Button asChild className="flex-1">
-                    <a
-                      href={`https://connect.stripe.com/express/${dbUser.stripeConnectAccountId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      View Stripe Dashboard
-                    </a>
+                  <Button
+                    onClick={handleDashboardClick}
+                    className="flex-1"
+                    disabled={isLoadingDashboard}
+                  >
+                    {isLoadingDashboard
+                      ? "Loading..."
+                      : accountStatus?.detailsSubmitted
+                        ? "View Stripe Dashboard"
+                        : "Complete Stripe Setup"}
                   </Button>
-                  {!accountStatus?.detailsSubmitted && (
-                    <Button asChild variant="secondary" className="flex-1">
-                      <a
-                        href={`https://connect.stripe.com/express/onboarding/${dbUser.stripeConnectAccountId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        Complete Onboarding
-                      </a>
-                    </Button>
-                  )}
                 </div>
               </div>
             ) : (
@@ -115,11 +139,13 @@ export function BillingPageClient({
                   You haven&apos;t connected your Stripe account yet. Connect
                   now to start receiving payments.
                 </p>
-                <form action={() => handleConnectStripe(userId)}>
-                  <Button type="submit" className="w-full">
-                    Connect with Stripe
-                  </Button>
-                </form>
+                <Button
+                  onClick={handleConnect}
+                  disabled={isConnecting}
+                  className="w-full"
+                >
+                  {isConnecting ? "Connecting..." : "Connect with Stripe"}
+                </Button>
               </div>
             )}
           </CardContent>

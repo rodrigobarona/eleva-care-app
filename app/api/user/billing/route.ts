@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { db } from "@/drizzle/db";
 import { UserTable } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
@@ -16,15 +16,34 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const dbUser = await db.query.UserTable.findFirst({
+    let dbUser = await db.query.UserTable.findFirst({
       where: eq(UserTable.clerkUserId, userId),
     });
 
+    // If user doesn't exist in database, create them
     if (!dbUser) {
-      return NextResponse.json(
-        { error: "User not found in database" },
-        { status: 404 }
-      );
+      const clerkUser = await currentUser();
+      if (!clerkUser) {
+        return NextResponse.json(
+          { error: "Clerk user not found" },
+          { status: 404 }
+        );
+      }
+
+      // Create user in database
+      const [newUser] = await db
+        .insert(UserTable)
+        .values({
+          clerkUserId: userId,
+          email: clerkUser.emailAddresses[0].emailAddress,
+          firstName: clerkUser.firstName,
+          lastName: clerkUser.lastName,
+          imageUrl: clerkUser.imageUrl,
+          role: "expert", // Since this is the billing page, we assume they're an expert
+        })
+        .returning();
+
+      dbUser = newUser;
     }
 
     let accountStatus = null;

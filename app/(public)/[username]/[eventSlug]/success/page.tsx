@@ -14,6 +14,7 @@ import Stripe from "stripe";
 import { STRIPE_CONFIG } from "@/config/stripe";
 
 export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 export default async function SuccessPage({
   params: { username, eventSlug },
@@ -58,18 +59,46 @@ export default async function SuccessPage({
       and(eq(eventId, event.id), eq(meetingStartTime, startTimeDate)),
   });
 
+  // If meeting exists, show success page
+  if (meeting) {
+    return (
+      <Card className="max-w-xl mx-auto">
+        <CardHeader>
+          <CardTitle>
+            Successfully Booked {event.name} with {calendarUser.fullName}
+          </CardTitle>
+          <CardDescription>{formatDateTime(startTimeDate)}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>You should receive an email confirmation shortly.</p>
+          <p className="text-muted-foreground mt-2">Meeting ID: {meeting.id}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // If paid event but no meeting found, check the session status
-  if (event.price > 0 && !meeting && session_id) {
+  if (event.price > 0 && session_id) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
       apiVersion: STRIPE_CONFIG.API_VERSION,
     });
 
     try {
+      console.log("Checking session status:", {
+        sessionId: session_id,
+        startTime,
+        eventSlug,
+      });
+
       const session = await stripe.checkout.sessions.retrieve(session_id);
 
+      console.log("Session status:", {
+        sessionId: session_id,
+        paymentStatus: session.payment_status,
+        customerId: session.customer,
+      });
+
       if (session.payment_status === "paid") {
-        // Payment is confirmed but meeting not created yet
-        // This could happen if the webhook hasn't processed yet
         return (
           <Card className="max-w-xl mx-auto">
             <CardHeader>
@@ -85,41 +114,47 @@ export default async function SuccessPage({
                 If this page doesn&apos;t update automatically, please refresh
                 in a few seconds.
               </p>
-              {/* Add auto-refresh meta tag */}
               <meta httpEquiv="refresh" content="5" />
             </CardContent>
           </Card>
         );
       }
+
+      if (session.payment_status === "unpaid") {
+        return (
+          <Card className="max-w-xl mx-auto">
+            <CardHeader>
+              <CardTitle>Payment Processing</CardTitle>
+              <CardDescription>
+                Your payment is still being processed.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p>Please wait while we confirm your payment...</p>
+              <p className="text-sm text-muted-foreground mt-4">
+                This page will automatically refresh when the payment is
+                confirmed.
+              </p>
+              <meta httpEquiv="refresh" content="5" />
+            </CardContent>
+          </Card>
+        );
+      }
+
+      // If payment failed or other status
+      console.error("Unexpected payment status:", session.payment_status);
+      redirect(`/${username}/${eventSlug}/book?error=payment-failed`);
     } catch (error) {
       console.error("Error retrieving session:", error);
+      redirect(`/${username}/${eventSlug}/book?error=payment-error`);
     }
   }
 
   // If paid event but no meeting and no valid session, redirect to booking page
-  if (event.price > 0 && !meeting) {
+  if (event.price > 0) {
     redirect(`/${username}/${eventSlug}/book?error=payment-incomplete`);
   }
 
   // If free event but no meeting, something went wrong
-  if (event.price === 0 && !meeting) {
-    redirect(`/${username}/${eventSlug}/book?error=meeting-not-created`);
-  }
-
-  return (
-    <Card className="max-w-xl mx-auto">
-      <CardHeader>
-        <CardTitle>
-          Successfully Booked {event.name} with {calendarUser.fullName}
-        </CardTitle>
-        <CardDescription>{formatDateTime(startTimeDate)}</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <p>You should receive an email confirmation shortly.</p>
-        {meeting && (
-          <p className="text-muted-foreground mt-2">Meeting ID: {meeting.id}</p>
-        )}
-      </CardContent>
-    </Card>
-  );
+  redirect(`/${username}/${eventSlug}/book?error=meeting-not-created`);
 }

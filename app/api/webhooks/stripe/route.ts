@@ -4,19 +4,29 @@ import { NextResponse } from "next/server";
 import { createMeeting } from "@/server/actions/meetings";
 import { STRIPE_CONFIG } from "@/config/stripe";
 import { db } from "@/drizzle/db";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { MeetingTable } from "@/drizzle/schema";
 
-// Export config to disable body parsing
-export const runtime = "nodejs";
+// Add type for Stripe Connect session
+type StripeConnectSession = Stripe.Checkout.Session & {
+  application_fee_amount?: number;
+};
+
+// Use new Next.js route segment config
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 export const preferredRegion = "auto";
 export const maxDuration = 60;
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
   apiVersion: STRIPE_CONFIG.API_VERSION,
 });
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET ?? "";
+
+// Make sure to use the correct webhook secret
+const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+if (!webhookSecret) {
+  throw new Error("Missing STRIPE_WEBHOOK_SECRET environment variable");
+}
 
 // Maximum number of retries for database operations
 const MAX_RETRIES = 3;
@@ -65,40 +75,12 @@ async function handlePaymentIntentSucceeded(
         return;
       }
 
-      // Parse meeting data and check by time and event
+      // Parse meeting data from metadata
       const meetingData: MeetingCreationData = JSON.parse(
         paymentIntent.metadata.meetingData
       );
-      const existingMeetingByTime = await db.query.MeetingTable.findFirst({
-        where: (fields, operators) =>
-          operators.and(
-            operators.eq(fields.eventId, paymentIntent.metadata.eventId),
-            operators.eq(fields.startTime, new Date(meetingData.startTime))
-          ),
-      });
 
-      if (existingMeetingByTime) {
-        console.log("Meeting already exists for this time slot:", {
-          meetingId: existingMeetingByTime.id,
-          eventId: paymentIntent.metadata.eventId,
-          startTime: meetingData.startTime,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-
-      // Following Stripe recommendations:
-      // 1. Validate the payment status before creating the meeting
-      const paymentIntentDetails = await stripe.paymentIntents.retrieve(
-        paymentIntent.id
-      );
-      if (paymentIntentDetails.status !== "succeeded") {
-        throw new Error(
-          `Payment not succeeded. Status: ${paymentIntentDetails.status}`
-        );
-      }
-
-      // 2. Create the meeting with proper error handling
+      // Create the meeting
       const result = await createMeeting({
         eventId: paymentIntent.metadata.eventId,
         clerkUserId: meetingData.clerkUserId,
@@ -111,16 +93,20 @@ async function handlePaymentIntentSucceeded(
         stripePaymentStatus: paymentIntent.status,
         stripeAmount: paymentIntent.amount,
         stripeApplicationFeeAmount:
-          paymentIntent.application_fee_amount || undefined,
+          paymentIntent.application_fee_amount ?? undefined,
       });
 
       if (result?.error) {
+        console.error("Failed to create meeting:", {
+          error: result.error,
+          paymentIntentId: paymentIntent.id,
+          timestamp: new Date().toISOString(),
+        });
         throw new Error(
           "Failed to create meeting: Server action returned error"
         );
       }
 
-      // 3. Log success with structured data
       console.log("Meeting created successfully:", {
         paymentIntentId: paymentIntent.id,
         eventId: paymentIntent.metadata.eventId,
@@ -141,17 +127,15 @@ async function handlePaymentIntentSucceeded(
       if (retries === MAX_RETRIES) {
         throw error;
       }
-      // Exponential backoff with jitter for better distributed retries
-      const jitter = Math.random() * 1000;
       await new Promise((resolve) =>
-        setTimeout(resolve, 1000 * retries + jitter)
+        setTimeout(resolve, Math.min(1000 * 2 ** retries, 10000))
       );
     }
   }
 }
 
 async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
-  // Following Stripe recommendations for failed payments
+  // Log the failure details
   const errorDetails = {
     paymentIntentId: paymentIntent.id,
     customerId: paymentIntent.customer,
@@ -163,27 +147,125 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
 
   console.error("Payment failed:", errorDetails);
 
-  // Here you could implement additional error handling or notifications
-  // For example, sending an email to the customer or admin
+  try {
+    // Parse meeting data from metadata to get event details
+    const meetingData = JSON.parse(paymentIntent.metadata.meetingData ?? "{}");
+    const eventId = paymentIntent.metadata.eventId;
+
+    if (!eventId || !meetingData) {
+      throw new Error("Missing required metadata");
+    }
+
+    // Here you could implement additional error handling:
+    // 1. Send email to the customer about the failed payment
+    // 2. Send notification to the event owner
+    // 3. Log the failure in your analytics
+    // 4. Create a failed payment record in your database
+
+    // For now, we'll just log the failure with event details
+    console.error("Payment failed for event:", {
+      ...errorDetails,
+      eventId,
+      guestEmail: meetingData.guestEmail,
+      startTime: meetingData.startTime,
+    });
+  } catch (error) {
+    console.error("Error handling failed payment:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      paymentIntentId: paymentIntent.id,
+      timestamp: new Date().toISOString(),
+    });
+  }
 }
 
-async function handleCustomerSubscriptionUpdated(
-  subscription: Stripe.Subscription
-) {
-  // Following Stripe recommendations for subscription management
-  const subscriptionDetails = {
-    subscriptionId: subscription.id,
-    customerId: subscription.customer,
-    status: subscription.status,
-    currentPeriodEnd: subscription.current_period_end,
-    cancelAtPeriodEnd: subscription.cancel_at_period_end,
-    timestamp: new Date().toISOString(),
-  };
+async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
+  let retries = 0;
+  while (retries < MAX_RETRIES) {
+    try {
+      // Check if meeting already exists by session ID
+      const existingMeetingBySession = await db.query.MeetingTable.findFirst({
+        where: (fields, operators) =>
+          operators.eq(
+            fields.stripePaymentIntentId,
+            session.payment_intent as string
+          ),
+      });
 
-  console.log("Subscription updated:", subscriptionDetails);
+      if (existingMeetingBySession) {
+        console.log("Meeting already exists with session:", {
+          sessionId: session.id,
+          meetingId: existingMeetingBySession.id,
+          timestamp: new Date().toISOString(),
+        });
+        return;
+      }
 
-  // Here you could implement subscription status updates in your database
-  // For example, updating user's subscription status
+      // Parse meeting data from metadata
+      const meetingData = JSON.parse(session.metadata?.meetingData ?? "{}");
+      const eventId = session.metadata?.eventId;
+
+      if (!eventId) {
+        throw new Error("Missing eventId in session metadata");
+      }
+
+      // Ensure payment_intent is a string
+      const paymentIntentId = session.payment_intent;
+      if (typeof paymentIntentId !== "string") {
+        throw new Error("Invalid payment_intent in session");
+      }
+
+      // Create the meeting
+      const result = await createMeeting({
+        eventId,
+        clerkUserId: meetingData.clerkUserId,
+        guestEmail: session.customer_details?.email ?? meetingData.guestEmail,
+        guestName: session.customer_details?.name ?? meetingData.guestName,
+        timezone: meetingData.timezone,
+        startTime: new Date(meetingData.startTime),
+        guestNotes: meetingData.guestNotes || "",
+        stripePaymentIntentId: paymentIntentId,
+        stripePaymentStatus: session.payment_status,
+        stripeAmount: session.amount_total ?? undefined,
+        stripeApplicationFeeAmount: session.application_fee_amount,
+      });
+
+      if (result?.error) {
+        console.error("Failed to create meeting:", {
+          error: result.error,
+          sessionId: session.id,
+          eventId,
+          timestamp: new Date().toISOString(),
+        });
+        throw new Error(
+          "Failed to create meeting: Server action returned error"
+        );
+      }
+
+      console.log("Meeting created successfully:", {
+        sessionId: session.id,
+        eventId,
+        customerEmail: session.customer_details?.email,
+        timestamp: new Date().toISOString(),
+      });
+
+      return result;
+    } catch (error) {
+      retries++;
+      console.error("Error processing checkout session:", {
+        error: error instanceof Error ? error.message : "Unknown error",
+        attempt: retries,
+        sessionId: session.id,
+        timestamp: new Date().toISOString(),
+      });
+
+      if (retries === MAX_RETRIES) {
+        throw error;
+      }
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.min(1000 * 2 ** retries, 10000))
+      );
+    }
+  }
 }
 
 export async function POST(req: Request) {
@@ -191,10 +273,10 @@ export async function POST(req: Request) {
     const body = await req.text();
     const signature = headers().get("stripe-signature");
 
-    if (!signature) {
-      console.error("Missing stripe-signature header");
+    if (!signature || !webhookSecret) {
+      console.error("Missing required webhook configuration");
       return NextResponse.json(
-        { error: "Missing stripe-signature header" },
+        { error: "Missing required webhook configuration" },
         { status: 400 }
       );
     }
@@ -202,6 +284,11 @@ export async function POST(req: Request) {
     let event: Stripe.Event;
     try {
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      console.log("Received webhook event:", {
+        type: event.type,
+        id: event.id,
+        timestamp: new Date().toISOString(),
+      });
     } catch (err) {
       console.error("Webhook signature verification failed:", {
         error: err instanceof Error ? err.message : "Unknown error",
@@ -215,21 +302,36 @@ export async function POST(req: Request) {
 
     try {
       switch (event.type) {
-        case "payment_intent.succeeded":
-          await handlePaymentIntentSucceeded(
-            event.data.object as Stripe.PaymentIntent
-          );
+        case "payment_intent.succeeded": {
+          const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          console.log("Processing payment intent succeeded:", {
+            paymentIntentId: paymentIntent.id,
+            amount: paymentIntent.amount,
+            metadata: paymentIntent.metadata,
+          });
+          await handlePaymentIntentSucceeded(paymentIntent);
           break;
-        case "payment_intent.payment_failed":
-          await handlePaymentIntentFailed(
-            event.data.object as Stripe.PaymentIntent
-          );
+        }
+        case "payment_intent.payment_failed": {
+          const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          console.log("Processing payment intent failed:", {
+            paymentIntentId: paymentIntent.id,
+            error: paymentIntent.last_payment_error,
+          });
+          await handlePaymentIntentFailed(paymentIntent);
           break;
-        case "customer.subscription.updated":
-          await handleCustomerSubscriptionUpdated(
-            event.data.object as Stripe.Subscription
-          );
+        }
+        case "checkout.session.completed": {
+          const session = event.data.object as StripeConnectSession;
+          console.log("Processing completed checkout session:", {
+            sessionId: session.id,
+            paymentStatus: session.payment_status,
+            customerId: session.customer,
+            metadata: session.metadata,
+          });
+          await handleCheckoutSessionCompleted(session);
           break;
+        }
         default:
           console.log(`Unhandled event type: ${event.type}`);
       }
@@ -241,8 +343,7 @@ export async function POST(req: Request) {
         eventType: event.type,
         timestamp: new Date().toISOString(),
       });
-      // Return 200 to acknowledge receipt of the webhook
-      // This prevents Stripe from retrying the webhook
+      // Return 200 even on error to prevent retries
       return NextResponse.json({ received: true });
     }
   } catch (err) {

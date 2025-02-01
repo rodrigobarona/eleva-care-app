@@ -308,6 +308,15 @@ export async function createPaymentIntent({
   }
 }
 
+// Helper function to get base URL with protocol
+function getBaseUrl() {
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
+  if (!baseUrl) {
+    throw new Error("NEXT_PUBLIC_APP_URL environment variable is not set");
+  }
+  return baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
+}
+
 export async function createStripeConnectAccount(userId: string) {
   try {
     const user = await db.query.UserTable.findFirst({
@@ -336,11 +345,13 @@ export async function createStripeConnectAccount(userId: string) {
       })
       .where(eq(UserTable.id, userId));
 
+    const baseUrl = getBaseUrl();
+
     // Create account link for onboarding
     const accountLink = await stripe.accountLinks.create({
       account: account.id,
-      refresh_url: `${process.env.NEXT_PUBLIC_APP_URL}/account/billing?refresh=true`,
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/account/billing?success=true`,
+      refresh_url: `${baseUrl}/account/billing?refresh=true`,
+      return_url: `${baseUrl}/account/billing?success=true`,
       type: "account_onboarding",
     });
 
@@ -361,6 +372,42 @@ export async function getStripeConnectAccountStatus(accountId: string) {
     };
   } catch (error) {
     console.error("Error retrieving Connect account status:", error);
+    throw error;
+  }
+}
+
+export async function getStripeConnectLoginLink(accountId: string) {
+  try {
+    const loginLink = await stripe.accounts.createLoginLink(accountId);
+    return loginLink.url;
+  } catch (error) {
+    console.error("Error creating login link:", error);
+    throw error;
+  }
+}
+
+export async function getStripeConnectSetupOrLoginLink(accountId: string) {
+  try {
+    // First check the account status
+    const account = await stripe.accounts.retrieve(accountId);
+    const baseUrl = getBaseUrl();
+
+    if (!account.details_submitted) {
+      // If onboarding is not complete, create a new setup link
+      const setupLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: `${baseUrl}/account/billing?refresh=true`,
+        return_url: `${baseUrl}/account/billing?success=true`,
+        type: "account_onboarding",
+      });
+      return setupLink.url;
+    }
+
+    // If onboarding is complete, create a login link
+    const loginLink = await stripe.accounts.createLoginLink(accountId);
+    return loginLink.url;
+  } catch (error) {
+    console.error("Error creating Stripe Connect link:", error);
     throw error;
   }
 }
