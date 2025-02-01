@@ -3,6 +3,7 @@
 import { getServerStripe } from "@/lib/stripe";
 import { STRIPE_CONFIG } from "@/config/stripe";
 import { db } from "@/drizzle/db";
+import { getOrCreateStripeCustomer, syncStripeDataToKV } from "@/lib/stripe";
 
 export async function createStripeProduct({
   name,
@@ -93,11 +94,31 @@ export async function updateStripeProduct({
   }
 }
 
-export async function createPaymentIntent(eventId: string, meetingData: any) {
+interface MeetingData {
+  startTime: string;
+  guestName: string;
+  guestEmail: string;
+  timezone: string;
+  guestNotes?: string;
+}
+
+export async function createPaymentIntent(
+  eventId: string,
+  meetingData: MeetingData,
+  userId: string,
+  email: string
+) {
   try {
     const stripe = await getServerStripe();
+
+    // Get or create customer first - ALWAYS have the customer defined BEFORE checkout
+    const stripeCustomerId = await getOrCreateStripeCustomer(userId, email);
+    if (typeof stripeCustomerId !== "string") {
+      throw new Error("Failed to get or create Stripe customer");
+    }
+
     const event = await db.query.EventTable.findFirst({
-      where: (events, { eq }) => eq(events.id, eventId),
+      where: ({ id }, { eq }) => eq(id, eventId),
     });
 
     if (!event) {
@@ -105,21 +126,22 @@ export async function createPaymentIntent(eventId: string, meetingData: any) {
     }
 
     const paymentIntent = await stripe.paymentIntents.create({
+      customer: stripeCustomerId,
       amount: event.price,
       currency: event.currency || STRIPE_CONFIG.CURRENCY,
-      payment_method_types: ["card"],
-      payment_method_options: {
-        card: {
-          request_three_d_secure: "automatic",
-        },
+      payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
+      automatic_payment_methods: {
+        enabled: true,
       },
-      capture_method: "automatic",
-      confirmation_method: "automatic",
       metadata: {
         eventId: event.id,
         meetingData: JSON.stringify(meetingData),
+        userId,
       },
     });
+
+    // Sync customer data to KV after creation
+    await syncStripeDataToKV(stripeCustomerId);
 
     return { clientSecret: paymentIntent.client_secret };
   } catch (error) {
