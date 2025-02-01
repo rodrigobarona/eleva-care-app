@@ -98,6 +98,7 @@ export const MeetingTable = pgTable(
     timezone: text("timezone").notNull(),
     meetingUrl: text("meetingUrl"),
     stripePaymentIntentId: text("stripePaymentIntentId").unique(),
+    stripeSessionId: text("stripeSessionId").unique(),
     stripePaymentStatus: text("stripePaymentStatus", {
       enum: ["pending", "processing", "succeeded", "failed", "refunded"],
     }).default("pending"),
@@ -116,6 +117,7 @@ export const MeetingTable = pgTable(
     paymentIntentIdIndex: index("meetings_paymentIntentId_idx").on(
       table.stripePaymentIntentId
     ),
+    sessionIdIndex: index("meetings_sessionId_idx").on(table.stripeSessionId),
   })
 );
 

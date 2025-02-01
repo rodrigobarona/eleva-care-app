@@ -79,6 +79,7 @@ export async function createMeeting(
     timezone: data.timezone,
     meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
     stripePaymentIntentId: data.stripePaymentIntentId,
+    stripeSessionId: data.stripeSessionId,
     stripePaymentStatus: data.stripePaymentStatus as
       | "pending"
       | "processing"

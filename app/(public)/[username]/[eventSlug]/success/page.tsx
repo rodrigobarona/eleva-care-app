@@ -55,8 +55,15 @@ export default async function SuccessPage({
 
   // Verify that the meeting was actually created
   const meeting = await db.query.MeetingTable.findFirst({
-    where: ({ eventId, startTime: meetingStartTime }, { eq, and }) =>
-      and(eq(eventId, event.id), eq(meetingStartTime, startTimeDate)),
+    where: (
+      { eventId, startTime: meetingStartTime, stripeSessionId },
+      { eq, and, or }
+    ) =>
+      and(
+        eq(eventId, event.id),
+        eq(meetingStartTime, startTimeDate),
+        session_id ? or(eq(stripeSessionId, session_id)) : undefined
+      ),
   });
 
   // If meeting exists, show success page
@@ -96,6 +103,7 @@ export default async function SuccessPage({
         sessionId: session_id,
         paymentStatus: session.payment_status,
         customerId: session.customer,
+        paymentIntent: session.payment_intent,
       });
 
       if (session.payment_status === "paid") {

@@ -8,6 +8,7 @@ import { db } from "@/drizzle/db";
 // Add type for Stripe Connect session
 type StripeConnectSession = Stripe.Checkout.Session & {
   application_fee_amount?: number;
+  payment_intent: string | null;
 };
 
 // Use new Next.js route segment config
@@ -40,7 +41,8 @@ interface MeetingCreationData {
   guestEmail: string;
   guestName: string;
   guestNotes?: string;
-  stripePaymentIntentId: string;
+  stripePaymentIntentId?: string;
+  stripeSessionId?: string;
   stripePaymentStatus?: string;
   stripeAmount?: number;
   stripeApplicationFeeAmount?: number;
@@ -182,19 +184,29 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
   let retries = 0;
   while (retries < MAX_RETRIES) {
     try {
-      // Check if meeting already exists by session ID
-      const existingMeetingBySession = await db.query.MeetingTable.findFirst({
+      console.log("Starting checkout session processing:", {
+        sessionId: session.id,
+        paymentStatus: session.payment_status,
+        paymentIntent: session.payment_intent,
+        metadata: session.metadata,
+      });
+
+      // For Connect payments, we need to handle both payment_intent and direct charges
+      const paymentIdentifier = session.payment_intent || session.id;
+
+      // Check if meeting already exists
+      const existingMeeting = await db.query.MeetingTable.findFirst({
         where: (fields, operators) =>
-          operators.eq(
-            fields.stripePaymentIntentId,
-            session.payment_intent as string
+          operators.or(
+            operators.eq(fields.stripePaymentIntentId, paymentIdentifier),
+            operators.eq(fields.stripeSessionId, session.id)
           ),
       });
 
-      if (existingMeetingBySession) {
-        console.log("Meeting already exists with session:", {
+      if (existingMeeting) {
+        console.log("Meeting already exists:", {
           sessionId: session.id,
-          meetingId: existingMeetingBySession.id,
+          meetingId: existingMeeting.id,
           timestamp: new Date().toISOString(),
         });
         return;
@@ -208,11 +220,16 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
         throw new Error("Missing eventId in session metadata");
       }
 
-      // Ensure payment_intent is a string
-      const paymentIntentId = session.payment_intent;
-      if (typeof paymentIntentId !== "string") {
-        throw new Error("Invalid payment_intent in session");
-      }
+      console.log("Creating meeting with data:", {
+        sessionId: session.id,
+        eventId,
+        paymentIdentifier,
+        meetingData: {
+          ...meetingData,
+          guestEmail: session.customer_details?.email ?? meetingData.guestEmail,
+          guestName: session.customer_details?.name ?? meetingData.guestName,
+        },
+      });
 
       // Create the meeting
       const result = await createMeeting({
@@ -223,7 +240,8 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
         timezone: meetingData.timezone,
         startTime: new Date(meetingData.startTime),
         guestNotes: meetingData.guestNotes || "",
-        stripePaymentIntentId: paymentIntentId,
+        stripePaymentIntentId: paymentIdentifier,
+        stripeSessionId: session.id,
         stripePaymentStatus: session.payment_status,
         stripeAmount: session.amount_total ?? undefined,
         stripeApplicationFeeAmount: session.application_fee_amount,
@@ -268,9 +286,17 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
   }
 }
 
+// Add config to disable body parsing
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export async function POST(req: Request) {
   try {
-    const body = await req.text();
+    // Get the raw body
+    const rawBody = await req.text();
     const signature = headers().get("stripe-signature");
 
     if (!signature || !webhookSecret) {
@@ -281,17 +307,26 @@ export async function POST(req: Request) {
       );
     }
 
+    // Use the webhook secret from the Stripe CLI for local development
+    const secretToUse =
+      process.env.NODE_ENV === "development"
+        ? "whsec_87c9cc12ca175698146972f9fd9ec232c5915a192d6a18e52b56bebc023c42b1"
+        : webhookSecret;
+
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = stripe.webhooks.constructEvent(rawBody, signature, secretToUse);
       console.log("Received webhook event:", {
         type: event.type,
         id: event.id,
+        account: event.account,
+        livemode: event.livemode,
         timestamp: new Date().toISOString(),
       });
     } catch (err) {
       console.error("Webhook signature verification failed:", {
         error: err instanceof Error ? err.message : "Unknown error",
+        signature: signature,
         timestamp: new Date().toISOString(),
       });
       return NextResponse.json(
@@ -301,6 +336,24 @@ export async function POST(req: Request) {
     }
 
     try {
+      // If this is a Connect account event, use the connected account's Stripe instance
+      const stripeAccount = event.account
+        ? new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+            apiVersion: STRIPE_CONFIG.API_VERSION,
+            stripeAccount: event.account,
+          })
+        : stripe;
+
+      // Log whether this is a platform or connected account event
+      console.log(
+        `Processing ${event.account ? "connected account" : "platform"} event:`,
+        {
+          type: event.type,
+          accountId: event.account || "platform",
+          livemode: event.livemode,
+        }
+      );
+
       switch (event.type) {
         case "payment_intent.succeeded": {
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
@@ -308,6 +361,8 @@ export async function POST(req: Request) {
             paymentIntentId: paymentIntent.id,
             amount: paymentIntent.amount,
             metadata: paymentIntent.metadata,
+            connectedAccountId: event.account,
+            livemode: event.livemode,
           });
           await handlePaymentIntentSucceeded(paymentIntent);
           break;
@@ -326,14 +381,20 @@ export async function POST(req: Request) {
           console.log("Processing completed checkout session:", {
             sessionId: session.id,
             paymentStatus: session.payment_status,
+            paymentIntent: session.payment_intent,
             customerId: session.customer,
             metadata: session.metadata,
+            connectedAccountId: event.account,
+            livemode: event.livemode,
           });
           await handleCheckoutSessionCompleted(session);
           break;
         }
         default:
-          console.log(`Unhandled event type: ${event.type}`);
+          console.log(`Unhandled event type: ${event.type}`, {
+            accountId: event.account || "platform",
+            livemode: event.livemode,
+          });
       }
 
       return NextResponse.json({ received: true });
@@ -341,6 +402,8 @@ export async function POST(req: Request) {
       console.error(`Error handling webhook event type ${event.type}:`, {
         error: error instanceof Error ? error.message : "Unknown error",
         eventType: event.type,
+        connectedAccountId: event.account,
+        livemode: event.livemode,
         timestamp: new Date().toISOString(),
       });
       // Return 200 even on error to prevent retries
