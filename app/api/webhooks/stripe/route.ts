@@ -29,21 +29,15 @@ if (!webhookSecret) {
 // Maximum number of retries for database operations
 const MAX_RETRIES = 3;
 
-interface MeetingCreationData {
+// Type for parsed meeting data from metadata
+type ParsedMeetingData = {
   clerkUserId: string;
   timezone: string;
-  startTime: Date;
-  endTime: Date;
-  eventId: string;
+  startTime: string;
   guestEmail: string;
   guestName: string;
   guestNotes?: string;
-  stripePaymentIntentId?: string;
-  stripeSessionId?: string;
-  stripePaymentStatus?: string;
-  stripeAmount?: number;
-  stripeApplicationFeeAmount?: number;
-}
+};
 
 // Add GET handler to explain the endpoint
 export async function GET() {
@@ -51,86 +45,6 @@ export async function GET() {
     { error: "This endpoint only accepts POST requests from Stripe webhooks" },
     { status: 405 }
   );
-}
-
-async function handlePaymentIntentSucceeded(
-  paymentIntent: Stripe.PaymentIntent
-) {
-  let retries = 0;
-  while (retries < MAX_RETRIES) {
-    try {
-      // Check if meeting already exists by payment intent ID
-      const existingMeetingByPayment = await db.query.MeetingTable.findFirst({
-        where: (fields, operators) =>
-          operators.eq(fields.stripePaymentIntentId, paymentIntent.id),
-      });
-
-      if (existingMeetingByPayment) {
-        console.log("Meeting already exists with payment intent:", {
-          paymentIntentId: paymentIntent.id,
-          meetingId: existingMeetingByPayment.id,
-          timestamp: new Date().toISOString(),
-        });
-        return;
-      }
-
-      // Parse meeting data from metadata
-      const meetingData: MeetingCreationData = JSON.parse(
-        paymentIntent.metadata.meetingData
-      );
-
-      // Create the meeting
-      const result = await createMeeting({
-        eventId: paymentIntent.metadata.eventId,
-        clerkUserId: meetingData.clerkUserId,
-        guestEmail: meetingData.guestEmail,
-        guestName: meetingData.guestName,
-        timezone: meetingData.timezone,
-        startTime: new Date(meetingData.startTime),
-        guestNotes: meetingData.guestNotes || "",
-        stripePaymentIntentId: paymentIntent.id,
-        stripePaymentStatus: "succeeded", // Always use "succeeded" for successful payment intents
-        stripeAmount: paymentIntent.amount,
-        stripeApplicationFeeAmount:
-          paymentIntent.application_fee_amount ?? undefined,
-      });
-
-      if (result?.error) {
-        console.error("Failed to create meeting:", {
-          error: result.error,
-          paymentIntentId: paymentIntent.id,
-          timestamp: new Date().toISOString(),
-        });
-        throw new Error(
-          "Failed to create meeting: Server action returned error"
-        );
-      }
-
-      console.log("Meeting created successfully:", {
-        paymentIntentId: paymentIntent.id,
-        eventId: paymentIntent.metadata.eventId,
-        customerEmail: meetingData.guestEmail,
-        timestamp: new Date().toISOString(),
-      });
-
-      return result;
-    } catch (error) {
-      retries++;
-      console.error("Error processing payment:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        attempt: retries,
-        paymentIntentId: paymentIntent.id,
-        timestamp: new Date().toISOString(),
-      });
-
-      if (retries === MAX_RETRIES) {
-        throw error;
-      }
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.min(1000 * 2 ** retries, 10000))
-      );
-    }
-  }
 }
 
 async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
@@ -148,20 +62,16 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
 
   try {
     // Parse meeting data from metadata to get event details
-    const meetingData = JSON.parse(paymentIntent.metadata.meetingData ?? "{}");
+    const meetingData = JSON.parse(
+      paymentIntent.metadata.meetingData ?? "{}"
+    ) as ParsedMeetingData;
     const eventId = paymentIntent.metadata.eventId;
 
     if (!eventId || !meetingData) {
       throw new Error("Missing required metadata");
     }
 
-    // Here you could implement additional error handling:
-    // 1. Send email to the customer about the failed payment
-    // 2. Send notification to the event owner
-    // 3. Log the failure in your analytics
-    // 4. Create a failed payment record in your database
-
-    // For now, we'll just log the failure with event details
+    // Log the failure with event details
     console.error("Payment failed for event:", {
       ...errorDetails,
       eventId,
@@ -177,7 +87,10 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   }
 }
 
-async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
+async function handleCheckoutSessionCompleted(
+  session: StripeConnectSession,
+  stripeInstance: Stripe
+) {
   let retries = 0;
   while (retries < MAX_RETRIES) {
     try {
@@ -210,7 +123,9 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
       }
 
       // Parse meeting data from metadata
-      const meetingData = JSON.parse(session.metadata?.meetingData ?? "{}");
+      const meetingData = JSON.parse(
+        session.metadata?.meetingData ?? "{}"
+      ) as ParsedMeetingData;
       const eventId = session.metadata?.eventId;
 
       if (!eventId) {
@@ -232,6 +147,20 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
         originalStatus: session.payment_status,
         mappedStatus: mappedPaymentStatus,
       });
+
+      // If there's a payment intent, retrieve its full details for additional validation
+      if (session.payment_intent) {
+        const paymentIntent = await stripeInstance.paymentIntents.retrieve(
+          session.payment_intent as string
+        );
+
+        // Additional validation with payment intent if needed
+        if (paymentIntent.status !== "succeeded") {
+          throw new Error(
+            `Payment intent ${paymentIntent.id} is not succeeded (status: ${paymentIntent.status})`
+          );
+        }
+      }
 
       // Create the meeting
       const result = await createMeeting({
@@ -256,9 +185,7 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
           eventId,
           timestamp: new Date().toISOString(),
         });
-        throw new Error(
-          "Failed to create meeting: Server action returned error"
-        );
+        throw new Error(result.error.toString());
       }
 
       console.log("Meeting created successfully:", {
@@ -350,30 +277,6 @@ export const POST = async (req: Request) => {
       );
 
       switch (event.type) {
-        case "payment_intent.succeeded": {
-          const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          // Retrieve full payment intent from the appropriate Stripe instance
-          const fullPaymentIntent =
-            await stripeInstance.paymentIntents.retrieve(paymentIntent.id);
-          console.log("Processing payment intent succeeded:", {
-            paymentIntentId: fullPaymentIntent.id,
-            amount: fullPaymentIntent.amount,
-            metadata: fullPaymentIntent.metadata,
-            connectedAccountId: event.account,
-            livemode: event.livemode,
-          });
-          await handlePaymentIntentSucceeded(fullPaymentIntent);
-          break;
-        }
-        case "payment_intent.payment_failed": {
-          const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          console.log("Processing payment intent failed:", {
-            paymentIntentId: paymentIntent.id,
-            error: paymentIntent.last_payment_error,
-          });
-          await handlePaymentIntentFailed(paymentIntent);
-          break;
-        }
         case "checkout.session.completed": {
           const session = event.data.object as StripeConnectSession;
           console.log("Processing completed checkout session:", {
@@ -385,7 +288,16 @@ export const POST = async (req: Request) => {
             connectedAccountId: event.account,
             livemode: event.livemode,
           });
-          await handleCheckoutSessionCompleted(session);
+          await handleCheckoutSessionCompleted(session, stripeInstance);
+          break;
+        }
+        case "payment_intent.payment_failed": {
+          const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          console.log("Processing payment intent failed:", {
+            paymentIntentId: paymentIntent.id,
+            error: paymentIntent.last_payment_error,
+          });
+          await handlePaymentIntentFailed(paymentIntent);
           break;
         }
         default:
