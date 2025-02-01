@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { STRIPE_CONFIG } from "@/config/stripe";
+import { getOrCreateStripeCustomer } from "@/lib/stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
   apiVersion: STRIPE_CONFIG.API_VERSION,
@@ -14,21 +15,42 @@ export async function POST(request: Request) {
     const { eventId, price, meetingData, username, eventSlug } =
       await request.json();
 
+    // Validate required fields
+    if (!price || !meetingData?.guestEmail) {
+      return NextResponse.json(
+        {
+          message:
+            "Missing required fields: price and guest email are required",
+          receivedData: { price, email: meetingData?.guestEmail },
+        },
+        { status: 400 }
+      );
+    }
+
     // Generate a unique idempotency key
     const idempotencyKey = `payment_${eventId}_${meetingData.startTime}_${Date.now()}`;
 
     let retries = 0;
     while (retries < MAX_RETRIES) {
       try {
+        // First, create or get customer with the guest email
+        const customerId = await getOrCreateStripeCustomer(
+          undefined, // No userId for guests
+          meetingData.guestEmail
+        );
+
         // Create a Checkout Session with idempotency key
         const session = await stripe.checkout.sessions.create(
           {
-            payment_method_types: ["card"],
+            customer: customerId, // Use the created/retrieved customer
+            payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
             mode: "payment",
             payment_intent_data: {
               metadata: {
                 eventId,
                 meetingData: JSON.stringify(meetingData),
+                isGuest: "true",
+                guestEmail: meetingData.guestEmail,
               },
             },
             line_items: [
@@ -49,6 +71,8 @@ export async function POST(request: Request) {
             metadata: {
               eventId,
               meetingData: JSON.stringify(meetingData),
+              isGuest: "true",
+              guestEmail: meetingData.guestEmail,
             },
             success_url: `${request.headers.get(
               "origin"
@@ -77,16 +101,29 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         retries++;
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
         console.error("Checkout session creation attempt failed:", {
-          error: error instanceof Error ? error.message : "Unknown error",
+          error: errorMessage,
           attempt: retries,
           eventId,
           timestamp: new Date().toISOString(),
         });
 
         if (retries === MAX_RETRIES) {
-          throw error;
+          return NextResponse.json(
+            {
+              error: "Failed to create checkout session",
+              details: errorMessage,
+              code:
+                error instanceof Stripe.errors.StripeError
+                  ? error.code
+                  : "unknown",
+            },
+            { status: 500 }
+          );
         }
+
         // Exponential backoff
         await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
       }
@@ -97,7 +134,12 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     });
     return NextResponse.json(
-      { error: "Failed to create checkout session" },
+      {
+        error: "Failed to create checkout session",
+        details: error instanceof Error ? error.message : "Unknown error",
+        code:
+          error instanceof Stripe.errors.StripeError ? error.code : "unknown",
+      },
       { status: 500 }
     );
   }
