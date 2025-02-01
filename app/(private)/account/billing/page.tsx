@@ -1,34 +1,62 @@
+"use client";
+
 import React from "react";
-import { auth } from "@clerk/nextjs/server";
+import { useUser } from "@clerk/nextjs";
 import { redirect } from "next/navigation";
-import { db } from "@/drizzle/db";
-import { UserTable } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
 import { BillingPageClient } from "./billing-client";
-import { getStripeConnectAccountStatus } from "@/lib/stripe";
 
-export default async function BillingPage() {
-  const { userId } = auth();
-  if (!userId) redirect("/sign-in");
+export default function BillingPage() {
+  const { user, isLoaded } = useUser();
+  const [dbUser, setDbUser] = React.useState(null);
+  const [accountStatus, setAccountStatus] = React.useState(null);
+  const [isLoading, setIsLoading] = React.useState(true);
 
-  const dbUser = await db.query.UserTable.findFirst({
-    where: eq(UserTable.clerkUserId, userId),
-  });
+  React.useEffect(() => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
 
-  if (!dbUser) {
-    redirect("/sign-in");
+    async function loadUserData() {
+      try {
+        const response = await fetch("/api/user/billing");
+        const data = await response.json();
+
+        if (data.error) {
+          console.error("Error loading user data:", data.error);
+          return;
+        }
+
+        setDbUser(data.user);
+        setAccountStatus(data.accountStatus);
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    loadUserData();
+  }, [user]);
+
+  // Handle loading states
+  if (!isLoaded || isLoading) {
+    return <div>Loading...</div>; // You might want to use a proper loading component
   }
 
-  let accountStatus = null;
-  if (dbUser.stripeConnectAccountId) {
-    accountStatus = await getStripeConnectAccountStatus(
-      dbUser.stripeConnectAccountId
-    );
+  // Handle authentication
+  if (!user) {
+    return redirect("/sign-in");
+  }
+
+  // Handle missing user data
+  if (!dbUser) {
+    return <div>Error loading user data. Please try again.</div>;
   }
 
   return (
     <BillingPageClient
-      userId={userId}
+      userId={user.id}
       dbUser={dbUser}
       accountStatus={accountStatus}
     />
