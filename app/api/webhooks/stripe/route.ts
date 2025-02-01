@@ -89,7 +89,7 @@ async function handlePaymentIntentSucceeded(
         startTime: new Date(meetingData.startTime),
         guestNotes: meetingData.guestNotes || "",
         stripePaymentIntentId: paymentIntent.id,
-        stripePaymentStatus: paymentIntent.status,
+        stripePaymentStatus: "succeeded", // Always use "succeeded" for successful payment intents
         stripeAmount: paymentIntent.amount,
         stripeApplicationFeeAmount:
           paymentIntent.application_fee_amount ?? undefined,
@@ -217,15 +217,20 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
         throw new Error("Missing eventId in session metadata");
       }
 
-      console.log("Creating meeting with data:", {
+      // Map Stripe payment status to your database enum values
+      const paymentStatusMap: Record<string, string> = {
+        paid: "succeeded",
+        unpaid: "requires_payment",
+        no_payment_required: "no_payment_required",
+      };
+
+      const mappedPaymentStatus =
+        paymentStatusMap[session.payment_status] || session.payment_status;
+
+      console.log("Creating meeting with mapped payment status:", {
         sessionId: session.id,
-        eventId,
-        paymentIdentifier,
-        meetingData: {
-          ...meetingData,
-          guestEmail: session.customer_details?.email ?? meetingData.guestEmail,
-          guestName: session.customer_details?.name ?? meetingData.guestName,
-        },
+        originalStatus: session.payment_status,
+        mappedStatus: mappedPaymentStatus,
       });
 
       // Create the meeting
@@ -239,7 +244,7 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
         guestNotes: meetingData.guestNotes || "",
         stripePaymentIntentId: paymentIdentifier,
         stripeSessionId: session.id,
-        stripePaymentStatus: session.payment_status,
+        stripePaymentStatus: mappedPaymentStatus,
         stripeAmount: session.amount_total ?? undefined,
         stripeApplicationFeeAmount: session.application_fee_amount,
       });
