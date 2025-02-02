@@ -3,7 +3,6 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { createMeeting } from "@/server/actions/meetings";
 import { STRIPE_CONFIG } from "@/config/stripe";
-import { db } from "@/drizzle/db";
 
 // Add type for Stripe Connect session
 type StripeConnectSession = Stripe.Checkout.Session & {
@@ -104,49 +103,6 @@ async function handleCheckoutSessionCompleted(
       // For Connect payments, we need to handle both payment_intent and direct charges
       const paymentIdentifier = session.payment_intent || session.id;
 
-      // Check if meeting already exists with more comprehensive conditions
-      const existingMeeting = await db.query.MeetingTable.findFirst({
-        where: (fields, operators) =>
-          operators.or(
-            operators.eq(fields.stripePaymentIntentId, paymentIdentifier),
-            operators.eq(fields.stripeSessionId, session.id),
-            session.metadata?.eventId
-              ? operators.and(
-                  operators.eq(fields.eventId, session.metadata.eventId),
-                  operators.eq(
-                    fields.startTime,
-                    new Date(
-                      (
-                        JSON.parse(
-                          session.metadata?.meetingData ?? "{}"
-                        ) as ParsedMeetingData
-                      ).startTime
-                    )
-                  ),
-                  operators.eq(
-                    fields.guestEmail,
-                    session.customer_details?.email ??
-                      (
-                        JSON.parse(
-                          session.metadata?.meetingData ?? "{}"
-                        ) as ParsedMeetingData
-                      ).guestEmail
-                  )
-                )
-              : undefined
-          ),
-      });
-
-      if (existingMeeting) {
-        console.log("Meeting already exists, skipping creation:", {
-          sessionId: session.id,
-          meetingId: existingMeeting.id,
-          paymentIntent: session.payment_intent,
-          timestamp: new Date().toISOString(),
-        });
-        return { error: false, meeting: existingMeeting };
-      }
-
       // Parse meeting data from metadata
       const meetingData = JSON.parse(
         session.metadata?.meetingData ?? "{}"
@@ -198,13 +154,42 @@ async function handleCheckoutSessionCompleted(
       });
 
       if (result?.error) {
+        // Handle specific error cases
+        if (result.code === "SLOT_ALREADY_BOOKED") {
+          console.log("Initiating refund for concurrent booking:", {
+            sessionId: session.id,
+            paymentIntent: session.payment_intent,
+            amount: session.amount_total,
+          });
+
+          // Issue refund if payment was made
+          if (session.payment_intent && session.payment_status === "paid") {
+            const refund = await stripeInstance.refunds.create({
+              payment_intent: session.payment_intent as string,
+              reason: "duplicate",
+            });
+
+            console.log("Refund processed for concurrent booking:", {
+              refundId: refund.id,
+              sessionId: session.id,
+              paymentIntent: session.payment_intent,
+            });
+          }
+
+          // Return specific error for concurrent booking
+          throw new Error(
+            result.message || "Time slot was just booked by another user"
+          );
+        }
+
         console.error("Failed to create meeting:", {
           error: result.error,
+          code: result.code,
           sessionId: session.id,
           eventId,
           timestamp: new Date().toISOString(),
         });
-        throw new Error(result.error.toString());
+        throw new Error(result.code);
       }
 
       console.log("Meeting created successfully:", {
