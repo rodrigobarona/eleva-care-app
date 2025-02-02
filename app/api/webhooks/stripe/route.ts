@@ -219,7 +219,8 @@ export const POST = async (req: Request) => {
   try {
     // Get the raw body
     const rawBody = await req.text();
-    const signature = headers().get("stripe-signature");
+    const headersList = await headers();
+    const signature = headersList.get("stripe-signature");
 
     if (!signature || !webhookSecret) {
       console.error("Missing required webhook configuration");

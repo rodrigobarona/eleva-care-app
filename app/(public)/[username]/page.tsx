@@ -13,7 +13,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
-import { addMonths, eachMinuteOfInterval } from "date-fns";
+import { addMonths } from "date-fns";
 import { Suspense } from "react";
 import { Skeleton } from "@/components/atoms/skeleton";
 import NextAvailableTimeClient from "@/lib/NextAvailableTimeClient";
@@ -31,6 +31,7 @@ type Event = {
   slug: string;
   isActive: boolean;
   price: number;
+  scheduleId: string;
 };
 
 async function getCalendarStatus(clerkUserId: string) {
@@ -57,67 +58,50 @@ async function getCalendarStatus(clerkUserId: string) {
   }
 }
 
-export default async function BookingPage({
-  params: { username },
-}: {
-  params: { username: string };
-}) {
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
+async function getValidTimesForEvent(eventId: string) {
+  try {
+    const event = await db.query.EventTable.findFirst({
+      where: ({ id }, { eq }) => eq(id, eventId),
+    });
 
-  const users = await clerk.users.getUserList({
-    username: [username],
-  });
+    if (!event) return [];
 
-  const user = users.data[0];
-  if (!user) return notFound();
+    const now = new Date();
+    const endDate = addMonths(now, 1);
 
-  // Check calendar status early
-  const calendarStatus = await getCalendarStatus(user.id);
-  if (!calendarStatus.isConnected) {
-    return (
-      <Card className="max-w-md mx-auto">
-        <CardHeader>
-          <CardTitle>Calendar Access Required</CardTitle>
-          <CardDescription>
-            {calendarStatus.error === "Calendar not connected"
-              ? "The calendar owner needs to connect their Google Calendar to show available times."
-              : "Unable to access calendar. Please try again later."}
-          </CardDescription>
-        </CardHeader>
-      </Card>
+    const calendarService = GoogleCalendarService.getInstance();
+    const busyTimes = await calendarService.getCalendarEventTimes(
+      event.clerkUserId,
+      {
+        start: now,
+        end: endDate,
+      }
     );
+
+    const validTimes = await getValidTimesFromSchedule({
+      startDate: now,
+      endDate,
+      busyTimes,
+      durationInMinutes: event.durationInMinutes,
+      scheduleId: event.scheduleId,
+    });
+
+    return validTimes;
+  } catch (error) {
+    console.error("Error getting valid times:", error);
+    return [];
   }
-
-  const events = await db.query.EventTable.findMany({
-    where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
-      and(eq(userIdCol, user.id), eq(isActive, true)),
-    orderBy: ({ order }, { asc }) => asc(order),
-  });
-
-  if (events.length === 0) return notFound();
-
-  return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
-      <h1 className="text-4xl font-bold mb-12">Book a session</h1>
-      <div className="space-y-6">
-        {events.map((event) => (
-          <Suspense key={event.id} fallback={<LoadingEventCard />}>
-            <EventCardWrapper event={event} username={username} />
-          </Suspense>
-        ))}
-      </div>
-    </div>
-  );
 }
 
-async function EventCardWrapper({
+// Separate component for the event card
+function EventCard({
   event,
   username,
+  nextAvailable,
 }: {
   event: Event;
   username: string;
+  nextAvailable: Date | null;
 }) {
   return (
     <Card className="overflow-hidden border-2 hover:border-primary/50 transition-colors duration-200">
@@ -143,9 +127,12 @@ async function EventCardWrapper({
                 </>
               )}
             </div>
-            <Suspense fallback={<Skeleton className="h-5 w-40 mb-6" />}>
-              <NextAvailableTimeServer eventId={event.id} username={username} />
-            </Suspense>
+            <NextAvailableTimeClient
+              date={nextAvailable}
+              eventName={event.name}
+              eventSlug={event.slug}
+              username={username}
+            />
           </div>
 
           <Button
@@ -160,39 +147,88 @@ async function EventCardWrapper({
   );
 }
 
-// New server component for next available time
-async function NextAvailableTimeServer({
-  eventId,
-  username,
+export default async function BookingPage({
+  params: { username },
 }: {
-  eventId: string;
-  username: string;
+  params: { username: string };
 }) {
   try {
-    const event = await db.query.EventTable.findFirst({
-      where: ({ id }, { eq }) => eq(id, eventId),
+    const clerk = createClerkClient({
+      secretKey: process.env.CLERK_SECRET_KEY,
     });
 
-    if (!event) return null;
+    const users = await clerk.users.getUserList({
+      username: [username],
+    });
 
-    // Ensure token is valid before making API request
-    await GoogleCalendarService.getInstance().getOAuthClient(event.clerkUserId);
+    const user = users.data[0];
+    if (!user) return notFound();
 
-    const validTimes = await getValidTimesForEvent(eventId);
-    const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
+    // Check calendar status early
+    const calendarStatus = await getCalendarStatus(user.id);
+    if (!calendarStatus.isConnected) {
+      return (
+        <Card className="max-w-md mx-auto">
+          <CardHeader>
+            <CardTitle>Calendar Access Required</CardTitle>
+            <CardDescription>
+              {calendarStatus.error === "Calendar not connected"
+                ? "The calendar owner needs to connect their Google Calendar to show available times."
+                : "Unable to access calendar. Please try again later."}
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      );
+    }
+
+    const events = await db.query.EventTable.findMany({
+      where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
+        and(eq(userIdCol, user.id), eq(isActive, true)),
+      orderBy: ({ order }, { asc }) => asc(order),
+    });
+
+    if (events.length === 0) return notFound();
+
+    // Pre-fetch all valid times for each event
+    const eventTimes = await Promise.all(
+      events.map(async (event) => {
+        const validTimes = await getValidTimesForEvent(event.id);
+        return {
+          event,
+          nextAvailable: validTimes.length > 0 ? validTimes[0] : null,
+        };
+      })
+    );
 
     return (
-      <NextAvailableTimeClient
-        date={nextAvailable}
-        eventName={event?.name ?? ""}
-        eventSlug={event?.slug ?? ""}
-        username={username}
-      />
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <h1 className="text-4xl font-bold mb-12">Book a session</h1>
+        <div className="space-y-6">
+          {eventTimes.map(({ event, nextAvailable }) => (
+            <Suspense key={event.id} fallback={<LoadingEventCard />}>
+              <EventCard
+                event={event}
+                username={username}
+                nextAvailable={nextAvailable}
+              />
+            </Suspense>
+          ))}
+        </div>
+      </div>
     );
   } catch (error) {
-    console.error("Error loading availability:", error);
-    // Provide a fallback UI or message
-    return <div>Unable to load calendar events. Please try again later.</div>;
+    console.error("Error in BookingPage:", error);
+    return (
+      <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <CardTitle>Error</CardTitle>
+          <CardDescription>
+            An error occurred while loading the booking page. Please try again
+            later.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
   }
 }
 
@@ -237,34 +273,6 @@ function EventCardDetails({
         <span className="text-muted-foreground">(10)</span>
       </div>
     </div>
-  );
-}
-
-async function getValidTimesForEvent(eventId: string) {
-  const event = await db.query.EventTable.findFirst({
-    where: ({ id }, { eq }) => eq(id, eventId),
-  });
-
-  if (!event) return [];
-
-  const now = new Date();
-  // Round up to the next 15 minutes
-  const startDate = new Date(
-    Math.ceil(now.getTime() / (15 * 60000)) * (15 * 60000)
-  );
-  const endDate = addMonths(startDate, 2);
-
-  // Get calendar events for the time range
-  const calendarService = GoogleCalendarService.getInstance();
-  const calendarEvents = await calendarService.getCalendarEventTimes(
-    event.clerkUserId,
-    { start: startDate, end: endDate }
-  );
-
-  return getValidTimesFromSchedule(
-    eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-    event,
-    calendarEvents
   );
 }
 

@@ -9,54 +9,127 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/atoms/tooltip";
+import { ErrorBoundary } from "react-error-boundary";
+
+interface NextAvailableTimeClientProps {
+  date: Date | string | null;
+  eventName: string;
+  eventSlug: string;
+  username: string;
+  baseUrl?: string;
+}
 
 function NextAvailableTimeClient({
   date,
   eventName,
   eventSlug,
   username,
-}: {
-  date: Date | null;
-  eventName: string;
-  eventSlug: string;
-  username: string;
-}) {
+  baseUrl,
+}: NextAvailableTimeClientProps) {
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<Error | null>(null);
+
+  console.log("[NextAvailableTimeClient] Rendering with props:", {
+    date,
+    eventName,
+    eventSlug,
+    username,
+    baseUrl,
+  });
+
+  // Ensure we have a Date instance even if a string was passed from the server.
+  const parsedDate = React.useMemo(() => {
+    try {
+      setIsLoading(true);
+      if (!date) return null;
+      const dateInstance = typeof date === "string" ? new Date(date) : date;
+      console.log("[NextAvailableTimeClient] Parsed date:", dateInstance);
+      return dateInstance;
+    } catch (error) {
+      console.error("[NextAvailableTimeClient] Error parsing date:", error);
+      setError(
+        error instanceof Error ? error : new Error("Failed to parse date")
+      );
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [date]);
+
+  // Validate required props
+  if (!username || !eventSlug) {
+    console.error("[NextAvailableTimeClient] Missing required props:", {
+      username,
+      eventSlug,
+    });
+    return (
+      <div className="text-sm text-muted-foreground">
+        No booking link available
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Loading next available time...
+      </div>
+    );
+  }
+
+  if (error) {
+    console.error("[NextAvailableTimeClient] Error:", error);
+    return (
+      <div className="text-sm text-muted-foreground">
+        Unable to load next available time
+      </div>
+    );
+  }
+
+  if (parsedDate && Number.isNaN(parsedDate.getTime())) {
+    console.error("[NextAvailableTimeClient] Invalid date:", date);
+    return (
+      <div className="text-sm text-muted-foreground">No times available</div>
+    );
+  }
+
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  console.log("[NextAvailableTimeClient] User timezone:", userTimeZone);
 
-  const formatNextAvailable = (date: Date) => {
-    const timeFormat = "h:mm a";
-    const now = new Date();
+  const formatNextAvailable = (dateObj: Date) => {
+    console.log("[NextAvailableTimeClient] Formatting date:", dateObj);
+    try {
+      const timeFormat = "h:mm a";
+      const now = new Date();
 
-    const isToday = (date: Date) => {
-      return (
+      const formattedTime = formatInTimeZone(dateObj, userTimeZone, timeFormat);
+      console.log("[NextAvailableTimeClient] Formatted time:", formattedTime);
+
+      const isToday = (date: Date, now: Date) =>
         date.getFullYear() === now.getFullYear() &&
         date.getMonth() === now.getMonth() &&
-        date.getDate() === now.getDate()
-      );
-    };
+        date.getDate() === now.getDate();
 
-    const isTomorrow = (date: Date) => {
-      const tomorrow = new Date(now);
-      tomorrow.setDate(now.getDate() + 1);
-      return (
-        date.getFullYear() === tomorrow.getFullYear() &&
-        date.getMonth() === tomorrow.getMonth() &&
-        date.getDate() === tomorrow.getDate()
-      );
-    };
+      const isTomorrow = (date: Date, now: Date) => {
+        const tomorrow = new Date(now);
+        tomorrow.setDate(now.getDate() + 1);
+        return (
+          date.getFullYear() === tomorrow.getFullYear() &&
+          date.getMonth() === tomorrow.getMonth() &&
+          date.getDate() === tomorrow.getDate()
+        );
+      };
 
-    try {
-      const formattedTime = formatInTimeZone(date, userTimeZone, timeFormat);
-
-      if (isToday(date)) {
+      if (isToday(dateObj, now)) {
         return `Today at ${formattedTime}`;
       }
-      if (isTomorrow(date)) {
+      if (isTomorrow(dateObj, now)) {
         return `Tomorrow at ${formattedTime}`;
       }
-      return `${formatInTimeZone(date, userTimeZone, `EEE, ${timeFormat}`)}`;
-    } catch {
-      return date.toLocaleString("en-US", {
+      return formatInTimeZone(dateObj, userTimeZone, `EEE, ${timeFormat}`);
+    } catch (error) {
+      console.error("[NextAvailableTimeClient] Error formatting date:", error);
+      return dateObj.toLocaleString("en-US", {
         weekday: "short",
         hour: "numeric",
         minute: "numeric",
@@ -67,57 +140,78 @@ function NextAvailableTimeClient({
     }
   };
 
-  const formatTooltip = (date: Date) => {
-    return formatInTimeZone(
-      date,
-      userTimeZone,
-      `'Book ${eventName} on' EEEE, MMM d 'at' h:mm a (z)`
-    );
-  };
-
   const getBookingLink = (date: Date) => {
-    // Create URL object
-    const url = new URL(`/${username}/${eventSlug}`, window.location.origin);
+    console.log(
+      "[NextAvailableTimeClient] Generating booking link for date:",
+      date
+    );
+    try {
+      if (Number.isNaN(date.getTime())) {
+        throw new Error("Invalid date provided to getBookingLink");
+      }
 
-    // Format date exactly as nuqs expects it
-    const dateParam = date.toISOString().split("T")[0]; // YYYY-MM-DD format
-    const timeParam = date.toISOString(); // Full ISO string
+      const dateParam = date.toISOString().split("T")[0];
+      const timeParam = date.toISOString();
+      const basePath = baseUrl
+        ? `${baseUrl}/${username}/${eventSlug}`
+        : `/${username}/${eventSlug}`;
+      const searchParams = new URLSearchParams({
+        d: dateParam,
+        t: timeParam,
+        s: "2",
+      });
+      const finalUrl = `${basePath}?${searchParams.toString()}`;
 
-    // Set parameters in the same order as nuqs
-    url.searchParams.set("d", dateParam);
-    url.searchParams.set("t", timeParam);
-    url.searchParams.set("s", "2");
-
-    // Return just the pathname and search
-    const finalUrl = url.pathname + url.search;
-
-    // Log for debugging
-    console.log("Generated URL:", finalUrl);
-
-    return finalUrl;
+      console.log("[NextAvailableTimeClient] Generated URL:", finalUrl);
+      return finalUrl;
+    } catch (error) {
+      console.error(
+        "[NextAvailableTimeClient] Error generating booking link:",
+        error
+      );
+      return "#";
+    }
   };
+
+  function ErrorFallback({ error }: { error: Error }) {
+    console.error(
+      "[NextAvailableTimeClient] Error boundary caught error:",
+      error
+    );
+    return (
+      <div className="text-sm text-muted-foreground">No times available</div>
+    );
+  }
 
   return (
-    <div className="text-sm text-muted-foreground mb-6">
-      {date ? (
-        <TooltipProvider>
-          <span>Next available — </span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <a
-                href={getBookingLink(date)}
-                className="hover:underline cursor-pointer"
-              >
-                {formatNextAvailable(date)}
-              </a>
-            </TooltipTrigger>
-            <TooltipContent>{formatTooltip(date)}</TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      ) : (
-        "No times available"
-      )}
-    </div>
+    <ErrorBoundary FallbackComponent={ErrorFallback}>
+      <div className="text-sm text-muted-foreground mb-6">
+        {parsedDate ? (
+          <TooltipProvider>
+            <span>Next available — </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <a
+                  href={getBookingLink(parsedDate)}
+                  className="hover:underline cursor-pointer"
+                >
+                  {formatNextAvailable(parsedDate)}
+                </a>
+              </TooltipTrigger>
+              <TooltipContent>
+                {formatInTimeZone(
+                  parsedDate,
+                  userTimeZone,
+                  `'Book' '${eventName}' 'on' EEEE, MMM d 'at' h:mm a '('z')'`
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          "No times available"
+        )}
+      </div>
+    </ErrorBoundary>
   );
 }
 
