@@ -20,7 +20,38 @@ export async function createMeeting(
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
   if (!success) return { error: true };
 
-  // Step 2: Find the associated event and verify it exists and is active
+  // Step 2: Check for existing meeting first
+  const existingMeeting = await db.query.MeetingTable.findFirst({
+    where: (fields, operators) =>
+      operators.or(
+        data.stripePaymentIntentId
+          ? operators.eq(
+              fields.stripePaymentIntentId,
+              data.stripePaymentIntentId
+            )
+          : undefined,
+        data.stripeSessionId
+          ? operators.eq(fields.stripeSessionId, data.stripeSessionId)
+          : undefined,
+        operators.and(
+          operators.eq(fields.eventId, data.eventId),
+          operators.eq(fields.startTime, data.startTime),
+          operators.eq(fields.guestEmail, data.guestEmail)
+        )
+      ),
+  });
+
+  if (existingMeeting) {
+    console.log("Meeting already exists:", {
+      meetingId: existingMeeting.id,
+      eventId: data.eventId,
+      startTime: data.startTime,
+      guestEmail: data.guestEmail,
+    });
+    return { error: false, meeting: existingMeeting };
+  }
+
+  // Step 3: Find the associated event and verify it exists and is active
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId, isActive, id }, { eq, and }) =>
       and(
@@ -31,7 +62,7 @@ export async function createMeeting(
   });
   if (event == null) return { error: true };
 
-  // Step 3: Verify the requested time slot is valid according to the schedule
+  // Step 4: Verify the requested time slot is valid according to the schedule
   const startTimeUTC = data.startTime;
 
   // Get calendar events for the time slot
@@ -51,49 +82,51 @@ export async function createMeeting(
   );
   if (validTimes.length === 0) return { error: true };
 
-  // Step 4: Calculate the end time based on event duration
+  // Step 5: Calculate the end time based on event duration
   const endTimeUTC = new Date(
     startTimeUTC.getTime() + event.durationInMinutes * 60000
   );
 
-  // Step 6: Create calendar event in Google Calendar first
-  const calendarEvent = await createCalendarEvent({
-    clerkUserId: data.clerkUserId,
-    guestName: data.guestName,
-    guestEmail: data.guestEmail,
-    startTime: startTimeUTC,
-    guestNotes: data.guestNotes,
-    durationInMinutes: event.durationInMinutes,
-    eventName: event.name,
-  });
+  try {
+    // Step 6: Create calendar event in Google Calendar
+    const calendarEvent = await createCalendarEvent({
+      clerkUserId: data.clerkUserId,
+      guestName: data.guestName,
+      guestEmail: data.guestEmail,
+      startTime: startTimeUTC,
+      guestNotes: data.guestNotes,
+      durationInMinutes: event.durationInMinutes,
+      eventName: event.name,
+    });
 
-  // Step 5: Create the meeting record in the database
-  await db.insert(MeetingTable).values({
-    eventId: data.eventId,
-    clerkUserId: data.clerkUserId,
-    guestEmail: data.guestEmail,
-    guestName: data.guestName,
-    guestNotes: data.guestNotes,
-    startTime: startTimeUTC,
-    endTime: endTimeUTC,
-    timezone: data.timezone,
-    meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
-    stripePaymentIntentId: data.stripePaymentIntentId,
-    stripeSessionId: data.stripeSessionId,
-    stripePaymentStatus: data.stripePaymentStatus as
-      | "pending"
-      | "processing"
-      | "succeeded"
-      | "failed"
-      | "refunded",
-    stripeAmount: data.stripeAmount,
-    stripeApplicationFeeAmount: data.stripeApplicationFeeAmount,
-  });
+    // Step 7: Create the meeting record in the database
+    const [meeting] = await db
+      .insert(MeetingTable)
+      .values({
+        eventId: data.eventId,
+        clerkUserId: data.clerkUserId,
+        guestEmail: data.guestEmail,
+        guestName: data.guestName,
+        guestNotes: data.guestNotes,
+        startTime: startTimeUTC,
+        endTime: endTimeUTC,
+        timezone: data.timezone,
+        meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
+        stripePaymentIntentId: data.stripePaymentIntentId,
+        stripeSessionId: data.stripeSessionId,
+        stripePaymentStatus: data.stripePaymentStatus as
+          | "pending"
+          | "processing"
+          | "succeeded"
+          | "failed"
+          | "refunded",
+        stripeAmount: data.stripeAmount,
+        stripeApplicationFeeAmount: data.stripeApplicationFeeAmount,
+      })
+      .returning();
 
-  // Step 6: Parallel operations:
-  // - Log audit event for tracking
-  await Promise.all([
-    logAuditEvent(
+    // Step 8: Log audit event
+    await logAuditEvent(
       data.clerkUserId,
       "create",
       "meetings",
@@ -106,17 +139,16 @@ export async function createMeeting(
       },
       headers().get("x-forwarded-for") ?? "Unknown",
       headers().get("user-agent") ?? "Unknown"
-    ),
-  ]);
+    );
 
-  // Step 7: Get username and use event slug for the redirect
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-  const user = await clerk.users.getUser(data.clerkUserId);
-  const username = user.username ?? data.clerkUserId;
-
-  redirect(
-    `/${username}/${event.slug}/success?startTime=${data.startTime.toISOString()}`
-  );
+    return { error: false, meeting };
+  } catch (error) {
+    console.error("Error creating meeting:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      eventId: data.eventId,
+      startTime: data.startTime,
+      guestEmail: data.guestEmail,
+    });
+    return { error: true };
+  }
 }

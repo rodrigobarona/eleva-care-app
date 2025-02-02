@@ -104,22 +104,47 @@ async function handleCheckoutSessionCompleted(
       // For Connect payments, we need to handle both payment_intent and direct charges
       const paymentIdentifier = session.payment_intent || session.id;
 
-      // Check if meeting already exists
+      // Check if meeting already exists with more comprehensive conditions
       const existingMeeting = await db.query.MeetingTable.findFirst({
         where: (fields, operators) =>
           operators.or(
             operators.eq(fields.stripePaymentIntentId, paymentIdentifier),
-            operators.eq(fields.stripeSessionId, session.id)
+            operators.eq(fields.stripeSessionId, session.id),
+            session.metadata?.eventId
+              ? operators.and(
+                  operators.eq(fields.eventId, session.metadata.eventId),
+                  operators.eq(
+                    fields.startTime,
+                    new Date(
+                      (
+                        JSON.parse(
+                          session.metadata?.meetingData ?? "{}"
+                        ) as ParsedMeetingData
+                      ).startTime
+                    )
+                  ),
+                  operators.eq(
+                    fields.guestEmail,
+                    session.customer_details?.email ??
+                      (
+                        JSON.parse(
+                          session.metadata?.meetingData ?? "{}"
+                        ) as ParsedMeetingData
+                      ).guestEmail
+                  )
+                )
+              : undefined
           ),
       });
 
       if (existingMeeting) {
-        console.log("Meeting already exists:", {
+        console.log("Meeting already exists, skipping creation:", {
           sessionId: session.id,
           meetingId: existingMeeting.id,
+          paymentIntent: session.payment_intent,
           timestamp: new Date().toISOString(),
         });
-        return;
+        return { error: false, meeting: existingMeeting };
       }
 
       // Parse meeting data from metadata
@@ -142,12 +167,6 @@ async function handleCheckoutSessionCompleted(
       const mappedPaymentStatus =
         paymentStatusMap[session.payment_status] || session.payment_status;
 
-      console.log("Creating meeting with mapped payment status:", {
-        sessionId: session.id,
-        originalStatus: session.payment_status,
-        mappedStatus: mappedPaymentStatus,
-      });
-
       // If there's a payment intent, retrieve its full details for additional validation
       if (session.payment_intent) {
         const paymentIntent = await stripeInstance.paymentIntents.retrieve(
@@ -162,7 +181,7 @@ async function handleCheckoutSessionCompleted(
         }
       }
 
-      // Create the meeting
+      // Create the meeting with proper error handling
       const result = await createMeeting({
         eventId,
         clerkUserId: meetingData.clerkUserId,
@@ -191,6 +210,7 @@ async function handleCheckoutSessionCompleted(
       console.log("Meeting created successfully:", {
         sessionId: session.id,
         eventId,
+        meetingId: result.meeting?.id,
         customerEmail: session.customer_details?.email,
         timestamp: new Date().toISOString(),
       });
