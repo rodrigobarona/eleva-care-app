@@ -31,7 +31,6 @@ type Event = {
   slug: string;
   isActive: boolean;
   price: number;
-  scheduleId: string;
 };
 
 async function getCalendarStatus(clerkUserId: string) {
@@ -67,28 +66,46 @@ async function getValidTimesForEvent(eventId: string) {
     if (!event) return [];
 
     const now = new Date();
-    const endDate = addMonths(now, 1);
+    // Round up to the next 15 minutes
+    const startDate = new Date(
+      Math.ceil(now.getTime() / (15 * 60000)) * (15 * 60000)
+    );
+    const endDate = addMonths(startDate, 2);
 
+    // Get calendar events for the time range
     const calendarService = GoogleCalendarService.getInstance();
-    const busyTimes = await calendarService.getCalendarEventTimes(
+    const calendarEvents = await calendarService.getCalendarEventTimes(
       event.clerkUserId,
-      {
-        start: now,
-        end: endDate,
-      }
+      { start: startDate, end: endDate }
     );
 
-    const validTimes = await getValidTimesFromSchedule({
-      startDate: now,
-      endDate,
-      busyTimes,
-      durationInMinutes: event.durationInMinutes,
-      scheduleId: event.scheduleId,
+    // Generate all possible time slots
+    const timeSlots = [];
+    let currentTime = startDate;
+    while (currentTime < endDate) {
+      timeSlots.push(new Date(currentTime));
+      currentTime = new Date(currentTime.getTime() + 15 * 60000); // Add 15 minutes
+    }
+
+    // Use the working method from the page
+    const validTimes = await getValidTimesFromSchedule(
+      timeSlots,
+      event,
+      calendarEvents
+    );
+
+    console.log("[getValidTimesForEvent] Valid times found:", {
+      eventId,
+      count: validTimes.length,
+      firstTime: validTimes[0]?.toISOString(),
     });
 
     return validTimes;
   } catch (error) {
-    console.error("Error getting valid times:", error);
+    console.error("[getValidTimesForEvent] Error:", {
+      eventId,
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
     return [];
   }
 }
@@ -153,6 +170,7 @@ export default async function BookingPage({
   params: { username: string };
 }) {
   try {
+    console.log("[BookingPage] Starting to load page for username:", username);
     const clerk = createClerkClient({
       secretKey: process.env.CLERK_SECRET_KEY,
     });
@@ -164,8 +182,12 @@ export default async function BookingPage({
     const user = users.data[0];
     if (!user) return notFound();
 
+    console.log("[BookingPage] Found user:", user.id);
+
     // Check calendar status early
     const calendarStatus = await getCalendarStatus(user.id);
+    console.log("[BookingPage] Calendar status:", calendarStatus);
+
     if (!calendarStatus.isConnected) {
       return (
         <Card className="max-w-md mx-auto">
@@ -189,9 +211,12 @@ export default async function BookingPage({
 
     if (events.length === 0) return notFound();
 
+    console.log("[BookingPage] Found events:", events.length);
+
     // Pre-fetch all valid times for each event
     const eventTimes = await Promise.all(
       events.map(async (event) => {
+        console.log("[BookingPage] Getting times for event:", event.id);
         const validTimes = await getValidTimesForEvent(event.id);
         return {
           event,
@@ -217,7 +242,7 @@ export default async function BookingPage({
       </div>
     );
   } catch (error) {
-    console.error("Error in BookingPage:", error);
+    console.error("[BookingPage] Error:", error);
     return (
       <Card className="max-w-md mx-auto">
         <CardHeader>
