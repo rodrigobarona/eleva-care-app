@@ -107,6 +107,12 @@ export const MeetingTable = pgTable(
     stripeApplicationFeeId: text("stripeApplicationFeeId").unique(),
     stripeRefundId: text("stripeRefundId").unique(),
     stripeMetadata: json("stripeMetadata"),
+    stripeTransferId: text("stripeTransferId").unique(),
+    stripeTransferAmount: integer("stripeTransferAmount"),
+    stripeTransferStatus: text("stripeTransferStatus", {
+      enum: ["pending", "processing", "succeeded", "failed"],
+    }).default("pending"),
+    stripeTransferScheduledAt: timestamp("stripeTransferScheduledAt"),
     lastProcessedAt: timestamp("lastProcessedAt"),
     createdAt,
     updatedAt,
@@ -118,6 +124,9 @@ export const MeetingTable = pgTable(
       table.stripePaymentIntentId
     ),
     sessionIdIndex: index("meetings_sessionId_idx").on(table.stripeSessionId),
+    transferIdIndex: index("meetings_transferId_idx").on(
+      table.stripeTransferId
+    ),
   })
 );
 

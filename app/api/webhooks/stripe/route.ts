@@ -3,11 +3,15 @@ import Stripe from "stripe";
 import { NextResponse } from "next/server";
 import { createMeeting } from "@/server/actions/meetings";
 import { STRIPE_CONFIG } from "@/config/stripe";
+import { db } from "@/drizzle/db";
+import { MeetingTable } from "@/drizzle/schema";
+import { eq } from "drizzle-orm";
 
 // Add type for Stripe Connect session
 type StripeConnectSession = Stripe.Checkout.Session & {
   application_fee_amount?: number;
   payment_intent: string | null;
+  application_fee?: string;
 };
 
 // Use new Next.js route segment config
@@ -123,13 +127,13 @@ async function handleCheckoutSessionCompleted(
       const mappedPaymentStatus =
         paymentStatusMap[session.payment_status] || session.payment_status;
 
-      // If there's a payment intent, retrieve its full details for additional validation
+      // If there's a payment intent, retrieve its full details for validation
       if (session.payment_intent) {
         const paymentIntent = await stripeInstance.paymentIntents.retrieve(
-          session.payment_intent as string
+          session.payment_intent
         );
 
-        // Additional validation with payment intent if needed
+        // Additional validation with payment intent
         if (paymentIntent.status !== "succeeded") {
           throw new Error(
             `Payment intent ${paymentIntent.id} is not succeeded (status: ${paymentIntent.status})`
@@ -165,7 +169,7 @@ async function handleCheckoutSessionCompleted(
           // Issue refund if payment was made
           if (session.payment_intent && session.payment_status === "paid") {
             const refund = await stripeInstance.refunds.create({
-              payment_intent: session.payment_intent as string,
+              payment_intent: session.payment_intent,
               reason: "duplicate",
             });
 
@@ -192,11 +196,67 @@ async function handleCheckoutSessionCompleted(
         throw new Error(result.code);
       }
 
+      // After successful meeting creation, set up the transfer
+      let transferData: Stripe.Transfer | null = null;
+      if (session.payment_intent && session.payment_status === "paid") {
+        // Get expert's Connect account ID
+        const expertConnectAccountId = session.metadata?.expertConnectAccountId;
+        if (!expertConnectAccountId) {
+          console.error("Missing expert Connect account ID, skipping transfer");
+        } else {
+          // Calculate transfer amount (total minus application fee)
+          const transferAmount =
+            (session.amount_total || 0) - (session.application_fee_amount || 0);
+
+          // Schedule transfer to expert's Connect account
+          // We schedule it 4 hours after the meeting start time to allow for cancellations
+          const meetingStartTime = new Date(meetingData.startTime);
+          const transferScheduleTime = new Date(
+            meetingStartTime.getTime() + 4 * 60 * 60 * 1000
+          );
+
+          transferData = await stripeInstance.transfers.create({
+            amount: transferAmount,
+            currency: session.currency || "eur", // Default to EUR if not specified
+            destination: expertConnectAccountId,
+            transfer_group: `meeting_${session.id}`,
+            metadata: {
+              meetingId: result.meeting?.id || session.id, // Fallback to session ID if meeting ID is not available
+              eventId: eventId,
+              expertId: meetingData.clerkUserId,
+              scheduledFor: transferScheduleTime.toISOString(),
+            },
+          });
+
+          // Update the meeting record with transfer information
+          if (result.meeting?.id) {
+            await db
+              .update(MeetingTable)
+              .set({
+                stripeTransferId: transferData.id,
+                stripeTransferAmount: transferData.amount,
+                stripeTransferStatus: "pending",
+                stripeTransferScheduledAt: transferScheduleTime,
+              })
+              .where(eq(MeetingTable.id, result.meeting.id));
+
+            console.log("Transfer scheduled:", {
+              transferId: transferData.id,
+              amount: transferAmount,
+              destination: expertConnectAccountId,
+              scheduledFor: transferScheduleTime,
+              meetingId: result.meeting.id,
+            });
+          }
+        }
+      }
+
       console.log("Meeting created successfully:", {
         sessionId: session.id,
         eventId,
         meetingId: result.meeting?.id,
         customerEmail: session.customer_details?.email,
+        transferId: transferData?.id,
         timestamp: new Date().toISOString(),
       });
 
