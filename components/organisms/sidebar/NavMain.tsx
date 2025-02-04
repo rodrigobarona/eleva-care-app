@@ -1,7 +1,12 @@
 "use client";
 import React from "react";
 import { usePathname } from "next/navigation";
-import { MoreHorizontal, type LucideIcon, ChevronLeft } from "lucide-react";
+import {
+  MoreHorizontal,
+  type LucideIcon,
+  ChevronLeft,
+  Calendar,
+} from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,6 +56,20 @@ export function NavMain({ items }: NavMainProps) {
           isAccountSection ? "-translate-x-full" : "translate-x-0"
         )}
       >
+        <SidebarGroup>
+          <SidebarGroupLabel>Appointments</SidebarGroupLabel>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/appointments" prefetch>
+                  <Calendar className="size-4" />
+                  <span>All Appointments</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
+
         <SidebarGroup>
           <SidebarGroupLabel>Booking</SidebarGroupLabel>
           <SidebarMenu>
