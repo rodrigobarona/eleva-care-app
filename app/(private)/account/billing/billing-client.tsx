@@ -142,8 +142,8 @@ export function BillingPageClient({
             ) : (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  You haven't connected your Stripe account yet. Connect now to
-                  start receiving payments.
+                  You haven&apos;t connected your Stripe account yet. Connect
+                  now to start receiving payments.
                 </p>
                 <Button
                   onClick={handleConnect}
