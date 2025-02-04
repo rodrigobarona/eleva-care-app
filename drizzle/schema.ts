@@ -240,3 +240,30 @@ export const eventRelations = relations(EventTable, ({ one }) => ({
     references: [UserTable.clerkUserId],
   }),
 }));
+
+export const RecordTable = pgTable("records", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  meetingId: uuid("meeting_id")
+    .notNull()
+    .references(() => MeetingTable.id, { onDelete: "cascade" }),
+  expertId: text("expert_id")
+    .notNull()
+    .references(() => UserTable.clerkUserId),
+  guestEmail: text("guest_email").notNull(),
+  encryptedContent: text("encrypted_content").notNull(),
+  encryptedMetadata: text("encrypted_metadata"),
+  lastModifiedAt: timestamp("last_modified_at").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  version: integer("version").default(1).notNull(),
+});
+
+export const recordsRelations = relations(RecordTable, ({ one }) => ({
+  meeting: one(MeetingTable, {
+    fields: [RecordTable.meetingId],
+    references: [MeetingTable.id],
+  }),
+  expert: one(UserTable, {
+    fields: [RecordTable.expertId],
+    references: [UserTable.clerkUserId],
+  }),
+}));

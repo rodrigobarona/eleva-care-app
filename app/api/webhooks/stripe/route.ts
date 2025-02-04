@@ -7,6 +7,8 @@ import { db } from "@/drizzle/db";
 import { MeetingTable } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { calculateExpertAmount } from "@/config/stripe";
+import type { Stripe as StripeType } from "stripe";
+import StripeSDK from "stripe";
 
 // Add type for Stripe Connect session
 type StripeConnectSession = Stripe.Checkout.Session & {
@@ -21,7 +23,7 @@ export const runtime = "nodejs";
 export const preferredRegion = "auto";
 export const maxDuration = 60;
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+const stripe = new StripeSDK(process.env.STRIPE_SECRET_KEY ?? "", {
   apiVersion: STRIPE_CONFIG.API_VERSION,
 });
 
@@ -33,6 +35,7 @@ if (!webhookSecret) {
 
 // Maximum number of retries for database operations
 const MAX_RETRIES = 3;
+const RETRY_DELAY = 2000; // 2 seconds
 
 // Type for parsed meeting data from metadata
 type ParsedMeetingData = {
@@ -43,6 +46,19 @@ type ParsedMeetingData = {
   guestName: string;
   guestNotes?: string;
 };
+
+interface MeetingMetadata {
+  timezone: string;
+  startTime: string;
+  guestEmail: string;
+  guestName: string;
+  guestNotes?: string;
+  expertClerkUserId: string;
+}
+
+interface StripeCheckoutSession extends Stripe.Checkout.Session {
+  application_fee_amount: number | null;
+}
 
 // Add GET handler to explain the endpoint
 export async function GET() {
@@ -92,148 +108,85 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   }
 }
 
-// Update the handleCheckoutSessionCompleted function
-async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
-  let retries = 0;
-  while (retries < MAX_RETRIES) {
-    try {
-      console.log("Starting checkout session processing:", {
-        sessionId: session.id,
-        paymentStatus: session.payment_status,
-        paymentIntent: session.payment_intent,
-        metadata: session.metadata,
-      });
+async function handleCheckoutSession(session: StripeCheckoutSession) {
+  console.log("Starting checkout session processing:", {
+    sessionId: session.id,
+    paymentStatus: session.payment_status,
+    paymentIntent: session.payment_intent,
+    metadata: session.metadata,
+  });
 
-      // Check for existing meeting with this session ID
-      const existingMeeting = await db.query.MeetingTable.findFirst({
-        where: eq(MeetingTable.stripeSessionId, session.id),
-      });
+  // First check if we already have a meeting for this session
+  const existingMeeting = await db.query.MeetingTable.findFirst({
+    where: ({ stripeSessionId }, { eq }) => eq(stripeSessionId, session.id),
+  });
 
-      if (existingMeeting) {
-        console.log("Session already processed:", {
-          sessionId: session.id,
-          meetingId: existingMeeting.id,
-          timestamp: new Date().toISOString(),
-        });
-        return { error: false, meeting: existingMeeting };
-      }
-
-      // Parse the meetingData from metadata
-      const meetingData = JSON.parse(session.metadata?.meetingData || "{}");
-      console.log("Parsed meeting data:", meetingData);
-
-      // Get expert's Connect account ID and eventId from metadata
-      const expertConnectAccountId = session.metadata?.expertConnectAccountId;
-      const eventId = session.metadata?.eventId;
-
-      if (
-        !eventId ||
-        !expertConnectAccountId ||
-        !meetingData.expertClerkUserId
-      ) {
-        console.error("Missing required metadata:", {
-          eventId,
-          expertConnectAccountId,
-          expertClerkUserId: meetingData.expertClerkUserId,
-          metadata: session.metadata,
-          timestamp: new Date().toISOString(),
-        });
-        throw new Error(
-          "Missing required metadata: eventId, expertConnectAccountId, or expertClerkUserId"
-        );
-      }
-
-      // Validate payment status
-      if (session.payment_status !== "paid") {
-        throw new Error(`Invalid payment status: ${session.payment_status}`);
-      }
-
-      // In webhooks/stripe/route.ts, add validation for transfer amounts
-      if (session.application_fee_amount && session.amount_total) {
-        const expertAmount =
-          session.amount_total - session.application_fee_amount;
-        if (expertAmount <= 0) {
-          throw new Error("Invalid transfer amount calculated");
-        }
-      }
-
-      // Create the meeting using all required data
-      const result = await createMeeting({
-        eventId,
-        clerkUserId: meetingData.expertClerkUserId,
-        guestEmail: session.customer_details?.email || meetingData.guestEmail,
-        guestName: session.customer_details?.name || meetingData.guestName,
-        timezone: meetingData.timezone,
-        startTime: new Date(meetingData.startTime),
-        guestNotes: meetingData.guestNotes || "",
-        stripePaymentIntentId: session.payment_intent || undefined,
-        stripeSessionId: session.id,
-        stripePaymentStatus: session.payment_status as "succeeded",
-        stripeAmount: session.amount_total || undefined,
-        stripeApplicationFeeAmount: session.application_fee_amount || undefined,
-      });
-
-      console.log("Meeting creation result:", {
-        success: !result.error,
-        error: result.error,
-        code: result.code,
-        meetingId: result.meeting?.id,
-        metadata: meetingData,
-        timestamp: new Date().toISOString(),
-      });
-
-      if (result.error) {
-        throw new Error(`Meeting creation failed: ${result.code}`);
-      }
-
-      // Schedule the delayed transfer to the expert
-      if (
-        session.payment_status === "paid" &&
-        !result.error &&
-        result.meeting
-      ) {
-        await setupDelayedTransfer(
-          session,
-          result.meeting.id,
-          expertConnectAccountId
-        );
-        console.log("Delayed transfer scheduled for meeting:", {
-          meetingId: result.meeting.id,
-          expertConnectAccountId,
-          scheduledFor:
-            new Date(meetingData.startTime).getTime() + 4 * 60 * 60 * 1000,
-          timestamp: new Date().toISOString(),
-        });
-      }
-
-      console.log("Processing checkout session:", {
-        sessionId: session.id,
-        eventId: session.metadata?.eventId,
-        startTime: meetingData.startTime,
-        guestEmail: meetingData.guestEmail,
-        amount: session.amount_total,
-        applicationFee: session.application_fee_amount,
-        timestamp: new Date().toISOString(),
-      });
-
-      return result;
-    } catch (error) {
-      retries++;
-      console.error("Error processing checkout session:", {
-        error: error instanceof Error ? error.message : "Unknown error",
-        attempt: retries,
-        sessionId: session.id,
-        timestamp: new Date().toISOString(),
-      });
-
-      if (retries === MAX_RETRIES) {
-        throw error;
-      }
-      await new Promise((resolve) =>
-        setTimeout(resolve, Math.min(1000 * 2 ** retries, 10000))
-      );
-    }
+  if (existingMeeting) {
+    console.log("Meeting already exists for session:", {
+      sessionId: session.id,
+      meetingId: existingMeeting.id,
+    });
+    return { success: true, meetingId: existingMeeting.id };
   }
+
+  if (!session.metadata?.meetingData || !session.metadata.eventId) {
+    throw new Error("Missing required metadata");
+  }
+
+  const meetingData = JSON.parse(
+    session.metadata.meetingData
+  ) as MeetingMetadata;
+  console.log("Parsed meeting data:", meetingData);
+
+  const result = await createMeeting({
+    eventId: session.metadata.eventId,
+    clerkUserId: meetingData.expertClerkUserId,
+    startTime: new Date(meetingData.startTime),
+    guestEmail: meetingData.guestEmail,
+    guestName: meetingData.guestName,
+    guestNotes: meetingData.guestNotes,
+    timezone: meetingData.timezone,
+    stripeSessionId: session.id,
+    stripePaymentStatus: session.payment_status,
+    stripeAmount: session.amount_total ?? undefined,
+    stripeApplicationFeeAmount: session.application_fee_amount ?? undefined,
+  });
+
+  console.log("Meeting creation result:", {
+    success: !result.error,
+    error: result.error,
+    code: result.code,
+    meetingId: result.meeting?.id,
+    metadata: meetingData,
+    timestamp: new Date().toISOString(),
+  });
+
+  if (result.error) {
+    if (
+      result.code === "SLOT_ALREADY_BOOKED" &&
+      session.payment_status === "paid"
+    ) {
+      // Initiate refund if payment was successful
+      try {
+        if (typeof session.payment_intent === "string") {
+          const refund = await stripe.refunds.create({
+            payment_intent: session.payment_intent,
+            reason: "duplicate",
+          });
+          console.log("Initiated refund for double booking:", {
+            sessionId: session.id,
+            refundId: refund.id,
+          });
+        }
+      } catch (refundError) {
+        console.error("Error initiating refund:", refundError);
+      }
+    }
+
+    throw new Error(`Meeting creation failed: ${result.code}`);
+  }
+
+  return { success: true, meetingId: result.meeting?.id };
 }
 
 // Add the setupDelayedTransfer function
@@ -332,86 +285,77 @@ async function setupDelayedTransfer(
   }
 }
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
-    // Get the raw body
-    const rawBody = await req.text();
-    const headersList = headers();
-    const signature = headersList.get("stripe-signature");
+    const body = await request.text();
+    const signature = headers().get("stripe-signature");
 
-    if (!signature || !webhookSecret) {
-      console.error("Missing webhook signature or secret");
+    if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
       return NextResponse.json(
-        { error: "Missing webhook configuration" },
+        { error: "Missing stripe signature" },
         { status: 400 }
       );
     }
 
-    let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
-      console.log("Received webhook event:", {
-        type: event.type,
-        id: event.id,
-        timestamp: new Date().toISOString(),
-      });
-    } catch (err) {
-      console.error("Webhook signature verification failed:", {
-        error: err instanceof Error ? err.message : "Unknown error",
-        signature,
-      });
-      return NextResponse.json(
-        { error: "Webhook signature verification failed" },
-        { status: 400 }
-      );
-    }
+    const event = stripe.webhooks.constructEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET
+    );
 
-    try {
-      switch (event.type) {
-        case "checkout.session.completed": {
-          const session = event.data.object as StripeConnectSession;
-          console.log("Processing completed checkout session:", {
+    console.log("Received webhook event:", {
+      type: event.type,
+      id: event.id,
+      timestamp: new Date().toISOString(),
+    });
+
+    if (event.type === "checkout.session.completed") {
+      const session = event.data.object as StripeCheckoutSession;
+
+      console.log("Processing completed checkout session:", {
+        sessionId: session.id,
+        paymentStatus: session.payment_status,
+        metadata: session.metadata,
+      });
+
+      let lastError: Error | unknown;
+      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          const result = await handleCheckoutSession(session);
+          return NextResponse.json(result);
+        } catch (error) {
+          lastError = error;
+          console.error("Error processing checkout session:", {
+            error: error instanceof Error ? error.message : "Unknown error",
+            attempt,
             sessionId: session.id,
-            paymentStatus: session.payment_status,
-            metadata: session.metadata,
+            timestamp: new Date().toISOString(),
           });
 
-          const result = await handleCheckoutSessionCompleted(session);
-          console.log("Checkout session processing result:", {
-            sessionId: session.id,
-            success: result ? !result.error : false,
-            meetingId: result?.meeting?.id ?? null,
-          });
-          break;
+          if (attempt < MAX_RETRIES) {
+            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+          }
         }
-        case "payment_intent.payment_failed": {
-          const paymentIntent = event.data.object as Stripe.PaymentIntent;
-          console.log("Processing payment intent failed:", {
-            paymentIntentId: paymentIntent.id,
-            error: paymentIntent.last_payment_error,
-          });
-          await handlePaymentIntentFailed(paymentIntent);
-          break;
-        }
-        default:
-          console.log(`Unhandled event type: ${event.type}`);
       }
 
-      return NextResponse.json({ received: true });
-    } catch (error) {
       console.error("Error processing webhook:", {
         eventType: event.type,
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: lastError instanceof Error ? lastError.message : "Unknown error",
         timestamp: new Date().toISOString(),
       });
-      // Return 200 to acknowledge receipt even if processing fails
-      return NextResponse.json({ received: true });
+
+      return NextResponse.json(
+        { error: "Failed to process checkout session" },
+        { status: 500 }
+      );
     }
-  } catch (err) {
-    console.error("Webhook error:", err);
+
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error("Webhook error:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: "Webhook handler failed" },
+      { status: 400 }
     );
   }
 }

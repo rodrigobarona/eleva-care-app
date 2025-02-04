@@ -11,6 +11,8 @@ import {
   CardTitle,
 } from "@/components/atoms/card";
 import { Badge } from "@/components/atoms/badge";
+import { RecordDialog } from "@/components/organisms/RecordDialog";
+import { Button } from "@/components/atoms/button";
 
 interface Appointment {
   id: string;
@@ -84,14 +86,23 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
           {appointment.meetingUrl && (
             <div className="flex items-center gap-2">
               <LinkIcon className="h-4 w-4" />
-              <a
-                href={appointment.meetingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                Join Meeting
-              </a>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" asChild>
+                  <Link
+                    href={appointment.meetingUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Join Meeting
+                  </Link>
+                </Button>
+                <RecordDialog
+                  meetingId={appointment.id}
+                  guestName={appointment.guestName}
+                  guestEmail={appointment.guestEmail}
+                  appointmentDate={appointment.startTime}
+                />
+              </div>
             </div>
           )}
           {appointment.guestNotes && (
