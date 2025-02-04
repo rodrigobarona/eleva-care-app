@@ -36,7 +36,7 @@ The Services and all content and materials included therein, including but not l
 
 ## 7. Privacy
 
-Your use of the Services is subject to our [Privacy Policy](https://eleva.care/privacy). By using the Services, you consent to the collection, use, and disclosure of your personal data as described in our Privacy Policy. Our processing of your data is governed by our [Data Processing Agreement](https://neon.tech/dpa). We use Clerk for user management, and their [Privacy Policy](https://clerk.com/legal/privacy) and [Data Processing Addendum](https://clerk.com/legal/dpa) apply. For user authentication, we use Google OAuth 2.0, and their [OAuth 2.0 Policies](https://developers.google.com/identity/protocols/oauth2/policies) apply. We also use Beehiiv for our newsletter, and their [Privacy Policy](https://beehiiv.com/privacy), [Publisher Agreement](https://beehiiv.com/pa), and [Acceptable Use Policy](https://beehiiv.com/aup) apply.
+Your use of the Services is subject to our [Privacy Policy](https://eleva.care/privacy). By using the Services, you consent to the collection, use, and disclosure of your personal data as described in our Privacy Policy. Our processing of your data is governed by our [Data Processing Agreement](https://eleva.care/legal/dpa). We use Clerk for user management, and their [Privacy Policy](https://clerk.com/legal/privacy) and [Data Processing Addendum](https://clerk.com/legal/dpa) apply. For user authentication, we use Google OAuth 2.0, and their [OAuth 2.0 Policies](https://developers.google.com/identity/protocols/oauth2/policies) apply. We also use Beehiiv for our newsletter, and their [Privacy Policy](https://beehiiv.com/privacy), [Publisher Agreement](https://beehiiv.com/pa), and [Acceptable Use Policy](https://beehiiv.com/aup) apply.
 
 ## 8. Third-Party Services
 
@@ -69,6 +69,10 @@ We may revise these Terms at any time by posting an updated version on our websi
 ## 15. Contact Us
 
 If you have any questions about these Terms, please contact us at [support@eleva.care](mailto:support@eleva.care) or [+351 931897950](tel:+351931897950).
+
+## 16. Technology Stack and Sub-Listing Process
+
+Eleva is built using modern technologies including Next.js 14 with the App Router, React for building dynamic user interfaces, and Tailwind CSS with shadcn/ui for responsive design. We use Clerk for secure authentication, PostgreSQL with Drizzle ORM for efficient database management, and Stripe Connect for secure payment processing. Our platform also integrates Google Calendar for scheduling and Beehiiv for newsletter services. The sub-listing process employed on our platform ensures accurate and efficient organization of appointment listings and expert profiles.
 `,
   },
   privacy: {
@@ -79,7 +83,7 @@ _Last Updated:_ January 27, 2025
 
 ## 1. Introduction
 
-Búzios e Tartarugas, Lda. ("Eleva.care," "we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and share your personal information when you use our website and services.
+Búzios e Tartarugas, Lda. ("Eleva.care," "we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and share your personal information when you use our website and services. For the provision of our Services, Eleva leverages a modern technology stack including Next.js 14, Clerk for authentication, PostgreSQL with Drizzle ORM for database management, and Tailwind CSS with shadcn/ui for interface design. Our sub-listing process ensures accurate synchronization of appointment data and expert profiles.
 
 ## 2. Information We Collect
 
@@ -90,7 +94,6 @@ Búzios e Tartarugas, Lda. ("Eleva.care," "we," "us," or "our") is committed to 
 ## 3. How We Use Your Information
 
 We use your information to:
-
 - Provide and improve our services.
 - Communicate with you.
 - Personalize your experience.
@@ -99,7 +102,6 @@ We use your information to:
 ## 4. How We Share Your Information
 
 We may share your information with:
-
 - Service providers who assist us in providing our services.
 - Partners with whom we offer joint services.
 - Legal authorities as required by law.
@@ -122,11 +124,11 @@ Your information may be transferred to and processed in countries outside the Eu
 
 ## 9. Third-Party Services
 
-Our services integrate with third-party services like Neon.tech, Clerk.com, Stripe, Vercel, Google Cloud, and Beehiiv.com. Their privacy policies apply to their respective services.
+Our services integrate with third-party services like Neon.tech, Clerk.com, Stripe, Vercel, Google Cloud, and Beehiiv.com. Their respective privacy policies apply.
 
 ## 10. Contact Us
 
-If you have any questions about this Privacy Policy, please contact us at support@eleva.care or +351 931897950.
+If you have any questions about this Privacy Policy, please contact us at [support@eleva.care](mailto:support@eleva.care) or call +351 931897950.
 
 ## Additional Clauses (GDPR Specific):
 
@@ -150,27 +152,26 @@ _Last Updated:_ January 27, 2025
 - Búzios e Tartarugas, Lda. (Eleva.care), Rua Gil Vicente, 2 - 2775-198 Parede (Portugal), VAT Number: PT515001708
 
 **Data Processors:**
-
 - Neon Inc., 2261 Market Street STE 22601 San Francisco, CA, 94114, USA
 - Clerk, Inc., 660 King Street Unit 345 San Francisco, CA 94107 United States
-- Stripe, Inc. 510 Townsend St., San Francisco, CA United States
-- Google LLC 1600 Amphitheatre Parkway, Mountain View, CA 94043 United States
+- Stripe, Inc., 510 Townsend St., San Francisco, CA United States
+- Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 United States
+- Beehiiv Inc., for processing newsletter data as defined in their applicable agreements.
 
 ## 1. Subject Matter and Purpose of Processing
 
 This DPA governs the processing of personal data by the Data Processors on behalf of the Data Controller in connection with the provision of the following services:
-
 - **Neon:** Database services for storing appointment data, synchronized with Clerk.
 - **Clerk:** User management services.
 - **Stripe:** Payment processing and storage of payment method data.
 - **Google Cloud:** Single Sign-On (SSO) services.
+- **Beehiiv:** Newsletter services and related communications.
 
 The purpose of processing is to facilitate the operation of Eleva.care's platform and services, including user authentication, appointment management, and payment processing.
 
 ## 2. Data Controller's Responsibilities
 
 Eleva.care, as the Data Controller, shall:
-
 - Comply with all applicable data protection laws, including GDPR.
 - Provide clear and accurate instructions to the Data Processors regarding the processing of personal data.
 - Obtain and maintain all necessary consents from data subjects for the processing of their personal data.
@@ -179,7 +180,6 @@ Eleva.care, as the Data Controller, shall:
 ## 3. Data Processors' Responsibilities
 
 The Data Processors shall:
-
 - Process personal data only on documented instructions from the Data Controller.
 - Implement appropriate technical and organizational security measures to protect personal data against unauthorized access, use, disclosure, alteration, or destruction.
 - Assist the Data Controller in fulfilling its obligations under GDPR, including responding to data subject requests.
@@ -212,6 +212,7 @@ This DPA shall be governed by and construed in accordance with the laws of Portu
 - **Clerk:** [https://clerk.com/legal/dpa](https://clerk.com/legal/dpa)
 - **Stripe:** [https://stripe.com/legal/dpa](https://stripe.com/legal/dpa)
 - **Google Cloud:** [https://cloud.google.com/terms/data-processing-addendum](https://cloud.google.com/terms/data-processing-addendum)
+- **Beehiiv:** Refer to Beehiiv's legal documentation for their data processing terms.
 `,
   },
 };
