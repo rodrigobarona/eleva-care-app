@@ -39,6 +39,7 @@ export async function POST(request: Request) {
         payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
         mode: "payment",
         payment_intent_data: {
+          application_fee_amount: calculateApplicationFee(price),
           metadata: {
             eventId,
             meetingData: JSON.stringify(meetingData),
@@ -112,4 +113,7 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+}
+function calculateApplicationFee(price: number): number {
+  return Math.round(price * 0.15);
 }

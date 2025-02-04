@@ -153,16 +153,13 @@ async function handleCheckoutSessionCompleted(
 
       // If there's a payment intent, set up the transfer data
       if (session.payment_intent && session.payment_status === "paid") {
-        const transferData = {
-          destination: expertConnectAccountId,
+        // Create a transfer instead of updating the payment intent
+        await stripe.transfers.create({
           amount: calculateExpertAmount(session.amount_total),
+          currency: "eur",
+          destination: expertConnectAccountId,
           transfer_group: `meeting_${session.id}`,
-        };
-
-        // Update payment intent with transfer data
-        await stripeInstance.paymentIntents.update(session.payment_intent, {
-          transfer_data: transferData,
-          application_fee_amount: calculateApplicationFee(session.amount_total),
+          source_transaction: session.payment_intent,
         });
       }
 
@@ -172,45 +169,28 @@ async function handleCheckoutSessionCompleted(
         throw new Error("Missing required eventId in session metadata");
       }
 
-      // Optionally, enforce expertId and timezone as well:
-      const expertId = session.metadata?.expertId;
-      if (!expertId) {
-        throw new Error("Missing required expertId in session metadata");
-      }
-
-      const timezone = session.metadata?.timezone;
-      if (!timezone) {
-        throw new Error("Missing required timezone in session metadata");
+      // Parse the meetingData from metadata
+      const meetingData = JSON.parse(session.metadata?.meetingData || "{}");
+      const clerkUserId = meetingData.clerkUserId;
+      if (!clerkUserId) {
+        throw new Error("Missing required clerkUserId in meetingData");
       }
 
       // Create the meeting
       const result = await createMeeting({
         eventId: eventId,
-        clerkUserId: expertId,
-        guestEmail:
-          session.customer_details?.email ??
-          (session.metadata?.guestEmail as string),
-        guestName:
-          session.customer_details?.name ??
-          (session.metadata?.guestName as string),
-        timezone: timezone,
-        startTime: new Date(session.metadata?.startTime as string),
-        guestNotes: session.metadata?.guestNotes as string,
+        clerkUserId: clerkUserId,
+        guestEmail: session.customer_details?.email ?? meetingData.guestEmail,
+        guestName: session.customer_details?.name ?? meetingData.guestName,
+        timezone: meetingData.timezone,
+        startTime: new Date(meetingData.startTime),
+        guestNotes: meetingData.guestNotes,
         stripePaymentIntentId: paymentIdentifier,
         stripeSessionId: session.id,
         stripePaymentStatus: session.payment_status,
         stripeAmount: session.amount_total ?? undefined,
         stripeApplicationFeeAmount: session.application_fee_amount,
       });
-
-      // If meeting creation was successful, schedule the delayed transfer
-      if (!result.error && result.meeting) {
-        await setupDelayedTransfer(
-          session,
-          result.meeting.id,
-          expertConnectAccountId
-        );
-      }
 
       return result;
     } catch (error) {
