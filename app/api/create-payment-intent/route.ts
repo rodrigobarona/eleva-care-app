@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { STRIPE_CONFIG, calculateApplicationFee } from "@/config/stripe";
 import { getOrCreateStripeCustomer } from "@/lib/stripe";
+import { db } from "@/drizzle/db";
+import { eq } from "drizzle-orm";
+import { EventTable } from "@/drizzle/schema";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
   apiVersion: STRIPE_CONFIG.API_VERSION,
@@ -25,6 +28,18 @@ export async function POST(request: Request) {
     }
 
     try {
+      // Get expert's Connect account ID
+      const event = await db.query.EventTable.findFirst({
+        where: eq(EventTable.id, eventId),
+        with: {
+          user: true,
+        },
+      });
+
+      if (!event?.user?.stripeConnectAccountId) {
+        throw new Error("Expert's Connect account not found");
+      }
+
       // Get or create customer first
       const customerId = await getOrCreateStripeCustomer(
         undefined, // No userId for guests
@@ -40,11 +55,15 @@ export async function POST(request: Request) {
         mode: "payment",
         payment_intent_data: {
           application_fee_amount: calculateApplicationFee(price),
+          transfer_data: {
+            destination: event.user.stripeConnectAccountId,
+          },
           metadata: {
             eventId,
             meetingData: JSON.stringify(meetingData),
             isGuest: "true",
             guestEmail: meetingData.guestEmail,
+            expertConnectAccountId: event.user.stripeConnectAccountId,
           },
         },
         line_items: [
@@ -67,6 +86,7 @@ export async function POST(request: Request) {
           meetingData: JSON.stringify(meetingData),
           isGuest: "true",
           guestEmail: meetingData.guestEmail,
+          expertConnectAccountId: event.user.stripeConnectAccountId,
         },
         success_url: `${request.headers.get(
           "origin"
