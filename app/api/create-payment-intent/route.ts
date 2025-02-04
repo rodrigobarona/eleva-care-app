@@ -3,40 +3,12 @@ import Stripe from "stripe";
 import { STRIPE_CONFIG, calculateApplicationFee } from "@/config/stripe";
 import { getOrCreateStripeCustomer } from "@/lib/stripe";
 import { db } from "@/drizzle/db";
-import { eq, and, sql } from "drizzle-orm";
-import { EventTable, MeetingTable } from "@/drizzle/schema";
+import { eq } from "drizzle-orm";
+import { EventTable } from "@/drizzle/schema";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
   apiVersion: STRIPE_CONFIG.API_VERSION,
 });
-
-async function validateMeetingTime(
-  eventId: string,
-  startTime: Date,
-  durationInMinutes: number
-) {
-  // Check if time is in the future
-  if (startTime.getTime() <= Date.now()) {
-    return { valid: false, message: "Meeting time must be in the future" };
-  }
-
-  // Calculate end time
-  const endTime = new Date(startTime.getTime() + durationInMinutes * 60 * 1000);
-
-  // Check for overlapping meetings using SQL timestamp
-  const existingMeeting = await db.query.MeetingTable.findFirst({
-    where: and(
-      eq(MeetingTable.eventId, eventId),
-      sql`${MeetingTable.startTime} < ${endTime}::timestamp AND ${MeetingTable.endTime} > ${startTime}::timestamp`
-    ),
-  });
-
-  if (existingMeeting) {
-    return { valid: false, message: "This time slot is already booked" };
-  }
-
-  return { valid: true };
-}
 
 export async function POST(request: Request) {
   try {
@@ -44,23 +16,19 @@ export async function POST(request: Request) {
       await request.json();
 
     // Validate required fields
-    if (!price || !meetingData?.guestEmail || !meetingData?.startTime) {
+    if (!price || !meetingData?.guestEmail) {
       return NextResponse.json(
         {
           message:
-            "Missing required fields: price, guest email, and start time are required",
-          receivedData: {
-            price,
-            email: meetingData?.guestEmail,
-            startTime: meetingData?.startTime,
-          },
+            "Missing required fields: price and guest email are required",
+          receivedData: { price, email: meetingData?.guestEmail },
         },
         { status: 400 }
       );
     }
 
     try {
-      // Get expert's Connect account ID and event details
+      // Get expert's Connect account ID
       const event = await db.query.EventTable.findFirst({
         where: eq(EventTable.id, eventId),
         with: {
@@ -72,67 +40,20 @@ export async function POST(request: Request) {
         throw new Error("Expert's Connect account not found");
       }
 
-      // Validate meeting time
-      const startTime = new Date(meetingData.startTime);
-      const timeValidation = await validateMeetingTime(
-        eventId,
-        startTime,
-        event.durationInMinutes
-      );
-
-      if (!timeValidation.valid) {
-        return NextResponse.json(
-          { message: timeValidation.message },
-          { status: 400 }
-        );
-      }
-
-      // Check for existing pending payments for this time slot
-      const pendingPayment = await db.query.MeetingTable.findFirst({
-        where: and(
-          eq(MeetingTable.eventId, eventId),
-          eq(MeetingTable.startTime, startTime),
-          eq(MeetingTable.stripePaymentStatus, "pending")
-        ),
-      });
-
-      if (pendingPayment) {
-        return NextResponse.json(
-          { message: "This time slot has a pending payment" },
-          { status: 400 }
-        );
-      }
-
-      // Validate price matches event price
-      if (price !== event.price) {
-        return NextResponse.json(
-          {
-            message: "Invalid price",
-            expectedPrice: event.price,
-            receivedPrice: price,
-          },
-          { status: 400 }
-        );
-      }
-
       // Prepare meeting metadata with expert's clerkUserId
       const meetingMetadata = {
         ...meetingData,
-        clerkUserId: event.clerkUserId,
-        expertClerkUserId: event.clerkUserId,
+        clerkUserId: event.clerkUserId, // Expert's clerkUserId
+        expertClerkUserId: event.clerkUserId, // Explicitly mark as expert's ID
         isGuest: "true",
         guestEmail: meetingData.guestEmail,
         timezone: meetingData.timezone,
         startTime: meetingData.startTime,
-        endTime: new Date(
-          startTime.getTime() + event.durationInMinutes * 60 * 1000
-        ).toISOString(),
-        durationInMinutes: event.durationInMinutes,
       };
 
       // Get or create customer first
       const customerId = await getOrCreateStripeCustomer(
-        undefined,
+        undefined, // No userId for guests
         meetingData.guestEmail
       );
 
@@ -143,7 +64,6 @@ export async function POST(request: Request) {
         customer: customerId,
         payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
         mode: "payment",
-        expires_at: Math.floor(Date.now() / 1000) + 30 * 60, // 30 minutes expiration
         payment_intent_data: {
           application_fee_amount: calculateApplicationFee(price),
           transfer_data: {
@@ -160,10 +80,10 @@ export async function POST(request: Request) {
             price_data: {
               currency: STRIPE_CONFIG.CURRENCY,
               product_data: {
-                name: `${event.name} - Consultation`,
+                name: "Consultation Booking",
                 description: `Booking for ${meetingData.guestName} on ${new Date(
                   meetingData.startTime
-                ).toLocaleString()} (${event.durationInMinutes} minutes)`,
+                ).toLocaleString()}`,
               },
               unit_amount: Math.round(price),
             },
@@ -193,12 +113,7 @@ export async function POST(request: Request) {
         )}&tz=${encodeURIComponent(meetingData.timezone)}`,
       });
 
-      console.log("Checkout session created:", {
-        sessionId: session.id,
-        startTime: meetingData.startTime,
-        endTime: meetingMetadata.endTime,
-        duration: event.durationInMinutes,
-      });
+      console.log("Checkout session created:", session.id);
 
       return NextResponse.json({
         url: session.url,
