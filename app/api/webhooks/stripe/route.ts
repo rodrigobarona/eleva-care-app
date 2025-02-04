@@ -108,37 +108,53 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
       const meetingData = JSON.parse(session.metadata?.meetingData || "{}");
       console.log("Parsed meeting data:", meetingData);
 
-      // Get expert's Connect account ID from metadata
+      // Get expert's Connect account ID and eventId from metadata
       const expertConnectAccountId = session.metadata?.expertConnectAccountId;
       const eventId = session.metadata?.eventId;
 
-      if (!eventId || !expertConnectAccountId) {
+      if (
+        !eventId ||
+        !expertConnectAccountId ||
+        !meetingData.expertClerkUserId
+      ) {
+        console.error("Missing required metadata:", {
+          eventId,
+          expertConnectAccountId,
+          expertClerkUserId: meetingData.expertClerkUserId,
+          metadata: session.metadata,
+        });
         throw new Error(
-          "Missing required metadata: eventId or expertConnectAccountId"
+          "Missing required metadata: eventId, expertConnectAccountId, or expertClerkUserId"
         );
       }
 
-      // Create the meeting using the expert's clerkUserId from metadata
+      // Create the meeting using all required data
       const result = await createMeeting({
-        eventId: eventId,
-        clerkUserId: meetingData.expertClerkUserId, // Use expert's ID
-        guestEmail: session.customer_details?.email ?? meetingData.guestEmail,
-        guestName: session.customer_details?.name ?? meetingData.guestName,
+        eventId,
+        clerkUserId: meetingData.expertClerkUserId,
+        guestEmail: session.customer_details?.email || meetingData.guestEmail,
+        guestName: session.customer_details?.name || meetingData.guestName,
         timezone: meetingData.timezone,
         startTime: new Date(meetingData.startTime),
-        guestNotes: meetingData.guestNotes,
-        stripePaymentIntentId: session.payment_intent || session.id,
+        guestNotes: meetingData.guestNotes || "",
+        stripePaymentIntentId: session.payment_intent || undefined,
         stripeSessionId: session.id,
-        stripePaymentStatus: session.payment_status,
-        stripeAmount: session.amount_total ?? undefined,
-        stripeApplicationFeeAmount: session.application_fee_amount,
+        stripePaymentStatus: session.payment_status as "succeeded",
+        stripeAmount: session.amount_total || undefined,
+        stripeApplicationFeeAmount: session.application_fee_amount || undefined,
       });
 
       console.log("Meeting creation result:", {
         success: !result.error,
         error: result.error,
+        code: result.code,
         meetingId: result.meeting?.id,
+        metadata: meetingData,
       });
+
+      if (result.error) {
+        throw new Error(`Meeting creation failed: ${result.code}`);
+      }
 
       // Schedule the delayed transfer to the expert
       if (
