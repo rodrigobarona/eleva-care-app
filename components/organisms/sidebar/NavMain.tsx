@@ -6,6 +6,7 @@ import {
   type LucideIcon,
   ChevronLeft,
   Calendar,
+  FileText,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -64,6 +65,14 @@ export function NavMain({ items }: NavMainProps) {
                 <Link href="/appointments" prefetch>
                   <Calendar className="size-4" />
                   <span>All Appointments</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/appointments/records" prefetch>
+                  <FileText className="size-4" />
+                  <span>Records</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

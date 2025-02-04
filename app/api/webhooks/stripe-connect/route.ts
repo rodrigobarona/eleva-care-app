@@ -123,22 +123,25 @@ export async function POST(request: Request) {
       case "payout.created": {
         const payout = event.data.object as Stripe.Payout;
 
-        // Update meetings with payout information
-        if (typeof payout.destination === "string") {
-          await db
-            .update(UserTable)
-            .set({
-              stripeConnectPayoutsEnabled: true,
-              updatedAt: new Date(),
-            })
-            .where(eq(UserTable.stripeConnectAccountId, payout.destination));
+        if (!payout.metadata?.transfer_id) {
+          console.error("Missing transfer_id in payout metadata:", payout.id);
+          break;
         }
+
+        const transfer = await stripe.transfers.retrieve(
+          payout.metadata.transfer_id
+        );
 
         console.log("Payout initiated:", {
           payoutId: payout.id,
           accountId: payout.destination,
           amount: payout.amount,
           currency: payout.currency,
+          meetingId: transfer.metadata.meetingId,
+          customerName: transfer.metadata.customerName,
+          customerEmail: transfer.metadata.customerEmail,
+          meetingStartTime: transfer.metadata.meetingStartTime,
+          payoutScheduledFor: transfer.metadata.payoutScheduledFor,
           arrivalDate: new Date(payout.arrival_date * 1000).toISOString(),
           timestamp: new Date().toISOString(),
         });

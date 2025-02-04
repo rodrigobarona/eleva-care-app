@@ -125,7 +125,61 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     throw new Error(`Meeting creation failed: ${result.code}`);
   }
 
+  // Schedule payout if payment is successful
+  if (session.payment_status === "paid") {
+    await scheduleConnectPayout(session, meetingData);
+  }
+
   return { success: true, meetingId: result.meeting?.id };
+}
+
+async function scheduleConnectPayout(
+  session: StripeCheckoutSession,
+  meetingData: MeetingMetadata
+) {
+  if (!session.payment_intent || typeof session.payment_intent !== "string") {
+    throw new Error("Missing payment intent");
+  }
+
+  // Get the payment intent to access transfer data
+  const paymentIntent = await stripe.paymentIntents.retrieve(
+    session.payment_intent
+  );
+  const connectAccountId = paymentIntent.transfer_data?.destination;
+
+  if (!connectAccountId || typeof connectAccountId !== "string") {
+    throw new Error("Missing or invalid Connect account ID");
+  }
+
+  // Calculate payout schedule (4 hours after meeting)
+  const meetingStartTime = new Date(meetingData.startTime);
+  const payoutScheduleTime = new Date(
+    meetingStartTime.getTime() + 4 * 60 * 60 * 1000
+  );
+
+  // Create a transfer with rich metadata
+  await stripe.transfers.create({
+    amount: session.application_fee_amount || 0,
+    currency: STRIPE_CONFIG.CURRENCY,
+    destination: connectAccountId,
+    source_transaction: session.payment_intent,
+    metadata: {
+      meetingId: session.metadata?.eventId ?? null,
+      expertClerkUserId: meetingData.expertClerkUserId,
+      customerName: meetingData.guestName,
+      customerEmail: meetingData.guestEmail,
+      meetingStartTime: meetingData.startTime,
+      meetingTimezone: meetingData.timezone,
+      payoutScheduledFor: payoutScheduleTime.toISOString(),
+    },
+  });
+
+  console.log("Scheduled payout for meeting:", {
+    eventId: session.metadata?.eventId,
+    expertId: meetingData.expertClerkUserId,
+    customerName: meetingData.guestName,
+    payoutScheduleTime: payoutScheduleTime.toISOString(),
+  });
 }
 
 export async function POST(request: Request) {
