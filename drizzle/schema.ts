@@ -113,6 +113,11 @@ export const MeetingTable = pgTable(
       enum: ["pending", "processing", "succeeded", "failed"],
     }).default("pending"),
     stripeTransferScheduledAt: timestamp("stripeTransferScheduledAt"),
+    stripePayoutId: text("stripe_payout_id").unique(),
+    stripePayoutAmount: integer("stripe_payout_amount"),
+    stripePayoutFailureCode: text("stripe_payout_failure_code"),
+    stripePayoutFailureMessage: text("stripe_payout_failure_message"),
+    stripePayoutPaidAt: timestamp("stripe_payout_paid_at"),
     lastProcessedAt: timestamp("lastProcessedAt"),
     createdAt,
     updatedAt,
@@ -127,6 +132,7 @@ export const MeetingTable = pgTable(
     transferIdIndex: index("meetings_transferId_idx").on(
       table.stripeTransferId
     ),
+    payoutIdIndex: index("meetings_payoutId_idx").on(table.stripePayoutId),
   })
 );
 
@@ -206,6 +212,11 @@ export const UserTable = pgTable(
     stripeConnectOnboardingComplete: boolean(
       "stripe_connect_onboarding_complete"
     ).default(false),
+    stripeConnectPayoutsEnabled: boolean(
+      "stripe_connect_payouts_enabled"
+    ).default(false),
+    stripeBankAccountLast4: text("stripe_bank_account_last4"),
+    stripeBankName: text("stripe_bank_name"),
     createdAt,
     updatedAt,
   },
