@@ -111,18 +111,26 @@ export async function createPaymentIntent(
   try {
     const stripe = await getServerStripe();
 
-    // Get or create customer first - ALWAYS have the customer defined BEFORE checkout
+    // Get or create customer first
     const stripeCustomerId = await getOrCreateStripeCustomer(userId, email);
     if (typeof stripeCustomerId !== "string") {
       throw new Error("Failed to get or create Stripe customer");
     }
 
+    // Get the event and the expert's data
     const event = await db.query.EventTable.findFirst({
       where: ({ id }, { eq }) => eq(id, eventId),
+      with: {
+        user: true, // Include the related user (expert) data
+      },
     });
 
     if (!event) {
       throw new Error("Event not found");
+    }
+
+    if (!event.user?.stripeConnectAccountId) {
+      throw new Error("Expert's Stripe Connect account not found");
     }
 
     const paymentIntent = await stripe.paymentIntents.create({
@@ -137,6 +145,7 @@ export async function createPaymentIntent(
         eventId: event.id,
         meetingData: JSON.stringify(meetingData),
         userId,
+        expertConnectAccountId: event.user.stripeConnectAccountId, // Add the expert's Connect account ID
       },
     });
 

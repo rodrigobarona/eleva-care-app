@@ -6,6 +6,7 @@ import { STRIPE_CONFIG } from "@/config/stripe";
 import { db } from "@/drizzle/db";
 import { MeetingTable } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
+import { EventTable } from "@/drizzle/schema";
 
 // Add type for Stripe Connect session
 type StripeConnectSession = Stripe.Checkout.Session & {
@@ -118,10 +119,33 @@ async function handleCheckoutSessionCompleted(
         metadata: session.metadata,
       });
 
-      // Get expert's Connect account ID from metadata
-      const expertConnectAccountId = session.metadata?.expertConnectAccountId;
+      // Get expert's Connect account ID from metadata or fetch from database
+      let expertConnectAccountId = session.metadata?.expertConnectAccountId;
+
+      // If not in metadata, try to get it from the database using eventId
       if (!expertConnectAccountId) {
-        throw new Error("Missing expert Connect account ID in metadata");
+        const eventId = session.metadata?.eventId;
+        if (!eventId) {
+          throw new Error("Missing eventId in metadata");
+        }
+
+        // Query the event and related expert data
+        const event = await db.query.EventTable.findFirst({
+          where: eq(EventTable.id, eventId),
+          with: {
+            user: true,
+          },
+        });
+
+        if (!event?.user?.stripeConnectAccountId) {
+          throw new Error("Could not find expert's Connect account ID");
+        }
+
+        expertConnectAccountId = event.user.stripeConnectAccountId;
+        console.log("Retrieved expert Connect account ID from database:", {
+          eventId,
+          expertConnectAccountId,
+        });
       }
 
       // For Connect payments, handle both payment_intent and direct charges
