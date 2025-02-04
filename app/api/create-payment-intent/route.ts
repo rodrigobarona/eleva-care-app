@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { STRIPE_CONFIG } from "@/config/stripe";
+import { STRIPE_CONFIG, calculateApplicationFee } from "@/config/stripe";
 import { getOrCreateStripeCustomer } from "@/lib/stripe";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
@@ -113,7 +113,4 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
-}
-function calculateApplicationFee(price: number): number {
-  return Math.round(price * 0.15);
 }

@@ -7,6 +7,7 @@ import { db } from "@/drizzle/db";
 import { MeetingTable } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 import { EventTable } from "@/drizzle/schema";
+import { calculateExpertAmount } from "@/config/stripe";
 
 // Add type for Stripe Connect session
 type StripeConnectSession = Stripe.Checkout.Session & {
@@ -91,24 +92,8 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   }
 }
 
-// First, let's add a helper function to calculate amounts
-function calculateExpertAmount(totalAmount: number | null): number {
-  if (!totalAmount) return 0;
-  // Default to 85% for the expert
-  return Math.floor(totalAmount * 0.85);
-}
-
-function calculateApplicationFee(totalAmount: number | null): number {
-  if (!totalAmount) return 0;
-  // Default to 15% platform fee
-  return Math.floor(totalAmount * 0.15);
-}
-
 // Update the handleCheckoutSessionCompleted function
-async function handleCheckoutSessionCompleted(
-  session: StripeConnectSession,
-  stripeInstance: Stripe
-) {
+async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
   let retries = 0;
   while (retries < MAX_RETRIES) {
     try {
@@ -148,20 +133,8 @@ async function handleCheckoutSessionCompleted(
         });
       }
 
-      // For Connect payments, handle both payment_intent and direct charges
+      // For Connect payments, get the payment identifier
       const paymentIdentifier = session.payment_intent || session.id;
-
-      // If there's a payment intent, set up the transfer data
-      if (session.payment_intent && session.payment_status === "paid") {
-        // Create a transfer instead of updating the payment intent
-        await stripe.transfers.create({
-          amount: calculateExpertAmount(session.amount_total),
-          currency: "eur",
-          destination: expertConnectAccountId,
-          transfer_group: `meeting_${session.id}`,
-          source_transaction: session.payment_intent,
-        });
-      }
 
       // Add runtime check for required metadata before calling createMeeting
       const eventId = session.metadata?.eventId;
@@ -191,6 +164,19 @@ async function handleCheckoutSessionCompleted(
         stripeAmount: session.amount_total ?? undefined,
         stripeApplicationFeeAmount: session.application_fee_amount,
       });
+
+      // Schedule the delayed transfer to the expert
+      if (
+        session.payment_status === "paid" &&
+        !result.error &&
+        result.meeting
+      ) {
+        await setupDelayedTransfer(
+          session,
+          result.meeting.id,
+          expertConnectAccountId
+        );
+      }
 
       return result;
     } catch (error) {
@@ -226,7 +212,7 @@ async function setupDelayedTransfer(
   try {
     const transfer = await stripe.transfers.create({
       amount: calculateExpertAmount(session.amount_total),
-      currency: "eur",
+      currency: STRIPE_CONFIG.CURRENCY,
       destination: expertConnectAccountId,
       transfer_group: `meeting_${meetingId}`,
       metadata: {
@@ -309,37 +295,16 @@ export const POST = async (req: Request) => {
     }
 
     try {
-      // If this is a Connect account event, use the connected account's Stripe instance
-      const stripeInstance = event.account
-        ? new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
-            apiVersion: STRIPE_CONFIG.API_VERSION,
-            stripeAccount: event.account,
-          })
-        : stripe;
-
-      // Log whether this is a platform or connected account event
-      console.log(
-        `Processing ${event.account ? "connected account" : "platform"} event:`,
-        {
-          type: event.type,
-          accountId: event.account || "platform",
-          livemode: event.livemode,
-        }
-      );
-
+      // Handle different event types
       switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as StripeConnectSession;
           console.log("Processing completed checkout session:", {
             sessionId: session.id,
             paymentStatus: session.payment_status,
-            paymentIntent: session.payment_intent,
-            customerId: session.customer,
-            metadata: session.metadata,
-            connectedAccountId: event.account,
             livemode: event.livemode,
           });
-          await handleCheckoutSessionCompleted(session, stripeInstance);
+          await handleCheckoutSessionCompleted(session);
           break;
         }
         case "payment_intent.payment_failed": {
