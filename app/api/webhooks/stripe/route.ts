@@ -104,6 +104,20 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
         metadata: session.metadata,
       });
 
+      // Check for existing meeting with this session ID
+      const existingMeeting = await db.query.MeetingTable.findFirst({
+        where: eq(MeetingTable.stripeSessionId, session.id),
+      });
+
+      if (existingMeeting) {
+        console.log("Session already processed:", {
+          sessionId: session.id,
+          meetingId: existingMeeting.id,
+          timestamp: new Date().toISOString(),
+        });
+        return { error: false, meeting: existingMeeting };
+      }
+
       // Parse the meetingData from metadata
       const meetingData = JSON.parse(session.metadata?.meetingData || "{}");
       console.log("Parsed meeting data:", meetingData);
@@ -122,10 +136,16 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
           expertConnectAccountId,
           expertClerkUserId: meetingData.expertClerkUserId,
           metadata: session.metadata,
+          timestamp: new Date().toISOString(),
         });
         throw new Error(
           "Missing required metadata: eventId, expertConnectAccountId, or expertClerkUserId"
         );
+      }
+
+      // Validate payment status
+      if (session.payment_status !== "paid") {
+        throw new Error(`Invalid payment status: ${session.payment_status}`);
       }
 
       // Create the meeting using all required data
@@ -150,6 +170,7 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
         code: result.code,
         meetingId: result.meeting?.id,
         metadata: meetingData,
+        timestamp: new Date().toISOString(),
       });
 
       if (result.error) {
@@ -172,6 +193,7 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
           expertConnectAccountId,
           scheduledFor:
             new Date(meetingData.startTime).getTime() + 4 * 60 * 60 * 1000,
+          timestamp: new Date().toISOString(),
         });
       }
 
@@ -207,14 +229,51 @@ async function setupDelayedTransfer(
   ); // 4 hours after meeting
 
   try {
+    // Validate session amount
+    if (!session.amount_total || session.amount_total <= 0) {
+      throw new Error("Invalid session amount");
+    }
+
+    // Calculate expert amount
+    const expertAmount = calculateExpertAmount(session.amount_total);
+
+    // Validate expert amount
+    if (expertAmount <= 0) {
+      throw new Error("Invalid expert amount calculated");
+    }
+
+    // Validate that expert amount is less than total amount
+    if (expertAmount >= session.amount_total) {
+      throw new Error("Expert amount must be less than total amount");
+    }
+
+    // Validate application fee
+    const applicationFee = session.application_fee_amount;
+    if (!applicationFee || applicationFee <= 0) {
+      throw new Error("Invalid application fee");
+    }
+
+    // Validate that amounts add up correctly
+    if (expertAmount + applicationFee !== session.amount_total) {
+      console.error("Amount mismatch:", {
+        totalAmount: session.amount_total,
+        expertAmount,
+        applicationFee,
+        difference: session.amount_total - (expertAmount + applicationFee),
+      });
+      throw new Error("Amount validation failed");
+    }
+
     const transfer = await stripe.transfers.create({
-      amount: calculateExpertAmount(session.amount_total),
+      amount: expertAmount,
       currency: STRIPE_CONFIG.CURRENCY,
       destination: expertConnectAccountId,
       transfer_group: `meeting_${meetingId}`,
       metadata: {
         meetingId,
         scheduledFor: transferScheduleTime.toISOString(),
+        originalAmount: session.amount_total,
+        applicationFee: applicationFee,
       },
     });
 
@@ -226,15 +285,18 @@ async function setupDelayedTransfer(
         stripeTransferAmount: transfer.amount,
         stripeTransferStatus: "pending",
         stripeTransferScheduledAt: transferScheduleTime,
+        stripeApplicationFeeAmount: applicationFee,
       })
       .where(eq(MeetingTable.id, meetingId));
 
     console.log("Transfer scheduled:", {
       transferId: transfer.id,
       amount: transfer.amount,
+      applicationFee: applicationFee,
       destination: expertConnectAccountId,
       scheduledFor: transferScheduleTime,
       meetingId,
+      totalAmount: session.amount_total,
     });
 
     return transfer;
@@ -243,6 +305,9 @@ async function setupDelayedTransfer(
       error: error instanceof Error ? error.message : "Unknown error",
       meetingId,
       expertConnectAccountId,
+      sessionAmount: session.amount_total,
+      applicationFee: session.application_fee_amount,
+      timestamp: new Date().toISOString(),
     });
     throw error;
   }

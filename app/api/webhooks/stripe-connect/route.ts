@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { NextResponse } from "next/server";
 import { STRIPE_CONFIG } from "@/config/stripe";
 import { db } from "@/drizzle/db";
-import { UserTable, MeetingTable } from "@/drizzle/schema";
+import { UserTable } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 
 // Add route segment config
@@ -92,7 +92,10 @@ export async function POST(request: Request) {
         const eventType = event.type.split(".").pop(); // 'created', 'updated', or 'deleted'
 
         // Update user's bank account status
-        if ("bank_name" in externalAccount) {
+        if (
+          "bank_name" in externalAccount &&
+          typeof externalAccount.account === "string"
+        ) {
           await db
             .update(UserTable)
             .set({
@@ -121,18 +124,15 @@ export async function POST(request: Request) {
         const payout = event.data.object as Stripe.Payout;
 
         // Update meetings with payout information
-        await db
-          .update(MeetingTable)
-          .set({
-            stripeTransferStatus: "processing",
-            stripePayoutId: payout.id,
-            stripePayoutAmount: payout.amount,
-            stripePayoutScheduledAt: new Date(payout.arrival_date * 1000),
-            updatedAt: new Date(),
-          })
-          .where(
-            eq(MeetingTable.stripeTransferId, payout.transfer_group ?? "")
-          );
+        if (typeof payout.destination === "string") {
+          await db
+            .update(UserTable)
+            .set({
+              stripeConnectPayoutsEnabled: true,
+              updatedAt: new Date(),
+            })
+            .where(eq(UserTable.stripeConnectAccountId, payout.destination));
+        }
 
         console.log("Payout initiated:", {
           payoutId: payout.id,
@@ -148,16 +148,15 @@ export async function POST(request: Request) {
       case "payout.failed": {
         const payout = event.data.object as Stripe.Payout;
 
-        // Update meetings with failed payout status
-        await db
-          .update(MeetingTable)
-          .set({
-            stripeTransferStatus: "failed",
-            stripePayoutFailureCode: payout.failure_code,
-            stripePayoutFailureMessage: payout.failure_message,
-            updatedAt: new Date(),
-          })
-          .where(eq(MeetingTable.stripePayoutId, payout.id));
+        if (typeof payout.destination === "string") {
+          await db
+            .update(UserTable)
+            .set({
+              stripeConnectPayoutsEnabled: false,
+              updatedAt: new Date(),
+            })
+            .where(eq(UserTable.stripeConnectAccountId, payout.destination));
+        }
 
         console.log("Payout failed:", {
           payoutId: payout.id,
@@ -173,16 +172,6 @@ export async function POST(request: Request) {
 
       case "payout.paid": {
         const payout = event.data.object as Stripe.Payout;
-
-        // Update meetings with successful payout status
-        await db
-          .update(MeetingTable)
-          .set({
-            stripeTransferStatus: "paid",
-            stripePayoutPaidAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(eq(MeetingTable.stripePayoutId, payout.id));
 
         console.log("Payout successful:", {
           payoutId: payout.id,
