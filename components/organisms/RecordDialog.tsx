@@ -9,7 +9,7 @@ import {
 } from "@/components/molecules/dialog";
 import { Button } from "@/components/atoms/button";
 import RecordEditor from "@/components/molecules/RecordEditor";
-import { FileEdit, Minus, Maximize2, X } from "lucide-react";
+import { FileEdit, Minus, Maximize2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -142,26 +142,29 @@ export function RecordDialog({
       </DialogTrigger>
       <DialogContent
         className={cn(
-          "transition-all duration-200",
+          "transition-all duration-200 border shadow-lg",
           isMinimized
-            ? "!absolute bottom-0 right-4 !max-w-[400px] !h-[64px] overflow-hidden"
-            : "max-w-4xl h-[80vh]"
+            ? "!fixed bottom-4 right-4 !max-w-[400px] !h-[64px] overflow-hidden !rounded-t-lg"
+            : "!fixed bottom-4 right-4 !h-[85vh] !w-[800px] !max-w-[90vw] !rounded-t-lg",
+          "!top-auto !translate-y-0"
         )}
       >
-        <DialogHeader className="flex flex-row items-center justify-between">
+        <DialogHeader className="flex flex-row items-center justify-between py-2 px-4 bg-muted/50">
           <div>
-            <DialogTitle>Patient Record</DialogTitle>
+            <DialogTitle className="text-sm font-medium">
+              Patient Record - {guestName}
+            </DialogTitle>
             {!isMinimized && (
-              <DialogDescription>
-                {guestName} ({guestEmail}) - Appointment on{" "}
-                {format(appointmentDate, "PPP")}
+              <DialogDescription className="text-xs">
+                {guestEmail} - {format(appointmentDate, "PPP")}
               </DialogDescription>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1">
             <Button
               variant="ghost"
               size="sm"
+              className="h-8 w-8 p-0"
               onClick={() => setIsMinimized(!isMinimized)}
             >
               {isMinimized ? (
@@ -170,15 +173,20 @@ export function RecordDialog({
                 <Minus className="h-4 w-4" />
               )}
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
-              <X className="h-4 w-4" />
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={() => setIsOpen(false)}
+            >
+              <span className="text-lg leading-none">×</span>
             </Button>
           </div>
         </DialogHeader>
 
         {!isMinimized && (
-          <div className="flex flex-col h-full gap-4 mt-4">
-            <div className="text-sm text-muted-foreground">
+          <div className="flex flex-col h-[calc(100%-60px)] overflow-hidden">
+            <div className="text-xs text-muted-foreground px-4 py-1 border-b">
               {records.length > 0
                 ? `Last modified: ${format(
                     new Date(records[0].lastModifiedAt),
@@ -188,7 +196,7 @@ export function RecordDialog({
               {isLoading && " • Saving..."}
             </div>
 
-            <div className="flex-1 min-h-0">
+            <div className="flex-1 overflow-hidden">
               <RecordEditor
                 value={currentContent}
                 onChange={setCurrentContent}

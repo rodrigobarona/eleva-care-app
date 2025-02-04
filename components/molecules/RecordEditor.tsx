@@ -110,7 +110,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
   }
 
   return (
-    <div className="border rounded-md overflow-hidden h-full flex flex-col">
+    <div className="h-full flex flex-col">
       <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-2">
         <div className="flex gap-2 border-r pr-2">
           <Button
@@ -237,7 +237,10 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
         </div>
       </div>
       <div className="flex-1 overflow-auto">
-        <EditorContent editor={editor} className="h-full" />
+        <EditorContent 
+          editor={editor} 
+          className="h-full"
+        />
       </div>
     </div>
   );
