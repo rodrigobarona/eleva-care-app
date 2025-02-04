@@ -2,23 +2,15 @@
 
 import React from "react";
 import { useUser } from "@clerk/nextjs";
-import { format } from "date-fns";
 import {
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@/components/molecules/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/atoms/card";
-import { Badge } from "@/components/atoms/badge";
-import { Clock, Link, Mail, User } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { Button } from "@/components/atoms/button";
+import { AppointmentCard } from "@/components/organisms/AppointmentCard";
 
 interface Appointment {
   id: string;
@@ -32,6 +24,14 @@ interface Appointment {
   stripePaymentStatus: string;
   stripeTransferStatus?: string;
 }
+
+const EmptyState = ({ message }: { message: string }) => (
+  <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-50 rounded-lg">
+    <Calendar className="h-12 w-12 text-gray-400 mb-4" />
+    <h3 className="text-lg font-medium text-gray-900 mb-1">No appointments</h3>
+    <p className="text-gray-500">{message}</p>
+  </div>
+);
 
 export default function AppointmentsPage() {
   const { user, isLoaded } = useUser();
@@ -70,7 +70,7 @@ export default function AppointmentsPage() {
   today.setHours(0, 0, 0, 0);
 
   const filterAppointments = (filter: "today" | "future" | "past" | "all") => {
-    return appointments.filter((appointment) => {
+    const filtered = appointments.filter((appointment) => {
       const appointmentDate = new Date(appointment.startTime);
       appointmentDate.setHours(0, 0, 0, 0);
 
@@ -85,81 +85,39 @@ export default function AppointmentsPage() {
           return true;
       }
     });
+
+    // Sort based on the filter type
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.startTime);
+      const dateB = new Date(b.startTime);
+
+      if (filter === "future" || filter === "today") {
+        // For upcoming events: nearest date first
+        return dateA.getTime() - dateB.getTime();
+      }
+      // For past events: most recent first
+      return dateB.getTime() - dateA.getTime();
+    });
   };
 
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case "succeeded":
-        return "default";
-      case "pending":
-        return "secondary";
-      case "failed":
-        return "destructive";
-      default:
-        return "outline";
+  const renderAppointments = (filter: "today" | "future" | "past" | "all") => {
+    const filtered = filterAppointments(filter);
+
+    if (filtered.length === 0) {
+      const messages = {
+        today: "You have no appointments scheduled for today.",
+        future: "You have no upcoming appointments scheduled.",
+        past: "You have no past appointments.",
+        all: "You have no appointments yet.",
+      };
+
+      return <EmptyState message={messages[filter]} />;
     }
-  };
 
-  const AppointmentCard = ({ appointment }: { appointment: Appointment }) => (
-    <Card className="mb-4">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-xl font-semibold">
-              Meeting with {appointment.guestName}
-            </CardTitle>
-            <CardDescription>
-              {format(new Date(appointment.startTime), "EEEE, MMMM d, yyyy")}
-            </CardDescription>
-          </div>
-          <Badge
-            variant={getStatusBadgeVariant(appointment.stripePaymentStatus)}
-          >
-            {appointment.stripePaymentStatus}
-          </Badge>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            <span>
-              {format(new Date(appointment.startTime), "h:mm a")} -{" "}
-              {format(new Date(appointment.endTime), "h:mm a")} (
-              {appointment.timezone})
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4" />
-            <span>{appointment.guestName}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            <span>{appointment.guestEmail}</span>
-          </div>
-          {appointment.meetingUrl && (
-            <div className="flex items-center gap-2">
-              <Link className="h-4 w-4" />
-              <a
-                href={appointment.meetingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline"
-              >
-                Join Meeting
-              </a>
-            </div>
-          )}
-          {appointment.guestNotes && (
-            <div className="mt-4">
-              <h4 className="font-medium mb-2">Guest Notes:</h4>
-              <p className="text-gray-600">{appointment.guestNotes}</p>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+    return filtered.map((appointment) => (
+      <AppointmentCard key={appointment.id} appointment={appointment} />
+    ));
+  };
 
   if (!isLoaded || isLoading) {
     return <div className="p-4">Loading...</div>;
@@ -193,29 +151,13 @@ export default function AppointmentsPage() {
           <TabsTrigger value="all">All</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="today">
-          {filterAppointments("today").map((appointment) => (
-            <AppointmentCard key={appointment.id} appointment={appointment} />
-          ))}
-        </TabsContent>
+        <TabsContent value="today">{renderAppointments("today")}</TabsContent>
 
-        <TabsContent value="future">
-          {filterAppointments("future").map((appointment) => (
-            <AppointmentCard key={appointment.id} appointment={appointment} />
-          ))}
-        </TabsContent>
+        <TabsContent value="future">{renderAppointments("future")}</TabsContent>
 
-        <TabsContent value="past">
-          {filterAppointments("past").map((appointment) => (
-            <AppointmentCard key={appointment.id} appointment={appointment} />
-          ))}
-        </TabsContent>
+        <TabsContent value="past">{renderAppointments("past")}</TabsContent>
 
-        <TabsContent value="all">
-          {filterAppointments("all").map((appointment) => (
-            <AppointmentCard key={appointment.id} appointment={appointment} />
-          ))}
-        </TabsContent>
+        <TabsContent value="all">{renderAppointments("all")}</TabsContent>
       </Tabs>
     </div>
   );
