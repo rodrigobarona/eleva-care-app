@@ -27,12 +27,10 @@ export default function BillingPage() {
   const [dbUser, setDbUser] = React.useState<DbUser | null>(null);
   const [accountStatus, setAccountStatus] =
     React.useState<AccountStatus | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
   const loadUserData = React.useCallback(async () => {
     try {
-      setIsLoading(true);
       setError(null);
       const response = await fetch("/api/user/billing");
       const data = await response.json();
@@ -48,28 +46,17 @@ export default function BillingPage() {
     } catch (error) {
       console.error("Error loading user data:", error);
       setError("Failed to load user data");
-    } finally {
-      setIsLoading(false);
     }
   }, []);
 
   React.useEffect(() => {
-    if (!user) {
-      setIsLoading(false);
-      return;
-    }
-
     loadUserData();
-  }, [user, loadUserData]);
+  }, [loadUserData]);
 
-  // Handle loading states
-  if (!isLoaded || isLoading) {
-    return <div>Loading...</div>; // You might want to use a proper loading component
-  }
-
-  // Handle authentication
+  if (!isLoaded) return null;
   if (!user) {
-    return redirect("/sign-in");
+    redirect("/sign-in");
+    return null;
   }
 
   // Handle errors with retry option
