@@ -40,6 +40,17 @@ export async function POST(request: Request) {
         throw new Error("Expert's Connect account not found");
       }
 
+      // Prepare meeting metadata with expert's clerkUserId
+      const meetingMetadata = {
+        ...meetingData,
+        clerkUserId: event.clerkUserId, // Expert's clerkUserId
+        expertClerkUserId: event.clerkUserId, // Explicitly mark as expert's ID
+        isGuest: "true",
+        guestEmail: meetingData.guestEmail,
+        timezone: meetingData.timezone,
+        startTime: meetingData.startTime,
+      };
+
       // Get or create customer first
       const customerId = await getOrCreateStripeCustomer(
         undefined, // No userId for guests
@@ -60,9 +71,7 @@ export async function POST(request: Request) {
           },
           metadata: {
             eventId,
-            meetingData: JSON.stringify(meetingData),
-            isGuest: "true",
-            guestEmail: meetingData.guestEmail,
+            meetingData: JSON.stringify(meetingMetadata),
             expertConnectAccountId: event.user.stripeConnectAccountId,
           },
         },
@@ -83,9 +92,7 @@ export async function POST(request: Request) {
         ],
         metadata: {
           eventId,
-          meetingData: JSON.stringify(meetingData),
-          isGuest: "true",
-          guestEmail: meetingData.guestEmail,
+          meetingData: JSON.stringify(meetingMetadata),
           expertConnectAccountId: event.user.stripeConnectAccountId,
         },
         success_url: `${request.headers.get(

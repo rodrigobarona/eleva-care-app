@@ -6,7 +6,6 @@ import { STRIPE_CONFIG } from "@/config/stripe";
 import { db } from "@/drizzle/db";
 import { MeetingTable } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
-import { EventTable } from "@/drizzle/schema";
 import { calculateExpertAmount } from "@/config/stripe";
 
 // Add type for Stripe Connect session
@@ -105,65 +104,40 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
         metadata: session.metadata,
       });
 
-      // Get expert's Connect account ID from metadata or fetch from database
-      let expertConnectAccountId = session.metadata?.expertConnectAccountId;
-
-      // If not in metadata, try to get it from the database using eventId
-      if (!expertConnectAccountId) {
-        const eventId = session.metadata?.eventId;
-        if (!eventId) {
-          throw new Error("Missing eventId in metadata");
-        }
-
-        // Query the event and related expert data
-        const event = await db.query.EventTable.findFirst({
-          where: eq(EventTable.id, eventId),
-          with: {
-            user: true,
-          },
-        });
-
-        if (!event?.user?.stripeConnectAccountId) {
-          throw new Error("Could not find expert's Connect account ID");
-        }
-
-        expertConnectAccountId = event.user.stripeConnectAccountId;
-        console.log("Retrieved expert Connect account ID from database:", {
-          eventId,
-          expertConnectAccountId,
-        });
-      }
-
-      // For Connect payments, get the payment identifier
-      const paymentIdentifier = session.payment_intent || session.id;
-
-      // Add runtime check for required metadata before calling createMeeting
-      const eventId = session.metadata?.eventId;
-      if (!eventId) {
-        throw new Error("Missing required eventId in session metadata");
-      }
-
       // Parse the meetingData from metadata
       const meetingData = JSON.parse(session.metadata?.meetingData || "{}");
-      const clerkUserId = meetingData.clerkUserId;
-      if (!clerkUserId) {
-        throw new Error("Missing required clerkUserId in meetingData");
+      console.log("Parsed meeting data:", meetingData);
+
+      // Get expert's Connect account ID from metadata
+      const expertConnectAccountId = session.metadata?.expertConnectAccountId;
+      const eventId = session.metadata?.eventId;
+
+      if (!eventId || !expertConnectAccountId) {
+        throw new Error(
+          "Missing required metadata: eventId or expertConnectAccountId"
+        );
       }
 
-      // Create the meeting
+      // Create the meeting using the expert's clerkUserId from metadata
       const result = await createMeeting({
         eventId: eventId,
-        clerkUserId: clerkUserId,
+        clerkUserId: meetingData.expertClerkUserId, // Use expert's ID
         guestEmail: session.customer_details?.email ?? meetingData.guestEmail,
         guestName: session.customer_details?.name ?? meetingData.guestName,
         timezone: meetingData.timezone,
         startTime: new Date(meetingData.startTime),
         guestNotes: meetingData.guestNotes,
-        stripePaymentIntentId: paymentIdentifier,
+        stripePaymentIntentId: session.payment_intent || session.id,
         stripeSessionId: session.id,
         stripePaymentStatus: session.payment_status,
         stripeAmount: session.amount_total ?? undefined,
         stripeApplicationFeeAmount: session.application_fee_amount,
+      });
+
+      console.log("Meeting creation result:", {
+        success: !result.error,
+        error: result.error,
+        meetingId: result.meeting?.id,
       });
 
       // Schedule the delayed transfer to the expert
@@ -177,6 +151,12 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
           result.meeting.id,
           expertConnectAccountId
         );
+        console.log("Delayed transfer scheduled for meeting:", {
+          meetingId: result.meeting.id,
+          expertConnectAccountId,
+          scheduledFor:
+            new Date(meetingData.startTime).getTime() + 4 * 60 * 60 * 1000,
+        });
       }
 
       return result;
