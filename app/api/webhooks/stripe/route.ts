@@ -16,7 +16,8 @@ type StripeConnectSession = Stripe.Checkout.Session & {
   application_fee?: string;
 };
 
-// Use new Next.js route segment config
+// Add route segment config
+export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const preferredRegion = "auto";
 export const maxDuration = 60;
@@ -251,42 +252,33 @@ async function setupDelayedTransfer(
   }
 }
 
-export const POST = async (req: Request) => {
+export async function POST(req: Request) {
   try {
     // Get the raw body
     const rawBody = await req.text();
-    const headersList = await headers();
+    const headersList = headers();
     const signature = headersList.get("stripe-signature");
 
     if (!signature || !webhookSecret) {
-      console.error("Missing required webhook configuration");
+      console.error("Missing webhook signature or secret");
       return NextResponse.json(
-        { error: "Missing required webhook configuration" },
+        { error: "Missing webhook configuration" },
         { status: 400 }
       );
     }
 
-    // Use the webhook secret from the Stripe CLI for local development
-    const secretToUse =
-      process.env.NODE_ENV === "development"
-        ? "whsec_87c9cc12ca175698146972f9fd9ec232c5915a192d6a18e52b56bebc023c42b1"
-        : webhookSecret;
-
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(rawBody, signature, secretToUse);
+      event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
       console.log("Received webhook event:", {
         type: event.type,
         id: event.id,
-        account: event.account,
-        livemode: event.livemode,
         timestamp: new Date().toISOString(),
       });
     } catch (err) {
       console.error("Webhook signature verification failed:", {
         error: err instanceof Error ? err.message : "Unknown error",
-        signature: signature,
-        timestamp: new Date().toISOString(),
+        signature,
       });
       return NextResponse.json(
         { error: "Webhook signature verification failed" },
@@ -295,16 +287,21 @@ export const POST = async (req: Request) => {
     }
 
     try {
-      // Handle different event types
       switch (event.type) {
         case "checkout.session.completed": {
           const session = event.data.object as StripeConnectSession;
           console.log("Processing completed checkout session:", {
             sessionId: session.id,
             paymentStatus: session.payment_status,
-            livemode: event.livemode,
+            metadata: session.metadata,
           });
-          await handleCheckoutSessionCompleted(session);
+
+          const result = await handleCheckoutSessionCompleted(session);
+          console.log("Checkout session processing result:", {
+            sessionId: session.id,
+            success: result ? !result.error : false,
+            meetingId: result?.meeting?.id ?? null,
+          });
           break;
         }
         case "payment_intent.payment_failed": {
@@ -317,32 +314,24 @@ export const POST = async (req: Request) => {
           break;
         }
         default:
-          console.log(`Unhandled event type: ${event.type}`, {
-            accountId: event.account || "platform",
-            livemode: event.livemode,
-          });
+          console.log(`Unhandled event type: ${event.type}`);
       }
 
       return NextResponse.json({ received: true });
     } catch (error) {
-      console.error(`Error handling webhook event type ${event.type}:`, {
-        error: error instanceof Error ? error.message : "Unknown error",
+      console.error("Error processing webhook:", {
         eventType: event.type,
-        connectedAccountId: event.account,
-        livemode: event.livemode,
+        error: error instanceof Error ? error.message : "Unknown error",
         timestamp: new Date().toISOString(),
       });
-      // Return 200 even on error to prevent retries
+      // Return 200 to acknowledge receipt even if processing fails
       return NextResponse.json({ received: true });
     }
   } catch (err) {
-    console.error("Webhook error:", {
-      error: err instanceof Error ? err.message : "Unknown error",
-      timestamp: new Date().toISOString(),
-    });
+    console.error("Webhook error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 }
     );
   }
-};
+}
