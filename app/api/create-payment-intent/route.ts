@@ -27,6 +27,13 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!meetingData?.startTime) {
+      return NextResponse.json(
+        { message: "Missing required field: startTime" },
+        { status: 400 }
+      );
+    }
+
     try {
       // Get expert's Connect account ID
       const event = await db.query.EventTable.findFirst({

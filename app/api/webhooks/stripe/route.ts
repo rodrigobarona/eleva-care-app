@@ -148,6 +148,15 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
         throw new Error(`Invalid payment status: ${session.payment_status}`);
       }
 
+      // In webhooks/stripe/route.ts, add validation for transfer amounts
+      if (session.application_fee_amount && session.amount_total) {
+        const expertAmount =
+          session.amount_total - session.application_fee_amount;
+        if (expertAmount <= 0) {
+          throw new Error("Invalid transfer amount calculated");
+        }
+      }
+
       // Create the meeting using all required data
       const result = await createMeeting({
         eventId,
@@ -196,6 +205,16 @@ async function handleCheckoutSessionCompleted(session: StripeConnectSession) {
           timestamp: new Date().toISOString(),
         });
       }
+
+      console.log("Processing checkout session:", {
+        sessionId: session.id,
+        eventId: session.metadata?.eventId,
+        startTime: meetingData.startTime,
+        guestEmail: meetingData.guestEmail,
+        amount: session.amount_total,
+        applicationFee: session.application_fee_amount,
+        timestamp: new Date().toISOString(),
+      });
 
       return result;
     } catch (error) {
