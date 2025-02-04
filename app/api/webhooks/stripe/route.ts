@@ -90,6 +90,20 @@ async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
   }
 }
 
+// First, let's add a helper function to calculate amounts
+function calculateExpertAmount(totalAmount: number | null): number {
+  if (!totalAmount) return 0;
+  // Default to 85% for the expert
+  return Math.floor(totalAmount * 0.85);
+}
+
+function calculateApplicationFee(totalAmount: number | null): number {
+  if (!totalAmount) return 0;
+  // Default to 15% platform fee
+  return Math.floor(totalAmount * 0.15);
+}
+
+// Update the handleCheckoutSessionCompleted function
 async function handleCheckoutSessionCompleted(
   session: StripeConnectSession,
   stripeInstance: Stripe
@@ -104,161 +118,75 @@ async function handleCheckoutSessionCompleted(
         metadata: session.metadata,
       });
 
-      // For Connect payments, we need to handle both payment_intent and direct charges
+      // Get expert's Connect account ID from metadata
+      const expertConnectAccountId = session.metadata?.expertConnectAccountId;
+      if (!expertConnectAccountId) {
+        throw new Error("Missing expert Connect account ID in metadata");
+      }
+
+      // For Connect payments, handle both payment_intent and direct charges
       const paymentIdentifier = session.payment_intent || session.id;
 
-      // Parse meeting data from metadata
-      const meetingData = JSON.parse(
-        session.metadata?.meetingData ?? "{}"
-      ) as ParsedMeetingData;
+      // If there's a payment intent, set up the transfer data
+      if (session.payment_intent && session.payment_status === "paid") {
+        const transferData = {
+          destination: expertConnectAccountId,
+          amount: calculateExpertAmount(session.amount_total),
+          transfer_group: `meeting_${session.id}`,
+        };
+
+        // Update payment intent with transfer data
+        await stripeInstance.paymentIntents.update(session.payment_intent, {
+          transfer_data: transferData,
+          application_fee_amount: calculateApplicationFee(session.amount_total),
+        });
+      }
+
+      // Add runtime check for required metadata before calling createMeeting
       const eventId = session.metadata?.eventId;
-
       if (!eventId) {
-        throw new Error("Missing eventId in session metadata");
+        throw new Error("Missing required eventId in session metadata");
       }
 
-      // Map Stripe payment status to your database enum values
-      const paymentStatusMap: Record<string, string> = {
-        paid: "succeeded",
-        unpaid: "requires_payment",
-        no_payment_required: "no_payment_required",
-      };
-
-      const mappedPaymentStatus =
-        paymentStatusMap[session.payment_status] || session.payment_status;
-
-      // If there's a payment intent, retrieve its full details for validation
-      if (session.payment_intent) {
-        const paymentIntent = await stripeInstance.paymentIntents.retrieve(
-          session.payment_intent
-        );
-
-        // Additional validation with payment intent
-        if (paymentIntent.status !== "succeeded") {
-          throw new Error(
-            `Payment intent ${paymentIntent.id} is not succeeded (status: ${paymentIntent.status})`
-          );
-        }
+      // Optionally, enforce expertId and timezone as well:
+      const expertId = session.metadata?.expertId;
+      if (!expertId) {
+        throw new Error("Missing required expertId in session metadata");
       }
 
-      // Create the meeting with proper error handling
+      const timezone = session.metadata?.timezone;
+      if (!timezone) {
+        throw new Error("Missing required timezone in session metadata");
+      }
+
+      // Create the meeting
       const result = await createMeeting({
-        eventId,
-        clerkUserId: meetingData.clerkUserId,
-        guestEmail: session.customer_details?.email ?? meetingData.guestEmail,
-        guestName: session.customer_details?.name ?? meetingData.guestName,
-        timezone: meetingData.timezone,
-        startTime: new Date(meetingData.startTime),
-        guestNotes: meetingData.guestNotes || "",
+        eventId: eventId,
+        clerkUserId: expertId,
+        guestEmail:
+          session.customer_details?.email ??
+          (session.metadata?.guestEmail as string),
+        guestName:
+          session.customer_details?.name ??
+          (session.metadata?.guestName as string),
+        timezone: timezone,
+        startTime: new Date(session.metadata?.startTime as string),
+        guestNotes: session.metadata?.guestNotes as string,
         stripePaymentIntentId: paymentIdentifier,
         stripeSessionId: session.id,
-        stripePaymentStatus: mappedPaymentStatus,
+        stripePaymentStatus: session.payment_status,
         stripeAmount: session.amount_total ?? undefined,
         stripeApplicationFeeAmount: session.application_fee_amount,
       });
 
-      if (result?.error) {
-        // Handle specific error cases
-        if (result.code === "SLOT_ALREADY_BOOKED") {
-          console.log("Initiating refund for concurrent booking:", {
-            sessionId: session.id,
-            paymentIntent: session.payment_intent,
-            amount: session.amount_total,
-          });
-
-          // Issue refund if payment was made
-          if (session.payment_intent && session.payment_status === "paid") {
-            const refund = await stripeInstance.refunds.create({
-              payment_intent: session.payment_intent,
-              reason: "duplicate",
-            });
-
-            console.log("Refund processed for concurrent booking:", {
-              refundId: refund.id,
-              sessionId: session.id,
-              paymentIntent: session.payment_intent,
-            });
-          }
-
-          // Return specific error for concurrent booking
-          throw new Error(
-            result.message || "Time slot was just booked by another user"
-          );
-        }
-
-        console.error("Failed to create meeting:", {
-          error: result.error,
-          code: result.code,
-          sessionId: session.id,
-          eventId,
-          timestamp: new Date().toISOString(),
-        });
-        throw new Error(result.code);
+      // If meeting creation was successful, schedule the delayed transfer
+      if (!result.error && result.meeting) {
+        await setupDelayedTransfer(
+          session,
+          result.meeting.id,
+          expertConnectAccountId
+        );
       }
-
-      // After successful meeting creation, set up the transfer
-      let transferData: Stripe.Transfer | null = null;
-      if (session.payment_intent && session.payment_status === "paid") {
-        // Get expert's Connect account ID
-        const expertConnectAccountId = session.metadata?.expertConnectAccountId;
-        if (!expertConnectAccountId) {
-          console.error("Missing expert Connect account ID, skipping transfer");
-        } else {
-          // Calculate transfer amount (total minus application fee)
-          const transferAmount =
-            (session.amount_total || 0) - (session.application_fee_amount || 0);
-
-          // Schedule transfer to expert's Connect account
-          // We schedule it 4 hours after the meeting start time to allow for cancellations
-          const meetingStartTime = new Date(meetingData.startTime);
-          const transferScheduleTime = new Date(
-            meetingStartTime.getTime() + 4 * 60 * 60 * 1000
-          );
-
-          transferData = await stripeInstance.transfers.create({
-            amount: transferAmount,
-            currency: session.currency || "eur", // Default to EUR if not specified
-            destination: expertConnectAccountId,
-            transfer_group: `meeting_${session.id}`,
-            metadata: {
-              meetingId: result.meeting?.id || session.id, // Fallback to session ID if meeting ID is not available
-              eventId: eventId,
-              expertId: meetingData.clerkUserId,
-              scheduledFor: transferScheduleTime.toISOString(),
-            },
-          });
-
-          // Update the meeting record with transfer information
-          if (result.meeting?.id) {
-            await db
-              .update(MeetingTable)
-              .set({
-                stripeTransferId: transferData.id,
-                stripeTransferAmount: transferData.amount,
-                stripeTransferStatus: "pending",
-                stripeTransferScheduledAt: transferScheduleTime,
-              })
-              .where(eq(MeetingTable.id, result.meeting.id));
-
-            console.log("Transfer scheduled:", {
-              transferId: transferData.id,
-              amount: transferAmount,
-              destination: expertConnectAccountId,
-              scheduledFor: transferScheduleTime,
-              meetingId: result.meeting.id,
-            });
-          }
-        }
-      }
-
-      console.log("Meeting created successfully:", {
-        sessionId: session.id,
-        eventId,
-        meetingId: result.meeting?.id,
-        customerEmail: session.customer_details?.email,
-        transferId: transferData?.id,
-        timestamp: new Date().toISOString(),
-      });
 
       return result;
     } catch (error) {
@@ -277,6 +205,59 @@ async function handleCheckoutSessionCompleted(
         setTimeout(resolve, Math.min(1000 * 2 ** retries, 10000))
       );
     }
+  }
+}
+
+// Add the setupDelayedTransfer function
+async function setupDelayedTransfer(
+  session: StripeConnectSession,
+  meetingId: string,
+  expertConnectAccountId: string
+) {
+  const meetingStartTime = new Date(session.metadata?.startTime as string);
+  const transferScheduleTime = new Date(
+    meetingStartTime.getTime() + 4 * 60 * 60 * 1000
+  ); // 4 hours after meeting
+
+  try {
+    const transfer = await stripe.transfers.create({
+      amount: calculateExpertAmount(session.amount_total),
+      currency: "eur",
+      destination: expertConnectAccountId,
+      transfer_group: `meeting_${meetingId}`,
+      metadata: {
+        meetingId,
+        scheduledFor: transferScheduleTime.toISOString(),
+      },
+    });
+
+    // Update meeting record with transfer details
+    await db
+      .update(MeetingTable)
+      .set({
+        stripeTransferId: transfer.id,
+        stripeTransferAmount: transfer.amount,
+        stripeTransferStatus: "pending",
+        stripeTransferScheduledAt: transferScheduleTime,
+      })
+      .where(eq(MeetingTable.id, meetingId));
+
+    console.log("Transfer scheduled:", {
+      transferId: transfer.id,
+      amount: transfer.amount,
+      destination: expertConnectAccountId,
+      scheduledFor: transferScheduleTime,
+      meetingId,
+    });
+
+    return transfer;
+  } catch (error) {
+    console.error("Error scheduling transfer:", {
+      error: error instanceof Error ? error.message : "Unknown error",
+      meetingId,
+      expertConnectAccountId,
+    });
+    throw error;
   }
 }
 
