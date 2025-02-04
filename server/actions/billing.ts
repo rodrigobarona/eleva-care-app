@@ -4,13 +4,14 @@ import {
   createStripeConnectAccount,
   getStripeConnectSetupOrLoginLink,
 } from "@/lib/stripe";
-import { redirect } from "next/navigation";
 import { db } from "@/drizzle/db";
 import { UserTable } from "@/drizzle/schema";
 import { eq } from "drizzle-orm";
 
-export async function handleConnectStripe(clerkUserId: string) {
-  if (!clerkUserId) return;
+export async function handleConnectStripe(
+  clerkUserId: string
+): Promise<string | null> {
+  if (!clerkUserId) return null;
 
   try {
     // Get the database user first
@@ -20,13 +21,15 @@ export async function handleConnectStripe(clerkUserId: string) {
 
     if (!dbUser) {
       console.error("User not found in database");
-      return;
+      return null;
     }
 
+    // Create the Stripe Connect account and get the URL
     const { url } = await createStripeConnectAccount(dbUser.id);
-    redirect(url);
+    return url;
   } catch (error) {
     console.error("Failed to create Stripe Connect account:", error);
+    return null;
   }
 }
 

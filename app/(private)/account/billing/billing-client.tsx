@@ -38,7 +38,14 @@ export function BillingPageClient({
   const handleConnect = async () => {
     try {
       setIsConnecting(true);
-      await handleConnectStripe(userId);
+      const url = await handleConnectStripe(userId);
+      if (url) {
+        // Perform a client-side redirect to the Stripe Connect page
+        window.location.href = url;
+      } else {
+        toast.error("Failed to get Stripe Connect URL. Please try again.");
+        setIsConnecting(false);
+      }
     } catch (error) {
       console.error("Error connecting to Stripe:", error);
       toast.error("Failed to connect to Stripe. Please try again.");
@@ -48,7 +55,6 @@ export function BillingPageClient({
 
   const handleDashboardClick = async () => {
     if (!dbUser.stripeConnectAccountId) return;
-
     try {
       setIsLoadingDashboard(true);
       const url = await getConnectLoginLink(dbUser.stripeConnectAccountId);
@@ -136,8 +142,8 @@ export function BillingPageClient({
             ) : (
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  You haven&apos;t connected your Stripe account yet. Connect
-                  now to start receiving payments.
+                  You haven't connected your Stripe account yet. Connect now to
+                  start receiving payments.
                 </p>
                 <Button
                   onClick={handleConnect}
