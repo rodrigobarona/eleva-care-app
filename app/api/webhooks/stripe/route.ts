@@ -1,21 +1,10 @@
 import { headers } from "next/headers";
-import Stripe from "stripe";
+import type { Stripe } from "stripe";
 import { NextResponse } from "next/server";
 import { createMeeting } from "@/server/actions/meetings";
 import { STRIPE_CONFIG } from "@/config/stripe";
 import { db } from "@/drizzle/db";
-import { MeetingTable } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
-import { calculateExpertAmount } from "@/config/stripe";
-import type { Stripe as StripeType } from "stripe";
 import StripeSDK from "stripe";
-
-// Add type for Stripe Connect session
-type StripeConnectSession = Stripe.Checkout.Session & {
-  application_fee_amount?: number;
-  payment_intent: string | null;
-  application_fee?: string;
-};
 
 // Add route segment config
 export const dynamic = "force-dynamic";
@@ -37,16 +26,6 @@ if (!webhookSecret) {
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 2000; // 2 seconds
 
-// Type for parsed meeting data from metadata
-type ParsedMeetingData = {
-  clerkUserId: string;
-  timezone: string;
-  startTime: string;
-  guestEmail: string;
-  guestName: string;
-  guestNotes?: string;
-};
-
 interface MeetingMetadata {
   timezone: string;
   startTime: string;
@@ -66,46 +45,6 @@ export async function GET() {
     { error: "This endpoint only accepts POST requests from Stripe webhooks" },
     { status: 405 }
   );
-}
-
-async function handlePaymentIntentFailed(paymentIntent: Stripe.PaymentIntent) {
-  // Log the failure details
-  const errorDetails = {
-    paymentIntentId: paymentIntent.id,
-    customerId: paymentIntent.customer,
-    amount: paymentIntent.amount,
-    currency: paymentIntent.currency,
-    error: paymentIntent.last_payment_error,
-    timestamp: new Date().toISOString(),
-  };
-
-  console.error("Payment failed:", errorDetails);
-
-  try {
-    // Parse meeting data from metadata to get event details
-    const meetingData = JSON.parse(
-      paymentIntent.metadata.meetingData ?? "{}"
-    ) as ParsedMeetingData;
-    const eventId = paymentIntent.metadata.eventId;
-
-    if (!eventId || !meetingData) {
-      throw new Error("Missing required metadata");
-    }
-
-    // Log the failure with event details
-    console.error("Payment failed for event:", {
-      ...errorDetails,
-      eventId,
-      guestEmail: meetingData.guestEmail,
-      startTime: meetingData.startTime,
-    });
-  } catch (error) {
-    console.error("Error handling failed payment:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-      paymentIntentId: paymentIntent.id,
-      timestamp: new Date().toISOString(),
-    });
-  }
 }
 
 async function handleCheckoutSession(session: StripeCheckoutSession) {
@@ -187,102 +126,6 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
   }
 
   return { success: true, meetingId: result.meeting?.id };
-}
-
-// Add the setupDelayedTransfer function
-async function setupDelayedTransfer(
-  session: StripeConnectSession,
-  meetingId: string,
-  expertConnectAccountId: string
-) {
-  const meetingStartTime = new Date(session.metadata?.startTime as string);
-  const transferScheduleTime = new Date(
-    meetingStartTime.getTime() + 4 * 60 * 60 * 1000
-  ); // 4 hours after meeting
-
-  try {
-    // Validate session amount
-    if (!session.amount_total || session.amount_total <= 0) {
-      throw new Error("Invalid session amount");
-    }
-
-    // Calculate expert amount
-    const expertAmount = calculateExpertAmount(session.amount_total);
-
-    // Validate expert amount
-    if (expertAmount <= 0) {
-      throw new Error("Invalid expert amount calculated");
-    }
-
-    // Validate that expert amount is less than total amount
-    if (expertAmount >= session.amount_total) {
-      throw new Error("Expert amount must be less than total amount");
-    }
-
-    // Validate application fee
-    const applicationFee = session.application_fee_amount;
-    if (!applicationFee || applicationFee <= 0) {
-      throw new Error("Invalid application fee");
-    }
-
-    // Validate that amounts add up correctly
-    if (expertAmount + applicationFee !== session.amount_total) {
-      console.error("Amount mismatch:", {
-        totalAmount: session.amount_total,
-        expertAmount,
-        applicationFee,
-        difference: session.amount_total - (expertAmount + applicationFee),
-      });
-      throw new Error("Amount validation failed");
-    }
-
-    const transfer = await stripe.transfers.create({
-      amount: expertAmount,
-      currency: STRIPE_CONFIG.CURRENCY,
-      destination: expertConnectAccountId,
-      transfer_group: `meeting_${meetingId}`,
-      metadata: {
-        meetingId,
-        scheduledFor: transferScheduleTime.toISOString(),
-        originalAmount: session.amount_total,
-        applicationFee: applicationFee,
-      },
-    });
-
-    // Update meeting record with transfer details
-    await db
-      .update(MeetingTable)
-      .set({
-        stripeTransferId: transfer.id,
-        stripeTransferAmount: transfer.amount,
-        stripeTransferStatus: "pending",
-        stripeTransferScheduledAt: transferScheduleTime,
-        stripeApplicationFeeAmount: applicationFee,
-      })
-      .where(eq(MeetingTable.id, meetingId));
-
-    console.log("Transfer scheduled:", {
-      transferId: transfer.id,
-      amount: transfer.amount,
-      applicationFee: applicationFee,
-      destination: expertConnectAccountId,
-      scheduledFor: transferScheduleTime,
-      meetingId,
-      totalAmount: session.amount_total,
-    });
-
-    return transfer;
-  } catch (error) {
-    console.error("Error scheduling transfer:", {
-      error: error instanceof Error ? error.message : "Unknown error",
-      meetingId,
-      expertConnectAccountId,
-      sessionAmount: session.amount_total,
-      applicationFee: session.application_fee_amount,
-      timestamp: new Date().toISOString(),
-    });
-    throw error;
-  }
 }
 
 export async function POST(request: Request) {

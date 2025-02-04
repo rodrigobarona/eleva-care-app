@@ -9,9 +9,10 @@ import {
 } from "@/components/molecules/dialog";
 import { Button } from "@/components/atoms/button";
 import RecordEditor from "@/components/molecules/RecordEditor";
-import { FileEdit } from "lucide-react";
+import { FileEdit, Minus, Maximize2, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface PatientRecord {
   id: string;
@@ -36,10 +37,12 @@ export function RecordDialog({
   appointmentDate,
 }: RecordDialogProps) {
   const [isOpen, setIsOpen] = React.useState(false);
-  const [isEditing, setIsEditing] = React.useState(false);
+  const [isMinimized, setIsMinimized] = React.useState(false);
   const [records, setRecords] = React.useState<PatientRecord[]>([]);
   const [currentContent, setCurrentContent] = React.useState("");
   const [isLoading, setIsLoading] = React.useState(false);
+  const [lastSavedContent, setLastSavedContent] = React.useState("");
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout>();
 
   const fetchRecords = React.useCallback(async () => {
     try {
@@ -51,8 +54,10 @@ export function RecordDialog({
       // Set initial content to the latest record or empty
       if (data.records.length > 0) {
         setCurrentContent(data.records[0].content);
+        setLastSavedContent(data.records[0].content);
       } else {
         setCurrentContent("");
+        setLastSavedContent("");
       }
     } catch (error) {
       console.error("Error fetching records:", error);
@@ -66,7 +71,9 @@ export function RecordDialog({
     }
   }, [isOpen, fetchRecords]);
 
-  const handleSave = async () => {
+  const handleSave = React.useCallback(async () => {
+    if (currentContent === lastSavedContent) return;
+
     try {
       setIsLoading(true);
       const endpoint = `/api/appointments/${meetingId}/records`;
@@ -87,8 +94,8 @@ export function RecordDialog({
 
       if (!response.ok) throw new Error("Failed to save record");
 
-      toast.success("Record saved successfully");
-      setIsEditing(false);
+      setLastSavedContent(currentContent);
+      toast.success("Record saved");
       void fetchRecords();
     } catch (error) {
       console.error("Error saving record:", error);
@@ -96,27 +103,81 @@ export function RecordDialog({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [currentContent, lastSavedContent, meetingId, records, fetchRecords]);
+
+  // Auto-save when content changes
+  React.useEffect(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    if (currentContent !== lastSavedContent) {
+      saveTimeoutRef.current = setTimeout(() => {
+        void handleSave();
+      }, 2000); // Auto-save after 2 seconds of no typing
+    }
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [currentContent, lastSavedContent, handleSave]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open && isMinimized) {
+          setIsMinimized(false);
+        }
+        setIsOpen(open);
+      }}
+    >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
           <FileEdit className="h-4 w-4 mr-2" />
           Patient Record
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl h-[80vh]">
-        <DialogHeader>
-          <DialogTitle>Patient Record</DialogTitle>
-          <DialogDescription>
-            {guestName} ({guestEmail}) - Appointment on{" "}
-            {format(appointmentDate, "PPP")}
-          </DialogDescription>
+      <DialogContent
+        className={cn(
+          "transition-all duration-200",
+          isMinimized
+            ? "!absolute bottom-0 right-4 !max-w-[400px] !h-[64px] overflow-hidden"
+            : "max-w-4xl h-[80vh]"
+        )}
+      >
+        <DialogHeader className="flex flex-row items-center justify-between">
+          <div>
+            <DialogTitle>Patient Record</DialogTitle>
+            {!isMinimized && (
+              <DialogDescription>
+                {guestName} ({guestEmail}) - Appointment on{" "}
+                {format(appointmentDate, "PPP")}
+              </DialogDescription>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsMinimized(!isMinimized)}
+            >
+              {isMinimized ? (
+                <Maximize2 className="h-4 w-4" />
+              ) : (
+                <Minus className="h-4 w-4" />
+              )}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </DialogHeader>
 
-        <div className="flex flex-col h-full gap-4 mt-4">
-          <div className="flex justify-between items-center">
+        {!isMinimized && (
+          <div className="flex flex-col h-full gap-4 mt-4">
             <div className="text-sm text-muted-foreground">
               {records.length > 0
                 ? `Last modified: ${format(
@@ -124,35 +185,19 @@ export function RecordDialog({
                     "PPp"
                   )} (v${records[0].version})`
                 : "No records yet"}
+              {isLoading && " • Saving..."}
             </div>
-            <div className="flex gap-2">
-              {isEditing ? (
-                <>
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditing(false)}
-                    disabled={isLoading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSave} disabled={isLoading}>
-                    {isLoading ? "Saving..." : "Save"}
-                  </Button>
-                </>
-              ) : (
-                <Button onClick={() => setIsEditing(true)}>Edit</Button>
-              )}
-            </div>
-          </div>
 
-          <div className="flex-1 min-h-0">
-            <RecordEditor
-              value={currentContent}
-              onChange={setCurrentContent}
-              readOnly={!isEditing}
-            />
+            <div className="flex-1 min-h-0">
+              <RecordEditor
+                value={currentContent}
+                onChange={setCurrentContent}
+                readOnly={false}
+                autoFocus
+              />
+            </div>
           </div>
-        </div>
+        )}
       </DialogContent>
     </Dialog>
   );

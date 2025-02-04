@@ -30,12 +30,14 @@ interface RecordEditorProps {
   value: string;
   onChange: (value: string) => void;
   readOnly?: boolean;
+  autoFocus?: boolean;
 }
 
 const RecordEditor: React.FC<RecordEditorProps> = ({
   value,
   onChange,
   readOnly = false,
+  autoFocus = false,
 }) => {
   const editor = useEditor({
     extensions: [
@@ -75,10 +77,11 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
     ],
     content: value,
     editable: !readOnly,
+    autofocus: autoFocus ? "end" : false,
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-3 py-2",
+          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] h-full px-3 py-2",
       },
     },
   });
@@ -103,11 +106,11 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
   }
 
   if (readOnly) {
-    return <EditorContent editor={editor} />;
+    return <EditorContent editor={editor} className="h-full" />;
   }
 
   return (
-    <div className="border rounded-md overflow-hidden">
+    <div className="border rounded-md overflow-hidden h-full flex flex-col">
       <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-2">
         <div className="flex gap-2 border-r pr-2">
           <Button
@@ -233,7 +236,9 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
           </Button>
         </div>
       </div>
-      <EditorContent editor={editor} />
+      <div className="flex-1 overflow-auto">
+        <EditorContent editor={editor} className="h-full" />
+      </div>
     </div>
   );
 };
