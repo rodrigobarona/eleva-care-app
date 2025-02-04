@@ -157,9 +157,9 @@ async function scheduleConnectPayout(
     meetingStartTime.getTime() + 4 * 60 * 60 * 1000
   );
 
-  // Create a transfer with rich metadata
-  await stripe.transfers.create({
-    amount: session.application_fee_amount || 0,
+  // First create a transfer to move funds to the connected account
+  const transfer = await stripe.transfers.create({
+    amount: session.amount_total ?? 0,
     currency: STRIPE_CONFIG.CURRENCY,
     destination: connectAccountId,
     source_transaction: session.payment_intent,
@@ -174,12 +174,40 @@ async function scheduleConnectPayout(
     },
   });
 
+  // Then schedule a delayed payout
+  const payout = await stripe.payouts.create(
+    {
+      amount: session.amount_total ?? 0,
+      currency: STRIPE_CONFIG.CURRENCY,
+      metadata: {
+        transfer_id: transfer.id,
+        meetingId: session.metadata?.eventId ?? null,
+        expertClerkUserId: meetingData.expertClerkUserId,
+        customerName: meetingData.guestName,
+        customerEmail: meetingData.guestEmail,
+        meetingStartTime: meetingData.startTime,
+        meetingTimezone: meetingData.timezone,
+        payoutScheduledFor: payoutScheduleTime.toISOString(),
+      },
+      statement_descriptor: `Payout for meeting with ${meetingData.guestName}`,
+    },
+    {
+      stripeAccount: connectAccountId,
+    }
+  );
+
   console.log("Scheduled payout for meeting:", {
+    transferId: transfer.id,
+    payoutId: payout.id,
     eventId: session.metadata?.eventId,
     expertId: meetingData.expertClerkUserId,
     customerName: meetingData.guestName,
+    amount: session.amount_total,
+    currency: STRIPE_CONFIG.CURRENCY,
     payoutScheduleTime: payoutScheduleTime.toISOString(),
   });
+
+  return { transfer, payout };
 }
 
 export async function POST(request: Request) {
