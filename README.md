@@ -62,6 +62,195 @@ Eleva combines a robust tech stack with an intuitive user interface:
 5. **Calendar Integration:**  
    Booked appointments are automatically synced with Google Calendar, guaranteeing that schedules always remain current.
 
+## Architecture Overview
+
+### 1. Client Layer (UI Components)
+
+- **Client Components**:  
+  These components are marked with `"use client"` and run in the user's browser. They include pages and components such as:
+
+  - Appointment booking pages (e.g., `app/(private)/appointments/page.tsx`)
+  - Account billing pages (e.g., `app/(private)/account/billing/page.tsx`)
+  - Presentation components (e.g., buttons, forms, dashboards)
+
+- **Responsibilities**:
+  - Handling user interactions and rendering the user interface.
+  - Making HTTP (fetch) requests to the API endpoints on the server.
+  - Displaying data returned by the server while not directly accessing sensitive business logic or SQL code.
+
+---
+
+### 2. Server Layer & API Endpoints
+
+- **API Routes & Server Actions**:  
+  These are located under the `app/api/` directory (and in `server/actions/`). They do not include a `"use client"` directive, meaning they run exclusively on the server.
+
+  - **SQL Queries**: All database operations are performed using DrizzleORM (e.g., `findFirst`, `findMany`, `insert`, `update`), protecting against SQL injection.
+  - **Authentication**: User authentication is handled with Clerk (using functions like `auth()` and `currentUser()`), ensuring that only authorized users can access sensitive operations.
+  - **Payment & Calendar Integrations**: The server communicates with Stripe for payment processing and with Google Calendar for appointment scheduling.
+
+- **Key API Endpoints / Server Action Files**:
+  - `/api/webhooks/stripe/route.ts` and `/api/webhooks/stripe-connect/route.ts`: Manage Stripe webhooks and update user/meeting records.
+  - `/api/user/billing/route.ts`: Handles billing data tied to the authenticated user.
+  - `/api/records/route.ts`: Manages the creation and decryption of appointment records.
+  - `/api/appointments/route.ts` and `/api/appointments/[meetingId]/records/route.ts`: Create and retrieve appointments and meeting records.
+  - Server actions for meetings and billing (e.g., `server/actions/meetings.ts`, `server/actions/billing.ts`).
+
+---
+
+### 3. External Integrations
+
+- **Database (SQL) Integration**:  
+  The application uses DrizzleORM to safely construct SQL queries on the server. All database interactions occur exclusively in API routes and server actions, ensuring that raw SQL code is never exposed to the client.
+
+- **Authentication**:  
+  Clerk is used to authenticate users. Both server-side authentication (with functions like `auth()` and `currentUser()`) and client-side authentication components (e.g., `SignInButton`, `UserButton`) are employed to ensure secure access to data.
+
+- **Payment Processing**:  
+  The Stripe API is integrated to handle payment intents and connect account setups. Sensitive operations related to payment creation occur in secure server-side API endpoints.
+
+- **Calendar Integration**:  
+  Google Calendar is integrated on the server to manage calendar events for meeting bookings, ensuring that calendar tokens and related data are kept secure.
+
+- **Record Encryption**:  
+  Meeting records and notes are encrypted using AES-256-GCM before being stored in the database. Only server-side endpoints decrypt this data for secure processing.
+
+---
+
+## Data Flow Diagram
+
+Below is a placeholder for a Mermaid diagram that represents the architecture and data flow of the application. You can modify the diagram as needed.
+
+```mermaid
+flowchart TB
+    subgraph ClientLayer["Client Layer"]
+        direction TB
+        C1["Client Pages & Components"]
+        C2["'use client' Components"]
+        C3["User Interactions & UI"]
+
+        C1 --> C2
+        C2 --> C3
+    end
+
+    subgraph ServerLayer["API / Server Actions Layer"]
+        direction TB
+        S1["API Routes"]
+        S2["Server Actions"]
+
+        subgraph APIEndpoints["API Endpoints (app/api/)"]
+            API1["records/route.ts"]
+            API2["user/billing/route.ts"]
+            API3["appointments/route.ts"]
+            API4["webhooks/stripe/route.ts"]
+        end
+
+        subgraph ServerActions["Server Actions"]
+            SA1["server/actions/meetings.ts"]
+            SA2["server/actions/billing.ts"]
+        end
+
+        S1 --> APIEndpoints
+        S2 --> ServerActions
+    end
+
+    subgraph ExternalLayer["External & Database Services"]
+        direction TB
+        DB["Database (SQL via Drizzle ORM)"]
+        Auth["Authentication (Clerk)"]
+        Pay["Payment (Stripe)"]
+        Cal["Calendar (Google)"]
+    end
+
+    %% Connections between layers
+    ClientLayer -->|HTTP fetch / Next.js router| ServerLayer
+    ServerLayer -->|SQL Queries| DB
+    ServerLayer -->|Auth Checks| Auth
+    ServerLayer -->|Payment Processing| Pay
+    ServerLayer -->|Calendar Operations| Cal
+
+    %% Styling
+    classDef layerStyle fill:#f9f9f9,stroke:#333,stroke-width:2px
+    classDef componentStyle fill:#e1e1e1,stroke:#666
+    classDef serviceStyle fill:#d1e7dd,stroke:#666
+
+    class ClientLayer,ServerLayer,ExternalLayer layerStyle
+    class C1,C2,C3,S1,S2,API1,API2,API3,API4,SA1,SA2 componentStyle
+    class DB,Auth,Pay,Cal serviceStyle
+```
+
+## Detailed Workflows
+
+### Booking Appointment Workflow
+
+1. **Client Interaction**:
+
+   - A user interacts with appointment booking components, for example through the booking form on `app/(public)/[username]/[eventSlug]/page.tsx`.
+   - The form collects data such as appointment date, guest email, name, and other meeting preferences.
+
+2. **Server Processing**:
+
+   - The client sends a request to an API endpoint (e.g., `/api/appointments/route.ts`).
+   - The server validates the booking details, performs SQL queries to check for duplicates or conflicts, and verifies available time slots by integrating with Google Calendar.
+   - A new meeting record is created in the database via a secure insertion query.
+
+3. **Client Response**:
+   - The server returns a confirmation response which the client then displays to the user.
+
+---
+
+### Payment Intent Creation Workflow
+
+1. **Payment UI Interaction**:
+
+   - Clients interact with the `PaymentStep` component within `components/organisms/forms/PaymentStep.tsx` to provide payment details.
+   - Stripe Elements are used to securely capture payment information.
+
+2. **Server Payment Processing**:
+
+   - The payment request is sent to an endpoint (e.g., `/api/create-payment-intent/route.ts`).
+   - The server validates the payment information, creates a payment intent via Stripe, assigns metadata to track the booking, and returns the `clientSecret` to the client.
+
+3. **Confirmation and Redirect**:
+   - Upon successful payment, the client component updates the UI or redirects the user to a success page.
+
+---
+
+### Record Management Workflow
+
+1. **Record Entry**:
+
+   - Experts use the `RecordEditor` component (`components/organisms/RecordEditor.tsx`) to input notes and related metadata during or after meetings.
+
+2. **Server-Side Encryption & Storage**:
+
+   - The record data is sent to `/api/appointments/[meetingId]/records/route.ts`.
+   - The server encrypts the record content using AES-256-GCM and stores it in the database.
+   - Record versions are managed through update operations for maintaining history.
+
+3. **Retrieval and Display**:
+   - When records are requested (e.g., via `/api/records/route.ts`), the server decrypts the data and returns the results to the client for display.
+
+---
+
+### Authentication Flow
+
+1. **User Authentication**:
+
+   - Clerk manages user authentication. Client-side components include sign in/out buttons and user buttons for account management.
+   - Server endpoints verify user tokens using Clerk’s `auth()` and `currentUser()` functions to ensure all server-side operations are performed securely.
+
+2. **Server-Side Authorization**:
+   - Every API endpoint begins with an authentication check, blocking unauthorized access to sensitive SQL queries and data.
+
+---
+
+## Conclusion
+
+The Eleva.are application follows a secure architecture by isolating sensitive SQL operations, authentication, and payment processing within server-side API endpoints and actions. The client components are kept lean, handling only user interactions and UI rendering. Sensitive data is never directly accessed on the client, minimizing the risk of accidentally leaking customer data.
+
+Feel free to enhance or update the Mermaid diagram section as your architecture evolves.
+
 ## Getting Started
 
 ### Prerequisites
