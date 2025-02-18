@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Server actions for managing meetings in the Eleva Care application.
+ * This file handles the creation and management of meetings between experts and guests,
+ * including validation, scheduling, payment processing, and Google Calendar integration.
+ */
+
 "use server";
 import { db } from "@/drizzle/db";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
@@ -7,12 +13,52 @@ import { headers } from "next/headers";
 import "use-server";
 import type { z } from "zod";
 import { createCalendarEvent } from "../googleCalendar";
-import { redirect } from "next/navigation";
 import { MeetingTable } from "@/drizzle/schema";
-import { createClerkClient } from "@clerk/nextjs/server";
 import GoogleCalendarService from "@/server/googleCalendar";
 import { addMinutes } from "date-fns";
 
+/**
+ * Creates a new meeting between an expert and a guest.
+ *
+ * This function performs several validation and creation steps:
+ * 1. Validates the incoming data against the meeting schema
+ * 2. Checks for duplicate bookings from the same user
+ * 3. Verifies the time slot is not already taken
+ * 4. Validates the event exists and is active
+ * 5. Verifies the time slot is valid according to the expert's schedule
+ * 6. Creates a Google Calendar event
+ * 7. Creates the meeting record in the database
+ * 8. Logs the audit event
+ *
+ * @param unsafeData - The meeting data to be validated and processed
+ * @returns An object containing:
+ *   - error: boolean indicating if an error occurred
+ *   - code?: error code if applicable
+ *   - message?: error message if applicable
+ *   - meeting?: the created meeting object if successful
+ *
+ * @example
+ * const meetingData = {
+ *   eventId: "event-123",
+ *   clerkUserId: "user-123",
+ *   guestEmail: "guest@example.com",
+ *   guestName: "John Doe",
+ *   startTime: new Date(),
+ *   timezone: "America/New_York",
+ *   stripePaymentIntentId: "pi_123",
+ *   stripePaymentStatus: "succeeded",
+ *   stripeAmount: 5000
+ * };
+ *
+ * const result = await createMeeting(meetingData);
+ * if (result.error) {
+ *   console.error("Meeting creation failed:", result.code);
+ * } else {
+ *   console.log("Meeting created:", result.meeting);
+ * }
+ *
+ * @throws Will not throw errors directly, but returns error information in the result object
+ */
 export async function createMeeting(
   unsafeData: z.infer<typeof meetingActionSchema>
 ) {

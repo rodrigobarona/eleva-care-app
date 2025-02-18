@@ -12,7 +12,21 @@ import type { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
-// CREATE EVENT
+// Added documentation for event actions
+
+/**
+ * Creates a new event using the provided data.
+ *
+ * @param unsafeData - The data for creating the event, validated against the eventFormSchema.
+ * @returns A promise that resolves to an object with an error flag and an optional message on failure, or undefined on success.
+ *
+ * @example
+ * const eventData = { /* event data conforming to eventFormSchema *\/ };
+ * const result = await createEvent(eventData);
+ * if (result?.error) {
+ *   console.error('Event creation failed:', result.message);
+ * }
+ */
 export async function createEvent(
   unsafeData: z.infer<typeof eventFormSchema>
 ): Promise<{ error: boolean; message?: string } | undefined> {
@@ -58,7 +72,20 @@ export async function createEvent(
   }
 }
 
-// UPDATE EVENT
+/**
+ * Updates an existing event with the given ID using the provided data.
+ *
+ * @param id - The unique identifier of the event to update.
+ * @param unsafeData - The updated event data, validated against the eventFormSchema.
+ * @returns A promise that resolves to an object with an error flag on failure, or undefined on success.
+ *
+ * @example
+ * const updateData = { /* new event data *\/ };
+ * const result = await updateEvent('event-id', updateData);
+ * if (result?.error) {
+ *   console.error('Event update failed');
+ * }
+ */
 export async function updateEvent(
   id: string,
   unsafeData: z.infer<typeof eventFormSchema>
@@ -111,7 +138,18 @@ export async function updateEvent(
   redirect("/events");
 }
 
-// DELETE EVENT
+/**
+ * Deletes the event with the specified ID.
+ *
+ * @param id - The unique identifier of the event to delete.
+ * @returns A promise that resolves to an object with an error flag on failure, or undefined on success.
+ *
+ * @example
+ * const result = await deleteEvent('event-id');
+ * if (result?.error) {
+ *   console.error('Failed to delete the event');
+ * }
+ */
 export async function deleteEvent(
   id: string
 ): Promise<{ error: boolean } | undefined> {
@@ -160,6 +198,17 @@ export async function deleteEvent(
   redirect("/events");
 }
 
+/**
+ * Updates the order of events based on the provided array of update objects.
+ *
+ * @param updates - An array of objects, each containing an event's ID and its new order.
+ *
+ * @example
+ * await updateEventOrder([
+ *   { id: 'event1', order: 1 },
+ *   { id: 'event2', order: 2 }
+ * ]);
+ */
 export async function updateEventOrder(
   updates: { id: string; order: number }[]
 ) {
@@ -178,6 +227,19 @@ export async function updateEventOrder(
   }
 }
 
+/**
+ * Updates the active state of the event with the given ID.
+ *
+ * @param id - The unique identifier of the event.
+ * @param isActive - A boolean indicating whether the event should be active (true) or inactive (false).
+ * @returns A promise that resolves to an object with an error flag on failure, or undefined on success.
+ *
+ * @example
+ * const result = await updateEventActiveState('event-id', true);
+ * if (result?.error) {
+ *   console.error('Failed to update the event active state');
+ * }
+ */
 export async function updateEventActiveState(
   id: string,
   isActive: boolean
