@@ -2,93 +2,109 @@
 description: 
 globs: 
 ---
-# Documentation Rule: JSDoc and Folder README Files
+# Documentation Rule: JSDoc + MDX Generation for Interactive Docs
 
 ## Semantic Description
-This rule instructs the AI to ensure that every code file is comprehensively documented using JSDoc conventions. For each file, the AI must:
-- Add JSDoc comment blocks for functions, classes, modules, and significant code sections.
-- Include detailed descriptions, parameter definitions, return values, and inline examples using standard JSDoc tags (e.g., `@param`, `@returns`, `@example`).
-- Provide code examples within the documentation that clearly demonstrate usage.
+This rule directs the AI to:
+- **Document Code Inline:**  
+  Ensure every function, class, and module in files with extensions `.js`, `.ts`, `.jsx`, and `.tsx` is thoroughly documented using JSDoc comments. These comments must include descriptions, parameter details, return types, and usage examples (using tags like `@param`, `@returns`, and `@example`).
+
+- **Generate MDX Files:**  
+  For each documented code file, automatically generate a corresponding `.mdx` file (placed in a designated documentation folder, e.g., `docs/api/`) that extracts and structures the documentation. Each MDX file should include:
+  - A **Title** (module or file name).
+  - An **Overview** summarizing the file’s purpose.
+  - An **API Section** that details each documented symbol (functions, classes, methods) along with their parameters, return values, and inline examples.
+  - **Code Examples** rendered in syntax-highlighted blocks.
   
-In addition, for each folder in the project, a `README.md` file should be automatically generated. This README must:
-- Describe the folder’s purpose and contents.
-- Outline usage instructions, list key modules or components, and include example code snippets.
-- Follow a clear, consistent format that helps new developers understand the organization and intent of the code within that folder.
+- **Integration with Documentation Platforms:**  
+  The MDX files must be formatted to work seamlessly with platforms like Fumadocs or Mintlify, allowing for interactive and navigable documentation.
 
 ## File Pattern Matching
 - **Applies to Code Files:**  
-  - All files with extensions `.js`, `.ts`, `.jsx`, and `.tsx` should include JSDoc documentation.
-- **Applies to Folders:**  
-  - Every folder (e.g., `components/`, `lib/`, `utils/`) should have an accompanying `README.md` file that documents its purpose and usage.
+  All files matching extensions `.js`, `.ts`, `.jsx`, and `.tsx` that include JSDoc comments.
+- **Documentation Output:**  
+  For each such code file, an MDX file with the same base name should be generated. For example, for `src/utils/math.ts`, generate a file like `docs/api/utils/math.mdx`.
 
 ## Rule Details & Examples
 
-### JSDoc Documentation in Code Files
-- **Guidelines:**
-  - Each function, class, and module must be preceded by a JSDoc comment block.
-  - Use appropriate tags like `@param`, `@returns`, and `@example` to illustrate usage.
+### 1. Inline JSDoc Comments
 - **Example:**
-  ```js
+  ```ts
   /**
-   * Calculates the sum of two numbers.
+   * Adds two numbers together.
    *
    * @param {number} a - The first number.
    * @param {number} b - The second number.
-   * @returns {number} The sum of the two numbers.
+   * @returns {number} The sum of a and b.
    *
    * @example
    * const result = add(2, 3);
    * // result is 5
    */
-  function add(a, b) {
+  export function add(a: number, b: number): number {
     return a + b;
   }
   ```
-  > *Inline Note:* Apply similar comments to classes, modules, and complex code blocks.
+  > *Inline Note:* Ensure each public function and class is documented with all relevant tags.
 
-### README.md for Each Folder
-- **Guidelines:**
-  - Create a `README.md` in each folder that explains:
-    - The folder’s purpose.
-    - A brief overview of its contents (e.g., listing key files or modules).
-    - Usage instructions with examples.
-    - Any dependencies or configuration notes.
-- **Example:**
-  ```md
-  # Components Folder
+### 2. Auto-generated MDX Documentation File
+- **MDX Template Structure:**
+  - **Front Matter:**  
+    Include metadata (e.g., title) in the MDX front matter.
+  - **Overview Section:**  
+    Provide a summary of the module’s purpose.
+  - **API Documentation:**  
+    For each function or class, extract the JSDoc details into a structured section.
+  - **Examples:**  
+    Render code examples in fenced code blocks.
+- **Example MDX Template:**
+  ```mdx
+  ---
+  title: "Math Utilities"
+  ---
 
-  This folder contains reusable UI components for the application.
+  # Math Utilities Module
 
-  ## Contents
+  This module provides various mathematical utility functions.
 
-  - **Button.tsx:** A styled, accessible button component.
-  - **Modal.tsx:** A modal dialog component using Radix UI for accessibility.
+  ## API Documentation
 
-  ## Usage
+  ### `add(a: number, b: number): number`
+  Adds two numbers together.
 
-  To use these components, import them as follows:
-  ```tsx
-  import Button from './Button';
-  import Modal from './Modal';
+  **Parameters:**
+  - **a:** The first number.
+  - *ber.
 
-  // Example usage:
-  <Button label="Click Me" onClick={() => console.log('Button clicked!')} />;
+  - The sum of `a` and `b`.
+
+  **Example:**
+  ```ts
+  import { add } from 'src/utils/math';
+
+  const sum = add(2, 3);
+  console.log(sum); // 5
   ```
   ```
-  > *Inline Note:* Ensure the README provides clear, concise information that aids both new and experienced developers.
+  > *Inline Note:* The MDX file should follow a consistent template so that platforms like Fumadocs or Mintlify can render them uniformly.
 
 ## Automatic Attachment & References
-- **Automatic Inclusion:**  
-  - Whenever a code file is created or modified, automatically add or update JSDoc documentation.
-  - For every folder, generate or update the accompanying `README.md` file based on the folder’s contents.
+- **Trigger:**  
+  When a code file with JSDoc comments is saved or updated, automatically generate/update the corresponding MDX file in the designated documentation folder.
+- **Tooling Suggestions:**  
+  Consider using tools such as `jsdoc-to-markdown` to generate Markdown output from JSDoc comments and then post-process it into MDX format.
 - **References:**  
   - [JSDoc Documentation](https://jsdoc.app/)
-  - [JSDoc Examples](https://www.tutorialspoint.com/jsdoc/index.htm)
+  - [jsdoc-to-markdown GitHub](https://github.com/jsdoc2md/jsdoc-to-markdown)
+  - [Fumadocs](https://fumadocs.com/)
+  - [Mintlify](https://mintlify.com/)
 
 ## Additional Guidelines
 - **Consistency:**  
-  Use a uniform documentation style across all files and folders.
-- **Clarity:**  
-  Documentation should be easy to read, providing sufficient detail to explain the code’s purpose, usage, and behavior.
-- **Review:**  
-  Ensure that the generated documentation is accurate, complete, and follows the project's linting and formatting guidelines.
+  Ensure that both inline comments and generated MDX files follow the same documentation style and template.
+- **Automation:**  
+  MDX files should be automatically regenerated whenever the corresponding code file is modified.
+- **Customization:**  
+  Allow for manual additions in the MDX files for extra context that may not be captured by inline JSDoc comments.
+- **Quality:**  
+  All generated documentation must be clear, concise, and helpful to both new and experienced developers.
