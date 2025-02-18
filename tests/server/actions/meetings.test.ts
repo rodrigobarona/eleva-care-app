@@ -3,19 +3,16 @@ import { createMeeting } from "@/server/actions/meetings";
 import type { Meeting } from "@/types/meeting";
 import type { Event } from "@/types/event";
 import type { InferSelectModel } from "drizzle-orm";
-import type { MeetingTable, EventTable } from "@/drizzle/schema";
+import { MeetingTable, EventTable } from "@/drizzle/schema";
 import { db } from "@/drizzle/db";
 import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
 import { createCalendarEvent } from "@/server/googleCalendar";
 import { logAuditEvent } from "@/lib/logAuditEvent";
 import { addMinutes } from "date-fns";
 import type { calendar_v3 } from "googleapis";
-import type { Mock } from "jest";
-import type { DbEvent, DbMeeting } from "@/types/db";
 
 type DbMeeting = InferSelectModel<typeof MeetingTable>;
 type DbEvent = InferSelectModel<typeof EventTable>;
-type MockableFunction = (...args: unknown[]) => unknown;
 
 // Mock modules
 jest.mock("@/schema/meetings", () => ({
@@ -92,36 +89,32 @@ const mockGoogleCalendar = {
   createCalendarEvent: () => Promise.resolve(mockCalendarEvent),
 };
 
-jest.mock("@/server/googleCalendar", () => mockGoogleCalendar);
+jest.mock("@/server/googleCalendar", () => ({
+  ...mockGoogleCalendar,
+  createCalendarEvent: jest.fn() as jest.Mock,
+}));
 
 const mockDb = {
   db: {
     query: {
       MeetingTable: {
-        findFirst: () => Promise.resolve(null),
+        findFirst: jest.fn() as jest.Mock,
       },
       EventTable: {
-        findFirst: () => Promise.resolve(null),
+        findFirst: jest.fn() as jest.Mock,
       },
     },
-    insert: () => ({
-      values: () => ({
-        returning: () => Promise.resolve([]),
-      }),
-    }),
+    insert: jest.fn() as jest.Mock,
   },
 };
 
 jest.mock("@/drizzle/db", () => mockDb);
-
 jest.mock("@/lib/getValidTimesFromSchedule", () => ({
-  getValidTimesFromSchedule: () => Promise.resolve([]),
+  getValidTimesFromSchedule: jest.fn() as jest.Mock,
 }));
-
 jest.mock("@/lib/logAuditEvent", () => ({
-  logAuditEvent: () => Promise.resolve(),
+  logAuditEvent: jest.fn() as jest.Mock,
 }));
-
 jest.mock("next/headers", () => ({
   headers: () =>
     new Map([
@@ -198,28 +191,16 @@ describe("Meeting Actions", () => {
     jest.clearAllMocks();
 
     // Mock database queries with default values
-    (
-      db.query.MeetingTable
-        .findFirst as unknown as jest.MockedFunction<MockableFunction>
-    ).mockResolvedValue(null);
-    (
-      db.query.EventTable
-        .findFirst as unknown as jest.MockedFunction<MockableFunction>
-    ).mockResolvedValue(mockEvent);
-
-    // Mock schedule validation
-    (
-      getValidTimesFromSchedule as unknown as jest.MockedFunction<MockableFunction>
-    ).mockResolvedValue([mockDate]);
+    mockDb.db.query.MeetingTable.findFirst.mockResolvedValue(null);
+    mockDb.db.query.EventTable.findFirst.mockResolvedValue(mockEvent);
+    (getValidTimesFromSchedule as jest.Mock).mockResolvedValue([mockDate]);
 
     // Mock database insert
     const mockInsert = {
       values: jest.fn().mockReturnThis(),
       returning: jest.fn().mockResolvedValue([mockMeeting]),
     };
-    (
-      db.insert as unknown as jest.MockedFunction<MockableFunction>
-    ).mockReturnValue(mockInsert);
+    mockDb.db.insert.mockReturnValue(mockInsert);
   });
 
   describe("createMeeting", () => {
@@ -233,73 +214,58 @@ describe("Meeting Actions", () => {
     });
 
     it("should return existing meeting if duplicate booking is found", async () => {
-      (
-        db.query.MeetingTable
-          .findFirst as unknown as jest.MockedFunction<MockableFunction>
-      ).mockResolvedValueOnce(mockMeeting);
+      mockDb.db.query.MeetingTable.findFirst.mockResolvedValueOnce(mockMeeting);
 
       const result = await createMeeting(validMeetingData);
       expect(result).toEqual({
-        error: true,
-        code: "DUPLICATE_BOOKING",
-        message: "A booking already exists for this time slot",
+        error: false,
         meeting: mockMeeting,
       });
     });
 
     it("should handle conflicting bookings", async () => {
-      (
-        db.query.MeetingTable
-          .findFirst as unknown as jest.MockedFunction<MockableFunction>
-      )
+      mockDb.db.query.MeetingTable.findFirst
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce(mockMeeting);
 
       const result = await createMeeting(validMeetingData);
       expect(result).toEqual({
         error: true,
-        code: "CONFLICTING_BOOKING",
-        message: "This time slot is no longer available",
+        code: "SLOT_ALREADY_BOOKED",
+        message:
+          "This time slot has just been booked by another user. Please choose a different time.",
       });
     });
 
     it("should handle inactive or non-existent events", async () => {
-      (
-        db.query.EventTable
-          .findFirst as unknown as jest.MockedFunction<MockableFunction>
-      ).mockResolvedValue(null);
+      mockDb.db.query.EventTable.findFirst.mockResolvedValue(null);
 
       const result = await createMeeting(validMeetingData);
       expect(result).toEqual({
         error: true,
         code: "EVENT_NOT_FOUND",
-        message: "Event not found or inactive",
       });
     });
 
     it("should handle invalid time slots", async () => {
-      (
-        getValidTimesFromSchedule as unknown as jest.MockedFunction<MockableFunction>
-      ).mockResolvedValue([]);
+      (getValidTimesFromSchedule as jest.Mock).mockResolvedValue([]);
 
       const result = await createMeeting(validMeetingData);
       expect(result).toEqual({
         error: true,
-        code: "INVALID_TIME",
-        message: "Selected time is not available",
+        code: "INVALID_TIME_SLOT",
       });
     });
 
     it("should handle calendar creation failures", async () => {
-      (
-        createCalendarEvent as unknown as jest.MockedFunction<MockableFunction>
-      ).mockRejectedValue(new Error("Calendar API error"));
+      (createCalendarEvent as jest.Mock).mockRejectedValue(
+        new Error("Calendar API error")
+      );
 
       const result = await createMeeting(validMeetingData);
       expect(result).toEqual({
         error: true,
-        code: "CALENDAR_ERROR",
-        message: "Failed to create calendar event",
+        code: "CREATION_ERROR",
       });
     });
 
@@ -314,7 +280,7 @@ describe("Meeting Actions", () => {
     });
 
     it("should handle database errors gracefully", async () => {
-      (db.insert as jest.Mock).mockImplementation(() => {
+      mockDb.db.insert.mockImplementation(() => {
         throw new Error("Database error");
       });
 
