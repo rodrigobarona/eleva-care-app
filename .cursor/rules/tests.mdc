@@ -1,0 +1,10 @@
+---
+description: write and update tests
+globs: 
+---
+
+# Instructions to write and update tests
+
+- Tests should be consistents look how are before implement to keep the same patern
+- Always lint the code
+- Always run the tests before finish your implementation

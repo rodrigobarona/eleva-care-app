@@ -1,0 +1,12 @@
+---
+description: Create/update api endpoints and actions
+globs: 
+---
+
+# API, Server Actions and Mutations
+Server Actions and Mutations
+
+- Always possible create an action to isolate the logic from the api
+- Ensure this action can be used in all project, to avoid make calls to api in forms
+[https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations]
+- If create a new action/endpoint, create a test to.
