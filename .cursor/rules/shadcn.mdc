@@ -1,9 +1,0 @@
----
-description: This is shadcn/ui rules when create new components
-globs: 
----
-
-# Shadcn rules
-
-- Always check the documentation guides to install https://ui.shadcn.com/docs/installation/next
-- The command to add new component shold be pnpm dlx shadcn@latest add [component]

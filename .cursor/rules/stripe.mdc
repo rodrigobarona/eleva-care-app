@@ -1,0 +1,69 @@
+---
+description: 
+globs: 
+---
+# Stripe Integration Rule: Payments, Connect, and Identity
+
+## Semantic Description
+This rule directs the AI to generate code and configuration for Stripe integrations that cover:
+- **Stripe Payments:** Creating and managing Payment Intents, handling webhooks, and ensuring secure payment flows.
+- **Stripe Connect:** Onboarding and managing connected accounts, handling transfers and payouts, and processing OAuth flows when needed.
+- **Stripe Identity:** Initiating and managing identity verification sessions with proper error handling and data security.
+
+When generating code, the AI should:
+- Follow the latest Stripe API best practices and security guidelines (e.g., PCI compliance).
+- Include robust error handling, input validation, and logging.
+- Use modular, clean code with clear inline comments explaining each step.
+- Reference official Stripe documentation (e.g., [Stripe Docs](mdc:https:/stripe.com/docs)) for up‑to‑date details.
+- Respect any project-specific configurations (e.g., environment variables for API keys).
+
+## File Pattern Matching
+- **Applies to files in paths matching:**  
+  - `**/stripe/**`
+  - `**/payments/**` (when related to Stripe Payments)
+  - `**/connect/**` (when related to Stripe Connect)
+  - `**/identity/**` (when related to Stripe Identity)
+  
+These patterns ensure that whenever a file touches on Stripe functionality, this rule is automatically included.
+
+## Rule Details & Examples
+### Stripe Payments
+- **Guidelines:**  
+  - Generate code that creates Payment Intents (or Setup Intents as needed) with the correct currency, amount, and metadata.
+  - Include webhook handling for payment events (e.g., successful payment, failed payment) with proper verification.
+  - Emphasize secure handling of API keys and sensitive data via environment variables.
+- **Example:**  
+  - A function that initializes a Payment Intent, checks for errors, and returns a client secret.
+
+### Stripe Connect
+- **Guidelines:**  
+  - Provide code for onboarding new connected accounts, including OAuth or direct account creation flows.
+  - Handle transfers and payout scheduling with error checking.
+  - Include clear status tracking for connected accounts.
+- **Example:**  
+  - A function that creates a connected account and securely stores the account ID along with proper error handling.
+
+### Stripe Identity
+- **Guidelines:**  
+  - Generate code that initiates identity verification sessions.
+  - Validate API responses and securely process user verification data.
+  - Ensure that the flow complies with privacy and security best practices.
+- **Example:**  
+  - A snippet that triggers a verification session and processes the results, returning a verification status.
+
+## Automatic Attachment & References
+- **Automatic Inclusion:**  
+  - When any file references “stripe” or matches the file patterns above, this rule should automatically be attached.
+- **References:**  
+  - If needed, chain with a global Stripe guideline file using `@file stripe-docs.mdc` to include extra context from official documentation.
+
+## Additional Guidelines
+- **Security:**  
+  - Ensure sensitive keys or tokens are never hardcoded; use environment variables.
+- **Modularity:**  
+  - Write functions that are production‑ready and easy to integrate into a Next.js (or Node.js) backend.
+- **Documentation:**  
+  - Include inline comments that describe the integration logic.
+- **Consistency:**  
+  - Follow the project’s coding style, linting rules, and naming conventions.
+

@@ -1,0 +1,123 @@
+---
+description: 
+globs: 
+---
+# Neon.tech & Postgres Integration with Drizzler
+
+## Semantic Description
+This rule instructs the AI to generate code and configuration for integrating a Neon.tech Postgres database using Drizzler (a lightweight TypeScript ORM/SQL query builder). The generated code should:
+- **Connection Configuration:**  
+  Set up database connection details (host, port, database name, user, password) via environment variables.
+- **Query Execution & Transactions:**  
+  Include examples of executing basic CRUD operations (SELECT, INSERT, UPDATE, DELETE) and demonstrate transaction handling.
+- **Error Handling & Security:**  
+  Incorporate robust error checking, connection pooling (if applicable), and ensure sensitive credentials are securely managed.
+- **Documentation & Comments:**  
+  Provide inline comments that explain key steps and reference the official Neon.tech, Postgres, and Drizzler documentation for up‑to‑date details.
+
+## File Pattern Matching
+- **Applies to files matching:**  
+  - `**/db/**`
+  - `**/database/**`
+  - `**/drizzler/**`
+- **Trigger:**  
+  When a file references “Neon.tech”, “Postgres”, or “Drizzler” (or similar variants), automatically attach this rule.
+
+## Rule Details & Examples
+### Database Connection Setup
+- **Guidelines:**  
+  - Use environment variables to store connection details (e.g. `NEON_DB_HOST`, `NEON_DB_USER`, `NEON_DB_PASSWORD`, etc.).
+  - Initialize the Drizzler client (or Drizzle ORM instance) with the proper configuration.
+- **Example:**  
+  ```ts
+  // db/connection.ts
+  import { createConnection } from 'drizzler'; // Adjust import according to Drizzler's API
+
+  const connection = createConnection({
+    host: process.env.NEON_DB_HOST,
+    port: Number(process.env.NEON_DB_PORT),
+    database: process.env.NEON_DB_NAME,
+    user: process.env.NEON_DB_USER,
+    password: process.env.NEON_DB_PASSWORD,
+    ssl: { rejectUnauthorized: false } // Use SSL as recommended for Neon.tech
+  });
+
+  export default connection;
+  ```
+
+### Query Execution & CRUD Operations
+- **Guidelines:**  
+  - Demonstrate how to perform SELECT, INSERT, UPDATE, and DELETE operations using Drizzler.
+  - Show how to handle query results and errors gracefully.
+- **Example:**  
+  ```ts
+  // db/operations.ts
+  import connection from './connection';
+
+  // Example: Fetch records
+  export async function getUsers() {
+    try {
+      const users = await connection.query('SELECT * FROM users');
+      return users;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
+  }
+
+  // Example: Insert a new user
+  export async function createUser(name: string, email: string) {
+    try {
+      const result = await connection.query(
+        'INSERT INTO users (name, email) VALUES ($1, $2) RETURNING *',
+        [name, email]
+      );
+      return result;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw error;
+    }
+  }
+  ```
+
+### Transaction Management
+- **Guidelines:**  
+  - Include examples of how to manage transactions when performing multiple database operations.
+- **Example:**  
+  ```ts
+  // db/transaction.ts
+  import connection from './connection';
+
+  export async function performTransaction() {
+    const client = await connection.connect();
+    try {
+      await client.query('BEGIN');
+
+      // Execute multiple operations
+      await client.query('UPDATE accounts SET balance = balance - $1 WHERE id = $2', [100, 1]);
+      await client.query('UPDATE accounts SET balance = balance + $1 WHERE id = $2', [100, 2]);
+
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Transaction failed:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+  ```
+
+## Automatic Attachment & References
+- **Automatic Inclusion:**  
+  When files reference Neon.tech, Postgres, or Drizzler, this rule should be automatically attached.
+- **Reference Files:**  
+  Optionally chain with a global database integration rule (e.g., `@file global-db-guidelines.mdc`) to include additional context if needed.
+
+## Additional Guidelines
+- **Environment Variables:**  
+  Do not hardcode credentials. Use environment variable management (e.g., `.env` files with appropriate security measures).
+- **Modularity & Testing:**  
+  Write modular functions that are easy to test. Include unit tests where applicable.
+- **Documentation:**  
+  Inline comments should explain the purpose of each code section, and references to official Neon.tech, Postgres, and Drizzler documentation should be added where relevant.

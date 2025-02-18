@@ -1,0 +1,89 @@
+---
+description: 
+globs: 
+---
+# Clerk.com Integration Rule
+
+## Semantic Description
+This rule instructs the AI to generate production‑ready integration code for Clerk.com, a service for authentication and user management. The generated code should:
+- Integrate Clerk’s authentication components (e.g., SignIn, SignUp, UserProfile) using the official Clerk SDK (such as `@clerk/nextjs` for Next.js projects).
+- Wrap application root components with Clerk’s provider (e.g., `<ClerkProvider>`), ensuring secure and centralized auth management.
+- Include route protection examples using Clerk’s authentication hooks or higher‑order components.
+- Handle secure storage of API keys and sensitive configuration via environment variables.
+- Follow official best practices as outlined in the [Clerk documentation](mdc:https:/clerk.dev/docs).
+
+## File Pattern Matching
+- **Applies to files in paths matching:**  
+  - `**/auth/**`
+  - `**/clerk/**`
+  - Files handling user sessions, sign in/up pages, or profile management.
+
+These patterns ensure that whenever a file relates to authentication with Clerk, this rule is automatically attached.
+
+## Rule Details & Examples
+### General Setup
+- **Provider Integration:**  
+  - Wrap your application’s root (e.g., in your Next.js App Router’s layout file) with `<ClerkProvider>` to enable Clerk across the app.
+  - Example:
+    ```tsx
+    // app/layout.tsx (Next.js App Router)
+    import { ClerkProvider } from '@clerk/nextjs';
+
+    export default function RootLayout({ children }: { children: React.ReactNode }) {
+      return (
+        <html>
+          <body>
+            <ClerkProvider>
+              {children}
+            </ClerkProvider>
+          </body>
+        </html>
+      );
+    }
+    ```
+  
+### Authentication Components & Route Protection
+- **Sign In/Up Components:**  
+  - Generate pages using `<SignIn />` and `<SignUp />` components provided by Clerk.
+  - Example:
+    ```tsx
+    // app/signin/page.tsx
+    import { SignIn } from '@clerk/nextjs';
+
+    export default function SignInPage() {
+      return <SignIn path="/signin" routing="path" signUpUrl="/signup" />;
+    }
+    ```
+- **Protected Routes:**  
+  - Use Clerk’s hooks (e.g., `useUser` or `withClerk`) to guard pages or components.
+  - Example:
+    ```tsx
+    // app/protected/page.tsx
+    import { redirect } from 'next/navigation';
+    import { useUser } from '@clerk/nextjs';
+
+    export default function ProtectedPage() {
+      const { isSignedIn } = useUser();
+      if (!isSignedIn) {
+        redirect('/signin');
+      }
+      return <div>This is a protected page visible only to authenticated users.</div>;
+    }
+    ```
+
+## Automatic Attachment & References
+- **Automatic Inclusion:**  
+  - When any file contains references to "Clerk" or matches the patterns above, this rule should be automatically attached.
+- **Reference Files:**  
+  - Optionally chain this rule with a global authentication guideline file using `@file auth-guidelines.mdc` if further context is needed.
+
+## Additional Guidelines
+- **Security:**  
+  - Ensure that all Clerk API keys and secrets are stored securely as environment variables.
+- **Code Modularity:**  
+  - Write components and hooks that are modular, easy to test, and adhere to the project’s linting and formatting rules.
+- **Documentation:**  
+  - Include inline comments describing the authentication flow and referencing the [Clerk docs](mdc:https:/clerk.dev/docs) where applicable.
+- **Testing:**  
+  - When generating test files for Clerk integration, include tests that verify protected routes and user session handling.
+

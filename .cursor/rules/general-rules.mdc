@@ -78,7 +78,7 @@ working code also it should be aligned to listed rules down below at
     - Avoid for data fetching or state management.
 
   ## Tools
-    - Always use pnpm as package manager.
+    - Always use pnpm as package manager (do not use npm or yarn).
     - Always use Drizzler as ORM.
     - Always use Neon.tech as Postgrade database.
     - Always use Clerk.com as auth platform.

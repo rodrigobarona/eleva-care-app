@@ -1,0 +1,79 @@
+---
+description: 
+globs: 
+---
+# Privacy Compliance Rule: GDPR, SOC 2, and HIPAA
+
+## Semantic Description
+This rule instructs the AI to generate code that adheres to strict privacy and security standards as mandated by GDPR, SOC 2, and HIPAA. The generated code must:
+- **Minimize Data Collection:** Only process data necessary for the defined purpose.
+- **Ensure Secure Data Handling:** Encrypt sensitive data in transit and at rest using industry‑standard protocols.
+- **Implement Access Controls & Audit Logging:** Restrict access to personal or sensitive data and log any access events for audit purposes.
+- **Support User Rights:** Provide mechanisms for obtaining user consent and enabling data subject rights (e.g., data export, correction, deletion).
+- **Apply Privacy by Design:** Default settings should favor maximum privacy; include anonymization or pseudonymization when possible.
+- **Reference Compliance Standards:** Inline comments should, when applicable, reference relevant sections of GDPR (e.g., Article 32), SOC 2 criteria, and HIPAA Security Rule guidelines.
+
+## File Pattern Matching
+- **Applies to files that handle sensitive or personal data, including but not limited to:**
+  - `**/api/**`
+  - `**/models/**`
+  - `**/services/**` (especially those dealing with user or payment information)
+  - `**/logs/**`
+- **Trigger:**  
+  Any file referencing variables like `user`, `personalData`, `paymentInfo`, `healthInfo`, or similar must include privacy-compliant handling.
+
+## Rule Details & Examples
+
+### 1. Data Minimization & Purpose Limitation
+- **Guideline:**  
+  Only collect and process data that is essential for the functionality. Avoid storing unnecessary personal details.
+- **Example Inline Comment:**  
+  `// Ensure only minimal necessary user data is collected per GDPR principles.`
+
+### 2. Encryption & Secure Storage
+- **Guideline:**  
+  Use environment variables for all sensitive credentials and enforce encryption both in transit (e.g., TLS) and at rest.
+- **Example:**
+  ```ts
+  // db/connection.ts
+  const dbPassword = process.env.DB_PASSWORD; // Use secure storage and encryption for credentials
+  ```
+- **Reference:**  
+  See [GDPR Article 32](mdc:https:/gdpr-info.eu/art-32-gdpr) for guidelines on data security.
+
+### 3. Access Controls & Audit Logging
+- **Guideline:**  
+  Implement role-based access control and log access to sensitive endpoints.
+- **Example:**
+  ```ts
+  // utils/audit.ts
+  export function logAccess(userId: string, action: string) {
+    // Log sensitive data access: timestamp, userId, action, IP address, etc.
+    console.log(`[AUDIT] ${new Date().toISOString()} - User ${userId} performed action: ${action}`);
+  }
+  ```
+
+### 4. User Consent & Rights Management
+- **Guideline:**  
+  Ensure that users explicitly consent to data processing and provide endpoints to manage data export, correction, or deletion.
+- **Example Inline Comment:**  
+  `// GDPR-compliant endpoint: Must support user requests for data deletion or export.`
+
+### 5. Anonymization / Pseudonymization
+- **Guideline:**  
+  Where feasible, store data in an anonymized or pseudonymized format to mitigate risks.
+- **Example Inline Comment:**  
+  `// Consider pseudonymizing user identifiers to reduce exposure of personal data.`
+
+## Additional Guidelines
+- **Security Reviews:**  
+  Generated code should be designed for regular security audits and penetration tests.
+- **Privacy by Design:**  
+  Follow principles that ensure default configurations are the most privacy‑friendly.
+- **Compliance References:**  
+  Include inline references to:
+  - [GDPR Article 32](mdc:https:/gdpr-info.eu/art-32-gdpr)
+  - SOC 2 security criteria (as defined by AICPA)
+  - [HIPAA Security Rule](mdc:https:/www.hhs.gov/hipaa/for-professionals/security/index.html)
+- **Testing Considerations:**  
+  When writing tests, use anonymized or dummy data that mirrors the structure of real data without exposing sensitive information.

@@ -1,0 +1,134 @@
+---
+description: This is shadcn/ui rules when create new components
+globs: 
+---
+# Design, Styling, and Accessibility Rule
+## Using TailwindCSS, shadcn/ui, Radix UI, and Tremor
+
+## Semantic Description
+This rule instructs the AI to generate UI code that:
+- **Uses TailwindCSS** utility classes for consistent, responsive styling.
+- **Leverages shadcn/ui** components to enforce a cohesive design system built on top of TailwindCSS.
+- **Incorporates Radix UI primitives** to ensure accessibility, semantic HTML, proper ARIA attributes, and keyboard navigability.
+- **Applies Tremor UI components** for data visualization and dashboard elements with a focus on clarity and user-friendly analytics.
+- **Adheres to accessibility best practices:**  
+  - Follows WCAG 2.1 guidelines (contrast ratios, semantic elements, keyboard focus, etc.).
+  - Includes inline comments or annotations that reference accessibility considerations and official documentation.
+
+## File Pattern Matching
+- **Applies to files in paths matching:**  
+  - `**/components/**`
+  - `**/ui/**`
+  - `**/styles/**`
+  - `**/dashboard/**`
+- **Trigger:**  
+  When files reference any of the following keywords: "Tailwind", "shadcn", "Radix", or "Tremor", attach this rule automatically.
+
+## Rule Details & Examples
+
+### Styling with TailwindCSS & shadcn/ui
+- **Guidelines:**  
+  - Utilize TailwindCSS classes for layout, spacing, typography, and responsiveness.
+  - Use shadcn/ui components when available to maintain design consistency.
+  - Ensure customizations adhere to Tailwind’s configuration and design tokens.
+- **Example:**  
+  ```tsx
+  // components/Button.tsx
+  import React from 'react';
+  import { Button as ShadcnButton } from 'shadcn/ui';
+
+  export default function Button({ label, onClick }: { label: string; onClick: () => void }) {
+    return (
+      <ShadcnButton 
+        className="bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-md px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300"
+        onClick={onClick}
+      >
+        {label}
+      </ShadcnButton>
+    );
+  }
+  ```
+  > *Inline Note:* Ensure focus states are clearly visible for keyboard users.
+
+### Enhancing Accessibility with Radix UI
+- **Guidelines:**  
+  - Use Radix UI primitives for complex interactive elements (e.g., modals, dropdowns, tooltips).
+  - Include appropriate ARIA attributes and ensure keyboard navigation.
+- **Example:**  
+  ```tsx
+  // components/Modal.tsx
+  import React from 'react';
+  import * as Dialog from '@radix-ui/react-dialog';
+
+  export default function Modal({ open, onOpenChange, title, children }: { open: boolean; onOpenChange: (open: boolean) => void; title: string; children: React.ReactNode; }) {
+    return (
+      <Dialog.Root open={open} onOpenChange={onOpenChange}>
+        <Dialog.Overlay className="fixed inset-0 bg-black bg-opacity-50" />
+        <Dialog.Content 
+          className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-md shadow-lg focus:outline-none"
+          aria-labelledby="dialog-title"
+        >
+          <Dialog.Title id="dialog-title" className="text-lg font-semibold mb-4">
+            {title}
+          </Dialog.Title>
+          {children}
+          <Dialog.Close 
+            className="mt-4 px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300"
+          >
+            Close
+          </Dialog.Close>
+        </Dialog.Content>
+      </Dialog.Root>
+    );
+  }
+  ```
+  > *Inline Note:* Radix UI’s primitives ensure that ARIA roles and keyboard interactivity are correctly implemented.
+
+### Dashboard Components with Tremor
+- **Guidelines:**  
+  - Use Tremor components to create data visualizations and dashboard elements.
+  - Include text alternatives (e.g., tooltips or descriptions) to support screen readers.
+- **Example:**  
+  ```tsx
+  // components/DashboardCard.tsx
+  import React from 'react';
+  import { Card, Title, Metric, Text } from '@tremor/react';
+
+  export default function DashboardCard({ title, metric, description }: { title: string; metric: string | number; description: string; }) {
+    return (
+      <Card className="p-4">
+        <Title className="text-xl mb-2">{title}</Title>
+        <Metric className="text-3xl font-bold">{metric}</Metric>
+        <Text className="text-gray-600">{description}</Text>
+      </Card>
+    );
+  }
+  ```
+  > *Inline Note:* Provide descriptive text to ensure that data visualizations are accessible to all users.
+
+## Automatic Attachment & References
+- **Automatic Inclusion:**  
+  When any file includes references to "TailwindCSS", "shadcn/ui", "Radix UI", or "Tremor", this rule should be automatically applied.
+- **References:**  
+  - [TailwindCSS Documentation](mdc:https:/tailwindcss.com/docs)
+  - [shadcn/ui Documentation](mdc:https:/ui.shadcn.com)
+  - [Radix UI Documentation](mdc:https:/www.radix-ui.com)
+  - [Tremor Documentation](mdc:https:/tremor.so)
+
+## Additional Guidelines
+- **Responsive Design:**  
+  Ensure that components adjust gracefully across devices and screen sizes.
+- **Contrast & Readability:**  
+  Use Tailwind classes to enforce high contrast and legible typography.
+- **Keyboard Navigation:**  
+  Verify that all interactive components are fully navigable using a keyboard.
+- **Semantic HTML:**  
+  Use semantic elements (e.g., `<header>`, `<main>`, `<footer>`) to support assistive technologies.
+- **Testing for Accessibility:**  
+  Consider integrating accessibility testing (e.g., using axe-core or React Testing Library’s accessibility queries) as part of your test suite.
+
+```
+
+---
+
+This rule file should guide the AI (Cursor) to produce code that aligns with modern design principles, consistent styling using TailwindCSS and shadcn/ui, and robust accessibility practices leveraging Radix UI and Tremor. Feel free to customize further to suit your project’s specific guidelines or additional requirements.

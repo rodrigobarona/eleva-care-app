@@ -13,7 +13,9 @@
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio",
     "auditdb:generate": "drizzle-kit generate --config audit.config.ts",
-    "auditdb:migrate": "drizzle-kit migrate --config audit.config.ts"
+    "auditdb:migrate": "drizzle-kit migrate --config audit.config.ts",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "@clerk/elements": "^0.16.2",
@@ -89,7 +91,9 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@jest/globals": "^29.7.0",
     "@tailwindcss/typography": "^0.5.16",
+    "@types/jest": "^29.5.14",
     "@types/node": "^20.17.14",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
@@ -101,11 +105,14 @@
     "eslint-plugin-prettier": "^5.2.3",
     "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^5.1.0",
+    "jest": "^29.7.0",
     "postcss": "^8.5.1",
     "prettier": "^3.4.2",
     "prettier-plugin-organize-imports": "^4.1.0",
     "prettier-plugin-tailwindcss": "^0.6.10",
+    "supertest": "^7.0.0",
     "tailwindcss": "^3.4.17",
+    "ts-jest": "^29.2.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3"
   },
