@@ -44,7 +44,7 @@ export async function verifyExpertConnectAccount(clerkUserId: string) {
     const user = await db.query.UserTable.findFirst({
       where: eq(UserTable.clerkUserId, clerkUserId),
     });
-
+    // Log the user's Stripe Connect account ID
     if (!user?.stripeConnectAccountId) {
       console.error("No Stripe Connect account found for user:", {
         clerkUserId,
@@ -140,6 +140,7 @@ export async function getExpertPayoutSchedule(clerkUserId: string) {
 
     const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
 
+    // Log the account details
     return {
       error: false,
       schedule: {

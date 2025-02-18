@@ -1,0 +1,94 @@
+---
+description: 
+globs: 
+---
+# Documentation Rule: JSDoc and Folder README Files
+
+## Semantic Description
+This rule instructs the AI to ensure that every code file is comprehensively documented using JSDoc conventions. For each file, the AI must:
+- Add JSDoc comment blocks for functions, classes, modules, and significant code sections.
+- Include detailed descriptions, parameter definitions, return values, and inline examples using standard JSDoc tags (e.g., `@param`, `@returns`, `@example`).
+- Provide code examples within the documentation that clearly demonstrate usage.
+  
+In addition, for each folder in the project, a `README.md` file should be automatically generated. This README must:
+- Describe the folder’s purpose and contents.
+- Outline usage instructions, list key modules or components, and include example code snippets.
+- Follow a clear, consistent format that helps new developers understand the organization and intent of the code within that folder.
+
+## File Pattern Matching
+- **Applies to Code Files:**  
+  - All files with extensions `.js`, `.ts`, `.jsx`, and `.tsx` should include JSDoc documentation.
+- **Applies to Folders:**  
+  - Every folder (e.g., `components/`, `lib/`, `utils/`) should have an accompanying `README.md` file that documents its purpose and usage.
+
+## Rule Details & Examples
+
+### JSDoc Documentation in Code Files
+- **Guidelines:**
+  - Each function, class, and module must be preceded by a JSDoc comment block.
+  - Use appropriate tags like `@param`, `@returns`, and `@example` to illustrate usage.
+- **Example:**
+  ```js
+  /**
+   * Calculates the sum of two numbers.
+   *
+   * @param {number} a - The first number.
+   * @param {number} b - The second number.
+   * @returns {number} The sum of the two numbers.
+   *
+   * @example
+   * const result = add(2, 3);
+   * // result is 5
+   */
+  function add(a, b) {
+    return a + b;
+  }
+  ```
+  > *Inline Note:* Apply similar comments to classes, modules, and complex code blocks.
+
+### README.md for Each Folder
+- **Guidelines:**
+  - Create a `README.md` in each folder that explains:
+    - The folder’s purpose.
+    - A brief overview of its contents (e.g., listing key files or modules).
+    - Usage instructions with examples.
+    - Any dependencies or configuration notes.
+- **Example:**
+  ```md
+  # Components Folder
+
+  This folder contains reusable UI components for the application.
+
+  ## Contents
+
+  - **Button.tsx:** A styled, accessible button component.
+  - **Modal.tsx:** A modal dialog component using Radix UI for accessibility.
+
+  ## Usage
+
+  To use these components, import them as follows:
+  ```tsx
+  import Button from './Button';
+  import Modal from './Modal';
+
+  // Example usage:
+  <Button label="Click Me" onClick={() => console.log('Button clicked!')} />;
+  ```
+  ```
+  > *Inline Note:* Ensure the README provides clear, concise information that aids both new and experienced developers.
+
+## Automatic Attachment & References
+- **Automatic Inclusion:**  
+  - Whenever a code file is created or modified, automatically add or update JSDoc documentation.
+  - For every folder, generate or update the accompanying `README.md` file based on the folder’s contents.
+- **References:**  
+  - [JSDoc Documentation](https://jsdoc.app/)
+  - [JSDoc Examples](https://www.tutorialspoint.com/jsdoc/index.htm)
+
+## Additional Guidelines
+- **Consistency:**  
+  Use a uniform documentation style across all files and folders.
+- **Clarity:**  
+  Documentation should be easy to read, providing sufficient detail to explain the code’s purpose, usage, and behavior.
+- **Review:**  
+  Ensure that the generated documentation is accurate, complete, and follows the project's linting and formatting guidelines.

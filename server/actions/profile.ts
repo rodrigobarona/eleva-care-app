@@ -1,19 +1,65 @@
+/**
+ * @fileoverview Server actions for managing expert profiles in the Eleva Care application.
+ * This file handles the creation and updating of expert profiles, including profile pictures
+ * and social media links. It provides functionality for data validation, blob storage
+ * management, and social media URL normalization.
+ */
+
 import { del } from "@vercel/blob";
 import { db } from "@/drizzle/db";
 import { ProfileTable } from "@/drizzle/schema";
 import { profileFormSchema } from "@/schema/profile";
 import type { z } from "zod";
 
+/**
+ * Type definition for the profile form values, derived from the Zod schema
+ */
 type ProfileFormValues = z.infer<typeof profileFormSchema>;
 
+/**
+ * Updates an expert's profile information, including profile picture and social media links.
+ *
+ * This function performs several operations:
+ * 1. Retrieves the existing profile to handle profile picture updates
+ * 2. Manages blob storage for profile pictures (deleting old ones if necessary)
+ * 3. Normalizes social media links to full URLs
+ * 4. Validates and saves the updated profile data
+ *
+ * @param userId - The Clerk user ID of the expert
+ * @param data - The profile data to be updated, including:
+ *   - firstName: Expert's first name
+ *   - lastName: Expert's last name
+ *   - headline: Professional headline
+ *   - shortBio: Brief biography
+ *   - profilePicture: URL of the profile picture
+ *   - socialLinks: Array of social media links
+ * @returns Object indicating success or failure of the operation
+ *
+ * @example
+ * const result = await updateProfile("user_123", {
+ *   firstName: "John",
+ *   lastName: "Doe",
+ *   headline: "Expert Consultant",
+ *   shortBio: "15+ years of experience in consulting",
+ *   profilePicture: "https://example.com/picture.jpg",
+ *   socialLinks: [
+ *     { name: "twitter", url: "@johndoe" },
+ *     { name: "linkedin", url: "johndoe" }
+ *   ]
+ * });
+ *
+ * if (result.error) {
+ *   console.error("Profile update failed:", result.error);
+ * }
+ */
 export async function updateProfile(userId: string, data: ProfileFormValues) {
   try {
-    // Get existing profile first
+    // Retrieve existing profile to handle profile picture updates
     const existingProfile = await db.query.ProfileTable.findFirst({
       where: (profile, { eq }) => eq(profile.clerkUserId, userId),
     });
 
-    // Delete old blob if it exists and is different from new picture
+    // Handle profile picture blob management
     if (
       existingProfile?.profilePicture?.includes(
         "public.blob.vercel-storage.com"
@@ -21,6 +67,7 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
       existingProfile.profilePicture !== data.profilePicture
     ) {
       try {
+        // Delete old profile picture from blob storage
         await del(existingProfile.profilePicture);
       } catch (error) {
         console.error("Failed to delete old profile picture:", error);
@@ -28,19 +75,19 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
       }
     }
 
-    // Transform social links to full URLs
+    // Transform and validate social media links
     const transformedData = {
       ...data,
       socialLinks: data.socialLinks.map((link) => {
-        console.log('Raw input:', { name: link.name, url: link.url });
+        console.log("Raw input:", { name: link.name, url: link.url });
 
-        // If empty or undefined URL, return empty string
+        // Handle empty or undefined URLs
         if (!link.url?.trim()) {
           return { name: link.name, url: "" };
         }
 
-        // If it's already a full URL, validate it minimally
-        if (link.url.startsWith('http')) {
+        // Validate and return full URLs if provided
+        if (link.url.startsWith("http")) {
           try {
             new URL(link.url); // Validate URL format
             return { name: link.name, url: link.url };
@@ -49,19 +96,26 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
           }
         }
 
-        // Handle username input
-        const username = link.url.replace(/^@/, '').trim();
+        // Process username-based social media links
+        const username = link.url.replace(/^@/, "").trim();
         if (!username || !/^[a-zA-Z0-9._-]+$/.test(username)) {
           return { name: link.name, url: "" };
         }
 
+        // Convert usernames to full URLs based on platform
         switch (link.name) {
           case "instagram":
-            return { name: link.name, url: `https://instagram.com/${username}` };
+            return {
+              name: link.name,
+              url: `https://instagram.com/${username}`,
+            };
           case "twitter":
             return { name: link.name, url: `https://x.com/${username}` };
           case "linkedin":
-            return { name: link.name, url: `https://linkedin.com/in/${username}` };
+            return {
+              name: link.name,
+              url: `https://linkedin.com/in/${username}`,
+            };
           case "youtube":
             return { name: link.name, url: `https://youtube.com/@${username}` };
           case "tiktok":
@@ -70,13 +124,15 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
             return link;
         }
       }),
-      // Keep existing profile picture if none provided
+      // Preserve existing profile picture if none provided
       profilePicture:
         data.profilePicture || existingProfile?.profilePicture || null,
     };
 
+    // Validate transformed data against schema
     const validatedData = await profileFormSchema.parseAsync(transformedData);
 
+    // Upsert the profile data
     await db
       .insert(ProfileTable)
       .values({

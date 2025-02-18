@@ -1,3 +1,10 @@
+/**
+ * @fileoverview Server actions for managing Stripe integrations in the Eleva Care application.
+ * This file handles Stripe-related operations including product management, payment processing,
+ * and customer management. It provides functionality for creating and updating products,
+ * handling payment intents, and managing customer data.
+ */
+
 "use server";
 
 import { getServerStripe } from "@/lib/stripe";
@@ -5,6 +12,37 @@ import { STRIPE_CONFIG } from "@/config/stripe";
 import { db } from "@/drizzle/db";
 import { getOrCreateStripeCustomer, syncStripeDataToKV } from "@/lib/stripe";
 
+/**
+ * Creates a new Stripe product with associated price.
+ *
+ * This function:
+ * 1. Creates a new product in Stripe with the given details
+ * 2. Creates a price for the product with the specified amount
+ * 3. Associates the product with the expert via clerkUserId in metadata
+ *
+ * @param params - Object containing product details
+ * @param params.name - The name of the product
+ * @param params.description - Optional description of the product
+ * @param params.price - The price in smallest currency unit (e.g., cents)
+ * @param params.currency - The currency code (default: "eur")
+ * @param params.clerkUserId - The Clerk user ID of the expert
+ * @returns Object containing the created product and price IDs, or error details
+ *
+ * @example
+ * const result = await createStripeProduct({
+ *   name: "1-Hour Consultation",
+ *   description: "One-hour expert consultation session",
+ *   price: 10000, // 100.00 EUR
+ *   clerkUserId: "user_123"
+ * });
+ *
+ * if (result.error) {
+ *   console.error("Product creation failed:", result.error);
+ * } else {
+ *   console.log("Product created:", result.productId);
+ *   console.log("Price created:", result.priceId);
+ * }
+ */
 export async function createStripeProduct({
   name,
   description,
@@ -19,15 +57,19 @@ export async function createStripeProduct({
   clerkUserId: string;
 }) {
   try {
+    // Initialize Stripe client
     const stripe = await getServerStripe();
+
+    // Create the product first
     const product = await stripe.products.create({
       name,
       description,
       metadata: {
-        clerkUserId,
+        clerkUserId, // Store the expert's ID for reference
       },
     });
 
+    // Create a price for the product
     const stripePrice = await stripe.prices.create({
       product: product.id,
       unit_amount: price,
@@ -44,6 +86,35 @@ export async function createStripeProduct({
   }
 }
 
+/**
+ * Updates an existing Stripe product and creates a new price.
+ * Note: Stripe doesn't allow updating existing prices, so we create a new one
+ * and deactivate the old one.
+ *
+ * This function:
+ * 1. Updates the product details in Stripe
+ * 2. Creates a new price for the updated product
+ * 3. Deactivates the old price
+ *
+ * @param params - Object containing update details
+ * @param params.stripeProductId - The ID of the Stripe product to update
+ * @param params.stripePriceId - The ID of the current price to deactivate
+ * @param params.name - The new name for the product
+ * @param params.description - Optional new description
+ * @param params.price - The new price in smallest currency unit
+ * @param params.currency - The currency code (default: "eur")
+ * @param params.clerkUserId - The Clerk user ID of the expert
+ * @returns Object containing the product ID and new price ID, or error details
+ *
+ * @example
+ * const result = await updateStripeProduct({
+ *   stripeProductId: "prod_123",
+ *   stripePriceId: "price_123",
+ *   name: "Updated Consultation",
+ *   price: 15000, // 150.00 EUR
+ *   clerkUserId: "user_123"
+ * });
+ */
 export async function updateStripeProduct({
   stripeProductId,
   stripePriceId,
@@ -63,7 +134,8 @@ export async function updateStripeProduct({
 }) {
   try {
     const stripe = await getServerStripe();
-    // Update the product
+
+    // Update the product details
     await stripe.products.update(stripeProductId, {
       name,
       description,
@@ -72,14 +144,14 @@ export async function updateStripeProduct({
       },
     });
 
-    // Create a new price (Stripe doesn't allow updating prices)
+    // Create a new price since Stripe doesn't allow updating prices
     const newPrice = await stripe.prices.create({
       product: stripeProductId,
       unit_amount: price,
       currency,
     });
 
-    // Deactivate the old price
+    // Deactivate the old price to prevent future usage
     await stripe.prices.update(stripePriceId, {
       active: false,
     });
@@ -94,6 +166,9 @@ export async function updateStripeProduct({
   }
 }
 
+/**
+ * Interface defining the structure of meeting data for payment processing
+ */
 interface MeetingData {
   startTime: string;
   guestName: string;
@@ -102,6 +177,40 @@ interface MeetingData {
   guestNotes?: string;
 }
 
+/**
+ * Creates a payment intent for a meeting booking.
+ *
+ * This function:
+ * 1. Gets or creates a Stripe customer for the user
+ * 2. Retrieves the event and expert's data
+ * 3. Creates a payment intent with the event price
+ * 4. Syncs customer data to KV storage
+ *
+ * @param eventId - The ID of the event being booked
+ * @param meetingData - Object containing meeting details
+ * @param userId - The user's ID (optional for guest bookings)
+ * @param email - The customer's email address
+ * @returns Object containing the payment intent's client secret or error details
+ *
+ * @example
+ * const result = await createPaymentIntent(
+ *   "event_123",
+ *   {
+ *     startTime: "2024-04-01T10:00:00Z",
+ *     guestName: "John Doe",
+ *     guestEmail: "john@example.com",
+ *     timezone: "Europe/London"
+ *   },
+ *   "user_123",
+ *   "john@example.com"
+ * );
+ *
+ * if (result.error) {
+ *   console.error("Payment intent creation failed:", result.error);
+ * } else {
+ *   console.log("Client secret:", result.clientSecret);
+ * }
+ */
 export async function createPaymentIntent(
   eventId: string,
   meetingData: MeetingData,
@@ -133,6 +242,7 @@ export async function createPaymentIntent(
       throw new Error("Expert's Stripe Connect account not found");
     }
 
+    // Create the payment intent with all necessary details
     const paymentIntent = await stripe.paymentIntents.create({
       customer: stripeCustomerId,
       amount: event.price,
@@ -145,11 +255,11 @@ export async function createPaymentIntent(
         eventId: event.id,
         meetingData: JSON.stringify(meetingData),
         userId,
-        expertConnectAccountId: event.user.stripeConnectAccountId, // Add the expert's Connect account ID
+        expertConnectAccountId: event.user.stripeConnectAccountId,
       },
     });
 
-    // Sync customer data to KV after creation
+    // Sync customer data to KV after successful creation
     await syncStripeDataToKV(stripeCustomerId);
 
     return { clientSecret: paymentIntent.client_secret };

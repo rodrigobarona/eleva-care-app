@@ -1,3 +1,9 @@
+/**
+ * @fileoverview Server actions for managing events in the Eleva Care application.
+ * This file handles the creation, updating, deletion, and management of events,
+ * including validation, logging, and redirection.
+ */
+
 "use server";
 
 import { db } from "@/drizzle/db";
@@ -11,8 +17,6 @@ import "use-server";
 import type { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-
-// Added documentation for event actions
 
 /**
  * Creates a new event using the provided data.
@@ -53,6 +57,7 @@ export async function createEvent(
       return { error: true, message: "Failed to create event" };
     }
 
+    // Log the event creation
     await logAuditEvent(
       insertedEvent.userId,
       "create",
@@ -276,6 +281,7 @@ export async function updateEventActiveState(
     return { error: true };
   }
 
+  // Log the event update
   await logAuditEvent(
     updatedEvent.userId,
     "update",
