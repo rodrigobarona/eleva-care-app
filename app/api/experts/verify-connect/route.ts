@@ -15,7 +15,8 @@ export async function POST() {
     }
 
     // Verify if the user is an expert
-    const user = await clerkClient.users.getUser(userId);
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
     const isExpert = user.publicMetadata?.role === 'expert';
 
     if (!isExpert) {

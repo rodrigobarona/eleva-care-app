@@ -1,4 +1,3 @@
-import { headers } from 'next/headers';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
@@ -25,11 +24,12 @@ import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 
 export const revalidate = 0;
 
-export default async function BookEventPage(props: {
+type PageProps = {
   params: Promise<{ username: string; eventSlug: string }>;
-}) {
+};
+
+export default async function BookEventPage(props: PageProps) {
   const params = await props.params;
-  const headersList = await headers();
 
   const { username, eventSlug } = params;
 

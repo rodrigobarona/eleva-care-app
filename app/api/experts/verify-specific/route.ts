@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify if the user is an admin
-    const user = await clerkClient.users.getUser(userId);
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
     const isAdmin = user.publicMetadata?.role === 'admin';
 
     if (!isAdmin) {

@@ -1,9 +1,9 @@
 'use client';
 
 import type React from 'react';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 
-import { redirect } from 'next/navigation';
+import { redirect, useSearchParams } from 'next/navigation';
 
 import { useOrganizationList, useUser } from '@clerk/nextjs';
 
@@ -19,9 +19,10 @@ import {
 import { Input } from '@/components/atoms/input';
 import { Label } from '@/components/atoms/label';
 
-export default function OnboardingPage() {
+function OnboardingForm() {
   const { user, isLoaded: isUserLoaded } = useUser();
   const { createOrganization, isLoaded: isOrgLoaded } = useOrganizationList();
+  const searchParams = useSearchParams();
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
   const [orgName, setOrgName] = useState('');
@@ -62,7 +63,8 @@ export default function OnboardingPage() {
     try {
       const organization = await createOrganization({ name: orgName });
       if (organization) {
-        redirect('/islogedin'); // Redirect to dashboard after organization creation
+        const redirectTo = searchParams.get('redirect_to') || '/islogedin';
+        redirect(redirectTo); // Redirect to dashboard or specified URL after organization creation
       }
     } catch (error) {
       console.error('Error creating organization:', error);
@@ -130,5 +132,39 @@ export default function OnboardingPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function OnboardingLoading() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-gray-100">
+      <Card className="w-[350px]">
+        <CardHeader>
+          <div className="h-7 w-24 animate-pulse rounded-md bg-muted" />
+          <div className="h-5 w-48 animate-pulse rounded-md bg-muted" />
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <div className="h-5 w-20 animate-pulse rounded-md bg-muted" />
+              <div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+            </div>
+            <div className="space-y-2">
+              <div className="h-5 w-20 animate-pulse rounded-md bg-muted" />
+              <div className="h-10 w-full animate-pulse rounded-md bg-muted" />
+            </div>
+            <div className="h-10 w-32 animate-pulse rounded-md bg-muted" />
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={<OnboardingLoading />}>
+      <OnboardingForm />
+    </Suspense>
   );
 }
