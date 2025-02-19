@@ -7,31 +7,39 @@ import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
 // Add route segment config
-export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+export const dynamic = 'force-dynamic';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION,
-});
-
-const webhookSecret = process.env.STRIPE_CONNECT_WEBHOOK_SECRET ?? '';
-
-export async function POST(request: Request) {
+// Configure the request handler
+export const POST = async (request: Request) => {
   try {
     const body = await request.text();
-    const signature = request.headers.get('stripe-signature') ?? '';
+    const signature = request.headers.get('stripe-signature');
+
+    if (!process.env.STRIPE_CONNECT_WEBHOOK_SECRET) {
+      console.error('Missing Stripe Connect webhook secret');
+      return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+    }
+
+    if (!signature) {
+      console.error('Missing Stripe signature');
+      return NextResponse.json({ error: 'No signature' }, { status: 400 });
+    }
+
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
+      apiVersion: STRIPE_CONFIG.API_VERSION,
+    });
 
     let event: Stripe.Event;
-
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = stripe.webhooks.constructEvent(
+        body,
+        signature,
+        process.env.STRIPE_CONNECT_WEBHOOK_SECRET,
+      );
     } catch (err) {
-      console.error('Webhook signature verification failed:', {
-        error: err instanceof Error ? err.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-      });
-      return new NextResponse('Invalid signature', { status: 400 });
+      console.error('Webhook signature verification failed:', err);
+      return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 });
     }
 
     console.log('Received Stripe Connect webhook event:', {
@@ -40,16 +48,19 @@ export async function POST(request: Request) {
       timestamp: new Date().toISOString(),
     });
 
+    // Handle the event
     switch (event.type) {
       case 'account.updated': {
         const account = event.data.object as Stripe.Account;
-
-        // Update user's Stripe Connect status
         await db
           .update(UserTable)
           .set({
-            stripeConnectOnboardingComplete: account.details_submitted,
+            stripeConnectAccountId: account.id,
+            stripeConnectDetailsSubmitted: account.details_submitted,
+            stripeConnectChargesEnabled: account.charges_enabled,
             stripeConnectPayoutsEnabled: account.payouts_enabled,
+            stripeConnectOnboardingComplete:
+              account.details_submitted && account.charges_enabled && account.payouts_enabled,
             updatedAt: new Date(),
           })
           .where(eq(UserTable.stripeConnectAccountId, account.id));
@@ -57,6 +68,7 @@ export async function POST(request: Request) {
         console.log('Updated Connect account status:', {
           accountId: account.id,
           detailsSubmitted: account.details_submitted,
+          chargesEnabled: account.charges_enabled,
           payoutsEnabled: account.payouts_enabled,
           timestamp: new Date().toISOString(),
         });
@@ -71,8 +83,10 @@ export async function POST(request: Request) {
           .update(UserTable)
           .set({
             stripeConnectAccountId: null,
-            stripeConnectOnboardingComplete: false,
+            stripeConnectDetailsSubmitted: false,
+            stripeConnectChargesEnabled: false,
             stripeConnectPayoutsEnabled: false,
+            stripeConnectOnboardingComplete: false,
             updatedAt: new Date(),
           })
           .where(eq(UserTable.stripeConnectAccountId, application.id));
@@ -111,36 +125,12 @@ export async function POST(request: Request) {
         break;
       }
 
-      case 'payout.created': {
-        const payout = event.data.object as Stripe.Payout;
-
-        if (!payout.metadata?.transfer_id) {
-          console.error('Missing transfer_id in payout metadata:', payout.id);
-          break;
-        }
-
-        const transfer = await stripe.transfers.retrieve(payout.metadata.transfer_id);
-
-        console.log('Payout initiated:', {
-          payoutId: payout.id,
-          accountId: payout.destination,
-          amount: payout.amount,
-          currency: payout.currency,
-          meetingId: transfer.metadata.meetingId,
-          customerName: transfer.metadata.customerName,
-          customerEmail: transfer.metadata.customerEmail,
-          meetingStartTime: transfer.metadata.meetingStartTime,
-          payoutScheduledFor: transfer.metadata.payoutScheduledFor,
-          arrivalDate: new Date(payout.arrival_date * 1000).toISOString(),
-          timestamp: new Date().toISOString(),
-        });
-        break;
-      }
-
+      case 'payout.created':
+      case 'payout.paid':
       case 'payout.failed': {
         const payout = event.data.object as Stripe.Payout;
 
-        if (typeof payout.destination === 'string') {
+        if (event.type === 'payout.failed' && typeof payout.destination === 'string') {
           await db
             .update(UserTable)
             .set({
@@ -150,41 +140,31 @@ export async function POST(request: Request) {
             .where(eq(UserTable.stripeConnectAccountId, payout.destination));
         }
 
-        console.log('Payout failed:', {
+        console.log(`Payout ${event.type.split('.')[1]}:`, {
           payoutId: payout.id,
           accountId: payout.destination,
           amount: payout.amount,
           currency: payout.currency,
           failureCode: payout.failure_code,
           failureMessage: payout.failure_message,
+          arrivalDate: payout.arrival_date
+            ? new Date(payout.arrival_date * 1000).toISOString()
+            : null,
           timestamp: new Date().toISOString(),
         });
         break;
       }
 
-      case 'payout.paid': {
-        const payout = event.data.object as Stripe.Payout;
-
-        console.log('Payout successful:', {
-          payoutId: payout.id,
-          accountId: payout.destination,
-          amount: payout.amount,
-          currency: payout.currency,
-          arrivalDate: new Date(payout.arrival_date * 1000).toISOString(),
-          timestamp: new Date().toISOString(),
-        });
-        break;
-      }
+      default:
+        console.log(`Unhandled event type ${event.type}`);
     }
 
-    return new NextResponse('Webhook processed', { status: 200 });
+    return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook processing failed:', {
-      error: error instanceof Error ? error.message : 'Unknown error',
-      timestamp: new Date().toISOString(),
-    });
-    return new NextResponse(error instanceof Error ? error.message : 'Webhook Error', {
-      status: 500,
-    });
+    console.error('Error in Stripe Connect webhook:', error);
+    return NextResponse.json(
+      { error: 'Internal server error processing webhook' },
+      { status: 500 },
+    );
   }
-}
+};

@@ -7,7 +7,7 @@ globs:
 ## Project Overview
 - **Application:** Eleva Care is an appointment scheduling web app for Woman health expert and professionals.
 - **Technology Stack:**
-  - **Frontend & SSR:** Next.js 14 with App Router
+  - **Frontend & SSR:** Next.js 15 with App Router
   - **Language:** TypeScript
   - **Styling & UI:** TailwindCSS, Shadcn/ui, Radix UI, Tremor (for data visualization)
   - **Database & ORM:** Neon.tech (Postgrade DB) with Drizzler

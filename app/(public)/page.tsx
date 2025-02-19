@@ -12,7 +12,7 @@ export default async function HomePage(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const searchParams = await props.searchParams;
-  const { userId } = auth();
+  const { userId } = await auth();
   const showHome = searchParams.home === 'true';
 
   // Only redirect if user is logged in AND home is not explicitly set to true

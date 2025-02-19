@@ -1,6 +1,5 @@
 'use client';
 
-import type React from 'react';
 import { useEffect, useState } from 'react';
 
 import Link from 'next/link';
@@ -29,24 +28,22 @@ const languageMap = {
   br,
   pt,
   es,
-};
+} as const;
 
-const NavLink = ({
-  href,
-  isScrolled,
-  children,
-}: {
+type Language = keyof typeof languageMap;
+
+interface NavLinkProps {
   href: string;
   isScrolled: boolean;
   children: React.ReactNode;
-}) => (
+}
+
+const NavLink = ({ href, isScrolled, children }: NavLinkProps) => (
   <Link
-    className={`hidden text-base font-medium transition-colors md:block ${
-      isScrolled
-        ? 'text-eleva-primary hover:text-eleva-primary-light'
-        : 'text-eleva-neutral-100 hover:text-eleva-neutral-100/60'
-    }`}
     href={href}
+    className={`text-sm font-medium transition-colors hover:text-sidebar-accent-foreground ${
+      isScrolled ? 'text-foreground' : 'text-white'
+    }`}
   >
     {children}
   </Link>
@@ -54,7 +51,7 @@ const NavLink = ({
 
 const Header = () => {
   const { lang, setLang } = useLanguage();
-  const t = languageMap[lang];
+  const t = languageMap[lang as Language];
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
@@ -66,12 +63,17 @@ const Header = () => {
       setIsScrolled(window.scrollY > 0);
     };
 
-    handleScroll(); // Check initial scroll position
+    // Check initial scroll position
+    handleScroll();
+
+    // Add scroll event listener with passive option for better performance
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
   }, []);
 
-  // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {
     return (
       <header className="fixed z-50 w-full justify-between px-6 transition-all lg:px-8">
@@ -96,9 +98,7 @@ const Header = () => {
         <Link
           href="/"
           className={`h-8 w-auto lg:h-12 ${
-            isScrolled
-              ? 'text-eleva-primary hover:text-eleva-primary-light'
-              : 'text-eleva-neutral-100 hover:text-eleva-neutral-100/60'
+            isRootPath && !isScrolled ? 'text-white' : 'text-foreground'
           }`}
         >
           <Icons.elevaCareLogo className="h-8 w-auto lg:h-12" />
@@ -123,7 +123,11 @@ const Header = () => {
           <div className="flex items-center gap-2">
             <SignedOut>
               <SignInButton mode="modal">
-                <Button variant="default" size="default">
+                <Button
+                  variant={isRootPath && !isScrolled ? 'outline' : 'default'}
+                  size="default"
+                  className={isRootPath && !isScrolled ? 'border-white text-white' : ''}
+                >
                   {t.nav.signIn}
                 </Button>
               </SignInButton>
@@ -143,37 +147,19 @@ const Header = () => {
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
-                  size="default"
-                  className={`${
-                    isScrolled
-                      ? 'text-eleva-primary hover:text-eleva-primary-light'
-                      : 'text-eleva-neutral-100 hover:text-eleva-primary'
-                  }`}
+                  size="icon"
+                  className={`${isRootPath && !isScrolled ? 'text-white hover:text-white/90' : ''}`}
                 >
-                  <Globe className="mr-2 h-5 w-5" />
-                  {t.language}
-                  <ChevronDown className="ml-2 h-4 w-4" />
+                  <Globe className="h-4 w-4" />
+                  <ChevronDown className="ml-1 h-3 w-3" />
+                  <span className="sr-only">Toggle language</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                {[
-                  { code: 'en', label: 'English' },
-                  { code: 'pt', label: 'Português (PT)' },
-                  { code: 'br', label: 'Português (BR)' },
-                  { code: 'es', label: 'Español' },
-                ].map(({ code, label }) => (
-                  <DropdownMenuItem
-                    key={code}
-                    onClick={() => setLang(code as 'en' | 'pt' | 'br' | 'es')}
-                    className={`cursor-pointer ${
-                      lang === code
-                        ? 'bg-eleva-primary-light text-eleva-primary'
-                        : 'hover:bg-eleva-primary-light'
-                    }`}
-                  >
-                    {label}
-                  </DropdownMenuItem>
-                ))}
+                <DropdownMenuItem onClick={() => setLang('en')}>English</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLang('es')}>Español</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLang('pt')}>Português</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLang('br')}>Português (BR)</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

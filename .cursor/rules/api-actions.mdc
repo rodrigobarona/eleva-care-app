@@ -2,11 +2,11 @@
 description: Create/update api endpoints and actions
 globs: 
 ---
-# API, Server Actions, and Mutations Rule for Next.js 14 with App Router
+# API, Server Actions, and Mutations Rule for Next.js 15 with App Router
 
 ## Semantic Description
-This rule instructs the AI to generate production‑ready code for handling APIs, server actions, and mutations in a Next.js 14 application that uses the App Router. The code should:
-- Follow Next.js 14 conventions for the App Router by placing API endpoints within the `/app/api/` directory.
+This rule instructs the AI to generate production‑ready code for handling APIs, server actions, and mutations in a Next.js 15 application that uses the App Router. The code should:
+- Follow Next.js 15 conventions for the App Router by placing API endpoints within the `/app/api/` directory.
 - Use Next.js Server Actions for mutations and data-changing operations. Server actions must include the `"use server"` directive.
 - Implement proper HTTP methods (GET, POST, PUT, DELETE, etc.) and adhere to RESTful practices where applicable.
 - Include robust error handling, input validation, and security measures (e.g., authentication, CSRF protection).
@@ -96,9 +96,9 @@ This rule instructs the AI to generate production‑ready code for handling APIs
 - **Automatic Inclusion:**
   - This rule should automatically be attached to any file in `/app/api/` or files containing server actions with the `"use server"` directive.
 - **References:**
-  - [Next.js 14 App Router Documentation](https://nextjs.org/docs/app)
-  - [NextResponse API](https://nextjs.org/docs/app/api-reference/next/server#nextresponse)
-  - [Server Actions in Next.js](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions)
+  - @Next.js 15 App Router Documentation
+  - @NextResponse API
+  - @Server Actions in Next.js
 
 ## Additional Guidelines
 - **Testing:**

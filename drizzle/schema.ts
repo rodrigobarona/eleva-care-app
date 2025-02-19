@@ -203,8 +203,10 @@ export const UserTable = pgTable(
       .default('user')
       .notNull(),
     stripeConnectAccountId: text('stripe_connect_account_id'),
-    stripeConnectOnboardingComplete: boolean('stripe_connect_onboarding_complete').default(false),
+    stripeConnectDetailsSubmitted: boolean('stripe_connect_details_submitted').default(false),
+    stripeConnectChargesEnabled: boolean('stripe_connect_charges_enabled').default(false),
     stripeConnectPayoutsEnabled: boolean('stripe_connect_payouts_enabled').default(false),
+    stripeConnectOnboardingComplete: boolean('stripe_connect_onboarding_complete').default(false),
     stripeBankAccountLast4: text('stripe_bank_account_last4'),
     stripeBankName: text('stripe_bank_name'),
     createdAt,

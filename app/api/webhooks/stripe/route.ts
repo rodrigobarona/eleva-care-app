@@ -1,4 +1,3 @@
-import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 import { STRIPE_CONFIG } from '@/config/stripe';
@@ -8,24 +7,14 @@ import type { Stripe } from 'stripe';
 import StripeSDK from 'stripe';
 
 // Add route segment config
-export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 const stripe = new StripeSDK(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION,
 });
-
-// Make sure to use the correct webhook secret
-const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-if (!webhookSecret) {
-  throw new Error('Missing STRIPE_WEBHOOK_SECRET environment variable');
-}
-
-// Maximum number of retries for database operations
-const MAX_RETRIES = 3;
-const RETRY_DELAY = 2000; // 2 seconds
 
 interface MeetingMetadata {
   timezone: string;
@@ -201,66 +190,41 @@ async function scheduleConnectPayout(session: StripeCheckoutSession, meetingData
 
 export async function POST(request: Request) {
   try {
-    const body = await request.text();
-    const signature = (await headers()).get('stripe-signature');
-
-    if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
-      return NextResponse.json({ error: 'Missing stripe signature' }, { status: 400 });
+    if (!process.env.STRIPE_WEBHOOK_SECRET) {
+      throw new Error('Missing STRIPE_WEBHOOK_SECRET environment variable');
     }
 
-    const event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET,
-    );
+    // Get the raw body as text
+    const body = await request.text();
+    const signature = request.headers.get('stripe-signature');
 
-    console.log('Received webhook event:', {
-      type: event.type,
-      id: event.id,
-      timestamp: new Date().toISOString(),
-    });
+    if (!signature) {
+      return NextResponse.json({ error: 'Missing Stripe signature' }, { status: 400 });
+    }
 
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object as StripeCheckoutSession;
+    let event: Stripe.Event;
+    try {
+      event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err);
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+    }
 
-      console.log('Processing completed checkout session:', {
-        sessionId: session.id,
-        paymentStatus: session.payment_status,
-        metadata: session.metadata,
-      });
-
-      let lastError: Error | unknown;
-      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        try {
-          const result = await handleCheckoutSession(session);
-          return NextResponse.json(result);
-        } catch (error) {
-          lastError = error;
-          console.error('Error processing checkout session:', {
-            error: error instanceof Error ? error.message : 'Unknown error',
-            attempt,
-            sessionId: session.id,
-            timestamp: new Date().toISOString(),
-          });
-
-          if (attempt < MAX_RETRIES) {
-            await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
-          }
-        }
-      }
-
-      console.error('Error processing webhook:', {
-        eventType: event.type,
-        error: lastError instanceof Error ? lastError.message : 'Unknown error',
-        timestamp: new Date().toISOString(),
-      });
-
-      return NextResponse.json({ error: 'Failed to process checkout session' }, { status: 500 });
+    // Handle the event
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutSession(event.data.object as StripeCheckoutSession);
+        break;
+      default:
+        console.log(`Unhandled event type ${event.type}`);
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook error:', error);
-    return NextResponse.json({ error: 'Webhook handler failed' }, { status: 400 });
+    console.error('Error processing webhook:', error);
+    return NextResponse.json(
+      { error: 'Internal server error processing webhook' },
+      { status: 500 },
+    );
   }
 }

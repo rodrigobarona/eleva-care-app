@@ -62,7 +62,7 @@ export default function RootLayout({
         className={`${alexandria.variable} ${lora.variable} ${jetBrains.variable}`}
         suppressHydrationWarning
       >
-        <body className="min-h-screen bg-background font-sans antialiased">
+        <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
           <ThirdPartyScripts />
           <NuqsAdapter>
             <LanguageProvider>{children}</LanguageProvider>

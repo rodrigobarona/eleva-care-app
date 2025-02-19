@@ -243,7 +243,7 @@ export async function createPaymentIntent({
       where: eq(UserTable.id, event.clerkUserId),
     });
 
-    if (!expert?.stripeConnectAccountId || !expert.stripeConnectOnboardingComplete) {
+    if (!expert?.stripeConnectAccountId || !expert.stripeConnectDetailsSubmitted) {
       throw new Error("Expert's Stripe account not found or setup incomplete");
     }
 
