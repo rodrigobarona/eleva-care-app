@@ -3,4 +3,4 @@ export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 // This ensures the raw body is preserved
-export const bodyParser = false; 
+export const bodyParser = false;

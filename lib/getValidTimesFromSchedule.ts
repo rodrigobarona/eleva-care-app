@@ -1,8 +1,7 @@
-import "server-only";
-import "core-js/actual/object/group-by";
-import type { DAYS_OF_WEEK_IN_ORDER } from "@/app/data/constants";
-import { db } from "@/drizzle/db";
-import type { ScheduleAvailabilityTable } from "@/drizzle/schema";
+import type { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
+import { db } from '@/drizzle/db';
+import type { ScheduleAvailabilityTable } from '@/drizzle/schema';
+import 'core-js/actual/object/group-by';
 import {
   addMinutes,
   isFriday,
@@ -15,8 +14,9 @@ import {
   isWithinInterval,
   setHours,
   setMinutes,
-} from "date-fns";
-import { fromZonedTime } from "date-fns-tz";
+} from 'date-fns';
+import { fromZonedTime } from 'date-fns-tz';
+import 'server-only';
 
 interface ScheduleEvent {
   clerkUserId: string;
@@ -26,11 +26,10 @@ interface ScheduleEvent {
 export async function getValidTimesFromSchedule(
   times: Date[],
   event: ScheduleEvent,
-  calendarEvents: Array<{ start: Date; end: Date }>
+  calendarEvents: Array<{ start: Date; end: Date }>,
 ) {
   const schedule = await db.query.ScheduleTable.findFirst({
-    where: ({ clerkUserId: userIdCol }, { eq }) =>
-      eq(userIdCol, event.clerkUserId),
+    where: ({ clerkUserId: userIdCol }, { eq }) => eq(userIdCol, event.clerkUserId),
     with: { availabilities: true },
   });
 
@@ -50,16 +49,9 @@ export async function getValidTimesFromSchedule(
 
     if (hasCalendarConflict) continue;
 
-    const groupedAvailabilities = Object.groupBy(
-      schedule.availabilities,
-      (a) => a.dayOfWeek
-    );
+    const groupedAvailabilities = Object.groupBy(schedule.availabilities, (a) => a.dayOfWeek);
 
-    const availabilities = getAvailabilities(
-      groupedAvailabilities,
-      time,
-      schedule.timezone
-    );
+    const availabilities = getAvailabilities(groupedAvailabilities, time, schedule.timezone);
     const eventInterval = {
       start: time,
       end: addMinutes(time, event.durationInMinutes),
@@ -68,7 +60,7 @@ export async function getValidTimesFromSchedule(
     const isTimeValid = availabilities.some(
       (availability) =>
         isWithinInterval(eventInterval.start, availability) &&
-        isWithinInterval(eventInterval.end, availability)
+        isWithinInterval(eventInterval.end, availability),
     );
 
     if (isTimeValid) {
@@ -87,11 +79,9 @@ function getAvailabilities(
     >
   >,
   date: Date,
-  timezone: string
+  timezone: string,
 ) {
-  let availabilities:
-    | (typeof ScheduleAvailabilityTable.$inferSelect)[]
-    | undefined;
+  let availabilities: (typeof ScheduleAvailabilityTable.$inferSelect)[] | undefined;
 
   if (isMonday(date)) {
     availabilities = groupedAvailabilities.monday;
@@ -120,18 +110,18 @@ function getAvailabilities(
   return availabilities.map(({ startTime, endTime }) => {
     const start = fromZonedTime(
       setMinutes(
-        setHours(date, Number.parseInt(startTime.split(":")[0])),
-        Number.parseInt(startTime.split(":")[1])
+        setHours(date, Number.parseInt(startTime.split(':')[0])),
+        Number.parseInt(startTime.split(':')[1]),
       ),
-      timezone
+      timezone,
     );
 
     const end = fromZonedTime(
       setMinutes(
-        setHours(date, Number.parseInt(endTime.split(":")[0])),
-        Number.parseInt(endTime.split(":")[1])
+        setHours(date, Number.parseInt(endTime.split(':')[0])),
+        Number.parseInt(endTime.split(':')[1]),
       ),
-      timezone
+      timezone,
     );
 
     return { start, end };

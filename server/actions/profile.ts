@@ -5,11 +5,11 @@
  * management, and social media URL normalization.
  */
 
-import { del } from "@vercel/blob";
-import { db } from "@/drizzle/db";
-import { ProfileTable } from "@/drizzle/schema";
-import { profileFormSchema } from "@/schema/profile";
-import type { z } from "zod";
+import { db } from '@/drizzle/db';
+import { ProfileTable } from '@/drizzle/schema';
+import { profileFormSchema } from '@/schema/profile';
+import { del } from '@vercel/blob';
+import type { z } from 'zod';
 
 /**
  * Type definition for the profile form values, derived from the Zod schema
@@ -61,16 +61,14 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
 
     // Handle profile picture blob management
     if (
-      existingProfile?.profilePicture?.includes(
-        "public.blob.vercel-storage.com"
-      ) &&
+      existingProfile?.profilePicture?.includes('public.blob.vercel-storage.com') &&
       existingProfile.profilePicture !== data.profilePicture
     ) {
       try {
         // Delete old profile picture from blob storage
         await del(existingProfile.profilePicture);
       } catch (error) {
-        console.error("Failed to delete old profile picture:", error);
+        console.error('Failed to delete old profile picture:', error);
         // Continue execution even if deletion fails
       }
     }
@@ -79,54 +77,53 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
     const transformedData = {
       ...data,
       socialLinks: data.socialLinks.map((link) => {
-        console.log("Raw input:", { name: link.name, url: link.url });
+        console.log('Raw input:', { name: link.name, url: link.url });
 
         // Handle empty or undefined URLs
         if (!link.url?.trim()) {
-          return { name: link.name, url: "" };
+          return { name: link.name, url: '' };
         }
 
         // Validate and return full URLs if provided
-        if (link.url.startsWith("http")) {
+        if (link.url.startsWith('http')) {
           try {
             new URL(link.url); // Validate URL format
             return { name: link.name, url: link.url };
           } catch {
-            return { name: link.name, url: "" };
+            return { name: link.name, url: '' };
           }
         }
 
         // Process username-based social media links
-        const username = link.url.replace(/^@/, "").trim();
+        const username = link.url.replace(/^@/, '').trim();
         if (!username || !/^[a-zA-Z0-9._-]+$/.test(username)) {
-          return { name: link.name, url: "" };
+          return { name: link.name, url: '' };
         }
 
         // Convert usernames to full URLs based on platform
         switch (link.name) {
-          case "instagram":
+          case 'instagram':
             return {
               name: link.name,
               url: `https://instagram.com/${username}`,
             };
-          case "twitter":
+          case 'twitter':
             return { name: link.name, url: `https://x.com/${username}` };
-          case "linkedin":
+          case 'linkedin':
             return {
               name: link.name,
               url: `https://linkedin.com/in/${username}`,
             };
-          case "youtube":
+          case 'youtube':
             return { name: link.name, url: `https://youtube.com/@${username}` };
-          case "tiktok":
+          case 'tiktok':
             return { name: link.name, url: `https://tiktok.com/@${username}` };
           default:
             return link;
         }
       }),
       // Preserve existing profile picture if none provided
-      profilePicture:
-        data.profilePicture || existingProfile?.profilePicture || null,
+      profilePicture: data.profilePicture || existingProfile?.profilePicture || null,
     };
 
     // Validate transformed data against schema
@@ -139,7 +136,7 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
         ...validatedData,
         clerkUserId: userId,
         socialLinks: validatedData.socialLinks as Array<{
-          name: "tiktok" | "twitter" | "linkedin" | "instagram" | "youtube";
+          name: 'tiktok' | 'twitter' | 'linkedin' | 'instagram' | 'youtube';
           url: string;
         }>,
       })
@@ -148,7 +145,7 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
         set: {
           ...validatedData,
           socialLinks: validatedData.socialLinks as Array<{
-            name: "tiktok" | "twitter" | "linkedin" | "instagram" | "youtube";
+            name: 'tiktok' | 'twitter' | 'linkedin' | 'instagram' | 'youtube';
             url: string;
           }>,
         },
@@ -156,7 +153,7 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
 
     return { success: true };
   } catch (error) {
-    console.error("Profile update error:", error);
-    return { error: "Failed to update profile" };
+    console.error('Profile update error:', error);
+    return { error: 'Failed to update profile' };
   }
 }

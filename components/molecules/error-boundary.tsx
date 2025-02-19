@@ -1,6 +1,6 @@
-"use client";
+'use client';
 
-import React from "react";
+import React from 'react';
 
 export class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -16,7 +16,7 @@ export class ErrorBoundary extends React.Component<
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("Error boundary caught error:", error, errorInfo);
+    console.error('Error boundary caught error:', error, errorInfo);
   }
 
   render() {

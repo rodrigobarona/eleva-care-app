@@ -1,7 +1,5 @@
-"use client";
+'use client';
 
-import React from "react";
-import { usePathname } from "next/navigation";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -9,22 +7,24 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "@/components/molecules/breadcrumb";
+} from '@/components/molecules/breadcrumb';
+import { usePathname } from 'next/navigation';
+import React from 'react';
 
 export function AppBreadcrumb() {
   const pathname = usePathname();
-  const paths = pathname.split("/").filter(Boolean);
+  const paths = pathname.split('/').filter(Boolean);
 
   return (
     <Breadcrumb>
       <BreadcrumbList>
         {paths.map((path, index) => {
           const isLast = index === paths.length - 1;
-          const href = `/${paths.slice(0, index + 1).join("/")}`;
+          const href = `/${paths.slice(0, index + 1).join('/')}`;
           const label = path
-            .split("-")
+            .split('-')
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(" ");
+            .join(' ');
 
           return (
             <React.Fragment key={path}>

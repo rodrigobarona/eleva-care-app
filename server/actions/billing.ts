@@ -5,15 +5,12 @@
  * account creation, login link generation, and account management.
  */
 
-"use server";
+'use server';
 
-import {
-  createStripeConnectAccount,
-  getStripeConnectSetupOrLoginLink,
-} from "@/lib/stripe";
-import { db } from "@/drizzle/db";
-import { UserTable } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
+import { db } from '@/drizzle/db';
+import { UserTable } from '@/drizzle/schema';
+import { createStripeConnectAccount, getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
+import { eq } from 'drizzle-orm';
 
 /**
  * Initiates the Stripe Connect account creation process for an expert.
@@ -36,9 +33,7 @@ import { eq } from "drizzle-orm";
  *   console.error("Failed to create Stripe Connect account");
  * }
  */
-export async function handleConnectStripe(
-  clerkUserId: string
-): Promise<string | null> {
+export async function handleConnectStripe(clerkUserId: string): Promise<string | null> {
   if (!clerkUserId) return null;
 
   try {
@@ -48,7 +43,7 @@ export async function handleConnectStripe(
     });
 
     if (!dbUser) {
-      console.error("User not found in database");
+      console.error('User not found in database');
       return null;
     }
 
@@ -56,7 +51,7 @@ export async function handleConnectStripe(
     const { url } = await createStripeConnectAccount(dbUser.id);
     return url;
   } catch (error) {
-    console.error("Failed to create Stripe Connect account:", error);
+    console.error('Failed to create Stripe Connect account:', error);
     return null;
   }
 }
@@ -81,13 +76,13 @@ export async function handleConnectStripe(
  */
 export async function getConnectLoginLink(stripeConnectAccountId: string) {
   if (!stripeConnectAccountId) {
-    throw new Error("Stripe Connect Account ID is required");
+    throw new Error('Stripe Connect Account ID is required');
   }
 
   try {
     return await getStripeConnectSetupOrLoginLink(stripeConnectAccountId);
   } catch (error) {
-    console.error("Failed to create Stripe Connect link:", error);
+    console.error('Failed to create Stripe Connect link:', error);
     throw error;
   }
 }

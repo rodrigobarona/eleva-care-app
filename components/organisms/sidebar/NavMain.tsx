@@ -1,19 +1,10 @@
-"use client";
-import React from "react";
-import { usePathname } from "next/navigation";
-import {
-  MoreHorizontal,
-  type LucideIcon,
-  ChevronLeft,
-  Calendar,
-  FileText,
-} from "lucide-react";
+'use client';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/molecules/dropdown-menu";
+} from '@/components/molecules/dropdown-menu';
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -22,9 +13,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/organisms/sidebar/sidebar";
-import Link from "next/link";
-import { cn } from "@/lib/utils";
+} from '@/components/organisms/sidebar/sidebar';
+import { cn } from '@/lib/utils';
+import { Calendar, ChevronLeft, FileText, MoreHorizontal, type LucideIcon } from 'lucide-react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
 interface NavMainProps {
   items: {
@@ -39,22 +32,22 @@ interface NavMainProps {
 }
 
 const accountItems = [
-  { title: "Profile", url: "/account" },
-  { title: "Security", url: "/account/security" },
-  { title: "Billing", url: "/account/billing" },
+  { title: 'Profile', url: '/account' },
+  { title: 'Security', url: '/account/security' },
+  { title: 'Billing', url: '/account/billing' },
 ];
 
 export function NavMain({ items }: NavMainProps) {
   const { isMobile } = useSidebar();
   const pathname = usePathname();
-  const isAccountSection = pathname.startsWith("/account");
+  const isAccountSection = pathname.startsWith('/account');
 
   return (
     <div className="relative overflow-hidden">
       <div
         className={cn(
-          "transition-transform duration-300 ease-in-out",
-          isAccountSection ? "-translate-x-full" : "translate-x-0"
+          'transition-transform duration-300 ease-in-out',
+          isAccountSection ? '-translate-x-full' : 'translate-x-0',
         )}
       >
         <SidebarGroup>
@@ -100,8 +93,8 @@ export function NavMain({ items }: NavMainProps) {
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
                       className="w-48"
-                      side={isMobile ? "bottom" : "right"}
-                      align={isMobile ? "end" : "start"}
+                      side={isMobile ? 'bottom' : 'right'}
+                      align={isMobile ? 'end' : 'start'}
                     >
                       {item.items.map((subItem) => (
                         <DropdownMenuItem key={subItem.title} asChild>
@@ -119,8 +112,8 @@ export function NavMain({ items }: NavMainProps) {
 
       <div
         className={cn(
-          "absolute inset-0 transition-transform duration-300 ease-in-out",
-          isAccountSection ? "translate-x-0" : "translate-x-full"
+          'absolute inset-0 transition-transform duration-300 ease-in-out',
+          isAccountSection ? 'translate-x-0' : 'translate-x-full',
         )}
       >
         <SidebarGroup>

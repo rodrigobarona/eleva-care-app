@@ -1,4 +1,4 @@
-import React from "react";
+import { Button } from '@/components/atoms/button';
 import {
   Dialog,
   DialogContent,
@@ -6,13 +6,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/molecules/dialog";
-import { Button } from "@/components/atoms/button";
-import RecordEditor from "@/components/molecules/RecordEditor";
-import { FileEdit, Minus, Maximize2 } from "lucide-react";
-import { format } from "date-fns";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+} from '@/components/molecules/dialog';
+import RecordEditor from '@/components/molecules/RecordEditor';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { FileEdit, Maximize2, Minus } from 'lucide-react';
+import React from 'react';
+import { toast } from 'sonner';
 
 interface PatientRecord {
   id: string;
@@ -39,15 +39,15 @@ export function RecordDialog({
   const [isOpen, setIsOpen] = React.useState(false);
   const [isMinimized, setIsMinimized] = React.useState(false);
   const [records, setRecords] = React.useState<PatientRecord[]>([]);
-  const [currentContent, setCurrentContent] = React.useState("");
+  const [currentContent, setCurrentContent] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
-  const [lastSavedContent, setLastSavedContent] = React.useState("");
+  const [lastSavedContent, setLastSavedContent] = React.useState('');
   const saveTimeoutRef = React.useRef<NodeJS.Timeout>();
 
   const fetchRecords = React.useCallback(async () => {
     try {
       const response = await fetch(`/api/appointments/${meetingId}/records`);
-      if (!response.ok) throw new Error("Failed to fetch records");
+      if (!response.ok) throw new Error('Failed to fetch records');
       const data = await response.json();
       setRecords(data.records);
 
@@ -56,12 +56,12 @@ export function RecordDialog({
         setCurrentContent(data.records[0].content);
         setLastSavedContent(data.records[0].content);
       } else {
-        setCurrentContent("");
-        setLastSavedContent("");
+        setCurrentContent('');
+        setLastSavedContent('');
       }
     } catch (error) {
-      console.error("Error fetching records:", error);
-      toast.error("Failed to load records");
+      console.error('Error fetching records:', error);
+      toast.error('Failed to load records');
     }
   }, [meetingId]);
 
@@ -77,7 +77,7 @@ export function RecordDialog({
     try {
       setIsLoading(true);
       const endpoint = `/api/appointments/${meetingId}/records`;
-      const method = records.length > 0 ? "PUT" : "POST";
+      const method = records.length > 0 ? 'PUT' : 'POST';
       const body = {
         content: currentContent,
         metadata: {
@@ -88,18 +88,18 @@ export function RecordDialog({
 
       const response = await fetch(endpoint, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
 
-      if (!response.ok) throw new Error("Failed to save record");
+      if (!response.ok) throw new Error('Failed to save record');
 
       setLastSavedContent(currentContent);
-      toast.success("Record saved");
+      toast.success('Record saved');
       void fetchRecords();
     } catch (error) {
-      console.error("Error saving record:", error);
-      toast.error("Failed to save record");
+      console.error('Error saving record:', error);
+      toast.error('Failed to save record');
     } finally {
       setIsLoading(false);
     }
@@ -136,27 +136,25 @@ export function RecordDialog({
     >
       <DialogTrigger asChild>
         <Button variant="outline" size="sm">
-          <FileEdit className="h-4 w-4 mr-2" />
+          <FileEdit className="mr-2 h-4 w-4" />
           Patient Record
         </Button>
       </DialogTrigger>
       <DialogContent
         className={cn(
-          "transition-all duration-200 border shadow-lg",
+          'border shadow-lg transition-all duration-200',
           isMinimized
-            ? "!fixed bottom-4 right-4 !max-w-[400px] !h-[64px] overflow-hidden !rounded-t-lg"
-            : "!fixed bottom-4 right-4 !h-[85vh] !w-[800px] !max-w-[90vw] !rounded-t-lg",
-          "!top-auto !translate-y-0"
+            ? '!fixed bottom-4 right-4 !h-[64px] !max-w-[400px] overflow-hidden !rounded-t-lg'
+            : '!fixed bottom-4 right-4 !h-[85vh] !w-[800px] !max-w-[90vw] !rounded-t-lg',
+          '!top-auto !translate-y-0',
         )}
       >
-        <DialogHeader className="flex flex-row items-center justify-between py-2 px-4 bg-muted/50">
+        <DialogHeader className="flex flex-row items-center justify-between bg-muted/50 px-4 py-2">
           <div>
-            <DialogTitle className="text-sm font-medium">
-              Patient Record - {guestName}
-            </DialogTitle>
+            <DialogTitle className="text-sm font-medium">Patient Record - {guestName}</DialogTitle>
             {!isMinimized && (
               <DialogDescription className="text-xs">
-                {guestEmail} - {format(appointmentDate, "PPP")}
+                {guestEmail} - {format(appointmentDate, 'PPP')}
               </DialogDescription>
             )}
           </div>
@@ -167,11 +165,7 @@ export function RecordDialog({
               className="h-8 w-8 p-0"
               onClick={() => setIsMinimized(!isMinimized)}
             >
-              {isMinimized ? (
-                <Maximize2 className="h-4 w-4" />
-              ) : (
-                <Minus className="h-4 w-4" />
-              )}
+              {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minus className="h-4 w-4" />}
             </Button>
             <Button
               variant="ghost"
@@ -185,15 +179,15 @@ export function RecordDialog({
         </DialogHeader>
 
         {!isMinimized && (
-          <div className="flex flex-col h-[calc(100%-60px)] overflow-hidden">
-            <div className="text-xs text-muted-foreground px-4 py-1 border-b">
+          <div className="flex h-[calc(100%-60px)] flex-col overflow-hidden">
+            <div className="border-b px-4 py-1 text-xs text-muted-foreground">
               {records.length > 0
                 ? `Last modified: ${format(
                     new Date(records[0].lastModifiedAt),
-                    "PPp"
+                    'PPp',
                   )} (v${records[0].version})`
-                : "No records yet"}
-              {isLoading && " • Saving..."}
+                : 'No records yet'}
+              {isLoading && ' • Saving...'}
             </div>
 
             <div className="flex-1 overflow-hidden">

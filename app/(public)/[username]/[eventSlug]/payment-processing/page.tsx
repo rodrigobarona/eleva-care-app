@@ -1,13 +1,8 @@
-"use client";
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/atoms/card";
-import { Icons } from "@/components/atoms/icons";
+'use client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
+import { Icons } from '@/components/atoms/icons';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 const MAX_ATTEMPTS = 15;
 const CHECK_INTERVAL = 2000;
@@ -26,11 +21,11 @@ export default function PaymentProcessingPage({
     const checkMeetingStatus = async () => {
       try {
         const response = await fetch(
-          `/api/meetings/status?startTime=${startTime}&eventSlug=${eventSlug}`
+          `/api/meetings/status?startTime=${startTime}&eventSlug=${eventSlug}`,
         );
         const data = await response.json();
-        
-        if (data.status === "created") {
+
+        if (data.status === 'created') {
           router.push(`/${username}/${eventSlug}/success?startTime=${startTime}`);
         } else if (attempts >= MAX_ATTEMPTS) {
           router.push(`/${username}/${eventSlug}?error=payment-timeout`);
@@ -38,7 +33,7 @@ export default function PaymentProcessingPage({
           setAttempts((prev) => prev + 1);
         }
       } catch (error) {
-        console.error("Error checking meeting status:", error);
+        console.error('Error checking meeting status:', error);
       }
     };
 
@@ -47,15 +42,13 @@ export default function PaymentProcessingPage({
   }, [attempts, eventSlug, router, startTime, username]);
 
   return (
-    <Card className="max-w-xl mx-auto">
+    <Card className="mx-auto max-w-xl">
       <CardHeader>
         <CardTitle>Processing Your Payment</CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col items-center py-8">
         <Icons.spinner className="h-8 w-8 animate-spin" />
-        <p className="mt-4 text-muted-foreground">
-          Please wait while we confirm your payment...
-        </p>
+        <p className="mt-4 text-muted-foreground">Please wait while we confirm your payment...</p>
       </CardContent>
     </Card>
   );

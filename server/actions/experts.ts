@@ -5,15 +5,15 @@
  * individual expert verification and admin-level expert management.
  */
 
-"use server";
+'use server';
 
-import { db } from "@/drizzle/db";
-import { UserTable } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
-import Stripe from "stripe";
-import { STRIPE_CONFIG } from "@/config/stripe";
+import { STRIPE_CONFIG } from '@/config/stripe';
+import { db } from '@/drizzle/db';
+import { UserTable } from '@/drizzle/schema';
+import { eq } from 'drizzle-orm';
+import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION,
 });
 
@@ -46,14 +46,14 @@ export async function verifyExpertConnectAccount(clerkUserId: string) {
     });
     // Log the user's Stripe Connect account ID
     if (!user?.stripeConnectAccountId) {
-      console.error("No Stripe Connect account found for user:", {
+      console.error('No Stripe Connect account found for user:', {
         clerkUserId,
         email: user?.email,
       });
       return {
         error: true,
-        code: "NO_CONNECT_ACCOUNT",
-        message: "No Stripe Connect account found for this user",
+        code: 'NO_CONNECT_ACCOUNT',
+        message: 'No Stripe Connect account found for this user',
       };
     }
 
@@ -64,7 +64,7 @@ export async function verifyExpertConnectAccount(clerkUserId: string) {
     const isFullySetup =
       account.details_submitted &&
       account.payouts_enabled &&
-      account.capabilities?.transfers === "active";
+      account.capabilities?.transfers === 'active';
 
     if (isFullySetup && !user.stripeConnectOnboardingComplete) {
       // Update the user record to mark onboarding as complete
@@ -75,7 +75,7 @@ export async function verifyExpertConnectAccount(clerkUserId: string) {
         })
         .where(eq(UserTable.clerkUserId, clerkUserId));
 
-      console.log("Updated Connect account status to complete:", {
+      console.log('Updated Connect account status to complete:', {
         clerkUserId,
         email: user.email,
         accountId: user.stripeConnectAccountId,
@@ -87,20 +87,20 @@ export async function verifyExpertConnectAccount(clerkUserId: string) {
       accountStatus: {
         detailsSubmitted: account.details_submitted,
         payoutsEnabled: account.payouts_enabled,
-        transfersEnabled: account.capabilities?.transfers === "active",
+        transfersEnabled: account.capabilities?.transfers === 'active',
         requiresRefresh: !isFullySetup,
         accountId: user.stripeConnectAccountId,
       },
     };
   } catch (error) {
-    console.error("Error verifying Connect account:", {
-      error: error instanceof Error ? error.message : "Unknown error",
+    console.error('Error verifying Connect account:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
       clerkUserId,
     });
     return {
       error: true,
-      code: "VERIFICATION_ERROR",
-      message: "Failed to verify Connect account status",
+      code: 'VERIFICATION_ERROR',
+      message: 'Failed to verify Connect account status',
     };
   }
 }
@@ -133,8 +133,8 @@ export async function getExpertPayoutSchedule(clerkUserId: string) {
     if (!user?.stripeConnectAccountId) {
       return {
         error: true,
-        code: "NO_CONNECT_ACCOUNT",
-        message: "No Stripe Connect account found for this user",
+        code: 'NO_CONNECT_ACCOUNT',
+        message: 'No Stripe Connect account found for this user',
       };
     }
 
@@ -151,14 +151,14 @@ export async function getExpertPayoutSchedule(clerkUserId: string) {
       },
     };
   } catch (error) {
-    console.error("Error getting payout schedule:", {
-      error: error instanceof Error ? error.message : "Unknown error",
+    console.error('Error getting payout schedule:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
       clerkUserId,
     });
     return {
       error: true,
-      code: "SCHEDULE_ERROR",
-      message: "Failed to retrieve payout schedule",
+      code: 'SCHEDULE_ERROR',
+      message: 'Failed to retrieve payout schedule',
     };
   }
 }
@@ -182,24 +182,24 @@ export async function verifySpecificExpertAccount(email: string) {
     });
 
     if (!user) {
-      console.error("User not found:", { email });
+      console.error('User not found:', { email });
       return {
         error: true,
-        code: "USER_NOT_FOUND",
-        message: "User not found",
+        code: 'USER_NOT_FOUND',
+        message: 'User not found',
       };
     }
 
     return verifyExpertConnectAccount(user.clerkUserId);
   } catch (error) {
-    console.error("Error verifying specific expert account:", {
-      error: error instanceof Error ? error.message : "Unknown error",
+    console.error('Error verifying specific expert account:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
       email,
     });
     return {
       error: true,
-      code: "VERIFICATION_ERROR",
-      message: "Failed to verify expert account",
+      code: 'VERIFICATION_ERROR',
+      message: 'Failed to verify expert account',
     };
   }
 }
@@ -227,23 +227,21 @@ export async function verifyAndUpdateSpecificExpert(email: string) {
     }
 
     // Get payout schedule
-    const scheduleResult = await getExpertPayoutSchedule(
-      result.accountStatus.accountId
-    );
+    const scheduleResult = await getExpertPayoutSchedule(result.accountStatus.accountId);
 
     return {
       ...result,
       payoutSchedule: scheduleResult.error ? null : scheduleResult.schedule,
     };
   } catch (error) {
-    console.error("Error in verifyAndUpdateSpecificExpert:", {
-      error: error instanceof Error ? error.message : "Unknown error",
+    console.error('Error in verifyAndUpdateSpecificExpert:', {
+      error: error instanceof Error ? error.message : 'Unknown error',
       email,
     });
     return {
       error: true,
-      code: "UPDATE_ERROR",
-      message: "Failed to verify and update expert account",
+      code: 'UPDATE_ERROR',
+      message: 'Failed to verify and update expert account',
     };
   }
 }

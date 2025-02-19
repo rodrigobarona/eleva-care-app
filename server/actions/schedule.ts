@@ -5,18 +5,18 @@
  * for saving and updating schedule data with proper validation and error handling.
  */
 
-"use server";
+'use server';
 
-import { db } from "@/drizzle/db";
-import { ScheduleAvailabilityTable, ScheduleTable } from "@/drizzle/schema";
-import { scheduleFormSchema } from "@/schema/schedule";
-import { logAuditEvent } from "@/lib/logAuditEvent";
-import { headers } from "next/headers";
-import { auth } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
-import type { BatchItem } from "drizzle-orm/batch";
-import "use-server";
-import type { z } from "zod";
+import { db } from '@/drizzle/db';
+import { ScheduleAvailabilityTable, ScheduleTable } from '@/drizzle/schema';
+import { logAuditEvent } from '@/lib/logAuditEvent';
+import { scheduleFormSchema } from '@/schema/schedule';
+import { auth } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
+import type { BatchItem } from 'drizzle-orm/batch';
+import { headers } from 'next/headers';
+import 'use-server';
+import type { z } from 'zod';
 
 /**
  * Saves or updates an expert's schedule and their availability time slots.
@@ -55,14 +55,12 @@ import type { z } from "zod";
  *   console.error("Failed to save schedule");
  * }
  */
-export async function saveSchedule(
-  unsafeData: z.infer<typeof scheduleFormSchema>
-) {
+export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema>) {
   // Get user authentication and request metadata
   const { userId } = auth();
   const headersList = headers();
-  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
-  const userAgent = headersList.get("user-agent") ?? "Unknown";
+  const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
+  const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
   // Validate the incoming data against the schema
   const { success, data } = scheduleFormSchema.safeParse(unsafeData);
@@ -92,7 +90,7 @@ export async function saveSchedule(
     .returning({ id: ScheduleTable.id });
 
   // Prepare batch operations for availability updates
-  const statements: [BatchItem<"pg">] = [
+  const statements: [BatchItem<'pg'>] = [
     // First, delete all existing availabilities
     db
       .delete(ScheduleAvailabilityTable)
@@ -106,8 +104,8 @@ export async function saveSchedule(
         availabilities.map((availability) => ({
           ...availability,
           scheduleId,
-        }))
-      )
+        })),
+      ),
     );
   }
 
@@ -117,12 +115,12 @@ export async function saveSchedule(
   // Log the schedule update for audit purposes
   await logAuditEvent(
     userId,
-    "update",
-    "schedules",
+    'update',
+    'schedules',
     scheduleId,
     oldSchedule ?? null, // Previous schedule state
     { ...scheduleData, availabilities }, // New schedule state
     ipAddress,
-    userAgent
+    userAgent,
   );
 }

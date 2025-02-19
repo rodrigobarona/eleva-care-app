@@ -4,19 +4,19 @@
  * including validation, logging, and redirection.
  */
 
-"use server";
+'use server';
 
-import { db } from "@/drizzle/db";
-import { EventTable } from "@/drizzle/schema";
-import { logAuditEvent } from "@/lib/logAuditEvent";
-import { eventFormSchema } from "@/schema/events";
-import { auth } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { headers } from "next/headers";
-import "use-server";
-import type { z } from "zod";
-import { and, eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
+import { db } from '@/drizzle/db';
+import { EventTable } from '@/drizzle/schema';
+import { logAuditEvent } from '@/lib/logAuditEvent';
+import { eventFormSchema } from '@/schema/events';
+import { auth } from '@clerk/nextjs/server';
+import { and, eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
+import 'use-server';
+import type { z } from 'zod';
 
 /**
  * Creates a new event using the provided data.
@@ -32,18 +32,18 @@ import { revalidatePath } from "next/cache";
  * }
  */
 export async function createEvent(
-  unsafeData: z.infer<typeof eventFormSchema>
+  unsafeData: z.infer<typeof eventFormSchema>,
 ): Promise<{ error: boolean; message?: string } | undefined> {
   const { userId } = auth();
   const headersList = headers();
 
-  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
-  const userAgent = headersList.get("user-agent") ?? "Unknown";
+  const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
+  const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
   const { success, data } = eventFormSchema.safeParse(unsafeData);
 
   if (!success || userId == null) {
-    return { error: true, message: "Invalid form data" };
+    return { error: true, message: 'Invalid form data' };
   }
 
   try {
@@ -54,26 +54,26 @@ export async function createEvent(
       .returning({ id: EventTable.id, userId: EventTable.clerkUserId });
 
     if (!insertedEvent) {
-      return { error: true, message: "Failed to create event" };
+      return { error: true, message: 'Failed to create event' };
     }
 
     // Log the event creation
     await logAuditEvent(
       insertedEvent.userId,
-      "create",
-      "events",
+      'create',
+      'events',
       insertedEvent.id,
       null,
       { ...data },
       ipAddress,
-      userAgent
+      userAgent,
     );
 
     // Return success instead of redirecting
     return { error: false };
   } catch (error) {
-    console.error("Create event error:", error);
-    return { error: true, message: "Database error occurred" };
+    console.error('Create event error:', error);
+    return { error: true, message: 'Database error occurred' };
   }
 }
 
@@ -93,13 +93,13 @@ export async function createEvent(
  */
 export async function updateEvent(
   id: string,
-  unsafeData: z.infer<typeof eventFormSchema>
+  unsafeData: z.infer<typeof eventFormSchema>,
 ): Promise<{ error: boolean } | undefined> {
   const { userId } = auth();
   const headersList = headers();
 
-  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
-  const userAgent = headersList.get("user-agent") ?? "Unknown";
+  const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
+  const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
   const { success, data } = eventFormSchema.safeParse(unsafeData);
 
@@ -131,16 +131,16 @@ export async function updateEvent(
 
   await logAuditEvent(
     updatedEvent.userId,
-    "update",
-    "events",
+    'update',
+    'events',
     updatedEvent.id,
     oldEvent, // Pass the old values here
     { ...data }, // New values
     ipAddress,
-    userAgent
+    userAgent,
   );
 
-  redirect("/events");
+  redirect('/events');
 }
 
 /**
@@ -155,14 +155,12 @@ export async function updateEvent(
  *   console.error('Failed to delete the event');
  * }
  */
-export async function deleteEvent(
-  id: string
-): Promise<{ error: boolean } | undefined> {
+export async function deleteEvent(id: string): Promise<{ error: boolean } | undefined> {
   const { userId } = auth();
   const headersList = headers();
 
-  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
-  const userAgent = headersList.get("user-agent") ?? "Unknown";
+  const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
+  const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
   if (userId == null) {
     return { error: true };
@@ -191,16 +189,16 @@ export async function deleteEvent(
 
   await logAuditEvent(
     deletedEvent.userId,
-    "delete",
-    "events",
+    'delete',
+    'events',
     deletedEvent.id,
     oldEvent, // Pass the old values here
-    "User requested deletion",
+    'User requested deletion',
     ipAddress,
-    userAgent
+    userAgent,
   );
 
-  redirect("/events");
+  redirect('/events');
 }
 
 /**
@@ -214,9 +212,7 @@ export async function deleteEvent(
  *   { id: 'event2', order: 2 }
  * ]);
  */
-export async function updateEventOrder(
-  updates: { id: string; order: number }[]
-) {
+export async function updateEventOrder(updates: { id: string; order: number }[]) {
   try {
     // Update each record individually since we can't use transactions
     for (const { id, order } of updates) {
@@ -224,11 +220,11 @@ export async function updateEventOrder(
     }
 
     // Revalidate the events page to reflect the new order
-    revalidatePath("/events");
+    revalidatePath('/events');
     return { success: true };
   } catch (error) {
-    console.error("Failed to update event order:", error);
-    return { error: "Failed to update event order" };
+    console.error('Failed to update event order:', error);
+    return { error: 'Failed to update event order' };
   }
 }
 
@@ -247,13 +243,13 @@ export async function updateEventOrder(
  */
 export async function updateEventActiveState(
   id: string,
-  isActive: boolean
+  isActive: boolean,
 ): Promise<{ error: boolean } | undefined> {
   const { userId } = auth();
   const headersList = headers();
 
-  const ipAddress = headersList.get("x-forwarded-for") ?? "Unknown";
-  const userAgent = headersList.get("user-agent") ?? "Unknown";
+  const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
+  const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
   if (!userId) {
     return { error: true };
@@ -284,15 +280,15 @@ export async function updateEventActiveState(
   // Log the event update
   await logAuditEvent(
     updatedEvent.userId,
-    "update",
-    "events",
+    'update',
+    'events',
     updatedEvent.id,
     oldEvent,
     { isActive },
     ipAddress,
-    userAgent
+    userAgent,
   );
 
-  revalidatePath("/events");
+  revalidatePath('/events');
   return { error: false };
 }

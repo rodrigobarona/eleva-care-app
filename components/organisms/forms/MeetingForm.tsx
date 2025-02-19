@@ -1,8 +1,8 @@
-"use client";
-import * as React from "react";
-import { useForm } from "react-hook-form";
-import type { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
+'use client';
+import { Button } from '@/components/atoms/button';
+import { Input } from '@/components/atoms/input';
+import { Textarea } from '@/components/atoms/textarea';
+import { Calendar } from '@/components/molecules/calendar';
 import {
   Form,
   FormControl,
@@ -10,38 +10,34 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/molecules/form";
-import { Input } from "@/components/atoms/input";
-import { Button } from "@/components/atoms/button";
-import { Textarea } from "@/components/atoms/textarea";
-import { meetingFormSchema } from "@/schema/meetings";
+} from '@/components/molecules/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/molecules/select";
-import { formatTimezoneOffset } from "@/lib/formatters";
-import { Calendar } from "@/components/molecules/calendar";
-import { cn } from "@/lib/utils";
-import { createMeeting } from "@/server/actions/meetings";
-import { formatInTimeZone, toZonedTime } from "date-fns-tz";
-import { startOfDay } from "date-fns";
-import { format } from "date-fns";
-import { Globe } from "lucide-react";
+} from '@/components/molecules/select';
+import { formatTimezoneOffset } from '@/lib/formatters';
+import { getCalendarEventTimes, hasValidTokens } from '@/lib/googleCalendarClient';
+import { cn } from '@/lib/utils';
+import { meetingFormSchema } from '@/schema/meetings';
+import { createMeeting } from '@/server/actions/meetings';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { format, startOfDay } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { Globe } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import {
-  useQueryStates,
-  parseAsString,
   parseAsIsoDate,
   parseAsIsoDateTime,
+  parseAsString,
   parseAsStringLiteral,
-} from "nuqs";
-import {
-  getCalendarEventTimes,
-  hasValidTokens,
-} from "@/lib/googleCalendarClient";
-import { useRouter } from "next/navigation";
+  useQueryStates,
+} from 'nuqs';
+import * as React from 'react';
+import { useForm } from 'react-hook-form';
+import type { z } from 'zod';
 
 type MeetingFormProps = {
   validTimes: Date[];
@@ -70,26 +66,26 @@ export function MeetingForm({
   // Query state configuration
   const queryStateParsers = React.useMemo(
     () => ({
-      step: parseAsStringLiteral(["1", "2", "3"] as const).withDefault("1"),
+      step: parseAsStringLiteral(['1', '2', '3'] as const).withDefault('1'),
       date: parseAsIsoDate,
       time: parseAsIsoDateTime,
-      name: parseAsString.withDefault(""),
-      email: parseAsString.withDefault(""),
-      timezone: parseAsString.withDefault(""),
+      name: parseAsString.withDefault(''),
+      email: parseAsString.withDefault(''),
+      timezone: parseAsString.withDefault(''),
     }),
-    []
+    [],
   );
 
   const [queryStates, setQueryStates] = useQueryStates(queryStateParsers, {
-    history: "push",
+    history: 'push',
     shallow: true,
     urlKeys: {
-      step: "s",
-      date: "d",
-      time: "t",
-      name: "n",
-      email: "e",
-      timezone: "tz",
+      step: 's',
+      date: 'd',
+      time: 't',
+      name: 'n',
+      email: 'e',
+      timezone: 'tz',
     },
   });
 
@@ -97,27 +93,21 @@ export function MeetingForm({
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
-      timezone:
-        queryStates.timezone ||
-        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
     },
   });
 
   // Extract values we'll use in memos
-  const timezone = form.watch("timezone");
-  const date = form.watch("date");
-  const startTime = form.watch("startTime");
+  const timezone = form.watch('timezone');
+  const date = form.watch('date');
+  const startTime = form.watch('startTime');
   const currentStep = queryStates.step;
 
   // All memoized values
   const validTimesInTimezone = React.useMemo(() => {
     return validTimes.map((utcDate) => {
       const zonedDate = toZonedTime(utcDate, timezone);
-      const displayTime = formatInTimeZone(
-        utcDate,
-        timezone,
-        use24Hour ? "HH:mm" : "h:mm a"
-      );
+      const displayTime = formatInTimeZone(utcDate, timezone, use24Hour ? 'HH:mm' : 'h:mm a');
       const localDateOnly = startOfDay(zonedDate);
 
       return {
@@ -139,25 +129,22 @@ export function MeetingForm({
         acc[dateKey].push(time);
         return acc;
       },
-      {} as Record<string, typeof validTimesInTimezone>
+      {} as Record<string, typeof validTimesInTimezone>,
     );
   }, [validTimesInTimezone]);
 
-  const availableTimezones = React.useMemo(
-    () => Intl.supportedValuesOf("timeZone"),
-    []
-  );
+  const availableTimezones = React.useMemo(() => Intl.supportedValuesOf('timeZone'), []);
 
   const formattedTimezones = React.useMemo(() => {
     return availableTimezones.map((timezone) => ({
       value: timezone,
-      label: `${timezone.replace("_", " ").replace("/", " - ")} (${formatTimezoneOffset(timezone)})`,
+      label: `${timezone.replace('_', ' ').replace('/', ' - ')} (${formatTimezoneOffset(timezone)})`,
     }));
   }, [availableTimezones]);
 
   const onSubmit = React.useCallback(
     async (values: z.infer<typeof meetingFormSchema>) => {
-      if (currentStep === "3" && price > 0) {
+      if (currentStep === '3' && price > 0) {
         return;
       }
 
@@ -169,21 +156,21 @@ export function MeetingForm({
         });
 
         if (data?.error) {
-          form.setError("root", {
-            message: "There was an error saving your event",
+          form.setError('root', {
+            message: 'There was an error saving your event',
           });
         } else {
           const startTimeISO = values.startTime.toISOString();
           window.location.href = `${window.location.pathname}/success?startTime=${encodeURIComponent(startTimeISO)}`;
         }
       } catch (error) {
-        console.error("Error creating meeting:", error);
-        form.setError("root", {
-          message: "There was an error saving your event",
+        console.error('Error creating meeting:', error);
+        form.setError('root', {
+          message: 'There was an error saving your event',
         });
       }
     },
-    [currentStep, price, eventId, clerkUserId, form]
+    [currentStep, price, eventId, clerkUserId, form],
   );
 
   const handleNextStep = React.useCallback(
@@ -191,7 +178,7 @@ export function MeetingForm({
       setIsSubmitting(true);
 
       try {
-        if (nextStep !== "3") {
+        if (nextStep !== '3') {
           setQueryStates({ step: nextStep });
           return;
         }
@@ -202,9 +189,9 @@ export function MeetingForm({
           return;
         }
 
-        const response = await fetch("/api/create-payment-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        const response = await fetch('/api/create-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             eventId,
             price,
@@ -213,13 +200,13 @@ export function MeetingForm({
             meetingData: {
               ...form.getValues(),
               clerkUserId,
-              startTime: form.getValues("startTime")?.toISOString(),
+              startTime: form.getValues('startTime')?.toISOString(),
             },
           }),
         });
 
         if (!response.ok) {
-          throw new Error("Failed to create checkout session");
+          throw new Error('Failed to create checkout session');
         }
 
         const { url } = await response.json();
@@ -227,24 +214,15 @@ export function MeetingForm({
           window.location.href = url;
         }
       } catch (error) {
-        console.error("Error:", error);
-        form.setError("root", {
-          message: "Failed to process request",
+        console.error('Error:', error);
+        form.setError('root', {
+          message: 'Failed to process request',
         });
       } finally {
         setIsSubmitting(false);
       }
     },
-    [
-      form,
-      price,
-      eventId,
-      clerkUserId,
-      onSubmit,
-      setQueryStates,
-      username,
-      eventSlug,
-    ]
+    [form, price, eventId, clerkUserId, onSubmit, setQueryStates, username, eventSlug],
   );
 
   // Effects
@@ -252,13 +230,10 @@ export function MeetingForm({
     if (!validTimes.length || queryStates.date) return;
 
     const firstAvailableTime = validTimes[0];
-    const zonedTime = toZonedTime(
-      firstAvailableTime,
-      form.getValues("timezone")
-    );
+    const zonedTime = toZonedTime(firstAvailableTime, form.getValues('timezone'));
     const localDate = startOfDay(zonedTime);
 
-    form.setValue("date", localDate);
+    form.setValue('date', localDate);
     setQueryStates({ date: localDate });
   }, [validTimes, queryStates.date, form, setQueryStates]);
 
@@ -270,7 +245,7 @@ export function MeetingForm({
         if (!hasValidAccess) {
           setIsCalendarSynced(false);
           router.push(
-            `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`
+            `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`,
           );
           return;
         }
@@ -287,7 +262,7 @@ export function MeetingForm({
 
         setIsCalendarSynced(true);
       } catch (error) {
-        console.error("Calendar sync error:", error);
+        console.error('Calendar sync error:', error);
         setIsCalendarSynced(false);
       }
     };
@@ -298,15 +273,15 @@ export function MeetingForm({
   // Early return for calendar sync check
   if (!isCalendarSynced) {
     return (
-      <div className="text-center py-8">
-        <h2 className="text-lg font-semibold mb-4">Calendar Sync Required</h2>
-        <p className="text-muted-foreground mb-4">
+      <div className="py-8 text-center">
+        <h2 className="mb-4 text-lg font-semibold">Calendar Sync Required</h2>
+        <p className="mb-4 text-muted-foreground">
           We need access to your Google Calendar to show available time slots.
         </p>
         <Button
           onClick={() =>
             router.push(
-              `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`
+              `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`,
             )
           }
         >
@@ -319,30 +294,23 @@ export function MeetingForm({
   return (
     <Form {...form}>
       <form className="space-y-6">
-        {currentStep === "1" ? (
+        {currentStep === '1' ? (
           <>
-            <div className="grid md:grid-cols-[minmax(auto,800px),300px] gap-8">
+            <div className="grid gap-8 md:grid-cols-[minmax(auto,800px),300px]">
               <div>
-                <div className="flex items-center justify-between mb-4">
-                  <FormLabel className="text-lg font-semibold">
-                    Select a Date
-                  </FormLabel>
+                <div className="mb-4 flex items-center justify-between">
+                  <FormLabel className="text-lg font-semibold">Select a Date</FormLabel>
                   <FormField
                     control={form.control}
                     name="timezone"
                     render={({ field }) => (
                       <FormItem className="flex-shrink-0">
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger className="w-70 h-9 text-sm border-0 shadow-none">
+                            <SelectTrigger className="w-70 h-9 border-0 text-sm shadow-none">
                               <div className="flex items-center gap-2">
                                 <Globe className="h-4 w-4" />
-                                <SelectValue
-                                  placeholder={timezone.replace("_", " ")}
-                                />
+                                <SelectValue placeholder={timezone.replace('_', ' ')} />
                               </div>
                             </SelectTrigger>
                           </FormControl>
@@ -380,42 +348,37 @@ export function MeetingForm({
                         }}
                         showOutsideDays={false}
                         fixedWeeks
-                        className="rounded-md border w-full p-4"
+                        className="w-full rounded-md border p-4"
                         classNames={{
-                          months:
-                            "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-                          month: "space-y-4 w-full",
-                          caption:
-                            "flex justify-start pt-1 relative items-center gap-1",
-                          caption_label: "text-lg font-semibold",
-                          caption_dropdowns: "flex gap-1",
-                          nav: "flex items-center gap-1",
-                          nav_button: cn(
-                            "h-9 w-9 bg-transparent p-0 hover:opacity-100 opacity-75"
-                          ),
-                          nav_button_previous: "absolute right-7",
-                          nav_button_next: "absolute right-0",
-                          table: "w-full border-collapse",
-                          head_row: "flex w-full",
-                          head_cell:
-                            "h-6 w-14 font-normal text-sm text-muted-foreground uppercase",
-                          row: "flex w-full",
-                          cell: "h-14 w-14 relative  p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md [&:has([aria-selected])]:rounded-md",
+                          months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
+                          month: 'space-y-4 w-full',
+                          caption: 'flex justify-start pt-1 relative items-center gap-1',
+                          caption_label: 'text-lg font-semibold',
+                          caption_dropdowns: 'flex gap-1',
+                          nav: 'flex items-center gap-1',
+                          nav_button: cn('h-9 w-9 bg-transparent p-0 hover:opacity-100 opacity-75'),
+                          nav_button_previous: 'absolute right-7',
+                          nav_button_next: 'absolute right-0',
+                          table: 'w-full border-collapse',
+                          head_row: 'flex w-full',
+                          head_cell: 'h-6 w-14 font-normal text-sm text-muted-foreground uppercase',
+                          row: 'flex w-full',
+                          cell: 'h-14 w-14 relative  p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md [&:has([aria-selected])]:rounded-md',
 
                           day: cn(
-                            "h-14 w-14 p-0 font-normal text-base aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground"
+                            'h-14 w-14 p-0 font-normal text-base aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground',
                           ),
-                          day_range_start: "day-range-start",
-                          day_range_end: "day-range-end",
+                          day_range_start: 'day-range-start',
+                          day_range_end: 'day-range-end',
                           day_selected: cn(
-                            "bg-[#1c1c1c] text-white hover:bg-[#1c1c1c] hover:text-white focus:bg-[#1c1c1c] focus:text-white",
-                            "after:absolute after:bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:h-1 after:w-1 after:rounded-full after:bg-white"
+                            'bg-[#1c1c1c] text-white hover:bg-[#1c1c1c] hover:text-white focus:bg-[#1c1c1c] focus:text-white',
+                            'after:absolute after:bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:h-1 after:w-1 after:rounded-full after:bg-white',
                           ),
-                          day_today: "bg-accent text-accent-foreground",
+                          day_today: 'bg-accent text-accent-foreground',
                           day_outside:
-                            "text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
-                          day_disabled: "text-muted-foreground opacity-50",
-                          day_hidden: "invisible",
+                            'text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
+                          day_disabled: 'text-muted-foreground opacity-50',
+                          day_hidden: 'invisible',
                         }}
                       />
                       <FormMessage />
@@ -425,20 +388,20 @@ export function MeetingForm({
               </div>
 
               <div>
-                <div className="flex items-center justify-between mb-4">
+                <div className="mb-4 flex items-center justify-between">
                   <FormLabel className="text-lg font-semibold">
-                    {date ? format(date, "EE, MMM d") : "Available Times"}
+                    {date ? format(date, 'EE, MMM d') : 'Available Times'}
                   </FormLabel>
-                  <div className="bg-muted p-1 rounded-full flex">
+                  <div className="flex rounded-full bg-muted p-1">
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
                       className={cn(
-                        "rounded-full px-4 text-sm font-normal",
+                        'rounded-full px-4 text-sm font-normal',
                         !use24Hour
-                          ? "bg-background shadow-sm text-foreground"
-                          : "text-muted-foreground hover:bg-transparent hover:text-foreground"
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
                       )}
                       onClick={() => setUse24Hour(false)}
                     >
@@ -449,10 +412,10 @@ export function MeetingForm({
                       variant="ghost"
                       size="sm"
                       className={cn(
-                        "rounded-full px-4 text-sm font-normal",
+                        'rounded-full px-4 text-sm font-normal',
                         use24Hour
-                          ? "bg-background shadow-sm text-foreground"
-                          : "text-muted-foreground hover:bg-transparent hover:text-foreground"
+                          ? 'bg-background text-foreground shadow-sm'
+                          : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
                       )}
                       onClick={() => setUse24Hour(true)}
                     >
@@ -468,8 +431,8 @@ export function MeetingForm({
                       <div
                         className="grid gap-2 overflow-y-auto pr-4"
                         style={{
-                          maxHeight: "calc(470px - 3rem)", // Increased height
-                          scrollbarGutter: "stable",
+                          maxHeight: 'calc(470px - 3rem)', // Increased height
+                          scrollbarGutter: 'stable',
                         }}
                       >
                         {date &&
@@ -480,21 +443,20 @@ export function MeetingForm({
                                 type="button"
                                 variant="outline"
                                 className={cn(
-                                  "justify-center text-center h-12 text-base",
-                                  field.value?.toISOString() ===
-                                    utcDate.toISOString()
-                                    ? "border-primary bg-primary/5 font-medium"
-                                    : "hover:border-primary/50"
+                                  'h-12 justify-center text-center text-base',
+                                  field.value?.toISOString() === utcDate.toISOString()
+                                    ? 'border-primary bg-primary/5 font-medium'
+                                    : 'hover:border-primary/50',
                                 )}
                                 onClick={() => {
                                   field.onChange(utcDate);
                                   setQueryStates({ time: utcDate });
-                                  handleNextStep("2");
+                                  handleNextStep('2');
                                 }}
                               >
                                 {displayTime}
                               </Button>
-                            )
+                            ),
                           )}
                       </div>
                       <FormMessage />
@@ -504,24 +466,17 @@ export function MeetingForm({
               </div>
             </div>
           </>
-        ) : currentStep === "2" ? (
+        ) : currentStep === '2' ? (
           <>
             <div className="mb-8">
-              <h2 className="text-lg font-semibold mb-2">
-                Confirm your meeting details
-              </h2>
+              <h2 className="mb-2 text-lg font-semibold">Confirm your meeting details</h2>
               <p className="text-muted-foreground">
-                {date && format(date, "EEEE, MMMM d")} at{" "}
-                {startTime &&
-                  formatInTimeZone(
-                    startTime,
-                    timezone,
-                    use24Hour ? "HH:mm" : "h:mm a"
-                  )}
+                {date && format(date, 'EEEE, MMMM d')} at{' '}
+                {startTime && formatInTimeZone(startTime, timezone, use24Hour ? 'HH:mm' : 'h:mm a')}
               </p>
             </div>
 
-            <div className="flex gap-4 flex-col md:flex-row">
+            <div className="flex flex-col gap-4 md:flex-row">
               <FormField
                 control={form.control}
                 name="guestName"
@@ -569,35 +524,28 @@ export function MeetingForm({
                 <FormItem>
                   <FormLabel className="font-semibold">Notes</FormLabel>
                   <FormControl>
-                    <Textarea
-                      className="resize-none border rounded-md"
-                      {...field}
-                    />
+                    <Textarea className="resize-none rounded-md border" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
 
-            <div className="flex gap-2 justify-end">
+            <div className="flex justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setQueryStates({ step: "1" })}
+                onClick={() => setQueryStates({ step: '1' })}
                 disabled={isSubmitting}
               >
                 Back
               </Button>
-              <Button
-                type="button"
-                onClick={() => handleNextStep("3")}
-                disabled={isSubmitting}
-              >
+              <Button type="button" onClick={() => handleNextStep('3')} disabled={isSubmitting}>
                 {isSubmitting
-                  ? "Processing..."
+                  ? 'Processing...'
                   : price === 0
-                    ? "Confirm Booking"
-                    : "Continue to Payment"}
+                    ? 'Confirm Booking'
+                    : 'Continue to Payment'}
               </Button>
             </div>
           </>

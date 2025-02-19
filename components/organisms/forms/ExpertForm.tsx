@@ -1,9 +1,9 @@
-"use client";
-import React from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import type * as z from "zod";
-import { Button } from "@/components/atoms/button";
+'use client';
+import { Badge } from '@/components/atoms/badge';
+import { Button } from '@/components/atoms/button';
+import { Input } from '@/components/atoms/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
+import { Textarea } from '@/components/atoms/textarea';
 import {
   Form,
   FormControl,
@@ -12,24 +12,19 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/molecules/form";
-import { Input } from "@/components/atoms/input";
-import { Textarea } from "@/components/atoms/textarea";
-import { profileFormSchema } from "@/schema/profile";
-import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
-import Image from "next/image";
-import { cn } from "@/lib/utils";
-import { InfoCircledIcon } from "@radix-ui/react-icons";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/atoms/popover";
-import { Badge } from "@/components/atoms/badge";
-import { toast } from "sonner";
-import { SOCIAL_MEDIA_LIST } from "@/lib/constants/social-media";
-import SimpleRichTextEditor from "@/components/molecules/RichTextEditor";
+} from '@/components/molecules/form';
+import SimpleRichTextEditor from '@/components/molecules/RichTextEditor';
+import { SOCIAL_MEDIA_LIST } from '@/lib/constants/social-media';
+import { cn } from '@/lib/utils';
+import { profileFormSchema } from '@/schema/profile';
+import { useUser } from '@clerk/nextjs';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
+import Image from 'next/image';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import type * as z from 'zod';
 
 type ExpertFormValues = z.infer<typeof profileFormSchema> & {
   isVerified?: boolean;
@@ -51,18 +46,18 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
   const form = useForm<ExpertFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      firstName: initialData?.firstName || user?.firstName || "",
-      lastName: initialData?.lastName || user?.lastName || "",
-      profilePicture: initialData?.profilePicture || user?.imageUrl || "",
-      headline: initialData?.headline || "",
-      shortBio: initialData?.shortBio || "",
-      longBio: initialData?.longBio || "",
+      firstName: initialData?.firstName || user?.firstName || '',
+      lastName: initialData?.lastName || user?.lastName || '',
+      profilePicture: initialData?.profilePicture || user?.imageUrl || '',
+      headline: initialData?.headline || '',
+      shortBio: initialData?.shortBio || '',
+      longBio: initialData?.longBio || '',
       socialLinks: SOCIAL_MEDIA_LIST.map((platform) => ({
         name: platform.name,
         url:
           initialData?.socialLinks
             ?.find((link) => link.name === platform.name)
-            ?.url?.replace(platform.baseUrl, "") || "",
+            ?.url?.replace(platform.baseUrl, '') || '',
       })),
     },
   });
@@ -71,10 +66,10 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
     if (isUserLoaded && user) {
       // Set values if there's no initialData or if the fields are empty
       if (!initialData?.firstName || form.getValues('firstName') === '') {
-        form.setValue("firstName", user.firstName || "");
+        form.setValue('firstName', user.firstName || '');
       }
       if (!initialData?.lastName || form.getValues('lastName') === '') {
-        form.setValue("lastName", user.lastName || "");
+        form.setValue('lastName', user.lastName || '');
       }
     }
   }, [isUserLoaded, user, form, initialData]);
@@ -84,14 +79,14 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
     if (!file) return;
 
     // Clear the input value so the same file can be selected again
-    e.target.value = "";
+    e.target.value = '';
 
-    console.log("File size:", file.size / (1024 * 1024), "MB");
+    console.log('File size:', file.size / (1024 * 1024), 'MB');
 
     if (file.size > 4.5 * 1024 * 1024) {
-      console.log("File too large, showing error");
-      toast.error("Image must be less than 4.5MB", {
-        description: "Please choose a smaller image file.",
+      console.log('File too large, showing error');
+      toast.error('Image must be less than 4.5MB', {
+        description: 'Please choose a smaller image file.',
       });
       return;
     }
@@ -100,11 +95,11 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
     try {
       setSelectedFile(file);
       const previewUrl = URL.createObjectURL(file);
-      form.setValue("profilePicture", previewUrl);
+      form.setValue('profilePicture', previewUrl);
     } catch (error) {
-      console.error("Error processing image:", error);
-      toast.error("Failed to process image", {
-        description: "Please try again with a different image.",
+      console.error('Error processing image:', error);
+      toast.error('Failed to process image', {
+        description: 'Please try again with a different image.',
       });
     } finally {
       setIsUploading(false);
@@ -122,9 +117,9 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
             username: data.username,
           });
         } catch (error) {
-          console.error("Failed to update Clerk username:", error);
-          toast.error("Failed to update username", {
-            description: error instanceof Error ? error.message : "Please try again",
+          console.error('Failed to update Clerk username:', error);
+          toast.error('Failed to update username', {
+            description: error instanceof Error ? error.message : 'Please try again',
           });
           return;
         }
@@ -138,11 +133,11 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
           if (!platform) return link;
 
           const username = link.url?.trim();
-          if (!username) return { name: link.name, url: "" };
+          if (!username) return { name: link.name, url: '' };
 
           return {
             name: link.name,
-            url: `${platform.baseUrl}${username.replace(/^@/, "")}`,
+            url: `${platform.baseUrl}${username.replace(/^@/, '')}`,
           };
         }),
       };
@@ -151,46 +146,42 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       if (selectedFile) {
         setIsUploading(true);
         const formData = new FormData();
-        formData.append("file", selectedFile);
+        formData.append('file', selectedFile);
         const filename = `${user?.id}-${selectedFile.name}`;
         const response = await fetch(
           `/api/profile/upload?filename=${encodeURIComponent(filename)}`,
           {
-            method: "POST",
+            method: 'POST',
             body: selectedFile,
-          }
+          },
         );
 
         if (!response.ok) {
-          throw new Error("Failed to upload image");
+          throw new Error('Failed to upload image');
         }
 
         const blob = await response.json();
         profilePictureUrl = blob.url;
         setIsUploading(false);
 
-        if (
-          initialData?.profilePicture?.includes(
-            "public.blob.vercel-storage.com"
-          )
-        ) {
+        if (initialData?.profilePicture?.includes('public.blob.vercel-storage.com')) {
           try {
             await fetch(
               `/api/profile/upload?url=${encodeURIComponent(initialData.profilePicture)}`,
               {
-                method: "DELETE",
-              }
+                method: 'DELETE',
+              },
             );
           } catch (error) {
-            console.error("Failed to delete old profile picture:", error);
+            console.error('Failed to delete old profile picture:', error);
           }
         }
       }
 
-      const response = await fetch("/api/profile", {
-        method: "POST",
+      const response = await fetch('/api/profile', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           ...transformedData,
@@ -199,17 +190,15 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       });
 
       if (!response.ok) {
-        throw new Error((await response.text()) || "Failed to update profile");
+        throw new Error((await response.text()) || 'Failed to update profile');
       }
 
-      toast.success("Profile updated successfully");
+      toast.success('Profile updated successfully');
 
       setSelectedFile(null);
     } catch (error) {
       console.error(error);
-      toast.error(
-        error instanceof Error ? error.message : "Something went wrong"
-      );
+      toast.error(error instanceof Error ? error.message : 'Something went wrong');
     } finally {
       setIsLoading(false);
     }
@@ -218,8 +207,8 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
   React.useEffect(() => {
     return () => {
       // Cleanup blob URLs when component unmounts
-      const profilePicture = form.getValues("profilePicture");
-      if (profilePicture?.startsWith("blob:")) {
+      const profilePicture = form.getValues('profilePicture');
+      if (profilePicture?.startsWith('blob:')) {
         URL.revokeObjectURL(profilePicture);
       }
     };
@@ -229,9 +218,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <fieldset className="space-y-4 rounded-lg border p-4">
-          <legend className="px-2 text-lg font-medium">
-            Basic Information
-          </legend>
+          <legend className="px-2 text-lg font-medium">Basic Information</legend>
 
           <FormField
             control={form.control}
@@ -257,11 +244,11 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                         <label
                           htmlFor="picture-upload"
                           className={cn(
-                            "flex h-9 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                            isUploading && "pointer-events-none opacity-50"
+                            'flex h-9 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                            isUploading && 'pointer-events-none opacity-50',
                           )}
                         >
-                          {field.value ? "Change picture" : "Upload picture"}
+                          {field.value ? 'Change picture' : 'Upload picture'}
                         </label>
                         <Input
                           id="picture-upload"
@@ -271,29 +258,24 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                           className="hidden"
                           disabled={isUploading}
                         />
-                        {field.value &&
-                          isUserLoaded &&
-                          field.value !== user?.imageUrl && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                form.setValue(
-                                  "profilePicture",
-                                  user?.imageUrl || ""
-                                );
-                                setSelectedFile(null);
-                              }}
-                              className={cn(
-                                "flex h-9 items-center justify-center rounded-md border border-destructive bg-destructive/10 px-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-                                isUploading && "pointer-events-none opacity-50"
-                              )}
-                              disabled={isUploading}
-                            >
-                              Reset to Account Picture
-                            </button>
-                          )}
+                        {field.value && isUserLoaded && field.value !== user?.imageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              form.setValue('profilePicture', user?.imageUrl || '');
+                              setSelectedFile(null);
+                            }}
+                            className={cn(
+                              'flex h-9 items-center justify-center rounded-md border border-destructive bg-destructive/10 px-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                              isUploading && 'pointer-events-none opacity-50',
+                            )}
+                            disabled={isUploading}
+                          >
+                            Reset to Account Picture
+                          </button>
+                        )}
                         {isUploading && (
-                          <span className="text-sm text-muted-foreground flex items-center gap-2">
+                          <span className="flex items-center gap-2 text-sm text-muted-foreground">
                             <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
                             Uploading...
                           </span>
@@ -302,8 +284,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                     </FormControl>
                   </div>
                   <FormDescription>
-                    Upload a profile picture (max 4.5MB). A portrait (2:3) image
-                    is recommended.
+                    Upload a profile picture (max 4.5MB). A portrait (2:3) image is recommended.
                   </FormDescription>
                   <FormMessage />
                 </div>
@@ -347,15 +328,9 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               <FormItem>
                 <FormLabel>Username</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="username" 
-                    {...field}
-                    defaultValue={user?.username || ''}
-                  />
+                  <Input placeholder="username" {...field} defaultValue={user?.username || ''} />
                 </FormControl>
-                <FormDescription>
-                  Choose a unique username for your profile
-                </FormDescription>
+                <FormDescription>Choose a unique username for your profile</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -364,22 +339,21 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
           <div className="flex items-center gap-4 pt-2">
             <div className="flex items-center gap-2">
               <Badge
-                variant={initialData?.isVerified ? "default" : "secondary"}
+                variant={initialData?.isVerified ? 'default' : 'secondary'}
                 className="cursor-default"
               >
-                {initialData?.isVerified ? "Verified" : "Unverified"}
+                {initialData?.isVerified ? 'Verified' : 'Unverified'}
               </Badge>
               <Popover>
                 <PopoverTrigger>
-                  <InfoCircledIcon className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                  <InfoCircledIcon className="h-4 w-4 text-muted-foreground transition-colors hover:text-foreground" />
                 </PopoverTrigger>
                 <PopoverContent className="w-80">
                   <div className="space-y-2">
                     <h4 className="font-medium">Verified Expert Status</h4>
                     <p className="text-sm text-muted-foreground">
-                      Verified experts have had their credentials and expertise
-                      validated by our team. This badge helps users identify
-                      trusted professionals on our platform.
+                      Verified experts have had their credentials and expertise validated by our
+                      team. This badge helps users identify trusted professionals on our platform.
                     </p>
                   </div>
                 </PopoverContent>
@@ -388,22 +362,22 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
 
             <div className="flex items-center gap-2">
               <Badge
-                variant={initialData?.isTopExpert ? "default" : "secondary"}
+                variant={initialData?.isTopExpert ? 'default' : 'secondary'}
                 className="cursor-default"
               >
-                {initialData?.isTopExpert ? "Top Expert" : "Community Expert"}
+                {initialData?.isTopExpert ? 'Top Expert' : 'Community Expert'}
               </Badge>
               <Popover>
                 <PopoverTrigger>
-                  <InfoCircledIcon className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                  <InfoCircledIcon className="h-4 w-4 text-muted-foreground transition-colors hover:text-foreground" />
                 </PopoverTrigger>
                 <PopoverContent className="w-80">
                   <div className="space-y-2">
                     <h4 className="font-medium">Top Expert Status</h4>
                     <p className="text-sm text-muted-foreground">
-                      Top Experts are recognized leaders in their field with
-                      exceptional contributions and engagement on our platform.
-                      This status is awarded to our most distinguished members.
+                      Top Experts are recognized leaders in their field with exceptional
+                      contributions and engagement on our platform. This status is awarded to our
+                      most distinguished members.
                     </p>
                   </div>
                 </PopoverContent>
@@ -413,9 +387,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
         </fieldset>
 
         <fieldset className="space-y-4 rounded-lg border p-4">
-          <legend className="px-2 text-lg font-medium">
-            Professional Profile
-          </legend>
+          <legend className="px-2 text-lg font-medium">Professional Profile</legend>
 
           <FormField
             control={form.control}
@@ -424,14 +396,10 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               <FormItem>
                 <FormLabel>Headline</FormLabel>
                 <FormControl>
-                  <Input
-                    placeholder="Women's Health Expert & Researcher"
-                    {...field}
-                  />
+                  <Input placeholder="Women's Health Expert & Researcher" {...field} />
                 </FormControl>
                 <FormDescription>
-                  In one line, describe who you are, what you are best know for,
-                  or expertise.
+                  In one line, describe who you are, what you are best know for, or expertise.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -467,13 +435,11 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               <FormItem>
                 <FormLabel>About Me</FormLabel>
                 <FormControl>
-                  <SimpleRichTextEditor
-                    value={field.value || ''}
-                    onChange={field.onChange}
-                  />
+                  <SimpleRichTextEditor value={field.value || ''} onChange={field.onChange} />
                 </FormControl>
                 <FormDescription>
-                  You can use Markdown formatting to style your text. Add links, lists, and basic formatting.
+                  You can use Markdown formatting to style your text. Add links, lists, and basic
+                  formatting.
                 </FormDescription>
                 <FormMessage />
               </FormItem>
@@ -482,9 +448,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
         </fieldset>
 
         <fieldset className="space-y-4 rounded-lg border p-4">
-          <legend className="px-2 text-lg font-medium">
-            Social Media Links
-          </legend>
+          <legend className="px-2 text-lg font-medium">Social Media Links</legend>
           <div className="grid gap-4 sm:grid-cols-2">
             {SOCIAL_MEDIA_LIST.map((platform, index) => (
               <FormField
@@ -494,11 +458,10 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>
-                      {platform.name.charAt(0).toUpperCase() +
-                        platform.name.slice(1)}
+                      {platform.name.charAt(0).toUpperCase() + platform.name.slice(1)}
                     </FormLabel>
                     <div className="flex w-full items-center overflow-hidden rounded-md border">
-                      <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
+                      <div className="flex h-full items-center bg-muted px-3 py-2 text-sm text-muted-foreground">
                         {platform.baseUrl.replace(/^https?:\/\//, '')}
                       </div>
                       <div className="w-px self-stretch bg-border" />
@@ -520,7 +483,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
         </fieldset>
 
         <Button type="submit" disabled={isLoading || isUploading}>
-          {isLoading || isUploading ? "Saving..." : "Save Changes"}
+          {isLoading || isUploading ? 'Saving...' : 'Save Changes'}
         </Button>
       </form>
     </Form>

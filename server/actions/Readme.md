@@ -154,8 +154,8 @@ Most operations are logged for audit purposes, including:
    try {
      // Operation
    } catch (error) {
-     console.error("Operation failed:", error);
-     return { error: true, message: "Friendly error message" };
+     console.error('Operation failed:', error);
+     return { error: true, message: 'Friendly error message' };
    }
    ```
 
@@ -170,14 +170,7 @@ Most operations are logged for audit purposes, including:
 4. **Include audit logging**
 
    ```typescript
-   await logAuditEvent(
-     userId,
-     "action",
-     "resource",
-     resourceId,
-     oldData,
-     newData
-   );
+   await logAuditEvent(userId, 'action', 'resource', resourceId, oldData, newData);
    ```
 
 ## Testing

@@ -1,26 +1,24 @@
-import Stripe from "stripe";
-import { STRIPE_CONFIG } from "@/config/stripe";
-import { Redis } from "@upstash/redis";
-import { db } from "@/drizzle/db";
-import { UserTable, EventTable } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
+import { STRIPE_CONFIG } from '@/config/stripe';
+import { db } from '@/drizzle/db';
+import { EventTable, UserTable } from '@/drizzle/schema';
+import { Redis } from '@upstash/redis';
+import { eq } from 'drizzle-orm';
+import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION,
 });
 
 // Initialize Redis with correct environment variables
 const redis = new Redis({
-  url: process.env.KV_REST_API_URL ?? "",
-  token: process.env.KV_REST_API_TOKEN ?? "",
+  url: process.env.KV_REST_API_URL ?? '',
+  token: process.env.KV_REST_API_TOKEN ?? '',
 });
 
 // Platform fee percentage for revenue sharing
 // This fee is automatically handled by Stripe Connect and can be monitored
 // in the Stripe Connect dashboard (https://dashboard.stripe.com/connect)
-const PLATFORM_FEE_PERCENTAGE = Number(
-  process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? "0.15"
-); // Default 15% if not set
+const PLATFORM_FEE_PERCENTAGE = Number(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? '0.15'); // Default 15% if not set
 
 interface StripeCustomerData {
   stripeCustomerId: string;
@@ -38,33 +36,33 @@ export async function getServerStripe() {
 async function verifyRedisConnection() {
   try {
     // Test both read and write operations
-    const testKey = "stripe:connection:test";
+    const testKey = 'stripe:connection:test';
     const testValue = `test-${Date.now()}`;
 
     // Test write
     const writeResult = await redis.set(testKey, testValue);
-    console.log("Redis write test result:", writeResult);
+    console.log('Redis write test result:', writeResult);
 
     // Test read
     const readResult = await redis.get(testKey);
-    console.log("Redis read test result:", readResult);
+    console.log('Redis read test result:', readResult);
 
     // Cleanup
     await redis.del(testKey);
 
-    const success = writeResult === "OK" && readResult === testValue;
+    const success = writeResult === 'OK' && readResult === testValue;
     if (!success) {
-      console.error("Redis connection test failed:", {
+      console.error('Redis connection test failed:', {
         writeResult,
         readResult,
       });
       return false;
     }
 
-    console.log("Redis connection verified successfully");
+    console.log('Redis connection verified successfully');
     return true;
   } catch (error) {
-    console.error("Redis connection verification failed:", error);
+    console.error('Redis connection verification failed:', error);
     return false;
   }
 }
@@ -72,31 +70,28 @@ async function verifyRedisConnection() {
 export async function syncStripeDataToKV(stripeCustomerId: string) {
   try {
     // Verify Redis connection first with detailed logging
-    console.log("Verifying Redis connection before sync...");
+    console.log('Verifying Redis connection before sync...');
     const isRedisConnected = await verifyRedisConnection();
     if (!isRedisConnected) {
-      console.error("Redis connection verification failed, aborting sync");
-      throw new Error("Redis connection failed");
+      console.error('Redis connection verification failed, aborting sync');
+      throw new Error('Redis connection failed');
     }
-    console.log("Redis connection verified, proceeding with sync");
+    console.log('Redis connection verified, proceeding with sync');
 
     const customer = await stripe.customers.retrieve(stripeCustomerId);
     if (!customer || customer.deleted) {
-      throw new Error("Customer was deleted or not found");
+      throw new Error('Customer was deleted or not found');
     }
 
     const customerData: StripeCustomerData = {
       stripeCustomerId: customer.id,
-      email: typeof customer.email === "string" ? customer.email : "",
-      userId:
-        typeof customer.metadata?.userId === "string"
-          ? customer.metadata.userId
-          : undefined,
+      email: typeof customer.email === 'string' ? customer.email : '',
+      userId: typeof customer.metadata?.userId === 'string' ? customer.metadata.userId : undefined,
       createdAt: customer.created,
       updatedAt: Date.now(),
     };
 
-    console.log("Preparing to store customer data:", customerData);
+    console.log('Preparing to store customer data:', customerData);
 
     // Store in Redis with multiple access patterns
     const storeOperations = [
@@ -111,7 +106,7 @@ export async function syncStripeDataToKV(stripeCustomerId: string) {
       redis
         .set(
           `stripe:customer:email:${customerData.email.toLowerCase()}`,
-          JSON.stringify(customerData)
+          JSON.stringify(customerData),
         )
         .then((result) => {
           console.log(`Store by email result: ${result}`);
@@ -123,29 +118,26 @@ export async function syncStripeDataToKV(stripeCustomerId: string) {
     if (customerData.userId) {
       storeOperations.push(
         redis
-          .set(
-            `stripe:customer:user:${customerData.userId}`,
-            JSON.stringify(customerData)
-          )
+          .set(`stripe:customer:user:${customerData.userId}`, JSON.stringify(customerData))
           .then((result) => {
             console.log(`Store by userId result: ${result}`);
             return result;
-          })
+          }),
       );
     }
 
     // Execute all storage operations and verify they succeeded
-    console.log("Executing storage operations...");
+    console.log('Executing storage operations...');
     const results = await Promise.all(storeOperations);
-    console.log("Storage operation results:", results);
+    console.log('Storage operation results:', results);
 
-    const allSucceeded = results.every((result) => result === "OK");
+    const allSucceeded = results.every((result) => result === 'OK');
     if (!allSucceeded) {
-      console.error("Some Redis operations failed:", results);
-      throw new Error("Failed to store customer data in Redis");
+      console.error('Some Redis operations failed:', results);
+      throw new Error('Failed to store customer data in Redis');
     }
 
-    console.log("Successfully synced customer data to KV:", {
+    console.log('Successfully synced customer data to KV:', {
       customerId: customer.id,
       email: customerData.email,
       userId: customerData.userId,
@@ -154,24 +146,21 @@ export async function syncStripeDataToKV(stripeCustomerId: string) {
 
     return customerData;
   } catch (error) {
-    console.error("Error syncing Stripe data to KV:", error);
+    console.error('Error syncing Stripe data to KV:', error);
     throw error;
   }
 }
 
-export async function getOrCreateStripeCustomer(
-  userId?: string,
-  email?: string
-): Promise<string> {
+export async function getOrCreateStripeCustomer(userId?: string, email?: string): Promise<string> {
   try {
     if (!email) {
-      throw new Error("Email is required");
+      throw new Error('Email is required');
     }
 
     const normalizedEmail = email.toLowerCase();
 
     // First check if customer exists in Stripe
-    console.log("Checking for existing customer with email:", normalizedEmail);
+    console.log('Checking for existing customer with email:', normalizedEmail);
     const existingCustomers = await stripe.customers.list({
       email: normalizedEmail,
       limit: 1,
@@ -179,7 +168,7 @@ export async function getOrCreateStripeCustomer(
 
     if (existingCustomers.data.length > 0) {
       const existingCustomer = existingCustomers.data[0];
-      console.log("Found existing customer:", existingCustomer.id);
+      console.log('Found existing customer:', existingCustomer.id);
 
       // Update customer metadata if needed
       if (userId && !existingCustomer.metadata?.userId) {
@@ -187,7 +176,7 @@ export async function getOrCreateStripeCustomer(
           metadata: {
             ...existingCustomer.metadata,
             userId,
-            isGuest: userId ? "false" : "true",
+            isGuest: userId ? 'false' : 'true',
             updatedAt: new Date().toISOString(),
           },
         });
@@ -197,7 +186,7 @@ export async function getOrCreateStripeCustomer(
       const isRedisConnected = await verifyRedisConnection();
       if (isRedisConnected) {
         await syncStripeDataToKV(existingCustomer.id).catch((error) => {
-          console.error("Failed to sync existing customer to KV:", error);
+          console.error('Failed to sync existing customer to KV:', error);
         });
       }
 
@@ -205,12 +194,12 @@ export async function getOrCreateStripeCustomer(
     }
 
     // If no customer exists, create a new one
-    console.log("Creating new customer for email:", normalizedEmail);
+    console.log('Creating new customer for email:', normalizedEmail);
     const newCustomer = await stripe.customers.create({
       email: normalizedEmail,
       metadata: {
         ...(userId ? { userId } : {}),
-        isGuest: userId ? "false" : "true",
+        isGuest: userId ? 'false' : 'true',
         createdAt: new Date().toISOString(),
       },
     });
@@ -219,13 +208,13 @@ export async function getOrCreateStripeCustomer(
     const isRedisConnected = await verifyRedisConnection();
     if (isRedisConnected) {
       await syncStripeDataToKV(newCustomer.id).catch((error) => {
-        console.error("Failed to sync new customer to KV:", error);
+        console.error('Failed to sync new customer to KV:', error);
       });
     }
 
     return newCustomer.id;
   } catch (error) {
-    console.error("Error in getOrCreateStripeCustomer:", error);
+    console.error('Error in getOrCreateStripeCustomer:', error);
     throw error;
   }
 }
@@ -246,7 +235,7 @@ export async function createPaymentIntent({
     });
 
     if (!event) {
-      throw new Error("Event not found");
+      throw new Error('Event not found');
     }
 
     // Get expert's Stripe Connect account
@@ -254,10 +243,7 @@ export async function createPaymentIntent({
       where: eq(UserTable.id, event.clerkUserId),
     });
 
-    if (
-      !expert?.stripeConnectAccountId ||
-      !expert.stripeConnectOnboardingComplete
-    ) {
+    if (!expert?.stripeConnectAccountId || !expert.stripeConnectOnboardingComplete) {
       throw new Error("Expert's Stripe account not found or setup incomplete");
     }
 
@@ -286,7 +272,7 @@ export async function createPaymentIntent({
     // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
       amount,
-      currency: "usd",
+      currency: 'usd',
       customer: customerId,
       automatic_payment_methods: {
         enabled: true,
@@ -303,7 +289,7 @@ export async function createPaymentIntent({
 
     return { clientSecret: paymentIntent.client_secret };
   } catch (error) {
-    console.error("Error creating payment intent:", error);
+    console.error('Error creating payment intent:', error);
     throw error;
   }
 }
@@ -312,9 +298,9 @@ export async function createPaymentIntent({
 function getBaseUrl() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (!baseUrl) {
-    throw new Error("NEXT_PUBLIC_APP_URL environment variable is not set");
+    throw new Error('NEXT_PUBLIC_APP_URL environment variable is not set');
   }
-  return baseUrl.startsWith("http") ? baseUrl : `https://${baseUrl}`;
+  return baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
 }
 
 export async function createStripeConnectAccount(userId: string) {
@@ -324,12 +310,12 @@ export async function createStripeConnectAccount(userId: string) {
     });
 
     if (!user) {
-      throw new Error("User not found");
+      throw new Error('User not found');
     }
 
     // Create a Connect account
     const account = await stripe.accounts.create({
-      type: "express",
+      type: 'express',
       email: user.email,
       metadata: {
         userId,
@@ -352,12 +338,12 @@ export async function createStripeConnectAccount(userId: string) {
       account: account.id,
       refresh_url: `${baseUrl}/account/billing?refresh=true`,
       return_url: `${baseUrl}/account/billing?success=true`,
-      type: "account_onboarding",
+      type: 'account_onboarding',
     });
 
     return { url: accountLink.url };
   } catch (error) {
-    console.error("Error creating Connect account:", error);
+    console.error('Error creating Connect account:', error);
     throw error;
   }
 }
@@ -371,7 +357,7 @@ export async function getStripeConnectAccountStatus(accountId: string) {
       payoutsEnabled: account.payouts_enabled,
     };
   } catch (error) {
-    console.error("Error retrieving Connect account status:", error);
+    console.error('Error retrieving Connect account status:', error);
     throw error;
   }
 }
@@ -381,7 +367,7 @@ export async function getStripeConnectLoginLink(accountId: string) {
     const loginLink = await stripe.accounts.createLoginLink(accountId);
     return loginLink.url;
   } catch (error) {
-    console.error("Error creating login link:", error);
+    console.error('Error creating login link:', error);
     throw error;
   }
 }
@@ -398,7 +384,7 @@ export async function getStripeConnectSetupOrLoginLink(accountId: string) {
         account: accountId,
         refresh_url: `${baseUrl}/account/billing?refresh=true`,
         return_url: `${baseUrl}/account/billing?success=true`,
-        type: "account_onboarding",
+        type: 'account_onboarding',
       });
       return setupLink.url;
     }
@@ -407,7 +393,7 @@ export async function getStripeConnectSetupOrLoginLink(accountId: string) {
     const loginLink = await stripe.accounts.createLoginLink(accountId);
     return loginLink.url;
   } catch (error) {
-    console.error("Error creating Stripe Connect link:", error);
+    console.error('Error creating Stripe Connect link:', error);
     throw error;
   }
 }

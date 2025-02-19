@@ -1,16 +1,11 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
-import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/atoms/card";
-import { AppointmentCard } from "@/components/organisms/AppointmentCard";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
+import { AppointmentCard } from '@/components/organisms/AppointmentCard';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import React from 'react';
 
 interface Appointment {
   id: string;
@@ -44,18 +39,14 @@ export default function CustomerDetailsPage() {
         }
 
         // Sort appointments chronologically
-        const sortedAppointments = data.appointments.sort(
-          (a: Appointment, b: Appointment) => {
-            return (
-              new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-            );
-          }
-        );
+        const sortedAppointments = data.appointments.sort((a: Appointment, b: Appointment) => {
+          return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+        });
 
         setAppointments(sortedAppointments);
       } catch (error) {
-        setError("Failed to load customer appointments");
-        console.error("Error loading customer appointments:", error);
+        setError('Failed to load customer appointments');
+        console.error('Error loading customer appointments:', error);
       } finally {
         setIsLoading(false);
       }
@@ -76,7 +67,7 @@ export default function CustomerDetailsPage() {
     <div className="container mx-auto p-6">
       <Link
         href="/appointments"
-        className="flex items-center gap-2 mb-6 text-gray-600 hover:text-gray-900"
+        className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to All Appointments
@@ -103,7 +94,7 @@ export default function CustomerDetailsPage() {
         </CardContent>
       </Card>
 
-      <h2 className="text-xl font-semibold mb-4">Appointment History</h2>
+      <h2 className="mb-4 text-xl font-semibold">Appointment History</h2>
       <div className="space-y-4">
         {appointments.map((appointment) => (
           <AppointmentCard key={appointment.id} appointment={appointment} />

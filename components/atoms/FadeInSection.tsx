@@ -1,7 +1,7 @@
-"use client";
+'use client';
 
-import React from "react";
-import { motion } from "motion/react";
+import { motion } from 'motion/react';
+import React from 'react';
 
 const containerVariants = {
   hidden: {
@@ -12,9 +12,9 @@ const containerVariants = {
     opacity: 1,
     y: 0,
     transition: {
-      when: "beforeChildren",
+      when: 'beforeChildren',
       duration: 0.5,
-      ease: "easeOut",
+      ease: 'easeOut',
       staggerChildren: 0.1,
     },
   },
@@ -30,7 +30,7 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.5,
-      ease: "easeOut",
+      ease: 'easeOut',
     },
   },
 };
@@ -43,7 +43,7 @@ interface FadeInSectionProps {
 
 const FadeInSection: React.FC<FadeInSectionProps> = ({
   children,
-  className = "",
+  className = '',
   asChild = false,
 }) => {
   const Component = asChild ? motion.section : motion.div;
@@ -55,19 +55,18 @@ const FadeInSection: React.FC<FadeInSectionProps> = ({
       viewport={{
         once: true,
         amount: 0.1,
-        margin: "100px 0px",
+        margin: '100px 0px',
       }}
       variants={containerVariants}
       className={className}
       style={{
-        willChange: "transform, opacity",
+        willChange: 'transform, opacity',
       }}
     >
       {React.Children.map(children, (child) => {
         if (!React.isValidElement(child)) return child;
 
-        const elementKey =
-          child.key || `fade-${Math.random().toString(36).substr(2, 9)}`;
+        const elementKey = child.key || `fade-${Math.random().toString(36).substr(2, 9)}`;
 
         return (
           <motion.div key={elementKey} variants={itemVariants}>

@@ -1,49 +1,46 @@
-"use client";
+'use client';
 
-import React, { useTransition } from "react";
-import { useForm } from "react-hook-form";
-import type { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { eventFormSchema } from "@/schema/events";
+import { slugify } from '@/lib/validations/slug';
+import { eventFormSchema } from '@/schema/events';
+import { createEvent, deleteEvent, updateEvent } from '@/server/actions/events';
+import { createStripeProduct, updateStripeProduct } from '@/server/actions/stripe';
+import { useUser } from '@clerk/nextjs';
+import { zodResolver } from '@hookform/resolvers/zod';
+import Link from 'next/link';
+import React, { useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import type { z } from 'zod';
+import { Button } from '../../atoms/button';
+import { Input } from '../../atoms/input';
+import { Switch } from '../../atoms/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '../../molecules/alert-dialog';
 import {
   Form,
+  FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormControl,
-  FormDescription,
   FormMessage,
-} from "../../molecules/form";
-import { Input } from "../../atoms/input";
-import { Button } from "../../atoms/button";
-import Link from "next/link";
-import { Switch } from "../../atoms/switch";
-import { createEvent, deleteEvent, updateEvent } from "@/server/actions/events";
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogTrigger,
-  AlertDialogDescription,
-  AlertDialogTitle,
-  AlertDialogFooter,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "../../molecules/alert-dialog";
-import { slugify } from "@/lib/validations/slug";
+} from '../../molecules/form';
+import SimpleRichTextEditor from '../../molecules/RichTextEditor';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../molecules/select";
-import SimpleRichTextEditor from "../../molecules/RichTextEditor";
-import { useUser } from "@clerk/nextjs";
-import {
-  createStripeProduct,
-  updateStripeProduct,
-} from "@/server/actions/stripe";
+} from '../../molecules/select';
 
 export function EventForm({
   event,
@@ -70,20 +67,18 @@ export function EventForm({
       isActive: true,
       durationInMinutes: 30,
       price: 0,
-      currency: "eur",
-      name: "",
-      slug: "",
+      currency: 'eur',
+      name: '',
+      slug: '',
     },
   });
 
-  const [description, setDescription] = React.useState(
-    event?.description || ""
-  );
+  const [description, setDescription] = React.useState(event?.description || '');
 
   React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
-      if (name === "name") {
-        form.setValue("slug", slugify(value.name as string), {
+      if (name === 'name') {
+        form.setValue('slug', slugify(value.name as string), {
           shouldValidate: true,
           shouldDirty: true,
         });
@@ -94,26 +89,26 @@ export function EventForm({
 
   const onSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const currentValue = e.target.value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "-")
-      .replace(/--+/g, "-")
-      .replace(/^-+/, "")
-      .replace(/-+$/, "");
+      .replace(/[^a-z0-9-]/g, '-')
+      .replace(/--+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
 
-    form.setValue("slug", currentValue, {
+    form.setValue('slug', currentValue, {
       shouldValidate: true,
       shouldDirty: true,
     });
   };
 
   const onSlugKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === " ") {
+    if (e.key === ' ') {
       e.preventDefault();
       const input = e.target as HTMLInputElement;
       const newValue = `${input.value}-`;
-      form.setValue("slug", newValue, {
+      form.setValue('slug', newValue, {
         shouldValidate: true,
         shouldDirty: true,
       });
@@ -126,7 +121,7 @@ export function EventForm({
   const handleSubmit = async (values: z.infer<typeof eventFormSchema>) => {
     try {
       setIsStripeProcessing(true);
-      
+
       // First handle Stripe if price > 0
       let stripeData = null;
       if (values.price > 0) {
@@ -149,15 +144,15 @@ export function EventForm({
             clerkUserId: user?.id || '',
           });
         } else {
-          form.setError("root", {
-            message: "Invalid Stripe product configuration",
+          form.setError('root', {
+            message: 'Invalid Stripe product configuration',
           });
           return;
         }
 
         if (stripeData?.error) {
-          form.setError("root", {
-            message: "Failed to sync with Stripe: " + stripeData.error,
+          form.setError('root', {
+            message: 'Failed to sync with Stripe: ' + stripeData.error,
           });
           return;
         }
@@ -172,19 +167,18 @@ export function EventForm({
       });
 
       if (eventData?.error) {
-        form.setError("root", {
-          message: "Failed to save event",
+        form.setError('root', {
+          message: 'Failed to save event',
         });
         return;
       }
 
       // Use router.push instead of window.location for better navigation
-      window.location.href = "/events";
-
+      window.location.href = '/events';
     } catch (error) {
-      console.error("Form submission error:", error);
-      form.setError("root", {
-        message: "An unexpected error occurred",
+      console.error('Form submission error:', error);
+      form.setError('root', {
+        message: 'An unexpected error occurred',
       });
     } finally {
       setIsStripeProcessing(false);
@@ -217,18 +211,14 @@ export function EventForm({
             </FormControl>
             <span className="text-muted-foreground">EUR</span>
             {isStripeProcessing && (
-              <span className="text-sm text-muted-foreground">
-                Syncing with Stripe...
-              </span>
+              <span className="text-sm text-muted-foreground">Syncing with Stripe...</span>
             )}
           </div>
           <FormDescription>
             {event?.stripeProductId ? (
-              <>
-                Connected to Stripe Product: {event.stripeProductId.slice(0, 8)}...
-              </>
+              <>Connected to Stripe Product: {event.stripeProductId.slice(0, 8)}...</>
             ) : (
-              "Set to 0 for free events. Price in euros."
+              'Set to 0 for free events. Price in euros.'
             )}
           </FormDescription>
           <FormMessage />
@@ -241,13 +231,11 @@ export function EventForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
         {form.formState.errors.root && (
-          <div className="text-destructive text-sm">
-            {form.formState.errors.root.message}
-          </div>
+          <div className="text-sm text-destructive">{form.formState.errors.root.message}</div>
         )}
 
         <div className="space-y-6">
-          <div className="rounded-lg border p-4 space-y-4">
+          <div className="space-y-4 rounded-lg border p-4">
             <FormField
               control={form.control}
               name="name"
@@ -257,9 +245,7 @@ export function EventForm({
                   <FormControl>
                     <Input {...field} />
                   </FormControl>
-                  <FormDescription>
-                    The name users will see when booking
-                  </FormDescription>
+                  <FormDescription>The name users will see when booking</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -281,8 +267,7 @@ export function EventForm({
                     />
                   </FormControl>
                   <FormDescription>
-                    Describe your event. You can use formatting to make it more
-                    readable.
+                    Describe your event. You can use formatting to make it more readable.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -296,8 +281,8 @@ export function EventForm({
                 <FormItem>
                   <FormLabel>URL</FormLabel>
                   <div className="flex w-full items-center overflow-hidden rounded-md border">
-                    <div className="bg-muted px-3 py-2 text-sm text-muted-foreground h-full flex items-center">
-                      eleva.care/{user?.username || "username"}/
+                    <div className="flex h-full items-center bg-muted px-3 py-2 text-sm text-muted-foreground">
+                      eleva.care/{user?.username || 'username'}/
                     </div>
                     <div className="w-px self-stretch bg-border" />
                     <FormControl>
@@ -310,16 +295,14 @@ export function EventForm({
                       />
                     </FormControl>
                   </div>
-                  <FormDescription>
-                    URL-friendly version of the event name
-                  </FormDescription>
+                  <FormDescription>URL-friendly version of the event name</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
 
-          <div className="rounded-lg border p-4 space-y-4">
+          <div className="space-y-4 rounded-lg border p-4">
             <FormField
               control={form.control}
               name="durationInMinutes"
@@ -342,16 +325,14 @@ export function EventForm({
                       <SelectItem value="60">60 minutes session</SelectItem>
                     </SelectContent>
                   </Select>
-                  <FormDescription>
-                    Choose the appropriate session duration
-                  </FormDescription>
+                  <FormDescription>Choose the appropriate session duration</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
 
-          <div className="rounded-lg border p-4 space-y-4">
+          <div className="space-y-4 rounded-lg border p-4">
             <FormField
               control={form.control}
               name="isActive"
@@ -359,10 +340,7 @@ export function EventForm({
                 <FormItem>
                   <div className="flex items-center gap-2">
                     <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
                     </FormControl>
                     <FormLabel className="!mt-0">Active</FormLabel>
                   </div>
@@ -375,7 +353,7 @@ export function EventForm({
             />
           </div>
 
-          <div className="rounded-lg border p-4 space-y-4">
+          <div className="space-y-4 rounded-lg border p-4">
             <PriceField />
           </div>
         </div>
@@ -395,8 +373,7 @@ export function EventForm({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Are you sure?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete
-                    your event.
+                    This action cannot be undone. This will permanently delete your event.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -408,8 +385,8 @@ export function EventForm({
                       startDeleteTransition(async () => {
                         const data = await deleteEvent(event.id);
                         if (data?.error) {
-                          form.setError("root", {
-                            message: "There was an error deleting your event",
+                          form.setError('root', {
+                            message: 'There was an error deleting your event',
                           });
                         }
                       });
@@ -421,19 +398,16 @@ export function EventForm({
               </AlertDialogContent>
             </AlertDialog>
           )}
-          <Button 
-            type="button" 
-            asChild 
+          <Button
+            type="button"
+            asChild
             variant="outline"
             disabled={isStripeProcessing || form.formState.isSubmitting}
           >
             <Link href="/events">Cancel</Link>
           </Button>
-          <Button 
-            type="submit"
-            disabled={isStripeProcessing || form.formState.isSubmitting}
-          >
-            {isStripeProcessing ? "Processing..." : "Save"}
+          <Button type="submit" disabled={isStripeProcessing || form.formState.isSubmitting}>
+            {isStripeProcessing ? 'Processing...' : 'Save'}
           </Button>
         </div>
       </form>

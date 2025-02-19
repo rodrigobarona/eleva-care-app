@@ -1,7 +1,6 @@
-"use client";
-import React from "react";
-import { useUser } from "@clerk/nextjs";
-import { Skeleton } from "@/components/atoms/skeleton";
+'use client';
+import { Skeleton } from '@/components/atoms/skeleton';
+import { useUser } from '@clerk/nextjs';
 
 export default function Dashboard() {
   const { user, isLoaded } = useUser();
@@ -9,7 +8,7 @@ export default function Dashboard() {
   if (!isLoaded) {
     return (
       <div className="container">
-        <Skeleton className="h-32 w-full mb-4" />
+        <Skeleton className="mb-4 h-32 w-full" />
         <Skeleton className="h-24 w-3/4" />
       </div>
     );

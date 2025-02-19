@@ -1,9 +1,7 @@
-import React from "react";
-import { auth } from "@clerk/nextjs/server";
-import { createClerkClient } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
-import { db } from "@/drizzle/db";
-import { EventsList } from "@/components/organisms/EventsList";
+import { EventsList } from '@/components/organisms/EventsList';
+import { db } from '@/drizzle/db';
+import { auth, createClerkClient } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 
 export const revalidate = 0;
 
@@ -11,7 +9,7 @@ export default async function EventsPage() {
   const { userId } = auth();
 
   if (!userId) {
-    redirect("/sign-in");
+    redirect('/sign-in');
   }
 
   const clerk = createClerkClient({

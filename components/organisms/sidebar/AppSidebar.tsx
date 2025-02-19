@@ -1,15 +1,8 @@
-"use client";
+'use client';
 
-import React, { Suspense } from "react";
-import {
-  User,
-  Leaf,
-  LifeBuoy,
-  type LucideIcon,
-  Link,
-  Clock,
-  ExternalLink,
-} from "lucide-react";
+import { NavMain } from '@/components/organisms/sidebar/NavMain';
+import { NavSecondary } from '@/components/organisms/sidebar/NavSecondary';
+import { NavUser } from '@/components/organisms/sidebar/NavUser';
 import {
   Sidebar,
   SidebarContent,
@@ -18,11 +11,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/organisms/sidebar/sidebar";
-import { NavUser } from "@/components/organisms/sidebar/NavUser";
-import { NavMain } from "@/components/organisms/sidebar/NavMain";
-import { NavSecondary } from "@/components/organisms/sidebar/NavSecondary";
-import { useUser } from "@clerk/nextjs";
+} from '@/components/organisms/sidebar/sidebar';
+import { useUser } from '@clerk/nextjs';
+import { Clock, ExternalLink, Leaf, LifeBuoy, Link, User, type LucideIcon } from 'lucide-react';
+import { Suspense } from 'react';
 
 interface SidebarItem {
   title: string;
@@ -36,22 +28,22 @@ interface SidebarItem {
 
 const mainItems: SidebarItem[] = [
   {
-    title: "Events Types",
-    url: "/events",
+    title: 'Events Types',
+    url: '/events',
     icon: Link,
     items: [
-      { title: "All Events", url: "/events" },
-      { title: "Create Event", url: "/events/new" },
+      { title: 'All Events', url: '/events' },
+      { title: 'Create Event', url: '/events/new' },
     ],
   },
   {
-    title: "Availability",
-    url: "/schedule",
+    title: 'Availability',
+    url: '/schedule',
     icon: Clock,
   },
   {
-    title: "Expert Profile",
-    url: "/expert",
+    title: 'Expert Profile',
+    url: '/expert',
     icon: User,
   },
 ];
@@ -61,13 +53,13 @@ export function AppSidebar() {
 
   const secondaryItems: SidebarItem[] = [
     {
-      title: "Public Expert Profile",
-      url: user?.username ? `/${user.username}` : "#",
+      title: 'Public Expert Profile',
+      url: user?.username ? `/${user.username}` : '#',
       icon: ExternalLink,
     },
     {
-      title: "Need help?",
-      url: "#",
+      title: 'Need help?',
+      url: '#',
       icon: LifeBuoy,
     },
   ];

@@ -1,18 +1,18 @@
-import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { db } from "@/drizzle/db";
-import { RecordTable } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
-import { decryptRecord } from "@/lib/encryption";
+import { db } from '@/drizzle/db';
+import { RecordTable } from '@/drizzle/schema';
+import { decryptRecord } from '@/lib/encryption';
+import { auth } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
 
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET() {
   try {
     const { userId } = auth();
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get all records for this expert
@@ -32,10 +32,7 @@ export async function GET() {
 
     return NextResponse.json({ records: decryptedRecords });
   } catch (error) {
-    console.error("Error fetching records:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch records" },
-      { status: 500 }
-    );
+    console.error('Error fetching records:', error);
+    return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
   }
 }

@@ -1,8 +1,7 @@
-"use client";
-import React from "react";
-import { EventForm } from "./EventForm";
-import type { EventTable } from "@/drizzle/schema";
-import type { InferSelectModel } from "drizzle-orm";
+'use client';
+import type { EventTable } from '@/drizzle/schema';
+import type { InferSelectModel } from 'drizzle-orm';
+import { EventForm } from './EventForm';
 
 // Create Event type from the EventTable schema
 type Event = InferSelectModel<typeof EventTable>;

@@ -1,7 +1,7 @@
-import "use-server";
-import { createClerkClient } from "@clerk/nextjs/server";
-import { google } from "googleapis";
-import { addMinutes, endOfDay, startOfDay } from "date-fns";
+import { createClerkClient } from '@clerk/nextjs/server';
+import { addMinutes, endOfDay, startOfDay } from 'date-fns';
+import { google } from 'googleapis';
+import 'use-server';
 
 class GoogleCalendarService {
   private static instance: GoogleCalendarService | null = null;
@@ -21,19 +21,16 @@ class GoogleCalendarService {
     });
 
     try {
-      const tokenResponse = await clerk.users.getUserOauthAccessToken(
-        clerkUserId,
-        "oauth_google"
-      );
+      const tokenResponse = await clerk.users.getUserOauthAccessToken(clerkUserId, 'oauth_google');
 
       if (tokenResponse.data.length === 0 || !tokenResponse.data[0].token) {
-        throw new Error("No OAuth token found");
+        throw new Error('No OAuth token found');
       }
 
       const client = new google.auth.OAuth2(
         process.env.GOOGLE_OAUTH_CLIENT_ID,
         process.env.GOOGLE_OAUTH_CLIENT_SECRET,
-        process.env.GOOGLE_OAUTH_REDIRECT_URL
+        process.env.GOOGLE_OAUTH_REDIRECT_URL,
       );
 
       // Simply set the access token like in the original version
@@ -43,20 +40,17 @@ class GoogleCalendarService {
 
       return client;
     } catch (error) {
-      console.error("Error obtaining OAuth client:", error);
-      throw new Error("Unable to obtain Google OAuth client");
+      console.error('Error obtaining OAuth client:', error);
+      throw new Error('Unable to obtain Google OAuth client');
     }
   }
 
-  async getCalendarEventTimes(
-    clerkUserId: string,
-    { start, end }: { start: Date; end: Date }
-  ) {
+  async getCalendarEventTimes(clerkUserId: string, { start, end }: { start: Date; end: Date }) {
     const oAuthClient = await this.getOAuthClient(clerkUserId);
 
-    const events = await google.calendar("v3").events.list({
-      calendarId: "primary",
-      eventTypes: ["default"],
+    const events = await google.calendar('v3').events.list({
+      calendarId: 'primary',
+      eventTypes: ['default'],
       singleEvents: true,
       timeMin: start.toISOString(),
       timeMax: end.toISOString(),
@@ -108,29 +102,27 @@ class GoogleCalendarService {
     });
     const calendarUser = await clerk.users.getUser(clerkUserId);
     if (calendarUser.primaryEmailAddress == null) {
-      throw new Error("Clerk user has no email");
+      throw new Error('Clerk user has no email');
     }
 
-    const calendarEvent = await google.calendar("v3").events.insert({
-      calendarId: "primary",
+    const calendarEvent = await google.calendar('v3').events.insert({
+      calendarId: 'primary',
       auth: oAuthClient,
-      sendUpdates: "all",
+      sendUpdates: 'all',
       requestBody: {
         attendees: [
           {
             email: guestEmail,
             displayName: guestName,
-            responseStatus: "accepted",
+            responseStatus: 'accepted',
           },
           {
             email: calendarUser.primaryEmailAddress.emailAddress,
             displayName: calendarUser.fullName,
-            responseStatus: "accepted",
+            responseStatus: 'accepted',
           },
         ],
-        description: guestNotes
-          ? `Additional Details: ${guestNotes}`
-          : undefined,
+        description: guestNotes ? `Additional Details: ${guestNotes}` : undefined,
         start: {
           dateTime: startTime.toISOString(),
         },
@@ -141,7 +133,7 @@ class GoogleCalendarService {
         conferenceData: {
           createRequest: {
             requestId: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
-            conferenceSolutionKey: { type: "hangoutsMeet" },
+            conferenceSolutionKey: { type: 'hangoutsMeet' },
           },
         },
       },
@@ -156,10 +148,7 @@ class GoogleCalendarService {
       const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY,
       });
-      const tokenResponse = await clerk.users.getUserOauthAccessToken(
-        userId,
-        "oauth_google"
-      );
+      const tokenResponse = await clerk.users.getUserOauthAccessToken(userId, 'oauth_google');
       return tokenResponse.data.length > 0 && !!tokenResponse.data[0].token;
     } catch {
       return false;

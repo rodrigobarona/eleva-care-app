@@ -1,19 +1,18 @@
-import type React from "react";
+import { Card, CardContent } from '@/components/atoms/card';
+import FadeInSection from '@/components/atoms/FadeInSection';
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselPrevious,
   CarouselNext,
-} from "@/components/molecules/carousel";
-import { Card, CardContent } from "@/components/atoms/card";
-import Image from "next/image";
-import FadeInSection from "@/components/atoms/FadeInSection";
-import { createClerkClient } from "@clerk/nextjs/server";
-import { db } from "@/drizzle/db";
-import Link from "next/link";
-import { eq, gt, min, and } from "drizzle-orm";
-import { EventTable } from "@/drizzle/schema";
+  CarouselPrevious,
+} from '@/components/molecules/carousel';
+import { db } from '@/drizzle/db';
+import { EventTable } from '@/drizzle/schema';
+import { createClerkClient } from '@clerk/nextjs/server';
+import { and, eq, gt, min } from 'drizzle-orm';
+import Image from 'next/image';
+import Link from 'next/link';
 
 const ExpertsSection = async () => {
   const clerk = createClerkClient({
@@ -35,47 +34,42 @@ const ExpertsSection = async () => {
             currency: EventTable.currency,
           })
           .from(EventTable)
-          .where(
-            and(eq(EventTable.clerkUserId, user.id), gt(EventTable.price, 0))
-          )
+          .where(and(eq(EventTable.clerkUserId, user.id), gt(EventTable.price, 0)))
           .groupBy(EventTable.currency)
           .limit(1),
       ]);
 
       const currencySymbols: Record<string, string> = {
-        EUR: "€",
-        USD: "$",
-        GBP: "£",
+        EUR: '€',
+        USD: '$',
+        GBP: '£',
       };
 
       const formattedPrice = minPricing?.[0]?.price
         ? `${
-            currencySymbols[minPricing[0].currency?.toUpperCase() || "EUR"] ||
-            "€"
+            currencySymbols[minPricing[0].currency?.toUpperCase() || 'EUR'] || '€'
           }${(minPricing[0].price / 100).toFixed(0)} • Session`
         : null;
 
       return {
         id: user.id,
-        name: profile
-          ? `${profile.firstName} ${profile.lastName}`
-          : user.fullName,
+        name: profile ? `${profile.firstName} ${profile.lastName}` : user.fullName,
         username: user.username,
         image: profile?.profilePicture || user.imageUrl,
-        headline: profile?.headline || "",
-        shortBio: profile?.shortBio || "",
+        headline: profile?.headline || '',
+        shortBio: profile?.shortBio || '',
         price: formattedPrice,
-        rating: "5.0",
+        rating: '5.0',
       };
-    })
+    }),
   );
 
   // Filter out profiles without prices and sort by minimum price
   const expertsWithPricing = profiles
     .filter((profile) => profile.price !== null)
     .sort((a, b) => {
-      const priceA = Number.parseInt(a.price?.split("$")[1] || "0");
-      const priceB = Number.parseInt(b.price?.split("$")[1] || "0");
+      const priceA = Number.parseInt(a.price?.split('$')[1] || '0');
+      const priceB = Number.parseInt(b.price?.split('$')[1] || '0');
       return priceA - priceB;
     });
 
@@ -84,10 +78,10 @@ const ExpertsSection = async () => {
       <section className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <div className="mb-12">
-            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-elevaNeutral-900/70">
+            <h2 className="text-elevaNeutral-900/70 font-mono text-xs/5 font-semibold uppercase tracking-widest">
               Top Experts
             </h2>
-            <h3 className="text-seco mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-elevaPrimary sm:text-6xl">
+            <h3 className="text-seco text-elevaPrimary mt-2 text-pretty font-serif text-4xl font-light tracking-tighter sm:text-6xl">
               Access to the best has never been easier
             </h3>
           </div>
@@ -95,29 +89,26 @@ const ExpertsSection = async () => {
           <Carousel
             className="mt-12"
             opts={{
-              align: "start",
+              align: 'start',
               loop: false,
             }}
           >
             <CarouselContent className="-ml-4">
               {expertsWithPricing.map((expert) => (
-                <CarouselItem
-                  key={expert.id}
-                  className="pl-4 md:basis-1/2 lg:basis-1/3"
-                >
+                <CarouselItem key={expert.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
                   <Link href={`/${expert.username}`}>
-                    <Card className="relative flex aspect-[9/15] overflow-hidden rounded-3xl border-elevaNeutral-200">
+                    <Card className="border-elevaNeutral-200 relative flex aspect-[9/15] overflow-hidden rounded-3xl">
                       <CardContent className="flex flex-col items-center justify-end p-0">
                         <Image
                           src={expert.image}
-                          alt={expert.name || ""}
+                          alt={expert.name || ''}
                           width={1200}
                           height={1200}
                           className="absolute inset-x-0 top-0 aspect-[3/4] w-full object-cover"
                         />
                         <div
                           aria-hidden="true"
-                          className="absolute inset-0 top-0 z-20 h-full w-full rounded-3xl bg-gradient-to-t from-elevaNeutral-900 from-25% to-40%"
+                          className="from-elevaNeutral-900 absolute inset-0 top-0 z-20 h-full w-full rounded-3xl bg-gradient-to-t from-25% to-40%"
                         />
                         <div className="relative z-20 p-10">
                           <div className="mb-4">
@@ -125,21 +116,17 @@ const ExpertsSection = async () => {
                               Top Expert
                             </span>
                           </div>
-                          <div className="mt-6 border-t border-elevaNeutral-100/20 pt-6">
-                            <h3 className="text-lg/6 font-medium text-elevaNeutral-100">
+                          <div className="border-elevaNeutral-100/20 mt-6 border-t pt-6">
+                            <h3 className="text-elevaNeutral-100 text-lg/6 font-medium">
                               {expert.name}
                             </h3>
-                            <p className="text-sm/6 text-elevaNeutral-100/80">
-                              {expert.headline}
-                            </p>
-                            <p className="mt-2 text-sm/6 text-elevaNeutral-100/60">
+                            <p className="text-elevaNeutral-100/80 text-sm/6">{expert.headline}</p>
+                            <p className="text-elevaNeutral-100/60 mt-2 text-sm/6">
                               {expert.price}
                             </p>
                             <div className="mt-2 flex items-center gap-1">
                               <span className="text-amber-400">★★★★★</span>
-                              <span className="text-sm text-elevaNeutral-100">
-                                {expert.rating}
-                              </span>
+                              <span className="text-elevaNeutral-100 text-sm">{expert.rating}</span>
                             </div>
                           </div>
                         </div>

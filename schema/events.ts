@@ -1,18 +1,18 @@
-import { z } from "zod";
-import { slugSchema } from "@/lib/validations/slug";
+import { slugSchema } from '@/lib/validations/slug';
+import { z } from 'zod';
 
 export const eventFormSchema = z.object({
-  name: z.string().min(1, "Required"),
+  name: z.string().min(1, 'Required'),
   slug: slugSchema,
   description: z.string().optional(),
   isActive: z.boolean().default(true),
   durationInMinutes: z.coerce
     .number()
     .int()
-    .positive("Duration must be greater than 0")
+    .positive('Duration must be greater than 0')
     .max(60 * 12, `Duration must be less than 12 hours (${60 * 12} minutes)`),
-  price: z.number().min(0, "Price must be 0 or greater"),
-  currency: z.literal("eur"),
+  price: z.number().min(0, 'Price must be 0 or greater'),
+  currency: z.literal('eur'),
   stripeProductId: z.string().optional(),
   stripePriceId: z.string().optional(),
 });

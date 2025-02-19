@@ -1,15 +1,15 @@
-import type React from "react";
+import { Card, CardContent } from '@/components/atoms/card'; // Adjust the import path as necessary
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
-  CarouselPrevious,
   CarouselNext,
-} from "@/components/molecules/carousel"; // Adjust the import path as necessary
-import { Card, CardContent } from "@/components/atoms/card"; // Adjust the import path as necessary
-import Image from "next/image";
+  CarouselPrevious,
+} from '@/components/molecules/carousel'; // Adjust the import path as necessary
+import Image from 'next/image';
+import type React from 'react';
 
-import FadeInSection from "@/components/atoms/FadeInSection"; // Adjust the import path based on your types definition
+import FadeInSection from '@/components/atoms/FadeInSection'; // Adjust the import path based on your types definition
 
 // Define the type for team members
 export type TeamMember = {
@@ -34,45 +34,34 @@ type TeamSectionProps = {
   members: TeamMember[]; // Assuming you have a TeamMember type defined
 };
 
-const TeamSection: React.FC<TeamSectionProps> = ({
-  title,
-  subtitle,
-  description,
-  members,
-}) => {
+const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description, members }) => {
   return (
     <FadeInSection>
-      <section
-        id="team"
-        className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32"
-      >
+      <section id="team" className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <div className="mb-12">
-            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60">
+            <h2 className="text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60 font-mono text-xs/5 font-semibold uppercase tracking-widest">
               {title}
             </h2>
-            <h3 className="text-seco mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-elevaPrimary data-[dark]:text-elevaNeutral-100 sm:text-6xl">
+            <h3 className="text-seco text-elevaPrimary data-[dark]:text-elevaNeutral-100 mt-2 text-pretty font-serif text-4xl font-light tracking-tighter sm:text-6xl">
               {subtitle}
             </h3>
           </div>
-          <p className="mt-6 text-balance text-base font-light text-elevaNeutral-900 lg:text-xl">
+          <p className="text-elevaNeutral-900 mt-6 text-balance text-base font-light lg:text-xl">
             {description}
           </p>
           <div className="embla">
             <Carousel
               className="mt-12"
               opts={{
-                align: "start",
+                align: 'start',
                 loop: false,
               }}
             >
               <CarouselContent className="-ml-4">
                 {members.map((member, index) => (
-                  <CarouselItem
-                    key={index}
-                    className="pl-4 md:basis-1/2 lg:basis-1/3"
-                  >
-                    <Card className="relative flex aspect-[9/15] overflow-hidden rounded-3xl border-elevaNeutral-200">
+                  <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3">
+                    <Card className="border-elevaNeutral-200 relative flex aspect-[9/15] overflow-hidden rounded-3xl">
                       <CardContent className="flex flex-col items-center justify-end p-0">
                         <Image
                           src={member.image}
@@ -83,15 +72,12 @@ const TeamSection: React.FC<TeamSectionProps> = ({
                         />
                         <div
                           aria-hidden="true"
-                          className="absolute inset-0 top-0 z-20 h-full w-full rounded-3xl bg-gradient-to-t from-elevaNeutral-900 from-25% to-40%"
+                          className="from-elevaNeutral-900 absolute inset-0 top-0 z-20 h-full w-full rounded-3xl bg-gradient-to-t from-25% to-40%"
                         ></div>
                         <figure className="relative z-20 p-10">
                           <blockquote>
-                            <p className="relative text-pretty text-sm/4 text-elevaNeutral-100 lg:text-xl/7">
-                              <span
-                                aria-hidden="true"
-                                className="absolute -translate-x-full"
-                              >
+                            <p className="text-elevaNeutral-100 relative text-pretty text-sm/4 lg:text-xl/7">
+                              <span aria-hidden="true" className="absolute -translate-x-full">
                                 “
                               </span>
                               {member.quote}
@@ -100,12 +86,12 @@ const TeamSection: React.FC<TeamSectionProps> = ({
                               </span>
                             </p>
                           </blockquote>
-                          <figcaption className="mt-6 border-t border-elevaNeutral-100/20 pt-6">
-                            <h3 className="text-sm/6 font-medium text-elevaNeutral-100">
+                          <figcaption className="border-elevaNeutral-100/20 mt-6 border-t pt-6">
+                            <h3 className="text-elevaNeutral-100 text-sm/6 font-medium">
                               {member.name}
                             </h3>
                             <p className="text-sm/6 font-medium">
-                              <span className="bg-gradient-to-r from-elevaHighlight-yellow from-[28%] to-elevaHighlight-red bg-clip-text text-transparent">
+                              <span className="from-elevaHighlight-yellow to-elevaHighlight-red bg-gradient-to-r from-[28%] bg-clip-text text-transparent">
                                 {member.role}
                               </span>
                             </p>

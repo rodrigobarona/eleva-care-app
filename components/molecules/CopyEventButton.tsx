@@ -1,28 +1,27 @@
-"use client";
-import React from "react";
-import { useState } from "react";
-import { Button, type ButtonProps } from "@/components/atoms/button";
-import { CopyCheck, CopyX, Link2 } from "lucide-react";
+'use client';
+import { Button, type ButtonProps } from '@/components/atoms/button';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/atoms/tooltip";
+} from '@/components/atoms/tooltip';
+import { CopyCheck, CopyX, Link2 } from 'lucide-react';
+import { useState } from 'react';
 
-type CopyState = "idle" | "copied" | "error";
+type CopyState = 'idle' | 'copied' | 'error';
 
 export function CopyEventButton({
   eventSlug,
   username,
   wrapped = false,
   ...buttonProps
-}: Omit<ButtonProps, "children" | "onClick"> & {
+}: Omit<ButtonProps, 'children' | 'onClick'> & {
   eventSlug: string;
   username: string;
   wrapped?: boolean;
 }) {
-  const [copyState, setCopyState] = useState<CopyState>("idle");
+  const [copyState, setCopyState] = useState<CopyState>('idle');
   const CopyIcon = getCopyIcon(copyState);
 
   const tooltipContent = (
@@ -34,12 +33,12 @@ export function CopyEventButton({
             navigator.clipboard
               .writeText(`${location.origin}/${username}/${eventSlug}`)
               .then(() => {
-                setCopyState("copied");
-                setTimeout(() => setCopyState("idle"), 2000);
+                setCopyState('copied');
+                setTimeout(() => setCopyState('idle'), 2000);
               })
               .catch(() => {
-                setCopyState("error");
-                setTimeout(() => setCopyState("idle"), 2000);
+                setCopyState('error');
+                setTimeout(() => setCopyState('idle'), 2000);
               });
           }}
         >
@@ -48,11 +47,11 @@ export function CopyEventButton({
       </TooltipTrigger>
       <TooltipContent>
         <p>
-          {copyState === "copied"
-            ? "Link copied!"
-            : copyState === "error"
-            ? "Failed to copy"
-            : "Copy event link"}
+          {copyState === 'copied'
+            ? 'Link copied!'
+            : copyState === 'error'
+              ? 'Failed to copy'
+              : 'Copy event link'}
         </p>
       </TooltipContent>
     </Tooltip>
@@ -63,11 +62,11 @@ export function CopyEventButton({
 
 function getCopyIcon(copyState: CopyState) {
   switch (copyState) {
-    case "idle":
+    case 'idle':
       return Link2;
-    case "copied":
+    case 'copied':
       return CopyCheck;
-    case "error":
+    case 'error':
       return CopyX;
   }
 }

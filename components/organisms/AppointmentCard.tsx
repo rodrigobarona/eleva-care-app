@@ -1,18 +1,11 @@
-"use client";
-import React from "react";
-import { format } from "date-fns";
-import { Clock, Link as LinkIcon, Mail, User } from "lucide-react";
-import Link from "next/link";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/atoms/card";
-import { Badge } from "@/components/atoms/badge";
-import { RecordDialog } from "@/components/organisms/RecordDialog";
-import { Button } from "@/components/atoms/button";
+'use client';
+import { Badge } from '@/components/atoms/badge';
+import { Button } from '@/components/atoms/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
+import { RecordDialog } from '@/components/organisms/RecordDialog';
+import { format } from 'date-fns';
+import { Clock, Link as LinkIcon, Mail, User } from 'lucide-react';
+import Link from 'next/link';
 
 interface Appointment {
   id: string;
@@ -29,14 +22,14 @@ interface Appointment {
 
 const getStatusBadgeVariant = (status: string) => {
   switch (status) {
-    case "succeeded":
-      return "default";
-    case "pending":
-      return "secondary";
-    case "failed":
-      return "destructive";
+    case 'succeeded':
+      return 'default';
+    case 'pending':
+      return 'secondary';
+    case 'failed':
+      return 'destructive';
     default:
-      return "outline";
+      return 'outline';
   }
 };
 
@@ -44,18 +37,16 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
   return (
     <Card className="mb-4">
       <CardHeader>
-        <div className="flex justify-between items-start">
+        <div className="flex items-start justify-between">
           <div>
             <CardTitle className="text-xl font-semibold">
               Meeting with {appointment.guestName}
             </CardTitle>
             <CardDescription>
-              {format(new Date(appointment.startTime), "EEEE, MMMM d, yyyy")}
+              {format(new Date(appointment.startTime), 'EEEE, MMMM d, yyyy')}
             </CardDescription>
           </div>
-          <Badge
-            variant={getStatusBadgeVariant(appointment.stripePaymentStatus)}
-          >
+          <Badge variant={getStatusBadgeVariant(appointment.stripePaymentStatus)}>
             {appointment.stripePaymentStatus}
           </Badge>
         </div>
@@ -65,9 +56,8 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             <span>
-              {format(new Date(appointment.startTime), "h:mm a")} -{" "}
-              {format(new Date(appointment.endTime), "h:mm a")} (
-              {appointment.timezone})
+              {format(new Date(appointment.startTime), 'h:mm a')} -{' '}
+              {format(new Date(appointment.endTime), 'h:mm a')} ({appointment.timezone})
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -88,11 +78,7 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
               <LinkIcon className="h-4 w-4" />
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" asChild>
-                  <Link
-                    href={appointment.meetingUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  <Link href={appointment.meetingUrl} target="_blank" rel="noopener noreferrer">
                     Join Meeting
                   </Link>
                 </Button>
@@ -107,7 +93,7 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
           )}
           {appointment.guestNotes && (
             <div className="mt-4">
-              <h4 className="font-medium mb-2">Guest Notes:</h4>
+              <h4 className="mb-2 font-medium">Guest Notes:</h4>
               <p className="text-gray-600">{appointment.guestNotes}</p>
             </div>
           )}

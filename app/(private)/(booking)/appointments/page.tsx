@@ -1,16 +1,11 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useUser } from "@clerk/nextjs";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/molecules/tabs";
-import { Calendar } from "lucide-react";
-import { Button } from "@/components/atoms/button";
-import { AppointmentCard } from "@/components/organisms/AppointmentCard";
+import { Button } from '@/components/atoms/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/molecules/tabs';
+import { AppointmentCard } from '@/components/organisms/AppointmentCard';
+import { useUser } from '@clerk/nextjs';
+import { Calendar } from 'lucide-react';
+import React from 'react';
 
 interface Appointment {
   id: string;
@@ -26,9 +21,9 @@ interface Appointment {
 }
 
 const EmptyState = ({ message }: { message: string }) => (
-  <div className="flex flex-col items-center justify-center p-8 text-center bg-gray-50 rounded-lg">
-    <Calendar className="h-12 w-12 text-gray-400 mb-4" />
-    <h3 className="text-lg font-medium text-gray-900 mb-1">No appointments</h3>
+  <div className="flex flex-col items-center justify-center rounded-lg bg-gray-50 p-8 text-center">
+    <Calendar className="mb-4 h-12 w-12 text-gray-400" />
+    <h3 className="mb-1 text-lg font-medium text-gray-900">No appointments</h3>
     <p className="text-gray-500">{message}</p>
   </div>
 );
@@ -43,7 +38,7 @@ export default function AppointmentsPage() {
     if (!user) return;
 
     try {
-      const response = await fetch("/api/appointments");
+      const response = await fetch('/api/appointments');
       const data = await response.json();
 
       if (data.error) {
@@ -53,8 +48,8 @@ export default function AppointmentsPage() {
 
       setAppointments(data.appointments);
     } catch (error) {
-      setError("Failed to load appointments");
-      console.error("Error loading appointments:", error);
+      setError('Failed to load appointments');
+      console.error('Error loading appointments:', error);
     } finally {
       setIsLoading(false);
     }
@@ -69,17 +64,17 @@ export default function AppointmentsPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const filterAppointments = (filter: "today" | "future" | "past" | "all") => {
+  const filterAppointments = (filter: 'today' | 'future' | 'past' | 'all') => {
     const filtered = appointments.filter((appointment) => {
       const appointmentDate = new Date(appointment.startTime);
       appointmentDate.setHours(0, 0, 0, 0);
 
       switch (filter) {
-        case "today":
+        case 'today':
           return appointmentDate.getTime() === today.getTime();
-        case "future":
+        case 'future':
           return appointmentDate > today;
-        case "past":
+        case 'past':
           return appointmentDate < today;
         default:
           return true;
@@ -91,7 +86,7 @@ export default function AppointmentsPage() {
       const dateA = new Date(a.startTime);
       const dateB = new Date(b.startTime);
 
-      if (filter === "future" || filter === "today") {
+      if (filter === 'future' || filter === 'today') {
         // For upcoming events: nearest date first
         return dateA.getTime() - dateB.getTime();
       }
@@ -100,15 +95,15 @@ export default function AppointmentsPage() {
     });
   };
 
-  const renderAppointments = (filter: "today" | "future" | "past" | "all") => {
+  const renderAppointments = (filter: 'today' | 'future' | 'past' | 'all') => {
     const filtered = filterAppointments(filter);
 
     if (filtered.length === 0) {
       const messages = {
-        today: "You have no appointments scheduled for today.",
-        future: "You have no upcoming appointments scheduled.",
-        past: "You have no past appointments.",
-        all: "You have no appointments yet.",
+        today: 'You have no appointments scheduled for today.',
+        future: 'You have no upcoming appointments scheduled.',
+        past: 'You have no past appointments.',
+        all: 'You have no appointments yet.',
       };
 
       return <EmptyState message={messages[filter]} />;
@@ -127,12 +122,7 @@ export default function AppointmentsPage() {
     return (
       <div className="p-4 text-red-500">
         Error: {error}
-        <Button
-          type="button"
-          variant="link"
-          onClick={loadAppointments}
-          className="ml-4"
-        >
+        <Button type="button" variant="link" onClick={loadAppointments} className="ml-4">
           Retry
         </Button>
       </div>
@@ -141,7 +131,7 @@ export default function AppointmentsPage() {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-3xl font-bold mb-6">Your Appointments</h1>
+      <h1 className="mb-6 text-3xl font-bold">Your Appointments</h1>
 
       <Tabs defaultValue="today" className="w-full">
         <TabsList className="mb-6">
@@ -151,13 +141,13 @@ export default function AppointmentsPage() {
           <TabsTrigger value="all">All</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="today">{renderAppointments("today")}</TabsContent>
+        <TabsContent value="today">{renderAppointments('today')}</TabsContent>
 
-        <TabsContent value="future">{renderAppointments("future")}</TabsContent>
+        <TabsContent value="future">{renderAppointments('future')}</TabsContent>
 
-        <TabsContent value="past">{renderAppointments("past")}</TabsContent>
+        <TabsContent value="past">{renderAppointments('past')}</TabsContent>
 
-        <TabsContent value="all">{renderAppointments("all")}</TabsContent>
+        <TabsContent value="all">{renderAppointments('all')}</TabsContent>
       </Tabs>
     </div>
   );

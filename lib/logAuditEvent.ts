@@ -1,5 +1,5 @@
-import { auditDb } from "@/drizzle/auditDb";
-import { auditLogs } from "@/drizzle/auditSchema";
+import { auditDb } from '@/drizzle/auditDb';
+import { auditLogs } from '@/drizzle/auditSchema';
 
 export async function logAuditEvent(
   clerkUserId: string,

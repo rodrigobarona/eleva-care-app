@@ -1,74 +1,82 @@
 ---
-description: 
-globs: 
+description:
+globs:
 ---
+
 # Server Actions Documentation
 
 This document provides an overview of the server actions implemented in the Eleva Care application. The server actions are used to perform various backend operations such as managing expert profiles, billing, schedules, events, Stripe integrations, and meeting creation. These functions are intended to be invoked from API endpoints or directly within server-side contexts of the Next.js App Router.
 
 ---
+
 ## Overview
 
 The server actions are organized in the `/server/actions` folder and include the following files:
 
 - **billing.ts**  
-  *Purpose:*  
+  _Purpose:_
+
   - Manages Stripe Connect integration for expert billing.
   - Contains functions for creating Stripe Connect accounts and generating login or onboarding links for experts.  
-  *Key Functions:*
+    _Key Functions:_
   - `handleConnectStripe`: Initiates the Stripe onboarding process.
   - Additional helper functions for dashboard or account link generation.
 
 - **profile.ts**  
-  *Purpose:*  
+  _Purpose:_
+
   - Manages updates to expert profiles.
   - Handles profile picture updates, including deletion of old blobs if needed.
   - Performs data validation and update operations using a defined profile schema.
-  *Key Functions:*
+    _Key Functions:_
   - `updateProfile`: Validates and updates expert profile data (names, picture, social links, etc.).
 
 - **schedule.ts**  
-  *Purpose:*  
+  _Purpose:_
+
   - Manages expert availability and schedules.
   - Provides functionality to save or update expert schedules including time slots.
   - Performs transactional database operations and logs audit events for schedule changes.
-  *Key Functions:*
+    _Key Functions:_
   - `saveSchedule`: Validates schedule data, upserts schedule information, replaces availabilities, and logs audit information.
 
 - **stripe.ts**  
-  *Purpose:*  
+  _Purpose:_
+
   - Contains server actions for integrating with Stripe.
   - Manages the creation and update of Stripe products, price deactivation, payment intent creation, and syncing of customer data.
-  *Key Functions:*
+    _Key Functions:_
   - `createStripeProduct`, `updateStripeProduct`
   - `createPaymentIntent`: Manages payment intent creation for meeting bookings.
   - Functions for handling fee calculations and updating Stripe Connect status.
 
 - **experts.ts**  
-  *Purpose:*  
+  _Purpose:_
+
   - Handles actions related to expert verifications.
   - Provides functionality to verify expert Stripe Connect accounts, retrieve payout schedules, and update expert-specific Stripe details.
-  *Key Functions:*
+    _Key Functions:_
   - `verifyExpertConnectAccount`: Checks if the expert's Stripe Connect account is valid.
   - `getExpertPayoutSchedule`: Retrieves payout schedule data from Stripe.
   - Other helper functions to update or verify expert information.
 
 - **events.ts**  
-  *Purpose:*  
+  _Purpose:_
+
   - Manages event-related actions for the application.
   - Functions in this file cover creating, updating, deleting, and ordering events.
   - Also includes functionality for toggling event active/inactive states.
-  *Key Functions:*
+    _Key Functions:_
   - `createEvent`: Validates and stores new event information.
   - `updateEvent`, `deleteEvent`, `updateEventOrder`, `updateEventActiveState`.
 
 - **meetings.ts**  
-  *Purpose:*  
+  _Purpose:_
   - Creates and manages meetings between experts and guests.
   - Implements multiple validation steps including duplicate booking checks, schedule verification, and event existence.
   - Integrates with Google Calendar to create corresponding calendar events.
   - On success, creates a meeting record in the database and logs an audit event.
-  *Key Steps in `createMeeting`:*
+    _Key Steps in `createMeeting`:_
   1. **Data Validation:** Uses a Zod schema (`meetingActionSchema`) for input validation.
   2. **Duplicate Booking Check:** Returns an existing meeting if one is found with matching parameters.
   3. **Conflict Check:** Checks if the chosen time slot is already taken by another guest.
@@ -79,13 +87,16 @@ The server actions are organized in the `/server/actions` folder and include the
   8. **Audit Logging:** Logs an audit event with details of the meeting creation.
 
 ---
+
 ## General Notes
 
 - **Error Handling:**  
   All server actions tend to return an object with the following common shape:
+
   ```typescript
   { error: boolean, code?: string, message?: string, meeting?: Meeting }
   ```
+
   This allows the caller (typically an API endpoint) to handle error messages and codes accordingly.
 
 - **Schema Validation:**  
@@ -93,6 +104,7 @@ The server actions are organized in the `/server/actions` folder and include the
 
 - **Third-Party Integrations:**  
   Server actions make use of external APIs such as:
+
   - **Stripe:** For payment processing, billing, and account management.
   - **Google Calendar:** For creating calendar events associated with meetings.
 
@@ -103,6 +115,7 @@ The server actions are organized in the `/server/actions` folder and include the
   Some actions (e.g., `saveSchedule`) perform batch operations on the database, ensuring atomicity of operations like deleting existing availabilities and inserting new ones.
 
 ---
+
 ## How to Use
 
 The server actions can be invoked from your Next.js API routes or directly inside server functions. For example, an API endpoint calling `createMeeting` might look like:
@@ -120,6 +133,7 @@ export async function POST(request: Request) {
 ```
 
 ---
+
 ## Conclusion
 
 This documentation outlines the structure and purpose of the server actions located in the `/server/actions` folder. The actions are designed to encapsulate business logic related to expert and meeting management, integrating with third-party services and ensuring data validation and audit logging.

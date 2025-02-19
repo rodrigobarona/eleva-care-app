@@ -1,14 +1,13 @@
-import React from "react";
-import { auth } from "@clerk/nextjs/server";
-import { db } from "@/drizzle/db";
-import { ProfileTable } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
-import { ExpertForm } from "@/components/organisms/forms/ExpertForm";
-import { redirect } from "next/navigation";
+import { ExpertForm } from '@/components/organisms/forms/ExpertForm';
+import { db } from '@/drizzle/db';
+import { ProfileTable } from '@/drizzle/schema';
+import { auth } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
+import { redirect } from 'next/navigation';
 
 export default async function ProfilePage() {
   const { userId } = auth();
-  if (!userId) return redirect("/sign-in");
+  if (!userId) return redirect('/sign-in');
 
   // Try to find existing profile
   const profile = await db.query.ProfileTable.findFirst({
@@ -22,8 +21,8 @@ export default async function ProfilePage() {
         .insert(ProfileTable)
         .values({
           clerkUserId: userId,
-          firstName: "", // Required fields with empty defaults
-          lastName: "",
+          firstName: '', // Required fields with empty defaults
+          lastName: '',
           isVerified: false,
           isTopExpert: false,
         })
@@ -34,11 +33,11 @@ export default async function ProfilePage() {
         ...newProfile[0],
         socialLinks: [],
         headline: undefined,
-        profilePicture: "",
+        profilePicture: '',
         shortBio: undefined,
         longBio: undefined,
-        firstName: "",
-        lastName: "",
+        firstName: '',
+        lastName: '',
         isVerified: false,
         isTopExpert: false,
       };
@@ -47,16 +46,14 @@ export default async function ProfilePage() {
         <div className="container max-w-4xl py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold">My Profile</h1>
-            <p className="text-muted-foreground">
-              Manage your public profile information
-            </p>
+            <p className="text-muted-foreground">Manage your public profile information</p>
           </div>
           <ExpertForm initialData={transformedProfile} />
         </div>
       );
     } catch (error) {
-      console.error("Error creating profile:", error);
-      return redirect("/events"); // Redirect on error
+      console.error('Error creating profile:', error);
+      return redirect('/events'); // Redirect on error
     }
   }
 
@@ -65,11 +62,11 @@ export default async function ProfilePage() {
     ...profile,
     socialLinks: profile.socialLinks || [],
     headline: profile.headline || undefined,
-    profilePicture: profile.profilePicture || "",
+    profilePicture: profile.profilePicture || '',
     shortBio: profile.shortBio || undefined,
     longBio: profile.longBio || undefined,
-    firstName: profile.firstName || "",
-    lastName: profile.lastName || "",
+    firstName: profile.firstName || '',
+    lastName: profile.lastName || '',
     isVerified: profile.isVerified || false,
     isTopExpert: profile.isTopExpert || false,
   };
@@ -78,9 +75,7 @@ export default async function ProfilePage() {
     <div className="container max-w-4xl py-8">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">My Profile</h1>
-        <p className="text-muted-foreground">
-          Manage your public profile information
-        </p>
+        <p className="text-muted-foreground">Manage your public profile information</p>
       </div>
       <ExpertForm initialData={transformedProfile} />
     </div>

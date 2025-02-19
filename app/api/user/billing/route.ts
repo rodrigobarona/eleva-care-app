@@ -1,19 +1,19 @@
-import { NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { db } from "@/drizzle/db";
-import { UserTable } from "@/drizzle/schema";
-import { eq } from "drizzle-orm";
-import { getStripeConnectAccountStatus } from "@/lib/stripe";
+import { db } from '@/drizzle/db';
+import { UserTable } from '@/drizzle/schema';
+import { getStripeConnectAccountStatus } from '@/lib/stripe';
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
 
 // Mark route as dynamic
-export const dynamic = "force-dynamic";
-export const runtime = "nodejs";
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
 export async function GET() {
   try {
     const { userId } = auth();
     if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     let dbUser = await db.query.UserTable.findFirst({
@@ -24,10 +24,7 @@ export async function GET() {
     if (!dbUser) {
       const clerkUser = await currentUser();
       if (!clerkUser) {
-        return NextResponse.json(
-          { error: "Clerk user not found" },
-          { status: 404 }
-        );
+        return NextResponse.json({ error: 'Clerk user not found' }, { status: 404 });
       }
 
       // Create user in database
@@ -39,7 +36,7 @@ export async function GET() {
           firstName: clerkUser.firstName,
           lastName: clerkUser.lastName,
           imageUrl: clerkUser.imageUrl,
-          role: "expert", // Since this is the billing page, we assume they're an expert
+          role: 'expert', // Since this is the billing page, we assume they're an expert
         })
         .returning();
 
@@ -48,9 +45,7 @@ export async function GET() {
 
     let accountStatus = null;
     if (dbUser.stripeConnectAccountId) {
-      accountStatus = await getStripeConnectAccountStatus(
-        dbUser.stripeConnectAccountId
-      );
+      accountStatus = await getStripeConnectAccountStatus(dbUser.stripeConnectAccountId);
     }
 
     return NextResponse.json({
@@ -58,10 +53,7 @@ export async function GET() {
       accountStatus,
     });
   } catch (error) {
-    console.error("Error in billing API:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    console.error('Error in billing API:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

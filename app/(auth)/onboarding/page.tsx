@@ -1,10 +1,6 @@
-"use client";
+'use client';
 
-import React, { useState } from "react";
-import { useUser, useOrganizationList } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
-import { Button } from "@/components/atoms/button";
-import { Input } from "@/components/atoms/input";
+import { Button } from '@/components/atoms/button';
 import {
   Card,
   CardContent,
@@ -12,15 +8,19 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/atoms/card";
-import { Label } from "@/components/atoms/label";
+} from '@/components/atoms/card';
+import { Input } from '@/components/atoms/input';
+import { Label } from '@/components/atoms/label';
+import { useOrganizationList, useUser } from '@clerk/nextjs';
+import { redirect } from 'next/navigation';
+import React, { useState } from 'react';
 
 export default function OnboardingPage() {
   const { user, isLoaded: isUserLoaded } = useUser();
   const { createOrganization, isLoaded: isOrgLoaded } = useOrganizationList();
-  const [firstName, setFirstName] = useState(user?.firstName || "");
-  const [lastName, setLastName] = useState(user?.lastName || "");
-  const [orgName, setOrgName] = useState("");
+  const [firstName, setFirstName] = useState(user?.firstName || '');
+  const [lastName, setLastName] = useState(user?.lastName || '');
+  const [orgName, setOrgName] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [step, setStep] = useState(1);
 
@@ -31,7 +31,7 @@ export default function OnboardingPage() {
 
   // Redirect user if not signed in
   if (!user) {
-    redirect("/sign-in");
+    redirect('/sign-in');
   }
 
   // Handle profile update
@@ -45,7 +45,7 @@ export default function OnboardingPage() {
       });
       setStep(2); // Move to the organization creation step
     } catch (error) {
-      console.error("Error updating profile:", error);
+      console.error('Error updating profile:', error);
     } finally {
       setIsUpdating(false);
     }
@@ -58,24 +58,22 @@ export default function OnboardingPage() {
     try {
       const organization = await createOrganization({ name: orgName });
       if (organization) {
-        redirect("/islogedin"); // Redirect to dashboard after organization creation
+        redirect('/islogedin'); // Redirect to dashboard after organization creation
       }
     } catch (error) {
-      console.error("Error creating organization:", error);
+      console.error('Error creating organization:', error);
     } finally {
       setIsUpdating(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+    <div className="flex min-h-screen items-center justify-center bg-gray-100">
       <Card className="w-[350px]">
         <CardHeader>
           <CardTitle>Welcome!</CardTitle>
           <CardDescription>
-            {step === 1
-              ? "Let's complete your profile"
-              : "Create your organization"}
+            {step === 1 ? "Let's complete your profile" : 'Create your organization'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -101,9 +99,9 @@ export default function OnboardingPage() {
                   />
                 </div>
               </div>
-              <CardFooter className="flex justify-between mt-4">
+              <CardFooter className="mt-4 flex justify-between">
                 <Button type="submit" disabled={isUpdating}>
-                  {isUpdating ? "Updating..." : "Update Profile"}
+                  {isUpdating ? 'Updating...' : 'Update Profile'}
                 </Button>
               </CardFooter>
             </form>
@@ -118,9 +116,9 @@ export default function OnboardingPage() {
                   required
                 />
               </div>
-              <CardFooter className="flex justify-between mt-4">
+              <CardFooter className="mt-4 flex justify-between">
                 <Button type="submit" disabled={isUpdating}>
-                  {isUpdating ? "Creating..." : "Create Organization"}
+                  {isUpdating ? 'Creating...' : 'Create Organization'}
                 </Button>
               </CardFooter>
             </form>

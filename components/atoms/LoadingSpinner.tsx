@@ -1,13 +1,10 @@
-import React from "react";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle } from 'lucide-react';
 
 export function LoadingSpinner() {
   return (
-    <div className="flex flex-col gap-4 items-center py-8">
-      <div className="text-xl font-medium text-center text-muted-foreground">
-        Loading...
-      </div>
-      <LoaderCircle className="text-muted-foreground size-8 animate-spin" />
+    <div className="flex flex-col items-center gap-4 py-8">
+      <div className="text-center text-xl font-medium text-muted-foreground">Loading...</div>
+      <LoaderCircle className="size-8 animate-spin text-muted-foreground" />
     </div>
   );
 }

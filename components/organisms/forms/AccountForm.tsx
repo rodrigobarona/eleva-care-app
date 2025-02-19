@@ -1,9 +1,7 @@
-"use client";
-import React, { useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { Button } from "@/components/atoms/button";
+'use client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/atoms/avatar';
+import { Button } from '@/components/atoms/button';
+import { Input } from '@/components/atoms/input';
 import {
   Form,
   FormControl,
@@ -11,11 +9,13 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/molecules/form";
-import { Input } from "@/components/atoms/input";
-import { useUser } from "@clerk/nextjs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/atoms/avatar";
-import { toast } from "sonner";
+} from '@/components/molecules/form';
+import { useUser } from '@clerk/nextjs';
+import { zodResolver } from '@hookform/resolvers/zod';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import * as z from 'zod';
 
 const profileFormSchema = z.object({
   username: z.string().min(2).max(30),
@@ -34,20 +34,20 @@ export function AccountForm() {
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: {
-      username: "",
-      firstName: "",
-      lastName: "",
-      email: "",
+      username: '',
+      firstName: '',
+      lastName: '',
+      email: '',
     },
   });
 
   React.useEffect(() => {
     if (isLoaded && user) {
       form.reset({
-        username: user.username || "",
-        firstName: user.firstName || "",
-        lastName: user.lastName || "",
-        email: user.primaryEmailAddress?.emailAddress || "",
+        username: user.username || '',
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.primaryEmailAddress?.emailAddress || '',
       });
     }
   }, [isLoaded, user, form]);
@@ -60,27 +60,25 @@ export function AccountForm() {
         lastName: values.lastName,
         username: values.username,
       });
-      toast.success("Profile updated successfully");
+      toast.success('Profile updated successfully');
     } catch (error: unknown) {
       toast.error(
-        `Failed to update profile: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to update profile: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     } finally {
       setIsLoading(false);
     }
   }
 
-  async function handleAvatarChange(
-    event: React.ChangeEvent<HTMLInputElement>
-  ) {
+  async function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    event.target.value = "";
+    event.target.value = '';
 
     if (file.size > 4.5 * 1024 * 1024) {
-      toast.error("Image must be less than 4.5MB", {
-        description: "Please choose a smaller image file.",
+      toast.error('Image must be less than 4.5MB', {
+        description: 'Please choose a smaller image file.',
       });
       return;
     }
@@ -88,10 +86,10 @@ export function AccountForm() {
     setIsUploadingAvatar(true);
     try {
       await user?.setProfileImage({ file });
-      toast.success("Avatar updated successfully");
+      toast.success('Avatar updated successfully');
     } catch (error) {
       toast.error(
-        `Failed to update avatar: ${error instanceof Error ? error.message : "Unknown error"}`
+        `Failed to update avatar: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     } finally {
       setIsUploadingAvatar(false);
@@ -102,7 +100,7 @@ export function AccountForm() {
     <div className="space-y-6">
       <div className="flex items-center gap-x-6">
         <Avatar className="h-20 w-20">
-          <AvatarImage src={user?.imageUrl} alt={user?.username || ""} />
+          <AvatarImage src={user?.imageUrl} alt={user?.username || ''} />
           <AvatarFallback>
             {user?.firstName?.charAt(0)}
             {user?.lastName?.charAt(0)}
@@ -119,9 +117,9 @@ export function AccountForm() {
           <Button
             variant="outline"
             disabled={isUploadingAvatar}
-            onClick={() => document.getElementById("avatar-upload")?.click()}
+            onClick={() => document.getElementById('avatar-upload')?.click()}
           >
-            {isUploadingAvatar ? "Uploading..." : "Change Avatar"}
+            {isUploadingAvatar ? 'Uploading...' : 'Change Avatar'}
           </Button>
         </div>
       </div>
@@ -187,7 +185,7 @@ export function AccountForm() {
           />
 
           <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Updating..." : "Update profile"}
+            {isLoading ? 'Updating...' : 'Update profile'}
           </Button>
         </form>
       </Form>

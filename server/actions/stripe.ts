@@ -5,12 +5,11 @@
  * handling payment intents, and managing customer data.
  */
 
-"use server";
+'use server';
 
-import { getServerStripe } from "@/lib/stripe";
-import { STRIPE_CONFIG } from "@/config/stripe";
-import { db } from "@/drizzle/db";
-import { getOrCreateStripeCustomer, syncStripeDataToKV } from "@/lib/stripe";
+import { STRIPE_CONFIG } from '@/config/stripe';
+import { db } from '@/drizzle/db';
+import { getOrCreateStripeCustomer, getServerStripe, syncStripeDataToKV } from '@/lib/stripe';
 
 /**
  * Creates a new Stripe product with associated price.
@@ -47,7 +46,7 @@ export async function createStripeProduct({
   name,
   description,
   price,
-  currency = "eur",
+  currency = 'eur',
   clerkUserId,
 }: {
   name: string;
@@ -81,8 +80,8 @@ export async function createStripeProduct({
       priceId: stripePrice.id,
     };
   } catch (error) {
-    console.error("Stripe product creation failed:", error);
-    return { error: "Failed to create Stripe product" };
+    console.error('Stripe product creation failed:', error);
+    return { error: 'Failed to create Stripe product' };
   }
 }
 
@@ -121,7 +120,7 @@ export async function updateStripeProduct({
   name,
   description,
   price,
-  currency = "eur",
+  currency = 'eur',
   clerkUserId,
 }: {
   stripeProductId: string;
@@ -161,8 +160,8 @@ export async function updateStripeProduct({
       priceId: newPrice.id,
     };
   } catch (error) {
-    console.error("Stripe product update failed:", error);
-    return { error: "Failed to update Stripe product" };
+    console.error('Stripe product update failed:', error);
+    return { error: 'Failed to update Stripe product' };
   }
 }
 
@@ -215,15 +214,15 @@ export async function createPaymentIntent(
   eventId: string,
   meetingData: MeetingData,
   userId: string,
-  email: string
+  email: string,
 ) {
   try {
     const stripe = await getServerStripe();
 
     // Get or create customer first
     const stripeCustomerId = await getOrCreateStripeCustomer(userId, email);
-    if (typeof stripeCustomerId !== "string") {
-      throw new Error("Failed to get or create Stripe customer");
+    if (typeof stripeCustomerId !== 'string') {
+      throw new Error('Failed to get or create Stripe customer');
     }
 
     // Get the event and the expert's data
@@ -235,7 +234,7 @@ export async function createPaymentIntent(
     });
 
     if (!event) {
-      throw new Error("Event not found");
+      throw new Error('Event not found');
     }
 
     if (!event.user?.stripeConnectAccountId) {
@@ -264,7 +263,7 @@ export async function createPaymentIntent(
 
     return { clientSecret: paymentIntent.client_secret };
   } catch (error) {
-    console.error("Payment intent creation failed:", error);
-    return { error: "Failed to create payment intent" };
+    console.error('Payment intent creation failed:', error);
+    return { error: 'Failed to create payment intent' };
   }
 }

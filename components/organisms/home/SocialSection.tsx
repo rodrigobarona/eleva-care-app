@@ -1,8 +1,8 @@
-import type React from "react";
-import { Button } from "@/components/atoms/button";
-import { Linkedin, Instagram, Facebook, Twitter, BookOpen } from "lucide-react";
-import Link from "next/link";
-import FadeInSection from "@/components/atoms/FadeInSection";
+import { Button } from '@/components/atoms/button';
+import FadeInSection from '@/components/atoms/FadeInSection';
+import { BookOpen, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
+import Link from 'next/link';
+import type React from 'react';
 
 interface SocialSectionProps {
   title: string;
@@ -25,13 +25,13 @@ const SocialSection: React.FC<SocialSectionProps> = ({
     <FadeInSection>
       <section className="w-full bg-[#f0f8f8] px-6 py-12 md:py-24 lg:px-8">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
-          <h2 className="mb-8 text-center text-3xl font-bold tracking-tighter text-elevaPrimary sm:text-4xl">
+          <h2 className="text-elevaPrimary mb-8 text-center text-3xl font-bold tracking-tighter sm:text-4xl">
             {title}
           </h2>
           <div className="flex flex-wrap justify-center gap-4">
             <Button
               variant="outline"
-              className="border-[#0d6c70] text-elevaPrimary hover:bg-[#0d6c70] hover:text-elevaNeutral-100"
+              className="text-elevaPrimary hover:text-elevaNeutral-100 border-[#0d6c70] hover:bg-[#0d6c70]"
               asChild
             >
               <Link
@@ -45,7 +45,7 @@ const SocialSection: React.FC<SocialSectionProps> = ({
             </Button>
             <Button
               variant="outline"
-              className="border-[#0d6c70] text-elevaPrimary hover:bg-[#0d6c70] hover:text-elevaNeutral-100"
+              className="text-elevaPrimary hover:text-elevaNeutral-100 border-[#0d6c70] hover:bg-[#0d6c70]"
               asChild
             >
               <Link
@@ -59,7 +59,7 @@ const SocialSection: React.FC<SocialSectionProps> = ({
             </Button>
             <Button
               variant="outline"
-              className="border-[#0d6c70] text-elevaPrimary hover:bg-[#0d6c70] hover:text-elevaNeutral-100"
+              className="text-elevaPrimary hover:text-elevaNeutral-100 border-[#0d6c70] hover:bg-[#0d6c70]"
               asChild
             >
               <Link
@@ -73,21 +73,17 @@ const SocialSection: React.FC<SocialSectionProps> = ({
             </Button>
             <Button
               variant="outline"
-              className="border-[#0d6c70] text-elevaPrimary hover:bg-[#0d6c70] hover:text-elevaNeutral-100"
+              className="text-elevaPrimary hover:text-elevaNeutral-100 border-[#0d6c70] hover:bg-[#0d6c70]"
               asChild
             >
-              <Link
-                href="https://x.com/eleva.care"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+              <Link href="https://x.com/eleva.care" target="_blank" rel="noopener noreferrer">
                 <Twitter className="mr-2 h-4 w-4" />
                 {twitter}
               </Link>
             </Button>
             <Button
               variant="outline"
-              className="border-[#0d6c70] text-elevaPrimary hover:bg-[#0d6c70] hover:text-elevaNeutral-100"
+              className="text-elevaPrimary hover:text-elevaNeutral-100 border-[#0d6c70] hover:bg-[#0d6c70]"
               asChild
             >
               <Link

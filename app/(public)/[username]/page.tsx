@@ -1,25 +1,19 @@
-import React from "react";
-import { Button } from "@/components/atoms/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/atoms/card";
-import { db } from "@/drizzle/db";
-import { formatEventDescription } from "@/lib/formatters";
-import { createClerkClient } from "@clerk/nextjs/server";
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import ReactMarkdown from "react-markdown";
-import { getValidTimesFromSchedule } from "@/lib/getValidTimesFromSchedule";
-import { addMonths } from "date-fns";
-import { Suspense } from "react";
-import { Skeleton } from "@/components/atoms/skeleton";
-import NextAvailableTimeClient from "@/lib/NextAvailableTimeClient";
-import GoogleCalendarService from "@/server/googleCalendar";
+import { Button } from '@/components/atoms/button';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
+import { Skeleton } from '@/components/atoms/skeleton';
+import { db } from '@/drizzle/db';
+import { formatEventDescription } from '@/lib/formatters';
+import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
+import NextAvailableTimeClient from '@/lib/NextAvailableTimeClient';
+import GoogleCalendarService from '@/server/googleCalendar';
+import { createClerkClient } from '@clerk/nextjs/server';
+import { addMonths } from 'date-fns';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import ReactMarkdown from 'react-markdown';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 type Event = {
@@ -39,7 +33,7 @@ async function getCalendarStatus(clerkUserId: string) {
     const hasValidTokens = await calendarService.hasValidTokens(clerkUserId);
 
     if (!hasValidTokens) {
-      return { isConnected: false, error: "Calendar not connected" };
+      return { isConnected: false, error: 'Calendar not connected' };
     }
 
     // Verify we can actually access the calendar
@@ -52,8 +46,8 @@ async function getCalendarStatus(clerkUserId: string) {
 
     return { isConnected: true, error: null };
   } catch (error) {
-    console.error("Calendar status check failed:", error);
-    return { isConnected: false, error: "Calendar access error" };
+    console.error('Calendar status check failed:', error);
+    return { isConnected: false, error: 'Calendar access error' };
   }
 }
 
@@ -67,17 +61,15 @@ async function getValidTimesForEvent(eventId: string) {
 
     const now = new Date();
     // Round up to the next 15 minutes
-    const startDate = new Date(
-      Math.ceil(now.getTime() / (15 * 60000)) * (15 * 60000)
-    );
+    const startDate = new Date(Math.ceil(now.getTime() / (15 * 60000)) * (15 * 60000));
     const endDate = addMonths(startDate, 2);
 
     // Get calendar events for the time range
     const calendarService = GoogleCalendarService.getInstance();
-    const calendarEvents = await calendarService.getCalendarEventTimes(
-      event.clerkUserId,
-      { start: startDate, end: endDate }
-    );
+    const calendarEvents = await calendarService.getCalendarEventTimes(event.clerkUserId, {
+      start: startDate,
+      end: endDate,
+    });
 
     // Generate all possible time slots
     const timeSlots = [];
@@ -88,13 +80,9 @@ async function getValidTimesForEvent(eventId: string) {
     }
 
     // Use the working method from the page
-    const validTimes = await getValidTimesFromSchedule(
-      timeSlots,
-      event,
-      calendarEvents
-    );
+    const validTimes = await getValidTimesFromSchedule(timeSlots, event, calendarEvents);
 
-    console.log("[getValidTimesForEvent] Valid times found:", {
+    console.log('[getValidTimesForEvent] Valid times found:', {
       eventId,
       count: validTimes.length,
       firstTime: validTimes[0]?.toISOString(),
@@ -102,9 +90,9 @@ async function getValidTimesForEvent(eventId: string) {
 
     return validTimes;
   } catch (error) {
-    console.error("[getValidTimesForEvent] Error:", {
+    console.error('[getValidTimesForEvent] Error:', {
       eventId,
-      error: error instanceof Error ? error.message : "Unknown error",
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
     return [];
   }
@@ -121,23 +109,23 @@ function EventCard({
   nextAvailable: Date | null;
 }) {
   return (
-    <Card className="overflow-hidden border-2 hover:border-primary/50 transition-colors duration-200">
+    <Card className="overflow-hidden border-2 transition-colors duration-200 hover:border-primary/50">
       <div className="flex flex-col lg:flex-row">
         <EventCardDetails
           name={event.name}
           description={event.description}
           durationInMinutes={event.durationInMinutes}
         />
-        <div className="p-6 lg:p-8 lg:w-72 lg:border-l flex flex-col justify-between bg-gray-50">
+        <div className="flex flex-col justify-between bg-gray-50 p-6 lg:w-72 lg:border-l lg:p-8">
           <div>
-            <div className="text-lg font-semibold mb-1">Session</div>
-            <div className="text-3xl font-bold mb-4">
+            <div className="mb-1 text-lg font-semibold">Session</div>
+            <div className="mb-4 text-3xl font-bold">
               {event.price === 0 ? (
-                "Free"
+                'Free'
               ) : (
                 <>
-                  €{" "}
-                  {(event.price / 100).toLocaleString("pt-PT", {
+                  €{' '}
+                  {(event.price / 100).toLocaleString('pt-PT', {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 2,
                   })}
@@ -153,7 +141,7 @@ function EventCard({
           </div>
 
           <Button
-            className="w-full py-6 text-lg font-semibold bg-blue-600 hover:bg-blue-700 text-white"
+            className="w-full bg-blue-600 py-6 text-lg font-semibold text-white hover:bg-blue-700"
             asChild
           >
             <Link href={`/${username}/${event.slug}`}>See times</Link>
@@ -170,7 +158,7 @@ export default async function BookingPage({
   params: { username: string };
 }) {
   try {
-    console.log("[BookingPage] Starting to load page for username:", username);
+    console.log('[BookingPage] Starting to load page for username:', username);
     const clerk = createClerkClient({
       secretKey: process.env.CLERK_SECRET_KEY,
     });
@@ -182,21 +170,21 @@ export default async function BookingPage({
     const user = users.data[0];
     if (!user) return notFound();
 
-    console.log("[BookingPage] Found user:", user.id);
+    console.log('[BookingPage] Found user:', user.id);
 
     // Check calendar status early
     const calendarStatus = await getCalendarStatus(user.id);
-    console.log("[BookingPage] Calendar status:", calendarStatus);
+    console.log('[BookingPage] Calendar status:', calendarStatus);
 
     if (!calendarStatus.isConnected) {
       return (
-        <Card className="max-w-md mx-auto">
+        <Card className="mx-auto max-w-md">
           <CardHeader>
             <CardTitle>Calendar Access Required</CardTitle>
             <CardDescription>
-              {calendarStatus.error === "Calendar not connected"
-                ? "The calendar owner needs to connect their Google Calendar to show available times."
-                : "Unable to access calendar. Please try again later."}
+              {calendarStatus.error === 'Calendar not connected'
+                ? 'The calendar owner needs to connect their Google Calendar to show available times.'
+                : 'Unable to access calendar. Please try again later.'}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -211,45 +199,40 @@ export default async function BookingPage({
 
     if (events.length === 0) return notFound();
 
-    console.log("[BookingPage] Found events:", events.length);
+    console.log('[BookingPage] Found events:', events.length);
 
     // Pre-fetch all valid times for each event
     const eventTimes = await Promise.all(
       events.map(async (event) => {
-        console.log("[BookingPage] Getting times for event:", event.id);
+        console.log('[BookingPage] Getting times for event:', event.id);
         const validTimes = await getValidTimesForEvent(event.id);
         return {
           event,
           nextAvailable: validTimes.length > 0 ? validTimes[0] : null,
         };
-      })
+      }),
     );
 
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <h1 className="text-4xl font-bold mb-12">Book a session</h1>
+      <div className="mx-auto max-w-4xl px-4 py-12">
+        <h1 className="mb-12 text-4xl font-bold">Book a session</h1>
         <div className="space-y-6">
           {eventTimes.map(({ event, nextAvailable }) => (
             <Suspense key={event.id} fallback={<LoadingEventCard />}>
-              <EventCard
-                event={event}
-                username={username}
-                nextAvailable={nextAvailable}
-              />
+              <EventCard event={event} username={username} nextAvailable={nextAvailable} />
             </Suspense>
           ))}
         </div>
       </div>
     );
   } catch (error) {
-    console.error("[BookingPage] Error:", error);
+    console.error('[BookingPage] Error:', error);
     return (
-      <Card className="max-w-md mx-auto">
+      <Card className="mx-auto max-w-md">
         <CardHeader>
           <CardTitle>Error</CardTitle>
           <CardDescription>
-            An error occurred while loading the booking page. Please try again
-            later.
+            An error occurred while loading the booking page. Please try again later.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -269,32 +252,28 @@ function EventCardDetails({
 }) {
   return (
     <div className="flex-grow p-6 lg:p-8">
-      <div className="inline-block px-3 py-1 mb-4 text-sm font-medium bg-black text-white rounded-full">
+      <div className="mb-4 inline-block rounded-full bg-black px-3 py-1 text-sm font-medium text-white">
         Book a {durationInMinutes} minute video call
       </div>
 
-      <h3 className="text-2xl font-bold mb-2">{name}</h3>
+      <h3 className="mb-2 text-2xl font-bold">{name}</h3>
 
       {description ? (
-        <ReactMarkdown className="prose text-muted-foreground mb-4 text-base">
+        <ReactMarkdown className="prose mb-4 text-base text-muted-foreground">
           {description}
         </ReactMarkdown>
       ) : (
-        <p className="text-muted-foreground mb-4 text-base">
-          No description available.
-        </p>
+        <p className="mb-4 text-base text-muted-foreground">No description available.</p>
       )}
 
-      <div className="flex items-center gap-2 mb-1">
+      <div className="mb-1 flex items-center gap-2">
         <span className="font-semibold">Duration:</span>
-        <span className="text-muted-foreground">
-          {formatEventDescription(durationInMinutes)}
-        </span>
+        <span className="text-muted-foreground">{formatEventDescription(durationInMinutes)}</span>
       </div>
 
-      <div className="flex items-center gap-1 text-amber-400 mt-4">
-        {"★".repeat(5)}
-        <span className="text-black ml-1">5.0</span>
+      <div className="mt-4 flex items-center gap-1 text-amber-400">
+        {'★'.repeat(5)}
+        <span className="ml-1 text-black">5.0</span>
         <span className="text-muted-foreground">(10)</span>
       </div>
     </div>
@@ -306,18 +285,18 @@ function LoadingEventCard() {
     <Card className="overflow-hidden border-2">
       <div className="flex flex-col lg:flex-row">
         <div className="flex-grow p-6 lg:p-8">
-          <div className="inline-block w-32 h-7 bg-gray-200 rounded-full mb-4" />
-          <Skeleton className="h-8 w-3/4 mb-4" />
-          <Skeleton className="h-20 w-full mb-4" />
-          <Skeleton className="h-6 w-40 mb-4" />
+          <div className="mb-4 inline-block h-7 w-32 rounded-full bg-gray-200" />
+          <Skeleton className="mb-4 h-8 w-3/4" />
+          <Skeleton className="mb-4 h-20 w-full" />
+          <Skeleton className="mb-4 h-6 w-40" />
           <Skeleton className="h-6 w-32" />
         </div>
 
-        <div className="p-6 lg:p-8 lg:w-72 lg:border-l flex flex-col justify-between bg-gray-50">
+        <div className="flex flex-col justify-between bg-gray-50 p-6 lg:w-72 lg:border-l lg:p-8">
           <div>
-            <Skeleton className="h-6 w-20 mb-2" />
-            <Skeleton className="h-10 w-24 mb-4" />
-            <Skeleton className="h-5 w-40 mb-6" />
+            <Skeleton className="mb-2 h-6 w-20" />
+            <Skeleton className="mb-4 h-10 w-24" />
+            <Skeleton className="mb-6 h-5 w-40" />
           </div>
           <Skeleton className="h-14 w-full" />
         </div>

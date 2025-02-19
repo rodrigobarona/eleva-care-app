@@ -1,18 +1,17 @@
-"use client";
+'use client';
 
-import type * as React from "react";
-import type { LucideIcon } from "lucide-react";
 import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/organisms/sidebar/sidebar";
-import Link from "next/link";
+} from '@/components/organisms/sidebar/sidebar';
+import type { LucideIcon } from 'lucide-react';
+import Link from 'next/link';
+import type * as React from 'react';
 
-interface NavSecondaryProps
-  extends React.ComponentPropsWithoutRef<typeof SidebarGroup> {
+interface NavSecondaryProps extends React.ComponentPropsWithoutRef<typeof SidebarGroup> {
   items: {
     title: string;
     url: string;

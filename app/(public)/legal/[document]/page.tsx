@@ -1,11 +1,10 @@
-import React from "react";
-import { notFound } from "next/navigation";
-import ReactMarkdown from "react-markdown";
-import { Card, CardContent } from "@/components/atoms/card";
+import { Card, CardContent } from '@/components/atoms/card';
+import { notFound } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
 
 const legalDocs = {
   terms: {
-    title: "Terms of Service",
+    title: 'Terms of Service',
     content: `# Terms of Service
 
 _Last Updated:_ January 27, 2025
@@ -76,7 +75,7 @@ Eleva is built using modern technologies including Next.js 14 with the App Route
 `,
   },
   privacy: {
-    title: "Privacy Policy",
+    title: 'Privacy Policy',
     content: `# Privacy Policy for Eleva.care
 
 _Last Updated:_ January 27, 2025
@@ -141,7 +140,7 @@ This Privacy Policy is subject to change. Please check back regularly for update
 `,
   },
   dpa: {
-    title: "Data Processing Agreement",
+    title: 'Data Processing Agreement',
     content: `# Data Processing Agreement (DPA) between Búzios e Tartarugas, Lda. (Eleva.care) and Data Processors
 
 _Last Updated:_ January 27, 2025
@@ -229,11 +228,9 @@ export default function LegalPage({
   }
 
   return (
-    <Card className="max-w-4xl mx-auto">
+    <Card className="mx-auto max-w-4xl">
       <CardContent className="p-6 sm:p-10">
-        <ReactMarkdown className="prose prose-slate max-w-none">
-          {doc.content}
-        </ReactMarkdown>
+        <ReactMarkdown className="prose prose-slate max-w-none">{doc.content}</ReactMarkdown>
       </CardContent>
     </Card>
   );

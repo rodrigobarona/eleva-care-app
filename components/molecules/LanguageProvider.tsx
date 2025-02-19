@@ -1,24 +1,22 @@
-"use client";
+'use client';
 
-import type React from "react";
-import { createContext, useContext } from "react";
-import { useQueryState, parseAsStringLiteral } from "nuqs";
+import { parseAsStringLiteral, useQueryState } from 'nuqs';
+import type React from 'react';
+import { createContext, useContext } from 'react';
 
-type Language = "en" | "pt" | "br" | "es";
+type Language = 'en' | 'pt' | 'br' | 'es';
 
 type LanguageContextType = {
   lang: Language;
   setLang: (lang: Language) => void;
 };
 
-const LanguageContext = createContext<LanguageContextType | undefined>(
-  undefined
-);
+const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [lang, setLang] = useQueryState(
-    "lang",
-    parseAsStringLiteral(["en", "pt", "br", "es"] as const).withDefault("en")
+    'lang',
+    parseAsStringLiteral(['en', 'pt', 'br', 'es'] as const).withDefault('en'),
   );
 
   const value = {
@@ -26,17 +24,13 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     setLang: (newLang: Language) => setLang(newLang),
   };
 
-  return (
-    <LanguageContext.Provider value={value}>
-      {children}
-    </LanguageContext.Provider>
-  );
+  return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
 
 export function useLanguage() {
   const context = useContext(LanguageContext);
   if (context === undefined) {
-    throw new Error("useLanguage must be used within a LanguageProvider");
+    throw new Error('useLanguage must be used within a LanguageProvider');
   }
   return context;
 }

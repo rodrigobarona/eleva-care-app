@@ -9,7 +9,7 @@ export interface Meeting {
   timezone: string;
   meetingUrl: string;
   stripePaymentIntentId: string;
-  stripePaymentStatus: "succeeded";
+  stripePaymentStatus: 'succeeded';
   stripeAmount: number;
   createdAt: Date;
   updatedAt: Date;

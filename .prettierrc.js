@@ -1,12 +1,12 @@
 module.exports = {
   semi: true,
-  trailingComma: "all",
+  trailingComma: 'all',
   singleQuote: true,
   printWidth: 100,
   tabWidth: 2,
-  tailwindFunctions: ["cva", "clsx"],
+  tailwindFunctions: ['cva', 'clsx'],
   plugins: [
-    "prettier-plugin-organize-imports",
-    "prettier-plugin-tailwindcss", // MUST come last
+    'prettier-plugin-organize-imports',
+    'prettier-plugin-tailwindcss', // MUST come last
   ],
 };

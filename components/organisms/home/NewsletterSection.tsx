@@ -1,5 +1,5 @@
-import type React from "react";
-import FadeInSection from "@/components/atoms/FadeInSection";
+import FadeInSection from '@/components/atoms/FadeInSection';
+import type React from 'react';
 
 interface NewsletterSectionProps {
   title: string;
@@ -18,21 +18,18 @@ const NewsletterSection: React.FC<NewsletterSectionProps> = ({
 }) => {
   return (
     <FadeInSection>
-      <section
-        id="newsletter"
-        className="w-full bg-elevaNeutral-100 px-6 py-12 md:py-24 lg:px-8"
-      >
+      <section id="newsletter" className="bg-elevaNeutral-100 w-full px-6 py-12 md:py-24 lg:px-8">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <div className="mx-auto max-w-xl text-center">
             <div className="mb-6">
-              <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60">
+              <h2 className="text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60 font-mono text-xs/5 font-semibold uppercase tracking-widest">
                 {subtitle}
               </h2>
-              <h3 className="mt-2 text-balance font-serif text-4xl font-light tracking-tighter text-elevaPrimary data-[dark]:text-elevaNeutral-100 lg:text-6xl">
+              <h3 className="text-elevaPrimary data-[dark]:text-elevaNeutral-100 mt-2 text-balance font-serif text-4xl font-light tracking-tighter lg:text-6xl">
                 {title}
               </h3>
             </div>
-            <p className="text-balance text-base/5 font-light text-elevaNeutral-900 lg:text-xl">
+            <p className="text-elevaNeutral-900 text-balance text-base/5 font-light lg:text-xl">
               {description}
             </p>
 
@@ -46,12 +43,12 @@ const NewsletterSection: React.FC<NewsletterSectionProps> = ({
                 aria-labelledby="behiiv"
                 style={{
                   margin: 0,
-                  borderRadius: "0px",
-                  backgroundColor: "transparent",
+                  borderRadius: '0px',
+                  backgroundColor: 'transparent',
                 }} // Updated to object
               ></iframe>
             </div>
-            <p className="pt-2 text-xs text-elevaNeutral-900/60">{privacy}</p>
+            <p className="text-elevaNeutral-900/60 pt-2 text-xs">{privacy}</p>
           </div>
         </div>
       </section>

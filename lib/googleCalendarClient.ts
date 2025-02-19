@@ -1,6 +1,6 @@
-"use server";
+'use server';
 
-import GoogleCalendarService from "@/server/googleCalendar";
+import GoogleCalendarService from '@/server/googleCalendar';
 
 export async function hasValidTokens(userId: string): Promise<boolean> {
   return GoogleCalendarService.getInstance().hasValidTokens(userId);
@@ -8,15 +8,12 @@ export async function hasValidTokens(userId: string): Promise<boolean> {
 
 export async function getCalendarEventTimes(
   clerkUserId: string,
-  { start, end }: { start: Date; end: Date }
+  { start, end }: { start: Date; end: Date },
 ) {
-  return GoogleCalendarService.getInstance().getCalendarEventTimes(
-    clerkUserId,
-    {
-      start,
-      end,
-    }
-  );
+  return GoogleCalendarService.getInstance().getCalendarEventTimes(clerkUserId, {
+    start,
+    end,
+  });
 }
 
 export async function createCalendarEvent(params: {

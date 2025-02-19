@@ -1,12 +1,12 @@
-import React from "react";
-import { createClerkClient } from "@clerk/nextjs/server";
-import { notFound } from "next/navigation";
-import Image from "next/image";
-import { db } from "@/drizzle/db";
-import { Instagram, Twitter, Linkedin, Youtube, Music } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import Link from "next/link";
-import { Skeleton } from "@/components/atoms/skeleton";
+import { Skeleton } from '@/components/atoms/skeleton';
+import { db } from '@/drizzle/db';
+import { createClerkClient } from '@clerk/nextjs/server';
+import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import React from 'react';
+import ReactMarkdown from 'react-markdown';
 
 const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -29,7 +29,7 @@ function ProfileSkeleton() {
       <div className="space-y-4">
         {/* Name Skeleton */}
         <div>
-          <Skeleton className="h-9 w-48 mb-2" /> {/* For the name */}
+          <Skeleton className="mb-2 h-9 w-48" /> {/* For the name */}
           <Skeleton className="h-5 w-32" /> {/* For the username */}
         </div>
 
@@ -62,8 +62,8 @@ export default async function UserLayout({
   params: { username: string };
 }) {
   return (
-    <div className="container max-w-7xl pt-32 pb-10">
-      <div className="grid grid-cols-1 md:grid-cols-[400px_1fr] gap-8">
+    <div className="container max-w-7xl pb-10 pt-32">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
         {/* Left Column - Profile Info with Suspense */}
         <React.Suspense fallback={<ProfileSkeleton />}>
           <ProfileInfo username={username} />
@@ -99,7 +99,7 @@ async function ProfileInfo({ username }: { username: string }) {
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg">
         <Image
           src={profile?.profilePicture || user.imageUrl}
-          alt={user.fullName || "Profile picture"}
+          alt={user.fullName || 'Profile picture'}
           fill
           className="object-cover"
           priority
@@ -111,23 +111,14 @@ async function ProfileInfo({ username }: { username: string }) {
       <div className="space-y-4">
         <div>
           <h1 className="text-3xl font-bold">
-            {profile
-              ? `${profile.firstName} ${profile.lastName}`
-              : user.fullName}
+            {profile ? `${profile.firstName} ${profile.lastName}` : user.fullName}
           </h1>
-          <Link
-            href={`/${user.username}`}
-            className="text-muted-foreground hover:text-foreground"
-          >
+          <Link href={`/${user.username}`} className="text-muted-foreground hover:text-foreground">
             @{user.username}
           </Link>
         </div>
-        {profile?.headline && (
-          <p className="text-lg font-medium">{profile.headline}</p>
-        )}
-        {profile?.shortBio && (
-          <p className="text-muted-foreground">{profile.shortBio}</p>
-        )}
+        {profile?.headline && <p className="text-lg font-medium">{profile.headline}</p>}
+        {profile?.shortBio && <p className="text-muted-foreground">{profile.shortBio}</p>}
         {profile?.longBio && (
           <div className="prose prose-sm dark:prose-invert">
             <ReactMarkdown>{profile.longBio}</ReactMarkdown>

@@ -1,23 +1,23 @@
-"use client";
+'use client';
 
-import React, { Suspense } from "react";
-import VideoPlayer from "@/components/molecules/videoPlayer";
-import { Button } from "@/components/atoms/button";
+import { Button } from '@/components/atoms/button';
 import {
   Dialog,
   DialogContent,
-  DialogTrigger,
   DialogOverlay,
   DialogPortal,
-} from "@/components/molecules/dialog";
-import ReactMarkdown from "react-markdown";
-import { ClipboardList } from "lucide-react";
-import { useLanguage } from "@/components/molecules/LanguageProvider";
-import { translations as en } from "@/public/locales/en";
-import { translations as pt } from "@/public/locales/pt";
-import { translations as br } from "@/public/locales/br";
-import { translations as es } from "@/public/locales/es";
-import Link from "next/link";
+  DialogTrigger,
+} from '@/components/molecules/dialog';
+import { useLanguage } from '@/components/molecules/LanguageProvider';
+import VideoPlayer from '@/components/molecules/videoPlayer';
+import { translations as br } from '@/public/locales/br';
+import { translations as en } from '@/public/locales/en';
+import { translations as es } from '@/public/locales/es';
+import { translations as pt } from '@/public/locales/pt';
+import { ClipboardList } from 'lucide-react';
+import Link from 'next/link';
+import { Suspense } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 const languageMap = {
   en,
@@ -32,7 +32,7 @@ const Hero = () => {
 
   return (
     <section
-      className="relative m-2 overflow-hidden rounded-2xl bg-eleva-neutral-900 lg:rounded-5xl"
+      className="lg:rounded-5xl relative m-2 overflow-hidden rounded-2xl bg-eleva-neutral-900"
       data-component-name="hero"
     >
       <Suspense fallback={<p>Loading video...</p>}>
@@ -46,7 +46,7 @@ const Hero = () => {
           loop={true}
           controls={false}
           preload="auto"
-          className="absolute rounded-2xl object-cover lg:rounded-5xl"
+          className="lg:rounded-5xl absolute rounded-2xl object-cover"
         />
       </Suspense>
       <div className="absolute z-0 h-full w-full bg-eleva-neutral-900/40" />

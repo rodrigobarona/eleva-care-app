@@ -1,30 +1,30 @@
-import React from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { Markdown } from "tiptap-markdown";
-import BulletList from "@tiptap/extension-bullet-list";
-import ListItem from "@tiptap/extension-list-item";
-import Link from "@tiptap/extension-link";
-import Highlight from "@tiptap/extension-highlight";
-import TaskList from "@tiptap/extension-task-list";
-import TaskItem from "@tiptap/extension-task-item";
-import Table from "@tiptap/extension-table";
-import TableRow from "@tiptap/extension-table-row";
-import TableCell from "@tiptap/extension-table-cell";
-import TableHeader from "@tiptap/extension-table-header";
-import { Button } from "@/components/atoms/button";
+import { Button } from '@/components/atoms/button';
+import BulletList from '@tiptap/extension-bullet-list';
+import Highlight from '@tiptap/extension-highlight';
+import Link from '@tiptap/extension-link';
+import ListItem from '@tiptap/extension-list-item';
+import Table from '@tiptap/extension-table';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import TableRow from '@tiptap/extension-table-row';
+import TaskItem from '@tiptap/extension-task-item';
+import TaskList from '@tiptap/extension-task-list';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
 import {
   Bold,
-  Italic,
-  List,
-  Link as LinkIcon,
-  Highlighter,
-  Table as TableIcon,
   CheckSquare,
   Heading1,
   Heading2,
   Heading3,
-} from "lucide-react";
+  Highlighter,
+  Italic,
+  Link as LinkIcon,
+  List,
+  Table as TableIcon,
+} from 'lucide-react';
+import React from 'react';
+import { Markdown } from 'tiptap-markdown';
 
 interface RecordEditorProps {
   value: string;
@@ -49,7 +49,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
       Markdown.configure({
         html: true,
         tightLists: true,
-        bulletListMarker: "-",
+        bulletListMarker: '-',
         breaks: true,
         transformPastedText: true,
       }),
@@ -58,7 +58,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: "text-primary underline hover:text-primary/80",
+          class: 'text-primary underline hover:text-primary/80',
         },
       }),
       Highlight.configure({
@@ -77,11 +77,11 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
     ],
     content: value,
     editable: !readOnly,
-    autofocus: autoFocus ? "end" : false,
+    autofocus: autoFocus ? 'end' : false,
     editorProps: {
       attributes: {
         class:
-          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] h-full px-3 py-2",
+          'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] h-full px-3 py-2',
       },
     },
   });
@@ -94,7 +94,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
 
   React.useEffect(() => {
     if (editor) {
-      editor.on("update", () => {
+      editor.on('update', () => {
         const markdownContent = editor.storage.markdown.getMarkdown();
         onChange(markdownContent);
       });
@@ -110,19 +110,15 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="border-b bg-muted/50 p-2 flex flex-wrap gap-2">
+    <div className="flex h-full flex-col">
+      <div className="flex flex-wrap gap-2 border-b bg-muted/50 p-2">
         <div className="flex gap-2 border-r pr-2">
           <Button
             type="button"
             variant="outline"
             size="icon"
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 1 }).run()
-            }
-            className={
-              editor.isActive("heading", { level: 1 }) ? "bg-muted" : ""
-            }
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            className={editor.isActive('heading', { level: 1 }) ? 'bg-muted' : ''}
           >
             <Heading1 className="h-4 w-4" />
           </Button>
@@ -130,12 +126,8 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
             type="button"
             variant="outline"
             size="icon"
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 2 }).run()
-            }
-            className={
-              editor.isActive("heading", { level: 2 }) ? "bg-muted" : ""
-            }
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            className={editor.isActive('heading', { level: 2 }) ? 'bg-muted' : ''}
           >
             <Heading2 className="h-4 w-4" />
           </Button>
@@ -143,12 +135,8 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
             type="button"
             variant="outline"
             size="icon"
-            onClick={() =>
-              editor.chain().focus().toggleHeading({ level: 3 }).run()
-            }
-            className={
-              editor.isActive("heading", { level: 3 }) ? "bg-muted" : ""
-            }
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            className={editor.isActive('heading', { level: 3 }) ? 'bg-muted' : ''}
           >
             <Heading3 className="h-4 w-4" />
           </Button>
@@ -160,7 +148,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
             variant="outline"
             size="icon"
             onClick={() => editor.chain().focus().toggleBold().run()}
-            className={editor.isActive("bold") ? "bg-muted" : ""}
+            className={editor.isActive('bold') ? 'bg-muted' : ''}
           >
             <Bold className="h-4 w-4" />
           </Button>
@@ -169,7 +157,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
             variant="outline"
             size="icon"
             onClick={() => editor.chain().focus().toggleItalic().run()}
-            className={editor.isActive("italic") ? "bg-muted" : ""}
+            className={editor.isActive('italic') ? 'bg-muted' : ''}
           >
             <Italic className="h-4 w-4" />
           </Button>
@@ -178,7 +166,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
             variant="outline"
             size="icon"
             onClick={() => editor.chain().focus().toggleHighlight().run()}
-            className={editor.isActive("highlight") ? "bg-muted" : ""}
+            className={editor.isActive('highlight') ? 'bg-muted' : ''}
           >
             <Highlighter className="h-4 w-4" />
           </Button>
@@ -190,7 +178,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
             variant="outline"
             size="icon"
             onClick={() => editor.chain().focus().toggleBulletList().run()}
-            className={editor.isActive("bulletList") ? "bg-muted" : ""}
+            className={editor.isActive('bulletList') ? 'bg-muted' : ''}
           >
             <List className="h-4 w-4" />
           </Button>
@@ -199,7 +187,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
             variant="outline"
             size="icon"
             onClick={() => editor.chain().focus().toggleTaskList().run()}
-            className={editor.isActive("taskList") ? "bg-muted" : ""}
+            className={editor.isActive('taskList') ? 'bg-muted' : ''}
           >
             <CheckSquare className="h-4 w-4" />
           </Button>
@@ -211,12 +199,12 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
             variant="outline"
             size="icon"
             onClick={() => {
-              const url = window.prompt("Enter the URL");
+              const url = window.prompt('Enter the URL');
               if (url) {
                 editor.chain().focus().setLink({ href: url }).run();
               }
             }}
-            className={editor.isActive("link") ? "bg-muted" : ""}
+            className={editor.isActive('link') ? 'bg-muted' : ''}
           >
             <LinkIcon className="h-4 w-4" />
           </Button>
@@ -225,11 +213,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
             variant="outline"
             size="icon"
             onClick={() => {
-              editor
-                .chain()
-                .focus()
-                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
-                .run();
+              editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
             }}
           >
             <TableIcon className="h-4 w-4" />
@@ -237,10 +221,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
         </div>
       </div>
       <div className="flex-1 overflow-auto">
-        <EditorContent 
-          editor={editor} 
-          className="h-full"
-        />
+        <EditorContent editor={editor} className="h-full" />
       </div>
     </div>
   );

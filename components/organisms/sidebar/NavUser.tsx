@@ -1,15 +1,6 @@
-"use client";
-import React from "react";
-import {
-  BadgeCheck,
-  ChevronsUpDown,
-  CreditCard,
-  LogOut,
-  Lock,
-  Home,
-} from "lucide-react";
-import { useUser, useClerk } from "@clerk/nextjs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/atoms/avatar";
+'use client';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/atoms/avatar';
+import { Skeleton } from '@/components/atoms/skeleton';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,14 +9,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/molecules/dropdown-menu";
-import {
-  SidebarMenu,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/organisms/sidebar/sidebar";
-import Link from "next/link";
-import { Skeleton } from "@/components/atoms/skeleton";
+} from '@/components/molecules/dropdown-menu';
+import { SidebarMenu, SidebarMenuItem, useSidebar } from '@/components/organisms/sidebar/sidebar';
+import { useClerk, useUser } from '@clerk/nextjs';
+import { BadgeCheck, ChevronsUpDown, CreditCard, Home, Lock, LogOut } from 'lucide-react';
+import Link from 'next/link';
 
 function NavUserSkeleton() {
   return (
@@ -58,45 +46,39 @@ export function NavUser() {
           <DropdownMenuTrigger asChild>
             <div className="flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
               <Avatar className="h-8 w-8 shrink-0 rounded-lg">
-                <AvatarImage src={user.imageUrl} alt={user.fullName || ""} />
+                <AvatarImage src={user.imageUrl} alt={user.fullName || ''} />
                 <AvatarFallback className="rounded-lg">
                   {user.firstName?.[0]}
                   {user.lastName?.[0]}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1">
-                <span className="truncate text-sm font-semibold">
-                  {user.fullName}
-                </span>
-                <span className="truncate text-xs">
-                  {user.primaryEmailAddress?.emailAddress}
-                </span>
+                <span className="truncate text-sm font-semibold">{user.fullName}</span>
+                <span className="truncate text-xs">{user.primaryEmailAddress?.emailAddress}</span>
               </div>
               <ChevronsUpDown className="size-4 shrink-0" />
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-            side={isMobile ? "bottom" : "right"}
+            side={isMobile ? 'bottom' : 'right'}
             align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="p-0 font-normal">
               <Link
                 href="/account"
-                className="flex items-center gap-2 px-1 py-1.5 text-left text-sm hover:bg-accent rounded-md transition-colors"
+                className="flex items-center gap-2 rounded-md px-1 py-1.5 text-left text-sm transition-colors hover:bg-accent"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.imageUrl} alt={user.fullName || ""} />
+                  <AvatarImage src={user.imageUrl} alt={user.fullName || ''} />
                   <AvatarFallback className="rounded-lg">
                     {user.firstName?.[0]}
                     {user.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    {user.fullName}
-                  </span>
+                  <span className="truncate font-semibold">{user.fullName}</span>
                   <span className="truncate text-xs text-muted-foreground">
                     Manage your account
                   </span>

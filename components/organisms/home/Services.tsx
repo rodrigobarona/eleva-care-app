@@ -1,22 +1,22 @@
-"use client";
+'use client';
 
-import type React from "react";
-import ReactMarkdown from "react-markdown";
-import Image from "next/image";
-import FadeInSection from "@/components/atoms/FadeInSection";
-import { Card, CardContent } from "@/components/atoms/card";
+import FadeInSection from '@/components/atoms/FadeInSection';
+import { Card, CardContent } from '@/components/atoms/card';
+import { useLanguage } from '@/components/molecules/LanguageProvider';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/molecules/accordion";
-import { ChevronRight } from "lucide-react";
-import { useLanguage } from "@/components/molecules/LanguageProvider";
-import { translations as en } from "@/public/locales/en";
-import { translations as pt } from "@/public/locales/pt";
-import { translations as br } from "@/public/locales/br";
-import { translations as es } from "@/public/locales/es";
+} from '@/components/molecules/accordion';
+import { translations as br } from '@/public/locales/br';
+import { translations as en } from '@/public/locales/en';
+import { translations as es } from '@/public/locales/es';
+import { translations as pt } from '@/public/locales/pt';
+import { ChevronRight } from 'lucide-react';
+import Image from 'next/image';
+import type React from 'react';
+import ReactMarkdown from 'react-markdown';
 
 const languageMap = {
   en,
@@ -73,9 +73,7 @@ const ServiceSection: React.FC = () => {
                         {service.title}
                       </h3>
                     </div>
-                    <p className="text-eleva-neutral-900">
-                      {service.description}
-                    </p>
+                    <p className="text-eleva-neutral-900">{service.description}</p>
 
                     <div className="mt-auto">
                       <Accordion type="single" collapsible>
@@ -84,10 +82,7 @@ const ServiceSection: React.FC = () => {
                           <AccordionContent>
                             <ul className="mt-4 list-inside list-disc text-eleva-neutral-900">
                               {service.items.map((item) => (
-                                <li
-                                  key={item}
-                                  className="flex items-start pb-2 text-base"
-                                >
+                                <li key={item} className="flex items-start pb-2 text-base">
                                   <ChevronRight className="mr-2 mt-1 h-4 w-4 shrink-0" />
                                   <div className="flex-1">
                                     <ReactMarkdown>{item}</ReactMarkdown>

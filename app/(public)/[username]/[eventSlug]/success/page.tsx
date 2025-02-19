@@ -1,20 +1,13 @@
-import React from "react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/atoms/card";
-import { db } from "@/drizzle/db";
-import { formatDateTime } from "@/lib/formatters";
-import { createClerkClient } from "@clerk/nextjs/server";
-import { notFound, redirect } from "next/navigation";
-import Stripe from "stripe";
-import { STRIPE_CONFIG } from "@/config/stripe";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
+import { STRIPE_CONFIG } from '@/config/stripe';
+import { db } from '@/drizzle/db';
+import { formatDateTime } from '@/lib/formatters';
+import { createClerkClient } from '@clerk/nextjs/server';
+import { notFound, redirect } from 'next/navigation';
+import Stripe from 'stripe';
 
 export const revalidate = 0;
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export default async function SuccessPage({
   params: { username, eventSlug },
@@ -45,31 +38,28 @@ export default async function SuccessPage({
   // Validate startTime before creating Date object
   let startTimeDate: Date;
   try {
-    if (!startTime) throw new Error("Missing startTime");
+    if (!startTime) throw new Error('Missing startTime');
     startTimeDate = new Date(startTime);
-    if (Number.isNaN(startTimeDate.getTime())) throw new Error("Invalid date");
+    if (Number.isNaN(startTimeDate.getTime())) throw new Error('Invalid date');
   } catch (error) {
-    console.error("Invalid startTime:", startTime, error);
+    console.error('Invalid startTime:', startTime, error);
     return notFound();
   }
 
   // Verify that the meeting was actually created
   const meeting = await db.query.MeetingTable.findFirst({
-    where: (
-      { eventId, startTime: meetingStartTime, stripeSessionId },
-      { eq, and, or }
-    ) =>
+    where: ({ eventId, startTime: meetingStartTime, stripeSessionId }, { eq, and, or }) =>
       and(
         eq(eventId, event.id),
         eq(meetingStartTime, startTimeDate),
-        session_id ? or(eq(stripeSessionId, session_id)) : undefined
+        session_id ? or(eq(stripeSessionId, session_id)) : undefined,
       ),
   });
 
   // If meeting exists, show success page
   if (meeting) {
     return (
-      <Card className="max-w-xl mx-auto">
+      <Card className="mx-auto max-w-xl">
         <CardHeader>
           <CardTitle>
             Successfully Booked {event.name} with {calendarUser.fullName}
@@ -78,7 +68,7 @@ export default async function SuccessPage({
         </CardHeader>
         <CardContent>
           <p>You should receive an email confirmation shortly.</p>
-          <p className="text-muted-foreground mt-2">Meeting ID: {meeting.id}</p>
+          <p className="mt-2 text-muted-foreground">Meeting ID: {meeting.id}</p>
         </CardContent>
       </Card>
     );
@@ -86,12 +76,12 @@ export default async function SuccessPage({
 
   // If paid event but no meeting found, check the session status
   if (event.price > 0 && session_id) {
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? "", {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
       apiVersion: STRIPE_CONFIG.API_VERSION,
     });
 
     try {
-      console.log("Checking session status:", {
+      console.log('Checking session status:', {
         sessionId: session_id,
         startTime,
         eventSlug,
@@ -99,28 +89,26 @@ export default async function SuccessPage({
 
       const session = await stripe.checkout.sessions.retrieve(session_id);
 
-      console.log("Session status:", {
+      console.log('Session status:', {
         sessionId: session_id,
         paymentStatus: session.payment_status,
         customerId: session.customer,
         paymentIntent: session.payment_intent,
       });
 
-      if (session.payment_status === "paid") {
+      if (session.payment_status === 'paid') {
         return (
-          <Card className="max-w-xl mx-auto">
+          <Card className="mx-auto max-w-xl">
             <CardHeader>
               <CardTitle>Payment Confirmed</CardTitle>
               <CardDescription>
-                Your payment has been confirmed and your meeting is being
-                created.
+                Your payment has been confirmed and your meeting is being created.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <p>Please wait a moment while we finalize your booking...</p>
-              <p className="text-sm text-muted-foreground mt-4">
-                If this page doesn&apos;t update automatically, please refresh
-                in a few seconds.
+              <p className="mt-4 text-sm text-muted-foreground">
+                If this page doesn&apos;t update automatically, please refresh in a few seconds.
               </p>
               <meta httpEquiv="refresh" content="5" />
             </CardContent>
@@ -128,20 +116,17 @@ export default async function SuccessPage({
         );
       }
 
-      if (session.payment_status === "unpaid") {
+      if (session.payment_status === 'unpaid') {
         return (
-          <Card className="max-w-xl mx-auto">
+          <Card className="mx-auto max-w-xl">
             <CardHeader>
               <CardTitle>Payment Processing</CardTitle>
-              <CardDescription>
-                Your payment is still being processed.
-              </CardDescription>
+              <CardDescription>Your payment is still being processed.</CardDescription>
             </CardHeader>
             <CardContent>
               <p>Please wait while we confirm your payment...</p>
-              <p className="text-sm text-muted-foreground mt-4">
-                This page will automatically refresh when the payment is
-                confirmed.
+              <p className="mt-4 text-sm text-muted-foreground">
+                This page will automatically refresh when the payment is confirmed.
               </p>
               <meta httpEquiv="refresh" content="5" />
             </CardContent>
@@ -150,10 +135,10 @@ export default async function SuccessPage({
       }
 
       // If payment failed or other status
-      console.error("Unexpected payment status:", session.payment_status);
+      console.error('Unexpected payment status:', session.payment_status);
       redirect(`/${username}/${eventSlug}/book?error=payment-failed`);
     } catch (error) {
-      console.error("Error retrieving session:", error);
+      console.error('Error retrieving session:', error);
       redirect(`/${username}/${eventSlug}/book?error=payment-error`);
     }
   }

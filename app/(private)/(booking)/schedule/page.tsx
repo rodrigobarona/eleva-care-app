@@ -1,13 +1,7 @@
-import React from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/atoms/card";
-import { db } from "@/drizzle/db";
-import { auth } from "@clerk/nextjs/server";
-import { ScheduleForm } from "@/components/organisms/forms/ScheduleForm";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
+import { ScheduleForm } from '@/components/organisms/forms/ScheduleForm';
+import { db } from '@/drizzle/db';
+import { auth } from '@clerk/nextjs/server';
 
 export const revalidate = 0;
 
@@ -21,7 +15,7 @@ export default async function SchedulePage() {
   });
 
   return (
-    <Card className="max-w-md max-auto">
+    <Card className="max-auto max-w-md">
       <CardHeader>
         <CardTitle>Schedule</CardTitle>
       </CardHeader>

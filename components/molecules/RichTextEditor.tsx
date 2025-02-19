@@ -1,13 +1,13 @@
-"use client";
-import React from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { Markdown } from "tiptap-markdown";
-import Link from "@tiptap/extension-link";
-import BulletList from "@tiptap/extension-bullet-list";
-import ListItem from "@tiptap/extension-list-item";
-import { Bold, Italic, List, LinkIcon } from "lucide-react";
-import { Button } from "@/components/atoms/button";
+'use client';
+import { Button } from '@/components/atoms/button';
+import BulletList from '@tiptap/extension-bullet-list';
+import Link from '@tiptap/extension-link';
+import ListItem from '@tiptap/extension-list-item';
+import { EditorContent, useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Bold, Italic, LinkIcon, List } from 'lucide-react';
+import React from 'react';
+import { Markdown } from 'tiptap-markdown';
 
 interface SimpleRichTextEditorProps {
   value: string;
@@ -41,7 +41,8 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     content: value,
     editorProps: {
       attributes: {
-        class: "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[100px] px-3 py-2",
+        class:
+          'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[100px] px-3 py-2',
       },
     },
   });
@@ -66,14 +67,14 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
   }
 
   return (
-    <div className="border rounded-md overflow-hidden">
-      <div className="border-b bg-muted/50 p-2 flex gap-2">
+    <div className="overflow-hidden rounded-md border">
+      <div className="flex gap-2 border-b bg-muted/50 p-2">
         <Button
           type="button"
           variant="outline"
           size="icon"
           onClick={() => editor.chain().focus().toggleBold().run()}
-          className={editor.isActive("bold") ? "bg-muted" : ""}
+          className={editor.isActive('bold') ? 'bg-muted' : ''}
         >
           <Bold className="h-4 w-4" />
         </Button>
@@ -82,7 +83,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
           variant="outline"
           size="icon"
           onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={editor.isActive("italic") ? "bg-muted" : ""}
+          className={editor.isActive('italic') ? 'bg-muted' : ''}
         >
           <Italic className="h-4 w-4" />
         </Button>
@@ -91,7 +92,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
           variant="outline"
           size="icon"
           onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={editor.isActive("bulletList") ? "bg-muted" : ""}
+          className={editor.isActive('bulletList') ? 'bg-muted' : ''}
         >
           <List className="h-4 w-4" />
         </Button>
@@ -100,12 +101,12 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
           variant="outline"
           size="icon"
           onClick={() => {
-            const url = window.prompt("Enter the URL");
+            const url = window.prompt('Enter the URL');
             if (url) {
               editor.chain().focus().setLink({ href: url }).run();
             }
           }}
-          className={editor.isActive("link") ? "bg-muted" : ""}
+          className={editor.isActive('link') ? 'bg-muted' : ''}
         >
           <LinkIcon className="h-4 w-4" />
         </Button>

@@ -1,25 +1,23 @@
 export const STRIPE_CONFIG = {
   // API Configuration
-  API_VERSION: "2024-12-18.acacia" as const,
-  CURRENCY: "eur",
-  PAYMENT_METHODS: ["card", "sepa_debit", "multibanco"] as const,
+  API_VERSION: '2024-12-18.acacia' as const,
+  CURRENCY: 'eur',
+  PAYMENT_METHODS: ['card', 'sepa_debit', 'multibanco'] as const,
 
   // Platform Fee Configuration
-  PLATFORM_FEE_PERCENTAGE: Number(
-    process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? "0.15"
-  ),
+  PLATFORM_FEE_PERCENTAGE: Number(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? '0.15'),
 
   // Webhook Configuration
   WEBHOOK_EVENTS: {
     ALLOWED_EVENTS: [
-      "checkout.session.completed",
-      "customer.subscription.created",
-      "customer.subscription.updated",
-      "customer.subscription.deleted",
-      "invoice.paid",
-      "invoice.payment_failed",
-      "payment_intent.succeeded",
-      "payment_intent.payment_failed",
+      'checkout.session.completed',
+      'customer.subscription.created',
+      'customer.subscription.updated',
+      'customer.subscription.deleted',
+      'invoice.paid',
+      'invoice.payment_failed',
+      'payment_intent.succeeded',
+      'payment_intent.payment_failed',
     ] as const,
   },
 } as const;
@@ -36,5 +34,4 @@ export function calculateExpertAmount(amount: number | null): number {
 }
 
 // Export types for webhook events
-export type AllowedWebhookEvent =
-  (typeof STRIPE_CONFIG.WEBHOOK_EVENTS.ALLOWED_EVENTS)[number];
+export type AllowedWebhookEvent = (typeof STRIPE_CONFIG.WEBHOOK_EVENTS.ALLOWED_EVENTS)[number];
