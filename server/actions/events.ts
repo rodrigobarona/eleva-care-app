@@ -54,7 +54,7 @@ import { logAuditEvent } from '@/lib/logAuditEvent';
 export async function createEvent(
   unsafeData: z.infer<typeof eventFormSchema>,
 ): Promise<{ error: boolean; message?: string } | undefined> {
-  const { userId } = auth();
+  const { userId } = await auth();
   const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
@@ -115,7 +115,7 @@ export async function updateEvent(
   id: string,
   unsafeData: z.infer<typeof eventFormSchema>,
 ): Promise<{ error: boolean } | undefined> {
-  const { userId } = auth();
+  const { userId } = await auth();
   const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
@@ -176,7 +176,7 @@ export async function updateEvent(
  * }
  */
 export async function deleteEvent(id: string): Promise<{ error: boolean } | undefined> {
-  const { userId } = auth();
+  const { userId } = await auth();
   const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
@@ -265,7 +265,7 @@ export async function updateEventActiveState(
   id: string,
   isActive: boolean,
 ): Promise<{ error: boolean } | undefined> {
-  const { userId } = auth();
+  const { userId } = await auth();
   const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';

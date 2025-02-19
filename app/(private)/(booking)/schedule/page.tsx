@@ -7,7 +7,7 @@ import { ScheduleForm } from '@/components/organisms/forms/ScheduleForm';
 export const revalidate = 0;
 
 export default async function SchedulePage() {
-  const { userId, redirectToSignIn } = auth();
+  const { userId, redirectToSignIn } = await auth();
   if (userId == null) return redirectToSignIn();
 
   const schedule = await db.query.ScheduleTable.findFirst({

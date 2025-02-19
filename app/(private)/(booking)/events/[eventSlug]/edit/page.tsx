@@ -24,7 +24,7 @@ export default async function EditEventPage(props: { params: Promise<{ eventSlug
 
   const { eventSlug } = params;
 
-  const { userId, redirectToSignIn } = auth();
+  const { userId, redirectToSignIn } = await auth();
 
   if (userId == null) return redirectToSignIn();
 

@@ -8,7 +8,7 @@ import { EventsList } from '@/components/organisms/EventsList';
 export const revalidate = 0;
 
 export default async function EventsPage() {
-  const { userId } = auth();
+  const { userId } = await auth();
 
   if (!userId) {
     redirect('/sign-in');

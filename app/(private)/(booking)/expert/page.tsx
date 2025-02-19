@@ -8,7 +8,7 @@ import { eq } from 'drizzle-orm';
 import { ExpertForm } from '@/components/organisms/forms/ExpertForm';
 
 export default async function ProfilePage() {
-  const { userId } = auth();
+  const { userId } = await auth();
   if (!userId) return redirect('/sign-in');
 
   // Try to find existing profile

@@ -28,9 +28,8 @@ export const revalidate = 0;
 export default async function BookEventPage(props: {
   params: Promise<{ username: string; eventSlug: string }>;
 }) {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const headersList = await headers();
   const params = await props.params;
+  const headersList = await headers();
 
   const { username, eventSlug } = params;
 

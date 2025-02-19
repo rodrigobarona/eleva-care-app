@@ -80,7 +80,7 @@ import { logAuditEvent } from '@/lib/logAuditEvent';
  */
 export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema>) {
   // Get user authentication and request metadata
-  const { userId } = auth();
+  const { userId } = await auth();
   const headersList = await headers();
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
   const userAgent = headersList.get('user-agent') ?? 'Unknown';
