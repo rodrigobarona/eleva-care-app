@@ -1,3 +1,11 @@
+import Image from 'next/image';
+import Link from 'next/link';
+
+import { db } from '@/drizzle/db';
+import { EventTable } from '@/drizzle/schema';
+import { createClerkClient } from '@clerk/nextjs/server';
+import { and, eq, gt, min } from 'drizzle-orm';
+
 import { Card, CardContent } from '@/components/atoms/card';
 import FadeInSection from '@/components/atoms/FadeInSection';
 import {
@@ -7,12 +15,6 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/molecules/carousel';
-import { db } from '@/drizzle/db';
-import { EventTable } from '@/drizzle/schema';
-import { createClerkClient } from '@clerk/nextjs/server';
-import { and, eq, gt, min } from 'drizzle-orm';
-import Image from 'next/image';
-import Link from 'next/link';
 
 const ExpertsSection = async () => {
   const clerk = createClerkClient({

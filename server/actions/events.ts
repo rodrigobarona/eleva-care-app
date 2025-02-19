@@ -6,17 +6,37 @@
 
 'use server';
 
-import { db } from '@/drizzle/db';
-import { EventTable } from '@/drizzle/schema';
-import { logAuditEvent } from '@/lib/logAuditEvent';
-import { eventFormSchema } from '@/schema/events';
-import { auth } from '@clerk/nextjs/server';
-import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+
+import { db } from '@/drizzle/db';
+import { EventTable } from '@/drizzle/schema';
+import { eventFormSchema } from '@/schema/events';
+import { auth } from '@clerk/nextjs/server';
+import { and, eq } from 'drizzle-orm';
 import 'use-server';
 import type { z } from 'zod';
+
+import { logAuditEvent } from '@/lib/logAuditEvent';
+
+/**
+ * @fileoverview Server actions for managing events in the Eleva Care application.
+ * This file handles the creation, updating, deletion, and management of events,
+ * including validation, logging, and redirection.
+ */
+
+/**
+ * @fileoverview Server actions for managing events in the Eleva Care application.
+ * This file handles the creation, updating, deletion, and management of events,
+ * including validation, logging, and redirection.
+ */
+
+/**
+ * @fileoverview Server actions for managing events in the Eleva Care application.
+ * This file handles the creation, updating, deletion, and management of events,
+ * including validation, logging, and redirection.
+ */
 
 /**
  * Creates a new event using the provided data.
@@ -35,7 +55,7 @@ export async function createEvent(
   unsafeData: z.infer<typeof eventFormSchema>,
 ): Promise<{ error: boolean; message?: string } | undefined> {
   const { userId } = auth();
-  const headersList = headers();
+  const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
   const userAgent = headersList.get('user-agent') ?? 'Unknown';
@@ -96,7 +116,7 @@ export async function updateEvent(
   unsafeData: z.infer<typeof eventFormSchema>,
 ): Promise<{ error: boolean } | undefined> {
   const { userId } = auth();
-  const headersList = headers();
+  const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
   const userAgent = headersList.get('user-agent') ?? 'Unknown';
@@ -157,7 +177,7 @@ export async function updateEvent(
  */
 export async function deleteEvent(id: string): Promise<{ error: boolean } | undefined> {
   const { userId } = auth();
-  const headersList = headers();
+  const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
   const userAgent = headersList.get('user-agent') ?? 'Unknown';
@@ -246,7 +266,7 @@ export async function updateEventActiveState(
   isActive: boolean,
 ): Promise<{ error: boolean } | undefined> {
   const { userId } = auth();
-  const headersList = headers();
+  const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
   const userAgent = headersList.get('user-agent') ?? 'Unknown';

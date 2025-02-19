@@ -1,10 +1,12 @@
 'use client';
 
+import React from 'react';
+
+import { getConnectLoginLink, handleConnectStripe } from '@/server/actions/billing';
+import { toast } from 'sonner';
+
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
-import { getConnectLoginLink, handleConnectStripe } from '@/server/actions/billing';
-import React from 'react';
-import { toast } from 'sonner';
 
 interface BillingPageClientProps {
   userId: string;

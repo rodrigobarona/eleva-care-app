@@ -1,7 +1,8 @@
 'use client';
 
-import Header from '@/components/organisms/Header';
 import type { ReactNode } from 'react';
+
+import Header from '@/components/organisms/Header';
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (

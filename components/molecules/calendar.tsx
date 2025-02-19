@@ -1,10 +1,11 @@
 'use client';
 
-import { ChevronLeftIcon, ChevronRightIcon } from '@radix-ui/react-icons';
 import type * as React from 'react';
+
 import { DayPicker } from 'react-day-picker';
 
 import { buttonVariants } from '@/components/atoms/button';
+
 import { cn } from '@/lib/utils';
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
@@ -51,12 +52,6 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         day_range_middle: 'aria-selected:bg-accent aria-selected:text-accent-foreground',
         day_hidden: 'invisible',
         ...classNames,
-      }}
-      components={{
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        IconLeft: ({ ...props }) => <ChevronLeftIcon className="h-4 w-4" />,
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        IconRight: ({ ...props }) => <ChevronRightIcon className="h-4 w-4" />,
       }}
       {...props}
     />

@@ -1,5 +1,12 @@
 'use client';
 
+import * as React from 'react';
+
+import { useIsMobile } from '@/hooks/use-mobile';
+import { ViewVerticalIcon } from '@radix-ui/react-icons';
+import { Slot } from '@radix-ui/react-slot';
+import { cva, VariantProps } from 'class-variance-authority';
+
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
 import { Separator } from '@/components/atoms/separator';
@@ -11,12 +18,8 @@ import {
   TooltipTrigger,
 } from '@/components/atoms/tooltip';
 import { Sheet, SheetContent } from '@/components/molecules/sheet';
-import { useIsMobile } from '@/hooks/use-mobile';
+
 import { cn } from '@/lib/utils';
-import { ViewVerticalIcon } from '@radix-ui/react-icons';
-import { Slot } from '@radix-ui/react-slot';
-import { VariantProps, cva } from 'class-variance-authority';
-import * as React from 'react';
 
 const SIDEBAR_COOKIE_NAME = 'sidebar:state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;

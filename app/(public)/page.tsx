@@ -1,5 +1,6 @@
-import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+
+import { auth } from '@clerk/nextjs/server';
 
 import Footer from '@/components/organisms/Footer';
 import ApproachSection from '@/components/organisms/home/ApproachSection';
@@ -7,11 +8,10 @@ import ExpertsSection from '@/components/organisms/home/ExpertsSection';
 import Hero from '@/components/organisms/home/Hero';
 import ServicesSection from '@/components/organisms/home/Services';
 
-export default function HomePage({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | string[] | undefined };
+export default async function HomePage(props: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const searchParams = await props.searchParams;
   const { userId } = auth();
   const showHome = searchParams.home === 'true';
 

@@ -1,5 +1,6 @@
-import FadeInSection from '@/components/atoms/FadeInSection';
 import type React from 'react';
+
+import FadeInSection from '@/components/atoms/FadeInSection';
 
 interface NewsletterSectionProps {
   title: string;
@@ -35,6 +36,7 @@ const NewsletterSection: React.FC<NewsletterSectionProps> = ({
 
             <div className="mt-8 flex gap-2">
               <iframe
+                title="Newsletter"
                 src="https://embeds.beehiiv.com/294b9d43-62b2-47e4-9757-2e5ef82c204d?slim=true"
                 data-test-id="beehiiv-embed"
                 height="52"
@@ -46,7 +48,7 @@ const NewsletterSection: React.FC<NewsletterSectionProps> = ({
                   borderRadius: '0px',
                   backgroundColor: 'transparent',
                 }} // Updated to object
-              ></iframe>
+              />
             </div>
             <p className="text-elevaNeutral-900/60 pt-2 text-xs">{privacy}</p>
           </div>

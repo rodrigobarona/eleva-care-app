@@ -1,7 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
-import { ScheduleForm } from '@/components/organisms/forms/ScheduleForm';
 import { db } from '@/drizzle/db';
 import { auth } from '@clerk/nextjs/server';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
+import { ScheduleForm } from '@/components/organisms/forms/ScheduleForm';
 
 export const revalidate = 0;
 

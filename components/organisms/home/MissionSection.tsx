@@ -1,7 +1,9 @@
+import type React from 'react';
+
+import { ChevronRight } from 'lucide-react';
+
 import { Button } from '@/components/atoms/button';
 import FadeInSection from '@/components/atoms/FadeInSection';
-import { ChevronRight } from 'lucide-react';
-import type React from 'react';
 
 type MissionSectionProps = {
   title: string;

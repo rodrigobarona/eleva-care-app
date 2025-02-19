@@ -1,4 +1,9 @@
 'use client';
+
+import { useState } from 'react';
+
+import { CopyCheck, CopyX, Link2 } from 'lucide-react';
+
 import { Button, type ButtonProps } from '@/components/atoms/button';
 import {
   Tooltip,
@@ -6,8 +11,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/atoms/tooltip';
-import { CopyCheck, CopyX, Link2 } from 'lucide-react';
-import { useState } from 'react';
 
 type CopyState = 'idle' | 'copied' | 'error';
 

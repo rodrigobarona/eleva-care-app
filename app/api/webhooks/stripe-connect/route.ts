@@ -1,8 +1,9 @@
+import { NextResponse } from 'next/server';
+
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 // Add route segment config

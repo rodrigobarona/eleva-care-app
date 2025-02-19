@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
+
 import * as auditSchema from './auditSchema';
 
 // Separate audit log database connection

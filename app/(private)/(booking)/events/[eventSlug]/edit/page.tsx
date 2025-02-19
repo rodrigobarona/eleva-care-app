@@ -1,8 +1,11 @@
-import { EventFormWrapper } from '@/components/organisms/forms/EventFormWrapper';
+import { Suspense } from 'react';
+
+import { notFound } from 'next/navigation';
+
 import { db } from '@/drizzle/db';
 import { auth } from '@clerk/nextjs/server';
-import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
+
+import { EventFormWrapper } from '@/components/organisms/forms/EventFormWrapper';
 
 function LoadingState() {
   return (
@@ -16,11 +19,11 @@ function LoadingState() {
   );
 }
 
-export default async function EditEventPage({
-  params: { eventSlug },
-}: {
-  params: { eventSlug: string };
-}) {
+export default async function EditEventPage(props: { params: Promise<{ eventSlug: string }> }) {
+  const params = await props.params;
+
+  const { eventSlug } = params;
+
   const { userId, redirectToSignIn } = auth();
 
   if (userId == null) return redirectToSignIn();

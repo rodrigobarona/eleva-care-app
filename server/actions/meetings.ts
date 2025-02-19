@@ -5,17 +5,39 @@
  */
 
 'use server';
+
+import { headers } from 'next/headers';
+
 import { db } from '@/drizzle/db';
 import { MeetingTable } from '@/drizzle/schema';
-import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
-import { logAuditEvent } from '@/lib/logAuditEvent';
 import { meetingActionSchema } from '@/schema/meetings';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { addMinutes } from 'date-fns';
-import { headers } from 'next/headers';
 import 'use-server';
 import type { z } from 'zod';
+
+import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
+import { logAuditEvent } from '@/lib/logAuditEvent';
+
 import { createCalendarEvent } from '../googleCalendar';
+
+/**
+ * @fileoverview Server actions for managing meetings in the Eleva Care application.
+ * This file handles the creation and management of meetings between experts and guests,
+ * including validation, scheduling, payment processing, and Google Calendar integration.
+ */
+
+/**
+ * @fileoverview Server actions for managing meetings in the Eleva Care application.
+ * This file handles the creation and management of meetings between experts and guests,
+ * including validation, scheduling, payment processing, and Google Calendar integration.
+ */
+
+/**
+ * @fileoverview Server actions for managing meetings in the Eleva Care application.
+ * This file handles the creation and management of meetings between experts and guests,
+ * including validation, scheduling, payment processing, and Google Calendar integration.
+ */
 
 /**
  * Creates a new meeting between an expert and a guest.
@@ -194,8 +216,8 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
           endTime: endTimeUTC,
           meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
         },
-        headers().get('x-forwarded-for') ?? 'Unknown',
-        headers().get('user-agent') ?? 'Unknown',
+        (await headers()).get('x-forwarded-for') ?? 'Unknown',
+        (await headers()).get('user-agent') ?? 'Unknown',
       );
 
       return { error: false, meeting };

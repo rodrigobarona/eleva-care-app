@@ -1,8 +1,9 @@
+import { headers } from 'next/headers';
+import { NextResponse } from 'next/server';
+
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { createMeeting } from '@/server/actions/meetings';
-import { headers } from 'next/headers';
-import { NextResponse } from 'next/server';
 import type { Stripe } from 'stripe';
 import StripeSDK from 'stripe';
 
@@ -201,7 +202,7 @@ async function scheduleConnectPayout(session: StripeCheckoutSession, meetingData
 export async function POST(request: Request) {
   try {
     const body = await request.text();
-    const signature = headers().get('stripe-signature');
+    const signature = (await headers()).get('stripe-signature');
 
     if (!signature || !process.env.STRIPE_WEBHOOK_SECRET) {
       return NextResponse.json({ error: 'Missing stripe signature' }, { status: 400 });

@@ -1,8 +1,9 @@
+import { NextResponse } from 'next/server';
+
 import { db } from '@/drizzle/db';
 import { MeetingTable } from '@/drizzle/schema';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
 
 // Add route segment config
 export const dynamic = 'force-dynamic';

@@ -1,6 +1,8 @@
 'use client';
-import { Skeleton } from '@/components/atoms/skeleton';
+
 import { useUser } from '@clerk/nextjs';
+
+import { Skeleton } from '@/components/atoms/skeleton';
 
 export default function Dashboard() {
   const { user, isLoaded } = useUser();

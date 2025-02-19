@@ -1,3 +1,9 @@
+import React from 'react';
+
+import { format } from 'date-fns';
+import { FileEdit, Maximize2, Minus } from 'lucide-react';
+import { toast } from 'sonner';
+
 import { Button } from '@/components/atoms/button';
 import {
   Dialog,
@@ -8,11 +14,8 @@ import {
   DialogTrigger,
 } from '@/components/molecules/dialog';
 import RecordEditor from '@/components/molecules/RecordEditor';
+
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
-import { FileEdit, Maximize2, Minus } from 'lucide-react';
-import React from 'react';
-import { toast } from 'sonner';
 
 interface PatientRecord {
   id: string;
@@ -42,7 +45,7 @@ export function RecordDialog({
   const [currentContent, setCurrentContent] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [lastSavedContent, setLastSavedContent] = React.useState('');
-  const saveTimeoutRef = React.useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout>(undefined);
 
   const fetchRecords = React.useCallback(async () => {
     try {
@@ -191,12 +194,7 @@ export function RecordDialog({
             </div>
 
             <div className="flex-1 overflow-hidden">
-              <RecordEditor
-                value={currentContent}
-                onChange={setCurrentContent}
-                readOnly={false}
-                autoFocus
-              />
+              <RecordEditor value={currentContent} onChange={setCurrentContent} readOnly={false} />
             </div>
           </div>
         )}

@@ -1,10 +1,12 @@
-import { STRIPE_CONFIG, calculateApplicationFee } from '@/config/stripe';
+import { NextResponse } from 'next/server';
+
+import { calculateApplicationFee, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable } from '@/drizzle/schema';
-import { getOrCreateStripeCustomer } from '@/lib/stripe';
 import { eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+
+import { getOrCreateStripeCustomer } from '@/lib/stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION,

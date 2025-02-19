@@ -1,6 +1,8 @@
 'use client';
+
 import type { EventTable } from '@/drizzle/schema';
 import type { InferSelectModel } from 'drizzle-orm';
+
 import { EventForm } from './EventForm';
 
 // Create Event type from the EventTable schema

@@ -1,5 +1,12 @@
 'use client';
 
+import type React from 'react';
+import { useState } from 'react';
+
+import { redirect } from 'next/navigation';
+
+import { useOrganizationList, useUser } from '@clerk/nextjs';
+
 import { Button } from '@/components/atoms/button';
 import {
   Card,
@@ -11,9 +18,6 @@ import {
 } from '@/components/atoms/card';
 import { Input } from '@/components/atoms/input';
 import { Label } from '@/components/atoms/label';
-import { useOrganizationList, useUser } from '@clerk/nextjs';
-import { redirect } from 'next/navigation';
-import React, { useState } from 'react';
 
 export default function OnboardingPage() {
   const { user, isLoaded: isUserLoaded } = useUser();

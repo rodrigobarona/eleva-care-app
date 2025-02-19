@@ -1,11 +1,14 @@
-import { db } from '@/drizzle/db';
-import { RecordTable } from '@/drizzle/schema';
-import { decryptRecord, encryptRecord } from '@/lib/encryption';
-import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-export async function POST(request: Request, { params }: { params: { meetingId: string } }) {
+import { db } from '@/drizzle/db';
+import { RecordTable } from '@/drizzle/schema';
+import { auth } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
+
+import { decryptRecord, encryptRecord } from '@/lib/encryption';
+
+export async function POST(request: Request, props: { params: Promise<{ meetingId: string }> }) {
+  const params = await props.params;
   try {
     const { userId } = auth();
     if (!userId) {
@@ -47,7 +50,8 @@ export async function POST(request: Request, { params }: { params: { meetingId: 
   }
 }
 
-export async function GET(request: Request, { params }: { params: { meetingId: string } }) {
+export async function GET(request: Request, props: { params: Promise<{ meetingId: string }> }) {
+  const params = await props.params;
   try {
     const { userId } = auth();
     if (!userId) {
@@ -86,7 +90,8 @@ export async function GET(request: Request, { params }: { params: { meetingId: s
   }
 }
 
-export async function PUT(request: Request, { params }: { params: { meetingId: string } }) {
+export async function PUT(request: Request, props: { params: Promise<{ meetingId: string }> }) {
+  const params = await props.params;
   try {
     const { userId } = auth();
     if (!userId) {

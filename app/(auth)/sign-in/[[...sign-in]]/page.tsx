@@ -1,5 +1,10 @@
 'use client';
 
+import Link from 'next/link';
+
+import * as Clerk from '@clerk/elements/common';
+import * as SignIn from '@clerk/elements/sign-in';
+
 import { Button } from '@/components/atoms/button';
 import {
   Card,
@@ -12,9 +17,6 @@ import {
 import { Icons } from '@/components/atoms/icons';
 import { Input } from '@/components/atoms/input';
 import { Label } from '@/components/atoms/label';
-import * as Clerk from '@clerk/elements/common';
-import * as SignIn from '@clerk/elements/sign-in';
-import Link from 'next/link';
 
 export default function SignInPage() {
   return (

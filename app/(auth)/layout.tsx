@@ -1,6 +1,8 @@
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
 import { ReactNode } from 'react';
+
+import { redirect } from 'next/navigation';
+
+import { auth } from '@clerk/nextjs/server';
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   const { userId } = auth();

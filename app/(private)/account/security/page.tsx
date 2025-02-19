@@ -1,4 +1,13 @@
 'use client';
+
+import React, { useCallback, useState } from 'react';
+
+import { useSession, useSignIn, useUser } from '@clerk/nextjs';
+import type { SessionWithActivitiesResource } from '@clerk/types';
+import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
+import { toast } from 'sonner';
+import { z } from 'zod';
+
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Input } from '@/components/atoms/input';
@@ -10,12 +19,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import { useSession, useSignIn, useUser } from '@clerk/nextjs';
-import type { SessionWithActivitiesResource } from '@clerk/types';
-import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
-import React, { useCallback, useState } from 'react';
-import { toast } from 'sonner';
-import { z } from 'zod';
 
 const passwordSchema = z.object({
   password: z

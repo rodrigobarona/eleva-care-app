@@ -1,12 +1,15 @@
-import { Skeleton } from '@/components/atoms/skeleton';
-import { db } from '@/drizzle/db';
-import { createClerkClient } from '@clerk/nextjs/server';
-import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
+import React from 'react';
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import React from 'react';
+
+import { db } from '@/drizzle/db';
+import { createClerkClient } from '@clerk/nextjs/server';
+import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+
+import { Skeleton } from '@/components/atoms/skeleton';
 
 const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -54,13 +57,16 @@ function ProfileSkeleton() {
   );
 }
 
-export default async function UserLayout({
-  children,
-  params: { username },
-}: {
+export default async function UserLayout(props: {
   children: React.ReactNode;
-  params: { username: string };
+  params: Promise<{ username: string }>;
 }) {
+  const params = await props.params;
+
+  const { username } = params;
+
+  const { children } = props;
+
   return (
     <div className="container max-w-7xl pb-10 pt-32">
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">

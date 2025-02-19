@@ -16,7 +16,6 @@ import {
   setMinutes,
 } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
-import 'server-only';
 
 interface ScheduleEvent {
   clerkUserId: string;

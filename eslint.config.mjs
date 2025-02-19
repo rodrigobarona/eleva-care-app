@@ -1,49 +1,89 @@
-import { fixupConfigRules, fixupPluginRules } from '@eslint/compat';
+// eslint.config.mjs
 import { FlatCompat } from '@eslint/eslintrc';
 import js from '@eslint/js';
 import typescriptEslint from '@typescript-eslint/eslint-plugin';
-import _import from 'eslint-plugin-import';
-import react from 'eslint-plugin-react';
+import typescriptParser from '@typescript-eslint/parser';
+import eslintPluginImport from 'eslint-plugin-import';
+import eslintPluginJSXA11y from 'eslint-plugin-jsx-a11y';
+import eslintPluginReact from 'eslint-plugin-react';
+import eslintPluginReactHooks from 'eslint-plugin-react-hooks';
+import globals from 'globals';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 const compat = new FlatCompat({
   baseDirectory: __dirname,
   recommendedConfig: js.configs.recommended,
-  allConfig: js.configs.all,
 });
 
 export default [
-  ...fixupConfigRules(
-    compat.extends(
-      'next',
-      'next/core-web-vitals',
-      'next/typescript',
-      'eslint:recommended',
-      'plugin:react/recommended',
-      'plugin:@typescript-eslint/recommended',
-      'prettier',
-      'plugin:import/recommended',
-      'plugin:import/typescript',
-    ),
+  js.configs.recommended,
+  ...compat.extends(
+    'next/core-web-vitals',
+    'plugin:@typescript-eslint/recommended',
+    'plugin:react/recommended',
+    'plugin:react-hooks/recommended',
+    'plugin:import/errors',
+    'plugin:import/warnings',
+    'plugin:import/typescript',
+    'plugin:jsx-a11y/recommended',
+    'prettier',
   ),
   {
-    plugins: {
-      react: fixupPluginRules(react),
-      '@typescript-eslint': fixupPluginRules(typescriptEslint),
-      import: fixupPluginRules(_import),
-    },
-
+    files: ['**/*.{js,jsx,ts,tsx}'],
+    ignores: ['**/node_modules/**', '.next/**', 'out/**'],
     languageOptions: {
       ecmaVersion: 2021,
       sourceType: 'module',
+      parser: typescriptParser,
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+      },
+      globals: {
+        ...globals.browser,
+        ...globals.node,
+        ...globals.es2021,
+      },
     },
-
+    plugins: {
+      '@typescript-eslint': typescriptEslint,
+      react: eslintPluginReact,
+      'react-hooks': eslintPluginReactHooks,
+      import: eslintPluginImport,
+      'jsx-a11y': eslintPluginJSXA11y,
+    },
+    settings: {
+      react: {
+        version: 'detect',
+      },
+      'import/resolver': {
+        typescript: {},
+      },
+    },
     rules: {
+      'react/react-in-jsx-scope': 'off',
       'react/prop-types': 'off',
-      '@typescript-eslint/no-empty-interface': 'off',
+      '@typescript-eslint/explicit-module-boundary-types': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      'import/order': 'off', // Disable ESLint import ordering
+      'import/no-unresolved': 'error',
+      'jsx-a11y/anchor-is-valid': [
+        'error',
+        {
+          components: ['Link'],
+          specialLink: ['hrefLeft', 'hrefRight'],
+          aspects: ['invalidHref', 'preferButton'],
+        },
+      ],
+    },
+  },
+  {
+    files: ['**/*.test.{js,jsx,ts,tsx}', '**/*.spec.{js,jsx,ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
 ];

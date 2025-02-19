@@ -1,17 +1,21 @@
-import { Button } from '@/components/atoms/button';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
-import { Skeleton } from '@/components/atoms/skeleton';
+import { Suspense } from 'react';
+
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+
 import { db } from '@/drizzle/db';
-import { formatEventDescription } from '@/lib/formatters';
-import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
-import NextAvailableTimeClient from '@/lib/NextAvailableTimeClient';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { addMonths } from 'date-fns';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
 import ReactMarkdown from 'react-markdown';
+
+import { Button } from '@/components/atoms/button';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
+import { Skeleton } from '@/components/atoms/skeleton';
+
+import { formatEventDescription } from '@/lib/formatters';
+import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
+import NextAvailableTimeClient from '@/lib/NextAvailableTimeClient';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -152,11 +156,11 @@ function EventCard({
   );
 }
 
-export default async function BookingPage({
-  params: { username },
-}: {
-  params: { username: string };
-}) {
+export default async function BookingPage(props: { params: Promise<{ username: string }> }) {
+  const params = await props.params;
+
+  const { username } = params;
+
   try {
     console.log('[BookingPage] Starting to load page for username:', username);
     const clerk = createClerkClient({

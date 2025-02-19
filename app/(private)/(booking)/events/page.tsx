@@ -1,7 +1,9 @@
-import { EventsList } from '@/components/organisms/EventsList';
+import { redirect } from 'next/navigation';
+
 import { db } from '@/drizzle/db';
 import { auth, createClerkClient } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+
+import { EventsList } from '@/components/organisms/EventsList';
 
 export const revalidate = 0;
 

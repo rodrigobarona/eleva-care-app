@@ -1,6 +1,8 @@
-import { Card, CardContent } from '@/components/atoms/card';
 import { notFound } from 'next/navigation';
+
 import ReactMarkdown from 'react-markdown';
+
+import { Card, CardContent } from '@/components/atoms/card';
 
 const legalDocs = {
   terms: {
@@ -216,11 +218,13 @@ This DPA shall be governed by and construed in accordance with the laws of Portu
   },
 };
 
-export default function LegalPage({
-  params: { document },
-}: {
-  params: { document: keyof typeof legalDocs };
+export default async function LegalPage(props: {
+  params: Promise<{ document: keyof typeof legalDocs }>;
 }) {
+  const params = await props.params;
+
+  const { document } = params;
+
   const doc = legalDocs[document];
 
   if (!doc) {

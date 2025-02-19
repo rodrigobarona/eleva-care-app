@@ -1,5 +1,9 @@
 'use client';
 
+import React from 'react';
+
+import { usePathname } from 'next/navigation';
+
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,8 +12,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/molecules/breadcrumb';
-import { usePathname } from 'next/navigation';
-import React from 'react';
 
 export function AppBreadcrumb() {
   const pathname = usePathname();

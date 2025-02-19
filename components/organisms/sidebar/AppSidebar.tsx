@@ -1,5 +1,10 @@
 'use client';
 
+import { Suspense } from 'react';
+
+import { useUser } from '@clerk/nextjs';
+import { Clock, ExternalLink, Leaf, LifeBuoy, Link, type LucideIcon, User } from 'lucide-react';
+
 import { NavMain } from '@/components/organisms/sidebar/NavMain';
 import { NavSecondary } from '@/components/organisms/sidebar/NavSecondary';
 import { NavUser } from '@/components/organisms/sidebar/NavUser';
@@ -12,9 +17,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/organisms/sidebar/sidebar';
-import { useUser } from '@clerk/nextjs';
-import { Clock, ExternalLink, Leaf, LifeBuoy, Link, User, type LucideIcon } from 'lucide-react';
-import { Suspense } from 'react';
 
 interface SidebarItem {
   title: string;
@@ -70,7 +72,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
-              <a href="/">
+              <Link href="/">
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                   <Leaf className="size-4" />
                 </div>
@@ -78,7 +80,7 @@ export function AppSidebar() {
                   <span className="truncate font-semibold">Eleva Care</span>
                   <span className="truncate text-xs">Professional</span>
                 </div>
-              </a>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

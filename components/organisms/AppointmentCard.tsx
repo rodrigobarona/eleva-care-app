@@ -1,11 +1,14 @@
 'use client';
+
+import Link from 'next/link';
+
+import { format } from 'date-fns';
+import { Clock, Link as LinkIcon, Mail, User } from 'lucide-react';
+
 import { Badge } from '@/components/atoms/badge';
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { RecordDialog } from '@/components/organisms/RecordDialog';
-import { format } from 'date-fns';
-import { Clock, Link as LinkIcon, Mail, User } from 'lucide-react';
-import Link from 'next/link';
 
 interface Appointment {
   id: string;

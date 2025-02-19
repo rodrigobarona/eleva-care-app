@@ -37,6 +37,7 @@ export function VideoPlayer({
     >
       <source src={src} type="video/webm" />
       Your browser does not support the video tag.
+      <track kind="captions" src={src} />
     </video>
   );
 }

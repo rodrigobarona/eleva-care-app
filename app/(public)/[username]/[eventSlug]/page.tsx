@@ -1,3 +1,14 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+
+import { db } from '@/drizzle/db';
+import GoogleCalendarService from '@/server/googleCalendar';
+import { createClerkClient } from '@clerk/nextjs/server';
+import { addMonths, eachMinuteOfInterval, endOfDay, roundToNearestMinutes } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
+import { Clock as ClockIcon, WalletCards as WalletCardsIcon } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+
 import { Button } from '@/components/atoms/button';
 import {
   Card,
@@ -8,24 +19,18 @@ import {
   CardTitle,
 } from '@/components/atoms/card';
 import { MeetingForm } from '@/components/organisms/forms/MeetingForm';
-import { db } from '@/drizzle/db';
+
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
-import GoogleCalendarService from '@/server/googleCalendar';
-import { createClerkClient } from '@clerk/nextjs/server';
-import { addMonths, eachMinuteOfInterval, endOfDay, roundToNearestMinutes } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
-import { Clock as ClockIcon, WalletCards as WalletCardsIcon } from 'lucide-react';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-import ReactMarkdown from 'react-markdown';
 
 export const revalidate = 0;
 
-export default async function BookEventPage({
-  params: { username, eventSlug },
-}: {
-  params: { username: string; eventSlug: string };
+export default async function BookEventPage(props: {
+  params: Promise<{ username: string; eventSlug: string }>;
 }) {
+  const params = await props.params;
+
+  const { username, eventSlug } = params;
+
   const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
   });

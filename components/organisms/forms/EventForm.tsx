@@ -1,15 +1,19 @@
 'use client';
 
-import { slugify } from '@/lib/validations/slug';
+import React, { useTransition } from 'react';
+
+import Link from 'next/link';
+
 import { eventFormSchema } from '@/schema/events';
 import { createEvent, deleteEvent, updateEvent } from '@/server/actions/events';
 import { createStripeProduct, updateStripeProduct } from '@/server/actions/stripe';
 import { useUser } from '@clerk/nextjs';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Link from 'next/link';
-import React, { useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
+
+import { slugify } from '@/lib/validations/slug';
+
 import { Button } from '../../atoms/button';
 import { Input } from '../../atoms/input';
 import { Switch } from '../../atoms/switch';

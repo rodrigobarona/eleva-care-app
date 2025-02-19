@@ -1,11 +1,12 @@
 import { EventTable, MeetingTable } from '@/drizzle/schema';
-import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
-import { logAuditEvent } from '@/lib/logAuditEvent';
 import { createMeeting } from '@/server/actions/meetings';
 import { createCalendarEvent } from '@/server/googleCalendar';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { addMinutes } from 'date-fns';
 import type { InferSelectModel } from 'drizzle-orm';
+
+import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
+import { logAuditEvent } from '@/lib/logAuditEvent';
 
 type DbMeeting = InferSelectModel<typeof MeetingTable>;
 type DbEvent = InferSelectModel<typeof EventTable>;

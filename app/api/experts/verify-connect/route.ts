@@ -1,6 +1,7 @@
+import { NextResponse } from 'next/server';
+
 import { verifyExpertConnectAccount } from '@/server/actions/experts';
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 export const preferredRegion = 'auto';

@@ -1,6 +1,15 @@
 'use client';
 
+import { Fragment, useState } from 'react';
+
 import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
+import { scheduleFormSchema } from '@/schema/schedule';
+import { saveSchedule } from '@/server/actions/schedule';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Plus, X } from 'lucide-react';
+import { useFieldArray, useForm } from 'react-hook-form';
+import type { z } from 'zod';
+
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
 import {
@@ -18,15 +27,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/molecules/select';
+
 import { formatTimezoneOffset } from '@/lib/formatters';
 import { timeToInt } from '@/lib/utils';
-import { scheduleFormSchema } from '@/schema/schedule';
-import { saveSchedule } from '@/server/actions/schedule';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, X } from 'lucide-react';
-import { Fragment, useState } from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
-import type { z } from 'zod';
 
 type Availability = {
   startTime: string;

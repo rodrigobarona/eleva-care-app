@@ -1,19 +1,27 @@
 'use client';
+
+import { use, useEffect, useState } from 'react';
+
+import { useRouter } from 'next/navigation';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Icons } from '@/components/atoms/icons';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 const MAX_ATTEMPTS = 15;
 const CHECK_INTERVAL = 2000;
 
-export default function PaymentProcessingPage({
-  params: { username, eventSlug },
-  searchParams: { startTime },
-}: {
-  params: { username: string; eventSlug: string };
-  searchParams: { startTime: string };
+export default function PaymentProcessingPage(props: {
+  params: Promise<{ username: string; eventSlug: string }>;
+  searchParams: Promise<{ startTime: string }>;
 }) {
+  const searchParams = use(props.searchParams);
+
+  const { startTime } = searchParams;
+
+  const params = use(props.params);
+
+  const { username, eventSlug } = params;
+
   const router = useRouter();
   const [attempts, setAttempts] = useState(0);
 

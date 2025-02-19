@@ -1,9 +1,27 @@
 'use client';
-import { Button } from '@/components/atoms/button';
-import { Card, CardDescription, CardFooter } from '@/components/atoms/card';
-import { CopyEventButton } from '@/components/molecules/CopyEventButton';
-import { formatEventDescription } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
+
+import React from 'react';
+
+import Link from 'next/link';
+
+import { updateEventActiveState, updateEventOrder } from '@/server/actions/events';
+import {
+  closestCenter,
+  DndContext,
+  type DragEndEvent,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   CalendarPlus,
   CalendarRange,
@@ -15,10 +33,10 @@ import {
   GripVertical,
   Pencil,
 } from 'lucide-react';
-import Link from 'next/link';
-import React from 'react';
 import { toast } from 'sonner';
 
+import { Button } from '@/components/atoms/button';
+import { Card, CardDescription, CardFooter } from '@/components/atoms/card';
 import { Switch } from '@/components/atoms/switch';
 import {
   Tooltip,
@@ -26,24 +44,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/atoms/tooltip';
-import { updateEventActiveState, updateEventOrder } from '@/server/actions/events';
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core';
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  useSortable,
-  verticalListSortingStrategy,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
+import { CopyEventButton } from '@/components/molecules/CopyEventButton';
+
+import { formatEventDescription } from '@/lib/formatters';
+import { cn } from '@/lib/utils';
 
 type Event = {
   id: string;

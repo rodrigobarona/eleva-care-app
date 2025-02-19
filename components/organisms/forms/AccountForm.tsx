@@ -1,4 +1,13 @@
 'use client';
+
+import React, { useState } from 'react';
+
+import * as z from 'zod';
+import { useUser } from '@clerk/nextjs';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/atoms/avatar';
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
@@ -10,12 +19,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/molecules/form';
-import { useUser } from '@clerk/nextjs';
-import { zodResolver } from '@hookform/resolvers/zod';
-import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import * as z from 'zod';
 
 const profileFormSchema = z.object({
   username: z.string().min(2).max(30),

@@ -1,11 +1,14 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
-import { AppointmentCard } from '@/components/organisms/AppointmentCard';
-import { ArrowLeft } from 'lucide-react';
+import React from 'react';
+
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import React from 'react';
+
+import { ArrowLeft } from 'lucide-react';
+
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
+import { AppointmentCard } from '@/components/organisms/AppointmentCard';
 
 interface Appointment {
   id: string;

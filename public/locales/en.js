@@ -1,4 +1,5 @@
 import { Baby, Droplets, Flower2, Ribbon } from 'lucide-react';
+
 export const translations = {
   language: 'English',
   nav: {

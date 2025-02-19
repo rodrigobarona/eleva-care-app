@@ -1,15 +1,20 @@
-import { Card, CardContent } from '@/components/atoms/card'; // Adjust the import path as necessary
+import type React from 'react';
+
+// Adjust the import path as necessary
+import Image from 'next/image';
+
+import { Card, CardContent } from '@/components/atoms/card';
+import FadeInSection from '@/components/atoms/FadeInSection';
+// Adjust the import path as necessary
 import {
   Carousel,
   CarouselContent,
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
-} from '@/components/molecules/carousel'; // Adjust the import path as necessary
-import Image from 'next/image';
-import type React from 'react';
+} from '@/components/molecules/carousel';
 
-import FadeInSection from '@/components/atoms/FadeInSection'; // Adjust the import path based on your types definition
+// Adjust the import path based on your types definition
 
 // Define the type for team members
 export type TeamMember = {

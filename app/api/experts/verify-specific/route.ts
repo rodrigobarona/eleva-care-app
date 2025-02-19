@@ -1,7 +1,8 @@
-import { verifyAndUpdateSpecificExpert } from '@/server/actions/experts';
-import { auth, clerkClient } from '@clerk/nextjs/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+
+import { verifyAndUpdateSpecificExpert } from '@/server/actions/experts';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 
 export const runtime = 'nodejs';
 export const preferredRegion = 'auto';

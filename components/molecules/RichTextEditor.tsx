@@ -1,13 +1,16 @@
 'use client';
-import { Button } from '@/components/atoms/button';
-import BulletList from '@tiptap/extension-bullet-list';
-import Link from '@tiptap/extension-link';
-import ListItem from '@tiptap/extension-list-item';
-import { EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import { Bold, Italic, LinkIcon, List } from 'lucide-react';
+
 import React from 'react';
+
+import { BulletList } from '@tiptap/extension-bullet-list';
+import { Link } from '@tiptap/extension-link';
+import { ListItem } from '@tiptap/extension-list-item';
+import { EditorContent, useEditor } from '@tiptap/react';
+import { StarterKit } from '@tiptap/starter-kit';
+import { Bold, Italic, LinkIcon, List } from 'lucide-react';
 import { Markdown } from 'tiptap-markdown';
+
+import { Button } from '@/components/atoms/button';
 
 interface SimpleRichTextEditorProps {
   value: string;

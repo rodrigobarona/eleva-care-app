@@ -1,4 +1,10 @@
 'use client';
+
+import Link from 'next/link';
+
+import * as Clerk from '@clerk/elements/common';
+import * as SignUp from '@clerk/elements/sign-up';
+
 import { Button } from '@/components/atoms/button';
 import {
   Card,
@@ -11,10 +17,8 @@ import {
 import { Icons } from '@/components/atoms/icons';
 import { Input } from '@/components/atoms/input';
 import { Label } from '@/components/atoms/label';
+
 import { cn } from '@/lib/utils';
-import * as Clerk from '@clerk/elements/common';
-import * as SignUp from '@clerk/elements/sign-up';
-import Link from 'next/link';
 
 export default function SignUpPage() {
   return (

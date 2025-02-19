@@ -1,3 +1,9 @@
+import { type ReactNode } from 'react';
+
+import { redirect } from 'next/navigation';
+
+import { auth } from '@clerk/nextjs/server';
+
 import { Separator } from '@/components/atoms/separator';
 import { ErrorBoundary } from '@/components/molecules/error-boundary';
 import { AppBreadcrumb } from '@/components/organisms/sidebar/AppBreadcrumb';
@@ -7,9 +13,6 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/organisms/sidebar/sidebar';
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import { type ReactNode } from 'react';
 
 interface PrivateLayoutProps {
   children: ReactNode;

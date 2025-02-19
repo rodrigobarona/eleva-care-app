@@ -1,9 +1,11 @@
+import { NextResponse } from 'next/server';
+
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { getStripeConnectAccountStatus } from '@/lib/stripe';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+
+import { getStripeConnectAccountStatus } from '@/lib/stripe';
 
 // Mark route as dynamic
 export const dynamic = 'force-dynamic';

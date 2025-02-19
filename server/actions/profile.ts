@@ -4,7 +4,6 @@
  * and social media links. It provides functionality for data validation, blob storage
  * management, and social media URL normalization.
  */
-
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { profileFormSchema } from '@/schema/profile';

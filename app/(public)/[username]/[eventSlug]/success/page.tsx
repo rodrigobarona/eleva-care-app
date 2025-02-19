@@ -1,21 +1,29 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
+import { notFound, redirect } from 'next/navigation';
+
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { formatDateTime } from '@/lib/formatters';
 import { createClerkClient } from '@clerk/nextjs/server';
-import { notFound, redirect } from 'next/navigation';
 import Stripe from 'stripe';
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
+
+import { formatDateTime } from '@/lib/formatters';
 
 export const revalidate = 0;
 export const dynamic = 'force-dynamic';
 
-export default async function SuccessPage({
-  params: { username, eventSlug },
-  searchParams: { startTime, session_id },
-}: {
-  params: { username: string; eventSlug: string };
-  searchParams: { startTime: string; session_id?: string };
+export default async function SuccessPage(props: {
+  params: Promise<{ username: string; eventSlug: string }>;
+  searchParams: Promise<{ startTime: string; session_id?: string }>;
 }) {
+  const searchParams = await props.searchParams;
+
+  const { startTime, session_id } = searchParams;
+
+  const params = await props.params;
+
+  const { username, eventSlug } = params;
+
   const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
   });

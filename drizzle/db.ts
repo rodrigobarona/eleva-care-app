@@ -1,5 +1,6 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
+
 import * as schema from './schema';
 
 // Main database connection for core data (events, schedules, etc.)

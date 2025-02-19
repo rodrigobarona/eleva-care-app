@@ -1,7 +1,9 @@
-import { Button } from '@/components/atoms/button';
-import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
 import type React from 'react';
 import { useState } from 'react';
+
+import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
+
+import { Button } from '@/components/atoms/button';
 
 type PaymentStepProps = {
   price: number;

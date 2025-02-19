@@ -9,7 +9,29 @@
 
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
+
 import { getOrCreateStripeCustomer, getServerStripe, syncStripeDataToKV } from '@/lib/stripe';
+
+/**
+ * @fileoverview Server actions for managing Stripe integrations in the Eleva Care application.
+ * This file handles Stripe-related operations including product management, payment processing,
+ * and customer management. It provides functionality for creating and updating products,
+ * handling payment intents, and managing customer data.
+ */
+
+/**
+ * @fileoverview Server actions for managing Stripe integrations in the Eleva Care application.
+ * This file handles Stripe-related operations including product management, payment processing,
+ * and customer management. It provides functionality for creating and updating products,
+ * handling payment intents, and managing customer data.
+ */
+
+/**
+ * @fileoverview Server actions for managing Stripe integrations in the Eleva Care application.
+ * This file handles Stripe-related operations including product management, payment processing,
+ * and customer management. It provides functionality for creating and updating products,
+ * handling payment intents, and managing customer data.
+ */
 
 /**
  * Creates a new Stripe product with associated price.

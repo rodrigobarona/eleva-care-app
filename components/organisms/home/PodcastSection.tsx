@@ -1,9 +1,12 @@
-import { Button } from '@/components/atoms/button';
-import FadeInSection from '@/components/atoms/FadeInSection';
-import { Podcast } from 'lucide-react';
+import type React from 'react';
+
 import Image from 'next/image';
 import Link from 'next/link';
-import type React from 'react';
+
+import { Podcast } from 'lucide-react';
+
+import { Button } from '@/components/atoms/button';
+import FadeInSection from '@/components/atoms/FadeInSection';
 
 interface PodcastSectionProps {
   title: string;

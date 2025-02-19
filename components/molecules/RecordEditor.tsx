@@ -1,16 +1,17 @@
-import { Button } from '@/components/atoms/button';
-import BulletList from '@tiptap/extension-bullet-list';
-import Highlight from '@tiptap/extension-highlight';
-import Link from '@tiptap/extension-link';
-import ListItem from '@tiptap/extension-list-item';
-import Table from '@tiptap/extension-table';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
-import TableRow from '@tiptap/extension-table-row';
-import TaskItem from '@tiptap/extension-task-item';
-import TaskList from '@tiptap/extension-task-list';
+import React from 'react';
+
+import { BulletList } from '@tiptap/extension-bullet-list';
+import { Highlight } from '@tiptap/extension-highlight';
+import { Link } from '@tiptap/extension-link';
+import { ListItem } from '@tiptap/extension-list-item';
+import { Table } from '@tiptap/extension-table';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TaskItem } from '@tiptap/extension-task-item';
+import { TaskList } from '@tiptap/extension-task-list';
 import { EditorContent, useEditor } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
+import { StarterKit } from '@tiptap/starter-kit';
 import {
   Bold,
   CheckSquare,
@@ -23,8 +24,9 @@ import {
   List,
   Table as TableIcon,
 } from 'lucide-react';
-import React from 'react';
 import { Markdown } from 'tiptap-markdown';
+
+import { Button } from '@/components/atoms/button';
 
 interface RecordEditorProps {
   value: string;

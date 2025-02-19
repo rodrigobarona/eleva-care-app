@@ -1,8 +1,11 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
-import { redirect } from 'next/navigation';
 import React from 'react';
+
+import { redirect } from 'next/navigation';
+
+import { useUser } from '@clerk/nextjs';
+
 import { BillingPageClient } from './billing-client';
 
 interface DbUser {
