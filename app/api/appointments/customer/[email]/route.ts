@@ -1,9 +1,8 @@
-import { NextResponse } from 'next/server';
-
 import { db } from '@/drizzle/db';
 import { MeetingTable } from '@/drizzle/schema';
 import { auth } from '@clerk/nextjs/server';
 import { and, eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
 
 export async function GET(request: Request, props: { params: Promise<{ email: string }> }) {
   const params = await props.params;

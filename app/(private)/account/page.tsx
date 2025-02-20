@@ -1,10 +1,8 @@
 'use client';
 
-import { redirect } from 'next/navigation';
-
-import { useUser } from '@clerk/nextjs';
-
 import { AccountForm } from '@/components/organisms/forms/AccountForm';
+import { useUser } from '@clerk/nextjs';
+import { redirect } from 'next/navigation';
 
 export default function ProfilePage() {
   const { user, isLoaded } = useUser();

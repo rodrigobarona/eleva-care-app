@@ -1,18 +1,16 @@
 'use client';
 
-import React, { useTransition } from 'react';
-
-import Link from 'next/link';
-
+import { slugify } from '@/lib/validations/slug';
 import { eventFormSchema } from '@/schema/events';
 import { createEvent, deleteEvent, updateEvent } from '@/server/actions/events';
 import { createStripeProduct, updateStripeProduct } from '@/server/actions/stripe';
 import { useUser } from '@clerk/nextjs';
 import { zodResolver } from '@hookform/resolvers/zod';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
-
-import { slugify } from '@/lib/validations/slug';
 
 import { Button } from '../../atoms/button';
 import { Input } from '../../atoms/input';
@@ -62,6 +60,7 @@ export function EventForm({
   };
 }) {
   const { user } = useUser();
+  const router = useRouter();
   const [isDeletePending, startDeleteTransition] = useTransition();
   const [isStripeProcessing, setIsStripeProcessing] = React.useState(false);
 
@@ -97,7 +96,7 @@ export function EventForm({
       .replace(/[\u0300-\u036f]/g, '')
       .toLowerCase()
       .replace(/[^a-z0-9-]/g, '-')
-      .replace(/--+/g, '-')
+      .replace(/-{2,}/g, '-')
       .replace(/^-+/, '')
       .replace(/-+$/, '');
 
@@ -156,7 +155,7 @@ export function EventForm({
 
         if (stripeData?.error) {
           form.setError('root', {
-            message: 'Failed to sync with Stripe: ' + stripeData.error,
+            message: `Failed to sync with Stripe: ${stripeData.error}`,
           });
           return;
         }
@@ -177,8 +176,8 @@ export function EventForm({
         return;
       }
 
-      // Use router.push instead of window.location for better navigation
-      window.location.href = '/events';
+      // Use router.push for navigation
+      router.push('/events');
     } catch (error) {
       console.error('Form submission error:', error);
       form.setError('root', {
@@ -206,7 +205,7 @@ export function EventForm({
                 {...field}
                 disabled={isStripeProcessing}
                 onChange={(e) => {
-                  const value = parseFloat(e.target.value);
+                  const value = Number.parseFloat(e.target.value);
                   field.onChange(Math.round(value * 100));
                 }}
                 value={field.value / 100}

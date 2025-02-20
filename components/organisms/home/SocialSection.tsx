@@ -1,11 +1,8 @@
-import type React from 'react';
-
-import Link from 'next/link';
-
-import { BookOpen, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
-
 import { Button } from '@/components/atoms/button';
 import FadeInSection from '@/components/atoms/FadeInSection';
+import { BookOpen, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
+import Link from 'next/link';
+import type React from 'react';
 
 interface SocialSectionProps {
   title: string;

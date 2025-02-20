@@ -1,15 +1,12 @@
-import React from 'react';
-
-import Image from 'next/image';
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-
+import { Skeleton } from '@/components/atoms/skeleton';
 import { db } from '@/drizzle/db';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
+import Image from 'next/image';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
-
-import { Skeleton } from '@/components/atoms/skeleton';
 
 const SOCIAL_ICONS = {
   instagram: Instagram,

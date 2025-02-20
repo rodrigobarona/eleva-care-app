@@ -1,5 +1,4 @@
-import React from 'react';
-
+import { Button } from '@/components/atoms/button';
 import { BulletList } from '@tiptap/extension-bullet-list';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Link } from '@tiptap/extension-link';
@@ -24,9 +23,8 @@ import {
   List,
   Table as TableIcon,
 } from 'lucide-react';
+import React from 'react';
 import { Markdown } from 'tiptap-markdown';
-
-import { Button } from '@/components/atoms/button';
 
 interface RecordEditorProps {
   value: string;

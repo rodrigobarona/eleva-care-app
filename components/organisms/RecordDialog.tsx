@@ -1,9 +1,3 @@
-import React from 'react';
-
-import { format } from 'date-fns';
-import { FileEdit, Maximize2, Minus } from 'lucide-react';
-import { toast } from 'sonner';
-
 import { Button } from '@/components/atoms/button';
 import {
   Dialog,
@@ -14,8 +8,11 @@ import {
   DialogTrigger,
 } from '@/components/molecules/dialog';
 import RecordEditor from '@/components/molecules/RecordEditor';
-
 import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { FileEdit, Maximize2, Minus } from 'lucide-react';
+import React from 'react';
+import { toast } from 'sonner';
 
 interface PatientRecord {
   id: string;

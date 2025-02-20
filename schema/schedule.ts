@@ -1,7 +1,6 @@
 import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
-import { z } from 'zod';
-
 import { timeToInt } from '@/lib/utils';
+import { z } from 'zod';
 
 export const scheduleFormSchema = z.object({
   timezone: z.string().min(1, 'Required'),

@@ -1,6 +1,5 @@
-import { z } from 'zod';
-
 import { slugSchema } from '@/lib/validations/slug';
+import { z } from 'zod';
 
 export const eventFormSchema = z.object({
   name: z.string().min(1, 'Required'),

@@ -1,13 +1,11 @@
 'use client';
 
-import React from 'react';
-
-import { useUser } from '@clerk/nextjs';
-import { Calendar } from 'lucide-react';
-
 import { Button } from '@/components/atoms/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/molecules/tabs';
 import { AppointmentCard } from '@/components/organisms/AppointmentCard';
+import { useUser } from '@clerk/nextjs';
+import { Calendar } from 'lucide-react';
+import React from 'react';
 
 interface Appointment {
   id: string;

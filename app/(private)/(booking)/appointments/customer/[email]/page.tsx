@@ -1,14 +1,11 @@
 'use client';
 
-import React from 'react';
-
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-
-import { ArrowLeft } from 'lucide-react';
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { AppointmentCard } from '@/components/organisms/AppointmentCard';
+import { ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import React, { Suspense } from 'react';
 
 interface Appointment {
   id: string;
@@ -23,7 +20,7 @@ interface Appointment {
   stripeTransferStatus?: string;
 }
 
-export default function CustomerDetailsPage() {
+function CustomerDetailsContent() {
   const params = useParams();
   const email = decodeURIComponent(params.email as string);
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -67,42 +64,41 @@ export default function CustomerDetailsPage() {
   }
 
   return (
-    <div className="container mx-auto p-6">
-      <Link
-        href="/appointments"
-        className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to All Appointments
-      </Link>
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Link
+          href="/appointments"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Appointments
+        </Link>
+      </div>
 
-      <Card className="mb-6">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-2xl">Customer Details</CardTitle>
+          <CardTitle>Customer Details: {email}</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2">
-            <p>
-              <strong>Email:</strong> {email}
-            </p>
-            <p>
-              <strong>Total Appointments:</strong> {appointments.length}
-            </p>
-            {appointments.length > 0 && (
-              <p>
-                <strong>Customer Name:</strong> {appointments[0].guestName}
-              </p>
+          <div className="space-y-4">
+            {appointments.length === 0 ? (
+              <p className="text-muted-foreground">No appointments found for this customer.</p>
+            ) : (
+              appointments.map((appointment) => (
+                <AppointmentCard key={appointment.id} appointment={appointment} />
+              ))
             )}
           </div>
         </CardContent>
       </Card>
-
-      <h2 className="mb-4 text-xl font-semibold">Appointment History</h2>
-      <div className="space-y-4">
-        {appointments.map((appointment) => (
-          <AppointmentCard key={appointment.id} appointment={appointment} />
-        ))}
-      </div>
     </div>
+  );
+}
+
+export default function CustomerDetailsPage() {
+  return (
+    <Suspense fallback={<div>Loading customer details...</div>}>
+      <CustomerDetailsContent />
+    </Suspense>
   );
 }

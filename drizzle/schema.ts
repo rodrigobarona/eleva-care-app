@@ -1,4 +1,5 @@
 import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
+import type { SocialMediaPlatform } from '@/lib/constants/social-media';
 import { relations } from 'drizzle-orm';
 import {
   boolean,
@@ -11,8 +12,6 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-
-import type { SocialMediaPlatform } from '@/lib/constants/social-media';
 
 const createdAt = timestamp('createdAt').notNull().defaultNow();
 const updatedAt = timestamp('updatedAt')

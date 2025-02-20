@@ -1,11 +1,9 @@
-import { NextResponse } from 'next/server';
-
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
-
 import { getStripeConnectAccountStatus } from '@/lib/stripe';
+import { auth } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
+import { NextResponse } from 'next/server';
 
 // Mark route as dynamic
 export const dynamic = 'force-dynamic';
@@ -18,40 +16,26 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    let dbUser = await db.query.UserTable.findFirst({
+    // Get user data from database
+    const user = await db.query.UserTable.findFirst({
       where: eq(UserTable.clerkUserId, userId),
     });
 
-    // If user doesn't exist in database, create them
-    if (!dbUser) {
-      const clerkUser = await currentUser();
-      if (!clerkUser) {
-        return NextResponse.json({ error: 'Clerk user not found' }, { status: 404 });
-      }
-
-      // Create user in database
-      const [newUser] = await db
-        .insert(UserTable)
-        .values({
-          clerkUserId: userId,
-          email: clerkUser.emailAddresses[0].emailAddress,
-          firstName: clerkUser.firstName,
-          lastName: clerkUser.lastName,
-          imageUrl: clerkUser.imageUrl,
-          role: 'expert', // Since this is the billing page, we assume they're an expert
-        })
-        .returning();
-
-      dbUser = newUser;
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Get Stripe account status if connected
     let accountStatus = null;
-    if (dbUser.stripeConnectAccountId) {
-      accountStatus = await getStripeConnectAccountStatus(dbUser.stripeConnectAccountId);
+    if (user.stripeConnectAccountId) {
+      accountStatus = await getStripeConnectAccountStatus(user.stripeConnectAccountId);
     }
 
     return NextResponse.json({
-      user: dbUser,
+      user: {
+        id: user.id,
+        stripeConnectAccountId: user.stripeConnectAccountId,
+      },
       accountStatus,
     });
   } catch (error) {

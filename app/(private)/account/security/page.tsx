@@ -1,13 +1,5 @@
 'use client';
 
-import React, { useCallback, useState } from 'react';
-
-import { useSession, useSignIn, useUser } from '@clerk/nextjs';
-import type { SessionWithActivitiesResource } from '@clerk/types';
-import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
-import { toast } from 'sonner';
-import { z } from 'zod';
-
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Input } from '@/components/atoms/input';
@@ -19,20 +11,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-
-const passwordSchema = z.object({
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
-  code: z.string().min(6, 'Verification code must be 6 characters'),
-});
+import { useSession, useUser } from '@clerk/nextjs';
+import type { SessionWithActivitiesResource } from '@clerk/types';
+import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import React, { useCallback, useState } from 'react';
+import { toast } from 'sonner';
 
 export default function SecurityPage() {
-  const { user } = useUser();
-  const { signIn } = useSignIn();
+  const router = useRouter();
+  const { user, isLoaded } = useUser();
   const { session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -42,9 +30,13 @@ export default function SecurityPage() {
   const [currentSession, setCurrentSession] = useState<SessionWithActivitiesResource | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
+  const [isSettingPassword, setIsSettingPassword] = useState(false);
+  const [isRevokingDevice, setIsRevokingDevice] = useState(false);
+  const [isDisconnectingAccount, setIsDisconnectingAccount] = useState(false);
+  const [isConnectingAccount, setIsConnectingAccount] = useState(false);
 
   const loadSessions = useCallback(async () => {
-    if (!user) return;
+    if (!user || !isLoaded) return;
     try {
       const sessions = await user.getSessions();
       setSessions(sessions);
@@ -54,7 +46,7 @@ export default function SecurityPage() {
         `Failed to load sessions: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     }
-  }, [user, session]);
+  }, [user, session, isLoaded]);
 
   React.useEffect(() => {
     loadSessions();
@@ -72,79 +64,50 @@ export default function SecurityPage() {
     }));
 
   const handleInitiatePasswordSet = async () => {
-    if (!user?.primaryEmailAddress?.emailAddress) {
-      toast.error('No email address found');
-      return;
-    }
-
-    if (!signIn) {
-      toast.error('Sign-in service not available');
-      return;
-    }
-
     try {
-      setIsLoading(true);
-      await signIn.create({
-        strategy: 'reset_password_email_code',
-        identifier: user.primaryEmailAddress.emailAddress,
+      setIsSettingPassword(true);
+      await user?.update({
+        unsafeMetadata: {
+          ...user.unsafeMetadata,
+          password: password,
+        },
       });
       setShowPasswordForm(true);
-      toast.success('Verification code sent to your email');
-    } catch (error: unknown) {
-      toast.error(
-        `Failed to send verification code: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      router.refresh();
+      toast.success('Password set successfully');
+    } catch (error) {
+      console.error('Error initiating password set:', error);
+      toast.error('Failed to set password');
     } finally {
-      setIsLoading(false);
+      setIsSettingPassword(false);
     }
   };
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const validation = passwordSchema.safeParse({ password, code });
-    if (!validation.success) {
-      const errors = validation.error.errors;
-      toast.error(errors[0].message);
-      return;
-    }
+    const form = e.target as HTMLFormElement;
+    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
     try {
-      setIsLoading(true);
-      const result = await signIn?.attemptFirstFactor({
-        strategy: 'reset_password_email_code',
-        code,
-        password,
+      setIsSettingPassword(true);
+      await user?.updatePassword({
+        newPassword: password,
       });
-
-      if (result?.status === 'complete') {
-        toast.success('Password set successfully');
-        setShowPasswordForm(false);
-        setPassword('');
-        setCode('');
-      } else {
-        toast.error('Failed to set password. Please try again.');
-      }
-    } catch (error: unknown) {
-      toast.error(
-        `Failed to set password: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      router.refresh();
+      toast.success('Password updated successfully');
+      setShowPasswordForm(false);
+    } catch (error) {
+      console.error('Error setting password:', error);
+      toast.error('Failed to update password');
     } finally {
-      setIsLoading(false);
+      setIsSettingPassword(false);
     }
   };
 
   const connectedAccounts =
-    user?.externalAccounts
-      .filter((account) =>
-        // Clerk uses different provider strings, let's check for common Google variants
-        ['oauth_google', 'google', 'google_oauth2'].includes(account.provider as string),
-      )
-      .map((account) => ({
-        provider: 'google',
-        email: account.emailAddress,
-        connected: true,
-      })) || [];
+    user?.externalAccounts.filter((account) =>
+      ['oauth_google', 'google', 'google_oauth2'].includes(account.provider.toLowerCase()),
+    ) || [];
 
   const copyUserId = () => {
     navigator.clipboard.writeText(user?.id || '');
@@ -157,6 +120,7 @@ export default function SecurityPage() {
       await user?.delete();
       toast.success('Account deleted successfully');
       setIsDialogOpen(false);
+      router.push('/sign-in');
     } catch (error: unknown) {
       toast.error(
         `Failed to delete account: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -168,56 +132,52 @@ export default function SecurityPage() {
 
   const handleRevokeDevice = async (sessionId: string) => {
     try {
-      setIsLoading(true);
-      await fetch(`/api/sessions/${sessionId}`, {
-        method: 'DELETE',
+      setIsRevokingDevice(true);
+      await fetch(`/v1/client/sessions/${sessionId}/end`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
-      // Optionally refresh the page or update the UI
-      window.location.reload();
+      await loadSessions();
+      toast.success('Device access revoked');
     } catch (error) {
-      console.error('Failed to revoke device:', error);
+      console.error('Error revoking device:', error);
+      toast.error('Failed to revoke device access');
     } finally {
-      setIsLoading(false);
+      setIsRevokingDevice(false);
     }
   };
-
-  const handleDisconnectAccount = async () => {
+  const handleDisconnectAccount = async (accountId: string) => {
     try {
-      setIsLoading(true);
-      // Find the account to disconnect
-      const accountToDisconnect = user?.externalAccounts.find((account) =>
-        account.provider.includes('google'),
-      );
-
-      if (!accountToDisconnect) {
-        throw new Error('Account not found');
-      }
-
-      await accountToDisconnect.destroy();
+      setIsDisconnectingAccount(true);
+      await fetch(`/v1/me/external_accounts/${accountId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      router.refresh();
       toast.success('Account disconnected successfully');
-      // Reload user data
-      await user?.reload();
-    } catch (error: unknown) {
-      toast.error(
-        `Failed to disconnect account: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+    } catch (error) {
+      console.error('Error disconnecting account:', error);
+      toast.error('Failed to disconnect account');
     } finally {
-      setIsLoading(false);
+      setIsDisconnectingAccount(false);
     }
   };
 
   const handleConnectAccount = async () => {
     try {
-      setIsLoading(true);
-      await user?.createExternalAccount({
-        strategy: 'oauth_google',
-        redirectUrl: window.location.href,
-      });
-    } catch (error: unknown) {
-      toast.error(
-        `Failed to connect account: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
-      setIsLoading(false);
+      setIsConnectingAccount(true);
+      window.location.href = `/sign-up/oauth_google?redirect_url=${encodeURIComponent(
+        `${window.location.origin}/account/security`,
+      )}`;
+    } catch (error) {
+      console.error('Error connecting account:', error);
+      toast.error('Failed to connect account');
+    } finally {
+      setIsConnectingAccount(false);
     }
   };
 
@@ -242,15 +202,15 @@ export default function SecurityPage() {
           {user?.passwordEnabled ? (
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground">Password is set</span>
-              <Button onClick={handleInitiatePasswordSet} disabled={isLoading}>
-                {isLoading ? 'Processing...' : 'Change Password'}
+              <Button onClick={handleInitiatePasswordSet} disabled={isSettingPassword}>
+                {isSettingPassword ? 'Processing...' : 'Change Password'}
               </Button>
             </div>
           ) : (
             <div>
               {!showPasswordForm ? (
-                <Button onClick={handleInitiatePasswordSet} disabled={isLoading}>
-                  {isLoading ? 'Processing...' : 'Set Password'}
+                <Button onClick={handleInitiatePasswordSet} disabled={isSettingPassword}>
+                  {isSettingPassword ? 'Processing...' : 'Set Password'}
                 </Button>
               ) : (
                 <form onSubmit={handleSetPassword} className="space-y-4">
@@ -278,8 +238,8 @@ export default function SecurityPage() {
                       className="w-full rounded border p-2"
                     />
                   </div>
-                  <Button type="submit" disabled={isLoading}>
-                    {isLoading ? 'Setting Password...' : 'Confirm Password'}
+                  <Button type="submit" disabled={isSettingPassword}>
+                    {isSettingPassword ? 'Setting Password...' : 'Confirm Password'}
                   </Button>
                 </form>
               )}
@@ -319,9 +279,9 @@ export default function SecurityPage() {
                   <Button
                     variant="outline"
                     onClick={() => handleRevokeDevice(device.sessionId)}
-                    disabled={isLoading}
+                    disabled={isRevokingDevice}
                   >
-                    Revoke Access
+                    {isRevokingDevice ? 'Revoking...' : 'Revoke Access'}
                   </Button>
                 )}
               </div>
@@ -346,30 +306,30 @@ export default function SecurityPage() {
                 <Button
                   variant="outline"
                   onClick={() => handleConnectAccount()}
-                  disabled={isLoading}
+                  disabled={isConnectingAccount}
                 >
-                  Connect Google Account
+                  {isConnectingAccount ? 'Connecting...' : 'Connect Google Account'}
                 </Button>
               </div>
             ) : (
               connectedAccounts.map((account) => (
                 <div
-                  key={account.provider}
+                  key={account.id}
                   className="flex items-center justify-between rounded-lg border p-4"
                 >
                   <div className="flex items-center gap-4">
                     <Mail className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Google Account</p>
-                      <p className="text-sm text-muted-foreground">{account.email}</p>
+                      <p className="text-sm text-muted-foreground">{account.emailAddress}</p>
                     </div>
                   </div>
                   <Button
                     variant="outline"
-                    onClick={() => handleDisconnectAccount()}
-                    disabled={isLoading}
+                    onClick={() => handleDisconnectAccount(account.id)}
+                    disabled={isDisconnectingAccount}
                   >
-                    {isLoading ? 'Disconnecting...' : 'Disconnect'}
+                    {isDisconnectingAccount ? 'Disconnecting...' : 'Disconnect'}
                   </Button>
                 </div>
               ))

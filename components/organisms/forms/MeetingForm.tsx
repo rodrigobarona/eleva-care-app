@@ -1,25 +1,6 @@
 'use client';
 
 import * as React from 'react';
-
-import { useRouter } from 'next/navigation';
-
-import { meetingFormSchema } from '@/schema/meetings';
-import { createMeeting } from '@/server/actions/meetings';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { format, startOfDay } from 'date-fns';
-import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
-import { Globe } from 'lucide-react';
-import {
-  parseAsIsoDate,
-  parseAsIsoDateTime,
-  parseAsString,
-  parseAsStringLiteral,
-  useQueryStates,
-} from 'nuqs';
-import { useForm } from 'react-hook-form';
-import type { z } from 'zod';
-
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
 import { Textarea } from '@/components/atoms/textarea';
@@ -39,10 +20,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/molecules/select';
-
 import { formatTimezoneOffset } from '@/lib/formatters';
-import { getCalendarEventTimes, hasValidTokens } from '@/lib/googleCalendarClient';
+import { hasValidTokens } from '@/lib/googleCalendarClient';
 import { cn } from '@/lib/utils';
+import { meetingFormSchema } from '@/schema/meetings';
+import { createMeeting } from '@/server/actions/meetings';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { format, startOfDay } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
+import { Globe } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import {
+  parseAsIsoDate,
+  parseAsIsoDateTime,
+  parseAsString,
+  parseAsStringLiteral,
+  useQueryStates,
+} from 'nuqs';
+import { Suspense } from 'react';
+import { useForm } from 'react-hook-form';
+import type { z } from 'zod';
 
 type MeetingFormProps = {
   validTimes: Date[];
@@ -53,7 +50,7 @@ type MeetingFormProps = {
   eventSlug: string;
 };
 
-export function MeetingForm({
+function MeetingFormContent({
   validTimes,
   eventId,
   clerkUserId,
@@ -166,7 +163,9 @@ export function MeetingForm({
           });
         } else {
           const startTimeISO = values.startTime.toISOString();
-          window.location.href = `${window.location.pathname}/success?startTime=${encodeURIComponent(startTimeISO)}`;
+          router.push(
+            `${window.location.pathname}/success?startTime=${encodeURIComponent(startTimeISO)}`,
+          );
         }
       } catch (error) {
         console.error('Error creating meeting:', error);
@@ -175,7 +174,7 @@ export function MeetingForm({
         });
       }
     },
-    [currentStep, price, eventId, clerkUserId, form],
+    [currentStep, price, eventId, clerkUserId, form, router],
   );
 
   const handleNextStep = React.useCallback(
@@ -216,7 +215,13 @@ export function MeetingForm({
 
         const { url } = await response.json();
         if (url) {
-          window.location.href = url;
+          // Use router.push for client-side navigation when possible
+          // For external URLs (like Stripe), we still need to use window.location
+          if (url.startsWith('/') || url.startsWith(window.location.origin)) {
+            router.push(url);
+          } else {
+            window.location.href = url;
+          }
         }
       } catch (error) {
         console.error('Error:', error);
@@ -227,7 +232,7 @@ export function MeetingForm({
         setIsSubmitting(false);
       }
     },
-    [form, price, eventId, clerkUserId, onSubmit, setQueryStates, username, eventSlug],
+    [form, price, eventId, clerkUserId, onSubmit, setQueryStates, username, eventSlug, router],
   );
 
   // Effects
@@ -252,23 +257,11 @@ export function MeetingForm({
           router.push(
             `/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`,
           );
-          return;
         }
-
-        // Verify we can fetch calendar events
-        const now = new Date();
-        const endDate = new Date();
-        endDate.setMonth(endDate.getMonth() + 2);
-
-        await getCalendarEventTimes(clerkUserId, {
-          start: now,
-          end: endDate,
-        });
-
-        setIsCalendarSynced(true);
       } catch (error) {
-        console.error('Calendar sync error:', error);
+        console.error('Error checking calendar access:', error);
         setIsCalendarSynced(false);
+        router.push(`/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`);
       }
     };
 
@@ -559,5 +552,13 @@ export function MeetingForm({
         )}
       </form>
     </Form>
+  );
+}
+
+export function MeetingForm(props: MeetingFormProps) {
+  return (
+    <Suspense fallback={<div>Loading meeting form...</div>}>
+      <MeetingFormContent {...props} />
+    </Suspense>
   );
 }

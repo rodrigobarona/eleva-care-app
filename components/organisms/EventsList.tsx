@@ -1,9 +1,17 @@
 'use client';
 
-import React from 'react';
-
-import Link from 'next/link';
-
+import { Button } from '@/components/atoms/button';
+import { Card, CardDescription, CardFooter } from '@/components/atoms/card';
+import { Switch } from '@/components/atoms/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/atoms/tooltip';
+import { CopyEventButton } from '@/components/molecules/CopyEventButton';
+import { formatEventDescription } from '@/lib/formatters';
+import { cn } from '@/lib/utils';
 import { updateEventActiveState, updateEventOrder } from '@/server/actions/events';
 import {
   closestCenter,
@@ -33,21 +41,9 @@ import {
   GripVertical,
   Pencil,
 } from 'lucide-react';
+import Link from 'next/link';
+import React from 'react';
 import { toast } from 'sonner';
-
-import { Button } from '@/components/atoms/button';
-import { Card, CardDescription, CardFooter } from '@/components/atoms/card';
-import { Switch } from '@/components/atoms/switch';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/atoms/tooltip';
-import { CopyEventButton } from '@/components/molecules/CopyEventButton';
-
-import { formatEventDescription } from '@/lib/formatters';
-import { cn } from '@/lib/utils';
 
 type Event = {
   id: string;

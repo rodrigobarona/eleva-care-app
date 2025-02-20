@@ -1,21 +1,17 @@
-import { Suspense } from 'react';
-
-import Link from 'next/link';
-import { notFound } from 'next/navigation';
-
-import { db } from '@/drizzle/db';
-import GoogleCalendarService from '@/server/googleCalendar';
-import { createClerkClient } from '@clerk/nextjs/server';
-import { addMonths } from 'date-fns';
-import ReactMarkdown from 'react-markdown';
-
 import { Button } from '@/components/atoms/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Skeleton } from '@/components/atoms/skeleton';
-
+import { db } from '@/drizzle/db';
 import { formatEventDescription } from '@/lib/formatters';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import NextAvailableTimeClient from '@/lib/NextAvailableTimeClient';
+import GoogleCalendarService from '@/server/googleCalendar';
+import { createClerkClient } from '@clerk/nextjs/server';
+import { addMonths } from 'date-fns';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;

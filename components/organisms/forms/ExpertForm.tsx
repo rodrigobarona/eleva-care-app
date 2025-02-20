@@ -1,17 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
-
-import Image from 'next/image';
-
 import type * as z from 'zod';
-import { profileFormSchema } from '@/schema/profile';
-import { useUser } from '@clerk/nextjs';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { InfoCircledIcon } from '@radix-ui/react-icons';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-
 import { Badge } from '@/components/atoms/badge';
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
@@ -27,9 +16,16 @@ import {
   FormMessage,
 } from '@/components/molecules/form';
 import SimpleRichTextEditor from '@/components/molecules/RichTextEditor';
-
 import { SOCIAL_MEDIA_LIST } from '@/lib/constants/social-media';
 import { cn } from '@/lib/utils';
+import { profileFormSchema } from '@/schema/profile';
+import { useUser } from '@clerk/nextjs';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { InfoCircledIcon } from '@radix-ui/react-icons';
+import Image from 'next/image';
+import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 
 type ExpertFormValues = z.infer<typeof profileFormSchema> & {
   isVerified?: boolean;

@@ -1,47 +1,22 @@
-'use client';
+import { Breadcrumb, BreadcrumbList } from '@/components/molecules/breadcrumb';
+import { Suspense } from 'react';
 
-import React from 'react';
+import { AppBreadcrumbContent } from './AppBreadcrumbContent';
 
-import { usePathname } from 'next/navigation';
-
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from '@/components/molecules/breadcrumb';
-
-export function AppBreadcrumb() {
-  const pathname = usePathname();
-  const paths = pathname.split('/').filter(Boolean);
-
+function AppBreadcrumbSkeleton() {
   return (
     <Breadcrumb>
       <BreadcrumbList>
-        {paths.map((path, index) => {
-          const isLast = index === paths.length - 1;
-          const href = `/${paths.slice(0, index + 1).join('/')}`;
-          const label = path
-            .split('-')
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-
-          return (
-            <React.Fragment key={path}>
-              <BreadcrumbItem>
-                {isLast ? (
-                  <BreadcrumbPage>{label}</BreadcrumbPage>
-                ) : (
-                  <BreadcrumbLink href={href}>{label}</BreadcrumbLink>
-                )}
-              </BreadcrumbItem>
-              {!isLast && <BreadcrumbSeparator />}
-            </React.Fragment>
-          );
-        })}
+        <div className="h-6 w-24 animate-pulse rounded bg-muted" />
       </BreadcrumbList>
     </Breadcrumb>
+  );
+}
+
+export function AppBreadcrumb() {
+  return (
+    <Suspense fallback={<AppBreadcrumbSkeleton />}>
+      <AppBreadcrumbContent />
+    </Suspense>
   );
 }

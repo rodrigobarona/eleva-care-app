@@ -1,14 +1,11 @@
-import type React from 'react';
-
-import type { Metadata } from 'next';
-import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
-
-import { ClerkProvider } from '@clerk/nextjs';
-import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { Toaster } from 'sonner';
-
 import { LanguageProvider } from '@/components/molecules/LanguageProvider';
 import { ThirdPartyScripts } from '@/components/molecules/ThirdPartyScripts';
+import { ClerkProvider } from '@clerk/nextjs';
+import type { Metadata } from 'next';
+import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import type React from 'react';
+import { Toaster } from 'sonner';
 
 import './globals.css';
 

@@ -1,12 +1,5 @@
 'use client';
 
-import type React from 'react';
-
-import Image from 'next/image';
-
-import { ChevronRight } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-
 import { Card, CardContent } from '@/components/atoms/card';
 import FadeInSection from '@/components/atoms/FadeInSection';
 import {
@@ -16,11 +9,14 @@ import {
   AccordionTrigger,
 } from '@/components/molecules/accordion';
 import { useLanguage } from '@/components/molecules/LanguageProvider';
-
 import { translations as br } from '@/public/locales/br';
 import { translations as en } from '@/public/locales/en';
 import { translations as es } from '@/public/locales/es';
 import { translations as pt } from '@/public/locales/pt';
+import { ChevronRight } from 'lucide-react';
+import Image from 'next/image';
+import type React from 'react';
+import ReactMarkdown from 'react-markdown';
 
 const languageMap = {
   en,

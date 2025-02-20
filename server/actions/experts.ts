@@ -34,6 +34,48 @@ import Stripe from 'stripe';
  * individual expert verification and admin-level expert management.
  */
 
+/**
+ * @fileoverview Server actions for managing expert accounts in the Eleva Care application.
+ * This file handles expert-related operations including Stripe Connect account verification,
+ * payout schedule management, and account status updates. It provides functionality for both
+ * individual expert verification and admin-level expert management.
+ */
+
+/**
+ * @fileoverview Server actions for managing expert accounts in the Eleva Care application.
+ * This file handles expert-related operations including Stripe Connect account verification,
+ * payout schedule management, and account status updates. It provides functionality for both
+ * individual expert verification and admin-level expert management.
+ */
+
+/**
+ * @fileoverview Server actions for managing expert accounts in the Eleva Care application.
+ * This file handles expert-related operations including Stripe Connect account verification,
+ * payout schedule management, and account status updates. It provides functionality for both
+ * individual expert verification and admin-level expert management.
+ */
+
+/**
+ * @fileoverview Server actions for managing expert accounts in the Eleva Care application.
+ * This file handles expert-related operations including Stripe Connect account verification,
+ * payout schedule management, and account status updates. It provides functionality for both
+ * individual expert verification and admin-level expert management.
+ */
+
+/**
+ * @fileoverview Server actions for managing expert accounts in the Eleva Care application.
+ * This file handles expert-related operations including Stripe Connect account verification,
+ * payout schedule management, and account status updates. It provides functionality for both
+ * individual expert verification and admin-level expert management.
+ */
+
+/**
+ * @fileoverview Server actions for managing expert accounts in the Eleva Care application.
+ * This file handles expert-related operations including Stripe Connect account verification,
+ * payout schedule management, and account status updates. It provides functionality for both
+ * individual expert verification and admin-level expert management.
+ */
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION,
 });

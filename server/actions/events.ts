@@ -6,19 +6,53 @@
 
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-
 import { db } from '@/drizzle/db';
 import { EventTable } from '@/drizzle/schema';
+import { logAuditEvent } from '@/lib/logAuditEvent';
 import { eventFormSchema } from '@/schema/events';
 import { auth } from '@clerk/nextjs/server';
 import { and, eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import 'use-server';
 import type { z } from 'zod';
 
-import { logAuditEvent } from '@/lib/logAuditEvent';
+/**
+ * @fileoverview Server actions for managing events in the Eleva Care application.
+ * This file handles the creation, updating, deletion, and management of events,
+ * including validation, logging, and redirection.
+ */
+
+/**
+ * @fileoverview Server actions for managing events in the Eleva Care application.
+ * This file handles the creation, updating, deletion, and management of events,
+ * including validation, logging, and redirection.
+ */
+
+/**
+ * @fileoverview Server actions for managing events in the Eleva Care application.
+ * This file handles the creation, updating, deletion, and management of events,
+ * including validation, logging, and redirection.
+ */
+
+/**
+ * @fileoverview Server actions for managing events in the Eleva Care application.
+ * This file handles the creation, updating, deletion, and management of events,
+ * including validation, logging, and redirection.
+ */
+
+/**
+ * @fileoverview Server actions for managing events in the Eleva Care application.
+ * This file handles the creation, updating, deletion, and management of events,
+ * including validation, logging, and redirection.
+ */
+
+/**
+ * @fileoverview Server actions for managing events in the Eleva Care application.
+ * This file handles the creation, updating, deletion, and management of events,
+ * including validation, logging, and redirection.
+ */
 
 /**
  * @fileoverview Server actions for managing events in the Eleva Care application.

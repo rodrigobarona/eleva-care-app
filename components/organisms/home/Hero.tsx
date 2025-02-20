@@ -1,12 +1,5 @@
 'use client';
 
-import { Suspense } from 'react';
-
-import Link from 'next/link';
-
-import { ClipboardList } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-
 import { Button } from '@/components/atoms/button';
 import {
   Dialog,
@@ -17,11 +10,14 @@ import {
 } from '@/components/molecules/dialog';
 import { useLanguage } from '@/components/molecules/LanguageProvider';
 import { VideoPlayer } from '@/components/molecules/videoPlayer';
-
 import { translations as br } from '@/public/locales/br';
 import { translations as en } from '@/public/locales/en';
 import { translations as es } from '@/public/locales/es';
 import { translations as pt } from '@/public/locales/pt';
+import { ClipboardList } from 'lucide-react';
+import Link from 'next/link';
+import { Suspense } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 const languageMap = {
   en,

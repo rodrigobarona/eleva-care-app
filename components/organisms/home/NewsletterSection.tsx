@@ -1,6 +1,5 @@
-import type React from 'react';
-
 import FadeInSection from '@/components/atoms/FadeInSection';
+import type React from 'react';
 
 interface NewsletterSectionProps {
   title: string;

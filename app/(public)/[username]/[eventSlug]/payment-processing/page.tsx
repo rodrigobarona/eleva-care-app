@@ -1,16 +1,14 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
-
-import { useRouter } from 'next/navigation';
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Icons } from '@/components/atoms/icons';
+import { useRouter } from 'next/navigation';
+import { Suspense, use, useEffect, useState } from 'react';
 
 const MAX_ATTEMPTS = 15;
 const CHECK_INTERVAL = 2000;
 
-export default function PaymentProcessingPage(props: {
+function PaymentProcessingContent(props: {
   params: Promise<{ username: string; eventSlug: string }>;
   searchParams: Promise<{ startTime: string }>;
 }) {
@@ -59,5 +57,16 @@ export default function PaymentProcessingPage(props: {
         <p className="mt-4 text-muted-foreground">Please wait while we confirm your payment...</p>
       </CardContent>
     </Card>
+  );
+}
+
+export default function PaymentProcessingPage(props: {
+  params: Promise<{ username: string; eventSlug: string }>;
+  searchParams: Promise<{ startTime: string }>;
+}) {
+  return (
+    <Suspense fallback={<div>Loading payment status...</div>}>
+      <PaymentProcessingContent {...props} />
+    </Suspense>
   );
 }

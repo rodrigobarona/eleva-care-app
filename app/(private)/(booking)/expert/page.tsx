@@ -1,11 +1,9 @@
-import { redirect } from 'next/navigation';
-
+import { ExpertForm } from '@/components/organisms/forms/ExpertForm';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-
-import { ExpertForm } from '@/components/organisms/forms/ExpertForm';
+import { redirect } from 'next/navigation';
 
 export default async function ProfilePage() {
   const { userId } = await auth();

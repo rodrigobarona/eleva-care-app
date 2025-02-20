@@ -7,18 +7,58 @@
 
 'use server';
 
-import { headers } from 'next/headers';
-
 import { db } from '@/drizzle/db';
 import { ScheduleAvailabilityTable, ScheduleTable } from '@/drizzle/schema';
+import { logAuditEvent } from '@/lib/logAuditEvent';
 import { scheduleFormSchema } from '@/schema/schedule';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
+import { headers } from 'next/headers';
 import 'use-server';
 import type { z } from 'zod';
 
-import { logAuditEvent } from '@/lib/logAuditEvent';
+/**
+ * @fileoverview Server actions for managing expert schedules in the Eleva Care application.
+ * This file handles the creation and management of expert availability schedules,
+ * including time slots, timezone settings, and audit logging. It provides functionality
+ * for saving and updating schedule data with proper validation and error handling.
+ */
+
+/**
+ * @fileoverview Server actions for managing expert schedules in the Eleva Care application.
+ * This file handles the creation and management of expert availability schedules,
+ * including time slots, timezone settings, and audit logging. It provides functionality
+ * for saving and updating schedule data with proper validation and error handling.
+ */
+
+/**
+ * @fileoverview Server actions for managing expert schedules in the Eleva Care application.
+ * This file handles the creation and management of expert availability schedules,
+ * including time slots, timezone settings, and audit logging. It provides functionality
+ * for saving and updating schedule data with proper validation and error handling.
+ */
+
+/**
+ * @fileoverview Server actions for managing expert schedules in the Eleva Care application.
+ * This file handles the creation and management of expert availability schedules,
+ * including time slots, timezone settings, and audit logging. It provides functionality
+ * for saving and updating schedule data with proper validation and error handling.
+ */
+
+/**
+ * @fileoverview Server actions for managing expert schedules in the Eleva Care application.
+ * This file handles the creation and management of expert availability schedules,
+ * including time slots, timezone settings, and audit logging. It provides functionality
+ * for saving and updating schedule data with proper validation and error handling.
+ */
+
+/**
+ * @fileoverview Server actions for managing expert schedules in the Eleva Care application.
+ * This file handles the creation and management of expert availability schedules,
+ * including time slots, timezone settings, and audit logging. It provides functionality
+ * for saving and updating schedule data with proper validation and error handling.
+ */
 
 /**
  * Saves or updates an expert's schedule and their availability time slots.

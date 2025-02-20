@@ -1,10 +1,5 @@
 'use client';
 
-import { Suspense } from 'react';
-
-import { useUser } from '@clerk/nextjs';
-import { Clock, ExternalLink, Leaf, LifeBuoy, Link, type LucideIcon, User } from 'lucide-react';
-
 import { NavMain } from '@/components/organisms/sidebar/NavMain';
 import { NavSecondary } from '@/components/organisms/sidebar/NavSecondary';
 import { NavUser } from '@/components/organisms/sidebar/NavUser';
@@ -17,6 +12,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/organisms/sidebar/sidebar';
+import { useUser } from '@clerk/nextjs';
+import { Clock, ExternalLink, Leaf, LifeBuoy, Link, type LucideIcon, User } from 'lucide-react';
+import { Suspense } from 'react';
 
 interface SidebarItem {
   title: string;

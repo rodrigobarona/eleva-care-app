@@ -1,17 +1,23 @@
 // NextAvailableTimeClient.tsx
 'use client';
 
-import React from 'react';
-
-import { formatInTimeZone } from 'date-fns-tz';
-import { ErrorBoundary } from 'react-error-boundary';
-
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/atoms/tooltip';
+import { formatInTimeZone } from 'date-fns-tz';
+import React, { Suspense } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
+
+// NextAvailableTimeClient.tsx
+
+// NextAvailableTimeClient.tsx
+
+// NextAvailableTimeClient.tsx
+
+// NextAvailableTimeClient.tsx
 
 // NextAvailableTimeClient.tsx
 
@@ -27,7 +33,7 @@ interface NextAvailableTimeClientProps {
   baseUrl?: string;
 }
 
-function NextAvailableTimeClient({
+function NextAvailableTimeContent({
   date,
   eventName,
   eventSlug,
@@ -190,6 +196,16 @@ function NextAvailableTimeClient({
         )}
       </div>
     </ErrorBoundary>
+  );
+}
+
+function NextAvailableTimeClient(props: NextAvailableTimeClientProps) {
+  return (
+    <Suspense
+      fallback={<div className="text-sm text-muted-foreground">Loading next available time...</div>}
+    >
+      <NextAvailableTimeContent {...props} />
+    </Suspense>
   );
 }
 

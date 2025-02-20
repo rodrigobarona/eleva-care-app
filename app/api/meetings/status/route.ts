@@ -1,6 +1,5 @@
-import { NextResponse } from 'next/server';
-
 import { db } from '@/drizzle/db';
+import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 

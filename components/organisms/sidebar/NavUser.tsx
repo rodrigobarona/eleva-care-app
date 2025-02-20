@@ -1,10 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-
-import { useClerk, useUser } from '@clerk/nextjs';
-import { BadgeCheck, ChevronsUpDown, CreditCard, Home, Lock, LogOut } from 'lucide-react';
-
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/atoms/avatar';
 import { Skeleton } from '@/components/atoms/skeleton';
 import {
@@ -17,6 +12,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/molecules/dropdown-menu';
 import { SidebarMenu, SidebarMenuItem, useSidebar } from '@/components/organisms/sidebar/sidebar';
+import { useClerk, useUser } from '@clerk/nextjs';
+import { BadgeCheck, ChevronsUpDown, CreditCard, Home, Lock, LogOut } from 'lucide-react';
+import Link from 'next/link';
 
 function NavUserSkeleton() {
   return (

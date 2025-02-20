@@ -1,8 +1,3 @@
-import type React from 'react';
-
-// Adjust the import path as necessary
-import Image from 'next/image';
-
 import { Card, CardContent } from '@/components/atoms/card';
 import FadeInSection from '@/components/atoms/FadeInSection';
 // Adjust the import path as necessary
@@ -13,6 +8,9 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/molecules/carousel';
+// Adjust the import path as necessary
+import Image from 'next/image';
+import type React from 'react';
 
 // Adjust the import path based on your types definition
 

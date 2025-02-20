@@ -1,11 +1,8 @@
-import { Suspense } from 'react';
-
-import { notFound } from 'next/navigation';
-
+import { EventFormWrapper } from '@/components/organisms/forms/EventFormWrapper';
 import { db } from '@/drizzle/db';
 import { auth } from '@clerk/nextjs/server';
-
-import { EventFormWrapper } from '@/components/organisms/forms/EventFormWrapper';
+import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 
 function LoadingState() {
   return (

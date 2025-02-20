@@ -1,8 +1,7 @@
-import { NextResponse } from 'next/server';
-
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { createMeeting } from '@/server/actions/meetings';
+import { NextResponse } from 'next/server';
 import type { Stripe } from 'stripe';
 import StripeSDK from 'stripe';
 

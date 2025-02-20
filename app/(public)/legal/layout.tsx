@@ -1,8 +1,6 @@
-import type React from 'react';
-
-import Link from 'next/link';
-
 import { Button } from '@/components/atoms/button';
+import Link from 'next/link';
+import type React from 'react';
 
 const legalLinks = [
   { href: '/legal/terms', label: 'Terms of Service' },

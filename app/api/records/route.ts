@@ -1,11 +1,9 @@
-import { NextResponse } from 'next/server';
-
 import { db } from '@/drizzle/db';
 import { RecordTable } from '@/drizzle/schema';
+import { decryptRecord } from '@/lib/encryption';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-
-import { decryptRecord } from '@/lib/encryption';
+import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';

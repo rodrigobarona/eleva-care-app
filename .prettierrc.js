@@ -16,16 +16,7 @@ module.exports = {
     '@trivago/prettier-plugin-sort-imports',
     'prettier-plugin-tailwindcss', // MUST come last
   ],
-  importOrder: [
-    '^react$',
-    '^next(.*)$',
-    '<THIRD_PARTY_MODULES>',
-    '^@/components/(.*)$',
-    '^@/lib/(.*)$',
-    '^@/styles/(.*)$',
-    '^@/public/(.*)$',
-    '^[./]',
-  ],
+  importOrder: ['^@core/(.*)$', '^@server/(.*)$', '^@ui/(.*)$', '^[./]'],
   importOrderSeparation: true,
   importOrderSortSpecifiers: true,
   importOrderGroupNamespaceSpecifiers: true,

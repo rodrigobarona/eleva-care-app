@@ -1,18 +1,20 @@
-import type React from 'react';
-import { useState } from 'react';
-
-import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
+'use client';
 
 import { Button } from '@/components/atoms/button';
+import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js';
+import { useSearchParams } from 'next/navigation';
+import type React from 'react';
+import { Suspense, useState } from 'react';
 
 type PaymentStepProps = {
   price: number;
   onBack: () => void;
 };
 
-export function PaymentStep({ price, onBack }: PaymentStepProps) {
+function PaymentStepContent({ price, onBack }: PaymentStepProps) {
   const stripe = useStripe();
   const elements = useElements();
+  const searchParams = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -29,7 +31,6 @@ export function PaymentStep({ price, onBack }: PaymentStepProps) {
 
     try {
       // Get all the parameters from the URL
-      const searchParams = new URLSearchParams(window.location.search);
       const startTime = searchParams.get('time');
       const name = searchParams.get('name');
       const email = searchParams.get('email');
@@ -122,5 +123,13 @@ export function PaymentStep({ price, onBack }: PaymentStepProps) {
         </div>
       </form>
     </div>
+  );
+}
+
+export function PaymentStep(props: PaymentStepProps) {
+  return (
+    <Suspense fallback={<div>Loading payment details...</div>}>
+      <PaymentStepContent {...props} />
+    </Suspense>
   );
 }

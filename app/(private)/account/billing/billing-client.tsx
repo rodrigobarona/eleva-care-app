@@ -1,43 +1,47 @@
 'use client';
 
-import React from 'react';
-
-import { getConnectLoginLink, handleConnectStripe } from '@/server/actions/billing';
-import { toast } from 'sonner';
-
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
+import React, { Suspense } from 'react';
+import { toast } from 'sonner';
 
 interface BillingPageClientProps {
-  userId: string;
   dbUser: {
+    id: string;
     stripeConnectAccountId: string | null;
   };
   accountStatus: {
-    detailsSubmitted?: boolean;
-    chargesEnabled?: boolean;
-    payoutsEnabled?: boolean;
+    detailsSubmitted: boolean;
+    chargesEnabled: boolean;
+    payoutsEnabled: boolean;
   } | null;
 }
 
-export function BillingPageClient({ userId, dbUser, accountStatus }: BillingPageClientProps) {
+function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
   const [isConnecting, setIsConnecting] = React.useState(false);
   const [isLoadingDashboard, setIsLoadingDashboard] = React.useState(false);
 
   const handleConnect = async () => {
     try {
       setIsConnecting(true);
-      const url = await handleConnectStripe(userId);
-      if (url) {
-        // Perform a client-side redirect to the Stripe Connect page
-        window.location.href = url;
-      } else {
-        toast.error('Failed to get Stripe Connect URL. Please try again.');
-        setIsConnecting(false);
+      const response = await fetch('/api/stripe/connect', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.url) {
+        // For external Stripe URLs, we need to use window.location
+        window.location.href = data.url;
       }
     } catch (error) {
-      console.error('Error connecting to Stripe:', error);
+      console.error('Failed to connect Stripe:', error);
       toast.error('Failed to connect to Stripe. Please try again.');
+    } finally {
       setIsConnecting(false);
     }
   };
@@ -46,10 +50,22 @@ export function BillingPageClient({ userId, dbUser, accountStatus }: BillingPage
     if (!dbUser.stripeConnectAccountId) return;
     try {
       setIsLoadingDashboard(true);
-      const url = await getConnectLoginLink(dbUser.stripeConnectAccountId);
-      window.open(url, '_blank');
+      const response = await fetch('/api/stripe/dashboard', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.url) {
+        // For external Stripe URLs, we need to use window.location
+        window.location.href = data.url;
+      }
     } catch (error) {
-      console.error('Error accessing Stripe dashboard:', error);
+      console.error('Failed to get dashboard URL:', error);
       toast.error('Failed to access Stripe dashboard. Please try again.');
     } finally {
       setIsLoadingDashboard(false);
@@ -169,5 +185,15 @@ export function BillingPageClient({ userId, dbUser, accountStatus }: BillingPage
         </Card>
       </div>
     </div>
+  );
+}
+
+export function BillingPageClient(props: BillingPageClientProps) {
+  return (
+    <Suspense
+      fallback={<div className="container mx-auto py-10">Loading billing information...</div>}
+    >
+      <BillingPageContent {...props} />
+    </Suspense>
   );
 }

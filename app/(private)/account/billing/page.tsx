@@ -1,81 +1,36 @@
-'use client';
-
-import React from 'react';
-
+import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-
-import { useUser } from '@clerk/nextjs';
 
 import { BillingPageClient } from './billing-client';
 
-interface DbUser {
-  id: string;
-  clerkUserId: string;
-  stripeConnectAccountId: string | null;
-  email: string;
-  firstName: string | null;
-  lastName: string | null;
-  imageUrl: string | null;
-  role: string;
-}
+// Mark route as dynamic
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
 
-interface AccountStatus {
-  detailsSubmitted?: boolean;
-  chargesEnabled?: boolean;
-  payoutsEnabled?: boolean;
-}
+export default async function BillingPage() {
+  const { userId } = await auth();
 
-export default function BillingPage() {
-  const { user, isLoaded } = useUser();
-  const [dbUser, setDbUser] = React.useState<DbUser | null>(null);
-  const [accountStatus, setAccountStatus] = React.useState<AccountStatus | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
-
-  const loadUserData = React.useCallback(async () => {
-    try {
-      setError(null);
-      const response = await fetch('/api/user/billing');
-      const data = await response.json();
-
-      if (data.error) {
-        console.error('Error loading user data:', data.error);
-        setError(data.error);
-        return;
-      }
-
-      setDbUser(data.user);
-      setAccountStatus(data.accountStatus);
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      setError('Failed to load user data');
-    }
-  }, []);
-
-  React.useEffect(() => {
-    loadUserData();
-  }, [loadUserData]);
-
-  if (!isLoaded) return null;
-  if (!user) {
+  if (!userId) {
     redirect('/sign-in');
-    return null;
   }
 
-  // Handle errors with retry option
-  if (error || !dbUser) {
-    return (
-      <div className="p-4 text-center">
-        <p className="mb-4 text-red-500">{error || 'Error loading user data'}</p>
-        <button
-          type="button"
-          onClick={loadUserData}
-          className="rounded bg-blue-500 px-4 py-2 text-white hover:bg-blue-600"
-        >
-          Try Again
-        </button>
-      </div>
-    );
-  }
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/user/billing`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    });
 
-  return <BillingPageClient userId={user.id} dbUser={dbUser} accountStatus={accountStatus} />;
+    const data = await response.json();
+
+    if (!data.user) {
+      redirect('/sign-in');
+    }
+
+    return <BillingPageClient dbUser={data.user} accountStatus={data.accountStatus} />;
+  } catch (error) {
+    console.error('Error loading billing data:', error);
+    throw new Error('Failed to load billing data');
+  }
 }

@@ -1,13 +1,11 @@
 'use client';
 
-import React from 'react';
-
+import { Button } from '@/components/atoms/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { useUser } from '@clerk/nextjs';
 import { format } from 'date-fns';
 import { FileText } from 'lucide-react';
-
-import { Button } from '@/components/atoms/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
+import React from 'react';
 
 interface PatientRecord {
   id: string;

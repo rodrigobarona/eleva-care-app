@@ -1,8 +1,6 @@
-import { notFound } from 'next/navigation';
-
-import ReactMarkdown from 'react-markdown';
-
 import { Card, CardContent } from '@/components/atoms/card';
+import { notFound } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
 
 const legalDocs = {
   terms: {

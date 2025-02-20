@@ -1,11 +1,9 @@
-import { NextResponse } from 'next/server';
-
 import { db } from '@/drizzle/db';
 import { RecordTable } from '@/drizzle/schema';
+import { decryptRecord, encryptRecord } from '@/lib/encryption';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-
-import { decryptRecord, encryptRecord } from '@/lib/encryption';
+import { NextResponse } from 'next/server';
 
 export async function POST(request: Request, props: { params: Promise<{ meetingId: string }> }) {
   const params = await props.params;

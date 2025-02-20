@@ -1,9 +1,8 @@
 'use client';
 
-import type React from 'react';
-import { createContext, useContext } from 'react';
-
 import { parseAsStringLiteral, useQueryState } from 'nuqs';
+import type React from 'react';
+import { createContext, Suspense, useContext } from 'react';
 
 type Language = 'en' | 'pt' | 'br' | 'es';
 
@@ -14,7 +13,7 @@ type LanguageContextType = {
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
-export function LanguageProvider({ children }: { children: React.ReactNode }) {
+function LanguageProviderContent({ children }: { children: React.ReactNode }) {
   const [lang, setLang] = useQueryState(
     'lang',
     parseAsStringLiteral(['en', 'pt', 'br', 'es'] as const).withDefault('en'),
@@ -26,6 +25,14 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
   };
 
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
+}
+
+export function LanguageProvider({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div>Loading language settings...</div>}>
+      <LanguageProviderContent>{children}</LanguageProviderContent>
+    </Suspense>
+  );
 }
 
 export function useLanguage() {
