@@ -1,11 +1,13 @@
-import { LanguageProvider } from '@/components/molecules/LanguageProvider';
-import { ThirdPartyScripts } from '@/components/molecules/ThirdPartyScripts';
-import { ClerkProvider } from '@clerk/nextjs';
+import type React from 'react';
+
 import type { Metadata } from 'next';
 import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
+
+import { ClerkProvider } from '@clerk/nextjs';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import type React from 'react';
 import { Toaster } from 'sonner';
+
+import { LanguageProvider } from '@/components/molecules/LanguageProvider';
 
 import './globals.css';
 
@@ -59,8 +61,10 @@ export default function RootLayout({
         className={`${alexandria.variable} ${lora.variable} ${jetBrains.variable}`}
         suppressHydrationWarning
       >
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1" />
+        </head>
         <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
-          <ThirdPartyScripts />
           <NuqsAdapter>
             <LanguageProvider>{children}</LanguageProvider>
           </NuqsAdapter>
