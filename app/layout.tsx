@@ -57,11 +57,15 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className={`${alexandria.variable} ${lora.variable} ${jetBrains.variable}`}>
+      <html
+        lang="en"
+        className={`${alexandria.variable} ${lora.variable} ${jetBrains.variable}`}
+        suppressHydrationWarning
+      >
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1" />
         </head>
-        <body className="min-h-screen bg-background font-sans antialiased">
+        <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
           <ErrorBoundaryWrapper>
             <NuqsAdapter>
               <LanguageProvider>{children}</LanguageProvider>
