@@ -303,47 +303,59 @@ function getBaseUrl() {
   return baseUrl.startsWith('http') ? baseUrl : `https://${baseUrl}`;
 }
 
-export async function createStripeConnectAccount(userId: string) {
+export async function createStripeConnectAccount(email: string, country: string) {
   try {
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.id, userId),
-    });
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    // Create a Connect account
     const account = await stripe.accounts.create({
-      type: 'express',
-      email: user.email,
-      metadata: {
-        userId,
+      type: 'standard',
+      country,
+      email,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
       },
+      business_type: 'individual',
     });
 
-    // Update user with Connect account ID
-    await db
-      .update(UserTable)
-      .set({
-        stripeConnectAccountId: account.id,
-        updatedAt: new Date(),
-      })
-      .where(eq(UserTable.id, userId));
-
-    const baseUrl = getBaseUrl();
-
-    // Create account link for onboarding
-    const accountLink = await stripe.accountLinks.create({
-      account: account.id,
-      refresh_url: `${baseUrl}/account/billing?refresh=true`,
-      return_url: `${baseUrl}/account/billing?success=true`,
-      type: 'account_onboarding',
-    });
-
-    return { url: accountLink.url };
+    return { accountId: account.id };
   } catch (error) {
     console.error('Error creating Connect account:', error);
+    throw error;
+  }
+}
+
+export async function getConnectAccountBalance(accountId: string) {
+  try {
+    const balance = await stripe.balance.retrieve({
+      stripeAccount: accountId,
+    });
+    return balance;
+  } catch (error) {
+    console.error('Error fetching Connect account balance:', error);
+    throw error;
+  }
+}
+
+export async function getConnectAccountPayouts(accountId: string) {
+  try {
+    const payouts = await stripe.payouts.list({
+      stripeAccount: accountId,
+    });
+    return payouts;
+  } catch (error) {
+    console.error('Error fetching Connect account payouts:', error);
+    throw error;
+  }
+}
+
+export async function updateConnectAccountSettings(
+  accountId: string,
+  settings: Stripe.AccountUpdateParams,
+) {
+  try {
+    const account = await stripe.accounts.update(accountId, settings);
+    return account;
+  } catch (error) {
+    console.error('Error updating Connect account settings:', error);
     throw error;
   }
 }
