@@ -7,6 +7,7 @@ import { ClerkProvider } from '@clerk/nextjs';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { Toaster } from 'sonner';
 
+import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
 import { LanguageProvider } from '@/components/molecules/LanguageProvider';
 
 import './globals.css';
@@ -65,9 +66,11 @@ export default function RootLayout({
           <meta name="viewport" content="width=device-width, initial-scale=1" />
         </head>
         <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
-          <NuqsAdapter>
-            <LanguageProvider>{children}</LanguageProvider>
-          </NuqsAdapter>
+          <ErrorBoundaryWrapper>
+            <NuqsAdapter>
+              <LanguageProvider>{children}</LanguageProvider>
+            </NuqsAdapter>
+          </ErrorBoundaryWrapper>
           <Toaster />
         </body>
       </html>

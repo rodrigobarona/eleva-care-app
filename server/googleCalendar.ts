@@ -21,9 +21,10 @@ class GoogleCalendarService {
     });
 
     try {
-      const tokenResponse = await clerk.users.getUserOauthAccessToken(clerkUserId, 'oauth_google');
+      const response = await clerk.users.getUserOauthAccessToken(clerkUserId, 'google');
+      const token = response.data[0]?.token;
 
-      if (tokenResponse.data.length === 0 || !tokenResponse.data[0].token) {
+      if (!token) {
         throw new Error('No OAuth token found');
       }
 
@@ -33,11 +34,7 @@ class GoogleCalendarService {
         process.env.GOOGLE_OAUTH_REDIRECT_URL,
       );
 
-      // Simply set the access token like in the original version
-      client.setCredentials({
-        access_token: tokenResponse.data[0].token,
-      });
-
+      client.setCredentials({ access_token: token });
       return client;
     } catch (error) {
       console.error('Error obtaining OAuth client:', error);
@@ -148,8 +145,8 @@ class GoogleCalendarService {
       const clerk = createClerkClient({
         secretKey: process.env.CLERK_SECRET_KEY,
       });
-      const tokenResponse = await clerk.users.getUserOauthAccessToken(userId, 'oauth_google');
-      return tokenResponse.data.length > 0 && !!tokenResponse.data[0].token;
+      const response = await clerk.users.getUserOauthAccessToken(userId, 'google');
+      return !!response.data[0]?.token;
     } catch {
       return false;
     }
@@ -168,4 +165,37 @@ export async function createCalendarEvent(params: {
   eventName: string;
 }) {
   return GoogleCalendarService.getInstance().createCalendarEvent(params);
+}
+
+export async function getGoogleCalendarClient(userId: string) {
+  try {
+    const accessToken = await getGoogleAccessToken(userId);
+    if (!accessToken) {
+      throw new Error('No Google access token found');
+    }
+
+    const oauth2Client = new google.auth.OAuth2();
+    oauth2Client.setCredentials({ access_token: accessToken });
+
+    return google.calendar({
+      version: 'v3',
+      auth: oauth2Client,
+    });
+  } catch (error) {
+    console.error('[getGoogleCalendarClient] Error:', error);
+    throw error;
+  }
+}
+
+async function getGoogleAccessToken(clerkUserId: string): Promise<string | null> {
+  try {
+    const clerk = createClerkClient({
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
+    const response = await clerk.users.getUserOauthAccessToken(clerkUserId, 'google');
+    return response.data[0]?.token ?? null;
+  } catch (error) {
+    console.error('[getGoogleAccessToken] Error getting token:', error);
+    return null;
+  }
 }

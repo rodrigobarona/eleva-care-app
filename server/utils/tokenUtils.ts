@@ -20,7 +20,7 @@ export async function checkAndRefreshToken(clerkUserId: string) {
     );
 
     try {
-      const tokenResponse = await clerk.users.getUserOauthAccessToken(clerkUserId, 'oauth_google');
+      const tokenResponse = await clerk.users.getUserOauthAccessToken(clerkUserId, 'google');
 
       if (tokenResponse.data.length === 0 || !tokenResponse.data[0].token) {
         throw new Error('No OAuth token found');
@@ -51,4 +51,27 @@ export async function checkAndRefreshToken(clerkUserId: string) {
   }
 
   return null;
+}
+
+export async function getGoogleAccessToken(clerkUserId: string): Promise<string | null> {
+  try {
+    const clerk = createClerkClient({
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
+
+    const tokenResponse = await clerk.users.getUserOauthAccessToken(clerkUserId, 'google');
+    return tokenResponse.data[0]?.token ?? null;
+  } catch (error) {
+    console.error('[getGoogleAccessToken] Error:', error);
+    return null;
+  }
+}
+
+export async function hasValidGoogleToken(clerkUserId: string): Promise<boolean> {
+  try {
+    const token = await getGoogleAccessToken(clerkUserId);
+    return !!token;
+  } catch {
+    return false;
+  }
 }
