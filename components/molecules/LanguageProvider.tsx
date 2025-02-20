@@ -1,9 +1,8 @@
 'use client';
 
+import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import type React from 'react';
 import { createContext, Suspense, useContext } from 'react';
-
-import { parseAsStringLiteral, useQueryState } from 'nuqs';
 
 type Language = 'en' | 'pt' | 'br' | 'es';
 

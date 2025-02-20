@@ -1,14 +1,16 @@
 'use client';
 
-import { Button } from '@/components/atoms/button';
+import React from 'react';
+
 import { BulletList } from '@tiptap/extension-bullet-list';
 import { Link } from '@tiptap/extension-link';
 import { ListItem } from '@tiptap/extension-list-item';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { Bold, Italic, LinkIcon, List } from 'lucide-react';
-import React from 'react';
 import { Markdown } from 'tiptap-markdown';
+
+import { Button } from '@/components/atoms/button';
 
 interface SimpleRichTextEditorProps {
   value: string;
@@ -46,6 +48,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
           'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[100px] px-3 py-2',
       },
     },
+    immediatelyRender: false,
   });
 
   React.useEffect(() => {

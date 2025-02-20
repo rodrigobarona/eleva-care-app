@@ -1,8 +1,7 @@
 'use client';
 
-import type { ReactNode } from 'react';
-
 import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
+import type { ReactNode } from 'react';
 
 interface PrivateLayoutWrapperProps {
   children: ReactNode;

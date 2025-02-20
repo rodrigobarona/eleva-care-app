@@ -1,16 +1,19 @@
 'use server';
 
-import { db } from '@/drizzle/db';
-import { EventTable } from '@/drizzle/schema';
-import { logAuditEvent } from '@/lib/logAuditEvent';
-import { eventFormSchema } from '@/schema/events';
-import { auth } from '@clerk/nextjs/server';
-import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
+
+import { db } from '@/drizzle/db';
+import { EventTable, MeetingTable } from '@/drizzle/schema';
+import { eventFormSchema } from '@/schema/events';
+import { auth } from '@clerk/nextjs/server';
+import { and, count, eq } from 'drizzle-orm';
 import 'use-server';
 import type { z } from 'zod';
+
+import { logAuditEvent } from '@/lib/logAuditEvent';
+import { getServerStripe } from '@/lib/stripe';
 
 /**
  * @fileoverview Server actions for managing events in the Eleva Care application.
@@ -164,39 +167,58 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
     return { error: true };
   }
 
-  // Step 1: Retrieve old values before the update
-  const [oldEvent] = await db
-    .select()
-    .from(EventTable)
-    .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
-    .execute(); // Ensure to execute the query to get the old values
+  try {
+    // Step 1: Retrieve old values before deletion
+    const [oldEvent] = await db
+      .select()
+      .from(EventTable)
+      .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
+      .execute();
 
-  if (!oldEvent) {
-    return { error: true }; // Event not found
-  }
+    if (!oldEvent) {
+      return { error: true }; // Event not found
+    }
 
-  // Step 2: Update the event with new values
-  const [deletedEvent] = await db
-    .delete(EventTable)
-    .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
-    .returning({ id: EventTable.id, userId: EventTable.clerkUserId });
+    // Step 2: If there's a Stripe product, archive it
+    if (oldEvent.stripeProductId) {
+      try {
+        const stripe = await getServerStripe();
+        await stripe.products.update(oldEvent.stripeProductId, {
+          active: false,
+        });
+      } catch (stripeError) {
+        console.error('Failed to archive Stripe product:', stripeError);
+        // Continue with event deletion even if Stripe archival fails
+      }
+    }
 
-  if (!deletedEvent) {
+    // Step 3: Delete the event
+    const [deletedEvent] = await db
+      .delete(EventTable)
+      .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
+      .returning({ id: EventTable.id, userId: EventTable.clerkUserId });
+
+    if (!deletedEvent) {
+      return { error: true };
+    }
+
+    await logAuditEvent(
+      deletedEvent.userId,
+      'delete',
+      'events',
+      deletedEvent.id,
+      oldEvent,
+      'User requested deletion',
+      ipAddress,
+      userAgent,
+    );
+
+    revalidatePath('/events');
+    return { error: false };
+  } catch (error) {
+    console.error('Delete event error:', error);
     return { error: true };
   }
-
-  await logAuditEvent(
-    deletedEvent.userId,
-    'delete',
-    'events',
-    deletedEvent.id,
-    oldEvent, // Pass the old values here
-    'User requested deletion',
-    ipAddress,
-    userAgent,
-  );
-
-  redirect('/events');
 }
 
 /**
@@ -289,4 +311,13 @@ export async function updateEventActiveState(
 
   revalidatePath('/events');
   return { error: false };
+}
+
+export async function getEventMeetingsCount(eventId: string): Promise<number> {
+  const result = await db
+    .select({ count: count() })
+    .from(MeetingTable)
+    .where(eq(MeetingTable.eventId, eventId));
+
+  return result[0]?.count ?? 0;
 }

@@ -1,20 +1,28 @@
 'use client';
 
-import { slugify } from '@/lib/validations/slug';
+import React, { useTransition } from 'react';
+
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
 import { eventFormSchema } from '@/schema/events';
-import { createEvent, deleteEvent, updateEvent } from '@/server/actions/events';
+import {
+  createEvent,
+  deleteEvent,
+  getEventMeetingsCount,
+  updateEvent,
+} from '@/server/actions/events';
 import { createStripeProduct, updateStripeProduct } from '@/server/actions/stripe';
 import { useUser } from '@clerk/nextjs';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import React, { useTransition } from 'react';
 import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import type { z } from 'zod';
 
-import { Button } from '../../atoms/button';
-import { Input } from '../../atoms/input';
-import { Switch } from '../../atoms/switch';
+import { Button } from '@/components/atoms/button';
+import { Input } from '@/components/atoms/input';
+import { Switch } from '@/components/atoms/switch';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,7 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '../../molecules/alert-dialog';
+} from '@/components/molecules/alert-dialog';
 import {
   Form,
   FormControl,
@@ -34,15 +42,24 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '../../molecules/form';
-import SimpleRichTextEditor from '../../molecules/RichTextEditor';
+} from '@/components/molecules/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../../molecules/select';
+} from '@/components/molecules/select';
+
+import { slugify } from '@/lib/validations/slug';
+
+// Dynamic import of RichTextEditor with SSR disabled
+const SimpleRichTextEditor = dynamic(() => import('@/components/molecules/RichTextEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-[100px] animate-pulse rounded-md border bg-muted/50 px-3 py-2" />
+  ),
+});
 
 export function EventForm({
   event,
@@ -63,6 +80,7 @@ export function EventForm({
   const router = useRouter();
   const [isDeletePending, startDeleteTransition] = useTransition();
   const [isStripeProcessing, setIsStripeProcessing] = React.useState(false);
+  const [meetingsCount, setMeetingsCount] = React.useState<number>(0);
 
   const form = useForm<z.infer<typeof eventFormSchema>>({
     resolver: zodResolver(eventFormSchema),
@@ -89,6 +107,12 @@ export function EventForm({
     });
     return () => subscription.unsubscribe();
   }, [form]);
+
+  React.useEffect(() => {
+    if (event?.id) {
+      getEventMeetingsCount(event.id).then(setMeetingsCount);
+    }
+  }, [event?.id]);
 
   const onSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const currentValue = e.target.value
@@ -201,14 +225,16 @@ export function EventForm({
               <Input
                 type="number"
                 min="0"
-                step="0.01"
+                step="0.50"
                 {...field}
                 disabled={isStripeProcessing}
                 onChange={(e) => {
-                  const value = Number.parseFloat(e.target.value);
-                  field.onChange(Math.round(value * 100));
+                  const value = Number.parseFloat(e.target.value || '0');
+                  // Round to nearest 0.50
+                  const roundedValue = Math.round(value * 2) / 2;
+                  field.onChange(Math.round(roundedValue * 100));
                 }}
-                value={field.value / 100}
+                value={field.value ? field.value / 100 : 0}
                 className="w-32"
               />
             </FormControl>
@@ -219,7 +245,7 @@ export function EventForm({
           </div>
           <FormDescription>
             {event?.stripeProductId ? (
-              <>Connected to Stripe Product: {event.stripeProductId.slice(0, 8)}...</>
+              <span>Connected to Stripe Product: {event.stripeProductId.slice(0, 8)}...</span>
             ) : (
               'Set to 0 for free events. Price in euros.'
             )}
@@ -374,9 +400,22 @@ export function EventForm({
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete your event.
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <span className="block space-y-2">
+                      <span className="block">
+                        This action cannot be undone. This will permanently delete your event
+                        {meetingsCount > 0
+                          ? ` and ${meetingsCount} associated meeting${meetingsCount === 1 ? '' : 's'}`
+                          : ''}
+                        .
+                      </span>
+                      {meetingsCount > 0 && (
+                        <span className="block font-medium text-destructive">
+                          Warning: All associated meetings will also be deleted!
+                        </span>
+                      )}
+                    </span>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
@@ -385,13 +424,26 @@ export function EventForm({
                     disabled={isDeletePending || form.formState.isSubmitting}
                     variant="destructive"
                     onClick={() => {
-                      startDeleteTransition(async () => {
-                        const data = await deleteEvent(event.id);
-                        if (data?.error) {
-                          form.setError('root', {
-                            message: 'There was an error deleting your event',
-                          });
-                        }
+                      const promise = new Promise((resolve, reject) => {
+                        startDeleteTransition(async () => {
+                          try {
+                            const data = await deleteEvent(event.id);
+                            if (data?.error) {
+                              reject(new Error('Failed to delete event'));
+                            } else {
+                              resolve(true);
+                              router.push('/events');
+                            }
+                          } catch (error) {
+                            reject(error);
+                          }
+                        });
+                      });
+
+                      toast.promise(promise, {
+                        loading: 'Deleting event...',
+                        success: 'Event deleted successfully',
+                        error: 'Failed to delete event',
                       });
                     }}
                   >

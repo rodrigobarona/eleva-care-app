@@ -1,26 +1,17 @@
-import { EventFormWrapper } from '@/components/organisms/forms/EventFormWrapper';
+import dynamic from 'next/dynamic';
+import { notFound } from 'next/navigation';
+
 import { db } from '@/drizzle/db';
 import { auth } from '@clerk/nextjs/server';
-import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
 
-function LoadingState() {
-  return (
-    <div className="container max-w-3xl py-8">
-      <div className="animate-pulse space-y-4">
-        <div className="h-8 w-1/3 rounded bg-gray-200" />
-        <div className="h-4 w-2/3 rounded bg-gray-200" />
-        <div className="h-64 rounded bg-gray-200" />
-      </div>
-    </div>
-  );
-}
+// Create a client-side only wrapper component
+const ClientEventFormWrapper = dynamic(() =>
+  import('@/components/organisms/forms/EventFormWrapper').then((mod) => mod.EventFormWrapper),
+);
 
 export default async function EditEventPage(props: { params: Promise<{ eventSlug: string }> }) {
   const params = await props.params;
-
   const { eventSlug } = params;
-
   const { userId, redirectToSignIn } = await auth();
 
   if (userId == null) return redirectToSignIn();
@@ -43,9 +34,7 @@ export default async function EditEventPage(props: { params: Promise<{ eventSlug
             Make changes to your event settings and information.
           </p>
         </div>
-        <Suspense fallback={<LoadingState />}>
-          <EventFormWrapper event={event} />
-        </Suspense>
+        <ClientEventFormWrapper event={event} />
       </div>
     );
   } catch (error) {
