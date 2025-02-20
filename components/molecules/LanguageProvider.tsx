@@ -1,8 +1,9 @@
 'use client';
 
-import { parseAsStringLiteral, useQueryState } from 'nuqs';
 import type React from 'react';
 import { createContext, Suspense, useContext } from 'react';
+
+import { parseAsStringLiteral, useQueryState } from 'nuqs';
 
 type Language = 'en' | 'pt' | 'br' | 'es';
 
@@ -29,7 +30,7 @@ function LanguageProviderContent({ children }: { children: React.ReactNode }) {
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<div>Loading language settings...</div>}>
+    <Suspense>
       <LanguageProviderContent>{children}</LanguageProviderContent>
     </Suspense>
   );

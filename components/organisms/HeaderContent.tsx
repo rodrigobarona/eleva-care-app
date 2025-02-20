@@ -1,5 +1,13 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
+import { ChevronDown, Globe } from 'lucide-react';
+
 import { Button } from '@/components/atoms/button';
 import { Icons } from '@/components/atoms/icons';
 import {
@@ -9,15 +17,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/molecules/dropdown-menu';
 import { useLanguage } from '@/components/molecules/LanguageProvider';
+
 import { translations as br } from '@/public/locales/br';
 import { translations as en } from '@/public/locales/en';
 import { translations as es } from '@/public/locales/es';
 import { translations as pt } from '@/public/locales/pt';
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
-import { ChevronDown, Globe } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
 
 const languageMap = {
   en,
@@ -130,7 +134,6 @@ export function HeaderContent() {
             </SignedOut>
             <SignedIn>
               <UserButton
-                afterSignOutUrl="/"
                 appearance={{
                   elements: {
                     avatarBox: 'w-8 h-8',
