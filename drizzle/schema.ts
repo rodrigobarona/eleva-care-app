@@ -209,6 +209,7 @@ export const UserTable = pgTable(
     stripeConnectOnboardingComplete: boolean('stripe_connect_onboarding_complete').default(false),
     stripeBankAccountLast4: text('stripe_bank_account_last4'),
     stripeBankName: text('stripe_bank_name'),
+    country: text(),
     createdAt,
     updatedAt,
   },

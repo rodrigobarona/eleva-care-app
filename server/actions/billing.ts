@@ -2,8 +2,10 @@
 
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { createStripeConnectAccount, getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
+import { clerkClient } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
+
+import { createStripeConnectAccount, getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
 
 /**
  * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
@@ -13,10 +15,12 @@ import { eq } from 'drizzle-orm';
 
  * Initiates the Stripe Connect account creation process for an expert.
  *
- * This function performs several steps:
- * 1. Validates the user exists in the database
- * 2. Creates a Stripe Connect account for the expert
- * 3. Returns the onboarding URL for the expert to complete their setup
+ * This function:
+ * 1. Validates the user exists in both Clerk and our database
+ * 2. Gets or sets the user's country from Clerk metadata
+ * 3. Creates a Stripe Connect account for the expert
+ * 4. Updates the user's record with the new Stripe Connect account ID
+ * 5. Returns the onboarding URL for the expert to complete their setup
  *
  * @param clerkUserId - The Clerk user ID of the expert
  * @returns Promise that resolves to either:
@@ -35,19 +39,75 @@ export async function handleConnectStripe(clerkUserId: string): Promise<string |
   if (!clerkUserId) return null;
 
   try {
-    // Retrieve the user from the database
-    const dbUser = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, clerkUserId),
-    });
+    // Get user data from both Clerk and our database
+    try {
+      const clerk = await clerkClient();
+      const [clerkUser, dbUser] = await Promise.all([
+        clerk.users.getUser(clerkUserId).catch((error: Error) => {
+          console.error('Failed to fetch Clerk user:', error);
+          return null;
+        }),
+        db.query.UserTable.findFirst({
+          where: eq(UserTable.clerkUserId, clerkUserId),
+        }),
+      ]);
 
-    if (!dbUser) {
-      console.error('User not found in database');
+      if (!dbUser || !clerkUser) {
+        console.error('User not found in', !dbUser ? 'database' : 'Clerk');
+        return null;
+      }
+
+      if (!dbUser.email) {
+        console.error('User email not found');
+        return null;
+      }
+
+      // Get country from Clerk metadata or default to US
+      let country = (clerkUser.publicMetadata.country as string) || 'US';
+
+      // Ensure country code is uppercase
+      country = country.toUpperCase();
+
+      // Validate country is supported by Stripe Connect
+      // See: https://stripe.com/global
+      const supportedCountries = ['US', 'GB', 'DE', 'FR', 'ES', 'IT', 'NL', 'BE', 'PT', 'IE', 'PT']; // Add more as needed
+      if (!supportedCountries.includes(country)) {
+        console.error('Country not supported by Stripe Connect:', country);
+        return null;
+      }
+
+      // Create Stripe Connect account
+      const { accountId } = await createStripeConnectAccount(dbUser.email, country);
+
+      // Update user records
+      await Promise.all([
+        // Update our database
+        db
+          .update(UserTable)
+          .set({
+            stripeConnectAccountId: accountId,
+            country: country, // Store the country in our database
+            updatedAt: new Date(),
+          })
+          .where(eq(UserTable.clerkUserId, clerkUserId)),
+
+        // Update Clerk metadata
+        clerk.users.updateUser(clerkUserId, {
+          publicMetadata: {
+            ...clerkUser.publicMetadata,
+            country: country,
+            stripeConnectAccountId: accountId,
+          },
+        }),
+      ]);
+
+      // Generate the onboarding URL
+      const url = await getStripeConnectSetupOrLoginLink(accountId);
+      return url;
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
       return null;
     }
-
-    // Create Stripe Connect account and get onboarding URL
-    const { url } = await createStripeConnectAccount(dbUser.id);
-    return url;
   } catch (error) {
     console.error('Failed to create Stripe Connect account:', error);
     return null;

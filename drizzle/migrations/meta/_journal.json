@@ -8,6 +8,13 @@
       "when": 1740044758250,
       "tag": "0000_fat_mauler",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1740065807825,
+      "tag": "0001_brave_blade",
+      "breakpoints": true
     }
   ]
 }
