@@ -1,9 +1,3 @@
-/**
- * @fileoverview Server actions for managing events in the Eleva Care application.
- * This file handles the creation, updating, deletion, and management of events,
- * including validation, logging, and redirection.
- */
-
 'use server';
 
 import { db } from '@/drizzle/db';
@@ -22,57 +16,7 @@ import type { z } from 'zod';
  * @fileoverview Server actions for managing events in the Eleva Care application.
  * This file handles the creation, updating, deletion, and management of events,
  * including validation, logging, and redirection.
- */
-
-/**
- * @fileoverview Server actions for managing events in the Eleva Care application.
- * This file handles the creation, updating, deletion, and management of events,
- * including validation, logging, and redirection.
- */
-
-/**
- * @fileoverview Server actions for managing events in the Eleva Care application.
- * This file handles the creation, updating, deletion, and management of events,
- * including validation, logging, and redirection.
- */
-
-/**
- * @fileoverview Server actions for managing events in the Eleva Care application.
- * This file handles the creation, updating, deletion, and management of events,
- * including validation, logging, and redirection.
- */
-
-/**
- * @fileoverview Server actions for managing events in the Eleva Care application.
- * This file handles the creation, updating, deletion, and management of events,
- * including validation, logging, and redirection.
- */
-
-/**
- * @fileoverview Server actions for managing events in the Eleva Care application.
- * This file handles the creation, updating, deletion, and management of events,
- * including validation, logging, and redirection.
- */
-
-/**
- * @fileoverview Server actions for managing events in the Eleva Care application.
- * This file handles the creation, updating, deletion, and management of events,
- * including validation, logging, and redirection.
- */
-
-/**
- * @fileoverview Server actions for managing events in the Eleva Care application.
- * This file handles the creation, updating, deletion, and management of events,
- * including validation, logging, and redirection.
- */
-
-/**
- * @fileoverview Server actions for managing events in the Eleva Care application.
- * This file handles the creation, updating, deletion, and management of events,
- * including validation, logging, and redirection.
- */
-
-/**
+ 
  * Creates a new event using the provided data.
  *
  * @param unsafeData - The data for creating the event, validated against the eventFormSchema.

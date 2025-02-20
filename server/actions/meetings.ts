@@ -1,9 +1,3 @@
-/**
- * @fileoverview Server actions for managing meetings in the Eleva Care application.
- * This file handles the creation and management of meetings between experts and guests,
- * including validation, scheduling, payment processing, and Google Calendar integration.
- */
-
 'use server';
 
 import { db } from '@/drizzle/db';
@@ -23,57 +17,7 @@ import { createCalendarEvent } from '../googleCalendar';
  * @fileoverview Server actions for managing meetings in the Eleva Care application.
  * This file handles the creation and management of meetings between experts and guests,
  * including validation, scheduling, payment processing, and Google Calendar integration.
- */
-
-/**
- * @fileoverview Server actions for managing meetings in the Eleva Care application.
- * This file handles the creation and management of meetings between experts and guests,
- * including validation, scheduling, payment processing, and Google Calendar integration.
- */
-
-/**
- * @fileoverview Server actions for managing meetings in the Eleva Care application.
- * This file handles the creation and management of meetings between experts and guests,
- * including validation, scheduling, payment processing, and Google Calendar integration.
- */
-
-/**
- * @fileoverview Server actions for managing meetings in the Eleva Care application.
- * This file handles the creation and management of meetings between experts and guests,
- * including validation, scheduling, payment processing, and Google Calendar integration.
- */
-
-/**
- * @fileoverview Server actions for managing meetings in the Eleva Care application.
- * This file handles the creation and management of meetings between experts and guests,
- * including validation, scheduling, payment processing, and Google Calendar integration.
- */
-
-/**
- * @fileoverview Server actions for managing meetings in the Eleva Care application.
- * This file handles the creation and management of meetings between experts and guests,
- * including validation, scheduling, payment processing, and Google Calendar integration.
- */
-
-/**
- * @fileoverview Server actions for managing meetings in the Eleva Care application.
- * This file handles the creation and management of meetings between experts and guests,
- * including validation, scheduling, payment processing, and Google Calendar integration.
- */
-
-/**
- * @fileoverview Server actions for managing meetings in the Eleva Care application.
- * This file handles the creation and management of meetings between experts and guests,
- * including validation, scheduling, payment processing, and Google Calendar integration.
- */
-
-/**
- * @fileoverview Server actions for managing meetings in the Eleva Care application.
- * This file handles the creation and management of meetings between experts and guests,
- * including validation, scheduling, payment processing, and Google Calendar integration.
- */
-
-/**
+ 
  * Creates a new meeting between an expert and a guest.
  *
  * This function performs several validation and creation steps:

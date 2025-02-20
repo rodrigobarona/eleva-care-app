@@ -68,51 +68,7 @@ const config = [
       'react/prop-types': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
-      'import/order': [
-        'error',
-        {
-          groups: [
-            'builtin',
-            'external',
-            'internal',
-            'parent',
-            'sibling',
-            'index',
-            'object',
-            'type',
-          ],
-          pathGroups: [
-            {
-              pattern: '^@core/(.*)$',
-              group: 'internal',
-              position: 'before',
-            },
-            {
-              pattern: '^@server/(.*)$',
-              group: 'internal',
-              position: 'before',
-            },
-            {
-              pattern: '^@ui/(.*)$',
-              group: 'internal',
-              position: 'before',
-            },
-            {
-              pattern: '^[./]',
-              group: 'internal',
-              position: 'before',
-            },
-          ],
-          'newlines-between': 'always',
-          alphabetize: {
-            order: 'asc',
-            caseInsensitive: true,
-          },
-          warnOnUnassignedImports: true,
-          distinctGroup: false,
-          groupNamespaceSpecifiers: true,
-        },
-      ],
+      'import/order': 'off',
       'import/no-unresolved': 'error',
       'jsx-a11y/anchor-is-valid': [
         'error',

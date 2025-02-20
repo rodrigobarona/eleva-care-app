@@ -1,10 +1,3 @@
-/**
- * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
- * This file handles the creation and management of Stripe Connect accounts for experts,
- * enabling them to receive payments through the platform. It provides functionality for
- * account creation, login link generation, and account management.
- */
-
 'use server';
 
 import { db } from '@/drizzle/db';
@@ -17,65 +10,7 @@ import { eq } from 'drizzle-orm';
  * This file handles the creation and management of Stripe Connect accounts for experts,
  * enabling them to receive payments through the platform. It provides functionality for
  * account creation, login link generation, and account management.
- */
 
-/**
- * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
- * This file handles the creation and management of Stripe Connect accounts for experts,
- * enabling them to receive payments through the platform. It provides functionality for
- * account creation, login link generation, and account management.
- */
-
-/**
- * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
- * This file handles the creation and management of Stripe Connect accounts for experts,
- * enabling them to receive payments through the platform. It provides functionality for
- * account creation, login link generation, and account management.
- */
-
-/**
- * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
- * This file handles the creation and management of Stripe Connect accounts for experts,
- * enabling them to receive payments through the platform. It provides functionality for
- * account creation, login link generation, and account management.
- */
-
-/**
- * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
- * This file handles the creation and management of Stripe Connect accounts for experts,
- * enabling them to receive payments through the platform. It provides functionality for
- * account creation, login link generation, and account management.
- */
-
-/**
- * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
- * This file handles the creation and management of Stripe Connect accounts for experts,
- * enabling them to receive payments through the platform. It provides functionality for
- * account creation, login link generation, and account management.
- */
-
-/**
- * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
- * This file handles the creation and management of Stripe Connect accounts for experts,
- * enabling them to receive payments through the platform. It provides functionality for
- * account creation, login link generation, and account management.
- */
-
-/**
- * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
- * This file handles the creation and management of Stripe Connect accounts for experts,
- * enabling them to receive payments through the platform. It provides functionality for
- * account creation, login link generation, and account management.
- */
-
-/**
- * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
- * This file handles the creation and management of Stripe Connect accounts for experts,
- * enabling them to receive payments through the platform. It provides functionality for
- * account creation, login link generation, and account management.
- */
-
-/**
  * Initiates the Stripe Connect account creation process for an expert.
  *
  * This function performs several steps:

@@ -1,9 +1,3 @@
-/**
- * @fileoverview Server actions for managing expert profiles in the Eleva Care application.
- * This file handles the creation and updating of expert profiles, including profile pictures
- * and social media links. It provides functionality for data validation, blob storage
- * management, and social media URL normalization.
- */
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { profileFormSchema } from '@/schema/profile';

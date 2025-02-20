@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_NO_WARNINGS=1 next dev --turbopack",
-    "build": "NODE_NO_WARNINGS=1 next build",
+    "dev": "NODE_NO_WARNINGS=1 prettier --check . && next dev --turbopack",
+    "build": "NODE_NO_WARNINGS=1 prettier --write . && next build",
     "start": "NODE_NO_WARNINGS=1 next start",
     "lint": "eslint .",
     "format": "prettier --write .",

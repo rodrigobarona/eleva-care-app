@@ -1,4 +1,3 @@
-// NextAvailableTimeClient.tsx
 'use client';
 
 import {
@@ -10,20 +9,6 @@ import {
 import { formatInTimeZone } from 'date-fns-tz';
 import React, { Suspense } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
-
-// NextAvailableTimeClient.tsx
-
-// NextAvailableTimeClient.tsx
-
-// NextAvailableTimeClient.tsx
-
-// NextAvailableTimeClient.tsx
-
-// NextAvailableTimeClient.tsx
-
-// NextAvailableTimeClient.tsx
-
-// NextAvailableTimeClient.tsx
 
 interface NextAvailableTimeClientProps {
   date: Date | string | null;
