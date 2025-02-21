@@ -1,7 +1,6 @@
-import Image from 'next/image';
-
 import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
+import Image from 'next/image';
 
 export const metadata = {
   title: 'Our Mission | Eleva Care',
@@ -17,10 +16,10 @@ export default function AboutPage() {
           {/* Mission Section */}
           <section className="pt-16 md:pt-32">
             <div className="space-y-6">
-              <h1 className="text-pretty text-4xl font-medium tracking-tighter text-gray-950 sm:text-6xl">
+              <h1 className="text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-neutral-900 sm:text-6xl">
                 Transforming women&apos;s health care through innovation and compassion
               </h1>
-              <p className="mt-6 max-w-3xl text-2xl font-medium text-gray-500">
+              <p className="mt-6 max-w-3xl text-base/6 text-eleva-neutral-900/60 lg:text-lg/7">
                 At Eleva Care, we are dedicated to empowering women of all ages to take control of
                 their health and well-being.
               </p>
@@ -30,13 +29,15 @@ export default function AboutPage() {
           {/* Vision & Mission Details */}
           <section className="mt-16 grid grid-cols-1 lg:grid-cols-2 lg:gap-12">
             <div className="max-w-lg">
-              <h2 className="text-2xl font-medium tracking-tight">Our mission</h2>
-              <p className="mt-6 text-sm/6 text-gray-600">
+              <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
+                Our mission
+              </h2>
+              <p className="mt-6 text-base/6 text-eleva-neutral-900/60 lg:text-lg/7">
                 Our mission is to provide a supportive and inclusive platform that connects
                 individuals with expert-led resources, evidence-based information, and a
                 collaborative community of healthcare professionals.
               </p>
-              <p className="mt-8 text-sm/6 text-gray-600">
+              <p className="mt-8 text-base/6 text-eleva-neutral-900/60 lg:text-lg/7">
                 We believe in making quality healthcare accessible to all women, empowering them
                 with knowledge, and fostering collaboration for better health outcomes. Our approach
                 recognizes that women&apos;s health is a lifelong, evolving journey.
@@ -85,26 +86,34 @@ export default function AboutPage() {
             </div>
 
             <div className="max-lg:mt-16 lg:col-span-1">
-              <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+              <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
                 The Numbers
               </h2>
               <Separator className="mt-6" />
               <dl className="mt-6 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-y-2 border-b border-dotted border-gray-200 pb-4">
-                  <dt className="text-sm/6 text-gray-600">Women Helped</dt>
-                  <dd className="order-first text-6xl font-medium tracking-tight">10K+</dd>
+                <div className="flex flex-col gap-y-2 border-b border-dotted border-eleva-neutral-200 pb-4">
+                  <dt className="text-sm/6 text-eleva-neutral-900/60">Women Helped</dt>
+                  <dd className="order-first font-serif text-6xl font-light tracking-tighter text-eleva-primary">
+                    10K+
+                  </dd>
                 </div>
-                <div className="flex flex-col gap-y-2 border-b border-dotted border-gray-200 pb-4">
-                  <dt className="text-sm/6 text-gray-600">Expert Providers</dt>
-                  <dd className="order-first text-6xl font-medium tracking-tight">50+</dd>
+                <div className="flex flex-col gap-y-2 border-b border-dotted border-eleva-neutral-200 pb-4">
+                  <dt className="text-sm/6 text-eleva-neutral-900/60">Expert Providers</dt>
+                  <dd className="order-first font-serif text-6xl font-light tracking-tighter text-eleva-primary">
+                    50+
+                  </dd>
                 </div>
-                <div className="flex flex-col gap-y-2 max-sm:border-b max-sm:border-dotted max-sm:border-gray-200 max-sm:pb-4">
-                  <dt className="text-sm/6 text-gray-600">Patient Satisfaction</dt>
-                  <dd className="order-first text-6xl font-medium tracking-tight">95%</dd>
+                <div className="flex flex-col gap-y-2 max-sm:border-b max-sm:border-dotted max-sm:border-eleva-neutral-200 max-sm:pb-4">
+                  <dt className="text-sm/6 text-eleva-neutral-900/60">Patient Satisfaction</dt>
+                  <dd className="order-first font-serif text-6xl font-light tracking-tighter text-eleva-primary">
+                    95%
+                  </dd>
                 </div>
                 <div className="flex flex-col gap-y-2">
-                  <dt className="text-sm/6 text-gray-600">Support Available</dt>
-                  <dd className="order-first text-6xl font-medium tracking-tight">24/7</dd>
+                  <dt className="text-sm/6 text-eleva-neutral-900/60">Support Available</dt>
+                  <dd className="order-first font-serif text-6xl font-light tracking-tighter text-eleva-primary">
+                    24/7
+                  </dd>
                 </div>
               </dl>
             </div>
@@ -112,13 +121,13 @@ export default function AboutPage() {
 
           {/* Vision Section */}
           <section className="mt-32">
-            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
               Our Vision
             </h2>
-            <h3 className="mt-2 text-pretty text-4xl font-medium tracking-tighter text-gray-950 sm:text-6xl">
+            <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-neutral-900 sm:text-6xl">
               Bridging science and care for every woman
             </h3>
-            <p className="mt-6 max-w-3xl text-2xl font-medium text-gray-500">
+            <p className="mt-6 max-w-3xl text-2xl font-light text-eleva-neutral-900/80">
               To bridge the gap between scientific research and practical application, delivering
               accessible and personalized women&apos;s health care solutions throughout every life
               stage.
@@ -127,35 +136,43 @@ export default function AboutPage() {
 
           {/* Core Beliefs */}
           <section className="mt-24">
-            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
               Our Core Beliefs
             </h2>
             <Separator className="mt-6" />
             <ul className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-2">
               <li>
-                <h3 className="font-medium text-gray-900">Quality Healthcare Access</h3>
-                <p className="mt-4 text-sm/6 text-gray-500">
+                <h3 className="font-serif text-xl font-light tracking-tighter text-eleva-primary">
+                  Quality Healthcare Access
+                </h3>
+                <p className="mt-4 text-base/6 text-eleva-neutral-900/60">
                   Every woman deserves access to quality healthcare, regardless of location or
                   circumstances.
                 </p>
               </li>
               <li>
-                <h3 className="font-medium text-gray-900">Knowledge is Power</h3>
-                <p className="mt-4 text-sm/6 text-gray-500">
+                <h3 className="font-serif text-xl font-light tracking-tighter text-eleva-primary">
+                  Knowledge is Power
+                </h3>
+                <p className="mt-4 text-base/6 text-eleva-neutral-900/60">
                   Empowering women with evidence-based information to make informed healthcare
                   decisions.
                 </p>
               </li>
               <li>
-                <h3 className="font-medium text-gray-900">Collaborative Care</h3>
-                <p className="mt-4 text-sm/6 text-gray-500">
+                <h3 className="font-serif text-xl font-light tracking-tighter text-eleva-primary">
+                  Collaborative Care
+                </h3>
+                <p className="mt-4 text-base/6 text-eleva-neutral-900/60">
                   Better health outcomes are achieved through collaboration between patients and
                   healthcare providers.
                 </p>
               </li>
               <li>
-                <h3 className="font-medium text-gray-900">Lifelong Journey</h3>
-                <p className="mt-4 text-sm/6 text-gray-500">
+                <h3 className="font-serif text-xl font-light tracking-tighter text-eleva-primary">
+                  Lifelong Journey
+                </h3>
+                <p className="mt-4 text-base/6 text-eleva-neutral-900/60">
                   Women&apos;s health is a continuous journey that evolves through different life
                   stages.
                 </p>
@@ -165,25 +182,25 @@ export default function AboutPage() {
 
           {/* Team Section */}
           <section className="mt-32">
-            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
               Meet our team
             </h2>
-            <h3 className="mt-2 text-pretty text-4xl font-medium tracking-tighter text-gray-950 sm:text-6xl">
+            <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-neutral-900 sm:text-6xl">
               Led by healthcare innovators and experts
             </h3>
-            <p className="mt-6 max-w-3xl text-2xl font-medium text-gray-500">
+            <p className="mt-6 max-w-3xl text-2xl font-light text-eleva-neutral-900/80">
               Our team combines expertise in women&apos;s health, technology, and patient care to
               revolutionize healthcare delivery.
             </p>
 
             <div className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-2">
               <div className="max-w-lg">
-                <p className="text-sm/6 text-gray-600">
+                <p className="text-base/6 text-eleva-neutral-900/60 lg:text-lg/7">
                   Founded by healthcare professionals who witnessed firsthand the gaps in
                   women&apos;s healthcare, Eleva Care emerged from a shared vision to make expert
                   care more accessible, personalized, and comprehensive.
                 </p>
-                <p className="mt-8 text-sm/6 text-gray-600">
+                <p className="mt-8 text-base/6 text-eleva-neutral-900/60 lg:text-lg/7">
                   Today, Eleva Care is transforming how women access and experience healthcare. Our
                   platform connects thousands of women with specialized healthcare providers,
                   offering evidence-based care and support throughout every life stage.
@@ -203,7 +220,7 @@ export default function AboutPage() {
               </div>
             </div>
 
-            <h3 className="mt-24 font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+            <h3 className="mt-24 font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
               Our Leadership
             </h3>
             <Separator className="mt-6" />
@@ -219,7 +236,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h3 className="font-medium">Dr. Patricia Mota</h3>
-                  <p className="text-gray-500">Co-Founder / Chief Medical Officer</p>
+                  <p className="text-eleva-neutral-900/60">Co-Founder / Chief Medical Officer</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -232,7 +249,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h3 className="font-medium">Rodrigo Barona</h3>
-                  <p className="text-gray-500">Co-Founder / CTO</p>
+                  <p className="text-eleva-neutral-900/60">Co-Founder / CTO</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -245,7 +262,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h3 className="font-medium">Dr. Patricia Driusso</h3>
-                  <p className="text-gray-500">Head of Research</p>
+                  <p className="text-eleva-neutral-900/60">Head of Research</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -258,7 +275,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h3 className="font-medium">Dr. Joana Barros</h3>
-                  <p className="text-gray-500">Medical Director</p>
+                  <p className="text-eleva-neutral-900/60">Medical Director</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -271,7 +288,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h3 className="font-medium">Jessica Margarido</h3>
-                  <p className="text-gray-500">Clinical Operations Director</p>
+                  <p className="text-eleva-neutral-900/60">Clinical Operations Director</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -284,7 +301,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h3 className="font-medium">Dr. Cristine Homsi Jorge</h3>
-                  <p className="text-gray-500">Head of Patient Experience</p>
+                  <p className="text-eleva-neutral-900/60">Head of Patient Experience</p>
                 </div>
               </li>
             </ul>
@@ -292,18 +309,18 @@ export default function AboutPage() {
 
           {/* Board of Advisors Section */}
           <section className="mt-32">
-            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
               Board of Advisors
             </h2>
-            <h3 className="mt-2 text-pretty text-4xl font-medium tracking-tighter text-gray-950 sm:text-6xl">
-              Guided by industry experts.
+            <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-neutral-900 sm:text-6xl">
+              Guided by industry experts
             </h3>
-            <p className="mt-6 max-w-3xl text-2xl font-medium text-gray-500">
+            <p className="mt-6 max-w-3xl text-2xl font-light text-eleva-neutral-900/80">
               Our advisory board brings together leading voices in women&apos;s health, healthcare
               innovation, and digital transformation.
             </p>
 
-            <h3 className="mt-24 font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+            <h3 className="mt-24 font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
               Healthcare Innovation
             </h3>
             <Separator className="mt-6" />
@@ -319,10 +336,12 @@ export default function AboutPage() {
                   />
                   <div>
                     <h4 className="font-medium">Dr. Amanda White, MD, MPH</h4>
-                    <p className="text-gray-500">Former WHO Women&apos;s Health Advisor</p>
+                    <p className="text-eleva-neutral-900/60">
+                      Former WHO Women&apos;s Health Advisor
+                    </p>
                   </div>
                 </div>
-                <p className="mt-6 max-w-lg text-sm/6 text-gray-500">
+                <p className="mt-6 max-w-lg text-sm/6 text-eleva-neutral-900/60">
                   With over two decades of experience in global women&apos;s health initiatives, Dr.
                   White brings invaluable insights into healthcare accessibility and policy
                   implementation. Her work has helped shape international standards for maternal and
@@ -340,10 +359,10 @@ export default function AboutPage() {
                   />
                   <div>
                     <h4 className="font-medium">Professor James Chen, PhD</h4>
-                    <p className="text-gray-500">Digital Health Research Institute</p>
+                    <p className="text-eleva-neutral-900/60">Digital Health Research Institute</p>
                   </div>
                 </div>
-                <p className="mt-6 max-w-lg text-sm/6 text-gray-500">
+                <p className="mt-6 max-w-lg text-sm/6 text-eleva-neutral-900/60">
                   A pioneer in digital health transformation, Professor Chen&apos;s research focuses
                   on leveraging technology to improve healthcare outcomes. His expertise in AI and
                   telemedicine has been instrumental in developing innovative care delivery models.
@@ -351,7 +370,7 @@ export default function AboutPage() {
               </li>
             </ul>
 
-            <h3 className="mt-24 font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+            <h3 className="mt-24 font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
               Clinical Excellence
             </h3>
             <Separator className="mt-6" />
@@ -366,7 +385,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h4 className="font-medium">Dr. Elena Martinez</h4>
-                  <p className="text-gray-500">Women&apos;s Health Research Center</p>
+                  <p className="text-eleva-neutral-900/60">Women&apos;s Health Research Center</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -379,7 +398,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h4 className="font-medium">Dr. Michael Patel</h4>
-                  <p className="text-gray-500">Digital Healthcare Association</p>
+                  <p className="text-eleva-neutral-900/60">Digital Healthcare Association</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -392,7 +411,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h4 className="font-medium">Dr. Sarah Wong</h4>
-                  <p className="text-gray-500">Maternal Health Foundation</p>
+                  <p className="text-eleva-neutral-900/60">Maternal Health Foundation</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -405,7 +424,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h4 className="font-medium">Professor Rachel Adams</h4>
-                  <p className="text-gray-500">Healthcare Ethics Institute</p>
+                  <p className="text-eleva-neutral-900/60">Healthcare Ethics Institute</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -418,7 +437,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h4 className="font-medium">Dr. David Miller</h4>
-                  <p className="text-gray-500">Telehealth Innovation Lab</p>
+                  <p className="text-eleva-neutral-900/60">Telehealth Innovation Lab</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -431,7 +450,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h4 className="font-medium">Dr. Lisa Chen</h4>
-                  <p className="text-gray-500">Preventive Medicine Institute</p>
+                  <p className="text-eleva-neutral-900/60">Preventive Medicine Institute</p>
                 </div>
               </li>
             </ul>
@@ -439,40 +458,46 @@ export default function AboutPage() {
 
           {/* Expert Recruitment CTA */}
           <section className="mt-32">
-            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
               Join Our Network
             </h2>
-            <h3 className="mt-2 text-pretty text-4xl font-medium tracking-tighter text-gray-950 sm:text-6xl">
-              Transform women&apos;s healthcare with us.
+            <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-neutral-900 sm:text-6xl">
+              Transform women&apos;s healthcare with us
             </h3>
-            <p className="mt-6 max-w-3xl text-2xl font-medium text-gray-500">
+            <p className="mt-6 max-w-3xl text-2xl font-light text-eleva-neutral-900/80">
               Join a community of dedicated healthcare professionals making quality care accessible
               to women everywhere.
             </p>
 
             <div className="mt-24 grid grid-cols-1 gap-16 lg:grid-cols-[1fr_24rem]">
               <div className="lg:max-w-2xl">
-                <h3 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+                <h3 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
                   Why Join Eleva
                 </h3>
                 <ul className="mt-8 space-y-8">
                   <li>
-                    <h4 className="font-medium text-gray-900">Flexible Practice</h4>
-                    <p className="mt-3 text-sm/6 text-gray-600">
+                    <h4 className="font-serif text-xl font-light tracking-tighter text-eleva-primary">
+                      Flexible Practice
+                    </h4>
+                    <p className="mt-3 text-base/6 text-eleva-neutral-900/60">
                       Practice on your terms with our flexible telehealth platform. Set your own
                       schedule and connect with patients from anywhere.
                     </p>
                   </li>
                   <li>
-                    <h4 className="font-medium text-gray-900">Innovative Technology</h4>
-                    <p className="mt-3 text-sm/6 text-gray-600">
+                    <h4 className="font-serif text-xl font-light tracking-tighter text-eleva-primary">
+                      Innovative Technology
+                    </h4>
+                    <p className="mt-3 text-base/6 text-eleva-neutral-900/60">
                       Access state-of-the-art telehealth tools and AI-assisted clinical support to
                       enhance your practice.
                     </p>
                   </li>
                   <li>
-                    <h4 className="font-medium text-gray-900">Collaborative Community</h4>
-                    <p className="mt-3 text-sm/6 text-gray-600">
+                    <h4 className="font-serif text-xl font-light tracking-tighter text-eleva-primary">
+                      Collaborative Community
+                    </h4>
+                    <p className="mt-3 text-base/6 text-eleva-neutral-900/60">
                       Join a network of leading healthcare professionals and participate in case
                       discussions and knowledge sharing.
                     </p>
@@ -494,7 +519,7 @@ export default function AboutPage() {
                 />
                 <div
                   aria-hidden="true"
-                  className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black from-10% to-75% ring-1 ring-inset ring-gray-950/10 lg:from-25%"
+                  className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black from-10% to-75% ring-1 ring-inset ring-eleva-neutral-900/10 lg:from-25%"
                 />
                 <figure className="relative p-10">
                   <blockquote>

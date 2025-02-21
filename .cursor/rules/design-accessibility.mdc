@@ -26,6 +26,31 @@ This rule instructs the AI to generate UI code that:
 
 ## Rule Details & Examples
 
+### Token Definitions: Typography & Colors
+
+**Typography:**
+- **Serif:**  
+  Used for primary headings and hero titles (e.g., classes `font-serif` and `text-balance`). This family imparts an elegant and balanced look for large, display text.
+- **Sans-Serif:**  
+  Applied for body copy and subtitles (e.g., using `font-sans`), ensuring modern readability and clarity on varied devices.
+- **Monospace:**  
+  Utilized in UI elements such as labels, counters, and numbers (e.g., via `font-mono`), lending a precise, technical appearance.
+
+**Color Tokens:**
+- **Eleva Neutral:**  
+  - `elevaNeutral-100`: A light neutral used mainly for text on dark backgrounds (e.g., hero titles and overlay texts).  
+  - `elevaNeutral-900`: A dark neutral ideal for texts against lighter backgrounds (e.g., service descriptions and body copy).  
+  - `elevaNeutral-200`: Often seen in borders and subtle UI accents.
+- **Eleva Primary:**  
+  - `elevaPrimary`: The main accent color seen in headings, interactive elements, and gradients.  
+  - `elevaPrimary-light`: A lighter variant used within gradients (e.g., in the Podcast section’s background).
+- **Eleva Highlight:**  
+  - `elevaHighlight-yellow`, `elevaHighlight-red`, `elevaHighlight-purple`: These are used in dynamic gradient backgrounds (for example, in the Approach section) to add vibrant and engaging accents.
+- **Special Button Color:**  
+  - A dedicated button background color `#0d6c70` is applied in certain sections (like in MissionSection) to create a distinctive, accessible call-to-action.
+
+*Note:* When using these tokens, ensure compliance with WCAG 2.1 standards (contrast ratios, legible typography, and visible focus indicators) and verify that interactive components are fully navigable via keyboard.
+
 ### Styling with TailwindCSS & shadcn/ui
 - **Guidelines:**  
   - Utilize TailwindCSS classes for layout, spacing, typography, and responsiveness.

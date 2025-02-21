@@ -1,6 +1,6 @@
 export const STRIPE_CONFIG = {
   // API Configuration
-  API_VERSION: '2024-12-18.acacia' as const,
+  API_VERSION: process.env.STRIPE_API_VERSION as '2025-01-27.acacia',
   CURRENCY: 'eur',
   PAYMENT_METHODS: ['card', 'sepa_debit', 'multibanco'] as const,
 
