@@ -12,15 +12,10 @@ export const metadata = {
 export default function AboutPage() {
   return (
     <main className="overflow-hidden">
-      {/* Hero Section with Gradient Background */}
-      <div className="relative mx-auto max-w-7xl">
-        <div className="bg-linear-115 from-28% absolute -right-60 -top-44 h-60 w-[36rem] rotate-[-10deg] transform-gpu rounded-full from-[#fff1be] via-[#ee87cb] via-70% to-[#b060ff] blur-3xl md:right-0" />
-      </div>
-
       <div className="px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           {/* Mission Section */}
-          <section className="pt-12 sm:pt-16">
+          <section className="pt-16 md:pt-32">
             <div className="space-y-6">
               <h1 className="text-pretty text-4xl font-medium tracking-tighter text-gray-950 sm:text-6xl">
                 Transforming women&apos;s health care through innovation and compassion
@@ -198,7 +193,7 @@ export default function AboutPage() {
               <div className="max-lg:order-first max-lg:max-w-lg">
                 <div className="aspect-3/2 overflow-hidden rounded-xl shadow-xl outline-1 -outline-offset-1 outline-black/10">
                   <Image
-                    src="/img/team-meeting.jpg"
+                    src="/img/about/team-photo.png"
                     alt="Eleva Care team meeting"
                     width={600}
                     height={400}
@@ -216,80 +211,80 @@ export default function AboutPage() {
             <ul className="mx-auto mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/team/sarah-chen.jpg"
-                  alt="Dr. Sarah Chen"
+                  src="/img/about/team/team-patricia-mota.jpg"
+                  alt="Dr. Patricia Mota"
                   width={48}
                   height={48}
                   className="size-12 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h3 className="font-medium">Dr. Sarah Chen</h3>
+                  <h3 className="font-medium">Dr. Patricia Mota</h3>
                   <p className="text-gray-500">Co-Founder / Chief Medical Officer</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/team/maria-rodriguez.jpg"
-                  alt="Dr. Maria Rodriguez"
+                  src="/img/about/team/team-rodrigo-barona.jpg"
+                  alt="Rodrigo Barona"
                   width={48}
                   height={48}
                   className="size-12 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h3 className="font-medium">Dr. Maria Rodriguez</h3>
-                  <p className="text-gray-500">Co-Founder / CEO</p>
+                  <h3 className="font-medium">Rodrigo Barona</h3>
+                  <p className="text-gray-500">Co-Founder / CTO</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/team/emma-patel.jpg"
-                  alt="Emma Patel"
+                  src="/img/about/team/team-patricia-driusso.jpg"
+                  alt="Dr. Patricia Driusso"
                   width={48}
                   height={48}
                   className="size-12 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h3 className="font-medium">Emma Patel</h3>
-                  <p className="text-gray-500">Head of Patient Experience</p>
+                  <h3 className="font-medium">Dr. Patricia Driusso</h3>
+                  <p className="text-gray-500">Head of Research</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/team/dr-lisa-thompson.jpg"
-                  alt="Dr. Lisa Thompson"
+                  src="/img/about/team/team-joana-barros.jpg"
+                  alt="Dr. Joana Barros"
                   width={48}
                   height={48}
                   className="size-12 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h3 className="font-medium">Dr. Lisa Thompson</h3>
+                  <h3 className="font-medium">Dr. Joana Barros</h3>
                   <p className="text-gray-500">Medical Director</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/team/sophie-martin.jpg"
-                  alt="Sophie Martin"
+                  src="/img/about/team/team-jessica-margarido.jpg"
+                  alt="Jessica Margarido"
                   width={48}
                   height={48}
                   className="size-12 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h3 className="font-medium">Sophie Martin</h3>
-                  <p className="text-gray-500">Director of Clinical Operations</p>
+                  <h3 className="font-medium">Jessica Margarido</h3>
+                  <p className="text-gray-500">Clinical Operations Director</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/team/dr-rebecca-kim.jpg"
-                  alt="Dr. Rebecca Kim"
+                  src="/img/about/team/team-cristine-homsi-jorge.jpg"
+                  alt="Dr. Cristine Homsi Jorge"
                   width={48}
                   height={48}
                   className="size-12 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h3 className="font-medium">Dr. Rebecca Kim</h3>
-                  <p className="text-gray-500">Head of Research</p>
+                  <h3 className="font-medium">Dr. Cristine Homsi Jorge</h3>
+                  <p className="text-gray-500">Head of Patient Experience</p>
                 </div>
               </li>
             </ul>
@@ -316,7 +311,7 @@ export default function AboutPage() {
               <li>
                 <div className="flex items-center gap-4">
                   <Image
-                    src="/img/advisors/dr-amanda-white.jpg"
+                    src="/img/about/team/team-patricia-mota.jpg"
                     alt="Dr. Amanda White"
                     width={56}
                     height={56}
@@ -337,7 +332,7 @@ export default function AboutPage() {
               <li>
                 <div className="flex items-center gap-4">
                   <Image
-                    src="/img/advisors/prof-james-chen.jpg"
+                    src="/img/about/team/team-rodrigo-barona.jpg"
                     alt="Professor James Chen"
                     width={56}
                     height={56}
@@ -363,7 +358,7 @@ export default function AboutPage() {
             <ul className="mx-auto mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/advisors/dr-elena-martinez.jpg"
+                  src="/img/about/team/team-patricia-driusso.jpg"
                   alt="Dr. Elena Martinez"
                   width={48}
                   height={48}
@@ -376,7 +371,7 @@ export default function AboutPage() {
               </li>
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/advisors/dr-michael-patel.jpg"
+                  src="/img/about/team/team-joana-barros.jpg"
                   alt="Dr. Michael Patel"
                   width={48}
                   height={48}
@@ -389,7 +384,7 @@ export default function AboutPage() {
               </li>
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/advisors/dr-sarah-wong.jpg"
+                  src="/img/about/team/team-jessica-margarido.jpg"
                   alt="Dr. Sarah Wong"
                   width={48}
                   height={48}
@@ -402,7 +397,7 @@ export default function AboutPage() {
               </li>
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/advisors/prof-rachel-adams.jpg"
+                  src="/img/about/team/team-cristine-homsi-jorge.jpg"
                   alt="Professor Rachel Adams"
                   width={48}
                   height={48}
@@ -415,7 +410,7 @@ export default function AboutPage() {
               </li>
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/advisors/dr-david-miller.jpg"
+                  src="/img/about/team/team-patricia-mota.jpg"
                   alt="Dr. David Miller"
                   width={48}
                   height={48}
@@ -428,7 +423,7 @@ export default function AboutPage() {
               </li>
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/advisors/dr-lisa-chen.jpg"
+                  src="/img/about/team/team-rodrigo-barona.jpg"
                   alt="Dr. Lisa Chen"
                   width={48}
                   height={48}
@@ -442,7 +437,84 @@ export default function AboutPage() {
             </ul>
           </section>
 
-          
+          {/* Expert Recruitment CTA */}
+          <section className="mt-32">
+            <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+              Join Our Network
+            </h2>
+            <h3 className="mt-2 text-pretty text-4xl font-medium tracking-tighter text-gray-950 sm:text-6xl">
+              Transform women&apos;s healthcare with us.
+            </h3>
+            <p className="mt-6 max-w-3xl text-2xl font-medium text-gray-500">
+              Join a community of dedicated healthcare professionals making quality care accessible
+              to women everywhere.
+            </p>
+
+            <div className="mt-24 grid grid-cols-1 gap-16 lg:grid-cols-[1fr_24rem]">
+              <div className="lg:max-w-2xl">
+                <h3 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
+                  Why Join Eleva
+                </h3>
+                <ul className="mt-8 space-y-8">
+                  <li>
+                    <h4 className="font-medium text-gray-900">Flexible Practice</h4>
+                    <p className="mt-3 text-sm/6 text-gray-600">
+                      Practice on your terms with our flexible telehealth platform. Set your own
+                      schedule and connect with patients from anywhere.
+                    </p>
+                  </li>
+                  <li>
+                    <h4 className="font-medium text-gray-900">Innovative Technology</h4>
+                    <p className="mt-3 text-sm/6 text-gray-600">
+                      Access state-of-the-art telehealth tools and AI-assisted clinical support to
+                      enhance your practice.
+                    </p>
+                  </li>
+                  <li>
+                    <h4 className="font-medium text-gray-900">Collaborative Community</h4>
+                    <p className="mt-3 text-sm/6 text-gray-600">
+                      Join a network of leading healthcare professionals and participate in case
+                      discussions and knowledge sharing.
+                    </p>
+                  </li>
+                </ul>
+                <div className="mt-10">
+                  <Button size="lg" className="rounded-full">
+                    Apply to Join
+                  </Button>
+                </div>
+              </div>
+
+              <div className="aspect-3/4 relative flex aspect-square flex-col justify-end overflow-hidden rounded-3xl">
+                <Image
+                  src="/img/about/team/team-patricia-mota.jpg"
+                  alt="Doctor providing consultation"
+                  fill
+                  className="absolute inset-0 object-cover"
+                />
+                <div
+                  aria-hidden="true"
+                  className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black from-10% to-75% ring-1 ring-inset ring-gray-950/10 lg:from-25%"
+                />
+                <figure className="relative p-10">
+                  <blockquote>
+                    <p className="relative text-xl/7 text-white before:absolute before:-translate-x-full before:content-[''] after:absolute after:content-['']">
+                      Joining Eleva Care has allowed me to reach more patients and provide
+                      comprehensive care while maintaining work-life balance.
+                    </p>
+                  </blockquote>
+                  <figcaption className="mt-6 border-t border-white/20 pt-6">
+                    <p className="text-sm/6 font-medium text-white">Dr. Jennifer Martinez</p>
+                    <p className="text-sm/6 font-medium">
+                      <span className="from-28% bg-gradient-to-r from-[#fff1be] via-[#ee87cb] via-70% to-[#b060ff] bg-clip-text text-transparent">
+                        OB-GYN, Eleva Provider
+                      </span>
+                    </p>
+                  </figcaption>
+                </figure>
+              </div>
+            </div>
+          </section>
         </div>
       </div>
     </main>

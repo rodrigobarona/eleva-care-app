@@ -5,10 +5,10 @@ import { Button } from '@/components/atoms/button';
 export default function Footer() {
   return (
     <footer>
-      <div className="bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple">
-        <div className="relative">
+      <div className="lg:rounded-5xl mx-2 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple">
+        <div className="lg:rounded-5xl relative rounded-2xl">
           {/* Frosted glass effect overlay */}
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm" />
+          <div className="lg:rounded-5xl absolute inset-0 rounded-2xl bg-white/80 backdrop-blur-sm" />
 
           <div className="relative px-6 lg:px-8">
             <div className="mx-auto max-w-2xl lg:max-w-7xl">
@@ -16,19 +16,22 @@ export default function Footer() {
               <section className="relative my-32">
                 <div className="relative pb-16 pt-20 text-center sm:py-24">
                   <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-gray-500">
-                    Join Our Mission
+                    Take the First Step
                   </h2>
                   <p className="mt-6 text-3xl font-medium tracking-tight text-gray-950 sm:text-5xl">
-                    Ready to transform
+                    Discover Your Personalized
                     <br />
-                    women&apos;s healthcare together?
+                    Care Journey Today
                   </p>
                   <p className="mx-auto mt-6 max-w-xs text-sm/6 text-gray-500">
-                    Connect with expert-led resources and a supportive community.
+                    Take our quick health assessment or schedule your consultation.
                   </p>
-                  <div className="mt-6">
+                  <div className="mt-6 flex justify-center gap-4">
                     <Button size="lg" className="rounded-full">
-                      Get Started
+                      Take the Quiz
+                    </Button>
+                    <Button size="lg" variant="outline" className="rounded-full">
+                      Book a Session
                     </Button>
                   </div>
                 </div>
