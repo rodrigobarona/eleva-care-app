@@ -351,16 +351,16 @@ Thank you for exploring Eleva. Visit [https://eleva.care](https://eleva.care) to
 ```mermaid
 graph TD
   %% Frontend
-  A[Next.js App]
+  A["Next.js App"]
 
   %% Authentication & User Management
-  B[Clerk]
+  B["Clerk"]
 
   %% Database
-  C"["Neon DB<br/>(Drizzle ORM)"]
+  C["Neon DB<br/>(Drizzle ORM)"]
 
   %% External Services
-  D[Google OAuth]
+  D["Google OAuth"]
 
   %% Connections
   A -- "User Authentication\nand Session Management" --> B
@@ -371,7 +371,7 @@ graph TD
 
   %% Optional: Show background process or refresh flow
   subgraph "Background Processes"
-    E[Token Refresh Service]
+    E["Token Refresh Service"]
   end
   A -- "Triggers Refresh" --> E
   E -- "Updates Calendar Tokens" --> D
