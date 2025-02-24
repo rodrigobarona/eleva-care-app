@@ -1,5 +1,4 @@
 import { Card, CardContent } from '@/components/atoms/card';
-import FadeInSection from '@/components/atoms/FadeInSection';
 import {
   Carousel,
   CarouselContent,
@@ -59,91 +58,121 @@ const ExpertsSection = async () => {
         headline: profile?.headline || '',
         shortBio: profile?.shortBio || '',
         price: formattedPrice,
+        order: profile?.order || 0,
         rating: '5.0',
       };
     }),
   );
 
-  // Filter out profiles without prices and sort by minimum price
+  // Filter out profiles without prices and sort by order first, then by minimum price
   const expertsWithPricing = profiles
     .filter((profile) => profile.price !== null)
     .sort((a, b) => {
+      // First sort by order
+      if (a.order !== b.order) {
+        return a.order - b.order;
+      }
+      // If order is the same, sort by price as secondary criteria
       const priceA = Number.parseInt(a.price?.split('$')[1] || '0');
       const priceB = Number.parseInt(b.price?.split('$')[1] || '0');
       return priceA - priceB;
     });
-
   return (
-    <FadeInSection>
-      <section className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
-        <div className="mx-auto max-w-2xl lg:max-w-7xl">
-          <div className="mb-12">
-            <h2 className="text-elevaNeutral-900/70 font-mono text-xs/5 font-semibold uppercase tracking-widest">
-              Top Experts
-            </h2>
-            <h3 className="text-seco text-elevaPrimary mt-2 text-pretty font-serif text-4xl font-light tracking-tighter sm:text-6xl">
-              Access to the best has never been easier
-            </h3>
-          </div>
+    <section id="experts" className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
+      <div className="mx-auto max-w-2xl lg:max-w-7xl">
+        <div className="mb-12">
+          <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70 data-[dark]:text-eleva-neutral-900/60">
+            Top Experts
+          </h2>
+          <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-primary data-[dark]:text-eleva-neutral-100 sm:text-6xl">
+            Access to the best has never been easier
+          </h3>
+        </div>
+        <p className="mt-6 text-balance text-base font-light text-eleva-neutral-900 lg:text-xl">
+          Connect with top-rated experts in physiotherapy, and women&apos;s health. Our platform
+          offers access to leading professionals ready to support your unique health and wellness
+          journey.
+        </p>
+        <Carousel
+          className="-ml-2 mt-10"
+          opts={{
+            align: 'start',
+            loop: false,
+          }}
+        >
+          <CarouselContent className="-ml-8 pl-2 pt-1">
+            {expertsWithPricing.map((expert) => (
+              <CarouselItem key={expert.id} className="pl-8 md:basis-1/2 lg:basis-80">
+                <Link href={`/${expert.username}`} className="group overflow-visible">
+                  <Card className="overflow-visible border-none bg-transparent shadow-none">
+                    {/* Image Container */}
+                    <div className="relative aspect-[28/38] rounded-xl transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-xl">
+                      <Image
+                        src={expert.image}
+                        alt={`Profile photo of ${expert.name}`}
+                        width={1200}
+                        height={1200}
+                        className="absolute inset-0 h-full w-full overflow-hidden rounded-xl object-cover"
+                      />
+                      {/* Top Expert Badge */}
+                      <div className="absolute bottom-4 left-4">
+                        <span className="rounded-sm bg-white px-3 py-1 text-xs font-medium text-black">
+                          <span>Top Expert</span>
+                        </span>
+                      </div>
+                    </div>
 
-          <Carousel
-            className="mt-12"
-            opts={{
-              align: 'start',
-              loop: false,
-            }}
-          >
-            <CarouselContent className="-ml-4">
-              {expertsWithPricing.map((expert) => (
-                <CarouselItem key={expert.id} className="pl-4 md:basis-1/2 lg:basis-1/3">
-                  <Link href={`/${expert.username}`}>
-                    <Card className="border-elevaNeutral-200 relative flex aspect-[9/15] overflow-hidden rounded-3xl">
-                      <CardContent className="flex flex-col items-center justify-end p-0">
-                        <Image
-                          src={expert.image}
-                          alt={expert.name || ''}
-                          width={1200}
-                          height={1200}
-                          className="absolute inset-x-0 top-0 aspect-[3/4] w-full object-cover"
-                        />
-                        <div
-                          aria-hidden="true"
-                          className="from-elevaNeutral-900 absolute inset-0 top-0 z-20 h-full w-full rounded-3xl bg-gradient-to-t from-25% to-40%"
-                        />
-                        <div className="relative z-20 p-10">
-                          <div className="mb-4">
-                            <span className="inline-block rounded-full bg-white px-3 py-1 text-xs font-medium text-black">
-                              Top Expert
+                    {/* Content Container */}
+                    <CardContent className="space-y-1 px-0 pt-4">
+                      {/* Name and Rating */}
+                      <div className="flex items-start justify-between">
+                        <div className="flex w-full justify-between">
+                          <h3 className="flex items-center gap-1 text-base font-semibold text-eleva-neutral-900">
+                            {expert.name}
+                            <Image
+                              src="/img/expert-verified-icon.svg"
+                              alt=""
+                              className="h-4 w-4"
+                              aria-hidden="true"
+                              width={16}
+                              height={16}
+                            />
+                          </h3>
+                          <div className="ml-auto flex items-center gap-1">
+                            <span className="text-xs text-amber-400" aria-hidden="true">
+                              ★
+                            </span>
+                            <span className="text-xs font-light text-eleva-neutral-900">
+                              {expert.rating}
                             </span>
                           </div>
-                          <div className="border-elevaNeutral-100/20 mt-6 border-t pt-6">
-                            <h3 className="text-elevaNeutral-100 text-lg/6 font-medium">
-                              {expert.name}
-                            </h3>
-                            <p className="text-elevaNeutral-100/80 text-sm/6">{expert.headline}</p>
-                            <p className="text-elevaNeutral-100/60 mt-2 text-sm/6">
-                              {expert.price}
-                            </p>
-                            <div className="mt-2 flex items-center gap-1">
-                              <span className="text-amber-400">★★★★★</span>
-                              <span className="text-elevaNeutral-100 text-sm">{expert.rating}</span>
-                            </div>
-                          </div>
                         </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
-                </CarouselItem>
-              ))}
-            </CarouselContent>
-            <div className="absolute right-12 mt-8 flex h-10 w-6 flex-row items-end justify-end">
+                      </div>
+
+                      {/* Price */}
+                      <div className="flex items-center gap-2 text-eleva-neutral-900">
+                        <span className="text-sm font-light">{expert.price}</span>
+                      </div>
+
+                      {/* Headline */}
+                      <p className="line-clamp-2 text-base font-light text-eleva-neutral-900/80">
+                        {expert.headline}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </Link>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          {expertsWithPricing.length > 4 && (
+            <div className="absolute right-12 mt-8 hidden h-10 w-6 flex-row items-end justify-end lg:flex">
               <CarouselPrevious className="h-12 w-12" />
               <CarouselNext className="h-12 w-12" />
             </div>
-          </Carousel>
-        </div>
-      </section>
-    </FadeInSection>
+          )}
+        </Carousel>
+      </div>
+    </section>
   );
 };
 

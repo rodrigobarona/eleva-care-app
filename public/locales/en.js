@@ -16,7 +16,7 @@ export const translations = {
     title: 'World-Class Care for Women, *on-demand.*',
     subtitle: "Book Leading Women's Health Specialists - On Your Schedule. ",
     cta1: 'Not sure if we can help? Take the Quiz',
-    cta2: 'Book Now',
+    cta2: 'Find an Expert',
     cta2Help: 'Make your appointment',
     cta2Help2: 'in less than 3 minutes.',
   },

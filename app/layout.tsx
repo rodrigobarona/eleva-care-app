@@ -1,14 +1,12 @@
-import type React from 'react';
-
-import type { Metadata } from 'next';
-import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
-
-import { ClerkProvider } from '@clerk/nextjs';
-import { NuqsAdapter } from 'nuqs/adapters/next/app';
-import { Toaster } from 'sonner';
-
 import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
 import { LanguageProvider } from '@/components/molecules/LanguageProvider';
+import { cn } from '@/lib/utils';
+import { ClerkProvider } from '@clerk/nextjs';
+import type { Metadata } from 'next';
+import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
+import { NuqsAdapter } from 'nuqs/adapters/next/app';
+import type React from 'react';
+import { Toaster } from 'sonner';
 
 import './globals.css';
 
@@ -59,7 +57,10 @@ export default function RootLayout({
     <ClerkProvider>
       <html
         lang="en"
-        className={`${alexandria.variable} ${lora.variable} ${jetBrains.variable}`}
+        className={cn(
+          `${alexandria.variable} ${lora.variable} ${jetBrains.variable}`,
+          'scroll-smooth',
+        )}
         suppressHydrationWarning
       >
         <head>

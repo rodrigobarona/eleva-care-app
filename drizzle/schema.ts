@@ -1,4 +1,5 @@
 import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
+import type { SocialMediaPlatform } from '@/lib/constants/social-media';
 import { relations } from 'drizzle-orm';
 import {
   boolean,
@@ -11,8 +12,6 @@ import {
   timestamp,
   uuid,
 } from 'drizzle-orm/pg-core';
-
-import type { SocialMediaPlatform } from '@/lib/constants/social-media';
 
 const createdAt = timestamp('createdAt').notNull().defaultNow();
 const updatedAt = timestamp('updatedAt')
@@ -156,6 +155,7 @@ export const ProfileTable = pgTable(
     >(),
     isVerified: boolean('isVerified').notNull().default(false),
     isTopExpert: boolean('isTopExpert').notNull().default(false),
+    order: integer('order').notNull().default(0),
     createdAt,
     updatedAt,
   },

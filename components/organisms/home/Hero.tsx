@@ -70,7 +70,7 @@ const Hero = () => {
                   className="inline-flex w-full items-center justify-center whitespace-nowrap rounded-full border border-transparent bg-eleva-neutral-100 px-8 py-[1.3rem] text-base font-semibold text-eleva-neutral-900 shadow-md hover:bg-eleva-neutral-100/70 lg:w-min lg:py-6 lg:text-lg lg:font-bold"
                   data-mode="dark"
                 >
-                  <Link href="/patimota">{t.hero.cta2}</Link>
+                  <Link href="#experts">{t.hero.cta2}</Link>
                 </Button>
               </div>
               <div className="mt-2 text-center text-xs font-normal text-eleva-neutral-100 lg:mt-0 lg:text-left lg:text-sm/[1.3] lg:font-medium">

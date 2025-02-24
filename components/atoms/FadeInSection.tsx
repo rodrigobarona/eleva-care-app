@@ -1,7 +1,7 @@
 'use client';
 
-import { motion } from 'motion/react';
-import React from 'react';
+import { motion, useInView } from 'motion/react';
+import React, { useRef } from 'react';
 
 const containerVariants = {
   hidden: {
@@ -12,10 +12,9 @@ const containerVariants = {
     opacity: 1,
     y: 0,
     transition: {
-      when: 'beforeChildren',
-      duration: 0.5,
-      ease: 'easeOut',
-      staggerChildren: 0.1,
+      duration: 0.6,
+      ease: [0.22, 1, 0.36, 1], // Custom easing for smoother animation
+      staggerChildren: 0.2,
     },
   },
 };
@@ -30,7 +29,7 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.5,
-      ease: 'easeOut',
+      ease: [0.22, 1, 0.36, 1],
     },
   },
 };
@@ -39,28 +38,45 @@ interface FadeInSectionProps {
   children: React.ReactNode;
   className?: string;
   asChild?: boolean; // If true, will animate the direct child instead of wrapping in a div
+  delay?: number;
 }
 
 const FadeInSection: React.FC<FadeInSectionProps> = ({
   children,
   className = '',
   asChild = false,
+  delay = 0,
 }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, {
+    margin: '0px 0px -20% 0px', // Trigger earlier, when element is 20% from viewport bottom
+    amount: 0.3, // Show when 30% of the element is visible
+    once: true,
+  });
+
   const Component = asChild ? motion.section : motion.div;
 
   return (
     <Component
+      ref={ref}
       initial="hidden"
-      whileInView="visible"
-      viewport={{
-        once: true,
-        amount: 0.1,
-        margin: '100px 0px',
+      animate={isInView ? 'visible' : 'hidden'}
+      variants={{
+        ...containerVariants,
+        visible: {
+          ...containerVariants.visible,
+          transition: {
+            ...containerVariants.visible.transition,
+            delay,
+          },
+        },
       }}
-      variants={containerVariants}
       className={className}
       style={{
         willChange: 'transform, opacity',
+        // Add hardware acceleration
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden',
       }}
     >
       {React.Children.map(children, (child) => {
