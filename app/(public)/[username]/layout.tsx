@@ -99,7 +99,7 @@ async function ProfileInfo({ username }: { username: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg">
+      <div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
         <Image
           src={profile?.profilePicture || user.imageUrl}
           alt={user.fullName || 'Profile picture'}
@@ -110,43 +110,68 @@ async function ProfileInfo({ username }: { username: string }) {
           placeholder="blur"
           blurDataURL={profile?.profilePicture || user.imageUrl}
         />
+        {/* Top Expert Badge */}
+        {profile?.isTopExpert && (
+          <div className="absolute bottom-4 left-3">
+            <span className="rounded-sm bg-white px-3 py-2 text-base font-medium text-eleva-neutral-900">
+              <span>Top Expert</span>
+            </span>
+          </div>
+        )}
       </div>
-      <div className="space-y-4">
+      <div className="space-y-12">
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="flex items-center gap-2 text-xl font-medium">
             {profile ? `${profile.firstName} ${profile.lastName}` : user.fullName}
+            {profile?.isVerified && (
+              <Image
+                src="/img/expert-verified-icon.svg"
+                alt=""
+                className="h-5 w-5"
+                aria-hidden="true"
+                width={32}
+                height={32}
+              />
+            )}
           </h1>
-          <Link href={`/${user.username}`} className="text-muted-foreground hover:text-foreground">
-            @{user.username}
-          </Link>
+          {profile?.headline && (
+            <p className="text-sm font-medium text-eleva-neutral-900/60">{profile.headline}</p>
+          )}
         </div>
-        {profile?.headline && <p className="text-lg font-medium">{profile.headline}</p>}
-        {profile?.shortBio && <p className="text-muted-foreground">{profile.shortBio}</p>}
-        {profile?.longBio && (
-          <div className="prose prose-sm dark:prose-invert">
-            <ReactMarkdown>{profile.longBio}</ReactMarkdown>
-          </div>
-        )}
-        {profile?.socialLinks && profile.socialLinks.length > 0 && (
-          <div className="flex gap-4">
-            {profile.socialLinks.map((link) => {
-              if (!link.url) return null;
-              const Icon = SOCIAL_ICONS[link.name as keyof typeof SOCIAL_ICONS];
-              return (
-                <a
-                  key={link.name}
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  {Icon && <Icon className="h-5 w-5" />}
-                  <span className="sr-only">{link.name}</span>
-                </a>
-              );
-            })}
-          </div>
-        )}
+        <div className="space-y-4">
+          <h2 className="flex w-full items-center justify-between text-xl font-medium text-eleva-neutral-900">
+            About me
+            {profile?.socialLinks && profile.socialLinks.length > 0 && (
+              <div className="flex gap-3">
+                {profile.socialLinks.map((link) => {
+                  if (!link.url) return null;
+                  const Icon = SOCIAL_ICONS[link.name as keyof typeof SOCIAL_ICONS];
+                  return (
+                    <a
+                      key={link.name}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener nofollow noreferrer"
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      {Icon && (
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-eleva-neutral-200 p-1">
+                          <Icon className="h-5 w-5 text-eleva-neutral-900" />
+                        </span>
+                      )}
+                      <span className="sr-only">{link.name}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </h2>
+          {profile?.longBio && (
+            <div className="prose-eleva-neutral-900 prose-font-light prose prose-base">
+              <ReactMarkdown>{profile.longBio}</ReactMarkdown>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

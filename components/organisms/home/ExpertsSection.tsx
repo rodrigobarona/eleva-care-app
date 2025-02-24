@@ -128,7 +128,7 @@ const ExpertsSection = async () => {
                       {/* Top Expert Badge */}
                       {expert.isTopExpert && (
                         <div className="absolute bottom-4 left-4">
-                          <span className="rounded-sm bg-white px-3 py-1 text-xs font-medium text-black">
+                          <span className="rounded-sm bg-white px-3 py-2 text-base font-medium text-eleva-neutral-900">
                             <span>Top Expert</span>
                           </span>
                         </div>
@@ -139,7 +139,7 @@ const ExpertsSection = async () => {
                     <CardContent className="space-y-1 px-0 pt-4">
                       {/* Name and Rating */}
                       <div className="flex items-start justify-between">
-                        <div className="flex w-full justify-between">
+                        <div className="flex w-full items-center justify-between">
                           <h3 className="flex items-center gap-1 text-base font-semibold text-eleva-neutral-900">
                             {expert.name}
                             {expert.isVerified && (
