@@ -345,3 +345,85 @@ Eleva is dedicated to transforming women's healthcare by harnessing innovative s
 For localization and additional context, key terms and translations (such as “Services”, “Approach”, “Mission”, and “Team”) can be referenced from our localization files (e.g., `public/locales/en.js`).
 
 Thank you for exploring Eleva. Visit [https://eleva.care](https://eleva.care) to learn more and join us on our mission to empower women's health.
+
+## Eleva architecture with Next.js, Clerk, Neon DB, and Google OAuth
+
+```mermaid
+graph TD
+  %% Frontend
+  A[Next.js App]
+
+  %% Authentication & User Management
+  B[Clerk]
+
+  %% Database
+  C[Neon DB<br/>(Drizzle ORM)]
+
+  %% External Services
+  D[Google OAuth]
+
+  %% Connections
+  A -- "User Authentication\nand Session Management" --> B
+  A -- "Data Queries/Mutations" --> C
+  A -- "Calendar Integration\n(Token & Events)" --> D
+  B -- "Provides Auth Data" --> A
+  D -- "Token Refresh & Calendar Access" --> A
+
+  %% Optional: Show background process or refresh flow
+  subgraph "Background Processes"
+    E[Token Refresh Service]
+  end
+  A -- "Triggers Refresh" --> E
+  E -- "Updates Calendar Tokens" --> D
+```
+
+## Eleva Auth Google Verification Video Script
+
+Below is a sample script for a video demonstration to verify the Google Auth integration for Eleva. You can adjust the language to your audience and include your branding.
+
+─────────────────────────────
+
+Title: "Verifying Google Authentication for Eleva Care"
+
+[INTRO – 0:00 to 0:20]
+• (Narrator on camera or voice-over with Eleva branding slide)
+"Hello, and welcome to this demonstration of our Google Authentication integration for Eleva Care. In this video, I'll show you how our login flow works using Google OAuth, how we handle tokens, and what measures are in place for a seamless user experience."
+
+[OVERVIEW – 0:20 to 0:45]
+• (Overlay visual: diagram of Eleva architecture with Next.js, Clerk, Neon DB, and Google OAuth)
+"Eleva Care uses a modern tech stack: Next.js for the front end, Clerk for authentication, and Neon as our database with Drizzle ORM. We integrate Google Auth so that our experts can easily add events to their calendars. Today, I'll guide you through the Google sign-in process – from clicking the sign-in button to successfully verifying and refreshing tokens when needed."
+
+[DEMO PART 1: Setting the Stage – 0:45 to 1:30]
+• (Screen capture: Show the Eleva login page)
+"Let’s start at the login page. Notice our ‘Sign In with Google’ button, enabled via Clerk. I'll click the button.
+• (Screen capture: Transition to Google OAuth consent screen)
+Here you see the Google OAuth consent screen. Even though we’re in development mode using an unverified app, you can see the permissions our app requests. In a production environment, with a verified app, these prompts are streamlined."
+
+[DEMO PART 2: Successful Login – 1:30 to 2:00]
+• (Screen capture: Successfully logging in)
+"After granting permissions, you’re redirected back to Eleva Care as an authenticated expert. Clerk stores the access token along with a refresh token, so our application can maintain access to your Google Calendar even if you’re inactive for a while."
+
+[DEMO PART 3: Token Management and Refresh – 2:00 to 2:40]
+• (Overlay visual or narration with code snippet reference: show checkAndRefreshToken function in tokenUtils.ts)
+"Our integration includes robust token management. Google access tokens expire within an hour, but our implementation – using Clerk’s OAuth support – triggers a background mechanism to refresh tokens when necessary. This ensures that if you haven’t logged in for a while, your calendar connection doesn’t break."
+• (Show a diagram or animation explaining the refresh process)
+"In cases where the refresh token process fails, the app will prompt you to sign in again, ensuring that the proper scopes and tokens are maintained."
+
+[DISCUSSION: Potential Issues & Best Practices – 2:40 to 3:10]
+• (Narrator on camera or voice-over slides)
+"In our testing, we discovered that on the free tier and with an unverified Google OAuth app, tokens might expire more rapidly. In production, it's important to verify your Google OAuth app in the Google Developer Console. Additionally, you may implement periodic background checks to auto-refresh tokens for experts who haven't logged in for extended periods."
+• (Screen capture: Show the relevant settings in Clerk dashboard and Google Developer Console, if possible)
+
+[WRAP-UP – 3:10 to 3:30]
+• (Narrator or visual closing slide)
+"That concludes our demonstration of the Google Auth integration for Eleva Care. We’ve shown the login flow, token refresh mechanism, and steps to maintain calendar connectivity. If you have any questions or feedback, please reach out. Thank you for watching!"
+
+─────────────────────────────
+
+This script covers:
+• A clear introduction and context of Eleva's integration.
+• A walkthrough of the Google sign-in process.
+• Explanation of token management and refresh processes.
+• Discussion of potential issues and best practices.
+
+Feel free to adjust timings, add your branding or additional visuals, and rehearse to ensure a professional and comprehensive video presentation.
