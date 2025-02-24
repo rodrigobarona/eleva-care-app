@@ -1,4 +1,3 @@
-import FadeInSection from '@/components/atoms/FadeInSection';
 import ApproachSection from '@/components/organisms/home/ApproachSection';
 import ExpertsSection from '@/components/organisms/home/ExpertsSection';
 import Hero from '@/components/organisms/home/Hero';
