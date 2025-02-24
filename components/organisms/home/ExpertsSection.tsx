@@ -18,25 +18,31 @@ const ExpertsSection = async () => {
     secretKey: process.env.CLERK_SECRET_KEY,
   });
 
-  const users = await clerk.users.getUserList();
+  // First get all profiles from the database
+  const profiles = await db.query.ProfileTable.findMany();
 
-  const profiles = await Promise.all(
+  // Get only the users that have profiles
+  const users = await clerk.users.getUserList({
+    userId: profiles.map((profile) => profile.clerkUserId),
+  });
+
+  const expertsData = await Promise.all(
     users.data.map(async (user) => {
-      // Fetch profile and minimum price in parallel
-      const [profile, minPricing] = await Promise.all([
-        db.query.ProfileTable.findFirst({
-          where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
-        }),
-        db
-          .select({
-            price: min(EventTable.price),
-            currency: EventTable.currency,
-          })
-          .from(EventTable)
-          .where(and(eq(EventTable.clerkUserId, user.id), gt(EventTable.price, 0)))
-          .groupBy(EventTable.currency)
-          .limit(1),
-      ]);
+      // Get the corresponding profile
+      const profile = profiles.find((p) => p.clerkUserId === user.id);
+
+      if (!profile) return null; // This shouldn't happen due to our filtered users list
+
+      // Fetch minimum price
+      const minPricing = await db
+        .select({
+          price: min(EventTable.price),
+          currency: EventTable.currency,
+        })
+        .from(EventTable)
+        .where(and(eq(EventTable.clerkUserId, user.id), gt(EventTable.price, 0)))
+        .groupBy(EventTable.currency)
+        .limit(1);
 
       const currencySymbols: Record<string, string> = {
         EUR: '€',
@@ -52,21 +58,25 @@ const ExpertsSection = async () => {
 
       return {
         id: user.id,
-        name: profile ? `${profile.firstName} ${profile.lastName}` : user.fullName,
+        name: `${profile.firstName} ${profile.lastName}`,
         username: user.username,
-        image: profile?.profilePicture || user.imageUrl,
-        headline: profile?.headline || '',
-        shortBio: profile?.shortBio || '',
+        image: profile.profilePicture || user.imageUrl,
+        headline: profile.headline || '',
+        shortBio: profile.shortBio || '',
         price: formattedPrice,
-        order: profile?.order || 0,
+        order: profile.order || 0,
         rating: '5.0',
+        isTopExpert: profile.isTopExpert,
+        isVerified: profile.isVerified,
       };
     }),
   );
 
-  // Filter out profiles without prices and sort by order first, then by minimum price
-  const expertsWithPricing = profiles
-    .filter((profile) => profile.price !== null)
+  // Filter out any null values (shouldn't happen) and profiles without prices
+  const expertsWithPricing = expertsData
+    .filter(
+      (expert): expert is NonNullable<typeof expert> => expert !== null && expert.price !== null,
+    )
     .sort((a, b) => {
       // First sort by order
       if (a.order !== b.order) {
@@ -77,6 +87,7 @@ const ExpertsSection = async () => {
       const priceB = Number.parseInt(b.price?.split('$')[1] || '0');
       return priceA - priceB;
     });
+
   return (
     <section id="experts" className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
       <div className="mx-auto max-w-2xl lg:max-w-7xl">
@@ -115,11 +126,13 @@ const ExpertsSection = async () => {
                         className="absolute inset-0 h-full w-full overflow-hidden rounded-xl object-cover"
                       />
                       {/* Top Expert Badge */}
-                      <div className="absolute bottom-4 left-4">
-                        <span className="rounded-sm bg-white px-3 py-1 text-xs font-medium text-black">
-                          <span>Top Expert</span>
-                        </span>
-                      </div>
+                      {expert.isTopExpert && (
+                        <div className="absolute bottom-4 left-4">
+                          <span className="rounded-sm bg-white px-3 py-1 text-xs font-medium text-black">
+                            <span>Top Expert</span>
+                          </span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Content Container */}
@@ -129,14 +142,16 @@ const ExpertsSection = async () => {
                         <div className="flex w-full justify-between">
                           <h3 className="flex items-center gap-1 text-base font-semibold text-eleva-neutral-900">
                             {expert.name}
-                            <Image
-                              src="/img/expert-verified-icon.svg"
-                              alt=""
-                              className="h-4 w-4"
-                              aria-hidden="true"
-                              width={16}
-                              height={16}
-                            />
+                            {expert.isVerified && (
+                              <Image
+                                src="/img/expert-verified-icon.svg"
+                                alt=""
+                                className="h-4 w-4"
+                                aria-hidden="true"
+                                width={16}
+                                height={16}
+                              />
+                            )}
                           </h3>
                           <div className="ml-auto flex items-center gap-1">
                             <span className="text-xs text-amber-400" aria-hidden="true">
