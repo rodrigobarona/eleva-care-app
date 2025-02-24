@@ -357,7 +357,7 @@ graph TD
   B[Clerk]
 
   %% Database
-  C[Neon DB<br/>(Drizzle ORM)]
+  C"["Neon DB<br/>(Drizzle ORM)"]
 
   %% External Services
   D[Google OAuth]
