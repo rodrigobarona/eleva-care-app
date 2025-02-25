@@ -111,9 +111,9 @@ const ExpertsSection = async () => {
             loop: false,
           }}
         >
-          <CarouselContent className="-ml-8 pl-2 pt-1">
+          <CarouselContent className="-ml-6 pl-2 pt-1">
             {expertsWithPricing.map((expert) => (
-              <CarouselItem key={expert.id} className="pl-8 md:basis-1/2 lg:basis-80">
+              <CarouselItem key={expert.id} className="pl-6 md:basis-1/2 lg:basis-80">
                 <Link
                   href={`/${expert.username}`}
                   className="group overflow-visible"
@@ -173,9 +173,9 @@ const ExpertsSection = async () => {
                         <span className="text-sm font-light">{expert.price}</span>
                       </div>
 
-                      {/* Headline */}
-                      <p className="line-clamp-2 text-base font-light text-eleva-neutral-900/80">
-                        {expert.headline}
+                      {/* Short Bio */}
+                      <p className="text-balance text-base font-light text-eleva-neutral-900/80">
+                        {expert.shortBio}
                       </p>
                     </CardContent>
                   </Card>
