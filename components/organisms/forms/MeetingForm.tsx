@@ -344,10 +344,19 @@ function MeetingFormContent({
                           const dateKey = startOfDay(date).toISOString();
                           return !timesByDate[dateKey];
                         }}
-                        
                         showOutsideDays={false}
+                        showYearSwitcher={false}
                         fixedWeeks
-                        className="w-full"
+                        className="!w-full"
+                        monthsClassName="space-y-4"
+                        weekdayClassName="w-14 text-sm font-normal text-muted-foreground"
+                        dayClassName="flex h-14 w-14 items-center justify-center p-0 text-sm"
+                        dayButtonClassName="h-12 w-12 rounded-md p-0 font-normal hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-0 disabled:opacity-50"
+                        selectedClassName="[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground"
+                        todayClassName="[&>button]:bg-accent/10"
+                        captionClassName="relative flex h-7 items-center px-2 mb-4"
+                        captionLabelClassName="text-lg font-medium"
+                        navClassName="absolute right-2 flex items-center gap-1"
                       />
                       <FormMessage />
                     </FormItem>
