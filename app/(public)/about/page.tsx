@@ -1,6 +1,7 @@
 import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export const metadata = {
   title: 'Our Mission | Eleva Care',
@@ -236,7 +237,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h3 className="font-medium">Dr. Patricia Mota</h3>
-                  <p className="text-eleva-neutral-900/60">Co-Founder / Chief Medical Officer</p>
+                  <p className="text-eleva-neutral-900/60">Co-Founder / Chief Executive Officer</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -249,59 +250,7 @@ export default function AboutPage() {
                 />
                 <div className="text-sm/6">
                   <h3 className="font-medium">Rodrigo Barona</h3>
-                  <p className="text-eleva-neutral-900/60">Co-Founder / CTO</p>
-                </div>
-              </li>
-              <li className="flex items-center gap-4">
-                <Image
-                  src="/img/about/team/team-patricia-driusso.jpg"
-                  alt="Dr. Patricia Driusso"
-                  width={48}
-                  height={48}
-                  className="size-12 rounded-full object-cover"
-                />
-                <div className="text-sm/6">
-                  <h3 className="font-medium">Dr. Patricia Driusso</h3>
-                  <p className="text-eleva-neutral-900/60">Head of Research</p>
-                </div>
-              </li>
-              <li className="flex items-center gap-4">
-                <Image
-                  src="/img/about/team/team-joana-barros.jpg"
-                  alt="Dr. Joana Barros"
-                  width={48}
-                  height={48}
-                  className="size-12 rounded-full object-cover"
-                />
-                <div className="text-sm/6">
-                  <h3 className="font-medium">Dr. Joana Barros</h3>
-                  <p className="text-eleva-neutral-900/60">Medical Director</p>
-                </div>
-              </li>
-              <li className="flex items-center gap-4">
-                <Image
-                  src="/img/about/team/team-jessica-margarido.jpg"
-                  alt="Jessica Margarido"
-                  width={48}
-                  height={48}
-                  className="size-12 rounded-full object-cover"
-                />
-                <div className="text-sm/6">
-                  <h3 className="font-medium">Jessica Margarido</h3>
-                  <p className="text-eleva-neutral-900/60">Clinical Operations Director</p>
-                </div>
-              </li>
-              <li className="flex items-center gap-4">
-                <Image
-                  src="/img/about/team/team-cristine-homsi-jorge.jpg"
-                  alt="Dr. Cristine Homsi Jorge"
-                  width={48}
-                  height={48}
-                  className="size-12 rounded-full object-cover"
-                />
-                <div className="text-sm/6">
-                  <h3 className="font-medium">Dr. Cristine Homsi Jorge</h3>
-                  <p className="text-eleva-neutral-900/60">Head of Patient Experience</p>
+                  <p className="text-eleva-neutral-900/60">Co-Founder / Chief Technical Officer</p>
                 </div>
               </li>
             </ul>
@@ -324,49 +273,104 @@ export default function AboutPage() {
               Healthcare Innovation
             </h3>
             <Separator className="mt-6" />
-            <ul className="mx-auto mt-10 grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <ul className="mx-auto mt-10 grid grid-cols-1 gap-8 lg:grid-cols-3">
               <li>
                 <div className="flex items-center gap-4">
                   <Image
-                    src="/img/about/team/team-patricia-mota.jpg"
-                    alt="Dr. Amanda White"
+                    src="/img/about/team/team-cristine-homsi-jorge.jpg"
+                    alt="Cristine Homsi Jorge"
                     width={56}
                     height={56}
                     className="size-14 rounded-full object-cover"
                   />
                   <div>
-                    <h4 className="font-medium">Dr. Amanda White, MD, MPH</h4>
-                    <p className="text-eleva-neutral-900/60">
-                      Former WHO Women&apos;s Health Advisor
-                    </p>
+                    <h4 className="font-medium">Cristine Homsi Jorge, PT, PhD</h4>
+                    <p className="text-eleva-neutral-900/60">Board Advisor Women&apos;s Health</p>
                   </div>
                 </div>
-                <p className="mt-6 max-w-lg text-sm/6 text-eleva-neutral-900/60">
-                  With over two decades of experience in global women&apos;s health initiatives, Dr.
-                  White brings invaluable insights into healthcare accessibility and policy
-                  implementation. Her work has helped shape international standards for maternal and
-                  reproductive health care.
-                </p>
+                <blockquote className="mt-6 max-w-lg text-sm/6 italic text-eleva-neutral-900/60">
+                  Clinical research and education empower women to make informed decisions about
+                  their healthcare journey
+                </blockquote>
               </li>
               <li>
                 <div className="flex items-center gap-4">
                   <Image
-                    src="/img/about/team/team-rodrigo-barona.jpg"
-                    alt="Professor James Chen"
+                    src="/img/about/team/team-alexandre-delgado.jpg"
+                    alt="Alexandre Delgado"
                     width={56}
                     height={56}
                     className="size-14 rounded-full object-cover"
                   />
                   <div>
-                    <h4 className="font-medium">Professor James Chen, PhD</h4>
-                    <p className="text-eleva-neutral-900/60">Digital Health Research Institute</p>
+                    <h4 className="font-medium">Alexandre Delgado, PT, PhD</h4>
+                    <p className="text-eleva-neutral-900/60">
+                      Board Advisor Obstetric Physical Therapy
+                    </p>
                   </div>
                 </div>
-                <p className="mt-6 max-w-lg text-sm/6 text-eleva-neutral-900/60">
-                  A pioneer in digital health transformation, Professor Chen&apos;s research focuses
-                  on leveraging technology to improve healthcare outcomes. His expertise in AI and
-                  telemedicine has been instrumental in developing innovative care delivery models.
-                </p>
+                <blockquote className="mt-6 max-w-lg text-sm/6 italic text-eleva-neutral-900/60">
+                  Evidence-based physical therapy transforms the pregnancy and birth experience,
+                  empowering women through every stage.
+                </blockquote>
+              </li>
+              <li>
+                <div className="flex items-center gap-4">
+                  <Image
+                    src="/img/about/team/team-patricia-driusso.jpg"
+                    alt="Patricia Driusso"
+                    width={56}
+                    height={56}
+                    className="size-14 rounded-full object-cover"
+                  />
+                  <div>
+                    <h4 className="font-medium">Patricia Driusso, PT, PhD</h4>
+                    <p className="text-eleva-neutral-900/60">Board Advisor Women&apos;s Health</p>
+                  </div>
+                </div>
+                <blockquote className="mt-6 max-w-lg text-sm/6 italic text-eleva-neutral-900/60">
+                  Clinical research advances rehabilitation treatments while empowering women
+                  through evidence-based education.
+                </blockquote>
+              </li>
+              <li>
+                <div className="flex items-center gap-4">
+                  <Image
+                    src="/img/about/team/team-annelie-gutke.jpg"
+                    alt="Annelie Gutke"
+                    width={64}
+                    height={83}
+                    className="size-14 rounded-full object-cover"
+                  />
+                  <div>
+                    <h4 className="font-medium">Annelie Gutke, PT, PhD</h4>
+                    <p className="text-eleva-neutral-900/60">Board Advisor Women&apos;s Health</p>
+                  </div>
+                </div>
+                <blockquote className="mt-6 max-w-lg text-sm/6 italic text-eleva-neutral-900/60">
+                  Understanding pain mechanisms transforms how we care for women during pregnancy
+                  and beyond.
+                </blockquote>
+              </li>
+              <li>
+                <div className="flex items-center gap-4">
+                  <Image
+                    src="/img/about/team/team-ruben-barakat.jpg"
+                    alt="Ruben Barakat"
+                    width={256}
+                    height={128}
+                    className="size-14 rounded-full object-cover"
+                    quality={100}
+                  />
+                  <div>
+                    <h4 className="font-medium">Ruben Barakat, PhD</h4>
+                    <p className="text-eleva-neutral-900/60">Board Advisor Exercise Science</p>
+                  </div>
+                </div>
+                <blockquote className="mt-6 max-w-lg text-sm/6 italic text-eleva-neutral-900/60">
+                  Evidence shows that personalized exercise during pregnancy can transform
+                  women&apos;s health outcomes.
+                </blockquote>
               </li>
             </ul>
 
@@ -377,80 +381,28 @@ export default function AboutPage() {
             <ul className="mx-auto mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
               <li className="flex items-center gap-4">
                 <Image
-                  src="/img/about/team/team-patricia-driusso.jpg"
-                  alt="Dr. Elena Martinez"
+                  src="/img/about/team/team-jessica-margarido.jpg"
+                  alt="Jessica Margarido, PT"
                   width={48}
-                  height={48}
+                  height={72}
                   className="size-12 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h4 className="font-medium">Dr. Elena Martinez</h4>
-                  <p className="text-eleva-neutral-900/60">Women&apos;s Health Research Center</p>
+                  <h4 className="font-medium">Jessica Margarido, PT</h4>
+                  <p className="text-eleva-neutral-900/60">Oncology Rehabilitation</p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
                 <Image
                   src="/img/about/team/team-joana-barros.jpg"
-                  alt="Dr. Michael Patel"
+                  alt="Joana Goulão Barros, MD, PhD"
                   width={48}
                   height={48}
                   className="size-12 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h4 className="font-medium">Dr. Michael Patel</h4>
-                  <p className="text-eleva-neutral-900/60">Digital Healthcare Association</p>
-                </div>
-              </li>
-              <li className="flex items-center gap-4">
-                <Image
-                  src="/img/about/team/team-jessica-margarido.jpg"
-                  alt="Dr. Sarah Wong"
-                  width={48}
-                  height={48}
-                  className="size-12 rounded-full object-cover"
-                />
-                <div className="text-sm/6">
-                  <h4 className="font-medium">Dr. Sarah Wong</h4>
-                  <p className="text-eleva-neutral-900/60">Maternal Health Foundation</p>
-                </div>
-              </li>
-              <li className="flex items-center gap-4">
-                <Image
-                  src="/img/about/team/team-cristine-homsi-jorge.jpg"
-                  alt="Professor Rachel Adams"
-                  width={48}
-                  height={48}
-                  className="size-12 rounded-full object-cover"
-                />
-                <div className="text-sm/6">
-                  <h4 className="font-medium">Professor Rachel Adams</h4>
-                  <p className="text-eleva-neutral-900/60">Healthcare Ethics Institute</p>
-                </div>
-              </li>
-              <li className="flex items-center gap-4">
-                <Image
-                  src="/img/about/team/team-patricia-mota.jpg"
-                  alt="Dr. David Miller"
-                  width={48}
-                  height={48}
-                  className="size-12 rounded-full object-cover"
-                />
-                <div className="text-sm/6">
-                  <h4 className="font-medium">Dr. David Miller</h4>
-                  <p className="text-eleva-neutral-900/60">Telehealth Innovation Lab</p>
-                </div>
-              </li>
-              <li className="flex items-center gap-4">
-                <Image
-                  src="/img/about/team/team-rodrigo-barona.jpg"
-                  alt="Dr. Lisa Chen"
-                  width={48}
-                  height={48}
-                  className="size-12 rounded-full object-cover"
-                />
-                <div className="text-sm/6">
-                  <h4 className="font-medium">Dr. Lisa Chen</h4>
-                  <p className="text-eleva-neutral-900/60">Preventive Medicine Institute</p>
+                  <h4 className="font-medium">Joana Goulão Barros, MD, PhD </h4>
+                  <p className="text-eleva-neutral-900/60">Obstetrics & Gynecology</p>
                 </div>
               </li>
             </ul>
@@ -504,9 +456,11 @@ export default function AboutPage() {
                   </li>
                 </ul>
                 <div className="mt-10">
-                  <Button size="lg" className="rounded-full">
-                    Apply to Join
-                  </Button>
+                  <Link href="mailto:patimota@gmail.com">
+                    <Button size="lg" className="rounded-full">
+                      Apply to Join
+                    </Button>
+                  </Link>
                 </div>
               </div>
 
