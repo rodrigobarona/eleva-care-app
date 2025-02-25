@@ -77,11 +77,16 @@ export default async function BookEventPage(props: PageProps) {
           <CardTitle className="text-xl font-bold sm:text-2xl">
             Book a video call: {event.name}
           </CardTitle>
+
           {event.description && (
-            <div className="prose mt-2 text-sm text-muted-foreground">
-              <ReactMarkdown>{event.description}</ReactMarkdown>
+            <div className="mt-4">
+              <div className="prose prose-sm max-w-none text-muted-foreground">
+                <ReactMarkdown>{event.description}</ReactMarkdown>
+              </div>
             </div>
           )}
+
+          {/* If you have idealFor data, add it here in similar format */}
         </div>
 
         <div className="flex flex-col gap-2 border-y py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:gap-4">
@@ -97,6 +102,7 @@ export default async function BookEventPage(props: PageProps) {
           )}
         </div>
       </CardHeader>
+
       <CardContent className="p-4 sm:p-0 sm:pt-8">
         {/* Use Suspense to wrap the availability-dependent component */}
         <Suspense fallback={<CalendarLoadingSkeleton />}>
@@ -113,6 +119,13 @@ export default async function BookEventPage(props: PageProps) {
       </CardContent>
     </Card>
   );
+}
+
+// Helper function to extract list items from markdown description
+function parseListItems(markdown: string): string[] {
+  const listItemRegex = /[-*]\s+(.+)(?:\r?\n|$)/g;
+  const matches = [...markdown.matchAll(listItemRegex)];
+  return matches.map((match) => match[1].trim());
 }
 
 // New component to handle availability data fetching

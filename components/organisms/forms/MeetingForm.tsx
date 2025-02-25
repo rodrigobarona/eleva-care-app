@@ -41,20 +41,14 @@ import { Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
-type MeetingFormProps = {
+interface MeetingFormProps {
   validTimes: Date[];
   eventId: string;
   clerkUserId: string;
   price: number;
   username: string;
   eventSlug: string;
-  eventName: string;
-  eventDetails?: {
-    expectations?: string[];
-    idealFor?: string[];
-    duration?: number;
-  };
-};
+}
 
 function MeetingFormContent({
   validTimes,
@@ -63,8 +57,6 @@ function MeetingFormContent({
   price,
   username,
   eventSlug,
-  eventName,
-  eventDetails,
 }: MeetingFormProps) {
   const router = useRouter();
 
@@ -300,48 +292,6 @@ function MeetingFormContent({
   return (
     <Form {...form}>
       <form className="space-y-6">
-        <div className="mb-8 rounded-lg border bg-background/50 p-6">
-          <h1 className="mb-4 text-2xl font-bold">Book a video call: {eventName}</h1>
-
-          <div className="mb-4">
-            <h2 className="text-md mb-2 font-semibold">What to Expect:</h2>
-            <ul className="space-y-1 text-muted-foreground">
-              {eventDetails?.expectations?.map((item) => (
-                <li key={item} className="flex items-start">
-                  <span className="mr-2 mt-1 text-xs">•</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {eventDetails?.idealFor && (
-            <div className="mb-4">
-              <h2 className="text-md mb-2 font-semibold">Ideal for:</h2>
-              <ul className="space-y-1 text-muted-foreground">
-                {eventDetails.idealFor.map((item) => (
-                  <li key={item} className="flex items-start">
-                    <span className="mr-2 mt-1 text-xs">•</span>
-                    <span>{item}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          <div className="mt-4 flex items-center gap-4 border-t pt-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span>{eventDetails?.duration || 60} minutes</span>
-            </div>
-            {price > 0 && (
-              <div className="flex items-center gap-2">
-                <Euro className="h-4 w-4" />
-                <span>€{price.toFixed(2)}</span>
-              </div>
-            )}
-          </div>
-        </div>
         <div className="mb-6 flex items-center">
           <div className="flex items-center">
             <div

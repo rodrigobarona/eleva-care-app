@@ -452,7 +452,7 @@ export default function AboutPage() {
                 </div>
               </div>
 
-              <div className="aspect-3/4 relative flex aspect-square flex-col justify-end overflow-hidden rounded-3xl">
+              {/* <div className="aspect-3/4 relative flex aspect-square flex-col justify-end overflow-hidden rounded-3xl">
                 <Image
                   src="/img/about/team/team-patricia-mota.jpg"
                   alt="Doctor providing consultation"
@@ -479,7 +479,7 @@ export default function AboutPage() {
                     </p>
                   </figcaption>
                 </figure>
-              </div>
+              </div> */}
             </div>
           </section>
         </div>
