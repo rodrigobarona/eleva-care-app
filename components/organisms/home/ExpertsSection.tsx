@@ -114,7 +114,11 @@ const ExpertsSection = async () => {
           <CarouselContent className="-ml-8 pl-2 pt-1">
             {expertsWithPricing.map((expert) => (
               <CarouselItem key={expert.id} className="pl-8 md:basis-1/2 lg:basis-80">
-                <Link href={`/${expert.username}`} className="group overflow-visible">
+                <Link
+                  href={`/${expert.username}`}
+                  className="group overflow-visible"
+                  prefetch={true}
+                >
                   <Card className="overflow-visible border-none bg-transparent shadow-none">
                     {/* Image Container */}
                     <div className="relative aspect-[28/38] rounded-xl transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-xl">

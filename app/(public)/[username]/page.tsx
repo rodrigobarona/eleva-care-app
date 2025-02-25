@@ -154,27 +154,37 @@ function EventCard({
 
 export default async function BookingPage(props: { params: Promise<{ username: string }> }) {
   const params = await props.params;
-
   const { username } = params;
 
+  // Get user data early and pass to children
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
+
+  const users = await clerk.users.getUserList({
+    username: [username],
+  });
+
+  const user = users.data[0];
+  if (!user) return notFound();
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-12">
+      <h1 className="mb-12 text-4xl font-bold">Book a session</h1>
+
+      {/* Use Suspense to stream in the events section */}
+      <Suspense fallback={<EventsLoadingSkeleton />}>
+        <EventsList userId={user.id} username={username} />
+      </Suspense>
+    </div>
+  );
+}
+
+// 2. Create a separate component for the events list that can be loaded with Suspense
+async function EventsList({ userId, username }: { userId: string; username: string }) {
   try {
-    console.log('[BookingPage] Starting to load page for username:', username);
-    const clerk = createClerkClient({
-      secretKey: process.env.CLERK_SECRET_KEY,
-    });
-
-    const users = await clerk.users.getUserList({
-      username: [username],
-    });
-
-    const user = users.data[0];
-    if (!user) return notFound();
-
-    console.log('[BookingPage] Found user:', user.id);
-
-    // Check calendar status early
-    const calendarStatus = await getCalendarStatus(user.id);
-    console.log('[BookingPage] Calendar status:', calendarStatus);
+    // Check calendar status
+    const calendarStatus = await getCalendarStatus(userId);
 
     if (!calendarStatus.isConnected) {
       return (
@@ -193,40 +203,24 @@ export default async function BookingPage(props: { params: Promise<{ username: s
 
     const events = await db.query.EventTable.findMany({
       where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
-        and(eq(userIdCol, user.id), eq(isActive, true)),
+        and(eq(userIdCol, userId), eq(isActive, true)),
       orderBy: ({ order }, { asc }) => asc(order),
     });
 
     if (events.length === 0) return notFound();
 
-    console.log('[BookingPage] Found events:', events.length);
-
-    // Pre-fetch all valid times for each event
-    const eventTimes = await Promise.all(
-      events.map(async (event) => {
-        console.log('[BookingPage] Getting times for event:', event.id);
-        const validTimes = await getValidTimesForEvent(event.id);
-        return {
-          event,
-          nextAvailable: validTimes.length > 0 ? validTimes[0] : null,
-        };
-      }),
-    );
-
     return (
-      <div className="mx-auto max-w-4xl px-4 py-12">
-        <h1 className="mb-12 text-4xl font-bold">Book a session</h1>
-        <div className="space-y-6">
-          {eventTimes.map(({ event, nextAvailable }) => (
-            <Suspense key={event.id} fallback={<LoadingEventCard />}>
-              <EventCard event={event} username={username} nextAvailable={nextAvailable} />
-            </Suspense>
-          ))}
-        </div>
+      <div className="space-y-6">
+        {events.map((event) => (
+          // Use Suspense for each event card to stream in availability data
+          <Suspense key={event.id} fallback={<LoadingEventCard />}>
+            <EventCardWithAvailability event={event} username={username} />
+          </Suspense>
+        ))}
       </div>
     );
   } catch (error) {
-    console.error('[BookingPage] Error:', error);
+    console.error('[EventsList] Error:', error);
     return (
       <Card className="mx-auto max-w-md">
         <CardHeader>
@@ -238,6 +232,25 @@ export default async function BookingPage(props: { params: Promise<{ username: s
       </Card>
     );
   }
+}
+
+// 3. Create a component that handles fetching availability for a single event
+async function EventCardWithAvailability({ event, username }: { event: Event; username: string }) {
+  // Fetch availability data asynchronously
+  const validTimes = await getValidTimesForEvent(event.id);
+  const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
+
+  return <EventCard event={event} username={username} nextAvailable={nextAvailable} />;
+}
+
+// 4. Add a loading skeleton for the entire events list
+function EventsLoadingSkeleton() {
+  return (
+    <div className="space-y-6">
+      <LoadingEventCard />
+      <LoadingEventCard />
+    </div>
+  );
 }
 
 // Separate component for the main card details
