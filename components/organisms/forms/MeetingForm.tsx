@@ -344,40 +344,10 @@ function MeetingFormContent({
                           const dateKey = startOfDay(date).toISOString();
                           return !timesByDate[dateKey];
                         }}
+                        
                         showOutsideDays={false}
                         fixedWeeks
-                        className="w-full rounded-md border p-4"
-                        classNames={{
-                          months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
-                          month: 'space-y-4 w-full',
-                          caption: 'flex justify-start pt-1 relative items-center gap-1',
-                          caption_label: 'text-lg font-semibold',
-                          caption_dropdowns: 'flex gap-1',
-                          nav: 'flex items-center gap-1',
-                          nav_button: cn('h-9 w-9 bg-transparent p-0 hover:opacity-100 opacity-75'),
-                          nav_button_previous: 'absolute right-7',
-                          nav_button_next: 'absolute right-0',
-                          table: 'w-full border-collapse',
-                          head_row: 'flex w-full',
-                          head_cell: 'h-6 w-14 font-normal text-sm text-muted-foreground uppercase',
-                          row: 'flex w-full',
-                          cell: 'h-14 w-14 relative  p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md [&:has([aria-selected])]:rounded-md',
-
-                          day: cn(
-                            'h-14 w-14 p-0 font-normal text-base aria-selected:opacity-100 hover:bg-accent hover:text-accent-foreground',
-                          ),
-                          day_range_start: 'day-range-start',
-                          day_range_end: 'day-range-end',
-                          day_selected: cn(
-                            'bg-[#1c1c1c] text-white hover:bg-[#1c1c1c] hover:text-white focus:bg-[#1c1c1c] focus:text-white',
-                            'after:absolute after:bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:h-1 after:w-1 after:rounded-full after:bg-white',
-                          ),
-                          day_today: 'bg-accent text-accent-foreground',
-                          day_outside:
-                            'text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30',
-                          day_disabled: 'text-muted-foreground opacity-50',
-                          day_hidden: 'invisible',
-                        }}
+                        className="w-full"
                       />
                       <FormMessage />
                     </FormItem>
