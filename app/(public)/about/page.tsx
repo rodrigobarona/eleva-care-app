@@ -92,18 +92,6 @@ export default function AboutPage() {
               </h2>
               <Separator className="mt-6" />
               <dl className="mt-6 grid grid-cols-1 gap-x-8 gap-y-4 sm:grid-cols-2">
-                <div className="flex flex-col gap-y-2 border-b border-dotted border-eleva-neutral-200 pb-4">
-                  <dt className="text-sm/6 text-eleva-neutral-900/60">Women Helped</dt>
-                  <dd className="order-first font-serif text-6xl font-light tracking-tighter text-eleva-primary">
-                    10K+
-                  </dd>
-                </div>
-                <div className="flex flex-col gap-y-2 border-b border-dotted border-eleva-neutral-200 pb-4">
-                  <dt className="text-sm/6 text-eleva-neutral-900/60">Expert Providers</dt>
-                  <dd className="order-first font-serif text-6xl font-light tracking-tighter text-eleva-primary">
-                    50+
-                  </dd>
-                </div>
                 <div className="flex flex-col gap-y-2 max-sm:border-b max-sm:border-dotted max-sm:border-eleva-neutral-200 max-sm:pb-4">
                   <dt className="text-sm/6 text-eleva-neutral-900/60">Patient Satisfaction</dt>
                   <dd className="order-first font-serif text-6xl font-light tracking-tighter text-eleva-primary">
@@ -195,7 +183,7 @@ export default function AboutPage() {
             </p>
 
             <div className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-2">
-              <div className="max-w-lg">
+              <div className="max-w-xl">
                 <p className="text-base/6 text-eleva-neutral-900/60 lg:text-lg/7">
                   Founded by healthcare professionals who witnessed firsthand the gaps in
                   women&apos;s healthcare, Eleva Care emerged from a shared vision to make expert
@@ -208,13 +196,13 @@ export default function AboutPage() {
                 </p>
               </div>
 
-              <div className="max-lg:order-first max-lg:max-w-lg">
-                <div className="aspect-3/2 overflow-hidden rounded-xl shadow-xl outline-1 -outline-offset-1 outline-black/10">
+              <div className="flex justify-center max-lg:order-first max-lg:max-w-lg">
+                <div className="aspect-3/2 max-w-96 overflow-hidden rounded-xl shadow-xl outline-1 -outline-offset-1 outline-black/10">
                   <Image
                     src="/img/about/team-photo.png"
                     alt="Eleva Care team meeting"
-                    width={600}
-                    height={400}
+                    width={300}
+                    height={200}
                     className="block size-full object-cover"
                   />
                 </div>
@@ -230,13 +218,13 @@ export default function AboutPage() {
               <li className="flex items-center gap-4">
                 <Image
                   src="/img/about/team/team-patricia-mota.jpg"
-                  alt="Dr. Patricia Mota"
-                  width={48}
-                  height={48}
-                  className="size-12 rounded-full object-cover"
+                  alt="Patricia Mota, PT, PhD"
+                  width={200}
+                  height={200}
+                  className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h3 className="font-medium">Dr. Patricia Mota</h3>
+                  <h3 className="font-medium">Patricia Mota, PT, PhD</h3>
                   <p className="text-eleva-neutral-900/60">Co-Founder / Chief Executive Officer</p>
                 </div>
               </li>
@@ -244,9 +232,9 @@ export default function AboutPage() {
                 <Image
                   src="/img/about/team/team-rodrigo-barona.jpg"
                   alt="Rodrigo Barona"
-                  width={48}
-                  height={48}
-                  className="size-12 rounded-full object-cover"
+                  width={200}
+                  height={200}
+                  className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
                   <h3 className="font-medium">Rodrigo Barona</h3>
@@ -279,9 +267,9 @@ export default function AboutPage() {
                   <Image
                     src="/img/about/team/team-cristine-homsi-jorge.jpg"
                     alt="Cristine Homsi Jorge"
-                    width={56}
-                    height={56}
-                    className="size-14 rounded-full object-cover"
+                    width={200}
+                    height={200}
+                    className="size-40 rounded-full object-cover"
                   />
                   <div>
                     <h4 className="font-medium">Cristine Homsi Jorge, PT, PhD</h4>
@@ -298,9 +286,9 @@ export default function AboutPage() {
                   <Image
                     src="/img/about/team/team-alexandre-delgado.jpg"
                     alt="Alexandre Delgado"
-                    width={56}
-                    height={56}
-                    className="size-14 rounded-full object-cover"
+                    width={200}
+                    height={200}
+                    className="size-40 rounded-full object-cover"
                   />
                   <div>
                     <h4 className="font-medium">Alexandre Delgado, PT, PhD</h4>
@@ -319,9 +307,9 @@ export default function AboutPage() {
                   <Image
                     src="/img/about/team/team-patricia-driusso.jpg"
                     alt="Patricia Driusso"
-                    width={56}
-                    height={56}
-                    className="size-14 rounded-full object-cover"
+                    width={200}
+                    height={200}
+                    className="size-40 rounded-full object-cover"
                   />
                   <div>
                     <h4 className="font-medium">Patricia Driusso, PT, PhD</h4>
@@ -338,9 +326,9 @@ export default function AboutPage() {
                   <Image
                     src="/img/about/team/team-annelie-gutke.jpg"
                     alt="Annelie Gutke"
-                    width={64}
-                    height={83}
-                    className="size-14 rounded-full object-cover"
+                    width={200}
+                    height={200}
+                    className="size-40 rounded-full object-cover"
                   />
                   <div>
                     <h4 className="font-medium">Annelie Gutke, PT, PhD</h4>
@@ -357,9 +345,9 @@ export default function AboutPage() {
                   <Image
                     src="/img/about/team/team-ruben-barakat.jpg"
                     alt="Ruben Barakat"
-                    width={256}
-                    height={128}
-                    className="size-14 rounded-full object-cover"
+                    width={200}
+                    height={200}
+                    className="size-40 rounded-full object-cover"
                     quality={100}
                   />
                   <div>
@@ -383,9 +371,9 @@ export default function AboutPage() {
                 <Image
                   src="/img/about/team/team-jessica-margarido.jpg"
                   alt="Jessica Margarido, PT"
-                  width={48}
-                  height={72}
-                  className="size-12 rounded-full object-cover"
+                  width={200}
+                  height={200}
+                  className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
                   <h4 className="font-medium">Jessica Margarido, PT</h4>
@@ -396,9 +384,9 @@ export default function AboutPage() {
                 <Image
                   src="/img/about/team/team-joana-barros.jpg"
                   alt="Joana Goulão Barros, MD, PhD"
-                  width={48}
-                  height={48}
-                  className="size-12 rounded-full object-cover"
+                  width={200}
+                  height={200}
+                  className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
                   <h4 className="font-medium">Joana Goulão Barros, MD, PhD </h4>

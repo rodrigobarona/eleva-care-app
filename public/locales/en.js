@@ -106,6 +106,7 @@ export const translations = {
     ],
     description:
       'At Eleva Care, we believe in a collaborative approach to care. Our team of experts work together to provide you with comprehensive and personalized support, ensuring that every aspect of your health is addressed.',
+    cta: 'Our Mission',
   },
   mission: {
     title: 'Our Mission',

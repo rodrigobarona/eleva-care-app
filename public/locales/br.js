@@ -105,6 +105,7 @@ export const translations = {
     ],
     description:
       'Na Eleva Care, acreditamos em uma abordagem colaborativa. O nosso time de especialistas trabalha em conjunto para oferecer um apoio abrangente e personalizado, garantindo que todos os aspetos da sua saúde sejam atendidos.',
+    cta: 'Saiba mais',
   },
   mission: {
     title: 'A Nossa Missão',

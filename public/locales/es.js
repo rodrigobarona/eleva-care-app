@@ -105,6 +105,7 @@ export const translations = {
     ],
     description:
       'En Eleva Care, creemos en un enfoque colaborativo para el cuidado. Nuestro equipo de expertos trabaja en conjunto para ofrecer un apoyo integral y personalizado, asegurando que cada aspecto de tu salud esté cubierto.',
+    cta: 'Nuestra Misión',
   },
   mission: {
     title: 'Nuestra Misión',

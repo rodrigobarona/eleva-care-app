@@ -1,10 +1,12 @@
 'use client';
 
+import { Button } from '@/components/atoms/button';
 import { useLanguage } from '@/components/molecules/LanguageProvider';
 import { translations as br } from '@/public/locales/br';
 import { translations as en } from '@/public/locales/en';
 import { translations as es } from '@/public/locales/es';
 import { translations as pt } from '@/public/locales/pt';
+import { ChevronRight, Link } from 'lucide-react';
 import Image from 'next/image';
 import type React from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -64,6 +66,12 @@ const ApproachSection: React.FC = () => {
                 </li>
               ))}
             </ol>
+            <div className="mt-12">
+              <Button className="text-elevaNeutral-100 mt-4 bg-[#0d6c70] hover:bg-[#0d6c70]/90">
+                <Link href="/about">{t.approach.cta}</Link>
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
