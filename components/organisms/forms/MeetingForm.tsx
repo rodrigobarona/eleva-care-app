@@ -28,7 +28,7 @@ import { createMeeting } from '@/server/actions/meetings';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, startOfDay } from 'date-fns';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
-import { Calendar as CalendarIcon, Clock, Euro, Globe, Loader2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Globe, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   parseAsIsoDate,

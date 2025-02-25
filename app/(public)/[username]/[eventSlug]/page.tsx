@@ -121,13 +121,6 @@ export default async function BookEventPage(props: PageProps) {
   );
 }
 
-// Helper function to extract list items from markdown description
-function parseListItems(markdown: string): string[] {
-  const listItemRegex = /[-*]\s+(.+)(?:\r?\n|$)/g;
-  const matches = [...markdown.matchAll(listItemRegex)];
-  return matches.map((match) => match[1].trim());
-}
-
 // New component to handle availability data fetching
 async function CalendarWithAvailability({
   userId,
