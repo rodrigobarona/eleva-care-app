@@ -28,7 +28,7 @@ import { createMeeting } from '@/server/actions/meetings';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, startOfDay } from 'date-fns';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
-import { Globe } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Euro, Globe, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   parseAsIsoDate,
@@ -48,6 +48,12 @@ type MeetingFormProps = {
   price: number;
   username: string;
   eventSlug: string;
+  eventName: string;
+  eventDetails?: {
+    expectations?: string[];
+    idealFor?: string[];
+    duration?: number;
+  };
 };
 
 function MeetingFormContent({
@@ -57,6 +63,8 @@ function MeetingFormContent({
   price,
   username,
   eventSlug,
+  eventName,
+  eventDetails,
 }: MeetingFormProps) {
   const router = useRouter();
 
@@ -292,12 +300,98 @@ function MeetingFormContent({
   return (
     <Form {...form}>
       <form className="space-y-6">
+        <div className="mb-8 rounded-lg border bg-background/50 p-6">
+          <h1 className="mb-4 text-2xl font-bold">Book a video call: {eventName}</h1>
+
+          <div className="mb-4">
+            <h2 className="text-md mb-2 font-semibold">What to Expect:</h2>
+            <ul className="space-y-1 text-muted-foreground">
+              {eventDetails?.expectations?.map((item) => (
+                <li key={item} className="flex items-start">
+                  <span className="mr-2 mt-1 text-xs">•</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {eventDetails?.idealFor && (
+            <div className="mb-4">
+              <h2 className="text-md mb-2 font-semibold">Ideal for:</h2>
+              <ul className="space-y-1 text-muted-foreground">
+                {eventDetails.idealFor.map((item) => (
+                  <li key={item} className="flex items-start">
+                    <span className="mr-2 mt-1 text-xs">•</span>
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="mt-4 flex items-center gap-4 border-t pt-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span>{eventDetails?.duration || 60} minutes</span>
+            </div>
+            {price > 0 && (
+              <div className="flex items-center gap-2">
+                <Euro className="h-4 w-4" />
+                <span>€{price.toFixed(2)}</span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="mb-6 flex items-center">
+          <div className="flex items-center">
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '1' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+            >
+              1
+            </div>
+            <span
+              className={`ml-2 ${currentStep === '1' ? 'font-medium' : 'text-muted-foreground'}`}
+            >
+              Select Date & Time
+            </span>
+          </div>
+          <div className="mx-2 h-0.5 w-6 bg-muted" />
+          <div className="flex items-center">
+            <div
+              className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '2' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+            >
+              2
+            </div>
+            <span
+              className={`ml-2 ${currentStep === '2' ? 'font-medium' : 'text-muted-foreground'}`}
+            >
+              Your Information
+            </span>
+          </div>
+          {price > 0 && (
+            <>
+              <div className="mx-2 h-0.5 w-6 bg-muted" />
+              <div className="flex items-center">
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '3' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
+                >
+                  3
+                </div>
+                <span
+                  className={`ml-2 ${currentStep === '3' ? 'font-medium' : 'text-muted-foreground'}`}
+                >
+                  Payment
+                </span>
+              </div>
+            </>
+          )}
+        </div>
         {currentStep === '1' ? (
           <>
-            <div className="grid gap-8 md:grid-cols-[minmax(auto,800px),300px]">
-              <div>
+            <div className="grid gap-8 md:grid-cols-[minmax(auto,450px),350px]">
+              <div className="rounded-lg border p-4">
                 <div className="mb-4 flex items-center justify-between">
-                  <FormLabel className="text-lg font-semibold">Select a Date</FormLabel>
+                  <h2 className="text-lg font-semibold">Select a Date</h2>
                   <FormField
                     control={form.control}
                     name="timezone"
@@ -305,7 +399,7 @@ function MeetingFormContent({
                       <FormItem className="flex-shrink-0">
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger className="w-70 h-9 border-0 text-sm shadow-none">
+                            <SelectTrigger className="h-9 w-60 border-0 text-sm shadow-none">
                               <div className="flex items-center gap-2">
                                 <Globe className="h-4 w-4" />
                                 <SelectValue placeholder={timezone.replace('_', ' ')} />
@@ -386,11 +480,11 @@ function MeetingFormContent({
                 />
               </div>
 
-              <div>
+              <div className="rounded-lg border p-4">
                 <div className="mb-4 flex items-center justify-between">
-                  <FormLabel className="text-lg font-semibold">
-                    {date ? format(date, 'EE, MMM d') : 'Available Times'}
-                  </FormLabel>
+                  <h2 className="text-lg font-semibold">
+                    {date ? format(date, 'EEEE, MMMM d') : 'Available Times'}
+                  </h2>
                   <div className="flex rounded-full bg-muted p-1">
                     <Button
                       type="button"
@@ -430,7 +524,7 @@ function MeetingFormContent({
                       <div
                         className="grid gap-2 overflow-y-auto pr-4"
                         style={{
-                          maxHeight: 'calc(470px - 3rem)', // Increased height
+                          maxHeight: 'calc(450px - 3rem)',
                           scrollbarGutter: 'stable',
                         }}
                       >
@@ -442,9 +536,9 @@ function MeetingFormContent({
                                 type="button"
                                 variant="outline"
                                 className={cn(
-                                  'h-12 justify-center text-center text-base',
+                                  'h-12 justify-center text-center text-base font-normal',
                                   field.value?.toISOString() === utcDate.toISOString()
-                                    ? 'border-primary bg-primary/5 font-medium'
+                                    ? 'border-primary bg-primary/5 font-medium text-primary'
                                     : 'hover:border-primary/50',
                                 )}
                                 onClick={() => {
@@ -467,85 +561,103 @@ function MeetingFormContent({
           </>
         ) : currentStep === '2' ? (
           <>
-            <div className="mb-8">
-              <h2 className="mb-2 text-lg font-semibold">Confirm your meeting details</h2>
-              <p className="text-muted-foreground">
-                {date && format(date, 'EEEE, MMMM d')} at{' '}
-                {startTime && formatInTimeZone(startTime, timezone, use24Hour ? 'HH:mm' : 'h:mm a')}
-              </p>
-            </div>
+            <div className="rounded-lg border p-6">
+              <div className="mb-6">
+                <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
+                <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4" />
+                    <span>{date && format(date, 'EEEE, MMMM d, yyyy')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span>
+                      {startTime &&
+                        formatInTimeZone(startTime, timezone, use24Hour ? 'HH:mm' : 'h:mm a')}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Globe className="h-4 w-4" />
+                    <span>{timezone.replace('_', ' ')}</span>
+                  </div>
+                </div>
+              </div>
 
-            <div className="flex flex-col gap-4 md:flex-row">
-              <FormField
-                control={form.control}
-                name="guestName"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormLabel className="font-semibold">Your Name</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          setQueryStates({ name: e.target.value });
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="guestEmail"
-                render={({ field }) => (
-                  <FormItem className="flex-1">
-                    <FormLabel className="font-semibold">Your Email</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        {...field}
-                        onChange={(e) => {
-                          field.onChange(e);
-                          setQueryStates({ email: e.target.value });
-                        }}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="guestNotes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="font-semibold">Notes</FormLabel>
-                  <FormControl>
-                    <Textarea className="resize-none rounded-md border" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <div className="grid gap-6 md:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="guestName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold">Your Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setQueryStates({ name: e.target.value });
+                          }}
+                          placeholder="Enter your full name"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="guestEmail"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold">Your Email</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="email"
+                          {...field}
+                          onChange={(e) => {
+                            field.onChange(e);
+                            setQueryStates({ email: e.target.value });
+                          }}
+                          placeholder="you@example.com"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="guestNotes"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel className="font-semibold">Additional Notes</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder="Share anything that will help prepare for our meeting..."
+                          className="min-h-32"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setQueryStates({ step: '1' })}
-                disabled={isSubmitting}
-              >
-                Back
-              </Button>
-              <Button type="button" onClick={() => handleNextStep('3')} disabled={isSubmitting}>
-                {isSubmitting
-                  ? 'Processing...'
-                  : price === 0
-                    ? 'Confirm Booking'
-                    : 'Continue to Payment'}
-              </Button>
+              <div className="mt-6 flex justify-between">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setQueryStates({ step: '1' })}
+                  disabled={isSubmitting}
+                >
+                  Back
+                </Button>
+                <Button type="button" onClick={() => handleNextStep('3')} disabled={isSubmitting}>
+                  {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
+                  {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+                </Button>
+              </div>
             </div>
           </>
         ) : (
