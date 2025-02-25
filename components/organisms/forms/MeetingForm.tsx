@@ -338,25 +338,46 @@ function MeetingFormContent({
                         selected={field.value}
                         onSelect={(date) => {
                           field.onChange(date);
-                          setQueryStates({ date });
+                          if (date) {
+                            setQueryStates({ date });
+                          }
                         }}
                         disabled={(date) => {
+                          if (!date) return true;
                           const dateKey = startOfDay(date).toISOString();
                           return !timesByDate[dateKey];
                         }}
                         showOutsideDays={false}
-                        showYearSwitcher={false}
                         fixedWeeks
-                        className="!w-full"
-                        monthsClassName="space-y-4"
-                        weekdayClassName="w-14 text-sm font-normal text-muted-foreground"
-                        dayClassName="flex h-14 w-14 items-center justify-center p-0 text-sm"
-                        dayButtonClassName="h-12 w-12 rounded-md p-0 font-normal hover:bg-accent/50 focus-visible:bg-accent/50 focus-visible:ring-0 disabled:opacity-50"
-                        selectedClassName="[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground"
-                        todayClassName="[&>button]:bg-accent/10"
-                        captionClassName="relative flex h-7 items-center px-2 mb-4"
-                        captionLabelClassName="text-lg font-medium"
-                        navClassName="absolute right-2 flex items-center gap-1"
+                        className="relative w-full rounded-md border p-4"
+                        classNames={{
+                          months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
+                          month: 'space-y-4 w-full',
+                          caption: 'flex justify-start pt-1 relative items-center gap-1',
+                          caption_label: 'text-lg font-semibold',
+                          caption_dropdowns: 'flex gap-1',
+                          nav: 'flex items-center gap-1 absolute right-2',
+                          nav_button: cn('h-9 w-9 bg-transparent p-0 hover:opacity-100 opacity-75'),
+                          nav_button_previous: 'absolute right-7',
+                          nav_button_next: 'absolute right-0',
+                          table: 'w-full border-collapse',
+                          head_row: 'flex w-full',
+                          head_cell: 'h-6 w-14 font-normal text-sm text-muted-foreground uppercase',
+                          row: 'flex w-full',
+                          cell: 'h-14 w-14 relative  p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md [&:has([aria-selected])]:rounded-md',
+                          day: 'text-center h-14 w-14 p-0 font-normal text-base aria-selected:opacity-100 hover:bg-eleva-neutral-100 hover:text-eleva-neutral-900 transition-colors duration-200',
+                          day_range_start: 'day-range-start',
+                          day_range_end: 'day-range-end',
+                          day_selected:
+                            'bg-eleva-primary text-white hover:bg-eleva-primary hover:text-white focus:bg-eleva-primary focus:text-white after:absolute after:bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:h-1 after:w-1 after:rounded-full after:bg-white',
+                          day_today:
+                            'bg-eleva-secondary-light/10 border-2 border-eleva-secondary font-semibold text-eleva-secondary',
+                          day_outside:
+                            'text-eleva-neutral-200 hover:bg-transparent hover:cursor-default aria-selected:bg-eleva-neutral-100/30 aria-selected:text-eleva-neutral-200',
+                          day_disabled:
+                            'text-eleva-neutral-200/50 hover:bg-transparent hover:cursor-not-allowed line-through',
+                          day_hidden: 'invisible',
+                        }}
                       />
                       <FormMessage />
                     </FormItem>
