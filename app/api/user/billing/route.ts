@@ -12,6 +12,8 @@ export const runtime = 'nodejs';
 export async function GET() {
   try {
     const { userId } = await auth();
+    console.log('Auth check result:', { userId, hasId: !!userId });
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -52,7 +54,7 @@ export async function GET() {
       accountStatus,
     });
   } catch (error) {
-    console.error('Error in billing API:', error);
+    console.error('Auth error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
