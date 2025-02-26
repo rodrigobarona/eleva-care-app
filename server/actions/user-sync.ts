@@ -73,6 +73,9 @@ export async function createUserFromClerk(clerkUserId: string) {
     id: newUser.id,
     clerkUserId,
     email,
+    firstName,
+    lastName,
+    fullName: [firstName, lastName].filter(Boolean).join(' '),
   });
 
   return newUser;
@@ -110,7 +113,16 @@ export async function ensureUserStripeCustomer(user: typeof UserTable.$inferSele
     email: user.email,
   });
 
-  const customerId = await getOrCreateStripeCustomer(user.id, user.email);
+  // Construct the full name from first and last name if available
+  let fullName: string | undefined;
+  if (user.firstName || user.lastName) {
+    fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+    if (fullName.trim() === '') {
+      fullName = undefined;
+    }
+  }
+
+  const customerId = await getOrCreateStripeCustomer(user.id, user.email, fullName);
 
   // Update the user record with the customer ID
   await db
