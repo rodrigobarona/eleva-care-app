@@ -27,10 +27,12 @@ export default function Footer() {
                   </p>
                   <div className="mt-6 flex justify-center gap-4">
                     <Button size="lg" className="rounded-full">
-                      Take the Quiz
+                      <Link href="https://patimota.typeform.com/to/XNQHJbgT" target="_blank">
+                        Take the Quiz
+                      </Link>
                     </Button>
                     <Button size="lg" variant="outline" className="rounded-full">
-                      Book a Session
+                      <Link href="/#experts">Book a Session</Link>
                     </Button>
                   </div>
                 </div>
