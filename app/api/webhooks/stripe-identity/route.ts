@@ -10,10 +10,19 @@ import Stripe from 'stripe';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// Add GET handler to quickly return 405 Method Not Allowed
+export async function GET() {
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+}
+
 // Handle POST requests from Stripe webhooks
 export async function POST(request: Request) {
+  let eventType = 'unknown';
+  let eventId = 'unknown';
+
   try {
     if (!process.env.STRIPE_IDENTITY_WEBHOOK_SECRET) {
+      console.error('Missing STRIPE_IDENTITY_WEBHOOK_SECRET environment variable');
       throw new Error('Missing STRIPE_IDENTITY_WEBHOOK_SECRET environment variable');
     }
 
@@ -22,6 +31,7 @@ export async function POST(request: Request) {
     const signature = request.headers.get('stripe-signature');
 
     if (!signature) {
+      console.error('Missing Stripe signature');
       return NextResponse.json({ error: 'Missing Stripe signature' }, { status: 400 });
     }
 
@@ -36,6 +46,9 @@ export async function POST(request: Request) {
         signature,
         process.env.STRIPE_IDENTITY_WEBHOOK_SECRET,
       );
+
+      eventType = event.type;
+      eventId = event.id;
     } catch (err) {
       console.error('Webhook signature verification failed:', err);
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
@@ -52,9 +65,14 @@ export async function POST(request: Request) {
       await handleVerificationSessionEvent(event);
     }
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true, status: 'success' });
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    console.error('Error processing webhook:', {
+      error,
+      eventType,
+      eventId,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       { error: 'Internal server error processing webhook' },
       { status: 500 },

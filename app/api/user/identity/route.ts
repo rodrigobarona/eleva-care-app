@@ -10,8 +10,11 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export async function GET() {
+  let clerkUserId: string | null = null;
+
   try {
     const { userId } = await auth();
+    clerkUserId = userId;
     console.log('Auth check result:', { userId, hasId: !!userId });
 
     if (!userId) {
@@ -24,6 +27,7 @@ export async function GET() {
     });
 
     if (!user) {
+      console.error('User not found in database:', { clerkUserId: userId });
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -32,17 +36,18 @@ export async function GET() {
     if (user.stripeIdentityVerificationId) {
       try {
         verificationStatus = await getIdentityVerificationStatus(user.stripeIdentityVerificationId);
+        console.log('Retrieved verification status:', {
+          verificationId: user.stripeIdentityVerificationId,
+          status: verificationStatus.status,
+        });
       } catch (stripeError) {
         console.error('Error retrieving Stripe Identity verification status:', stripeError);
-        // Return partial response instead of failing completely
-        return NextResponse.json({
-          user: {
-            id: user.id,
-            stripeIdentityVerificationId: user.stripeIdentityVerificationId,
-          },
-          verificationStatus: null,
-          stripeError: 'Failed to retrieve verification status from Stripe',
-        });
+        // Return unverified status if we encounter an error
+        verificationStatus = {
+          status: 'error',
+          lastUpdated: new Date().toISOString(),
+          error: 'Failed to retrieve verification status from Stripe',
+        };
       }
     } else {
       // If no verification ID exists, return unverified status
@@ -50,17 +55,23 @@ export async function GET() {
         status: 'unverified',
         lastUpdated: null,
       };
+      console.log('No verification ID found for user:', user.id);
     }
 
     return NextResponse.json({
       user: {
         id: user.id,
         stripeIdentityVerificationId: user.stripeIdentityVerificationId,
+        verified: user.stripeIdentityVerified,
       },
       verificationStatus,
     });
   } catch (error) {
-    console.error('Auth error:', error);
+    console.error('Error in user identity API:', {
+      error,
+      clerkUserId,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

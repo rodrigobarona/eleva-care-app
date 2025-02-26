@@ -1,5 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
+import { syncStripeDataToKV } from '@/lib/stripe';
 import { createMeeting } from '@/server/actions/meetings';
 import { NextResponse } from 'next/server';
 import type { Stripe } from 'stripe';
@@ -59,6 +60,17 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
   if (!session.metadata?.meetingData || !session.metadata.eventId) {
     throw new Error('Missing required metadata');
+  }
+
+  // First, sync stripe customer data to KV
+  if (typeof session.customer === 'string') {
+    try {
+      console.log('Syncing customer data to KV:', session.customer);
+      await syncStripeDataToKV(session.customer);
+    } catch (error) {
+      console.error('Failed to sync customer data to KV:', error);
+      // Continue processing even if KV sync fails
+    }
   }
 
   const meetingData = JSON.parse(session.metadata.meetingData) as MeetingMetadata;
@@ -209,16 +221,81 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
     }
 
-    // Handle the event
+    console.log('Received Stripe webhook event:', {
+      type: event.type,
+      id: event.id,
+      timestamp: new Date().toISOString(),
+    });
+
+    // Extract customer ID from event data to sync (if applicable)
+    let customerId: string | undefined = undefined;
+
+    // Extract customer ID based on event type
+    switch (event.type) {
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded':
+      case 'checkout.session.async_payment_failed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        customerId = typeof session.customer === 'string' ? session.customer : undefined;
+        break;
+      }
+
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+      case 'customer.subscription.deleted':
+      case 'customer.subscription.trial_will_end': {
+        const subscription = event.data.object as Stripe.Subscription;
+        customerId = typeof subscription.customer === 'string' ? subscription.customer : undefined;
+        break;
+      }
+
+      case 'invoice.paid':
+      case 'invoice.payment_failed':
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice;
+        customerId = typeof invoice.customer === 'string' ? invoice.customer : undefined;
+        break;
+      }
+
+      case 'payment_intent.succeeded':
+      case 'payment_intent.payment_failed': {
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        customerId =
+          typeof paymentIntent.customer === 'string' ? paymentIntent.customer : undefined;
+        break;
+      }
+
+      default:
+        // For events not explicitly handled, we don't need to sync customer data
+        break;
+    }
+
+    // Sync customer data to KV if customer ID found
+    if (customerId) {
+      try {
+        console.log('Syncing customer data to KV:', customerId);
+        await syncStripeDataToKV(customerId).catch((error) => {
+          console.error('Error syncing customer data to KV:', error);
+          // We still want to process the webhook even if KV sync fails
+        });
+      } catch (error) {
+        console.error('Error preparing to sync customer data:', error);
+        // Continue webhook processing even if sync preparation fails
+      }
+    }
+
+    // Handle specific business logic based on event type
     switch (event.type) {
       case 'checkout.session.completed':
         await handleCheckoutSession(event.data.object as StripeCheckoutSession);
         break;
+      // Add other event handlers as needed
       default:
         console.log(`Unhandled event type ${event.type}`);
     }
 
-    return NextResponse.json({ received: true });
+    // Return a 200 success response quickly
+    return NextResponse.json({ received: true, status: 'success' });
   } catch (error) {
     console.error('Error processing webhook:', error);
     return NextResponse.json(

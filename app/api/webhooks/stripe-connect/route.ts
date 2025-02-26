@@ -9,8 +9,16 @@ import Stripe from 'stripe';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
+// Add GET handler to quickly return 405 Method Not Allowed
+export async function GET() {
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
+}
+
 // Configure the request handler
 export const POST = async (request: Request) => {
+  let eventType = 'unknown';
+  let eventId = 'unknown';
+
   try {
     const body = await request.text();
     const signature = request.headers.get('stripe-signature');
@@ -36,6 +44,9 @@ export const POST = async (request: Request) => {
         signature,
         process.env.STRIPE_CONNECT_WEBHOOK_SECRET,
       );
+
+      eventType = event.type;
+      eventId = event.id;
     } catch (err) {
       console.error('Webhook signature verification failed:', err);
       return NextResponse.json({ error: 'Webhook signature verification failed' }, { status: 400 });
@@ -158,9 +169,14 @@ export const POST = async (request: Request) => {
         console.log(`Unhandled event type ${event.type}`);
     }
 
-    return NextResponse.json({ received: true });
+    return NextResponse.json({ received: true, status: 'success' });
   } catch (error) {
-    console.error('Error in Stripe Connect webhook:', error);
+    console.error('Error in Stripe Connect webhook:', {
+      error,
+      eventType,
+      eventId,
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       { error: 'Internal server error processing webhook' },
       { status: 500 },

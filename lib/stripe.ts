@@ -5,6 +5,7 @@ import { Redis } from '@upstash/redis';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
+// Initialize Stripe with API version from config
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
@@ -15,18 +16,43 @@ const redis = new Redis({
   token: process.env.KV_REST_API_TOKEN ?? '',
 });
 
-// Platform fee percentage for revenue sharing
-// This fee is automatically handled by Stripe Connect and can be monitored
-// in the Stripe Connect dashboard (https://dashboard.stripe.com/connect)
-const PLATFORM_FEE_PERCENTAGE = Number(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? '0.15'); // Default 15% if not set
+// Define consistent key prefixes for Redis
+const REDIS_KEYS = {
+  USER_TO_CUSTOMER: (userId: string) => `stripe:user:${userId}`,
+  CUSTOMER: (customerId: string) => `stripe:customer:${customerId}`,
+  CUSTOMER_BY_EMAIL: (email: string) => `stripe:customer:email:${email}`,
+  SUBSCRIPTION: (subscriptionId: string) => `stripe:subscription:${subscriptionId}`,
+};
 
+// Enhanced type definitions for KV storage
 interface StripeCustomerData {
   stripeCustomerId: string;
   email: string;
   userId?: string;
-  createdAt: number;
+  name?: string | null;
+  subscriptions?: string[]; // Array of subscription IDs
+  defaultPaymentMethod?: string | null;
+  created: number;
   updatedAt: number;
 }
+
+// Enhanced interface for subscription data
+interface StripeSubscriptionData {
+  id: string;
+  customerId: string;
+  status: Stripe.Subscription.Status;
+  priceId: string;
+  productId: string;
+  currentPeriodEnd: number;
+  cancelAtPeriodEnd: boolean;
+  created: number;
+  updatedAt: number;
+}
+
+// Platform fee percentage for revenue sharing
+// This fee is automatically handled by Stripe Connect and can be monitored
+// in the Stripe Connect dashboard (https://dashboard.stripe.com/connect)
+const PLATFORM_FEE_PERCENTAGE = Number(process.env.STRIPE_PLATFORM_FEE_PERCENTAGE ?? '0.15'); // Default 15% if not set
 
 export async function getServerStripe() {
   return stripe;
@@ -67,7 +93,13 @@ async function verifyRedisConnection() {
   }
 }
 
-export async function syncStripeDataToKV(stripeCustomerId: string) {
+/**
+ * Synchronizes Stripe customer data to KV store
+ * This is the single source of truth for customer data
+ */
+export async function syncStripeDataToKV(
+  stripeCustomerId: string,
+): Promise<StripeCustomerData | null> {
   try {
     // Verify Redis connection first with detailed logging
     console.log('Verifying Redis connection before sync...');
@@ -78,144 +110,196 @@ export async function syncStripeDataToKV(stripeCustomerId: string) {
     }
     console.log('Redis connection verified, proceeding with sync');
 
-    const customer = await stripe.customers.retrieve(stripeCustomerId);
+    // Expand to include subscriptions data
+    const customer = await stripe.customers.retrieve(stripeCustomerId, {
+      expand: ['subscriptions'],
+    });
+
     if (!customer || customer.deleted) {
-      throw new Error('Customer was deleted or not found');
+      console.error('Customer was deleted or not found');
+      return null;
     }
 
+    // Get subscription IDs if any
+    const subscriptionIds = customer.subscriptions?.data.map((sub) => sub.id) || [];
+
+    // Create comprehensive customer data
     const customerData: StripeCustomerData = {
       stripeCustomerId: customer.id,
       email: typeof customer.email === 'string' ? customer.email : '',
       userId: typeof customer.metadata?.userId === 'string' ? customer.metadata.userId : undefined,
-      createdAt: customer.created,
+      name: customer.name,
+      subscriptions: subscriptionIds,
+      defaultPaymentMethod: customer.invoice_settings?.default_payment_method as string | null,
+      created: customer.created,
       updatedAt: Date.now(),
     };
 
     console.log('Preparing to store customer data:', customerData);
 
-    // Store in Redis with multiple access patterns
+    // Store in Redis with multiple access patterns for reliable lookup
     const storeOperations = [
       // Store by Stripe customer ID
-      redis
-        .set(`stripe:customer:id:${customer.id}`, JSON.stringify(customerData))
-        .then((result) => {
-          console.log(`Store by ID result: ${result}`);
-          return result;
-        }),
-      // Store by email
-      redis
-        .set(
-          `stripe:customer:email:${customerData.email.toLowerCase()}`,
-          JSON.stringify(customerData),
-        )
-        .then((result) => {
-          console.log(`Store by email result: ${result}`);
-          return result;
-        }),
+      redis.set(REDIS_KEYS.CUSTOMER(customer.id), JSON.stringify(customerData)),
     ];
 
-    // If there's a userId, add that storage operation
+    // Store mapping from email to customer ID if email exists
+    if (customer.email) {
+      storeOperations.push(redis.set(REDIS_KEYS.CUSTOMER_BY_EMAIL(customer.email), customer.id));
+    }
+
+    // Store mapping from user ID to customer ID if exists
     if (customerData.userId) {
       storeOperations.push(
-        redis
-          .set(`stripe:customer:user:${customerData.userId}`, JSON.stringify(customerData))
-          .then((result) => {
-            console.log(`Store by userId result: ${result}`);
-            return result;
-          }),
+        redis.set(REDIS_KEYS.USER_TO_CUSTOMER(customerData.userId), customer.id),
       );
     }
 
-    // Execute all storage operations and verify they succeeded
-    console.log('Executing storage operations...');
-    const results = await Promise.all(storeOperations);
-    console.log('Storage operation results:', results);
+    // Store subscription data individually if there are subscriptions
+    if (customer.subscriptions?.data.length) {
+      for (const subscription of customer.subscriptions.data) {
+        const subscriptionData: StripeSubscriptionData = {
+          id: subscription.id,
+          customerId: customer.id,
+          status: subscription.status,
+          priceId: subscription.items.data[0]?.price.id || '',
+          productId: (subscription.items.data[0]?.price.product as string) || '',
+          currentPeriodEnd: subscription.current_period_end,
+          cancelAtPeriodEnd: subscription.cancel_at_period_end,
+          created: subscription.created,
+          updatedAt: Date.now(),
+        };
 
-    const allSucceeded = results.every((result) => result === 'OK');
-    if (!allSucceeded) {
+        storeOperations.push(
+          redis.set(REDIS_KEYS.SUBSCRIPTION(subscription.id), JSON.stringify(subscriptionData)),
+        );
+      }
+    }
+
+    // Execute all Redis operations
+    const results = await Promise.allSettled(storeOperations);
+
+    // Check if any operations failed
+    const failedOps = results.filter((result) => result.status === 'rejected');
+    if (failedOps.length > 0) {
       console.error('Some Redis operations failed:', results);
       throw new Error('Failed to store customer data in Redis');
     }
 
-    console.log('Successfully synced customer data to KV:', {
-      customerId: customer.id,
-      email: customerData.email,
-      userId: customerData.userId,
-      results,
-    });
-
+    console.log('Successfully synced customer data to KV');
     return customerData;
   } catch (error) {
-    console.error('Error syncing Stripe data to KV:', error);
+    console.error('Failed to sync Stripe data to KV:', error);
     throw error;
   }
 }
 
+/**
+ * Gets an existing Stripe customer or creates a new one
+ * Always uses KV as the source of truth with fallback to Stripe API
+ */
 export async function getOrCreateStripeCustomer(userId?: string, email?: string): Promise<string> {
+  // Validate input parameters
+  if (!userId && !email) {
+    throw new Error('Either userId or email must be provided');
+  }
+
   try {
-    if (!email) {
-      throw new Error('Email is required');
+    // First try to find existing customer by userId (most reliable)
+    if (userId) {
+      console.log('Looking up customer by userId:', userId);
+      const existingCustomerId = await redis.get<string>(REDIS_KEYS.USER_TO_CUSTOMER(userId));
+
+      if (existingCustomerId) {
+        console.log('Found existing customer ID in KV by userId:', existingCustomerId);
+
+        // Sync latest data from Stripe to ensure it's up to date
+        await syncStripeDataToKV(existingCustomerId);
+        return existingCustomerId;
+      }
     }
 
-    const normalizedEmail = email.toLowerCase();
+    // If no customer found by userId, try by email
+    if (email) {
+      console.log('Looking up customer by email:', email);
+      const existingCustomerId = await redis.get<string>(REDIS_KEYS.CUSTOMER_BY_EMAIL(email));
 
-    // First check if customer exists in Stripe
-    console.log('Checking for existing customer with email:', normalizedEmail);
-    const existingCustomers = await stripe.customers.list({
-      email: normalizedEmail,
-      limit: 1,
-    });
+      if (existingCustomerId) {
+        console.log('Found existing customer ID in KV by email:', existingCustomerId);
 
-    if (existingCustomers.data.length > 0) {
-      const existingCustomer = existingCustomers.data[0];
-      console.log('Found existing customer:', existingCustomer.id);
+        // If we have userId but it wasn't linked, update the link
+        if (userId) {
+          await redis.set(REDIS_KEYS.USER_TO_CUSTOMER(userId), existingCustomerId);
 
-      // Update customer metadata if needed
-      if (userId && !existingCustomer.metadata?.userId) {
-        await stripe.customers.update(existingCustomer.id, {
-          metadata: {
-            ...existingCustomer.metadata,
-            userId,
-            isGuest: userId ? 'false' : 'true',
-            updatedAt: new Date().toISOString(),
-          },
-        });
+          // Also update customer metadata in Stripe
+          const customerData = await stripe.customers.retrieve(existingCustomerId);
+          if ('metadata' in customerData && !customerData.deleted) {
+            await stripe.customers.update(existingCustomerId, {
+              metadata: {
+                ...customerData.metadata,
+                userId,
+              },
+            });
+          }
+        }
+
+        // Sync latest data from Stripe
+        await syncStripeDataToKV(existingCustomerId);
+        return existingCustomerId;
       }
 
-      // Try to sync to KV if Redis is connected
-      const isRedisConnected = await verifyRedisConnection();
-      if (isRedisConnected) {
-        await syncStripeDataToKV(existingCustomer.id).catch((error) => {
-          console.error('Failed to sync existing customer to KV:', error);
-        });
-      }
-
-      return existingCustomer.id;
-    }
-
-    // If no customer exists, create a new one
-    console.log('Creating new customer for email:', normalizedEmail);
-    const newCustomer = await stripe.customers.create({
-      email: normalizedEmail,
-      metadata: {
-        ...(userId ? { userId } : {}),
-        isGuest: userId ? 'false' : 'true',
-        createdAt: new Date().toISOString(),
-      },
-    });
-
-    // Try to sync to KV if Redis is connected
-    const isRedisConnected = await verifyRedisConnection();
-    if (isRedisConnected) {
-      await syncStripeDataToKV(newCustomer.id).catch((error) => {
-        console.error('Failed to sync new customer to KV:', error);
+      // If still not found in KV, search directly in Stripe as fallback
+      // This handles case where KV might have lost data
+      console.log('No customer found in KV, searching Stripe directly by email');
+      const existingCustomers = await stripe.customers.list({
+        email,
+        limit: 1,
       });
+
+      if (existingCustomers.data.length > 0) {
+        const existingCustomer = existingCustomers.data[0];
+        console.log('Found existing Stripe customer by email:', existingCustomer.id);
+
+        // Update customer with userId if provided and not already set
+        if (
+          userId &&
+          (!existingCustomer.metadata?.userId || existingCustomer.metadata.userId !== userId)
+        ) {
+          await stripe.customers.update(existingCustomer.id, {
+            metadata: { ...existingCustomer.metadata, userId },
+          });
+        }
+
+        // Sync to KV and return
+        await syncStripeDataToKV(existingCustomer.id);
+        return existingCustomer.id;
+      }
     }
 
+    // If no existing customer found, create a new one
+    console.log('No existing customer found, creating new Stripe customer');
+    const newCustomer = await stripe.customers.create({
+      email: email || 'unknown@example.com', // Fallback for type safety
+      metadata: userId ? { userId } : {},
+    });
+
+    console.log('Created new Stripe customer:', newCustomer.id);
+
+    // Sync the new customer to KV
+    await syncStripeDataToKV(newCustomer.id);
     return newCustomer.id;
   } catch (error) {
     console.error('Error in getOrCreateStripeCustomer:', error);
-    throw error;
+
+    // Try to give helpful context in error message
+    const errorContext = userId
+      ? `userId: ${userId}`
+      : email
+        ? `email: ${email}`
+        : 'no identifiers';
+    throw new Error(
+      `Failed to get or create Stripe customer (${errorContext}): ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
