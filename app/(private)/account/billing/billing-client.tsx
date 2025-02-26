@@ -2,9 +2,7 @@
 
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
-import { SlideOverDialog } from '@/components/molecules/SlideOverDialog';
-import { StripeConnectEmbed } from '@/components/molecules/StripeConnectEmbed';
-import React, { Suspense, useEffect, useState } from 'react';
+import React, { Suspense } from 'react';
 import { toast } from 'sonner';
 
 interface BillingPageClientProps {
@@ -23,9 +21,6 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
   const [isConnecting, setIsConnecting] = React.useState(false);
   const [isLoadingDashboard, setIsLoadingDashboard] = React.useState(false);
   const [isInitializing, setIsInitializing] = React.useState(true);
-  const [isEmbeddedDialogOpen, setIsEmbeddedDialogOpen] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
-  const [userCountry, setUserCountry] = useState('PT');
 
   // Rebuild KV data when component mounts
   React.useEffect(() => {
@@ -74,52 +69,50 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
     checkAndRebuildKVData();
   }, []);
 
-  // Fetch user profile data
-  useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const response = await fetch('/api/user/profile');
-        if (response.ok) {
-          const data = await response.json();
-          if (data?.user?.email) {
-            setUserEmail(data.user.email);
-          }
-          if (data?.user?.country) {
-            setUserCountry(data.user.country);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
-      }
-    };
-
-    fetchUserProfile();
-  }, []);
-
-  // Update handleConnect to open the dialog instead of redirecting
   const handleConnect = async () => {
-    if (isConnecting) return;
-
-    setIsConnecting(true);
-
     try {
-      // Open the embedded dialog
-      setIsEmbeddedDialogOpen(true);
-      setIsConnecting(false);
+      setIsConnecting(true);
+
+      // First, fetch the current user's data
+      const userResponse = await fetch('/api/user/profile');
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      const userData = await userResponse.json();
+      const email = userData.user?.email;
+
+      // Default to US if country is not available
+      const country = userData.user?.country || 'PT';
+
+      if (!email) {
+        throw new Error('User email not found');
+      }
+
+      const response = await fetch('/api/stripe/connect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, country }),
+      });
+
+      const data = await response.json();
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      if (data.url) {
+        // For external Stripe URLs, we need to use window.location
+        window.location.href = data.url;
+      }
     } catch (error) {
-      console.error('Failed to start Connect process:', error);
-      toast.error('Failed to connect with Stripe. Please try again.');
+      console.error('Failed to connect Stripe:', error);
+      toast.error('Failed to connect to Stripe. Please try again.');
+    } finally {
       setIsConnecting(false);
     }
-  };
-
-  // Function to handle when the Connect onboarding is complete
-  const handleConnectComplete = async () => {
-    setIsEmbeddedDialogOpen(false);
-    toast.success('Your Stripe account has been connected!');
-
-    // Refresh the page to show the updated status
-    window.location.reload();
   };
 
   const handleDashboardClick = async () => {
@@ -155,7 +148,7 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
         {isInitializing && (
           <span className="ml-3 inline-flex items-center text-sm font-normal text-muted-foreground">
             <div className="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-            Initializing payment settings...
+            Initializing...
           </span>
         )}
       </h1>
@@ -270,19 +263,6 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
           </CardContent>
         </Card>
       </div>
-
-      <SlideOverDialog
-        isOpen={isEmbeddedDialogOpen}
-        onClose={() => setIsEmbeddedDialogOpen(false)}
-        title="Connect with Stripe"
-        description="Complete your Stripe onboarding to receive payments"
-      >
-        <StripeConnectEmbed
-          email={userEmail}
-          country={userCountry}
-          onComplete={handleConnectComplete}
-        />
-      </SlideOverDialog>
     </div>
   );
 }
