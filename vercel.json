@@ -1,14 +1,4 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next",
-      "config": {
-        "nodeVersion": "22.x"
-      }
-    }
-  ],
   "crons": [
     {
       "path": "/api/keep-alive",
