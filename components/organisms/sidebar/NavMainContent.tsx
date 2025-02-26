@@ -36,6 +36,7 @@ const accountItems = [
   { title: 'Profile', url: '/account' },
   { title: 'Security', url: '/account/security' },
   { title: 'Billing', url: '/account/billing' },
+  { title: 'Identity', url: '/account/identity' },
 ];
 
 export function NavMainContent({ items }: NavMainContentProps) {

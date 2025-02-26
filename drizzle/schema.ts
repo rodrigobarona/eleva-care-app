@@ -209,6 +209,10 @@ export const UserTable = pgTable(
     stripeConnectOnboardingComplete: boolean('stripe_connect_onboarding_complete').default(false),
     stripeBankAccountLast4: text('stripe_bank_account_last4'),
     stripeBankName: text('stripe_bank_name'),
+    stripeIdentityVerificationId: text('stripe_identity_verification_id'),
+    stripeIdentityVerified: boolean('stripe_identity_verified').default(false),
+    stripeIdentityVerificationStatus: text('stripe_identity_verification_status'),
+    stripeIdentityVerificationLastChecked: timestamp('stripe_identity_verification_last_checked'),
     country: text(),
     createdAt,
     updatedAt,
@@ -216,6 +220,9 @@ export const UserTable = pgTable(
   (table) => ({
     clerkUserIdIndex: index('users_clerk_user_id_idx').on(table.clerkUserId),
     stripeCustomerIdIndex: index('users_stripe_customer_id_idx').on(table.stripeCustomerId),
+    stripeIdentityVerificationIdIndex: index('users_stripe_identity_verification_id_idx').on(
+      table.stripeIdentityVerificationId,
+    ),
   }),
 );
 
