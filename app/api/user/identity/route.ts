@@ -1,8 +1,6 @@
-import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
 import { getIdentityVerificationStatus } from '@/lib/stripe/identity';
+import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 // Mark route as dynamic
@@ -21,14 +19,12 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user data from database
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, userId),
-    });
+    // Use our synchronization service to ensure all systems are in sync
+    const user = await ensureFullUserSynchronization(userId);
 
     if (!user) {
-      console.error('User not found in database:', { clerkUserId: userId });
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      console.error('Failed to synchronize user:', { clerkUserId: userId });
+      return NextResponse.json({ error: 'User synchronization failed' }, { status: 500 });
     }
 
     // Get Identity verification status if available

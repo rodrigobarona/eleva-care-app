@@ -1,9 +1,7 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
-import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
-import { getOrCreateStripeCustomer, getStripeConnectAccountStatus } from '@/lib/stripe';
+import { getStripeConnectAccountStatus } from '@/lib/stripe';
+import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
@@ -20,6 +18,7 @@ export async function GET() {
   let clerkUserId: string | null = null;
 
   try {
+    // Get the authenticated user ID
     const { userId } = await auth();
     clerkUserId = userId;
     console.log('Auth check result:', { userId, hasId: !!userId });
@@ -28,25 +27,19 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user data from database
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, userId),
-    });
+    // Use our synchronization service to ensure all systems are in sync
+    const user = await ensureFullUserSynchronization(userId);
 
     if (!user) {
-      console.error('User not found in database:', { clerkUserId: userId });
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      console.error('Failed to synchronize user:', { clerkUserId: userId });
+      return NextResponse.json({ error: 'User synchronization failed' }, { status: 500 });
     }
 
-    // Get or create Stripe customer ID
+    // Fetch customer data from Stripe directly
     let customerData: Stripe.Customer | null = null;
     try {
-      // First get the customer ID (string)
-      const customerId = await getOrCreateStripeCustomer(user.id);
-
-      if (customerId) {
-        // Then use the ID to fetch the full customer data
-        const customerResponse = await stripe.customers.retrieve(customerId);
+      if (user.stripeCustomerId) {
+        const customerResponse = await stripe.customers.retrieve(user.stripeCustomerId);
         if (!('deleted' in customerResponse)) {
           customerData = customerResponse;
           console.log('Retrieved customer data:', {
