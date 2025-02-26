@@ -22,6 +22,33 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
   const [isStartingVerification, setIsStartingVerification] = React.useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = React.useState(false);
 
+  // Rebuild KV data when component mounts
+  React.useEffect(() => {
+    const rebuildKVData = async () => {
+      try {
+        console.log('Rebuilding KV data on identity page load');
+
+        const response = await fetch('/api/user/rebuild-kv', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          console.error('Failed to rebuild KV data:', error);
+        } else {
+          console.log('KV data rebuilt successfully');
+        }
+      } catch (error) {
+        console.error('Error rebuilding KV data:', error);
+      }
+    };
+
+    rebuildKVData();
+  }, []);
+
   const handleStartVerification = async () => {
     try {
       setIsStartingVerification(true);
@@ -143,6 +170,9 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
               <div className="flex gap-4">
                 <Button onClick={handleCheckStatus} disabled={isCheckingStatus} variant="outline">
                   {isCheckingStatus ? 'Checking...' : 'Check Status'}
+                </Button>
+                <Button onClick={handleStartVerification} disabled={isStartingVerification}>
+                  {isStartingVerification ? 'Starting...' : 'Resume Verification'}
                 </Button>
               </div>
               {verificationStatus.lastUpdated && (
