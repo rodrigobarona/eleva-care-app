@@ -112,8 +112,8 @@ export function StripeConnectEmbed({
     <div className={cn('flex h-full flex-col', className)}>
       <iframe
         src={connectUrl}
-        style={{ border: 0 }}
-        allow="transparency"
+        frameBorder="0"
+        allowTransparency={true}
         className="h-full w-full"
         title="Stripe Connect Onboarding"
       />
