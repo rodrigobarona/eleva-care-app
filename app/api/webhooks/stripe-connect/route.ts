@@ -26,7 +26,7 @@ export const POST = async (request: Request) => {
     }
 
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-      apiVersion: STRIPE_CONFIG.API_VERSION,
+      apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
     });
 
     let event: Stripe.Event;

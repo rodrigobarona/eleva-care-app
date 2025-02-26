@@ -28,7 +28,20 @@ export async function GET() {
     // Get Stripe account status if connected
     let accountStatus = null;
     if (user.stripeConnectAccountId) {
-      accountStatus = await getStripeConnectAccountStatus(user.stripeConnectAccountId);
+      try {
+        accountStatus = await getStripeConnectAccountStatus(user.stripeConnectAccountId);
+      } catch (stripeError) {
+        console.error('Error retrieving Stripe Connect account status:', stripeError);
+        // Return partial response instead of failing completely
+        return NextResponse.json({
+          user: {
+            id: user.id,
+            stripeConnectAccountId: user.stripeConnectAccountId,
+          },
+          accountStatus: null,
+          stripeError: 'Failed to retrieve account status from Stripe',
+        });
+      }
     }
 
     return NextResponse.json({

@@ -82,7 +82,7 @@ export default async function SuccessPage(props: {
   // If paid event but no meeting found, check the session status
   if (event.price > 0 && session_id) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-      apiVersion: STRIPE_CONFIG.API_VERSION,
+      apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
     });
 
     try {

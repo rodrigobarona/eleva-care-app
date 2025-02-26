@@ -12,7 +12,7 @@ export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 const stripe = new StripeSDK(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION,
+  apiVersion: STRIPE_CONFIG.API_VERSION as StripeSDK.LatestApiVersion,
 });
 
 interface MeetingMetadata {
