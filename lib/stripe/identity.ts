@@ -10,6 +10,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
+// Update the interface to match Stripe's types more accurately
+interface ExtendedVerificationSession
+  extends Omit<Stripe.Identity.VerificationSession, 'last_error'> {
+  last_verified_at?: number;
+  last_error?: {
+    created?: number;
+    message?: string;
+  } | null;
+}
+
 /**
  * Creates a new identity verification session for the current user
  *
@@ -70,10 +80,11 @@ export async function createIdentityVerificationSession() {
 export async function getIdentityVerificationStatus(verificationId: string) {
   try {
     const verificationSession = await stripe.identity.verificationSessions.retrieve(verificationId);
+    const extendedSession = verificationSession as unknown as ExtendedVerificationSession;
 
     // Map Stripe status to our application status
     let status: 'unverified' | 'pending' | 'verified' | 'rejected';
-    switch (verificationSession.status) {
+    switch (extendedSession.status) {
       case 'verified':
         status = 'verified';
         break;
@@ -90,12 +101,12 @@ export async function getIdentityVerificationStatus(verificationId: string) {
 
     return {
       status,
-      lastUpdated: verificationSession.last_error
-        ? new Date(verificationSession.last_error.created * 1000).toISOString()
-        : verificationSession.last_verified_at
-          ? new Date(verificationSession.last_verified_at * 1000).toISOString()
-          : new Date(verificationSession.created * 1000).toISOString(),
-      details: verificationSession.last_error?.message,
+      lastUpdated: extendedSession.last_error?.created
+        ? new Date(extendedSession.last_error.created * 1000).toISOString()
+        : extendedSession.last_verified_at
+          ? new Date(extendedSession.last_verified_at * 1000).toISOString()
+          : new Date(extendedSession.created * 1000).toISOString(),
+      details: extendedSession.last_error?.message,
     };
   } catch (error) {
     console.error('Failed to retrieve identity verification status:', error);

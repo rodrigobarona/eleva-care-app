@@ -18,7 +18,7 @@ interface IdentityPageClientProps {
   } | null;
 }
 
-function IdentityPageContent({ dbUser, verificationStatus }: IdentityPageClientProps) {
+function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
   const [isStartingVerification, setIsStartingVerification] = React.useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = React.useState(false);
 
@@ -138,7 +138,7 @@ function IdentityPageContent({ dbUser, verificationStatus }: IdentityPageClientP
             <div>
               <p className="mb-4">
                 Your identity verification is currently under review. This process typically takes
-                1-2 business days. You'll be notified once the review is complete.
+                1-2 business days. You&apos;ll be notified once the review is complete.
               </p>
               <div className="flex gap-4">
                 <Button onClick={handleCheckStatus} disabled={isCheckingStatus} variant="outline">
