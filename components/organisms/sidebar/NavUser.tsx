@@ -107,6 +107,12 @@ export function NavUser() {
                   <CreditCard className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/account/identity">
+                  Identity
+                  <BadgeCheck className="ml-auto h-4 w-4" />
+                </Link>
+              </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

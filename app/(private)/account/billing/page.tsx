@@ -10,10 +10,19 @@ export default async function BillingPage() {
   const { getToken } = await auth();
 
   try {
+    const token = await getToken();
+    if (!token) {
+      return (
+        <div className="container flex min-h-[400px] items-center justify-center">
+          <p className="text-destructive">Authentication error. Please log in again.</p>
+        </div>
+      );
+    }
+
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/user/billing`, {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${await getToken()}`,
+        Authorization: `Bearer ${token}`,
       },
       cache: 'no-store',
     });
