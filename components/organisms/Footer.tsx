@@ -102,18 +102,18 @@ export default function Footer() {
                           </li>
                           <li>
                             <Link
-                              href="/blog"
+                              href="https://accounts.eleva.care/waitlist"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Blog
+                              Join Us
                             </Link>
                           </li>
                           <li>
                             <Link
-                              href="/careers"
+                              href="/sign-in"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Careers
+                              Expert Dashboard
                             </Link>
                           </li>
                         </ul>

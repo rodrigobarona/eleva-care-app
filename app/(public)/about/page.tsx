@@ -444,7 +444,7 @@ export default function AboutPage() {
                   </li>
                 </ul>
                 <div className="mt-10">
-                  <Link href="mailto:patimota@gmail.com">
+                  <Link href="https://accounts.eleva.care/waitlist" target="_blank">
                     <Button size="lg" className="rounded-full">
                       Apply to Join
                     </Button>

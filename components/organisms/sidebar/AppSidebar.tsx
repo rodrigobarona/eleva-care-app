@@ -14,6 +14,7 @@ import {
 } from '@/components/organisms/sidebar/sidebar';
 import { useUser } from '@clerk/nextjs';
 import { Clock, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
+import { Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
@@ -31,7 +32,7 @@ const mainItems: SidebarItem[] = [
   {
     title: 'Events Types',
     url: '/events',
-    icon: Link,
+    icon: LinkIcon,
     items: [
       { title: 'All Events', url: '/events' },
       { title: 'Create Event', url: '/events/new' },
