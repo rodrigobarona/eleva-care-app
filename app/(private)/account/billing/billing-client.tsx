@@ -24,8 +24,29 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
   const handleConnect = async () => {
     try {
       setIsConnecting(true);
+
+      // First, fetch the current user's data
+      const userResponse = await fetch('/api/user/profile');
+      if (!userResponse.ok) {
+        throw new Error('Failed to fetch user data');
+      }
+
+      const userData = await userResponse.json();
+      const email = userData.user?.email;
+
+      // Default to US if country is not available
+      const country = userData.user?.country || 'PT';
+
+      if (!email) {
+        throw new Error('User email not found');
+      }
+
       const response = await fetch('/api/stripe/connect', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, country }),
       });
 
       const data = await response.json();

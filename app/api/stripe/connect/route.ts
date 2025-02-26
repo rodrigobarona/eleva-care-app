@@ -1,6 +1,10 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { createStripeConnectAccount, getConnectAccountBalance } from '@/lib/stripe';
+import {
+  createStripeConnectAccount,
+  getConnectAccountBalance,
+  getStripeConnectSetupOrLoginLink,
+} from '@/lib/stripe';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -28,6 +32,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
     }
 
+    // Check if user already has a Connect account
+    const user = await db.query.UserTable.findFirst({
+      where: eq(UserTable.clerkUserId, userId),
+    });
+
+    if (user?.stripeConnectAccountId) {
+      // User already has a Connect account, return the setup/login link
+      const url = await getStripeConnectSetupOrLoginLink(user.stripeConnectAccountId);
+      return NextResponse.json({ url });
+    }
+
+    // Create a new Connect account
     const { accountId } = await createStripeConnectAccount(email, country);
 
     // Update user record with Connect account ID
@@ -39,7 +55,10 @@ export async function POST(request: Request) {
       })
       .where(eq(UserTable.clerkUserId, userId));
 
-    return NextResponse.json({ accountId });
+    // Get the setup link for the new account
+    const url = await getStripeConnectSetupOrLoginLink(accountId);
+
+    return NextResponse.json({ accountId, url });
   } catch (error) {
     console.error('Error in Connect account creation:', error);
     return NextResponse.json({ error: 'Failed to create Connect account' }, { status: 500 });

@@ -213,7 +213,7 @@ export const UserTable = pgTable(
     stripeIdentityVerified: boolean('stripe_identity_verified').default(false),
     stripeIdentityVerificationStatus: text('stripe_identity_verification_status'),
     stripeIdentityVerificationLastChecked: timestamp('stripe_identity_verification_last_checked'),
-    country: text(),
+    country: text('country').default('PT'),
     createdAt,
     updatedAt,
   },
