@@ -1,3 +1,5 @@
+import type Stripe from 'stripe';
+
 export const STRIPE_CONFIG = {
   // API Configuration
   API_VERSION: process.env.STRIPE_API_VERSION || '2025-02-24.acacia',
@@ -47,3 +49,17 @@ export function calculateExpertAmount(amount: number | null): number {
 // Export types for webhook events
 export type AllowedWebhookEvent = (typeof STRIPE_CONFIG.WEBHOOK_EVENTS.ALLOWED_EVENTS)[number];
 export type AllowedIdentityEvent = (typeof STRIPE_CONFIG.IDENTITY.WEBHOOK_EVENTS)[number];
+
+export const STRIPE_MODE = process.env.NEXT_PUBLIC_STRIPE_MODE || 'test';
+export const isTestMode = STRIPE_MODE === 'test';
+
+// Use this throughout your app
+export const getStripeConfig = () => {
+  return {
+    apiVersion: process.env.STRIPE_API_VERSION as Stripe.LatestApiVersion,
+    apiKey: process.env.STRIPE_SECRET_KEY || '',
+    publicKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+    mode: STRIPE_MODE,
+    // Add other config values that might differ between environments
+  };
+};
