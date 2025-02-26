@@ -1,11 +1,9 @@
-import { NextResponse } from 'next/server';
-
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
+import { createStripeConnectAccount, getConnectAccountBalance } from '@/lib/stripe';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-
-import { createStripeConnectAccount, getConnectAccountBalance } from '@/lib/stripe';
+import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
   try {
@@ -14,7 +12,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { email, country } = await request.json();
+    let email: string;
+    let country: string;
+
+    try {
+      const body = await request.json();
+      email = body.email;
+      country = body.country;
+
+      if (!email || !country) {
+        return NextResponse.json({ error: 'Email and country are required' }, { status: 400 });
+      }
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    }
+
     const { accountId } = await createStripeConnectAccount(email, country);
 
     // Update user record with Connect account ID
