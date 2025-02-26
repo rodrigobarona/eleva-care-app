@@ -230,7 +230,17 @@ export async function getOrCreateStripeCustomer(
                 oldName: customer.name,
                 newName: name,
               });
-              await stripe.customers.update(existingCustomerId, { name });
+              await stripe.customers.update(existingCustomerId, {
+                name,
+                metadata: {
+                  ...(customer.metadata || {}),
+                  name, // Also store name in metadata for extra redundancy
+                  userId, // Ensure userId is always in metadata
+                },
+              });
+
+              // Force sync to KV after update
+              await syncStripeDataToKV(existingCustomerId);
             }
           } catch (error) {
             console.error('Error updating customer name:', error);
@@ -260,6 +270,7 @@ export async function getOrCreateStripeCustomer(
               metadata: {
                 ...customerData.metadata,
                 userId,
+                ...(name ? { name } : {}), // Add name to metadata if provided
               },
             };
 
@@ -269,6 +280,9 @@ export async function getOrCreateStripeCustomer(
             }
 
             await stripe.customers.update(existingCustomerId, updateParams);
+
+            // Force sync to KV after update
+            await syncStripeDataToKV(existingCustomerId);
           }
         }
 
@@ -290,21 +304,23 @@ export async function getOrCreateStripeCustomer(
         console.log('Found existing Stripe customer by email:', existingCustomer.id);
 
         // Update customer with userId and name if provided and not already set
-        const updateParams: Stripe.CustomerUpdateParams = {};
-
-        if (
-          userId &&
-          (!existingCustomer.metadata?.userId || existingCustomer.metadata.userId !== userId)
-        ) {
-          updateParams.metadata = { ...existingCustomer.metadata, userId };
-        }
+        const updateParams: Stripe.CustomerUpdateParams = {
+          metadata: {
+            ...existingCustomer.metadata,
+            ...(userId ? { userId } : {}),
+            ...(name ? { name } : {}), // Store name in metadata too
+          },
+        };
 
         if (name && existingCustomer.name !== name) {
           updateParams.name = name;
         }
 
-        if (Object.keys(updateParams).length > 0) {
+        if (Object.keys(updateParams.metadata || {}).length > 0 || updateParams.name) {
           await stripe.customers.update(existingCustomer.id, updateParams);
+
+          // Force sync to KV after update
+          await syncStripeDataToKV(existingCustomer.id);
         }
 
         // Sync to KV and return
@@ -315,13 +331,23 @@ export async function getOrCreateStripeCustomer(
 
     // If no existing customer found, create a new one
     console.log('No existing customer found, creating new Stripe customer');
+    const metadata = {
+      ...(userId ? { userId } : {}),
+      ...(name ? { name } : {}), // Store name in metadata for redundancy
+    };
+
     const newCustomer = await stripe.customers.create({
       email: email || 'unknown@example.com', // Fallback for type safety
       name: name || undefined, // Only include if provided
-      metadata: userId ? { userId } : {},
+      metadata,
     });
 
-    console.log('Created new Stripe customer:', newCustomer.id);
+    console.log('Created new Stripe customer:', {
+      id: newCustomer.id,
+      email: newCustomer.email,
+      name: newCustomer.name,
+      metadata: newCustomer.metadata,
+    });
 
     // Sync the new customer to KV
     await syncStripeDataToKV(newCustomer.id);

@@ -112,7 +112,7 @@ export default function Footer() {
                           </li>
                           <li>
                             <Link
-                              href="/sign-in"
+                              href="https://accounts.eleva.care/sign-in"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
                               Expert Dashboard

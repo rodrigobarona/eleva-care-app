@@ -20,6 +20,37 @@ interface BillingPageClientProps {
 function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
   const [isConnecting, setIsConnecting] = React.useState(false);
   const [isLoadingDashboard, setIsLoadingDashboard] = React.useState(false);
+  const [isInitializing, setIsInitializing] = React.useState(true);
+
+  // Rebuild KV data when component mounts
+  React.useEffect(() => {
+    const rebuildKVData = async () => {
+      try {
+        setIsInitializing(true);
+        console.log('Rebuilding KV data on billing page load');
+
+        const response = await fetch('/api/user/rebuild-kv', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          console.error('Failed to rebuild KV data:', error);
+        } else {
+          console.log('KV data rebuilt successfully');
+        }
+      } catch (error) {
+        console.error('Error rebuilding KV data:', error);
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    rebuildKVData();
+  }, []);
 
   const handleConnect = async () => {
     try {
@@ -94,7 +125,20 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
   };
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="container pb-16">
+      {isInitializing && (
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-2">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+              <p>Initializing payment settings...</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      <h1 className="mb-6 text-3xl font-bold">Billing</h1>
+
       <div className="space-y-6">
         <Card>
           <CardHeader>

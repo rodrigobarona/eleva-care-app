@@ -192,6 +192,21 @@ export async function POST(request: Request) {
         break;
       }
 
+      case 'customer.created':
+      case 'customer.updated':
+      case 'customer.deleted': {
+        const customer = event.data.object as Stripe.Customer;
+        customerId = customer.id;
+        clerkUserId = customer.metadata?.userId as string | undefined;
+        console.log(`Handling ${event.type} event:`, {
+          customerId,
+          clerkUserId,
+          name: customer.name,
+          email: customer.email,
+        });
+        break;
+      }
+
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted':
