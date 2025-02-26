@@ -1,13 +1,6 @@
 'use client';
 
 import { Button } from '@/components/atoms/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogOverlay,
-  DialogPortal,
-  DialogTrigger,
-} from '@/components/molecules/dialog';
 import { useLanguage } from '@/components/molecules/LanguageProvider';
 import { VideoPlayer } from '@/components/molecules/videoPlayer';
 import { translations as br } from '@/public/locales/br';
@@ -79,26 +72,12 @@ const Hero = () => {
               </div>
             </div>
             <div>
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button className="mb-7 mt-5 inline-flex w-full items-center justify-center whitespace-nowrap rounded-full border border-eleva-neutral-100/30 bg-eleva-neutral-100/40 p-5 text-sm font-medium text-eleva-neutral-900 shadow-sm hover:bg-eleva-neutral-100/50 md:w-auto lg:my-0 lg:bg-eleva-neutral-100/10 lg:p-6 lg:text-eleva-neutral-100 lg:shadow-none lg:hover:text-eleva-neutral-900">
-                    <ClipboardList className="mr-2 h-5 w-5" />
-                    {t.hero.cta1}
-                  </Button>
-                </DialogTrigger>
-                <DialogPortal>
-                  <DialogOverlay className="bg-green-500/20">
-                    <DialogContent className="h-screen w-screen">
-                      <iframe
-                        src="https://patimota.typeform.com/to/XNQHJbgT?utm_source=eleva-care&utm_medium=website&utm_campaign=ongoing&utm_term=physical%2Btherapy&utm_content=temp_home_btn"
-                        width="100%"
-                        height="100%"
-                        title="Formulário de contato"
-                      />
-                    </DialogContent>
-                  </DialogOverlay>
-                </DialogPortal>
-              </Dialog>
+              <Link href="https://patimota.typeform.com/to/XNQHJbgT" target="_blank">
+                <Button className="mb-7 mt-5 inline-flex w-full items-center justify-center whitespace-nowrap rounded-full border border-eleva-neutral-100/30 bg-eleva-neutral-100/40 p-5 text-sm font-medium text-eleva-neutral-900 shadow-sm hover:bg-eleva-neutral-100/50 md:w-auto lg:my-0 lg:bg-eleva-neutral-100/10 lg:p-6 lg:text-eleva-neutral-100 lg:shadow-none lg:hover:text-eleva-neutral-900">
+                  <ClipboardList className="mr-2 h-5 w-5" />
+                  {t.hero.cta1}
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
