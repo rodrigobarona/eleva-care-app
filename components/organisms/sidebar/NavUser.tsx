@@ -12,9 +12,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/molecules/dropdown-menu';
 import { SidebarMenu, SidebarMenuItem, useSidebar } from '@/components/organisms/sidebar/sidebar';
+import { getUserRoles } from '@/lib/auth/roles';
 import { useClerk, useUser } from '@clerk/nextjs';
-import { BadgeCheck, ChevronsUpDown, CreditCard, Home, Lock, LogOut } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { BadgeCheck, ChevronsUpDown, CreditCard, Home, Lock, LogOut, Settings } from 'lucide-react';
 import Link from 'next/link';
+
+// You'll need to create this API function
 
 function NavUserSkeleton() {
   return (
@@ -37,6 +41,14 @@ export function NavUser() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const { isMobile } = useSidebar();
+
+  const { data: userRoles } = useQuery({
+    queryKey: ['userRoles', user?.id],
+    queryFn: () => getUserRoles(user?.id || ''),
+    enabled: !!user?.id,
+  });
+
+  const isAdmin = userRoles?.some((role) => ['admin', 'superadmin'].includes(role as string));
 
   if (!user) return null;
 
@@ -115,6 +127,19 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            {isAdmin && (
+              <>
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild>
+                    <Link href="/admin">
+                      Administration
+                      <Settings className="ml-auto h-4 w-4" />
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem asChild>
               <Link href="/?home=true">
                 Home Page
