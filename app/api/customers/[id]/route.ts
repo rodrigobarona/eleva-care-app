@@ -121,8 +121,9 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
         status = 'in-progress';
       }
 
-      // Determine payment status based on Stripe payment status
-      const paymentStatus = meeting.stripePaymentStatus || 'unknown';
+      // Determine payment status based on price and Stripe payment status
+      const isFree = !meeting.price || meeting.price === 0;
+      const paymentStatus = isFree ? 'free' : meeting.stripePaymentStatus || 'pending';
 
       return {
         id: meeting.id,
@@ -139,26 +140,24 @@ export async function GET(request: NextRequest, props: { params: Promise<{ id: s
     // (This is a placeholder - in a real app, you would fetch actual payment data)
     let paymentHistory: PaymentHistory[] = [];
 
-    if (lastMeeting.stripeCustomerId) {
-      try {
-        // This is just an example of how you might get payment data from Stripe
-        // In a real application, you'd need to use the appropriate Stripe API calls
+    try {
+      // For demonstration, we'll create synthetic payment history based on meetings
+      paymentHistory = meetings.map((meeting) => {
+        const isFree = !meeting.price || meeting.price === 0;
+        const status = isFree ? 'free' : meeting.stripePaymentStatus || 'pending';
 
-        // For demonstration, we'll create synthetic payment history based on meetings
-        paymentHistory = meetings
-          .filter((meeting) => meeting.stripePaymentStatus === 'succeeded')
-          .map((meeting) => ({
-            id: meeting.stripePaymentIntentId || `payment_${meeting.id}`,
-            date: meeting.createdAt.toISOString(),
-            amount: meeting.price || 0,
-            status: 'succeeded',
-            description: `Payment for ${meeting.event?.name || 'appointment'}`,
-            paymentMethodLast4: '4242', // Example data
-          }));
-      } catch (error) {
-        console.error('Error fetching Stripe payment history:', error);
-        // Continue without payment history if there's an error
-      }
+        return {
+          id: meeting.stripePaymentIntentId || `payment_${meeting.id}`,
+          date: meeting.createdAt.toISOString(),
+          amount: meeting.price || 0,
+          status,
+          description: `Payment for ${meeting.event?.name || 'appointment'}`,
+          paymentMethodLast4: isFree ? '—' : '4242', // Em dash for free events
+        };
+      });
+    } catch (error) {
+      console.error('Error creating payment history:', error);
+      // Continue without payment history if there's an error
     }
 
     return NextResponse.json({
