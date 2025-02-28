@@ -21,6 +21,9 @@ importers:
       '@clerk/themes':
         specifier: ^2.2.20
         version: 2.2.20
+      '@clerk/types':
+        specifier: ^4.47.0
+        version: 4.47.0
       '@dnd-kit/core':
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
@@ -90,6 +93,9 @@ importers:
       '@stripe/stripe-js':
         specifier: ^5.7.0
         version: 5.7.0
+      '@tanstack/react-table':
+        specifier: ^8.21.2
+        version: 8.21.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       '@tiptap/extension-bullet-list':
         specifier: ^2.11.5
         version: 2.11.5(@tiptap/core@2.11.5(@tiptap/pm@2.11.5))
@@ -161,7 +167,7 @@ importers:
         version: 16.4.7
       drizzle-orm:
         specifier: ^0.35.3
-        version: 0.35.3(@libsql/client-wasm@0.14.0)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.0.10)(react@19.0.0)
+        version: 0.35.3(@libsql/client-wasm@0.14.0)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.0.10)(postgres@3.4.5)(react@19.0.0)
       embla-carousel-react:
         specifier: ^8.5.2
         version: 8.5.2(react@19.0.0)
@@ -195,6 +201,9 @@ importers:
       nuqs:
         specifier: ^2.4.0
         version: 2.4.0(next@15.2.0(@babel/core@7.26.9)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))(react@19.0.0)
+      postgres:
+        specifier: ^3.4.5
+        version: 3.4.5
       react:
         specifier: ^19.0.0
         version: 19.0.0
@@ -235,9 +244,6 @@ importers:
         specifier: ^3.24.2
         version: 3.24.2
     devDependencies:
-      '@clerk/types':
-        specifier: ^4.47.0
-        version: 4.47.0
       '@eslint/compat':
         specifier: ^1.2.7
         version: 1.2.7(eslint@9.21.0(jiti@1.21.7))
@@ -1903,6 +1909,17 @@ packages:
     peerDependencies:
       tailwindcss: '>=3.0.0 || insiders || >=4.0.0-alpha.20 || >=4.0.0-beta.1'
 
+  '@tanstack/react-table@8.21.2':
+    resolution: {integrity: sha512-11tNlEDTdIhMJba2RBH+ecJ9l1zgS2kjmexDPAraulc8jeNA4xocSNeyzextT0XJyASil4XsCYlJmf5jEWAtYg==}
+    engines: {node: '>=12'}
+    peerDependencies:
+      react: '>=16.8'
+      react-dom: '>=16.8'
+
+  '@tanstack/table-core@8.21.2':
+    resolution: {integrity: sha512-uvXk/U4cBiFMxt+p9/G7yUWI/UbHYbyghLCjlpWZ3mLeIZiUBSKcUnw9UnKkdRz7Z/N4UBuFLWQdJCjUe7HjvA==}
+    engines: {node: '>=12'}
+
   '@tiptap/core@2.11.5':
     resolution: {integrity: sha512-jb0KTdUJaJY53JaN7ooY3XAxHQNoMYti/H6ANo707PsLXVeEqJ9o8+eBup1JU5CuwzrgnDc2dECt2WIGX9f8Jw==}
     peerDependencies:
@@ -2864,8 +2881,8 @@ packages:
     engines: {node: '>=0.10.0'}
     hasBin: true
 
-  electron-to-chromium@1.5.107:
-    resolution: {integrity: sha512-dJr1o6yCntRkXElnhsHh1bAV19bo/hKyFf7tCcWgpXbuFIF0Lakjgqv5LRfSDaNzAII8Fnxg2tqgHkgCvxdbxw==}
+  electron-to-chromium@1.5.109:
+    resolution: {integrity: sha512-AidaH9JETVRr9DIPGfp1kAarm/W6hRJTPuCnkF+2MqhF4KaAgRIcBc8nvjk+YMXZhwfISof/7WG29eS4iGxQLQ==}
 
   embla-carousel-react@8.5.2:
     resolution: {integrity: sha512-Tmx+uY3MqseIGdwp0ScyUuxpBgx5jX1f7od4Cm5mDwg/dptEiTKf9xp6tw0lZN2VA9JbnVMl/aikmbc53c6QFA==}
@@ -4401,6 +4418,10 @@ packages:
 
   postgres-range@1.1.4:
     resolution: {integrity: sha512-i/hbxIE9803Alj/6ytL7UHQxRvZkI9O4Sy+J3HGc4F4oo/2eQAjTSNJ0bfxyse3bH0nuVesCk+3IRLaMtG3H6w==}
+
+  postgres@3.4.5:
+    resolution: {integrity: sha512-cDWgoah1Gez9rN3H4165peY9qfpEo+SA61oQv65O3cRUE1pOEoJWwddwcqKE8XZYjbblOJlYDlLV4h67HrEVDg==}
+    engines: {node: '>=12'}
 
   prelude-ls@1.2.1:
     resolution: {integrity: sha512-vkcDPrRZo1QZLbn5RLGPpg/WmIQ65qoWWhcGKf/b5eplkkarX0m9z8ppCat4mlOqUsWpyNuYgO3VRyrYHSzX5g==}
@@ -6790,6 +6811,14 @@ snapshots:
       postcss-selector-parser: 6.0.10
       tailwindcss: 3.4.17
 
+  '@tanstack/react-table@8.21.2(react-dom@19.0.0(react@19.0.0))(react@19.0.0)':
+    dependencies:
+      '@tanstack/table-core': 8.21.2
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
+
+  '@tanstack/table-core@8.21.2': {}
+
   '@tiptap/core@2.11.5(@tiptap/pm@2.11.5)':
     dependencies:
       '@tiptap/pm': 2.11.5
@@ -7440,7 +7469,7 @@ snapshots:
   browserslist@4.24.4:
     dependencies:
       caniuse-lite: 1.0.30001701
-      electron-to-chromium: 1.5.107
+      electron-to-chromium: 1.5.109
       node-releases: 2.0.19
       update-browserslist-db: 1.1.3(browserslist@4.24.4)
 
@@ -7713,13 +7742,14 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.35.3(@libsql/client-wasm@0.14.0)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.0.10)(react@19.0.0):
+  drizzle-orm@0.35.3(@libsql/client-wasm@0.14.0)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.0.10)(postgres@3.4.5)(react@19.0.0):
     dependencies:
       '@libsql/client-wasm': 0.14.0
     optionalDependencies:
       '@neondatabase/serverless': 0.10.4
       '@types/pg': 8.11.6
       '@types/react': 19.0.10
+      postgres: 3.4.5
       react: 19.0.0
 
   dunder-proto@1.0.1:
@@ -7740,7 +7770,7 @@ snapshots:
     dependencies:
       jake: 10.9.2
 
-  electron-to-chromium@1.5.107: {}
+  electron-to-chromium@1.5.109: {}
 
   embla-carousel-react@8.5.2(react@19.0.0):
     dependencies:
@@ -9810,6 +9840,8 @@ snapshots:
   postgres-interval@3.0.0: {}
 
   postgres-range@1.1.4: {}
+
+  postgres@3.4.5: {}
 
   prelude-ls@1.2.1: {}
 

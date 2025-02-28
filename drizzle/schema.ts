@@ -10,7 +10,6 @@ import {
   pgTable,
   text,
   timestamp,
-  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -24,125 +23,6 @@ const updatedAt = timestamp('updatedAt')
   .notNull()
   .defaultNow()
   .$onUpdate(() => new Date());
-
-/**
- * Enum defining all possible user roles in the system
- * - superadmin: Highest level of access, can manage all aspects of the system
- * - admin: Administrative access to manage users and settings
- * - top_expert: Verified experts with additional privileges
- * - community_expert: Standard experts who can offer services
- * - user: Regular users who can book meetings with experts
- */
-export const userRoleEnum = pgEnum('user_role', [
-  'superadmin',
-  'admin',
-  'top_expert',
-  'community_expert',
-  'user',
-]);
-
-/**
- * User Roles table - implements many-to-many relationship between users and roles
- *
- * This table allows users to have multiple roles simultaneously.
- * Each record represents a role assignment to a specific user.
- */
-export const UserRoleTable = pgTable(
-  'user_roles',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    clerkUserId: text('clerk_user_id').notNull(),
-    role: userRoleEnum('role').notNull(),
-    assignedBy: text('assigned_by').notNull(), // ClerkUserId of the assigning user
-    createdAt,
-    updatedAt,
-  },
-  (table) => ({
-    clerkUserIdIndex: index('user_roles_clerk_user_id_idx').on(table.clerkUserId),
-    userRoleIndex: uniqueIndex('user_roles_unique_idx').on(table.clerkUserId, table.role),
-  }),
-);
-
-/**
- * Permissions table - defines individual permissions that can be assigned to roles
- *
- * Used for fine-grained access control throughout the application.
- * Each permission represents a specific action that can be performed.
- */
-export const PermissionTable = pgTable(
-  'permissions',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    name: text('name').notNull().unique(),
-    description: text('description'),
-    createdAt,
-    updatedAt,
-  },
-  (table) => ({
-    nameIndex: index('permissions_name_idx').on(table.name),
-  }),
-);
-
-/**
- * Role Permissions table - defines which permissions are assigned to which roles
- *
- * Implements many-to-many relationship between roles and permissions.
- * Each record grants a specific permission to a role.
- */
-export const RolePermissionTable = pgTable(
-  'role_permissions',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    role: userRoleEnum('role').notNull(),
-    permissionId: uuid('permission_id')
-      .notNull()
-      .references(() => PermissionTable.id, { onDelete: 'cascade' }),
-    createdAt,
-    updatedAt,
-  },
-  (table) => ({
-    rolePermissionIndex: uniqueIndex('role_permission_unique_idx').on(
-      table.role,
-      table.permissionId,
-    ),
-  }),
-);
-
-/**
- * Relationship definition for UserRoleTable
- *
- * Establishes a one-to-many relationship with UserTable.
- * Each user can have multiple roles.
- */
-export const userRoleRelations = relations(UserRoleTable, ({ one }) => ({
-  user: one(UserTable, {
-    fields: [UserRoleTable.clerkUserId],
-    references: [UserTable.clerkUserId],
-  }),
-}));
-
-/**
- * Relationship definition for PermissionTable
- *
- * Establishes a one-to-many relationship with RolePermissionTable.
- * Each permission can be assigned to multiple roles.
- */
-export const permissionRelations = relations(PermissionTable, ({ many }) => ({
-  rolePermissions: many(RolePermissionTable),
-}));
-
-/**
- * Relationship definition for RolePermissionTable
- *
- * Establishes a many-to-one relationship with PermissionTable.
- * Each role-permission assignment references a specific permission.
- */
-export const rolePermissionRelations = relations(RolePermissionTable, ({ one }) => ({
-  permission: one(PermissionTable, {
-    fields: [RolePermissionTable.permissionId],
-    references: [PermissionTable.id],
-  }),
-}));
 
 /**
  * Events table - defines bookable events/services offered by experts
@@ -412,10 +292,6 @@ export const UserTable = pgTable(
     firstName: text('first_name'),
     lastName: text('last_name'),
     imageUrl: text('image_url'),
-    primaryRole: userRoleEnum('primary_role').default('user').notNull(),
-    role: text('role', { enum: ['user', 'expert', 'admin'] })
-      .default('user')
-      .notNull(),
     // Stripe Connect fields for experts receiving payments
     stripeConnectAccountId: text('stripe_connect_account_id'),
     stripeConnectDetailsSubmitted: boolean('stripe_connect_details_submitted').default(false),
@@ -449,13 +325,11 @@ export const UserTable = pgTable(
  * - EventTable: A user can create multiple events
  * - MeetingTable: A user can participate in multiple meetings
  * - ProfileTable: Each user has one profile
- * - UserRoleTable: A user can have multiple roles
  */
 export const userRelations = relations(UserTable, ({ many, one }) => ({
   events: many(EventTable),
   meetings: many(MeetingTable),
   profile: one(ProfileTable),
-  roles: many(UserRoleTable),
 }));
 
 /**

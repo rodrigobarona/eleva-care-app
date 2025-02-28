@@ -2,97 +2,59 @@
 
 import type { UserRole } from '@/lib/auth/roles';
 import { useUser } from '@clerk/nextjs';
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthorizationContextType {
-  userRoles: UserRole[];
-  userPermissions: string[];
-  hasRole: (role: UserRole) => boolean;
-  hasAnyRole: (roles: UserRole[]) => boolean;
-  hasPermission: (permission: string) => boolean;
-  hasAnyPermission: (permissions: string[]) => boolean;
+  role: UserRole | null;
+  hasRole: (roleToCheck: UserRole | UserRole[]) => boolean;
   isLoading: boolean;
 }
 
 const AuthorizationContext = createContext<AuthorizationContextType>({
-  userRoles: [],
-  userPermissions: [],
+  role: null,
   hasRole: () => false,
-  hasAnyRole: () => false,
-  hasPermission: () => false,
-  hasAnyPermission: () => false,
   isLoading: true,
 });
 
-export function useAuthorization() {
-  return useContext(AuthorizationContext);
-}
-
-interface AuthorizationProviderProps {
-  children: React.ReactNode;
-}
-
-export function AuthorizationProvider({ children }: AuthorizationProviderProps) {
-  const { isSignedIn, isLoaded } = useUser();
-  const [userRoles, setUserRoles] = useState<UserRole[]>([]);
-  const [userPermissions, setUserPermissions] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-
-  const fetchUserRolesAndPermissions = useCallback(async () => {
-    if (!isSignedIn || !isLoaded) return;
-
-    try {
-      setIsLoading(true);
-      const response = await fetch('/api/auth/user-authorization');
-      if (!response.ok) throw new Error('Failed to fetch user roles');
-
-      const data = await response.json();
-      setUserRoles(data.roles || []);
-      setUserPermissions(data.permissions || []);
-    } catch (error) {
-      console.error('Error fetching user roles:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isSignedIn, isLoaded]);
+export function AuthorizationProvider({ children }: { children: React.ReactNode }) {
+  const { user, isLoaded, isSignedIn } = useUser();
+  const [role, setRole] = useState<UserRole | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    fetchUserRolesAndPermissions();
-  }, [fetchUserRolesAndPermissions]);
+    if (!isLoaded || !isSignedIn) {
+      setIsLoading(false);
+      return;
+    }
 
-  const hasRole = useCallback((role: UserRole) => userRoles.includes(role), [userRoles]);
+    const userRole = user?.publicMetadata?.role as UserRole;
+    setRole(userRole || 'user');
+    setIsLoading(false);
+  }, [isLoaded, isSignedIn, user]);
 
-  const hasAnyRole = useCallback(
-    (roles: UserRole[]) => roles.some((role) => userRoles.includes(role)),
-    [userRoles],
-  );
-
-  const hasPermission = useCallback(
-    (permission: string) => userPermissions.includes(permission),
-    [userPermissions],
-  );
-
-  const hasAnyPermission = useCallback(
-    (permissions: string[]) =>
-      permissions.some((permission) => userPermissions.includes(permission)),
-    [userPermissions],
-  );
+  const hasRole = (roleToCheck: UserRole | UserRole[]): boolean => {
+    if (!role) return false;
+    if (Array.isArray(roleToCheck)) {
+      return roleToCheck.includes(role);
+    }
+    return role === roleToCheck;
+  };
 
   return (
     <AuthorizationContext.Provider
       value={{
-        userRoles,
-        userPermissions,
+        role,
         hasRole,
-        hasAnyRole,
-        hasPermission,
-        hasAnyPermission,
         isLoading,
       }}
     >
       {children}
     </AuthorizationContext.Provider>
   );
+}
+
+export function useAuthorization() {
+  return useContext(AuthorizationContext);
 }
 
 // Authorization components for role-based UI rendering
@@ -103,33 +65,9 @@ interface RequireRoleProps {
 }
 
 export function RequireRole({ role, children, fallback = null }: RequireRoleProps) {
-  const { hasRole, hasAnyRole, isLoading } = useAuthorization();
+  const { hasRole, isLoading } = useAuthorization();
 
   if (isLoading) return null;
 
-  const hasRequiredRole = Array.isArray(role) ? hasAnyRole(role) : hasRole(role);
-
-  return hasRequiredRole ? <>{children}</> : <>{fallback}</>;
-}
-
-interface RequirePermissionProps {
-  permission: string | string[];
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
-}
-
-export function RequirePermission({
-  permission,
-  children,
-  fallback = null,
-}: RequirePermissionProps) {
-  const { hasPermission, hasAnyPermission, isLoading } = useAuthorization();
-
-  if (isLoading) return null;
-
-  const hasRequiredPermission = Array.isArray(permission)
-    ? hasAnyPermission(permission)
-    : hasPermission(permission);
-
-  return hasRequiredPermission ? <>{children}</> : <>{fallback}</>;
+  return hasRole(role) ? <>{children}</> : <>{fallback}</>;
 }

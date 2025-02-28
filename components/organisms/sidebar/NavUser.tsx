@@ -115,6 +115,18 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            {(user.publicMetadata?.role === 'admin' ||
+              user.publicMetadata?.role === 'superadmin') && (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/users">
+                    Administration
+                    <BadgeCheck className="ml-auto h-4 w-4" />
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
             <DropdownMenuItem asChild>
               <Link href="/?home=true">
                 Home Page

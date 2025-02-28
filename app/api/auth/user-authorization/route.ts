@@ -1,4 +1,4 @@
-import { getUserPermissions, getUserRoles } from '@/lib/auth/roles';
+import { getUserRole } from '@/lib/auth/roles.server';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
@@ -13,13 +13,11 @@ export async function GET() {
       );
     }
 
-    // Get user roles and permissions
-    const roles = await getUserRoles(userId);
-    const permissions = await getUserPermissions(userId);
+    // Get user role
+    const role = await getUserRole();
 
     return NextResponse.json({
-      roles,
-      permissions,
+      role,
     });
   } catch (error) {
     console.error('Error fetching user authorization details:', error);

@@ -1,4 +1,4 @@
-CREATE TYPE "public"."user_role" AS ENUM('superadmin', 'admin', 'top_expert', 'community_expert', 'user');--> statement-breakpoint
+CREATE TYPE "public"."user_role" AS ENUM('superadmin', 'admin', 'top_expert', 'community_expert', 'lecturer', 'user');--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "permissions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" text NOT NULL,
