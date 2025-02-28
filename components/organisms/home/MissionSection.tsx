@@ -1,5 +1,4 @@
 import { Button } from '@/components/atoms/button';
-import FadeInSection from '@/components/atoms/FadeInSection';
 import { ChevronRight } from 'lucide-react';
 import type React from 'react';
 
@@ -24,7 +23,6 @@ const MissionSection: React.FC<MissionSectionProps> = ({
   stats,
 }) => {
   return (
-    <FadeInSection>
       <section className="bg-elevaNeutral-100 w-full px-6 py-12 md:py-24 lg:px-8 lg:py-32">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <div className="mb-12 text-center">
@@ -53,9 +51,8 @@ const MissionSection: React.FC<MissionSectionProps> = ({
               ))}
             </div>
           </div>
-        </div>
-      </section>
-    </FadeInSection>
+      </div>
+    </section>
   );
 };
 

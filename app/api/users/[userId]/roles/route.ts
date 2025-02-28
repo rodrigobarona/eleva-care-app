@@ -1,12 +1,19 @@
-import { assignRole, getUserRoles, hasRole, removeRole, type UserRole } from '@/lib/auth/roles';
+import { db } from '@/drizzle/db';
+import { UserRoleTable } from '@/drizzle/schema';
+import { getUserRoles, hasRole } from '@/lib/auth/roles';
+import { checkHasRole } from '@/lib/auth/server-auth';
 import { auth } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
+import { and, eq } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
-export async function GET(_request: NextRequest, props: { params: Promise<{ userId: string }> }) {
+export async function GET(request: NextRequest, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   try {
-    const params = await props.params;
     const { userId: currentUserId } = await auth();
+
+    // request is not a NextRequest object, it's a Request object
+    console.log('request', request);
 
     if (!currentUserId) {
       return NextResponse.json(
@@ -16,8 +23,8 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ user
     }
 
     // Check if user has admin privileges
-    const isAdmin = await hasRole(currentUserId, 'admin');
-    const isSuperAdmin = await hasRole(currentUserId, 'superadmin');
+    const isAdmin = await hasRole([currentUserId], 'admin');
+    const isSuperAdmin = await hasRole([currentUserId], 'superadmin');
 
     if (!isAdmin && !isSuperAdmin && currentUserId !== params.userId) {
       return NextResponse.json(
@@ -39,8 +46,19 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ user
 }
 
 export async function POST(request: NextRequest, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   try {
-    const params = await props.params;
+    // Verify the requester has admin or superadmin role
+    const authorized = await checkHasRole(['superadmin', 'admin']);
+
+    if (!authorized) {
+      return NextResponse.json(
+        { error: 'Forbidden', message: 'Insufficient permissions' },
+        { status: 403 },
+      );
+    }
+
+    const { userId } = params;
     const { userId: currentUserId } = await auth();
 
     if (!currentUserId) {
@@ -50,96 +68,138 @@ export async function POST(request: NextRequest, props: { params: Promise<{ user
       );
     }
 
-    // Check if user has admin privileges
-    const isAdmin = await hasRole(currentUserId, 'admin');
-    const isSuperAdmin = await hasRole(currentUserId, 'superadmin');
+    // Get the role from the request body
+    const { role } = await request.json();
 
-    if (!isAdmin && !isSuperAdmin) {
+    if (!role) {
       return NextResponse.json(
-        { error: 'Forbidden', message: 'Insufficient permissions to assign roles' },
-        { status: 403 },
+        { error: 'Bad Request', message: 'Role is required' },
+        { status: 400 },
       );
+    }
+
+    // Check if the role is valid
+    const validRoles = ['superadmin', 'admin', 'top_expert', 'community_expert', 'user'];
+    if (!validRoles.includes(role)) {
+      return NextResponse.json({ error: 'Bad Request', message: 'Invalid role' }, { status: 400 });
     }
 
     // Only superadmins can assign the superadmin role
-    const body = await request.json();
-    const { role } = body as { role: UserRole };
+    if (role === 'superadmin') {
+      const isSuperAdmin = await checkHasRole(['superadmin']);
+      if (!isSuperAdmin) {
+        return NextResponse.json(
+          { error: 'Forbidden', message: 'Only superadmins can assign the superadmin role' },
+          { status: 403 },
+        );
+      }
+    }
 
-    if (role === 'superadmin' && !isSuperAdmin) {
+    // Check if the user already has this role
+    const existingRole = await db.query.UserRoleTable.findFirst({
+      where: and(eq(UserRoleTable.clerkUserId, userId), eq(UserRoleTable.role, role)),
+    });
+
+    if (existingRole) {
       return NextResponse.json(
-        { error: 'Forbidden', message: 'Only superadmins can assign the superadmin role' },
-        { status: 403 },
+        { error: 'Conflict', message: 'User already has this role' },
+        { status: 409 },
       );
     }
 
-    await assignRole(params.userId, role, currentUserId);
-
-    return NextResponse.json({
-      success: true,
-      message: `Role '${role}' assigned successfully`,
+    // Add the role
+    await db.insert(UserRoleTable).values({
+      clerkUserId: userId,
+      role,
+      assignedBy: currentUserId,
     });
+
+    return NextResponse.json({ message: 'Role added successfully' });
   } catch (error) {
-    console.error('Error assigning user role:', error);
+    console.error('Error adding role:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error', message: 'Failed to assign user role' },
+      { error: 'Internal Server Error', message: 'Failed to add role' },
       { status: 500 },
     );
   }
 }
 
 export async function DELETE(request: NextRequest, props: { params: Promise<{ userId: string }> }) {
+  const params = await props.params;
   try {
-    const params = await props.params;
-    const { userId: currentUserId } = await auth();
+    // Verify the requester has admin or superadmin role
+    const authorized = await checkHasRole(['superadmin', 'admin']);
 
-    if (!currentUserId) {
+    if (!authorized) {
       return NextResponse.json(
-        { error: 'Unauthorized', message: 'User not authenticated' },
-        { status: 401 },
-      );
-    }
-
-    // Check if user has admin privileges
-    const isAdmin = await hasRole(currentUserId, 'admin');
-    const isSuperAdmin = await hasRole(currentUserId, 'superadmin');
-
-    if (!isAdmin && !isSuperAdmin) {
-      return NextResponse.json(
-        { error: 'Forbidden', message: 'Insufficient permissions to remove roles' },
+        { error: 'Forbidden', message: 'Insufficient permissions' },
         { status: 403 },
       );
     }
 
-    const body = await request.json();
-    const { role } = body as { role: UserRole };
+    const { userId } = params;
 
-    // Only superadmins can remove the superadmin role
-    if (role === 'superadmin' && !isSuperAdmin) {
-      return NextResponse.json(
-        { error: 'Forbidden', message: 'Only superadmins can remove the superadmin role' },
-        { status: 403 },
-      );
-    }
+    // Get the role from the request body
+    const { role } = await request.json();
 
-    // Get current roles to check if it's the last one
-    const currentRoles = await getUserRoles(params.userId);
-    if (currentRoles.length <= 1) {
+    if (!role) {
       return NextResponse.json(
-        { error: 'Bad Request', message: 'Users must have at least one role' },
+        { error: 'Bad Request', message: 'Role is required' },
         { status: 400 },
       );
     }
 
-    await removeRole(params.userId, role);
+    // Check if the role is valid
+    const validRoles = ['superadmin', 'admin', 'top_expert', 'community_expert', 'user'];
+    if (!validRoles.includes(role)) {
+      return NextResponse.json({ error: 'Bad Request', message: 'Invalid role' }, { status: 400 });
+    }
 
-    return NextResponse.json({
-      success: true,
-      message: `Role '${role}' removed successfully`,
+    // Only superadmins can remove the superadmin role
+    if (role === 'superadmin') {
+      const isSuperAdmin = await checkHasRole(['superadmin']);
+      if (!isSuperAdmin) {
+        return NextResponse.json(
+          { error: 'Forbidden', message: 'Only superadmins can remove the superadmin role' },
+          { status: 403 },
+        );
+      }
+    }
+
+    // Check if the user has this role
+    const existingRole = await db.query.UserRoleTable.findFirst({
+      where: and(eq(UserRoleTable.clerkUserId, userId), eq(UserRoleTable.role, role)),
     });
+
+    if (!existingRole) {
+      return NextResponse.json(
+        { error: 'Not Found', message: 'User does not have this role' },
+        { status: 404 },
+      );
+    }
+
+    // Make sure we're not removing the last role
+    const userRoles = await db.query.UserRoleTable.findMany({
+      where: eq(UserRoleTable.clerkUserId, userId),
+    });
+
+    if (userRoles.length <= 1) {
+      return NextResponse.json(
+        { error: 'Bad Request', message: 'Cannot remove the last role from a user' },
+        { status: 400 },
+      );
+    }
+
+    // Remove the role
+    await db
+      .delete(UserRoleTable)
+      .where(and(eq(UserRoleTable.clerkUserId, userId), eq(UserRoleTable.role, role)));
+
+    return NextResponse.json({ message: 'Role removed successfully' });
   } catch (error) {
-    console.error('Error removing user role:', error);
+    console.error('Error removing role:', error);
     return NextResponse.json(
-      { error: 'Internal Server Error', message: 'Failed to remove user role' },
+      { error: 'Internal Server Error', message: 'Failed to remove role' },
       { status: 500 },
     );
   }
