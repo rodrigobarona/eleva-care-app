@@ -1,6 +1,6 @@
 {
-  "id": "1584f197-b29b-450c-a380-c68400a6b588",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "6a66ab52-4b4e-4006-abe1-45235c05386f",
+  "prevId": "b2a76646-2dbc-4516-83b4-7e28ae2bd9af",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -539,6 +539,13 @@
           "notNull": true,
           "default": false
         },
+        "order": {
+          "name": "order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
@@ -943,6 +950,38 @@
           "primaryKey": false,
           "notNull": false
         },
+        "stripe_identity_verification_id": {
+          "name": "stripe_identity_verification_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripe_identity_verified": {
+          "name": "stripe_identity_verified",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": false
+        },
+        "stripe_identity_verification_status": {
+          "name": "stripe_identity_verification_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "stripe_identity_verification_last_checked": {
+          "name": "stripe_identity_verification_last_checked",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country": {
+          "name": "country",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'PT'"
+        },
         "createdAt": {
           "name": "createdAt",
           "type": "timestamp",
@@ -979,6 +1018,21 @@
           "columns": [
             {
               "expression": "stripeCustomerId",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "users_stripe_identity_verification_id_idx": {
+          "name": "users_stripe_identity_verification_id_idx",
+          "columns": [
+            {
+              "expression": "stripe_identity_verification_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

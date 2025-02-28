@@ -1,6 +1,6 @@
 {
-  "id": "1584f197-b29b-450c-a380-c68400a6b588",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "4456eda9-2fa1-4a76-9a06-859d4d939422",
+  "prevId": "1584f197-b29b-450c-a380-c68400a6b588",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -939,6 +939,12 @@
         },
         "stripe_bank_name": {
           "name": "stripe_bank_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "country": {
+          "name": "country",
           "type": "text",
           "primaryKey": false,
           "notNull": false

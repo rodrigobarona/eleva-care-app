@@ -1,4 +1,5 @@
 import { Button } from '@/components/atoms/button';
+import FadeInSection from '@/components/atoms/FadeInSection';
 import { BookOpen, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
 import Link from 'next/link';
 import type React from 'react';
@@ -21,7 +22,7 @@ const SocialSection: React.FC<SocialSectionProps> = ({
   scholar,
 }) => {
   return (
-    <>
+    <FadeInSection>
       <section className="w-full bg-[#f0f8f8] px-6 py-12 md:py-24 lg:px-8">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <h2 className="text-elevaPrimary mb-8 text-center text-3xl font-bold tracking-tighter sm:text-4xl">
@@ -97,7 +98,7 @@ const SocialSection: React.FC<SocialSectionProps> = ({
           </div>
         </div>
       </section>
-    </>
+    </FadeInSection>
   );
 };
 

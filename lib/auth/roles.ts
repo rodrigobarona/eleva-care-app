@@ -5,93 +5,14 @@ import { and, eq, inArray } from 'drizzle-orm';
 export type UserRole = 'superadmin' | 'admin' | 'top_expert' | 'community_expert' | 'user';
 
 /**
- * Check if a user has one of the required roles
- *
- * @param userRoles Array of user's current roles
- * @param requiredRoles Array of roles to check against
- * @returns Boolean indicating if the user has any of the required roles
+ * Check if a user has the specified role
  */
-export function hasRole(userRoles: string[], requiredRoles: UserRole | UserRole[]): boolean {
-  if (!userRoles || userRoles.length === 0) {
-    return false;
-  }
+export async function hasRole(clerkUserId: string, role: UserRole): Promise<boolean> {
+  const roles = await db.query.UserRoleTable.findMany({
+    where: eq(UserRoleTable.clerkUserId, clerkUserId),
+  });
 
-  const rolesToCheck = Array.isArray(requiredRoles) ? requiredRoles : [requiredRoles];
-  return userRoles.some((role) => rolesToCheck.includes(role as UserRole));
-}
-
-/**
- * Check if a user is an admin (has admin or superadmin role)
- *
- * @param userRoles Array of user's current roles
- * @returns Boolean indicating if the user is an admin
- */
-export function isAdmin(userRoles: string[]): boolean {
-  return hasRole(userRoles, ['admin', 'superadmin']);
-}
-
-/**
- * Check if a user is a superadmin
- *
- * @param userRoles Array of user's current roles
- * @returns Boolean indicating if the user is a superadmin
- */
-export function isSuperAdmin(userRoles: string[]): boolean {
-  return hasRole(userRoles, 'superadmin');
-}
-
-/**
- * Check if a user is an expert (has top_expert or community_expert role)
- *
- * @param userRoles Array of user's current roles
- * @returns Boolean indicating if the user is an expert
- */
-export function isExpert(userRoles: string[]): boolean {
-  return hasRole(userRoles, ['top_expert', 'community_expert']);
-}
-
-/**
- * Get a formatted display name for a role
- *
- * @param role Role to format
- * @returns Formatted display name
- */
-export function getRoleDisplayName(role: UserRole): string {
-  switch (role) {
-    case 'superadmin':
-      return 'Super Admin';
-    case 'admin':
-      return 'Administrator';
-    case 'top_expert':
-      return 'Top Expert';
-    case 'community_expert':
-      return 'Community Expert';
-    case 'user':
-      return 'Regular User';
-    default:
-      return role;
-  }
-}
-
-/**
- * Fetch the current user's roles
- *
- * @returns Array of role names
- */
-export async function fetchUserRoles(): Promise<string[]> {
-  try {
-    const response = await fetch('/api/auth/roles');
-
-    if (!response.ok) {
-      throw new Error('Failed to fetch roles');
-    }
-
-    const data = await response.json();
-    return data.roles || [];
-  } catch (error) {
-    console.error('Error fetching user roles:', error);
-    return [];
-  }
+  return roles.some((r) => r.role === role);
 }
 
 /**

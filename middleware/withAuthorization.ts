@@ -13,7 +13,7 @@ export function withRoleAuthorization(roles: UserRole[]) {
 
     // Check if user has any of the required roles
     const hasRequiredRole = await Promise.any(
-      roles.map(async (role) => await hasRole([userId], role)),
+      roles.map(async (role) => await hasRole(userId, role)),
     ).catch(() => false);
 
     if (!hasRequiredRole) {

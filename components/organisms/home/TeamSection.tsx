@@ -1,4 +1,5 @@
 import { Card, CardContent } from '@/components/atoms/card';
+import FadeInSection from '@/components/atoms/FadeInSection';
 // Adjust the import path as necessary
 import {
   Carousel,
@@ -38,7 +39,7 @@ type TeamSectionProps = {
 
 const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description, members }) => {
   return (
-    <>
+    <FadeInSection>
       <section id="team" className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <div className="mb-12">
@@ -112,7 +113,7 @@ const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description,
           </div>
         </div>
       </section>
-    </>
+    </FadeInSection>
   );
 };
 

@@ -1,8 +1,39 @@
 'use client';
 
-import * as z from 'zod';
-import { Alert, AlertDescription, AlertTitle } from '@/components/atoms/alert';
+import React, { useTransition } from 'react';
+
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+import { eventFormSchema } from '@/schema/events';
+import {
+  createEvent,
+  deleteEvent,
+  getEventMeetingsCount,
+  updateEvent,
+} from '@/server/actions/events';
+import { createStripeProduct, updateStripeProduct } from '@/server/actions/stripe';
+import { useUser } from '@clerk/nextjs';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import type { z } from 'zod';
+
 import { Button } from '@/components/atoms/button';
+import { Input } from '@/components/atoms/input';
+import { Switch } from '@/components/atoms/switch';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/molecules/alert-dialog';
 import {
   Form,
   FormControl,
@@ -11,399 +42,425 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/atoms/form';
-import { Input } from '@/components/atoms/input';
+} from '@/components/molecules/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/atoms/select';
-import { Textarea } from '@/components/atoms/textarea';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+} from '@/components/molecules/select';
 
-// Define currency options
-const currencies = [
-  { value: 'eur', label: 'EUR (€)' },
-  { value: 'usd', label: 'USD ($)' },
-  { value: 'gbp', label: 'GBP (£)' },
-];
+import { slugify } from '@/lib/validations/slug';
 
-// Define the form schema with Zod
-const eventFormSchema = z.object({
-  name: z
-    .string()
-    .min(3, { message: 'Event name must be at least 3 characters long' })
-    .max(100, { message: 'Event name must be less than 100 characters' }),
-  description: z
-    .string()
-    .min(20, { message: 'Description must be at least 20 characters long' })
-    .max(1000, { message: 'Description must be less than 1000 characters' }),
-  durationInMinutes: z.coerce
-    .number()
-    .int()
-    .min(15, { message: 'Duration must be at least 15 minutes' })
-    .max(240, { message: 'Duration must be less than 4 hours' }),
-  price: z.coerce
-    .number()
-    .min(0, { message: 'Price cannot be negative' })
-    .max(1000, { message: 'Price must be less than €1000' }),
-  currency: z.enum(['eur', 'usd', 'gbp']).default('eur'),
-  location: z.string().min(1, { message: 'Location is required' }),
-  slug: z
-    .string()
-    .min(3, { message: 'Custom URL slug must be at least 3 characters' })
-    .max(100, { message: 'Custom URL slug must be less than 100 characters' })
-    .regex(/^[a-z0-9-]+$/, {
-      message: 'Custom URL can only contain lowercase letters, numbers, and hyphens',
-    })
-    .optional(),
+// Dynamic import of RichTextEditor with SSR disabled
+const SimpleRichTextEditor = dynamic(() => import('@/components/molecules/RichTextEditor'), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-[100px] animate-pulse rounded-md border bg-muted/50 px-3 py-2" />
+  ),
 });
 
-// Define the Event type based on the schema
-export type EventFormValues = z.infer<typeof eventFormSchema>;
-
-// Props for the EventForm component
-interface EventFormProps {
-  defaultValues?: Partial<EventFormValues>;
-  eventId?: string;
-  onSuccess?: () => void;
-  isUpdate?: boolean;
-}
-
-export function EventForm({ defaultValues, eventId, onSuccess, isUpdate = false }: EventFormProps) {
+export function EventForm({
+  event,
+}: {
+  event?: {
+    id: string;
+    name: string;
+    slug: string;
+    description?: string;
+    durationInMinutes: number;
+    isActive: boolean;
+    price: number;
+    stripeProductId?: string;
+    stripePriceId?: string;
+  };
+}) {
+  const { user } = useUser();
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [slugAvailabilityChecking, setSlugAvailabilityChecking] = useState(false);
-  const [slugAvailabilityError, setSlugAvailabilityError] = useState<string | null>(null);
-  const [slugAvailabilitySuccess, setSlugAvailabilitySuccess] = useState(false);
+  const [isDeletePending, startDeleteTransition] = useTransition();
+  const [isStripeProcessing, setIsStripeProcessing] = React.useState(false);
+  const [meetingsCount, setMeetingsCount] = React.useState<number>(0);
 
-  // Initialize the form with default values
-  const form = useForm<EventFormValues>({
+  const form = useForm<z.infer<typeof eventFormSchema>>({
     resolver: zodResolver(eventFormSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      durationInMinutes: 60,
+    defaultValues: event ?? {
+      isActive: true,
+      durationInMinutes: 30,
       price: 0,
       currency: 'eur',
-      location: 'online',
+      name: '',
       slug: '',
-      ...defaultValues,
     },
   });
 
-  // Watch values from the form
-  const watchedName = form.watch('name');
-  const watchedSlug = form.watch('slug');
+  const [description, setDescription] = React.useState(event?.description || '');
 
-  // Generate slug from name
-  useEffect(() => {
-    const name = watchedName;
-    const currentSlug = watchedSlug;
-
-    // Only auto-generate if slug is empty and we're not updating
-    if (!isUpdate && name && !currentSlug) {
-      const generatedSlug = name
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^a-z0-9-]/g, '');
-
-      if (generatedSlug) {
-        form.setValue('slug', generatedSlug, { shouldValidate: true });
+  React.useEffect(() => {
+    const subscription = form.watch((value, { name }) => {
+      if (name === 'name') {
+        form.setValue('slug', slugify(value.name as string), {
+          shouldValidate: true,
+          shouldDirty: true,
+        });
       }
+    });
+    return () => subscription.unsubscribe();
+  }, [form]);
+
+  React.useEffect(() => {
+    if (event?.id) {
+      getEventMeetingsCount(event.id).then(setMeetingsCount);
     }
-  }, [watchedName, watchedSlug, form, isUpdate]);
+  }, [event?.id]);
 
-  // Check slug availability
-  const checkSlugAvailability = useCallback(
-    async (slug: string) => {
-      if (!slug || isUpdate) return;
+  const onSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const currentValue = e.target.value
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
 
-      try {
-        setSlugAvailabilityChecking(true);
-        setSlugAvailabilityError(null);
-        setSlugAvailabilitySuccess(false);
+    form.setValue('slug', currentValue, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
 
-        const response = await fetch(`/api/events/check-slug?slug=${encodeURIComponent(slug)}`);
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || 'Failed to check slug availability');
-        }
-
-        if (data.available) {
-          setSlugAvailabilitySuccess(true);
-        } else {
-          setSlugAvailabilityError('This URL is already taken. Please choose another one.');
-          form.setError('slug', { message: 'This URL is already taken' });
-        }
-      } catch (error) {
-        console.error('Error checking slug:', error);
-      } finally {
-        setSlugAvailabilityChecking(false);
-      }
-    },
-    [isUpdate, form],
-  );
-
-  // Debounce slug check
-  useEffect(() => {
-    const slug = watchedSlug;
-    if (!slug) return;
-
-    const timer = setTimeout(() => {
-      checkSlugAvailability(slug);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [watchedSlug, checkSlugAvailability]);
-
-  // Handle form submission
-  const onSubmit = async (data: EventFormValues) => {
-    setIsSubmitting(true);
-    setServerError(null);
-
-    try {
-      const endpoint = eventId ? `/api/events/${eventId}` : '/api/events';
-      const method = eventId ? 'PUT' : 'POST';
-
-      const response = await fetch(endpoint, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+  const onSlugKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === ' ') {
+      e.preventDefault();
+      const input = e.target as HTMLInputElement;
+      const newValue = `${input.value}-`;
+      form.setValue('slug', newValue, {
+        shouldValidate: true,
+        shouldDirty: true,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to save event');
-      }
-
-      const result = await response.json();
-
-      toast.success(eventId ? 'Event Updated' : 'Event Created', {
-        description: eventId
-          ? 'Your event has been updated successfully.'
-          : 'Your new event has been created successfully.',
-      });
-
-      if (onSuccess) {
-        onSuccess();
-      } else {
-        // Refresh the page or redirect
-        router.refresh();
-        if (!eventId) {
-          router.push(`/events/${result.id}`);
-        }
-      }
-    } catch (error) {
-      console.error('Error saving event:', error);
-      setServerError(error instanceof Error ? error.message : 'Failed to save your event');
-      toast.error('Error', {
-        description: 'Failed to save your event. Please try again.',
-      });
-    } finally {
-      setIsSubmitting(false);
+      setTimeout(() => {
+        input.selectionStart = input.selectionEnd = newValue.length;
+      }, 0);
     }
   };
 
+  const handleSubmit = async (values: z.infer<typeof eventFormSchema>) => {
+    try {
+      setIsStripeProcessing(true);
+
+      // First handle Stripe if price > 0
+      let stripeData = null;
+      if (values.price > 0) {
+        if (!event?.stripeProductId) {
+          stripeData = await createStripeProduct({
+            name: values.name,
+            description: values.description || undefined,
+            price: values.price,
+            currency: values.currency,
+            clerkUserId: user?.id || '',
+          });
+        } else if (event.stripeProductId && event.stripePriceId) {
+          stripeData = await updateStripeProduct({
+            stripeProductId: event.stripeProductId,
+            stripePriceId: event.stripePriceId,
+            name: values.name,
+            description: values.description || undefined,
+            price: values.price,
+            currency: values.currency,
+            clerkUserId: user?.id || '',
+          });
+        } else {
+          form.setError('root', {
+            message: 'Invalid Stripe product configuration',
+          });
+          return;
+        }
+
+        if (stripeData?.error) {
+          form.setError('root', {
+            message: `Failed to sync with Stripe: ${stripeData.error}`,
+          });
+          return;
+        }
+      }
+
+      // Then create/update the event
+      const action = event == null ? createEvent : updateEvent.bind(null, event.id);
+      const eventData = await action({
+        ...values,
+        stripeProductId: stripeData?.productId || event?.stripeProductId,
+        stripePriceId: stripeData?.priceId || event?.stripePriceId,
+      });
+
+      if (eventData?.error) {
+        form.setError('root', {
+          message: 'Failed to save event',
+        });
+        return;
+      }
+
+      // Use router.push for navigation
+      router.push('/events');
+    } catch (error) {
+      console.error('Form submission error:', error);
+      form.setError('root', {
+        message: 'An unexpected error occurred',
+      });
+    } finally {
+      setIsStripeProcessing(false);
+    }
+  };
+
+  // Update the price field to show loading state when processing Stripe
+  const PriceField = () => (
+    <FormField
+      control={form.control}
+      name="price"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Price</FormLabel>
+          <div className="flex items-center gap-2">
+            <FormControl>
+              <Input
+                type="number"
+                min="0"
+                step="0.50"
+                {...field}
+                disabled={isStripeProcessing}
+                onChange={(e) => {
+                  const value = Number.parseFloat(e.target.value || '0');
+                  // Round to nearest 0.50
+                  const roundedValue = Math.round(value * 2) / 2;
+                  field.onChange(Math.round(roundedValue * 100));
+                }}
+                value={field.value ? field.value / 100 : 0}
+                className="w-32"
+              />
+            </FormControl>
+            <span className="text-muted-foreground">EUR</span>
+            {isStripeProcessing && (
+              <span className="text-sm text-muted-foreground">Syncing with Stripe...</span>
+            )}
+          </div>
+          <FormDescription>
+            {event?.stripeProductId ? (
+              <span>Connected to Stripe Product: {event.stripeProductId.slice(0, 8)}...</span>
+            ) : (
+              'Set to 0 for free events. Price in euros.'
+            )}
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        {serverError && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{serverError}</AlertDescription>
-          </Alert>
+      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
+        {form.formState.errors.root && (
+          <div className="text-sm text-destructive">{form.formState.errors.root.message}</div>
         )}
 
-        <FormField
-          control={form.control}
-          name="name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Event Name</FormLabel>
-              <FormControl>
-                <Input placeholder="Initial Consultation" {...field} />
-              </FormControl>
-              <FormDescription>
-                Give your session a clear, descriptive name that explains what clients will get.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="slug"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Custom URL</FormLabel>
-              <FormControl>
-                <div className="flex items-center space-x-2">
-                  <Input placeholder="initial-consultation" {...field} value={field.value || ''} />
-                  {slugAvailabilityChecking && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {slugAvailabilitySuccess && <CheckCircle className="h-4 w-4 text-green-500" />}
-                </div>
-              </FormControl>
-              <FormDescription>
-                This will be used in your booking URL: /book/username/
-                <strong>{field.value || 'your-event-url'}</strong>
-              </FormDescription>
-              {slugAvailabilityError && (
-                <p className="mt-1 text-sm text-red-500">{slugAvailabilityError}</p>
+        <div className="space-y-6">
+          <div className="space-y-4 rounded-lg border p-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormDescription>The name users will see when booking</FormDescription>
+                  <FormMessage />
+                </FormItem>
               )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            />
 
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Description</FormLabel>
-              <FormControl>
-                <Textarea
-                  placeholder="Explain what this session includes and what clients can expect..."
-                  className="min-h-[120px]"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                Provide details about what will happen during the session and why clients should
-                book it.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <SimpleRichTextEditor
+                      value={description}
+                      onChange={(value) => {
+                        setDescription(value);
+                        field.onChange(value);
+                      }}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Describe your event. You can use formatting to make it more readable.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-          <FormField
-            control={form.control}
-            name="durationInMinutes"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Duration (minutes)</FormLabel>
-                <FormControl>
+            <FormField
+              control={form.control}
+              name="slug"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>URL</FormLabel>
+                  <div className="flex w-full items-center overflow-hidden rounded-md border">
+                    <div className="flex h-full items-center bg-muted px-3 py-2 text-sm text-muted-foreground">
+                      eleva.care/{user?.username || 'username'}/
+                    </div>
+                    <div className="w-px self-stretch bg-border" />
+                    <FormControl>
+                      <Input
+                        {...field}
+                        onChange={onSlugChange}
+                        onKeyDown={onSlugKeyDown}
+                        className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+                        placeholder="event-name"
+                      />
+                    </FormControl>
+                  </div>
+                  <FormDescription>URL-friendly version of the event name</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+
+          <div className="space-y-4 rounded-lg border p-4">
+            <FormField
+              control={form.control}
+              name="durationInMinutes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Duration</FormLabel>
                   <Select
-                    onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
+                    onValueChange={(value) => field.onChange(Number(value))}
                     defaultValue={field.value.toString()}
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select duration" />
-                    </SelectTrigger>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select duration" />
+                      </SelectTrigger>
+                    </FormControl>
                     <SelectContent>
-                      <SelectItem value="15">15 minutes</SelectItem>
-                      <SelectItem value="30">30 minutes</SelectItem>
-                      <SelectItem value="45">45 minutes</SelectItem>
-                      <SelectItem value="60">60 minutes</SelectItem>
-                      <SelectItem value="90">90 minutes</SelectItem>
-                      <SelectItem value="120">2 hours</SelectItem>
+                      <SelectItem value="10">10 minutes session</SelectItem>
+                      <SelectItem value="30">30 minutes session</SelectItem>
+                      <SelectItem value="45">45 minutes session</SelectItem>
+                      <SelectItem value="60">60 minutes session</SelectItem>
                     </SelectContent>
                   </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+                  <FormDescription>Choose the appropriate session duration</FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-          <FormField
-            control={form.control}
-            name="price"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Price</FormLabel>
-                <FormControl>
-                  <Input type="number" min="0" step="1" {...field} />
-                </FormControl>
-                <FormDescription>Set to 0 for free sessions.</FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="space-y-4 rounded-lg border p-4">
+            <FormField
+              control={form.control}
+              name="isActive"
+              render={({ field }) => (
+                <FormItem>
+                  <div className="flex items-center gap-2">
+                    <FormControl>
+                      <Switch checked={field.value} onCheckedChange={field.onChange} />
+                    </FormControl>
+                    <FormLabel className="!mt-0">Active</FormLabel>
+                  </div>
+                  <FormDescription>
+                    Inactive events will not be visible for users to book
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
 
-          <FormField
-            control={form.control}
-            name="currency"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Currency</FormLabel>
-                <FormControl>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select currency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currencies.map((currency) => (
-                        <SelectItem key={currency.value} value={currency.value}>
-                          {currency.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <div className="space-y-4 rounded-lg border p-4">
+            <PriceField />
+          </div>
         </div>
 
-        <FormField
-          control={form.control}
-          name="location"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Location</FormLabel>
-              <FormControl>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="online">Online (Video)</SelectItem>
-                    <SelectItem value="phone">Phone Call</SelectItem>
-                    <SelectItem value="in_person">In Person</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormDescription>Where the session will take place.</FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="flex justify-end gap-2">
+          {event && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructiveGhost"
+                  disabled={isDeletePending || form.formState.isSubmitting}
+                >
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription asChild>
+                    <span className="block space-y-2">
+                      <span className="block">
+                        This action cannot be undone. This will permanently delete your event
+                        {meetingsCount > 0
+                          ? ` and ${meetingsCount} associated meeting${meetingsCount === 1 ? '' : 's'}`
+                          : ''}
+                        .
+                      </span>
+                      {meetingsCount > 0 && (
+                        <span className="block font-medium text-destructive">
+                          Warning: All associated meetings will also be deleted!
+                        </span>
+                      )}
+                    </span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    disabled={isDeletePending || form.formState.isSubmitting}
+                    variant="destructive"
+                    onClick={() => {
+                      const promise = new Promise((resolve, reject) => {
+                        startDeleteTransition(async () => {
+                          try {
+                            const data = await deleteEvent(event.id);
+                            if (data?.error) {
+                              reject(new Error('Failed to delete event'));
+                            } else {
+                              resolve(true);
+                              router.push('/events');
+                            }
+                          } catch (error) {
+                            reject(error);
+                          }
+                        });
+                      });
 
-        <div className="flex justify-end space-x-4">
+                      toast.promise(promise, {
+                        loading: 'Deleting event...',
+                        success: 'Event deleted successfully',
+                        error: 'Failed to delete event',
+                      });
+                    }}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
           <Button
             type="button"
+            asChild
             variant="outline"
-            onClick={() => router.back()}
-            disabled={isSubmitting}
+            disabled={isStripeProcessing || form.formState.isSubmitting}
           >
-            Cancel
+            <Link href="/events">Cancel</Link>
           </Button>
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {eventId ? 'Updating...' : 'Creating...'}
-              </>
-            ) : (
-              <>{eventId ? 'Update Event' : 'Create Event'}</>
-            )}
+          <Button type="submit" disabled={isStripeProcessing || form.formState.isSubmitting}>
+            {isStripeProcessing ? 'Processing...' : 'Save'}
           </Button>
         </div>
       </form>
