@@ -1,7 +1,6 @@
 import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
 import { LanguageProvider } from '@/components/molecules/LanguageProvider';
 import { cn } from '@/lib/utils';
-import { ClerkProvider } from '@clerk/nextjs';
 import type { Metadata } from 'next';
 import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
@@ -9,6 +8,7 @@ import type React from 'react';
 import { Toaster } from 'sonner';
 
 import './globals.css';
+import { ClientProviders, Providers } from './providers';
 
 const lora = Lora({
   subsets: ['latin'],
@@ -54,7 +54,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <Providers>
       <html
         lang="en"
         className={cn(
@@ -69,12 +69,14 @@ export default function RootLayout({
         <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
           <ErrorBoundaryWrapper>
             <NuqsAdapter>
-              <LanguageProvider>{children}</LanguageProvider>
+              <ClientProviders>
+                <LanguageProvider>{children}</LanguageProvider>
+              </ClientProviders>
             </NuqsAdapter>
           </ErrorBoundaryWrapper>
           <Toaster />
         </body>
       </html>
-    </ClerkProvider>
+    </Providers>
   );
 }

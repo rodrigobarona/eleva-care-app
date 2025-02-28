@@ -10,6 +10,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
 
@@ -18,6 +19,88 @@ const updatedAt = timestamp('updatedAt')
   .notNull()
   .defaultNow()
   .$onUpdate(() => new Date());
+
+// Define the role enum with all user role types
+export const userRoleEnum = pgEnum('user_role', [
+  'superadmin',
+  'admin',
+  'top_expert',
+  'community_expert',
+  'user',
+]);
+
+// User Roles relation table for many-to-many relationship
+export const UserRoleTable = pgTable(
+  'user_roles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    clerkUserId: text('clerk_user_id').notNull(),
+    role: userRoleEnum('role').notNull(),
+    assignedBy: text('assigned_by').notNull(), // ClerkUserId of the assigning user
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    clerkUserIdIndex: index('user_roles_clerk_user_id_idx').on(table.clerkUserId),
+    userRoleIndex: uniqueIndex('user_roles_unique_idx').on(table.clerkUserId, table.role),
+  }),
+);
+
+// User permissions table for fine-grained access control
+export const PermissionTable = pgTable(
+  'permissions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    name: text('name').notNull().unique(),
+    description: text('description'),
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    nameIndex: index('permissions_name_idx').on(table.name),
+  }),
+);
+
+// Role permissions relation table
+export const RolePermissionTable = pgTable(
+  'role_permissions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    role: userRoleEnum('role').notNull(),
+    permissionId: uuid('permission_id')
+      .notNull()
+      .references(() => PermissionTable.id, { onDelete: 'cascade' }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    rolePermissionIndex: uniqueIndex('role_permission_unique_idx').on(
+      table.role,
+      table.permissionId,
+    ),
+  }),
+);
+
+// Define relationships for user roles
+export const userRoleRelations = relations(UserRoleTable, ({ one }) => ({
+  user: one(UserTable, {
+    fields: [UserRoleTable.clerkUserId],
+    references: [UserTable.clerkUserId],
+  }),
+}));
+
+// Define relationships for permissions
+export const permissionRelations = relations(PermissionTable, ({ many }) => ({
+  rolePermissions: many(RolePermissionTable),
+}));
+
+// Define relationships for role permissions
+export const rolePermissionRelations = relations(RolePermissionTable, ({ one }) => ({
+  permission: one(PermissionTable, {
+    fields: [RolePermissionTable.permissionId],
+    references: [PermissionTable.id],
+  }),
+}));
 
 export const EventTable = pgTable(
   'events',
@@ -199,6 +282,7 @@ export const UserTable = pgTable(
     firstName: text('first_name'),
     lastName: text('last_name'),
     imageUrl: text('image_url'),
+    primaryRole: userRoleEnum('primary_role').default('user').notNull(),
     role: text('role', { enum: ['user', 'expert', 'admin'] })
       .default('user')
       .notNull(),
@@ -230,6 +314,7 @@ export const userRelations = relations(UserTable, ({ many, one }) => ({
   events: many(EventTable),
   meetings: many(MeetingTable),
   profile: one(ProfileTable),
+  roles: many(UserRoleTable),
 }));
 
 export const eventRelations = relations(EventTable, ({ one }) => ({
