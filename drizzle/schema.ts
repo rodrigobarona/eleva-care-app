@@ -14,13 +14,25 @@ import {
   uuid,
 } from 'drizzle-orm/pg-core';
 
+/**
+ * Common timestamp fields used across multiple tables
+ * - createdAt: Automatically set to current time when record is created
+ * - updatedAt: Automatically set to current time when record is created and updated
+ */
 const createdAt = timestamp('createdAt').notNull().defaultNow();
 const updatedAt = timestamp('updatedAt')
   .notNull()
   .defaultNow()
   .$onUpdate(() => new Date());
 
-// Define the role enum with all user role types
+/**
+ * Enum defining all possible user roles in the system
+ * - superadmin: Highest level of access, can manage all aspects of the system
+ * - admin: Administrative access to manage users and settings
+ * - top_expert: Verified experts with additional privileges
+ * - community_expert: Standard experts who can offer services
+ * - user: Regular users who can book meetings with experts
+ */
 export const userRoleEnum = pgEnum('user_role', [
   'superadmin',
   'admin',
@@ -29,7 +41,12 @@ export const userRoleEnum = pgEnum('user_role', [
   'user',
 ]);
 
-// User Roles relation table for many-to-many relationship
+/**
+ * User Roles table - implements many-to-many relationship between users and roles
+ *
+ * This table allows users to have multiple roles simultaneously.
+ * Each record represents a role assignment to a specific user.
+ */
 export const UserRoleTable = pgTable(
   'user_roles',
   {
@@ -46,7 +63,12 @@ export const UserRoleTable = pgTable(
   }),
 );
 
-// User permissions table for fine-grained access control
+/**
+ * Permissions table - defines individual permissions that can be assigned to roles
+ *
+ * Used for fine-grained access control throughout the application.
+ * Each permission represents a specific action that can be performed.
+ */
 export const PermissionTable = pgTable(
   'permissions',
   {
@@ -61,7 +83,12 @@ export const PermissionTable = pgTable(
   }),
 );
 
-// Role permissions relation table
+/**
+ * Role Permissions table - defines which permissions are assigned to which roles
+ *
+ * Implements many-to-many relationship between roles and permissions.
+ * Each record grants a specific permission to a role.
+ */
 export const RolePermissionTable = pgTable(
   'role_permissions',
   {
@@ -81,7 +108,12 @@ export const RolePermissionTable = pgTable(
   }),
 );
 
-// Define relationships for user roles
+/**
+ * Relationship definition for UserRoleTable
+ *
+ * Establishes a one-to-many relationship with UserTable.
+ * Each user can have multiple roles.
+ */
 export const userRoleRelations = relations(UserRoleTable, ({ one }) => ({
   user: one(UserTable, {
     fields: [UserRoleTable.clerkUserId],
@@ -89,12 +121,22 @@ export const userRoleRelations = relations(UserRoleTable, ({ one }) => ({
   }),
 }));
 
-// Define relationships for permissions
+/**
+ * Relationship definition for PermissionTable
+ *
+ * Establishes a one-to-many relationship with RolePermissionTable.
+ * Each permission can be assigned to multiple roles.
+ */
 export const permissionRelations = relations(PermissionTable, ({ many }) => ({
   rolePermissions: many(RolePermissionTable),
 }));
 
-// Define relationships for role permissions
+/**
+ * Relationship definition for RolePermissionTable
+ *
+ * Establishes a many-to-one relationship with PermissionTable.
+ * Each role-permission assignment references a specific permission.
+ */
 export const rolePermissionRelations = relations(RolePermissionTable, ({ one }) => ({
   permission: one(PermissionTable, {
     fields: [RolePermissionTable.permissionId],
@@ -102,6 +144,12 @@ export const rolePermissionRelations = relations(RolePermissionTable, ({ one }) 
   }),
 }));
 
+/**
+ * Events table - defines bookable events/services offered by experts
+ *
+ * Each event represents a type of service that experts can offer and users can book.
+ * Contains information about duration, pricing, and Stripe integration.
+ */
 export const EventTable = pgTable(
   'events',
   {
@@ -125,6 +173,12 @@ export const EventTable = pgTable(
   }),
 );
 
+/**
+ * Schedules table - defines the availability timezones for experts
+ *
+ * Each expert has a single schedule that contains their timezone
+ * and is linked to specific day/time availabilities.
+ */
 export const ScheduleTable = pgTable('schedules', {
   id: uuid('id').primaryKey().defaultRandom(),
   timezone: text('timezone').notNull(),
@@ -133,12 +187,27 @@ export const ScheduleTable = pgTable('schedules', {
   updatedAt,
 });
 
+/**
+ * Relationship definition for ScheduleTable
+ *
+ * Establishes a one-to-many relationship with ScheduleAvailabilityTable.
+ * Each schedule can have multiple availability time slots.
+ */
 export const scheduleRelations = relations(ScheduleTable, ({ many }) => ({
   availabilities: many(ScheduleAvailabilityTable),
 }));
 
+/**
+ * Enum defining days of the week for availability scheduling
+ */
 export const scheduleDayOfWeekEnum = pgEnum('day', DAYS_OF_WEEK_IN_ORDER);
 
+/**
+ * Schedule Availability table - defines specific time slots when experts are available
+ *
+ * Each record represents a recurring availability window on a specific day of the week.
+ * Combined with the user's schedule, this determines when meetings can be booked.
+ */
 export const ScheduleAvailabilityTable = pgTable(
   'scheduleAvailabilities',
   {
@@ -155,6 +224,12 @@ export const ScheduleAvailabilityTable = pgTable(
   }),
 );
 
+/**
+ * Relationship definition for ScheduleAvailabilityTable
+ *
+ * Establishes a many-to-one relationship with ScheduleTable.
+ * Each availability slot belongs to a specific schedule.
+ */
 export const ScheduleAvailabilityRelations = relations(ScheduleAvailabilityTable, ({ one }) => ({
   schedule: one(ScheduleTable, {
     fields: [ScheduleAvailabilityTable.scheduleId],
@@ -162,6 +237,18 @@ export const ScheduleAvailabilityRelations = relations(ScheduleAvailabilityTable
   }),
 }));
 
+/**
+ * Meetings table - core entity representing booked appointments between experts and guests
+ *
+ * Each meeting record contains all details about a scheduled appointment, including:
+ * - Expert and guest information
+ * - Start and end times
+ * - Meeting URL for virtual meetings
+ * - Extensive Stripe payment processing fields
+ *
+ * This table is central to the application's functionality, connecting experts, guests,
+ * and handling the financial transactions for paid meetings.
+ */
 export const MeetingTable = pgTable(
   'meetings',
   {
@@ -177,6 +264,7 @@ export const MeetingTable = pgTable(
     endTime: timestamp('endTime').notNull(),
     timezone: text('timezone').notNull(),
     meetingUrl: text('meetingUrl'),
+    // Stripe payment processing fields
     stripePaymentIntentId: text('stripePaymentIntentId').unique(),
     stripeSessionId: text('stripeSessionId').unique(),
     stripePaymentStatus: text('stripePaymentStatus', {
@@ -187,6 +275,7 @@ export const MeetingTable = pgTable(
     stripeApplicationFeeId: text('stripeApplicationFeeId').unique(),
     stripeRefundId: text('stripeRefundId').unique(),
     stripeMetadata: json('stripeMetadata'),
+    // Stripe Connect fields for payouts to experts
     stripeTransferId: text('stripeTransferId').unique(),
     stripeTransferAmount: integer('stripeTransferAmount'),
     stripeTransferStatus: text('stripeTransferStatus', {
@@ -212,6 +301,12 @@ export const MeetingTable = pgTable(
   }),
 );
 
+/**
+ * Relationship definition for MeetingTable
+ *
+ * Establishes a many-to-one relationship with EventTable.
+ * Each meeting is based on a specific event type.
+ */
 export const meetingRelations = relations(MeetingTable, ({ one }) => ({
   event: one(EventTable, {
     fields: [MeetingTable.eventId],
@@ -219,6 +314,16 @@ export const meetingRelations = relations(MeetingTable, ({ one }) => ({
   }),
 }));
 
+/**
+ * Profiles table - contains public-facing information about users
+ *
+ * Stores professional profile information for experts, including:
+ * - Personal details (name, bio, headline)
+ * - Social media links
+ * - Verification status
+ *
+ * This data is used to build expert profile pages and listings.
+ */
 export const ProfileTable = pgTable(
   'profiles',
   {
@@ -247,6 +352,14 @@ export const ProfileTable = pgTable(
   }),
 );
 
+/**
+ * Relationship definition for ProfileTable
+ *
+ * Establishes relationships with:
+ * - MeetingTable: A profile can be associated with multiple meetings
+ * - EventTable: A profile can offer multiple event types
+ * - UserTable: Each profile belongs to a single user
+ */
 export const profileRelations = relations(ProfileTable, ({ many, one }) => ({
   meetings: many(MeetingTable),
   events: many(EventTable),
@@ -256,6 +369,9 @@ export const profileRelations = relations(ProfileTable, ({ many, one }) => ({
   }),
 }));
 
+/**
+ * Enum defining possible subscription statuses for user subscriptions
+ */
 export const subscriptionStatusEnum = pgEnum('subscription_status', [
   'active',
   'canceled',
@@ -266,11 +382,24 @@ export const subscriptionStatusEnum = pgEnum('subscription_status', [
   'unpaid',
 ]);
 
+/**
+ * Users table - core entity representing users in the system
+ *
+ * Stores authentication and account information, including:
+ * - Clerk authentication details
+ * - Stripe customer information and subscription status
+ * - Stripe Connect details for experts who receive payments
+ * - User roles and basic profile information
+ *
+ * This table is the central hub connecting a user to their roles, profile,
+ * events, and meetings.
+ */
 export const UserTable = pgTable(
   'users',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     clerkUserId: text('clerkUserId').notNull().unique(),
+    // Stripe customer fields for subscription management
     stripeCustomerId: text('stripeCustomerId').unique(),
     subscriptionId: text('subscriptionId'),
     subscriptionStatus: subscriptionStatusEnum('subscriptionStatus'),
@@ -278,6 +407,7 @@ export const UserTable = pgTable(
     subscriptionCurrentPeriodEnd: timestamp('subscriptionCurrentPeriodEnd'),
     subscriptionCanceledAt: timestamp('subscriptionCanceledAt'),
     hasHadSubscription: boolean('hasHadSubscription').default(false),
+    // Basic user information
     email: text('email').notNull(),
     firstName: text('first_name'),
     lastName: text('last_name'),
@@ -286,6 +416,7 @@ export const UserTable = pgTable(
     role: text('role', { enum: ['user', 'expert', 'admin'] })
       .default('user')
       .notNull(),
+    // Stripe Connect fields for experts receiving payments
     stripeConnectAccountId: text('stripe_connect_account_id'),
     stripeConnectDetailsSubmitted: boolean('stripe_connect_details_submitted').default(false),
     stripeConnectChargesEnabled: boolean('stripe_connect_charges_enabled').default(false),
@@ -293,6 +424,7 @@ export const UserTable = pgTable(
     stripeConnectOnboardingComplete: boolean('stripe_connect_onboarding_complete').default(false),
     stripeBankAccountLast4: text('stripe_bank_account_last4'),
     stripeBankName: text('stripe_bank_name'),
+    // Identity verification fields
     stripeIdentityVerificationId: text('stripe_identity_verification_id'),
     stripeIdentityVerified: boolean('stripe_identity_verified').default(false),
     stripeIdentityVerificationStatus: text('stripe_identity_verification_status'),
@@ -310,6 +442,15 @@ export const UserTable = pgTable(
   }),
 );
 
+/**
+ * Relationship definition for UserTable
+ *
+ * Establishes relationships with:
+ * - EventTable: A user can create multiple events
+ * - MeetingTable: A user can participate in multiple meetings
+ * - ProfileTable: Each user has one profile
+ * - UserRoleTable: A user can have multiple roles
+ */
 export const userRelations = relations(UserTable, ({ many, one }) => ({
   events: many(EventTable),
   meetings: many(MeetingTable),
@@ -317,6 +458,12 @@ export const userRelations = relations(UserTable, ({ many, one }) => ({
   roles: many(UserRoleTable),
 }));
 
+/**
+ * Relationship definition for EventTable
+ *
+ * Establishes a many-to-one relationship with UserTable.
+ * Each event is created by a specific user.
+ */
 export const eventRelations = relations(EventTable, ({ one }) => ({
   user: one(UserTable, {
     fields: [EventTable.clerkUserId],
@@ -324,6 +471,16 @@ export const eventRelations = relations(EventTable, ({ one }) => ({
   }),
 }));
 
+/**
+ * Records table - stores encrypted meeting records and notes
+ *
+ * Used to securely store sensitive information from meetings, such as:
+ * - Encrypted content (meeting notes, diagnoses, recommendations)
+ * - Encrypted metadata about the records
+ * - Version tracking for change history
+ *
+ * Each record is associated with a specific meeting and expert.
+ */
 export const RecordTable = pgTable('records', {
   id: uuid('id').defaultRandom().primaryKey(),
   meetingId: uuid('meeting_id')
@@ -340,6 +497,13 @@ export const RecordTable = pgTable('records', {
   version: integer('version').default(1).notNull(),
 });
 
+/**
+ * Relationship definition for RecordTable
+ *
+ * Establishes relationships with:
+ * - MeetingTable: Each record belongs to a specific meeting
+ * - UserTable: Each record is created by a specific expert
+ */
 export const recordsRelations = relations(RecordTable, ({ one }) => ({
   meeting: one(MeetingTable, {
     fields: [RecordTable.meetingId],
