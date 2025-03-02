@@ -207,6 +207,9 @@ importers:
       react:
         specifier: ^19.0.0
         version: 19.0.0
+      react-cookie-manager:
+        specifier: ^3.2.0
+        version: 3.2.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
       react-day-picker:
         specifier: 9.5.1
         version: 9.5.1(react@19.0.0)
@@ -4590,6 +4593,12 @@ packages:
 
   queue-microtask@1.2.3:
     resolution: {integrity: sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A==}
+
+  react-cookie-manager@3.2.0:
+    resolution: {integrity: sha512-mQWwcRBT330LRu6B0uZ5qzEQgQ4Hcg2iVltvarS5Su+fuvtlqiXLTnwLoqTDPK+N7kqswin6q39C849XAmnCow==}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
 
   react-day-picker@9.5.1:
     resolution: {integrity: sha512-PxuK8inYLlYgM2zZUVBPsaBM5jI40suPeG+naKyx7kpyF032RRlEAUEjkpW9/poTASh/vyWAOVqjGuGw+47isw==}
@@ -9996,6 +10005,11 @@ snapshots:
       side-channel: 1.1.0
 
   queue-microtask@1.2.3: {}
+
+  react-cookie-manager@3.2.0(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
+    dependencies:
+      react: 19.0.0
+      react-dom: 19.0.0(react@19.0.0)
 
   react-day-picker@9.5.1(react@19.0.0):
     dependencies:

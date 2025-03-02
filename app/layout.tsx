@@ -5,7 +5,6 @@ import type { Metadata } from 'next';
 import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import type React from 'react';
-import { Toaster } from 'sonner';
 
 import './globals.css';
 import { ClientProviders, Providers } from './providers';
@@ -74,7 +73,6 @@ export default function RootLayout({
               </ClientProviders>
             </NuqsAdapter>
           </ErrorBoundaryWrapper>
-          <Toaster />
         </body>
       </html>
     </Providers>

@@ -9,7 +9,6 @@ import {
 } from '@/components/atoms/select';
 import { useAuthorization } from '@/components/molecules/AuthorizationProvider';
 import { DataTable } from '@/components/molecules/data-table';
-import { Toaster } from '@/components/molecules/sonner';
 import { ROLES, updateUserRole, type UserRole } from '@/lib/auth/roles';
 import type { ColumnDef } from '@tanstack/react-table';
 import { useEffect, useState } from 'react';
@@ -121,7 +120,6 @@ export function UserRoleManager() {
   return (
     <div>
       <DataTable columns={columns} data={users} />
-      <Toaster />
     </div>
   );
 }

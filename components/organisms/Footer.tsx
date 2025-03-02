@@ -172,18 +172,18 @@ export default function Footer() {
                           </li>
                           <li>
                             <Link
-                              href="/legal/dpa"
+                              href="/legal/cookie"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Data Processing Agreement
+                              Cookie Policy
                             </Link>
                           </li>
                           <li>
                             <Link
-                              href="/legal/cookies"
+                              href="/legal/dpa"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Cookie Policy
+                              Data Processing Agreement
                             </Link>
                           </li>
                         </ul>

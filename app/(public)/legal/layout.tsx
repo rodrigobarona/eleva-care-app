@@ -5,6 +5,7 @@ import type React from 'react';
 const legalLinks = [
   { href: '/legal/terms', label: 'Terms of Service' },
   { href: '/legal/privacy', label: 'Privacy Policy' },
+  { href: '/legal/cookie', label: 'Cookie Policy' },
   { href: '/legal/dpa', label: 'Data Processing Agreement' },
 ];
 

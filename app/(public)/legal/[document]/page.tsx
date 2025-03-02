@@ -139,6 +139,99 @@ If you have any questions about this Privacy Policy, please contact us at [suppo
 This Privacy Policy is subject to change. Please check back regularly for updates.
 `,
   },
+  cookie: {
+    title: 'Cookie Policy',
+    content: `# Cookie Policy
+
+_Last Updated:_ March 2, 2025
+
+## Introduction
+
+As a healthcare platform, we take cookie privacy and transparency seriously. This Cookie Policy explains how we use cookies and similar tracking technologies on our website and platform. It also explains how we manage cookie consent to ensure your privacy.
+
+## What Are Cookies?
+
+Cookies are small text files that are stored on your device when you visit a website. They serve various purposes, including:
+
+- Remembering your preferences and settings
+- Understanding how you interact with websites
+- Helping with security and login verification
+- Enabling certain website functionalities
+
+## Cookies We Use
+
+### Essential Cookies
+
+These cookies are necessary for our website to function properly:
+
+- Authentication cookies to manage user sessions
+- Security cookies to prevent fraud and protect our service
+- Technical cookies required for our platform's core functionality
+
+### Functional Cookies
+
+These cookies enable enhanced functionality:
+
+- Language preferences
+- Theme preferences (light/dark mode)
+- User interface customization settings
+
+### Analytics Cookies
+
+We use minimal analytics to improve our service:
+
+- Anonymous usage statistics
+- Performance monitoring
+- Error tracking for service improvement
+
+## Cookie Duration
+
+### Session Cookies
+
+Temporary cookies that expire when you close your browser.
+
+### Persistent Cookies
+
+Cookies that remain on your device for a set period. We limit persistent cookies to a maximum of 12 months, as recommended by privacy regulations.
+
+## Our Cookie Consent Solution
+
+We use CookieKit to ensure transparency and control over cookies:
+
+- Obtain explicit consent before setting non-essential cookies
+- Provide granular control over cookie preferences
+- Enable easy withdrawal of consent
+- Maintain detailed consent records
+- Update consent preferences in real-time
+
+## Managing Cookie Preferences
+
+You can manage your cookie preferences in several ways:
+
+- Using our cookie consent banner
+- Through your browser settings
+- Via our preference center (accessible through the floating cookie button)
+
+**Note:** Blocking essential cookies may affect the functionality of our website and platform.
+
+## Third-Party Cookies
+
+We minimize the use of third-party cookies. When required, we ensure our partners comply with relevant data protection regulations and maintain transparent privacy practices. Our third-party services include:
+
+- Clerk for user authentication
+- Stripe for payment processing
+- Google Analytics for minimal usage statistics
+- Beehiiv for newsletter subscription management
+
+## Updates to This Policy
+
+We may update this Cookie Policy to reflect changes in our practices or for legal compliance. We will notify you of any material changes and update the "Last updated" date accordingly.
+
+## Contact Us
+
+If you have questions about our Cookie Policy or our practices, please contact us at: [support@eleva.care](mailto:support@eleva.care) or call +351 931897950.
+`,
+  },
   dpa: {
     title: 'Data Processing Agreement',
     content: `# Data Processing Agreement (DPA) between Búzios e Tartarugas, Lda. (Eleva.care) and Data Processors
