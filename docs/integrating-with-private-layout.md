@@ -133,7 +133,7 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect('/sign-in');
+    redirect('/unauthorized');
   }
 
   return (

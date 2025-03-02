@@ -34,7 +34,7 @@ export default function OnboardingPage() {
 
   // Redirect if not signed in
   if (!isSignedIn) {
-    redirect('/sign-in');
+    redirect('/unauthorized');
   }
 
   // Handle profile update

@@ -8,7 +8,7 @@ export default function ProfilePage() {
   const { user, isLoaded } = useUser();
 
   if (!isLoaded) return null;
-  if (!user) return redirect('/sign-in');
+  if (!user) return redirect('/unauthorized');
 
   return (
     <div className="space-y-6">

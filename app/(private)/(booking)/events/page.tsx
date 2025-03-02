@@ -9,7 +9,7 @@ export default async function EventsPage() {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect('/sign-in');
+    redirect('/unauthorized');
   }
 
   const clerk = createClerkClient({

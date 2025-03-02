@@ -1,9 +1,3 @@
-import type { ReactNode } from 'react';
-
-import { redirect } from 'next/navigation';
-
-import { auth } from '@clerk/nextjs/server';
-
 import { Separator } from '@/components/atoms/separator';
 import { PrivateLayoutWrapper } from '@/components/organisms/PrivateLayoutWrapper';
 import { AppBreadcrumb } from '@/components/organisms/sidebar/AppBreadcrumb';
@@ -13,6 +7,9 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from '@/components/organisms/sidebar/sidebar';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+import type { ReactNode } from 'react';
 
 interface PrivateLayoutProps {
   children: ReactNode;
@@ -22,7 +19,7 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect('/sign-in');
+    redirect('/unauthorized');
   }
 
   return (

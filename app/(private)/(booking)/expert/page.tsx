@@ -7,7 +7,7 @@ import { redirect } from 'next/navigation';
 
 export default async function ProfilePage() {
   const { userId } = await auth();
-  if (!userId) return redirect('/sign-in');
+  if (!userId) return redirect('/unauthorized');
 
   // Try to find existing profile
   const profile = await db.query.ProfileTable.findFirst({
