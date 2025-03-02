@@ -220,7 +220,7 @@ We minimize the use of third-party cookies. When required, we ensure our partner
 
 - Clerk for user authentication
 - Stripe for payment processing
-- Google Analytics for minimal usage statistics
+- PostHog for minimal usage statistics and analytics
 - Beehiiv for newsletter subscription management
 
 ## Updates to This Policy
@@ -247,7 +247,8 @@ _Last Updated:_ January 27, 2025
 - Neon Inc., 2261 Market Street STE 22601 San Francisco, CA, 94114, USA
 - Clerk, Inc., 660 King Street Unit 345 San Francisco, CA 94107 United States
 - Stripe, Inc., 510 Townsend St., San Francisco, CA United States
-- Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 United States
+- PostHog Inc., 2261 Market St STE 22301, San Francisco, CA 94114, United States
+- Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 United States (for Single Sign-On services only)
 - Beehiiv Inc., for processing newsletter data as defined in their applicable agreements.
 
 ## 1. Subject Matter and Purpose of Processing
@@ -256,7 +257,8 @@ This DPA governs the processing of personal data by the Data Processors on behal
 - **Neon:** Database services for storing appointment data, synchronized with Clerk.
 - **Clerk:** User management services.
 - **Stripe:** Payment processing and storage of payment method data.
-- **Google Cloud:** Single Sign-On (SSO) services.
+- **PostHog:** Analytics and user behavior tracking services.
+- **Google Cloud:** Single Sign-On (SSO) services only.
 - **Beehiiv:** Newsletter services and related communications.
 
 The purpose of processing is to facilitate the operation of Eleva.care's platform and services, including user authentication, appointment management, and payment processing.
