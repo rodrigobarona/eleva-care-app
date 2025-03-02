@@ -7,6 +7,8 @@ export type UserRole =
   | 'admin'
   | 'superadmin';
 
+export type UserRoles = UserRole | UserRole[];
+
 export const ROLES = [
   'user',
   'top_expert',
@@ -27,17 +29,17 @@ export const ROLE_PRIORITY: Record<UserRole, number> = {
 };
 
 // Client-side role management
-export async function getUserRole(userId: string): Promise<UserRole> {
+export async function getUserRole(userId: string): Promise<UserRoles> {
   const response = await fetch(`/api/users/${userId}/roles`);
   const data = await response.json();
   return data.role;
 }
 
-export async function updateUserRole(userId: string, role: UserRole): Promise<void> {
+export async function updateUserRole(userId: string, roles: UserRoles): Promise<void> {
   const response = await fetch(`/api/users/${userId}/roles`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role }),
+    body: JSON.stringify({ roles }),
   });
 
   if (!response.ok) {

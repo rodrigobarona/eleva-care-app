@@ -1,4 +1,4 @@
-import type { UserRole } from '@/lib/auth/roles';
+import type { UserRoles } from '@/lib/auth/roles';
 import { hasRole, updateUserRole } from '@/lib/auth/roles.server';
 import type { ApiResponse, ApiUser, UpdateRoleRequest } from '@/types/api';
 import { auth, clerkClient } from '@clerk/nextjs/server';
@@ -53,7 +53,7 @@ export async function GET(req: Request) {
       id: user.id,
       email: user.emailAddresses[0]?.emailAddress || '',
       name: user.firstName || '',
-      role: (user.publicMetadata.role as UserRole) || 'user',
+      role: (user.publicMetadata.role as UserRoles) || 'user',
     }));
 
     return NextResponse.json({
@@ -77,9 +77,16 @@ export async function GET(req: Request) {
 
 export async function PATCH(req: Request) {
   try {
-    const { userId: targetUserId, role } = (await req.json()) as UpdateRoleRequest;
-    await updateUserRole(targetUserId, role);
-    return NextResponse.json({ success: true } as ApiResponse<null>);
+    const { userId: targetUserId, roles } = (await req.json()) as UpdateRoleRequest;
+    await updateUserRole(targetUserId, roles);
+
+    // Format roles as readable string for success message
+    const rolesStr = Array.isArray(roles) ? roles.join(', ') : roles;
+
+    return NextResponse.json({
+      success: true,
+      message: `Roles updated successfully to: ${rolesStr}`,
+    } as ApiResponse<null>);
   } catch (error) {
     console.error('Error updating user role:', error);
     return NextResponse.json(

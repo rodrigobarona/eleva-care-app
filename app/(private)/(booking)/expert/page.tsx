@@ -1,6 +1,7 @@
 import { ExpertForm } from '@/components/organisms/forms/ExpertForm';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
@@ -13,6 +14,14 @@ export default async function ProfilePage() {
   const profile = await db.query.ProfileTable.findFirst({
     where: eq(ProfileTable.clerkUserId, userId),
   });
+
+  // If profile exists and has required fields filled, mark step as complete
+  if (profile?.firstName && profile?.lastName && profile?.shortBio) {
+    // Mark profile step as complete (non-blocking)
+    markStepComplete('profile').catch((error) => {
+      console.error('Failed to mark profile step as complete:', error);
+    });
+  }
 
   // If no profile exists, create one with default values
   if (!profile) {

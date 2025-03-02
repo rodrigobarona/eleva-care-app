@@ -1,3 +1,4 @@
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 
 import { BillingPageClient } from './billing-client';
@@ -39,6 +40,18 @@ export default async function BillingPage() {
           <p className="text-muted-foreground">No billing data available.</p>
         </div>
       );
+    }
+
+    // If Stripe Connect account is set up, mark the payment step as complete
+    if (
+      data.user.stripeConnectAccountId &&
+      data.accountStatus?.detailsSubmitted &&
+      data.accountStatus?.payoutsEnabled
+    ) {
+      // Mark payment step as complete (non-blocking)
+      markStepComplete('payment').catch((error) => {
+        console.error('Failed to mark payment step as complete:', error);
+      });
     }
 
     return <BillingPageClient dbUser={data.user} accountStatus={data.accountStatus} />;

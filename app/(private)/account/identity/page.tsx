@@ -1,3 +1,4 @@
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 
 import { IdentityPageClient } from './identity-client';
@@ -30,6 +31,14 @@ export default async function IdentityPage() {
           <p className="text-muted-foreground">No identity verification data available.</p>
         </div>
       );
+    }
+
+    // If verification is complete, mark the identity step as complete
+    if (data.verificationStatus === 'verified') {
+      // Mark identity step as complete (non-blocking)
+      markStepComplete('identity').catch((error) => {
+        console.error('Failed to mark identity step as complete:', error);
+      });
     }
 
     return <IdentityPageClient dbUser={data.user} verificationStatus={data.verificationStatus} />;

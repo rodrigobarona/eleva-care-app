@@ -1,4 +1,4 @@
-import type { UserRole } from '@/lib/auth/roles';
+import type { UserRole, UserRoles } from '@/lib/auth/roles';
 
 export interface ApiResponse<T> {
   success?: boolean;
@@ -11,10 +11,10 @@ export interface ApiUser {
   id: string;
   email: string;
   name: string;
-  role: UserRole;
+  role: UserRoles;
 }
 
 export interface UpdateRoleRequest {
   userId: string;
-  role: UserRole;
+  roles: UserRoles;
 }

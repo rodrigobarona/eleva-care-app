@@ -1,4 +1,4 @@
-import type { UserRole } from '@/lib/auth/roles';
+import type { UserRoles } from '@/lib/auth/roles';
 import { getUserRole, hasRole, updateUserRole } from '@/lib/auth/roles.server';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
@@ -41,13 +41,16 @@ export async function POST(request: NextRequest, props: { params: Promise<{ user
   try {
     const params = await props.params;
     const body = await request.json();
-    const { role } = body as { role: UserRole };
+    const { roles } = body as { roles: UserRoles };
 
-    await updateUserRole(params.userId, role);
+    await updateUserRole(params.userId, roles);
+
+    // Format roles as readable string for success message
+    const rolesStr = Array.isArray(roles) ? roles.join(', ') : roles;
 
     return NextResponse.json({
       success: true,
-      message: `Role updated successfully to '${role}'`,
+      message: `Role(s) updated successfully to: ${rolesStr}`,
     });
   } catch (error) {
     console.error('Error updating user role:', error);
