@@ -6,7 +6,7 @@ import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
 import posthog from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-cookie-manager/style.css';
 import { Toaster } from 'sonner';
 
@@ -35,20 +35,52 @@ export function Providers({ children }: ProvidersProps) {
  * They include theme management, authorization context, and toast notifications
  */
 export function ClientProviders({ children }: ProvidersProps) {
+  const [posthogLoaded, setPosthogLoaded] = useState(false);
+
   useEffect(() => {
-    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY || 'phc_000000000', {
-      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
-      capture_pageview: false, // Disable automatic pageview capture, as we capture manually
-      capture_pageleave: true, // Enable pageleave capture
-    });
+    // Only run on client
+    if (typeof window === 'undefined') return;
+
+    // Check if we have valid config
+    const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+    const apiHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+
+    if (!apiKey || apiKey === 'phc_000000000' || !apiHost) {
+      console.warn('[PostHog] Not initialized: Missing or invalid API key or host');
+      return;
+    }
+
+    try {
+      // Initialize PostHog with error handling
+      posthog.init(apiKey, {
+        api_host: apiHost,
+        capture_pageview: false, // Disable automatic pageview capture, as we capture manually
+        capture_pageleave: true, // Enable pageleave capture
+        loaded: (_ph) => {
+          setPosthogLoaded(true);
+        },
+        advanced_disable_decide: false, // If still getting remote config errors, set to true
+      });
+
+      // Add global error listener for PostHog
+      window.addEventListener('error', (event) => {
+        if (event.error?.message?.includes('PostHog')) {
+          console.warn('[PostHog] Error caught:', event.error.message);
+          event.preventDefault();
+        }
+      });
+    } catch (error) {
+      console.error('[PostHog] Failed to initialize:', error);
+    }
   }, []);
+
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <AuthorizationProvider>
         <CookieManager
           cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
           showManageButton={true}
-          enableFloatingButton={false}
+          enableFloatingButton={true}
           displayType="popup"
           cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
           theme="light"
@@ -64,7 +96,7 @@ export function ClientProviders({ children }: ProvidersProps) {
           }}
         >
           <PHProvider client={posthog}>
-            <PostHogPageView />
+            {posthogLoaded && <PostHogPageView />}
             {children}
             <Toaster closeButton position="bottom-right" richColors />
           </PHProvider>

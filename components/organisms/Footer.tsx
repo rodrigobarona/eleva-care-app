@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useCookieConsent } from 'react-cookie-manager';
 
 export default function Footer() {
-  const { showConsentBanner } = useCookieConsent();
+  const { showConsentBanner } = useCookieConsent() || {};
 
   return (
     <footer>
@@ -192,7 +192,7 @@ export default function Footer() {
                           <li>
                             <button
                               type="button"
-                              onClick={() => showConsentBanner()}
+                              onClick={() => showConsentBanner?.()}
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
                               Cookie Manager
