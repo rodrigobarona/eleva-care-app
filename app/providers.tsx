@@ -45,7 +45,7 @@ export function ClientProviders({ children }: ProvidersProps) {
     const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
     const apiHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
 
-    if (!apiKey || apiKey === 'phc_000000000' || !apiHost) {
+    if (!apiKey || !apiHost) {
       console.warn('[PostHog] Not initialized: Missing or invalid API key or host');
       return;
     }
