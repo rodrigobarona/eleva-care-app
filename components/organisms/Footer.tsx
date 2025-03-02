@@ -182,21 +182,21 @@ export default function Footer() {
                             </Link>
                           </li>
                           <li>
+                            <button
+                              type="button"
+                              onClick={() => showConsentBanner?.()}
+                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                            >
+                              Cookies Preferences
+                            </button>
+                          </li>
+                          <li>
                             <Link
                               href="/legal/dpa"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
                               Data Processing Agreement
                             </Link>
-                          </li>
-                          <li>
-                            <button
-                              type="button"
-                              onClick={() => showConsentBanner?.()}
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
-                            >
-                              Cookie Manager
-                            </button>
                           </li>
                         </ul>
                       </div>
