@@ -261,52 +261,87 @@ This DPA governs the processing of personal data by the Data Processors on behal
 - **Google Cloud:** Single Sign-On (SSO) services only.
 - **Beehiiv:** Newsletter services and related communications.
 
-The purpose of processing is to facilitate the operation of Eleva.care's platform and services, including user authentication, appointment management, and payment processing.
+The purpose of processing is to facilitate the operation of Eleva.care's platform and services, including user authentication, appointment management, payment processing, and analytics.
 
-## 2. Data Controller's Responsibilities
+## 2. Definitions
+
+For the purposes of this DPA, the following terms shall have the meanings set out below:
+
+- **"Data Protection Laws"** means all applicable laws relating to the processing of Personal Data, including the General Data Protection Regulation (EU) 2016/679 ("GDPR"), UK GDPR, and other applicable data protection laws.
+- **"Personal Data"** means any information relating to an identified or identifiable natural person as defined in Article 4(1) of the GDPR.
+- **"Processing"** means any operation performed on Personal Data as defined in Article 4(2) of the GDPR.
+- **"Data Subject"** means the identified or identifiable person to whom the Personal Data relates.
+- **"Personal Data Breach"** means a breach of security leading to the accidental or unlawful destruction, loss, alteration, unauthorized disclosure of, or access to, Personal Data.
+
+## 3. Data Controller's Responsibilities
 
 Eleva.care, as the Data Controller, shall:
 - Comply with all applicable data protection laws, including GDPR.
 - Provide clear and accurate instructions to the Data Processors regarding the processing of personal data.
 - Obtain and maintain all necessary consents from data subjects for the processing of their personal data.
 - Implement appropriate technical and organizational measures to ensure the security of personal data.
+- Respond to requests from Data Subjects regarding their Personal Data rights.
 
-## 3. Data Processors' Responsibilities
+## 4. Data Processors' Responsibilities
 
-The Data Processors shall:
-- Process personal data only on documented instructions from the Data Controller.
-- Implement appropriate technical and organizational security measures to protect personal data against unauthorized access, use, disclosure, alteration, or destruction.
-- Assist the Data Controller in fulfilling its obligations under GDPR, including responding to data subject requests.
-- Notify the Data Controller without undue delay of any personal data breaches.
-- Engage sub-processors only with the prior written consent of the Data Controller. [Include details about sub-processor management based on the relevant DPA clauses from Neon, Clerk, etc.]
+Each Data Processor shall:
+- Process Personal Data only on documented instructions from Eleva.care.
+- Ensure that persons authorized to process the Personal Data have committed themselves to confidentiality.
+- Implement appropriate technical and organizational measures to ensure a level of security appropriate to the risk.
+- Not engage another processor without prior authorization from Eleva.care.
+- Assist Eleva.care in responding to requests from Data Subjects.
+- Assist Eleva.care in ensuring compliance with security obligations.
+- Delete or return all Personal Data to Eleva.care after the end of the provision of services.
+- Make available to Eleva.care all information necessary to demonstrate compliance with this DPA.
+- Not transfer Personal Data outside the EEA without adequate safeguards in place.
 
-## 4. Data Security
+## 5. Personal Data Breach
 
-The Data Processors shall implement and maintain appropriate technical and organizational security measures, as detailed in their respective security documentation and DPAs (referenced below).
+In the event of a Personal Data Breach, the relevant Data Processor shall:
+- Notify Eleva.care without undue delay upon becoming aware of a Personal Data Breach.
+- Provide sufficient information to allow Eleva.care to meet any obligations to report to supervisory authorities or inform Data Subjects.
+- Cooperate with Eleva.care and take reasonable steps to assist in the investigation, mitigation, and remediation of each breach.
 
-## 5. International Data Transfers
+## 6. Data Subject Rights
 
-All personal data will be stored and processed within the European Union, specifically at the Frankfurt edge point. Data transfers between EU member states will be carried out in compliance with GDPR requirements for intra-EU transfers.
+The Data Processors shall assist Eleva.care in responding to requests from Data Subjects exercising their rights under Data Protection Laws, including:
+- Right of access
+- Right to rectification
+- Right to erasure
+- Right to restriction of processing
+- Right to data portability
+- Right to object
+- Rights related to automated decision making and profiling
 
-## 6. Data Subject Requests
+## 7. International Transfers
 
-The Data Processors shall assist the Data Controller in responding to data subject requests, as detailed in their respective DPAs.
+Where a Data Processor transfers Personal Data outside the European Economic Area, it shall ensure that appropriate safeguards are in place, such as:
+- Adequacy decisions
+- Standard Contractual Clauses
+- Binding Corporate Rules
+- Certifications (such as EU-US Data Privacy Framework)
 
-## 7. Term and Termination
+## 8. Termination
 
-This DPA shall remain in effect for the duration of the Agreement between Eleva.care and the respective Data Processors.
+Upon termination of services, each Data Processor shall, at the choice of Eleva.care, delete or return all Personal Data and delete existing copies unless storage is required by applicable law.
 
-## 8. Governing Law
+## 9. Liability
 
-This DPA shall be governed by and construed in accordance with the laws of Portugal.
+Each Data Processor shall be liable for the damage caused by processing that infringes the Data Protection Laws. A Data Processor shall be exempt from liability if it proves that it is not in any way responsible for the event giving rise to the damage.
 
-## 9. References of the Data Processing Agreement
+## 10. Audit Rights
 
-- **Neon:** [https://neon.tech/dpa](https://neon.tech/dpa)
-- **Clerk:** [https://clerk.com/legal/dpa](https://clerk.com/legal/dpa)
-- **Stripe:** [https://stripe.com/legal/dpa](https://stripe.com/legal/dpa)
-- **Google Cloud:** [https://cloud.google.com/terms/data-processing-addendum](https://cloud.google.com/terms/data-processing-addendum)
-- **Beehiiv:** Refer to Beehiiv's legal documentation for their data processing terms.
+Upon request, each Data Processor shall make available to Eleva.care all information necessary to demonstrate compliance with this DPA and shall allow for and contribute to audits, including inspections, conducted by Eleva.care or another auditor mandated by Eleva.care.
+
+## 11. Subprocessing
+
+Data Processors may engage subprocessors only with prior written authorization from Eleva.care. Any subprocessor must provide sufficient guarantees to implement appropriate technical and organizational measures.
+
+## Contact Information
+
+For questions regarding this Data Processing Agreement, please contact:
+- **Email:** [support@eleva.care](mailto:support@eleva.care)
+- **Phone:** +351 931897950
 `,
   },
 };
