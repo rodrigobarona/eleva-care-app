@@ -4,8 +4,13 @@ import { AuthorizationProvider } from '@/components/molecules/AuthorizationProvi
 import { ClerkProvider } from '@clerk/nextjs';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
+import posthog from 'posthog-js';
+import { PostHogProvider as PHProvider } from 'posthog-js/react';
+import { useEffect } from 'react';
 import 'react-cookie-manager/style.css';
 import { Toaster } from 'sonner';
+
+import PostHogPageView from './PostHogPageView';
 
 // Dynamically import CookieManager to prevent SSR issues
 const CookieManager = dynamic(
@@ -30,15 +35,22 @@ export function Providers({ children }: ProvidersProps) {
  * They include theme management, authorization context, and toast notifications
  */
 export function ClientProviders({ children }: ProvidersProps) {
+  useEffect(() => {
+    posthog.init(process.env.NEXT_PUBLIC_POSTHOG_KEY || 'phc_000000000', {
+      api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST || 'https://eu.i.posthog.com',
+      capture_pageview: false, // Disable automatic pageview capture, as we capture manually
+      capture_pageleave: true, // Enable pageleave capture
+    });
+  }, []);
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
       <AuthorizationProvider>
         <CookieManager
-          cookieKitId="67c4aff8666e5176795fd7d1"
+          cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
           showManageButton={true}
-          enableFloatingButton={true}
+          enableFloatingButton={false}
           displayType="popup"
-          cookieKey="eleva-care-cookie-consent"
+          cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
           theme="light"
           privacyPolicyUrl="/legal/cookie"
           translations={{
@@ -51,8 +63,11 @@ export function ClientProviders({ children }: ProvidersProps) {
             privacyPolicyText: 'Cookie Policy',
           }}
         >
-          {children}
-          <Toaster closeButton position="bottom-right" richColors />
+          <PHProvider client={posthog}>
+            <PostHogPageView />
+            {children}
+            <Toaster closeButton position="bottom-right" richColors />
+          </PHProvider>
         </CookieManager>
       </AuthorizationProvider>
     </ThemeProvider>

@@ -1,7 +1,10 @@
 import { Button } from '@/components/atoms/button';
 import Link from 'next/link';
+import { useCookieConsent } from 'react-cookie-manager';
 
 export default function Footer() {
+  const { showConsentBanner } = useCookieConsent();
+
   return (
     <footer>
       <div className="lg:rounded-5xl mx-2 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple">
@@ -185,6 +188,15 @@ export default function Footer() {
                             >
                               Data Processing Agreement
                             </Link>
+                          </li>
+                          <li>
+                            <button
+                              type="button"
+                              onClick={() => showConsentBanner()}
+                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                            >
+                              Cookie Manager
+                            </button>
                           </li>
                         </ul>
                       </div>
