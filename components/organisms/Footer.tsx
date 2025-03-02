@@ -195,7 +195,7 @@ export default function Footer() {
                               href="/legal/dpa"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Data Processing Agreement
+                              Data Processing
                             </Link>
                           </li>
                         </ul>
