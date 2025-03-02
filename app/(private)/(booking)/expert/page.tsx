@@ -4,6 +4,7 @@ import { ProfileTable } from '@/drizzle/schema';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 export default async function ProfilePage() {
@@ -18,9 +19,14 @@ export default async function ProfilePage() {
   // If profile exists and has required fields filled, mark step as complete
   if (profile?.firstName && profile?.lastName && profile?.shortBio) {
     // Mark profile step as complete (non-blocking)
-    markStepComplete('profile').catch((error) => {
-      console.error('Failed to mark profile step as complete:', error);
-    });
+    markStepComplete('profile')
+      .then(() => {
+        // Server-side revalidation for the layout
+        revalidatePath('/(private)/layout');
+      })
+      .catch((error) => {
+        console.error('Failed to mark profile step as complete:', error);
+      });
   }
 
   // If no profile exists, create one with default values

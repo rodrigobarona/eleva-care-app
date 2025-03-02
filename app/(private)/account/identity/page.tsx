@@ -1,6 +1,11 @@
+import { db } from '@/drizzle/db';
+import { UserTable } from '@/drizzle/schema';
 import { markStepComplete } from '@/server/actions/expert-setup';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
 
+import { IdentityClient } from './identity-client';
 import { IdentityPageClient } from './identity-client';
 
 // Mark route as dynamic
@@ -36,9 +41,14 @@ export default async function IdentityPage() {
     // If verification is complete, mark the identity step as complete
     if (data.verificationStatus === 'verified') {
       // Mark identity step as complete (non-blocking)
-      markStepComplete('identity').catch((error) => {
-        console.error('Failed to mark identity step as complete:', error);
-      });
+      markStepComplete('identity')
+        .then(() => {
+          // Server-side revalidation for the layout
+          revalidatePath('/(private)/layout');
+        })
+        .catch((error) => {
+          console.error('Failed to mark identity step as complete:', error);
+        });
     }
 
     return <IdentityPageClient dbUser={data.user} verificationStatus={data.verificationStatus} />;

@@ -1,7 +1,9 @@
-import { EventsList } from '@/components/organisms/EventsList';
+import EventsList from '@/components/organisms/EventsList';
 import { db } from '@/drizzle/db';
+import { EventTable } from '@/drizzle/schema';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth, createClerkClient } from '@clerk/nextjs/server';
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 export const revalidate = 0;
@@ -24,12 +26,17 @@ export default async function EventsPage() {
     orderBy: ({ order }, { asc }) => asc(order),
   });
 
-  // If user has events, mark the events step as complete
-  if (events.length > 0) {
+  // Check if the expert has at least one published event
+  if (events.some((event) => event.status === 'published')) {
     // Mark events step as complete (non-blocking)
-    markStepComplete('events').catch((error) => {
-      console.error('Failed to mark events step as complete:', error);
-    });
+    markStepComplete('events')
+      .then(() => {
+        // Server-side revalidation for the layout
+        revalidatePath('/(private)/layout');
+      })
+      .catch((error) => {
+        console.error('Failed to mark events step as complete:', error);
+      });
   }
 
   return <EventsList initialEvents={events} username={username} />;

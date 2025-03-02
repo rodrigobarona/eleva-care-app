@@ -1,8 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { ScheduleForm } from '@/components/organisms/forms/ScheduleForm';
 import { db } from '@/drizzle/db';
+import { ScheduleTable } from '@/drizzle/schema';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 export const revalidate = 0;
 
@@ -15,12 +19,17 @@ export default async function SchedulePage() {
     with: { availabilities: true },
   });
 
-  // If schedule exists and has availabilities, mark step as complete
-  if (schedule?.availabilities && schedule.availabilities.length > 0) {
+  // If the schedule exists and has at least one day with availability, mark step as complete
+  if (schedule && Object.values(schedule.availability || {}).some((day) => day.length > 0)) {
     // Mark availability step as complete (non-blocking)
-    markStepComplete('availability').catch((error) => {
-      console.error('Failed to mark availability step as complete:', error);
-    });
+    markStepComplete('availability')
+      .then(() => {
+        // Server-side revalidation for the layout
+        revalidatePath('/(private)/layout');
+      })
+      .catch((error) => {
+        console.error('Failed to mark availability step as complete:', error);
+      });
   }
 
   return (

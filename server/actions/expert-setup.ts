@@ -4,7 +4,6 @@ import { db } from '@/drizzle/db';
 import { EventTable, ProfileTable, ScheduleTable, UserTable } from '@/drizzle/schema';
 import { clerkClient, currentUser } from '@clerk/nextjs/server';
 import { count, eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
 
 export type ExpertSetupStep = 'profile' | 'availability' | 'events' | 'identity' | 'payment';
 
@@ -69,18 +68,16 @@ export async function markStepComplete(step: ExpertSetupStep) {
       },
     });
 
-    // Revalidate the layout to update the UI
-    revalidatePath('/(private)/layout');
-
     return {
       success: true,
       setupStatus: updatedSetup,
+      revalidatePath: '/(private)/layout' as const,
     };
   } catch (error) {
     console.error('Failed to mark step complete:', error);
     return {
       success: false,
-      error: 'Failed to update setup status',
+      error: 'Failed to mark step as complete',
     };
   }
 }
@@ -158,14 +155,12 @@ export async function checkExpertSetupStatus() {
           expertSetup: setupStatus,
         },
       });
-
-      // Revalidate the layout
-      revalidatePath('/(private)/layout');
     }
 
     return {
       success: true,
       setupStatus,
+      revalidatePath: '/(private)/layout' as const,
     };
   } catch (error) {
     console.error('Failed to check setup status:', error);

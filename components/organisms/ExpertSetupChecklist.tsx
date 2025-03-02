@@ -79,9 +79,16 @@ export function ExpertSetupChecklist() {
               completed: result.setupStatus?.[step.id] || false,
             })),
           );
+
+          // If revalidation path was returned, refresh the UI
+          if ('revalidatePath' in result) {
+            router.refresh();
+          }
+        } else if (result.error) {
+          console.error('Error checking expert setup status:', result.error);
         }
       } catch (error) {
-        console.error('Failed to load expert setup status:', error);
+        console.error('Failed to load completion status:', error);
       } finally {
         setLoading(false);
       }
@@ -90,7 +97,7 @@ export function ExpertSetupChecklist() {
     if (isLoaded) {
       loadCompletionStatus();
     }
-  }, [isLoaded]);
+  }, [isLoaded, router]);
 
   // Calculate progress percentage
   const completedSteps = setupSteps.filter((step) => step.completed).length;

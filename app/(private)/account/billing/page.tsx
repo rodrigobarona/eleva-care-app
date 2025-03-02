@@ -1,5 +1,9 @@
+import { db } from '@/drizzle/db';
+import { UserTable } from '@/drizzle/schema';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
 
 import { BillingPageClient } from './billing-client';
 
@@ -49,9 +53,14 @@ export default async function BillingPage() {
       data.accountStatus?.payoutsEnabled
     ) {
       // Mark payment step as complete (non-blocking)
-      markStepComplete('payment').catch((error) => {
-        console.error('Failed to mark payment step as complete:', error);
-      });
+      markStepComplete('payment')
+        .then(() => {
+          // Server-side revalidation for the layout
+          revalidatePath('/(private)/layout');
+        })
+        .catch((error) => {
+          console.error('Failed to mark payment step as complete:', error);
+        });
     }
 
     return <BillingPageClient dbUser={data.user} accountStatus={data.accountStatus} />;
