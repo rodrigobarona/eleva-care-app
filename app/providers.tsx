@@ -4,7 +4,7 @@ import { AuthorizationProvider } from '@/components/molecules/AuthorizationProvi
 import { ClerkProvider } from '@clerk/nextjs';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
-import posthog from 'posthog-js';
+import { posthog } from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { useEffect, useState } from 'react';
 import 'react-cookie-manager/style.css';
@@ -80,7 +80,7 @@ export function ClientProviders({ children }: ProvidersProps) {
         <CookieManager
           cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
           showManageButton={true}
-          enableFloatingButton={true}
+          enableFloatingButton={false}
           displayType="popup"
           cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
           theme="light"
