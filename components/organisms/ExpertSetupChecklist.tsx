@@ -133,11 +133,11 @@ export function ExpertSetupChecklist() {
 
     // Only proceed if all steps are completed and data is loaded
     if (completedSteps === totalSteps && !loading && !hasShownToastInSession.current) {
-      // Get the value directly from unsafeMetadata
+      // Check if metadata exists and the flag is set to true
+      // If metadata doesn't exist or the flag is not set, we should show the toast
+      const metadata = user.unsafeMetadata;
       const hasShownCompletionToast =
-        typeof user.unsafeMetadata === 'object' &&
-        user.unsafeMetadata !== null &&
-        user.unsafeMetadata.setup_completion_toast_shown === true;
+        metadata && typeof metadata === 'object' && metadata.setup_completion_toast_shown === true;
 
       // Only show toast if it hasn't been shown before according to metadata
       if (!hasShownCompletionToast) {
@@ -159,9 +159,12 @@ export function ExpertSetupChecklist() {
         hasShownToastInSession.current = true;
 
         // Mark that we've shown the toast in Clerk's unsafe metadata
+        // First, get existing metadata or initialize an empty object
+        const currentMetadata = user.unsafeMetadata || {};
+
         user.update({
           unsafeMetadata: {
-            ...user.unsafeMetadata,
+            ...currentMetadata,
             setup_completion_toast_shown: true,
           },
         });
@@ -174,16 +177,18 @@ export function ExpertSetupChecklist() {
     if (!isLoaded || !user) return;
 
     if (completedSteps < totalSteps && totalSteps > 0) {
+      const metadata = user.unsafeMetadata;
       const hasShownCompletionToast =
-        typeof user.unsafeMetadata === 'object' &&
-        user.unsafeMetadata !== null &&
-        user.unsafeMetadata.setup_completion_toast_shown === true;
+        metadata && typeof metadata === 'object' && metadata.setup_completion_toast_shown === true;
 
       if (hasShownCompletionToast) {
+        // First, get existing metadata or initialize an empty object
+        const currentMetadata = user.unsafeMetadata || {};
+
         // Reset the flag in Clerk's unsafe metadata if steps become incomplete
         user.update({
           unsafeMetadata: {
-            ...user.unsafeMetadata,
+            ...currentMetadata,
             setup_completion_toast_shown: false,
           },
         });
