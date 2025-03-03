@@ -3,10 +3,19 @@ import { ProfilePublishToggle } from '@/components/organisms/ProfilePublishToggl
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { hasRole } from '@/lib/auth/roles.server';
+import type { profileFormSchema } from '@/schema/profile';
 import { markStepCompleteNoRevalidate } from '@/server/actions/expert-setup';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
+import type { z } from 'zod';
+
+type ExpertFormValues = z.infer<typeof profileFormSchema> & {
+  isVerified?: boolean;
+  isTopExpert?: boolean;
+  profilePicture: string;
+  username?: string;
+};
 
 export default async function ProfilePage() {
   const { userId } = await auth();
@@ -65,8 +74,8 @@ export default async function ProfilePage() {
         lastName: '',
         isVerified: false,
         isTopExpert: false,
-        primaryCategoryId: '',
-        secondaryCategoryId: '',
+        primaryCategoryId: newProfile[0].primaryCategoryId || undefined,
+        secondaryCategoryId: newProfile[0].secondaryCategoryId || undefined,
       };
 
       return (
@@ -78,7 +87,7 @@ export default async function ProfilePage() {
           <div className="mb-8 rounded-lg border bg-card p-6 shadow-sm">
             <ProfilePublishToggle initialPublishedStatus={false} />
           </div>
-          <ExpertForm initialData={transformedProfile} />
+          <ExpertForm initialData={transformedProfile as ExpertFormValues} />
         </div>
       );
     } catch (error) {
@@ -99,8 +108,8 @@ export default async function ProfilePage() {
     lastName: profile.lastName || '',
     isVerified: profile.isVerified || false,
     isTopExpert: profile.isTopExpert || false,
-    primaryCategoryId: profile.primaryCategoryId || '',
-    secondaryCategoryId: profile.secondaryCategoryId || '',
+    primaryCategoryId: profile.primaryCategoryId || undefined,
+    secondaryCategoryId: profile.secondaryCategoryId || undefined,
   };
 
   // Default to unpublished if no profile exists yet
@@ -116,7 +125,7 @@ export default async function ProfilePage() {
         <ProfilePublishToggle initialPublishedStatus={isPublished} />
       </div>
       <div className="space-y-4">
-        <ExpertForm initialData={transformedProfile} />
+        <ExpertForm initialData={transformedProfile as ExpertFormValues} />
       </div>
     </div>
   );

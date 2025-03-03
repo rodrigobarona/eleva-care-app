@@ -47,8 +47,8 @@ export function NavMainContent({ items }: NavMainContentProps) {
           isAccountSection ? '-translate-x-full' : 'translate-x-0',
         )}
       >
-        {user?.publicMetadata?.role === 'admin' ||
-          (user?.publicMetadata?.role === 'superadmin' && (
+        {user?.publicMetadata?.role === 'community_expert' ||
+          (user?.publicMetadata?.role === 'top_expert' && (
             <>
               <SidebarGroup>
                 <SidebarGroupLabel>Appointments</SidebarGroupLabel>
@@ -144,8 +144,8 @@ export function NavMainContent({ items }: NavMainContentProps) {
               </SidebarMenuButton>
             </SidebarMenuItem>
 
-            {user?.publicMetadata?.role === 'admin' ||
-              (user?.publicMetadata?.role === 'superadmin' && (
+            {user?.publicMetadata?.role === 'community_expert' ||
+              (user?.publicMetadata?.role === 'top_expert' && (
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={pathname === '/account/billing'}>
