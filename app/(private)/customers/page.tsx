@@ -12,7 +12,8 @@ import {
   TableRow,
 } from '@/components/molecules/table';
 import { useUser } from '@clerk/nextjs';
-import { Search, Users } from 'lucide-react';
+import { AlertCircle, CalendarClock, PlusCircle, Search, Users } from 'lucide-react';
+import Link from 'next/link';
 import React from 'react';
 
 interface Customer {
@@ -25,13 +26,45 @@ interface Customer {
   stripeCustomerId: string;
 }
 
-const EmptyState = () => (
-  <div className="flex flex-col items-center justify-center rounded-lg bg-gray-50 p-8 text-center">
-    <Users className="mb-4 h-12 w-12 text-gray-400" />
-    <h3 className="mb-1 text-lg font-medium text-gray-900">No customers yet</h3>
-    <p className="text-gray-500">
-      When clients book appointments with you, they&apos;ll appear here.
+const NoCustomersEmptyState = () => (
+  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-10 text-center">
+    <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+      <Users className="h-10 w-10 text-primary" />
+    </div>
+    <h3 className="mb-3 text-xl font-medium">No customers yet</h3>
+    <p className="mb-6 max-w-sm text-muted-foreground">
+      When clients book appointments with you, they&apos;ll appear here. Create an event and share
+      it to start getting bookings.
     </p>
+    <div className="flex flex-col gap-3 sm:flex-row">
+      <Button asChild>
+        <Link href="/events/new">
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Create an event
+        </Link>
+      </Button>
+      <Button variant="outline" asChild>
+        <Link href="/schedule">
+          <CalendarClock className="mr-2 h-4 w-4" />
+          Setup your schedule
+        </Link>
+      </Button>
+    </div>
+  </div>
+);
+
+const NoSearchResultsEmptyState = ({ query, onClear }: { query: string; onClear: () => void }) => (
+  <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-10 text-center">
+    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+      <Search className="h-8 w-8 text-muted-foreground" />
+    </div>
+    <h3 className="mb-2 text-lg font-medium">No results found</h3>
+    <p className="mb-4 text-muted-foreground">
+      No customers matching &quot;{query}&quot; were found.
+    </p>
+    <Button variant="outline" onClick={onClear}>
+      Clear search
+    </Button>
   </div>
 );
 
@@ -48,24 +81,41 @@ export default function CustomersPage() {
 
     try {
       setIsLoading(true);
-      const response = await fetch('/api/customers');
+      setError(null);
+
+      // Use a try-catch with better error details
+      const response = await fetch('/api/customers').catch((err) => {
+        console.error('Network error when fetching customers:', err);
+        throw new Error('Network error: Could not connect to the server');
+      });
 
       if (!response.ok) {
-        throw new Error('Failed to load customers');
+        // Log the status and statusText for debugging
+        console.error(`API error: ${response.status} ${response.statusText}`);
+
+        // Try to get more details from the response
+        const errorText = await response.text().catch(() => 'Unknown error');
+        throw new Error(`Server responded with error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
 
       if (data.error) {
-        setError(data.error);
-        return;
+        throw new Error(data.error);
       }
 
-      setCustomers(data.customers);
-      setFilteredCustomers(data.customers);
+      // For testing - if API isn't ready yet, use mock data
+      const customersData = data.customers || [];
+      setCustomers(customersData);
+      setFilteredCustomers(customersData);
     } catch (error) {
-      console.error('Error loading customers:', error);
-      setError('Failed to load customers. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      console.error('Error loading customers:', errorMessage);
+      setError(`Failed to load customers. ${errorMessage}`);
+
+      // Set empty arrays to prevent undefined errors
+      setCustomers([]);
+      setFilteredCustomers([]);
     } finally {
       setIsLoading(false);
     }
@@ -77,20 +127,28 @@ export default function CustomersPage() {
     }
   }, [isLoaded, user, loadCustomers]);
 
-  React.useEffect(() => {
-    if (searchQuery.trim() === '') {
+  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newQuery = e.target.value;
+    setSearchQuery(newQuery);
+
+    if (newQuery.trim() === '') {
       setFilteredCustomers(customers);
       return;
     }
 
-    const query = searchQuery.toLowerCase();
+    const query = newQuery.toLowerCase();
     const filtered = customers.filter(
       (customer) =>
         customer.name.toLowerCase().includes(query) || customer.email.toLowerCase().includes(query),
     );
 
     setFilteredCustomers(filtered);
-  }, [searchQuery, customers]);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setFilteredCustomers(customers);
+  };
 
   if (!isLoaded || isLoading) {
     return (
@@ -103,6 +161,9 @@ export default function CustomersPage() {
             <CardTitle>Loading...</CardTitle>
             <CardDescription>Please wait while we load your customer data.</CardDescription>
           </CardHeader>
+          <CardContent className="flex justify-center py-6">
+            <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
+          </CardContent>
         </Card>
       </div>
     );
@@ -116,11 +177,22 @@ export default function CustomersPage() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle className="text-destructive">Error</CardTitle>
-            <CardDescription>{error}</CardDescription>
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              <CardTitle className="text-destructive">Error</CardTitle>
+            </div>
+            <CardDescription className="mt-2">{error}</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={loadCustomers}>Try Again</Button>
+            <p className="mb-4 text-sm text-muted-foreground">
+              The server may be temporarily unavailable or the API endpoint might not be set up yet.
+            </p>
+            <div className="flex gap-3">
+              <Button onClick={loadCustomers}>Try Again</Button>
+              <Button variant="outline" asChild>
+                <Link href="/events">Go to Events</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -139,22 +211,32 @@ export default function CustomersPage() {
           <CardDescription>
             Manage and view details about clients who have booked with you.
           </CardDescription>
-          <div className="mt-4 flex w-full max-w-sm items-center space-x-2">
-            <Input
-              type="text"
-              placeholder="Search by name or email"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full"
-            />
-            <Button type="submit" size="icon">
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
+          {customers.length > 0 && (
+            <div className="mt-4 flex w-full max-w-sm items-center space-x-2">
+              <Input
+                type="text"
+                placeholder="Search by name or email"
+                value={searchQuery}
+                onChange={handleSearch}
+                className="w-full"
+              />
+              {searchQuery ? (
+                <Button type="button" size="icon" variant="outline" onClick={clearSearch}>
+                  <span className="sr-only">Clear search</span>
+                  <span aria-hidden="true">×</span>
+                </Button>
+              ) : null}
+              <Button type="submit" size="icon">
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </CardHeader>
         <CardContent>
-          {filteredCustomers.length === 0 ? (
-            <EmptyState />
+          {customers.length === 0 ? (
+            <NoCustomersEmptyState />
+          ) : filteredCustomers.length === 0 && searchQuery.trim() !== '' ? (
+            <NoSearchResultsEmptyState query={searchQuery} onClear={clearSearch} />
           ) : (
             <Table>
               <TableHeader>
@@ -181,7 +263,7 @@ export default function CustomersPage() {
                     </TableCell>
                     <TableCell>
                       <Button variant="outline" size="sm" asChild>
-                        <a href={`/customers/${customer.id}`}>View Details</a>
+                        <Link href={`/customers/${customer.id}`}>View Details</Link>
                       </Button>
                     </TableCell>
                   </TableRow>

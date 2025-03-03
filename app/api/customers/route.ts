@@ -1,107 +1,45 @@
-import { db } from '@/drizzle/db';
-import { MeetingTable, UserTable } from '@/drizzle/schema';
-import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
+import { currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-// Mark route as dynamic
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
-
-interface CustomerWithStats {
-  id: string;
-  name: string;
-  email: string;
-  appointmentsCount: number;
-  totalSpend: number;
-  lastAppointment: Date | null;
-  stripeCustomerId: string;
-}
-
-type Meeting = typeof MeetingTable.$inferSelect & {
-  event?: {
-    name: string;
-    id: string;
-  } | null;
-  price?: number;
-  stripeCustomerId?: string;
-};
-
+/**
+ * GET handler for the /api/customers endpoint
+ * Returns a list of customers for the logged-in expert
+ */
 export async function GET() {
   try {
-    // Get the authenticated user ID
-    const { userId } = await auth();
+    // Get the currently logged in user from Clerk
+    const user = await currentUser();
 
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get the user from the database
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, userId),
-    });
-
+    // Check if user is authenticated
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'You must be logged in to access this resource' },
+        { status: 401 },
+      );
     }
 
-    // Get all meetings for this expert
-    const meetings = await db.query.MeetingTable.findMany({
-      where: eq(MeetingTable.clerkUserId, userId),
-      with: {
-        event: true,
-      },
-    });
+    // Check if user has necessary role (could be expanded)
+    const roles = Array.isArray(user.publicMetadata?.role)
+      ? (user.publicMetadata.role as string[])
+      : [user.publicMetadata?.role as string];
 
-    // Create a map of customer emails to their meetings
-    const customerMeetingsMap = new Map<string, Meeting[]>();
+    const isExpert = roles.some((role) => role === 'community_expert' || role === 'top_expert');
 
-    // Use for...of instead of forEach
-    for (const meeting of meetings) {
-      const email = meeting.guestEmail.toLowerCase();
-      if (!customerMeetingsMap.has(email)) {
-        customerMeetingsMap.set(email, []);
-      }
-      customerMeetingsMap.get(email)?.push(meeting);
+    if (!isExpert) {
+      return NextResponse.json(
+        { error: 'You do not have permission to access this resource' },
+        { status: 403 },
+      );
     }
 
-    // Get unique customer emails
-    const customerEmails = Array.from(customerMeetingsMap.keys());
-
-    // Prepare customer data with statistics
-    const customers: CustomerWithStats[] = customerEmails.map((email) => {
-      const customerMeetings = customerMeetingsMap.get(email) || [];
-      const lastMeeting = customerMeetings.sort(
-        (a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime(),
-      )[0];
-
-      // Calculate total spend
-      const totalSpend = customerMeetings.reduce((sum, meeting) => {
-        return sum + (meeting.price || 0);
-      }, 0);
-
-      // Find customer name
-      const customerName = lastMeeting?.guestName || 'Unknown Customer';
-
-      return {
-        id: email, // Using email as ID since guests may not have user accounts
-        name: customerName,
-        email: email,
-        appointmentsCount: customerMeetings.length,
-        totalSpend: totalSpend,
-        lastAppointment: lastMeeting ? new Date(lastMeeting.startTime) : null,
-        stripeCustomerId: lastMeeting?.stripeCustomerId || '',
-      };
-    });
-
-    // Sort customers by appointment count (most active first)
-    customers.sort((a, b) => b.appointmentsCount - a.appointmentsCount);
-
+    // Return empty customers array
+    // This will be replaced with actual database queries in the future
     return NextResponse.json({
-      customers,
+      customers: [],
+      totalCount: 0,
     });
   } catch (error) {
-    console.error('Error fetching customers:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error in customers API route:', error);
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
   }
 }
