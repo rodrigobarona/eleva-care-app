@@ -37,6 +37,8 @@ export const profileFormSchema = z.object({
   headline: z.string().min(2, 'Headline must be at least 2 characters').optional(),
   shortBio: z.string().max(160, 'Short bio must be less than 160 characters').optional(),
   longBio: z.string().max(2000, 'Long bio must be less than 2000 characters').optional(),
+  primaryCategoryId: z.string().uuid('Invalid category ID').min(1, 'Primary category is required'),
+  secondaryCategoryId: z.string().uuid('Invalid category ID').optional().or(z.literal('')),
   socialLinks: z.array(socialLinkSchema),
   isVerified: z.boolean().default(false),
   isTopExpert: z.boolean().default(false),

@@ -65,6 +65,8 @@ export default async function ProfilePage() {
         lastName: '',
         isVerified: false,
         isTopExpert: false,
+        primaryCategoryId: '',
+        secondaryCategoryId: '',
       };
 
       return (
@@ -97,6 +99,8 @@ export default async function ProfilePage() {
     lastName: profile.lastName || '',
     isVerified: profile.isVerified || false,
     isTopExpert: profile.isTopExpert || false,
+    primaryCategoryId: profile.primaryCategoryId || '',
+    secondaryCategoryId: profile.secondaryCategoryId || '',
   };
 
   // Default to unpublished if no profile exists yet

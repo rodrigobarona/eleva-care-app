@@ -94,6 +94,10 @@ async function ProfileInfo({ username }: { username: string }) {
 
   const profile = await db.query.ProfileTable.findFirst({
     where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
+    with: {
+      primaryCategory: true,
+      secondaryCategory: true,
+    },
   });
 
   return (
@@ -135,6 +139,21 @@ async function ProfileInfo({ username }: { username: string }) {
           </h1>
           {profile?.headline && (
             <p className="text-sm font-medium text-eleva-neutral-900/60">{profile.headline}</p>
+          )}
+          {/* Categories */}
+          {(profile?.primaryCategory || profile?.secondaryCategory) && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {profile.primaryCategory && (
+                <span className="rounded-full bg-eleva-neutral-100 px-3 py-1 text-sm font-medium text-eleva-neutral-900">
+                  {profile.primaryCategory.name}
+                </span>
+              )}
+              {profile.secondaryCategory && (
+                <span className="rounded-full bg-eleva-neutral-100 px-3 py-1 text-sm font-medium text-eleva-neutral-900">
+                  {profile.secondaryCategory.name}
+                </span>
+              )}
+            </div>
           )}
         </div>
         <div className="space-y-4">

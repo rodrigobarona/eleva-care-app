@@ -5,6 +5,13 @@ import { Badge } from '@/components/atoms/badge';
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/atoms/select';
 import { Textarea } from '@/components/atoms/textarea';
 import {
   Form,
@@ -23,7 +30,7 @@ import { useUser } from '@clerk/nextjs';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import Image from 'next/image';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -32,6 +39,16 @@ type ExpertFormValues = z.infer<typeof profileFormSchema> & {
   isTopExpert?: boolean;
   profilePicture: string;
   username?: string;
+};
+
+type Category = {
+  id: string;
+  name: string;
+  description: string | null;
+  image: string | null;
+  parentId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 interface ExpertFormProps {
@@ -43,6 +60,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
 
   const form = useForm<ExpertFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -53,6 +71,8 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       headline: initialData?.headline || '',
       shortBio: initialData?.shortBio || '',
       longBio: initialData?.longBio || '',
+      primaryCategoryId: initialData?.primaryCategoryId || '',
+      secondaryCategoryId: initialData?.secondaryCategoryId || '',
       socialLinks: SOCIAL_MEDIA_LIST.map((platform) => ({
         name: platform.name,
         url:
@@ -74,6 +94,22 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       }
     }
   }, [isUserLoaded, user, form, initialData]);
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const response = await fetch('/api/categories');
+        if (!response.ok) throw new Error('Failed to fetch categories');
+        const data = await response.json();
+        setCategories(data);
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+        toast.error('Failed to load categories');
+      }
+    }
+    fetchCategories();
+  }, []);
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -441,6 +477,67 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                 <FormDescription>
                   You can use Markdown formatting to style your text. Add links, lists, and basic
                   formatting.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="primaryCategoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Primary Category</FormLabel>
+                <FormControl>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your primary category" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories
+                        .filter((cat) => !cat.parentId)
+                        .map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormDescription>
+                  Choose the main category that best describes your expertise
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="secondaryCategoryId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Secondary Category</FormLabel>
+                <FormControl>
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your secondary category (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {categories
+                        .filter((cat) => !cat.parentId)
+                        .map((category) => (
+                          <SelectItem key={category.id} value={category.id}>
+                            {category.name}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </FormControl>
+                <FormDescription>
+                  Optionally choose a secondary category to highlight additional expertise
                 </FormDescription>
                 <FormMessage />
               </FormItem>

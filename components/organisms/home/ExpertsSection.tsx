@@ -21,6 +21,9 @@ const ExpertsSection = async () => {
   // First get all profiles from the database that are published
   const profiles = await db.query.ProfileTable.findMany({
     where: ({ published }) => eq(published, true),
+    with: {
+      primaryCategory: true,
+    },
   });
 
   // Get only the users that have profiles
@@ -70,6 +73,7 @@ const ExpertsSection = async () => {
         rating: '5.0',
         isTopExpert: profile.isTopExpert,
         isVerified: profile.isVerified,
+        category: profile.primaryCategory?.name || '',
       };
     }),
   );
@@ -179,6 +183,11 @@ const ExpertsSection = async () => {
                       <p className="text-balance text-base font-light text-eleva-neutral-900/80">
                         {expert.shortBio}
                       </p>
+
+                      {/* Category */}
+                      {expert.category && (
+                        <p className="text-sm text-eleva-neutral-900/80">{expert.category}</p>
+                      )}
                     </CardContent>
                   </Card>
                 </Link>
