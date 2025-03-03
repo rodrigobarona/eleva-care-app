@@ -135,14 +135,14 @@ export function CategoryList() {
     setIsUploading(false);
 
     if (success && url) {
-      const imageInput = document.querySelector('input[name="image"]') as HTMLInputElement;
+      const imageInput = document.querySelector(`input[name="image"]`) as HTMLInputElement;
       if (imageInput) {
         imageInput.value = url;
       }
     } else {
       toast.error('Failed to upload image');
       setImagePreview(null);
-      const imageInput = document.querySelector('input[name="image"]') as HTMLInputElement;
+      const imageInput = document.querySelector(`input[name="image"]`) as HTMLInputElement;
       if (imageInput) {
         imageInput.value = '';
       }
@@ -196,6 +196,7 @@ export function CategoryList() {
         method: 'PATCH',
         headers: {
           Accept: 'application/json',
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: formData,
       });
@@ -230,6 +231,9 @@ export function CategoryList() {
 
       const response = await fetch(`/api/admin/categories/${id}`, {
         method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+        },
       });
 
       if (!response.ok) {
@@ -451,18 +455,14 @@ function CategoryCard({
     setIsUploading(false);
 
     if (success && url) {
-      const imageInput = document.querySelector(
-        `input[name="image-${category.id}"]`,
-      ) as HTMLInputElement;
+      const imageInput = document.querySelector(`input[name="image"]`) as HTMLInputElement;
       if (imageInput) {
         imageInput.value = url;
       }
     } else {
       toast.error('Failed to upload image');
       setImagePreview(category.image);
-      const imageInput = document.querySelector(
-        `input[name="image-${category.id}"]`,
-      ) as HTMLInputElement;
+      const imageInput = document.querySelector(`input[name="image"]`) as HTMLInputElement;
       if (imageInput) {
         imageInput.value = category.image || '';
       }
@@ -570,7 +570,7 @@ function CategoryCard({
                           onClick={() => {
                             setImagePreview(null);
                             const imageInput = document.querySelector(
-                              `input[name="image-${category.id}"]`,
+                              `input[name="image"]`,
                             ) as HTMLInputElement;
                             if (imageInput) {
                               imageInput.value = '';
