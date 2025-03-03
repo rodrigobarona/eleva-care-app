@@ -196,7 +196,7 @@ export function CategoryList() {
         method: 'PATCH',
         headers: {
           Accept: 'application/json',
-          'Content-Type': 'application/x-www-form-urlencoded',
+          // Do not set Content-Type here, it will be automatically set with the correct boundary for FormData
         },
         body: formData,
       });
