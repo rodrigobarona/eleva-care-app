@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/atoms/avatar';
 import { Skeleton } from '@/components/atoms/skeleton';
-import { useAuthorization } from '@/components/molecules/AuthorizationProvider';
+import { RequireRole } from '@/components/molecules/AuthorizationProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -38,8 +38,6 @@ export function NavUser() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const { isMobile } = useSidebar();
-  const { hasRole } = useAuthorization();
-
   if (!user) return null;
 
   return (
@@ -103,38 +101,37 @@ export function NavUser() {
                   <Lock className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
+              <RequireRole roles={['community_expert', 'top_expert']}>
+                <DropdownMenuItem asChild>
+                  <Link href="/account/billing">
+                    Billing
+                    <CreditCard className="ml-auto h-4 w-4" />
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/account/identity">
+                    Identity
+                    <BadgeCheck className="ml-auto h-4 w-4" />
+                  </Link>
+                </DropdownMenuItem>
+              </RequireRole>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <RequireRole roles={['admin', 'superadmin']}>
               <DropdownMenuItem asChild>
-                <Link href="/account/billing">
-                  Billing
-                  <CreditCard className="ml-auto h-4 w-4" />
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/account/identity">
-                  Identity
+                <Link href="/admin/users">
+                  Administration
                   <BadgeCheck className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            {(hasRole('admin') || hasRole('superadmin')) && (
-              <>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/users">
-                    Administration
-                    <BadgeCheck className="ml-auto h-4 w-4" />
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/admin/categories">
-                    Categories
-                    <BadgeCheck className="ml-auto h-4 w-4" />
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-              </>
-            )}
-
+              <DropdownMenuItem asChild>
+                <Link href="/admin/categories">
+                  Categories
+                  <BadgeCheck className="ml-auto h-4 w-4" />
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+            </RequireRole>
             <DropdownMenuItem asChild>
               <Link href="/?home=true">
                 Home Page

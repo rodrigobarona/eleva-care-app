@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuthorization } from '@/components/molecules/AuthorizationProvider';
+import { RequireRole } from '@/components/molecules/AuthorizationProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +17,14 @@ import {
   useSidebar,
 } from '@/components/organisms/sidebar/sidebar';
 import { cn } from '@/lib/utils';
-import { Calendar, ChevronLeft, FileText, type LucideIcon, MoreHorizontal } from 'lucide-react';
+import {
+  Calendar,
+  ChevronLeft,
+  FileText,
+  Home,
+  type LucideIcon,
+  MoreHorizontal,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -37,7 +44,6 @@ export function NavMainContent({ items }: NavMainContentProps) {
   const { isMobile } = useSidebar();
   const pathname = usePathname();
   const isAccountSection = pathname.startsWith('/account');
-  const { hasRole } = useAuthorization();
 
   return (
     <div className="relative overflow-hidden">
@@ -47,8 +53,20 @@ export function NavMainContent({ items }: NavMainContentProps) {
           isAccountSection ? '-translate-x-full' : 'translate-x-0',
         )}
       >
+        <SidebarGroup>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/home">
+                  <Home className="size-4" />
+                  <span>Home</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarGroup>
         {/* Expert section */}
-        {(hasRole('community_expert') || hasRole('top_expert')) && (
+        <RequireRole roles={['community_expert', 'top_expert']}>
           <>
             <SidebarGroup>
               <SidebarGroupLabel>Appointments</SidebarGroupLabel>
@@ -109,7 +127,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
               </SidebarMenu>
             </SidebarGroup>
           </>
-        )}
+        </RequireRole>
       </div>
 
       <div
@@ -144,7 +162,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
               </SidebarMenuButton>
             </SidebarMenuItem>
 
-            {(hasRole('community_expert') || hasRole('top_expert')) && (
+            <RequireRole roles={['community_expert', 'top_expert']}>
               <>
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={pathname === '/account/billing'}>
@@ -161,7 +179,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </>
-            )}
+            </RequireRole>
           </SidebarMenu>
         </SidebarGroup>
       </div>

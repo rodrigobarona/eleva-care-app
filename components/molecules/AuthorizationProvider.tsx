@@ -2,23 +2,25 @@
 
 import type { UserRole } from '@/lib/auth/roles';
 import { useUser } from '@clerk/nextjs';
+import { redirect } from 'next/navigation';
+import type { ReactNode } from 'react';
 import { createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthorizationContextType {
-  role: UserRole | null;
+  roles: UserRole[];
   hasRole: (roleToCheck: UserRole | UserRole[]) => boolean;
   isLoading: boolean;
 }
 
 const AuthorizationContext = createContext<AuthorizationContextType>({
-  role: null,
+  roles: [],
   hasRole: () => false,
   isLoading: true,
 });
 
 export function AuthorizationProvider({ children }: { children: React.ReactNode }) {
   const { user, isLoaded, isSignedIn } = useUser();
-  const [role, setRole] = useState<UserRole | null>(null);
+  const [roles, setRoles] = useState<UserRole[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -27,23 +29,21 @@ export function AuthorizationProvider({ children }: { children: React.ReactNode 
       return;
     }
 
-    const userRole = user?.publicMetadata?.role as UserRole;
-    setRole(userRole || 'user');
+    const userRoles = user?.publicMetadata?.role as UserRole | UserRole[] | undefined;
+    setRoles(userRoles ? (Array.isArray(userRoles) ? userRoles : [userRoles]) : ['user']);
     setIsLoading(false);
   }, [isLoaded, isSignedIn, user]);
 
   const hasRole = (roleToCheck: UserRole | UserRole[]): boolean => {
-    if (!role) return false;
-    if (Array.isArray(roleToCheck)) {
-      return roleToCheck.includes(role);
-    }
-    return role === roleToCheck;
+    if (roles.length === 0) return false;
+    const rolesToCheck = Array.isArray(roleToCheck) ? roleToCheck : [roleToCheck];
+    return roles.some((role) => rolesToCheck.includes(role));
   };
 
   return (
     <AuthorizationContext.Provider
       value={{
-        role,
+        roles,
         hasRole,
         isLoading,
       }}
@@ -57,17 +57,29 @@ export function useAuthorization() {
   return useContext(AuthorizationContext);
 }
 
-// Authorization components for role-based UI rendering
+// Authorization component for role-based UI rendering
 interface RequireRoleProps {
-  role: UserRole | UserRole[];
-  children: React.ReactNode;
-  fallback?: React.ReactNode;
+  children: ReactNode;
+  roles: UserRole | UserRole[];
+  fallback?: ReactNode;
+  redirectTo?: string;
 }
 
-export function RequireRole({ role, children, fallback = null }: RequireRoleProps) {
+export function RequireRole({ children, roles, fallback, redirectTo }: RequireRoleProps) {
   const { hasRole, isLoading } = useAuthorization();
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return null;
+  }
 
-  return hasRole(role) ? <>{children}</> : <>{fallback}</>;
+  const hasAccess = hasRole(roles);
+
+  if (!hasAccess) {
+    if (redirectTo) {
+      redirect(redirectTo);
+    }
+    return fallback || null;
+  }
+
+  return <>{children}</>;
 }
