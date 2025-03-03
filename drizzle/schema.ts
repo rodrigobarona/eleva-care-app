@@ -195,6 +195,22 @@ export const meetingRelations = relations(MeetingTable, ({ one }) => ({
 }));
 
 /**
+ * Categories table - defines categories for expert profiles
+ *
+ * Categories can be assigned as primary or secondary categories for expert profiles.
+ * Hierarchical structure with parent-child relationships is supported via parentId.
+ */
+export const CategoryTable = pgTable('categories', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: text('name').notNull().unique(),
+  description: text('description'),
+  image: text('image'),
+  parentId: uuid('parentId').references((): any => CategoryTable.id),
+  createdAt,
+  updatedAt,
+});
+
+/**
  * Profiles table - contains public-facing information about users
  *
  * Stores professional profile information for experts, including:
@@ -215,6 +231,8 @@ export const ProfileTable = pgTable(
     headline: text('headline'),
     shortBio: text('shortBio'),
     longBio: text('longBio'),
+    primaryCategoryId: uuid('primaryCategoryId').references(() => CategoryTable.id),
+    secondaryCategoryId: uuid('secondaryCategoryId').references(() => CategoryTable.id),
     socialLinks: json('socialLinks').$type<
       Array<{
         name: SocialMediaPlatform;
@@ -248,6 +266,26 @@ export const profileRelations = relations(ProfileTable, ({ many, one }) => ({
     fields: [ProfileTable.clerkUserId],
     references: [UserTable.clerkUserId],
   }),
+  primaryCategory: one(CategoryTable, {
+    fields: [ProfileTable.primaryCategoryId],
+    references: [CategoryTable.id],
+  }),
+  secondaryCategory: one(CategoryTable, {
+    fields: [ProfileTable.secondaryCategoryId],
+    references: [CategoryTable.id],
+  }),
+}));
+
+export const categoryRelations = relations(CategoryTable, ({ many, one }) => ({
+  primaryProfiles: many(ProfileTable, { relationName: 'primaryCategory' }),
+  secondaryProfiles: many(ProfileTable, { relationName: 'secondaryCategory' }),
+  // Self-referencing relationships for category hierarchy
+  parentCategory: one(CategoryTable, {
+    fields: [CategoryTable.parentId],
+    references: [CategoryTable.id],
+    relationName: 'parentChild',
+  }),
+  childCategories: many(CategoryTable, { relationName: 'parentChild' }),
 }));
 
 /**
