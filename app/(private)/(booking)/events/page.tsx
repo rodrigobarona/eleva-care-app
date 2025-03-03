@@ -1,6 +1,5 @@
-import EventsList from '@/components/organisms/EventsList';
+import { EventsList } from '@/components/organisms/EventsList';
 import { db } from '@/drizzle/db';
-import { EventTable } from '@/drizzle/schema';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth, createClerkClient } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
@@ -27,7 +26,7 @@ export default async function EventsPage() {
   });
 
   // Check if the expert has at least one published event
-  if (events.some((event) => event.status === 'published')) {
+  if (events.some((event) => event.isActive)) {
     // Mark events step as complete (non-blocking)
     markStepComplete('events')
       .then(() => {

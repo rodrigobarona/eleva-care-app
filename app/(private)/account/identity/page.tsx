@@ -1,11 +1,7 @@
-import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
 import { markStepComplete } from '@/server/actions/expert-setup';
-import { auth, currentUser } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
+import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
 
-import { IdentityClient } from './identity-client';
 import { IdentityPageClient } from './identity-client';
 
 // Mark route as dynamic

@@ -1,8 +1,5 @@
-import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { BillingPageClient } from './billing-client';
