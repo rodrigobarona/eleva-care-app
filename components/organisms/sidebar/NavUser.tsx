@@ -2,6 +2,7 @@
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/atoms/avatar';
 import { Skeleton } from '@/components/atoms/skeleton';
+import { useAuthorization } from '@/components/molecules/AuthorizationProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -37,6 +38,7 @@ export function NavUser() {
   const { user } = useUser();
   const { signOut } = useClerk();
   const { isMobile } = useSidebar();
+  const { hasRole } = useAuthorization();
 
   if (!user) return null;
 
@@ -115,8 +117,7 @@ export function NavUser() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            {(user.publicMetadata?.role === 'admin' ||
-              user.publicMetadata?.role === 'superadmin') && (
+            {(hasRole('admin') || hasRole('superadmin')) && (
               <>
                 <DropdownMenuItem asChild>
                   <Link href="/admin/users">
@@ -133,6 +134,7 @@ export function NavUser() {
                 <DropdownMenuSeparator />
               </>
             )}
+
             <DropdownMenuItem asChild>
               <Link href="/?home=true">
                 Home Page

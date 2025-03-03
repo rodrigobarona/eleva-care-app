@@ -1,5 +1,6 @@
 'use client';
 
+import { useAuthorization } from '@/components/molecules/AuthorizationProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +17,6 @@ import {
   useSidebar,
 } from '@/components/organisms/sidebar/sidebar';
 import { cn } from '@/lib/utils';
-import { useUser } from '@clerk/nextjs';
 import { Calendar, ChevronLeft, FileText, type LucideIcon, MoreHorizontal } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -34,10 +34,10 @@ interface NavMainContentProps {
 }
 
 export function NavMainContent({ items }: NavMainContentProps) {
-  const { user } = useUser();
   const { isMobile } = useSidebar();
   const pathname = usePathname();
   const isAccountSection = pathname.startsWith('/account');
+  const { hasRole } = useAuthorization();
 
   return (
     <div className="relative overflow-hidden">
@@ -47,69 +47,69 @@ export function NavMainContent({ items }: NavMainContentProps) {
           isAccountSection ? '-translate-x-full' : 'translate-x-0',
         )}
       >
-        {user?.publicMetadata?.role === 'community_expert' ||
-          (user?.publicMetadata?.role === 'top_expert' && (
-            <>
-              <SidebarGroup>
-                <SidebarGroupLabel>Appointments</SidebarGroupLabel>
-                <SidebarMenu>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/appointments" prefetch>
-                        <Calendar className="size-4" />
-                        <span>All Appointments</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/appointments/records" prefetch>
-                        <FileText className="size-4" />
-                        <span>Records</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </SidebarMenu>
-              </SidebarGroup>
+        {/* Expert section */}
+        {(hasRole('community_expert') || hasRole('top_expert')) && (
+          <>
+            <SidebarGroup>
+              <SidebarGroupLabel>Appointments</SidebarGroupLabel>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/appointments" prefetch>
+                      <Calendar className="size-4" />
+                      <span>All Appointments</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/appointments/records" prefetch>
+                      <FileText className="size-4" />
+                      <span>Records</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroup>
 
-              <SidebarGroup>
-                <SidebarGroupLabel>Booking</SidebarGroupLabel>
-                <SidebarMenu>
-                  {items.map((item) => (
-                    <SidebarMenuItem key={item.title}>
-                      <SidebarMenuButton asChild>
-                        <Link href={item.url} prefetch>
-                          <item.icon className="size-4" />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                      {item.items && (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <SidebarMenuAction showOnHover>
-                              <MoreHorizontal />
-                              <span className="sr-only">More</span>
-                            </SidebarMenuAction>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent
-                            className="w-48"
-                            side={isMobile ? 'bottom' : 'right'}
-                            align={isMobile ? 'end' : 'start'}
-                          >
-                            {item.items.map((subItem) => (
-                              <DropdownMenuItem key={subItem.title} asChild>
-                                <Link href={subItem.url}>{subItem.title}</Link>
-                              </DropdownMenuItem>
-                            ))}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
-                    </SidebarMenuItem>
-                  ))}
-                </SidebarMenu>
-              </SidebarGroup>
-            </>
-          ))}
+            <SidebarGroup>
+              <SidebarGroupLabel>Booking</SidebarGroupLabel>
+              <SidebarMenu>
+                {items.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <Link href={item.url} prefetch>
+                        <item.icon className="size-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                    {item.items && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <SidebarMenuAction showOnHover>
+                            <MoreHorizontal />
+                            <span className="sr-only">More</span>
+                          </SidebarMenuAction>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          className="w-48"
+                          side={isMobile ? 'bottom' : 'right'}
+                          align={isMobile ? 'end' : 'start'}
+                        >
+                          {item.items.map((subItem) => (
+                            <DropdownMenuItem key={subItem.title} asChild>
+                              <Link href={subItem.url}>{subItem.title}</Link>
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroup>
+          </>
+        )}
       </div>
 
       <div
@@ -144,25 +144,24 @@ export function NavMainContent({ items }: NavMainContentProps) {
               </SidebarMenuButton>
             </SidebarMenuItem>
 
-            {user?.publicMetadata?.role === 'community_expert' ||
-              (user?.publicMetadata?.role === 'top_expert' && (
-                <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === '/account/billing'}>
-                      <Link href="/account/billing">
-                        <span>Billing</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={pathname === '/account/identity'}>
-                      <Link href="/account/identity">
-                        <span>Identity</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                </>
-              ))}
+            {(hasRole('community_expert') || hasRole('top_expert')) && (
+              <>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname === '/account/billing'}>
+                    <Link href="/account/billing">
+                      <span>Billing</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname === '/account/identity'}>
+                    <Link href="/account/identity">
+                      <span>Identity</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </>
+            )}
           </SidebarMenu>
         </SidebarGroup>
       </div>
