@@ -71,10 +71,6 @@ export function ExpertSetupChecklist() {
   ]);
 
   const lastPathname = useRef(pathname);
-  // Add a ref to track if we've shown the toast in this session
-  const hasShownToastInSession = useRef(false);
-  // Add a ref to track if we've checked the metadata
-  const hasCheckedMetadata = useRef(false);
 
   useEffect(() => {
     async function loadCompletionStatus() {
@@ -125,22 +121,13 @@ export function ExpertSetupChecklist() {
 
   // Show congratulations toast when all steps are completed (only once)
   useEffect(() => {
-    // Only run this effect when Clerk data is fully loaded and we haven't already checked
-    if (!isLoaded || !user || hasCheckedMetadata.current) return;
+    // Only run if the user data is loaded and all steps are completed
+    if (isLoaded && user && completedSteps === totalSteps && !loading) {
+      // Simple check: if metadata exists and flag is true, don't show toast
+      const toastAlreadyShown = user.unsafeMetadata?.setup_completion_toast_shown === true;
 
-    // Mark that we've checked the metadata
-    hasCheckedMetadata.current = true;
-
-    // Only proceed if all steps are completed and data is loaded
-    if (completedSteps === totalSteps && !loading && !hasShownToastInSession.current) {
-      // Check if metadata exists and the flag is set to true
-      // If metadata doesn't exist or the flag is not set, we should show the toast
-      const metadata = user.unsafeMetadata;
-      const hasShownCompletionToast =
-        metadata && typeof metadata === 'object' && metadata.setup_completion_toast_shown === true;
-
-      // Only show toast if it hasn't been shown before according to metadata
-      if (!hasShownCompletionToast) {
+      if (!toastAlreadyShown) {
+        // Show the toast
         toast.success(
           <div className="flex flex-col">
             <span className="font-medium">Congratulations! 🎉</span>
@@ -155,50 +142,26 @@ export function ExpertSetupChecklist() {
           },
         );
 
-        // Mark as shown in this session
-        hasShownToastInSession.current = true;
-
-        // Mark that we've shown the toast in Clerk's unsafe metadata
-        // First, get existing metadata or initialize an empty object
-        const currentMetadata = user.unsafeMetadata || {};
-
+        // Mark that we've shown the toast in Clerk's metadata
         user.update({
           unsafeMetadata: {
-            ...currentMetadata,
+            ...user.unsafeMetadata,
             setup_completion_toast_shown: true,
+          },
+        });
+      }
+    } else if (isLoaded && user && completedSteps < totalSteps) {
+      // Reset the flag if steps are no longer complete
+      if (user.unsafeMetadata?.setup_completion_toast_shown === true) {
+        user.update({
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            setup_completion_toast_shown: false,
           },
         });
       }
     }
   }, [completedSteps, totalSteps, loading, isProfilePublished, router, isLoaded, user]);
-
-  // Reset the toast flag if the completion status changes (steps become incomplete again)
-  useEffect(() => {
-    if (!isLoaded || !user) return;
-
-    if (completedSteps < totalSteps && totalSteps > 0) {
-      const metadata = user.unsafeMetadata;
-      const hasShownCompletionToast =
-        metadata && typeof metadata === 'object' && metadata.setup_completion_toast_shown === true;
-
-      if (hasShownCompletionToast) {
-        // First, get existing metadata or initialize an empty object
-        const currentMetadata = user.unsafeMetadata || {};
-
-        // Reset the flag in Clerk's unsafe metadata if steps become incomplete
-        user.update({
-          unsafeMetadata: {
-            ...currentMetadata,
-            setup_completion_toast_shown: false,
-          },
-        });
-
-        // Also reset the session flag
-        hasShownToastInSession.current = false;
-        hasCheckedMetadata.current = false;
-      }
-    }
-  }, [completedSteps, totalSteps, isLoaded, user]);
 
   // Handle navigation
   useEffect(() => {
