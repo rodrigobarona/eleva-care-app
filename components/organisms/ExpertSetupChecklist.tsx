@@ -71,6 +71,10 @@ export function ExpertSetupChecklist() {
   ]);
 
   const lastPathname = useRef(pathname);
+  // Add a ref to track if we've shown the toast in this session
+  const hasShownToastInSession = useRef(false);
+  // Add a ref to track if we've checked the metadata
+  const hasCheckedMetadata = useRef(false);
 
   useEffect(() => {
     async function loadCompletionStatus() {
@@ -121,13 +125,21 @@ export function ExpertSetupChecklist() {
 
   // Show congratulations toast when all steps are completed (only once)
   useEffect(() => {
-    if (!isLoaded || !user) return;
+    // Only run this effect when Clerk data is fully loaded and we haven't already checked
+    if (!isLoaded || !user || hasCheckedMetadata.current) return;
+
+    // Mark that we've checked the metadata
+    hasCheckedMetadata.current = true;
 
     // Only proceed if all steps are completed and data is loaded
-    if (completedSteps === totalSteps && !loading) {
-      // Safely check if the toast has been shown before using optional chaining
-      const hasShownCompletionToast = user.unsafeMetadata?.setup_completion_toast_shown === true;
+    if (completedSteps === totalSteps && !loading && !hasShownToastInSession.current) {
+      // Get the value directly from unsafeMetadata
+      const hasShownCompletionToast =
+        typeof user.unsafeMetadata === 'object' &&
+        user.unsafeMetadata !== null &&
+        user.unsafeMetadata.setup_completion_toast_shown === true;
 
+      // Only show toast if it hasn't been shown before according to metadata
       if (!hasShownCompletionToast) {
         toast.success(
           <div className="flex flex-col">
@@ -142,6 +154,9 @@ export function ExpertSetupChecklist() {
             },
           },
         );
+
+        // Mark as shown in this session
+        hasShownToastInSession.current = true;
 
         // Mark that we've shown the toast in Clerk's unsafe metadata
         user.update({
@@ -158,18 +173,25 @@ export function ExpertSetupChecklist() {
   useEffect(() => {
     if (!isLoaded || !user) return;
 
-    if (
-      completedSteps < totalSteps &&
-      totalSteps > 0 &&
-      user.unsafeMetadata?.setup_completion_toast_shown === true
-    ) {
-      // Reset the flag in Clerk's unsafe metadata if steps become incomplete
-      user.update({
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          setup_completion_toast_shown: false,
-        },
-      });
+    if (completedSteps < totalSteps && totalSteps > 0) {
+      const hasShownCompletionToast =
+        typeof user.unsafeMetadata === 'object' &&
+        user.unsafeMetadata !== null &&
+        user.unsafeMetadata.setup_completion_toast_shown === true;
+
+      if (hasShownCompletionToast) {
+        // Reset the flag in Clerk's unsafe metadata if steps become incomplete
+        user.update({
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            setup_completion_toast_shown: false,
+          },
+        });
+
+        // Also reset the session flag
+        hasShownToastInSession.current = false;
+        hasCheckedMetadata.current = false;
+      }
     }
   }, [completedSteps, totalSteps, isLoaded, user]);
 
