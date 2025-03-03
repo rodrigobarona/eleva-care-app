@@ -1,4 +1,3 @@
-import { Card } from '@/components/atoms/card';
 import { ExpertForm } from '@/components/organisms/forms/ExpertForm';
 import { ProfilePublishToggle } from '@/components/organisms/ProfilePublishToggle';
 import { db } from '@/drizzle/db';
