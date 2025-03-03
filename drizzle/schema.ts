@@ -208,7 +208,7 @@ export const ProfileTable = pgTable(
   'profiles',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    userId: text('userId').notNull().unique(),
+    clerkUserId: text('clerkUserId').notNull().unique(),
     profilePicture: text('profilePicture'),
     firstName: text('firstName').notNull(),
     lastName: text('lastName').notNull(),
@@ -229,7 +229,7 @@ export const ProfileTable = pgTable(
     updatedAt,
   },
   (table) => ({
-    userIdIndex: index('profiles_user_id_idx').on(table.userId),
+    clerkUserIdIndex: index('profiles_clerkUserId_idx').on(table.clerkUserId),
   }),
 );
 
@@ -245,7 +245,7 @@ export const profileRelations = relations(ProfileTable, ({ many, one }) => ({
   meetings: many(MeetingTable),
   events: many(EventTable),
   user: one(UserTable, {
-    fields: [ProfileTable.userId],
+    fields: [ProfileTable.clerkUserId],
     references: [UserTable.clerkUserId],
   }),
 }));

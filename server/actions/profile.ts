@@ -49,7 +49,7 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
   try {
     // Retrieve existing profile to handle profile picture updates
     const existingProfile = await db.query.ProfileTable.findFirst({
-      where: (profile, { eq }) => eq(profile.userId, userId),
+      where: (profile, { eq }) => eq(profile.clerkUserId, userId),
     });
 
     // Handle profile picture blob management
@@ -127,14 +127,14 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
       .insert(ProfileTable)
       .values({
         ...validatedData,
-        userId: userId,
+        clerkUserId: userId,
         socialLinks: validatedData.socialLinks as Array<{
           name: 'tiktok' | 'twitter' | 'linkedin' | 'instagram' | 'youtube';
           url: string;
         }>,
       })
       .onConflictDoUpdate({
-        target: ProfileTable.userId,
+        target: ProfileTable.clerkUserId,
         set: {
           ...validatedData,
           socialLinks: validatedData.socialLinks as Array<{

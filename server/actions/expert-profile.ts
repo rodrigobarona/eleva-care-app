@@ -29,7 +29,7 @@ export async function toggleProfilePublication() {
   try {
     // Get current profile
     const profile = await db.query.ProfileTable.findFirst({
-      where: eq(ProfileTable.userId, userId),
+      where: eq(ProfileTable.clerkUserId, userId),
     });
 
     if (!profile) {
@@ -66,7 +66,7 @@ export async function toggleProfilePublication() {
     await db
       .update(ProfileTable)
       .set({ published: newPublishedStatus })
-      .where(eq(ProfileTable.userId, userId));
+      .where(eq(ProfileTable.clerkUserId, userId));
 
     // Revalidate paths where profile data might be displayed
     revalidatePath('/');

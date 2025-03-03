@@ -18,18 +18,20 @@ const ExpertsSection = async () => {
     secretKey: process.env.CLERK_SECRET_KEY,
   });
 
-  // First get all profiles from the database
-  const profiles = await db.query.ProfileTable.findMany();
+  // First get all profiles from the database that are published
+  const profiles = await db.query.ProfileTable.findMany({
+    where: ({ published }) => eq(published, true),
+  });
 
   // Get only the users that have profiles
   const users = await clerk.users.getUserList({
-    userId: profiles.map((profile) => profile.userId),
+    userId: profiles.map((profile) => profile.clerkUserId),
   });
 
   const expertsData = await Promise.all(
     users.data.map(async (user) => {
       // Get the corresponding profile
-      const profile = profiles.find((p) => p.userId === user.id);
+      const profile = profiles.find((p) => p.clerkUserId === user.id);
 
       if (!profile) return null; // This shouldn't happen due to our filtered users list
 

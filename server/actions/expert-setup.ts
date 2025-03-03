@@ -122,7 +122,7 @@ export async function checkExpertSetupStatus() {
 
     // Check profile completion (name and bio required)
     const dbProfile = await db.query.ProfileTable.findFirst({
-      where: eq(ProfileTable.userId, user.id),
+      where: eq(ProfileTable.clerkUserId, user.id),
     });
     setupStatus.profile = !!dbProfile?.firstName && !!dbProfile?.lastName && !!dbProfile?.shortBio;
 

@@ -17,13 +17,17 @@ export default async function ProfilePage() {
     redirect('/unauthorized');
   }
 
-  if (!(await hasRole('community_expert')) || !(await hasRole('top_expert'))) {
+  // Check if user has either community_expert OR top_expert role
+  const isCommunityExpert = await hasRole('community_expert');
+  const isTopExpert = await hasRole('top_expert');
+
+  if (!isCommunityExpert && !isTopExpert) {
     redirect('/unauthorized');
   }
 
   // Try to find existing profile
   const profile = await db.query.ProfileTable.findFirst({
-    where: eq(ProfileTable.userId, userId),
+    where: eq(ProfileTable.clerkUserId, userId),
   });
 
   // If profile exists and has required fields filled, mark step as complete
@@ -45,7 +49,7 @@ export default async function ProfilePage() {
       const newProfile = await db
         .insert(ProfileTable)
         .values({
-          userId: userId,
+          clerkUserId: userId,
           firstName: '', // Required fields with empty defaults
           lastName: '',
           isVerified: false,

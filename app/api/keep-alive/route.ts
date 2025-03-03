@@ -20,7 +20,7 @@ export async function GET(request: Request) {
 
     // 2. Refresh tokens only for users with Google Calendar connected
     const googleCalendarService = GoogleCalendarService.getInstance();
-    const profiles = await db.select({ userId: ProfileTable.userId }).from(ProfileTable);
+    const profiles = await db.select({ userId: ProfileTable.clerkUserId }).from(ProfileTable);
 
     for (const profile of profiles) {
       try {
