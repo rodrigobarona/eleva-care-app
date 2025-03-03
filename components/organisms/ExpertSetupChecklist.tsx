@@ -9,6 +9,7 @@ import { CheckCircle2, ChevronDown, ChevronUp, Circle, ExternalLink } from 'luci
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 type SetupStep = {
   id: string;
@@ -24,10 +25,8 @@ export function ExpertSetupChecklist() {
   const router = useRouter();
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(true);
-  const [showCongrats, setShowCongrats] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isProfilePublished, setIsProfilePublished] = useState(false);
-  const congratsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [setupSteps, setSetupSteps] = useState<SetupStep[]>([
     {
       id: 'profile',
@@ -120,44 +119,31 @@ export function ExpertSetupChecklist() {
     .filter((step) => !step.completed)
     .sort((a, b) => a.priority - b.priority)[0];
 
-  // Show congratulations when all steps are completed
+  // Show congratulations toast when all steps are completed
   useEffect(() => {
     if (completedSteps === totalSteps && !loading) {
-      setShowCongrats(true);
-      // Auto-dismiss after 15 seconds
-      congratsTimeoutRef.current = setTimeout(() => {
-        setShowCongrats(false);
-      }, 15000);
+      toast.success(
+        <div className="flex flex-col">
+          <span className="font-medium">Congratulations! 🎉</span>
+          <span className="text-sm">You&apos;ve completed all the setup steps!</span>
+        </div>,
+        {
+          duration: 8000,
+          action: {
+            label: isProfilePublished ? 'Manage Profile' : 'Publish Profile',
+            onClick: () => router.push('/expert'),
+          },
+        },
+      );
     }
-
-    // Cleanup timeout on unmount or when steps change
-    return () => {
-      if (congratsTimeoutRef.current) {
-        clearTimeout(congratsTimeoutRef.current);
-      }
-    };
-  }, [completedSteps, totalSteps, loading]);
+  }, [completedSteps, totalSteps, loading, isProfilePublished, router]);
 
   // Handle navigation
   useEffect(() => {
     if (lastPathname.current !== pathname) {
       lastPathname.current = pathname;
-      setShowCongrats(false);
-      // Clear any existing timeout
-      if (congratsTimeoutRef.current) {
-        clearTimeout(congratsTimeoutRef.current);
-      }
     }
   }, [pathname]);
-
-  // Handle manual dismiss
-  const handleDismissCongrats = () => {
-    setShowCongrats(false);
-    // Clear any existing timeout
-    if (congratsTimeoutRef.current) {
-      clearTimeout(congratsTimeoutRef.current);
-    }
-  };
 
   // If all steps are completed, show success message
   if (progressPercentage === 100) {
@@ -199,101 +185,78 @@ export function ExpertSetupChecklist() {
   if (loading && completedSteps === 0) return null;
 
   return (
-    <>
-      {showCongrats && (
-        <div className="mb-6 mt-1 w-full rounded-lg border-2 border-green-500 bg-green-50 p-4 shadow-sm">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <h3 className="text-lg font-medium text-green-800">Congratulations! 🎉</h3>
-              <p className="text-sm text-green-700">You&apos;ve completed all the setup steps!</p>
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDismissCongrats}
-                className="text-green-700 hover:text-green-800"
-              >
-                Dismiss
-              </Button>
-            </div>
+    <div className="mb-6 mt-1 w-full rounded-lg border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-center justify-between">
+        <div className="space-y-1">
+          <h3 className="text-sm font-medium">Complete your expert setup</h3>
+          <div className="flex items-center gap-2">
+            <Progress
+              value={loading ? undefined : progressPercentage}
+              className={cn('h-2 w-[100px]', loading && 'animate-pulse')}
+            />
+            <span className="text-xs text-muted-foreground">
+              {loading ? 'Loading...' : `${progressPercentage}% complete`}
+            </span>
           </div>
         </div>
-      )}
-
-      <div className="mb-6 mt-1 w-full rounded-lg border border-border bg-card p-4 shadow-sm">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <h3 className="text-sm font-medium">Complete your expert setup</h3>
-            <div className="flex items-center gap-2">
-              <Progress
-                value={loading ? undefined : progressPercentage}
-                className={cn('h-2 w-[100px]', loading && 'animate-pulse')}
-              />
-              <span className="text-xs text-muted-foreground">
-                {loading ? 'Loading...' : `${progressPercentage}% complete`}
-              </span>
-            </div>
-          </div>
-          <div className="flex space-x-2">
-            {nextIncompleteStep && !loading && (
-              <Button
-                variant="default"
-                size="sm"
-                onClick={() => router.push(nextIncompleteStep.href)}
-                className="text-xs"
-              >
-                {nextIncompleteStep.name}
-              </Button>
-            )}
+        <div className="flex space-x-2">
+          {nextIncompleteStep && !loading && (
             <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="h-6 w-6"
+              variant="default"
+              size="sm"
+              onClick={() => router.push(nextIncompleteStep.href)}
+              className="text-xs"
             >
-              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {nextIncompleteStep.name}
             </Button>
-          </div>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="h-6 w-6"
+          >
+            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
         </div>
+      </div>
 
-        {isExpanded && (
-          <div className="mt-4 space-y-3">
-            {setupSteps.map((step) => (
-              <div key={step.id} className="flex items-start space-x-3">
-                <div className="mt-0.5">
-                  {loading ? (
-                    <Circle className="h-5 w-5 animate-pulse text-muted-foreground" />
-                  ) : step.completed ? (
-                    <CheckCircle2 className="h-5 w-5 text-primary" />
-                  ) : (
-                    <Circle className="h-5 w-5 text-muted-foreground" />
+      {isExpanded && (
+        <div className="mt-4 space-y-3">
+          {setupSteps.map((step) => (
+            <div key={step.id} className="flex items-start space-x-3">
+              <div className="mt-0.5">
+                {loading ? (
+                  <Circle className="h-5 w-5 animate-pulse text-muted-foreground" />
+                ) : step.completed ? (
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                ) : (
+                  <Circle className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <Link
+                    href={step.href}
+                    className={cn(
+                      'text-sm font-medium hover:underline',
+                      step.completed ? 'text-muted-foreground' : 'text-foreground',
+                    )}
+                  >
+                    {step.name}
+                  </Link>
+                  {!step.completed && !loading && (
+                    <Button variant="ghost" size="sm" asChild className="h-7 text-xs">
+                      <Link href={step.href}>Complete</Link>
+                    </Button>
                   )}
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <Link
-                      href={step.href}
-                      className={cn(
-                        'text-sm font-medium hover:underline',
-                        step.completed ? 'text-muted-foreground' : 'text-foreground',
-                      )}
-                    >
-                      {step.name}
-                    </Link>
-                    {!step.completed && !loading && (
-                      <Button variant="ghost" size="sm" asChild className="h-7 text-xs">
-                        <Link href={step.href}>Complete</Link>
-                      </Button>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">{step.description}</p>
-                </div>
+                <p className="text-xs text-muted-foreground">{step.description}</p>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
