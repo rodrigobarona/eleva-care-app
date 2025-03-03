@@ -5,7 +5,7 @@ import { Progress } from '@/components/atoms/progress';
 import { cn } from '@/lib/utils';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { useUser } from '@clerk/nextjs';
-import { CheckCircle2, ChevronDown, ChevronUp, Circle, ExternalLink } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Circle } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
