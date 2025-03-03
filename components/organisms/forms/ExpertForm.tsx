@@ -184,11 +184,9 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       let profilePictureUrl = transformedData.profilePicture;
       if (selectedFile) {
         setIsUploading(true);
-        const formData = new FormData();
-        formData.append('file', selectedFile);
         const filename = `${user?.id}-${selectedFile.name}`;
         const response = await fetch(
-          `/api/profile/upload?filename=${encodeURIComponent(filename)}`,
+          `/api/upload?filename=${encodeURIComponent(filename)}&folder=profiles`,
           {
             method: 'POST',
             body: selectedFile,
@@ -199,18 +197,20 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
           throw new Error('Failed to upload image');
         }
 
-        const blob = await response.json();
-        profilePictureUrl = blob.url;
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || 'Failed to upload image');
+        }
+
+        profilePictureUrl = data.url;
         setIsUploading(false);
 
+        // Delete old profile picture if it exists in blob storage
         if (initialData?.profilePicture?.includes('public.blob.vercel-storage.com')) {
           try {
-            await fetch(
-              `/api/profile/upload?url=${encodeURIComponent(initialData.profilePicture)}`,
-              {
-                method: 'DELETE',
-              },
-            );
+            await fetch(`/api/upload?url=${encodeURIComponent(initialData.profilePicture)}`, {
+              method: 'DELETE',
+            });
           } catch (error) {
             console.error('Failed to delete old profile picture:', error);
           }

@@ -2,6 +2,17 @@ import { auth } from '@clerk/nextjs/server';
 import { del, put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
+/**
+ * Handles file uploads to Vercel Blob storage
+ *
+ * @param request Request object
+ * @returns NextResponse with the uploaded file URL
+ *
+ * Query parameters:
+ * - filename: The name of the file to upload (required)
+ * - folder: The folder to upload to (default: 'general')
+ * - addRandomSuffix: Whether to add a random suffix to the filename (default: true)
+ */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const { userId } = await auth();
@@ -12,6 +23,8 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const { searchParams } = new URL(request.url);
     const filename = searchParams.get('filename');
+    const folder = searchParams.get('folder') || 'general';
+    const addRandomSuffix = searchParams.get('addRandomSuffix') !== 'false'; // Default to true
 
     if (!filename) {
       return NextResponse.json({ error: 'Filename is required' }, { status: 400 });
@@ -21,15 +34,18 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({ error: 'Request body is required' }, { status: 400 });
     }
 
-    const blobFilename = `categories/${filename}`;
+    // Sanitize folder path to ensure it ends with a slash
+    const sanitizedFolder = folder.endsWith('/') ? folder : `${folder}/`;
+    const blobFilename = `${sanitizedFolder}${filename}`;
 
     const blob = await put(blobFilename, request.body, {
       access: 'public',
-      addRandomSuffix: true,
+      addRandomSuffix,
     });
 
     return NextResponse.json({
       url: blob.url,
+      pathname: blob.pathname,
       success: true,
     });
   } catch (error) {
@@ -41,6 +57,15 @@ export async function POST(request: Request): Promise<NextResponse> {
   }
 }
 
+/**
+ * Handles file deletion from Vercel Blob storage
+ *
+ * @param request Request object
+ * @returns NextResponse with status 204 if successful
+ *
+ * Query parameters:
+ * - url: The URL of the file to delete (required)
+ */
 export async function DELETE(request: Request): Promise<NextResponse> {
   try {
     const { userId } = await auth();

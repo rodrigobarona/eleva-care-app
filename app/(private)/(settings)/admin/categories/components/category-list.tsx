@@ -81,7 +81,7 @@ export function CategoryList() {
 
       const filename = `${Date.now()}-${file.name}`;
       const response = await fetch(
-        `/api/categories/upload?filename=${encodeURIComponent(filename)}`,
+        `/api/upload?filename=${encodeURIComponent(filename)}&folder=categories`,
         {
           method: 'POST',
           body: file,
@@ -106,7 +106,7 @@ export function CategoryList() {
 
   const handleDeleteImage = async (imageUrl: string) => {
     try {
-      const response = await fetch(`/api/categories/upload?url=${encodeURIComponent(imageUrl)}`, {
+      const response = await fetch(`/api/upload?url=${encodeURIComponent(imageUrl)}`, {
         method: 'DELETE',
       });
 
@@ -114,7 +114,8 @@ export function CategoryList() {
         throw new Error('Failed to delete image');
       }
     } catch (error) {
-      console.error('Failed to delete image:', error);
+      console.error('Error deleting image:', error);
+      toast.error('Failed to delete old image');
     }
   };
 
@@ -415,7 +416,7 @@ function CategoryCard({
 
       const filename = `${Date.now()}-${file.name}`;
       const response = await fetch(
-        `/api/categories/upload?filename=${encodeURIComponent(filename)}`,
+        `/api/upload?filename=${encodeURIComponent(filename)}&folder=categories`,
         {
           method: 'POST',
           body: file,
