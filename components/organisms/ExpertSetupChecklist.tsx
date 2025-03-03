@@ -72,6 +72,9 @@ export function ExpertSetupChecklist() {
 
   const lastPathname = useRef(pathname);
 
+  // Track if toast has been shown in this component instance
+  const toastShownInThisSession = useRef(false);
+
   useEffect(() => {
     async function loadCompletionStatus() {
       setLoading(true);
@@ -121,12 +124,21 @@ export function ExpertSetupChecklist() {
 
   // Show congratulations toast when all steps are completed (only once)
   useEffect(() => {
-    // Only run if the user data is loaded and all steps are completed
-    if (isLoaded && user && completedSteps === totalSteps && !loading) {
-      // Simple check: if metadata exists and flag is true, don't show toast
+    // Prevent showing toast multiple times in same session
+    if (toastShownInThisSession.current) return;
+
+    // Wait until everything is fully loaded
+    if (!isLoaded || !user || loading) return;
+
+    // Only proceed if all steps are completed
+    if (completedSteps === totalSteps) {
+      // Strict check to make sure the value is exactly boolean true
       const toastAlreadyShown = user.unsafeMetadata?.setup_completion_toast_shown === true;
 
       if (!toastAlreadyShown) {
+        // Mark that we've shown the toast in this session immediately
+        toastShownInThisSession.current = true;
+
         // Show the toast
         toast.success(
           <div className="flex flex-col">
@@ -143,22 +155,28 @@ export function ExpertSetupChecklist() {
         );
 
         // Mark that we've shown the toast in Clerk's metadata
-        user.update({
-          unsafeMetadata: {
-            ...user.unsafeMetadata,
-            setup_completion_toast_shown: true,
-          },
-        });
+        try {
+          user.update({
+            unsafeMetadata: {
+              ...user.unsafeMetadata,
+              setup_completion_toast_shown: true,
+            },
+          });
+        } catch (error) {
+          console.error('Failed to update user metadata:', error);
+        }
       }
-    } else if (isLoaded && user && completedSteps < totalSteps) {
+    } else if (user.unsafeMetadata?.setup_completion_toast_shown === true) {
       // Reset the flag if steps are no longer complete
-      if (user.unsafeMetadata?.setup_completion_toast_shown === true) {
+      try {
         user.update({
           unsafeMetadata: {
             ...user.unsafeMetadata,
             setup_completion_toast_shown: false,
           },
         });
+      } catch (error) {
+        console.error('Failed to reset user metadata:', error);
       }
     }
   }, [completedSteps, totalSteps, loading, isProfilePublished, router, isLoaded, user]);
