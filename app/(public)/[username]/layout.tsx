@@ -93,7 +93,7 @@ async function ProfileInfo({ username }: { username: string }) {
   if (!user) return notFound();
 
   const profile = await db.query.ProfileTable.findFirst({
-    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
+    where: ({ userId }, { eq }) => eq(userId, user.id),
   });
 
   return (

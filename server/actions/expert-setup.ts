@@ -105,42 +105,47 @@ export async function checkExpertSetupStatus() {
     // Get current setup status from metadata
     const metadataSetup = (user.unsafeMetadata?.expertSetup as Record<string, boolean>) || {};
 
-    // Create a new status object that will be updated based on database checks
+    // Initialize setup status object
     const setupStatus: Record<string, boolean> = {
-      ...metadataSetup,
+      profile: false,
+      availability: false,
+      events: false,
+      identity: false,
+      payment: false,
     };
 
-    // Verify profile completion - Check if user has a profile in ProfileTable
-    const profile = await db.query.ProfileTable.findFirst({
-      where: eq(ProfileTable.clerkUserId, user.id),
+    // Perform database checks to verify actual completion status
+    // Get the user from the database
+    const dbUser = await db.query.UserTable.findFirst({
+      where: eq(UserTable.clerkUserId, user.id),
     });
-    setupStatus.profile =
-      !!profile && !!profile.firstName && !!profile.lastName && !!profile.shortBio;
+
+    // Check profile completion (name and bio required)
+    const dbProfile = await db.query.ProfileTable.findFirst({
+      where: eq(ProfileTable.userId, user.id),
+    });
+    setupStatus.profile = !!dbProfile?.firstName && !!dbProfile?.lastName && !!dbProfile?.shortBio;
 
     // Verify availability - Check if user has a schedule with availabilities
     const schedule = await db.query.ScheduleTable.findFirst({
       where: eq(ScheduleTable.clerkUserId, user.id),
-      with: { availabilities: true },
     });
-    setupStatus.availability = !!schedule && schedule.availabilities.length > 0;
+    setupStatus.availability = !!schedule;
 
-    // Verify events - Check if user has created at least one event
+    // Verify events - Check if user has created at least one published event
     const eventCount = await db
       .select({ count: count() })
       .from(EventTable)
-      .where(eq(EventTable.clerkUserId, user.id));
-    setupStatus.events = eventCount[0].count > 0;
+      .where(eq(EventTable.clerkUserId, user.id))
+      .then((result) => result[0]?.count || 0);
+    setupStatus.events = eventCount > 0;
 
-    // Verify identity - Check user metadata for identity verification
-    // This approach depends on how identity verification is tracked in your system
-    setupStatus.identity =
-      user.publicMetadata?.identityVerified === true ||
-      user.unsafeMetadata?.identityVerified === true;
+    // Verify identity - Check if user has completed identity verification
+    setupStatus.identity = !!user.emailAddresses?.find(
+      (email) => email.verification?.status === 'verified',
+    );
 
     // Verify payment setup - Check if user has completed Stripe Connect onboarding
-    const dbUser = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, user.id),
-    });
     setupStatus.payment =
       !!dbUser?.stripeConnectAccountId && !!dbUser?.stripeConnectOnboardingComplete;
 
@@ -160,6 +165,7 @@ export async function checkExpertSetupStatus() {
     return {
       success: true,
       setupStatus,
+      isPublished: dbProfile?.published || false,
       revalidatePath: '/(private)/layout' as const,
     };
   } catch (error) {

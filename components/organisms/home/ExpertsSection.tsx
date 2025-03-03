@@ -23,13 +23,13 @@ const ExpertsSection = async () => {
 
   // Get only the users that have profiles
   const users = await clerk.users.getUserList({
-    userId: profiles.map((profile) => profile.clerkUserId),
+    userId: profiles.map((profile) => profile.userId),
   });
 
   const expertsData = await Promise.all(
     users.data.map(async (user) => {
       // Get the corresponding profile
-      const profile = profiles.find((p) => p.clerkUserId === user.id);
+      const profile = profiles.find((p) => p.userId === user.id);
 
       if (!profile) return null; // This shouldn't happen due to our filtered users list
 

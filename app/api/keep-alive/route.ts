@@ -20,20 +20,20 @@ export async function GET(request: Request) {
 
     // 2. Refresh tokens only for users with Google Calendar connected
     const googleCalendarService = GoogleCalendarService.getInstance();
-    const profiles = await db.select({ clerkUserId: ProfileTable.clerkUserId }).from(ProfileTable);
+    const profiles = await db.select({ userId: ProfileTable.userId }).from(ProfileTable);
 
     for (const profile of profiles) {
       try {
         // Check if user has Google Calendar tokens before attempting refresh
-        const hasTokens = await googleCalendarService.hasValidTokens(profile.clerkUserId);
+        const hasTokens = await googleCalendarService.hasValidTokens(profile.userId);
         if (hasTokens) {
-          await googleCalendarService.getOAuthClient(profile.clerkUserId);
-          console.log(`Token refreshed for user: ${profile.clerkUserId}`);
+          await googleCalendarService.getOAuthClient(profile.userId);
+          console.log(`Token refreshed for user: ${profile.userId}`);
         }
       } catch (error) {
         // Only log error if it's not related to missing tokens
         if (!(error instanceof Error && error.message.includes('No refresh token'))) {
-          console.error(`Failed to refresh token for user ${profile.clerkUserId}:`, error);
+          console.error(`Failed to refresh token for user ${profile.userId}:`, error);
         }
       }
     }

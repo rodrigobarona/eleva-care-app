@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 
 export default async function AuthLayout({ children }: { children: ReactNode }) {
   const { userId } = await auth();
-  if (userId != null) redirect('/');
+  if (userId != null) redirect('/unauthorized');
   return (
     <>
       <div className="flex min-h-screen flex-col items-center justify-center">{children}</div>

@@ -1,19 +1,29 @@
 import { ExpertForm } from '@/components/organisms/forms/ExpertForm';
+import { ProfilePublishToggle } from '@/components/organisms/ProfilePublishToggle';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
+import { hasRole } from '@/lib/auth/roles.server';
 import { markStepComplete } from '@/server/actions/expert-setup';
-import { auth } from '@clerk/nextjs/server';
+import { auth, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 export default async function ProfilePage() {
   const { userId } = await auth();
-  if (!userId) return redirect('/unauthorized');
+  const user = await currentUser();
+
+  if (!userId || !user) {
+    redirect('/unauthorized');
+  }
+
+  if (!(await hasRole('community_expert')) || !(await hasRole('top_expert'))) {
+    redirect('/unauthorized');
+  }
 
   // Try to find existing profile
   const profile = await db.query.ProfileTable.findFirst({
-    where: eq(ProfileTable.clerkUserId, userId),
+    where: eq(ProfileTable.userId, userId),
   });
 
   // If profile exists and has required fields filled, mark step as complete
@@ -35,7 +45,7 @@ export default async function ProfilePage() {
       const newProfile = await db
         .insert(ProfileTable)
         .values({
-          clerkUserId: userId,
+          userId: userId,
           firstName: '', // Required fields with empty defaults
           lastName: '',
           isVerified: false,
@@ -63,6 +73,9 @@ export default async function ProfilePage() {
             <h1 className="text-3xl font-bold">My Profile</h1>
             <p className="text-muted-foreground">Manage your public profile information</p>
           </div>
+          <div className="mb-8 rounded-lg border bg-card p-6 shadow-sm">
+            <ProfilePublishToggle initialPublishedStatus={false} />
+          </div>
           <ExpertForm initialData={transformedProfile} />
         </div>
       );
@@ -86,13 +99,21 @@ export default async function ProfilePage() {
     isTopExpert: profile.isTopExpert || false,
   };
 
+  // Default to unpublished if no profile exists yet
+  const isPublished = profile?.published ?? false;
+
   return (
-    <div className="container max-w-4xl py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">My Profile</h1>
-        <p className="text-muted-foreground">Manage your public profile information</p>
+    <div className="container py-6">
+      <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Expert Profile</h1>
+          <p className="text-muted-foreground">Manage your public expert profile information</p>
+        </div>
+        <ProfilePublishToggle initialPublishedStatus={isPublished} />
       </div>
-      <ExpertForm initialData={transformedProfile} />
+      <div className="space-y-4">
+        <ExpertForm initialData={transformedProfile} />
+      </div>
     </div>
   );
 }
