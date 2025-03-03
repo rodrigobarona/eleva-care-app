@@ -621,7 +621,7 @@ export default async function LegalPage(props: {
     return notFound();
   }
 
-  const { title, content } = legalDocs[document];
+  const { content } = legalDocs[document];
 
   return (
     <Card className="mb-20">
