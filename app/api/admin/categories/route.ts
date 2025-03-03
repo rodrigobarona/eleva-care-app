@@ -78,10 +78,9 @@ export async function PATCH(request: Request) {
       return new NextResponse('Forbidden', { status: 403 });
     }
 
-    const url = new URL(request.url);
-    const id = url.pathname.split('/').pop();
-
-    if (!id) {
+    // Extract category ID from URL
+    const categoryId = request.url.split('/categories/')[1];
+    if (!categoryId) {
       return new NextResponse('Category ID is required', { status: 400 });
     }
 
@@ -102,7 +101,7 @@ export async function PATCH(request: Request) {
         image: image || null,
         updatedAt: new Date(),
       })
-      .where(eq(CategoryTable.id, id))
+      .where(eq(CategoryTable.id, categoryId))
       .returning();
 
     if (!updatedCategory.length) {

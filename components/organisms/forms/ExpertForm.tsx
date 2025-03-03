@@ -72,7 +72,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       shortBio: initialData?.shortBio || '',
       longBio: initialData?.longBio || '',
       primaryCategoryId: initialData?.primaryCategoryId || '',
-      secondaryCategoryId: initialData?.secondaryCategoryId || '',
+      secondaryCategoryId: initialData?.secondaryCategoryId || 'none',
       socialLinks: SOCIAL_MEDIA_LIST.map((platform) => ({
         name: platform.name,
         url:
@@ -165,6 +165,8 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       // Transform usernames to full URLs
       const transformedData = {
         ...data,
+        // Convert 'none' to null for secondaryCategoryId
+        secondaryCategoryId: data.secondaryCategoryId === 'none' ? null : data.secondaryCategoryId,
         socialLinks: data.socialLinks.map((link) => {
           const platform = SOCIAL_MEDIA_LIST.find((p) => p.name === link.name);
           if (!platform) return link;
@@ -482,67 +484,105 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               </FormItem>
             )}
           />
+        </fieldset>
 
-          <FormField
-            control={form.control}
-            name="primaryCategoryId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Primary Category</FormLabel>
-                <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your primary category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories
-                        .filter((cat) => !cat.parentId)
-                        .map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormDescription>
-                  Choose the main category that best describes your expertise
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+        <fieldset className="space-y-4 rounded-lg border p-4">
+          <legend className="px-2 text-lg font-medium">Categories & Expertise</legend>
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="primaryCategoryId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Primary Category</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your primary category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {/* Main Categories */}
+                        {categories
+                          .filter((cat) => !cat.parentId)
+                          .map((category) => (
+                            <React.Fragment key={category.id}>
+                              <SelectItem value={category.id}>{category.name}</SelectItem>
+                              {/* Subcategories */}
+                              {categories
+                                .filter((subcat) => subcat.parentId === category.id)
+                                .map((subcategory) => (
+                                  <SelectItem
+                                    key={subcategory.id}
+                                    value={subcategory.id}
+                                    className="pl-6 text-sm"
+                                  >
+                                    {subcategory.name}
+                                  </SelectItem>
+                                ))}
+                            </React.Fragment>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormDescription>
+                    Choose the main category or subcategory that best describes your expertise
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-          <FormField
-            control={form.control}
-            name="secondaryCategoryId"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Secondary Category</FormLabel>
-                <FormControl>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your secondary category (optional)" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">None</SelectItem>
-                      {categories
-                        .filter((cat) => !cat.parentId)
-                        .map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </FormControl>
-                <FormDescription>
-                  Optionally choose a secondary category to highlight additional expertise
-                </FormDescription>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+            <FormField
+              control={form.control}
+              name="secondaryCategoryId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Secondary Category</FormLabel>
+                  <FormControl>
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your secondary category (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">None</SelectItem>
+                        {/* Main Categories */}
+                        {categories
+                          .filter((cat) => !cat.parentId)
+                          .map((category) => (
+                            <React.Fragment key={category.id}>
+                              {/* Only show if not selected as primary */}
+                              {category.id !== form.getValues('primaryCategoryId') && (
+                                <SelectItem value={category.id}>{category.name}</SelectItem>
+                              )}
+                              {/* Subcategories */}
+                              {categories
+                                .filter((subcat) => subcat.parentId === category.id)
+                                .filter(
+                                  (subcat) => subcat.id !== form.getValues('primaryCategoryId'),
+                                )
+                                .map((subcategory) => (
+                                  <SelectItem
+                                    key={subcategory.id}
+                                    value={subcategory.id}
+                                    className="pl-6 text-sm"
+                                  >
+                                    {subcategory.name}
+                                  </SelectItem>
+                                ))}
+                            </React.Fragment>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormDescription>
+                    Optionally choose another category or subcategory to highlight additional
+                    expertise
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
         </fieldset>
 
         <fieldset className="space-y-4 rounded-lg border p-4">
