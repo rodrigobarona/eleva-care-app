@@ -124,6 +124,12 @@ export function NavUser() {
                     <BadgeCheck className="ml-auto h-4 w-4" />
                   </Link>
                 </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/categories">
+                    Categories
+                    <BadgeCheck className="ml-auto h-4 w-4" />
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
               </>
             )}
