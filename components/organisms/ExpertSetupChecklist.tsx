@@ -145,42 +145,6 @@ export function ExpertSetupChecklist() {
     }
   }, [pathname]);
 
-  // If all steps are completed, show success message
-  if (progressPercentage === 100) {
-    return (
-      <div className="mb-6 mt-1 w-full rounded-lg border border-green-200 bg-green-50 p-4 shadow-sm dark:border-green-900 dark:bg-green-950">
-        <div className="flex items-start space-x-3">
-          <CheckCircle2 className="h-6 w-6 text-green-600" />
-          <div className="space-y-1">
-            <h3 className="font-medium text-green-800 dark:text-green-400">
-              All expert setup steps completed! 🎉
-            </h3>
-            <p className="text-sm text-green-700 dark:text-green-500">
-              {isProfilePublished
-                ? 'Your expert profile is published and visible to clients.'
-                : 'Your profile is ready to be published so clients can find and book your services.'}
-            </p>
-            <div className="pt-2">
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="border-green-600 text-green-700 hover:bg-green-100 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900"
-              >
-                <Link href="/expert" className="flex items-center gap-1">
-                  {isProfilePublished
-                    ? 'Manage your published profile'
-                    : 'Publish your expert profile'}
-                  <ExternalLink className="ml-1 h-3 w-3" />
-                </Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Don't show anything if still loading and no steps are loaded yet
   if (loading && completedSteps === 0) return null;
 
