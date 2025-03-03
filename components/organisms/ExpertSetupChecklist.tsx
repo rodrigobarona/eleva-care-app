@@ -5,7 +5,7 @@ import { Progress } from '@/components/atoms/progress';
 import { cn } from '@/lib/utils';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { useUser } from '@clerk/nextjs';
-import { CheckCircle2, ChevronDown, ChevronUp, Circle } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Circle, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -24,6 +24,7 @@ export function ExpertSetupChecklist() {
   const router = useRouter();
   const [isExpanded, setIsExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isProfilePublished, setIsProfilePublished] = useState(false);
   const [setupSteps, setSetupSteps] = useState<SetupStep[]>([
     {
       id: 'profile',
@@ -80,6 +81,11 @@ export function ExpertSetupChecklist() {
             })),
           );
 
+          // Track whether the profile is already published
+          if (result.isPublished !== undefined) {
+            setIsProfilePublished(result.isPublished);
+          }
+
           // If revalidation path was returned, refresh the UI
           if ('revalidatePath' in result) {
             router.refresh();
@@ -108,8 +114,44 @@ export function ExpertSetupChecklist() {
     .filter((step) => !step.completed)
     .sort((a, b) => a.priority - b.priority)[0];
 
-  // Don't show anything if all steps are completed or still loading
-  if (progressPercentage === 100) return null;
+  // If all steps are completed, show success message
+  if (progressPercentage === 100) {
+    return (
+      <div className="mb-6 mt-1 w-full rounded-lg border border-green-200 bg-green-50 p-4 shadow-sm dark:border-green-900 dark:bg-green-950">
+        <div className="flex items-start space-x-3">
+          <CheckCircle2 className="h-6 w-6 text-green-600" />
+          <div className="space-y-1">
+            <h3 className="font-medium text-green-800 dark:text-green-400">
+              All expert setup steps completed! 🎉
+            </h3>
+            <p className="text-sm text-green-700 dark:text-green-500">
+              {isProfilePublished
+                ? 'Your expert profile is published and visible to clients.'
+                : 'Your profile is ready to be published so clients can find and book your services.'}
+            </p>
+            <div className="pt-2">
+              <Button
+                asChild
+                variant="outline"
+                size="sm"
+                className="border-green-600 text-green-700 hover:bg-green-100 dark:border-green-600 dark:text-green-400 dark:hover:bg-green-900"
+              >
+                <Link href="/expert" className="flex items-center gap-1">
+                  {isProfilePublished
+                    ? 'Manage your published profile'
+                    : 'Publish your expert profile'}
+                  <ExternalLink className="ml-1 h-3 w-3" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't show anything if still loading and no steps are loaded yet
+  if (loading && completedSteps === 0) return null;
 
   return (
     <div className="mb-6 mt-1 w-full rounded-lg border border-border bg-card p-4 shadow-sm">
