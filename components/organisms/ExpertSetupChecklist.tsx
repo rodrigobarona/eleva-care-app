@@ -123,9 +123,10 @@ export function ExpertSetupChecklist() {
   useEffect(() => {
     if (!isLoaded || !user) return;
 
+    // Only proceed if all steps are completed and data is loaded
     if (completedSteps === totalSteps && !loading) {
-      // Check if we've already shown the completion toast using Clerk unsafe metadata
-      const hasShownCompletionToast = user.unsafeMetadata.setup_completion_toast_shown;
+      // Safely check if the toast has been shown before using optional chaining
+      const hasShownCompletionToast = user.unsafeMetadata?.setup_completion_toast_shown === true;
 
       if (!hasShownCompletionToast) {
         toast.success(
@@ -160,7 +161,7 @@ export function ExpertSetupChecklist() {
     if (
       completedSteps < totalSteps &&
       totalSteps > 0 &&
-      user.unsafeMetadata.setup_completion_toast_shown
+      user.unsafeMetadata?.setup_completion_toast_shown === true
     ) {
       // Reset the flag in Clerk's unsafe metadata if steps become incomplete
       user.update({
