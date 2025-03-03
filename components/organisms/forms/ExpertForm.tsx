@@ -539,7 +539,11 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                 <FormItem>
                   <FormLabel>Secondary Category</FormLabel>
                   <FormControl>
-                    <Select value={field.value} onValueChange={field.onChange}>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={!form.getValues('primaryCategoryId')}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Select your secondary category (optional)" />
                       </SelectTrigger>
@@ -550,23 +554,30 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                           .filter((cat) => !cat.parentId)
                           .map((category) => (
                             <React.Fragment key={category.id}>
-                              {/* Only show if not selected as primary */}
-                              {category.id !== form.getValues('primaryCategoryId') && (
-                                <SelectItem value={category.id}>{category.name}</SelectItem>
-                              )}
+                              {/* Display primary category as disabled instead of hiding it */}
+                              <SelectItem
+                                value={category.id}
+                                disabled={category.id === form.getValues('primaryCategoryId')}
+                              >
+                                {category.name}
+                                {category.id === form.getValues('primaryCategoryId') &&
+                                  ' (Primary)'}
+                              </SelectItem>
                               {/* Subcategories */}
                               {categories
                                 .filter((subcat) => subcat.parentId === category.id)
-                                .filter(
-                                  (subcat) => subcat.id !== form.getValues('primaryCategoryId'),
-                                )
                                 .map((subcategory) => (
                                   <SelectItem
                                     key={subcategory.id}
                                     value={subcategory.id}
                                     className="pl-6 text-sm"
+                                    disabled={
+                                      subcategory.id === form.getValues('primaryCategoryId')
+                                    }
                                   >
                                     {subcategory.name}
+                                    {subcategory.id === form.getValues('primaryCategoryId') &&
+                                      ' (Primary)'}
                                   </SelectItem>
                                 ))}
                             </React.Fragment>
@@ -575,8 +586,9 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                     </Select>
                   </FormControl>
                   <FormDescription>
-                    Optionally choose another category or subcategory to highlight additional
-                    expertise
+                    {!form.getValues('primaryCategoryId')
+                      ? 'Please select a primary category first'
+                      : 'Optionally choose another category or subcategory to highlight additional expertise'}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
