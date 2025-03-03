@@ -92,7 +92,7 @@ export default async function ProfilePage() {
       );
     } catch (error) {
       console.error('Error creating profile:', error);
-      return redirect('/events'); // Redirect on error
+      return redirect('/home'); // Redirect on error
     }
   }
 
