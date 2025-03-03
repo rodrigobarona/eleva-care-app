@@ -21,7 +21,7 @@ type SetupStep = {
 };
 
 export function ExpertSetupChecklist() {
-  const { isLoaded } = useUser();
+  const { isLoaded, user } = useUser();
   const router = useRouter();
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(true);
@@ -119,24 +119,58 @@ export function ExpertSetupChecklist() {
     .filter((step) => !step.completed)
     .sort((a, b) => a.priority - b.priority)[0];
 
-  // Show congratulations toast when all steps are completed
+  // Show congratulations toast when all steps are completed (only once)
   useEffect(() => {
+    if (!isLoaded || !user) return;
+
     if (completedSteps === totalSteps && !loading) {
-      toast.success(
-        <div className="flex flex-col">
-          <span className="font-medium">Congratulations! 🎉</span>
-          <span className="text-sm">You&apos;ve completed all the setup steps!</span>
-        </div>,
-        {
-          duration: 8000,
-          action: {
-            label: isProfilePublished ? 'Manage Profile' : 'Publish Profile',
-            onClick: () => router.push('/expert'),
+      // Check if we've already shown the completion toast using Clerk unsafe metadata
+      const hasShownCompletionToast = user.unsafeMetadata.setup_completion_toast_shown;
+
+      if (!hasShownCompletionToast) {
+        toast.success(
+          <div className="flex flex-col">
+            <span className="font-medium">Congratulations! 🎉</span>
+            <span className="text-sm">You&apos;ve completed all the setup steps!</span>
+          </div>,
+          {
+            duration: 8000,
+            action: {
+              label: isProfilePublished ? 'Manage Profile' : 'Publish Profile',
+              onClick: () => router.push('/expert'),
+            },
           },
-        },
-      );
+        );
+
+        // Mark that we've shown the toast in Clerk's unsafe metadata
+        user.update({
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            setup_completion_toast_shown: true,
+          },
+        });
+      }
     }
-  }, [completedSteps, totalSteps, loading, isProfilePublished, router]);
+  }, [completedSteps, totalSteps, loading, isProfilePublished, router, isLoaded, user]);
+
+  // Reset the toast flag if the completion status changes (steps become incomplete again)
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+
+    if (
+      completedSteps < totalSteps &&
+      totalSteps > 0 &&
+      user.unsafeMetadata.setup_completion_toast_shown
+    ) {
+      // Reset the flag in Clerk's unsafe metadata if steps become incomplete
+      user.update({
+        unsafeMetadata: {
+          ...user.unsafeMetadata,
+          setup_completion_toast_shown: false,
+        },
+      });
+    }
+  }, [completedSteps, totalSteps, isLoaded, user]);
 
   // Handle navigation
   useEffect(() => {
@@ -144,6 +178,11 @@ export function ExpertSetupChecklist() {
       lastPathname.current = pathname;
     }
   }, [pathname]);
+
+  // If all steps are completed, don't show anything
+  if (progressPercentage === 100) {
+    return null;
+  }
 
   // Don't show anything if still loading and no steps are loaded yet
   if (loading && completedSteps === 0) return null;
