@@ -1,11 +1,9 @@
-import { NextResponse } from 'next/server';
-
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
+import { getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-
-import { getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
+import { NextResponse } from 'next/server';
 
 export async function POST() {
   try {

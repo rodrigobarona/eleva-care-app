@@ -1,9 +1,8 @@
 'use client';
 
-import type { ReactNode } from 'react';
-
 import Footer from '@/components/organisms/Footer';
 import Header from '@/components/organisms/Header';
+import type { ReactNode } from 'react';
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (

@@ -138,8 +138,6 @@ body {
   margin-top: 0.5em;
 }
 
-
-
 @layer base {
   * {
     @apply border-border outline-ring/50;

@@ -1,8 +1,7 @@
-import dynamic from 'next/dynamic';
-import { notFound } from 'next/navigation';
-
 import { db } from '@/drizzle/db';
 import { auth } from '@clerk/nextjs/server';
+import dynamic from 'next/dynamic';
+import { notFound } from 'next/navigation';
 
 // Create a client-side only wrapper component
 const ClientEventFormWrapper = dynamic(() =>

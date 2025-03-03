@@ -2,10 +2,9 @@
 
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
+import { createStripeConnectAccount, getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
 import { clerkClient } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-
-import { createStripeConnectAccount, getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
 
 /**
  * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.

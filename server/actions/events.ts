@@ -1,19 +1,17 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
-
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable } from '@/drizzle/schema';
+import { logAuditEvent } from '@/lib/logAuditEvent';
+import { getServerStripe } from '@/lib/stripe';
 import { eventFormSchema } from '@/schema/events';
 import { auth } from '@clerk/nextjs/server';
 import { and, count, eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 import 'use-server';
 import type { z } from 'zod';
-
-import { logAuditEvent } from '@/lib/logAuditEvent';
-import { getServerStripe } from '@/lib/stripe';
 
 /**
  * @fileoverview Server actions for managing events in the Eleva Care application.

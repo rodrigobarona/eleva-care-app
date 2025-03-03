@@ -409,12 +409,8 @@
           "name": "meetings_eventId_events_id_fk",
           "tableFrom": "meetings",
           "tableTo": "events",
-          "columnsFrom": [
-            "eventId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["eventId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -424,44 +420,32 @@
         "meetings_stripePaymentIntentId_unique": {
           "name": "meetings_stripePaymentIntentId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripePaymentIntentId"
-          ]
+          "columns": ["stripePaymentIntentId"]
         },
         "meetings_stripeSessionId_unique": {
           "name": "meetings_stripeSessionId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeSessionId"
-          ]
+          "columns": ["stripeSessionId"]
         },
         "meetings_stripeApplicationFeeId_unique": {
           "name": "meetings_stripeApplicationFeeId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeApplicationFeeId"
-          ]
+          "columns": ["stripeApplicationFeeId"]
         },
         "meetings_stripeRefundId_unique": {
           "name": "meetings_stripeRefundId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeRefundId"
-          ]
+          "columns": ["stripeRefundId"]
         },
         "meetings_stripeTransferId_unique": {
           "name": "meetings_stripeTransferId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeTransferId"
-          ]
+          "columns": ["stripeTransferId"]
         },
         "meetings_stripe_payout_id_unique": {
           "name": "meetings_stripe_payout_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripe_payout_id"
-          ]
+          "columns": ["stripe_payout_id"]
         }
       },
       "checkConstraints": {}
@@ -527,9 +511,7 @@
         "permissions_name_unique": {
           "name": "permissions_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "checkConstraints": {}
@@ -652,9 +634,7 @@
         "profiles_clerkUserId_unique": {
           "name": "profiles_clerkUserId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "clerkUserId"
-          ]
+          "columns": ["clerkUserId"]
         }
       },
       "checkConstraints": {}
@@ -728,12 +708,8 @@
           "name": "records_meeting_id_meetings_id_fk",
           "tableFrom": "records",
           "tableTo": "meetings",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -741,12 +717,8 @@
           "name": "records_expert_id_users_clerkUserId_fk",
           "tableFrom": "records",
           "tableTo": "users",
-          "columnsFrom": [
-            "expert_id"
-          ],
-          "columnsTo": [
-            "clerkUserId"
-          ],
+          "columnsFrom": ["expert_id"],
+          "columnsTo": ["clerkUserId"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -822,12 +794,8 @@
           "name": "role_permissions_permission_id_permissions_id_fk",
           "tableFrom": "role_permissions",
           "tableTo": "permissions",
-          "columnsFrom": [
-            "permission_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["permission_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -895,12 +863,8 @@
           "name": "scheduleAvailabilities_scheduleId_schedules_id_fk",
           "tableFrom": "scheduleAvailabilities",
           "tableTo": "schedules",
-          "columnsFrom": [
-            "scheduleId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["scheduleId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -954,9 +918,7 @@
         "schedules_clerkUserId_unique": {
           "name": "schedules_clerkUserId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "clerkUserId"
-          ]
+          "columns": ["clerkUserId"]
         }
       },
       "checkConstraints": {}
@@ -1295,16 +1257,12 @@
         "users_clerkUserId_unique": {
           "name": "users_clerkUserId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "clerkUserId"
-          ]
+          "columns": ["clerkUserId"]
         },
         "users_stripeCustomerId_unique": {
           "name": "users_stripeCustomerId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeCustomerId"
-          ]
+          "columns": ["stripeCustomerId"]
         }
       },
       "checkConstraints": {}
@@ -1314,15 +1272,7 @@
     "public.day": {
       "name": "day",
       "schema": "public",
-      "values": [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday"
-      ]
+      "values": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
     },
     "public.subscription_status": {
       "name": "subscription_status",
@@ -1340,13 +1290,7 @@
     "public.user_role": {
       "name": "user_role",
       "schema": "public",
-      "values": [
-        "superadmin",
-        "admin",
-        "top_expert",
-        "community_expert",
-        "user"
-      ]
+      "values": ["superadmin", "admin", "top_expert", "community_expert", "user"]
     }
   },
   "schemas": {},

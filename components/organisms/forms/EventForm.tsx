@@ -1,25 +1,5 @@
 'use client';
 
-import React, { useTransition } from 'react';
-
-import dynamic from 'next/dynamic';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-
-import { eventFormSchema } from '@/schema/events';
-import {
-  createEvent,
-  deleteEvent,
-  getEventMeetingsCount,
-  updateEvent,
-} from '@/server/actions/events';
-import { createStripeProduct, updateStripeProduct } from '@/server/actions/stripe';
-import { useUser } from '@clerk/nextjs';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import type { z } from 'zod';
-
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
 import { Switch } from '@/components/atoms/switch';
@@ -50,8 +30,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/molecules/select';
-
 import { slugify } from '@/lib/validations/slug';
+import { eventFormSchema } from '@/schema/events';
+import {
+  createEvent,
+  deleteEvent,
+  getEventMeetingsCount,
+  updateEvent,
+} from '@/server/actions/events';
+import { createStripeProduct, updateStripeProduct } from '@/server/actions/stripe';
+import { useUser } from '@clerk/nextjs';
+import { zodResolver } from '@hookform/resolvers/zod';
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import React, { useTransition } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import type { z } from 'zod';
 
 // Dynamic import of RichTextEditor with SSR disabled
 const SimpleRichTextEditor = dynamic(() => import('@/components/molecules/RichTextEditor'), {
