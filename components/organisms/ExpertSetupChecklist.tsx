@@ -8,7 +8,7 @@ import { useUser } from '@clerk/nextjs';
 import { CheckCircle2, ChevronDown, ChevronUp, Circle, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 type SetupStep = {
   id: string;
@@ -27,6 +27,7 @@ export function ExpertSetupChecklist() {
   const [showCongrats, setShowCongrats] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isProfilePublished, setIsProfilePublished] = useState(false);
+  const congratsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [setupSteps, setSetupSteps] = useState<SetupStep[]>([
     {
       id: 'profile',
@@ -123,7 +124,18 @@ export function ExpertSetupChecklist() {
   useEffect(() => {
     if (completedSteps === totalSteps && !loading) {
       setShowCongrats(true);
+      // Auto-dismiss after 15 seconds
+      congratsTimeoutRef.current = setTimeout(() => {
+        setShowCongrats(false);
+      }, 15000);
     }
+
+    // Cleanup timeout on unmount or when steps change
+    return () => {
+      if (congratsTimeoutRef.current) {
+        clearTimeout(congratsTimeoutRef.current);
+      }
+    };
   }, [completedSteps, totalSteps, loading]);
 
   // Handle navigation
@@ -131,8 +143,21 @@ export function ExpertSetupChecklist() {
     if (lastPathname.current !== pathname) {
       lastPathname.current = pathname;
       setShowCongrats(false);
+      // Clear any existing timeout
+      if (congratsTimeoutRef.current) {
+        clearTimeout(congratsTimeoutRef.current);
+      }
     }
-  });
+  }, [pathname]);
+
+  // Handle manual dismiss
+  const handleDismissCongrats = () => {
+    setShowCongrats(false);
+    // Clear any existing timeout
+    if (congratsTimeoutRef.current) {
+      clearTimeout(congratsTimeoutRef.current);
+    }
+  };
 
   // If all steps are completed, show success message
   if (progressPercentage === 100) {
@@ -186,7 +211,7 @@ export function ExpertSetupChecklist() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowCongrats(false)}
+                onClick={handleDismissCongrats}
                 className="text-green-700 hover:text-green-800"
               >
                 Dismiss

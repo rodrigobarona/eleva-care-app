@@ -23,8 +23,8 @@ interface User {
 export function UserRoleManager() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { role: currentUserRole } = useAuthorization();
-  const isSuperAdmin = currentUserRole === 'superadmin';
+  const { roles: currentUserRole } = useAuthorization();
+  const isSuperAdmin = currentUserRole.includes('superadmin');
 
   const handleRoleUpdate = async (userId: string, newRoles: UserRoles) => {
     const promise = updateUserRole(userId, newRoles).then(async () => {
