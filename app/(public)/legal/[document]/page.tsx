@@ -155,6 +155,8 @@ _Last Updated:_ March 2, 2025
 
 Búzios e Tartarugas, Lda. ("Eleva.care," "we," "us," or "our") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, share, and protect your personal information when you use our website and services. For the provision of our Services, Eleva leverages a modern technology stack including Next.js 14, Clerk for authentication, PostgreSQL with Drizzle ORM for database management, and Tailwind CSS with shadcn/ui for interface design.
 
+Our company is headquartered in Portugal, European Union, and we are committed to complying with European data protection regulations, including the General Data Protection Regulation (GDPR).
+
 ## 2. Information We Collect
 
 - **Information You Provide Directly:** When you register for an account, schedule a meeting, or contact us, we collect your name, email, phone number, health information, and IP address.
@@ -169,53 +171,59 @@ As a platform serving the healthcare industry, we understand the sensitivity of 
 - **Meeting Records:** Information recorded during meetings is stored in our encrypted Records database, with separate encryption for content and metadata.
 - **Audit Logging:** We maintain a separate audit log database that tracks all database interactions, including who accessed what records and when, to ensure accountability and transparency.
 
-Although we are not currently HIPAA-certified, we implement many industry best practices for healthcare data protection and are working with our providers toward achieving higher compliance standards.
-
 ## 4. How We Use Your Information
 
 We use your information to:
-- Provide and improve our services.
-- Communicate with you.
-- Personalize your experience.
-- Comply with legal obligations.
-- Facilitate secure healthcare-related communications between experts and clients.
-- Maintain and enhance the security and functionality of our platform.
+- Provide and improve our Services
+- Communicate with you, including sending appointment reminders
+- Process transactions and manage your account
+- Personalize your experience and provide relevant content
+- Maintain the security and integrity of our platform
+- Respond to your inquiries and support requests
 
 ## 5. How We Share Your Information
 
 We may share your information with:
-- Service providers who assist us in providing our services (listed in our Data Processing Agreement).
-- Partners with whom we offer joint services.
-- Legal authorities as required by law.
 
-We do not sell, rent, or trade your personal information to third parties for marketing purposes.
+- **Service Providers:** We may share your information with trusted third-party service providers who help us operate our Services. These providers are contractually obligated to use your information only for the services they provide to us.
+- **Healthcare Providers:** With your consent, we may share your information with healthcare providers you connect with through our platform.
+- **Legal Requirements:** We may disclose your information if required by law, regulation, or legal process.
+- **Business Transfers:** If we are involved in a merger, acquisition, or sale of all or a portion of our assets, your information may be transferred as part of that transaction.
 
-## 6. Data Security
+## 6. Data Security Measures
 
-We implement robust security measures to protect your information, including:
+We implement robust security measures to protect your information:
 
-- **End-to-End Encryption:** We use industry-standard TLS (Transport Layer Security) to encrypt data in transit.
+- **TLS/SSL Encryption:** All data transmitted between your device and our servers is encrypted using TLS/SSL technology.
 - **At-Rest Encryption:** Sensitive data stored in our databases is encrypted using AES-256-GCM encryption.
 - **Secure Key Management:** Encryption keys are stored securely and managed according to industry best practices.
-- **Role-Based Access Control:** Our system enforces strict access controls based on user roles.
-- **Audit Logging:** We maintain comprehensive logs of all system access and changes to sensitive data.
-- **Regular Security Reviews:** We conduct regular reviews of our security practices and system configurations.
+- **Regular Security Audits:** We conduct regular security audits and penetration testing to identify and address vulnerabilities.
+- **Role-Based Access Control:** Access to sensitive data is restricted to authorized personnel on a need-to-know basis.
+- **Multi-Factor Authentication:** We implement multi-factor authentication for administrative access.
+- **Backup and Recovery:** We maintain regular backups of our databases with strict access controls.
 
-While no data transmission over the internet or electronic storage system can guarantee 100% security, we are committed to protecting your information using commercially reasonable measures.
+## 7. Data Processing Locations and Infrastructure
 
-## 7. Data Retention
+Búzios e Tartarugas, Lda. is based in Portugal (European Union) and we prioritize storing and processing your data within the European Union whenever possible:
 
-We retain your information only as long as necessary to fulfill the purposes for which it was collected, to comply with legal obligations, or to resolve disputes. Specific retention periods may vary based on the type of information and applicable legal requirements.
+- **Application Hosting:** Our application is hosted on Vercel with the primary region set to Frankfurt, Germany (eu-central-1) within the European Union.
+- **Database Services:** We use Neon.tech for our PostgreSQL database, which is hosted in AWS Europe (Frankfurt) data centers.
+- **Analytics:** We use PostHog for analytics, with data processing occurring within the European Union.
+- **Other Service Providers:** For services where we use Clerk (authentication), Google (SSO), Beehiiv (newsletters), and Stripe (payments), data may be processed according to their respective privacy policies and data processing agreements.
+
+We are committed to maintaining European data residency whenever feasible and implementing appropriate safeguards when data must be processed outside the EU.
 
 ## 8. Your Rights
 
-Under applicable data protection laws, you have the right to:
-- Access your personal information
-- Rectify inaccurate or incomplete information
-- Erase your personal information in certain circumstances
-- Restrict or object to the processing of your personal information
-- Data portability (receive your data in a structured, commonly used format)
-- Withdraw consent at any time (where processing is based on consent)
+Under applicable data protection laws, including the GDPR, you have certain rights regarding your personal information:
+
+- **Right to Access:** You have the right to request a copy of the personal information we hold about you.
+- **Right to Rectification:** You have the right to request that we correct any inaccurate or incomplete information about you.
+- **Right to Erasure:** You have the right to request that we delete your personal information in certain circumstances.
+- **Right to Restrict Processing:** You have the right to request that we restrict the processing of your personal information in certain circumstances.
+- **Right to Data Portability:** You have the right to request that we transfer your personal information to another service provider in a structured, commonly used, and machine-readable format.
+- **Right to Object:** You have the right to object to the processing of your personal information in certain circumstances.
+- **Right to Withdraw Consent:** If we rely on your consent to process your personal information, you have the right to withdraw that consent at any time.
 
 To exercise these rights, please contact us using the details provided in the "Contact Us" section.
 
@@ -237,124 +245,70 @@ We use analytics tools like PostHog to improve our services by analyzing usage p
 ## 12. Contact Us
 
 If you have any questions about this Privacy Policy or our privacy practices, please contact us at:
-- Email: [support@eleva.care](mailto:support@eleva.care)
-- Phone: +351 931897950
-- Postal Address: Rua Gil Vicente, 2 - 2775-198 Parede, Portugal
 
-## Additional Clauses (GDPR Specific):
+**Búzios e Tartarugas, Lda.**
+Email: privacy@eleva.care
+Address: [Portuguese company address]
 
-- **Lawful Basis for Processing:** We process your data based on your consent, contract fulfillment, legal obligations, and legitimate interests.
-- **Data Protection Officer:** While not legally required to appoint a DPO, we have designated a privacy team responsible for overseeing our data protection strategy.
-- **Supervisory Authority:** You have the right to lodge a complaint with a supervisory authority if you believe your data protection rights have been violated.
+## 13. Changes to This Privacy Policy
 
-This Privacy Policy is subject to change. We will notify you of any material changes by posting the new policy on our website with an updated effective date.
-`,
+We may update this Privacy Policy from time to time to reflect changes in our practices or legal requirements. We will notify you of any material changes by posting the updated Privacy Policy on our website and changing the "Last Updated" date at the top of this policy.
+
+## 14. Supervisory Authority
+
+If you are located in the European Union, you have the right to lodge a complaint with your local data protection authority if you believe that our processing of your personal information does not comply with the GDPR.`,
   },
   cookie: {
     title: 'Cookie Policy',
-    content: `# Cookie Policy
+    content: `# Cookie Policy for Eleva.care
 
 _Last Updated:_ March 2, 2025
 
 ## Introduction
 
-As a healthcare platform, we take cookie privacy and transparency very seriously. This Cookie Policy explains how we use cookies and similar tracking technologies on our website and platform, with special attention to healthcare data protection. It also explains how we manage cookie consent to ensure your privacy and compliance with relevant regulations.
+This Cookie Policy explains how Búzios e Tartarugas, Lda. ("Eleva.care," "we," "us," or "our") uses cookies and similar technologies on our website and platform. It explains what these technologies are and why we use them, as well as your rights to control our use of them.
 
 ## What Are Cookies?
 
 Cookies are small text files that are stored on your device when you visit a website. They serve various purposes, including:
 
+- Ensuring the website functions properly
 - Remembering your preferences and settings
-- Understanding how you interact with websites
-- Helping with security and login verification
-- Enabling certain website functionalities
-- Supporting secure authentication processes
-
-## Healthcare Data and Cookies
-
-We understand the sensitive nature of healthcare-related information:
-
-- No clinical data or patient information is ever stored in cookies
-- We do not use cookies to track health-related behaviors or conditions
-- Our use of cookies is separate from our encrypted storage of healthcare information
-- Cookie data is never combined with clinical information stored in our systems
+- Analyzing how you use the website to improve it
+- Personalizing your experience
+- In some cases, delivering targeted advertisements
 
 ## Types of Cookies We Use
 
 ### Essential Cookies
 
-These cookies are necessary for our website to function properly and cannot be disabled:
+Essential cookies are necessary for the proper functioning of our website and platform. They enable core features such as security, network management, and account access. You cannot opt out of these cookies as the website cannot function properly without them.
 
-- Authentication cookies to manage user sessions and secure login status
-- Security cookies to prevent fraud and protect our service
-- Technical cookies required for our platform's core functionality
-- Load balancing cookies for optimal performance
+Examples include:
+- Session cookies that maintain your authenticated state
+- Security cookies that help protect our platform from abuse
+- Load balancing cookies that distribute traffic to make our website more responsive
 
 ### Functional Cookies
 
-These cookies enable enhanced functionality but are not strictly necessary:
-
-- Language preferences
-- Theme preferences (light/dark mode)
-- User interface customization settings
-- Saved preferences for forms and features
+Functional cookies enhance the functionality of our website by storing your preferences. These include:
+- Language preference cookies
+- Interface customization settings
+- Form auto-fill data (excluding sensitive information)
 
 ### Analytics Cookies
 
-We use minimal analytics through PostHog to improve our service:
+We use analytics cookies to understand how visitors interact with our website, which helps us improve it:
+- Anonymous usage statistics
+- Time spent on different pages
+- Navigation paths through the site
+- Performance monitoring
 
-- Anonymous usage statistics with data minimization principles applied
-- Performance monitoring of site functionality
-- Error tracking for service improvement
-- User flow analysis to optimize platform experience
-
-All analytics data is anonymized and aggregated. Individual users cannot be personally identified through our analytics implementation.
-
-## Cookie Duration
-
-### Session Cookies
-
-Temporary cookies that expire when you close your browser. These are primarily used for essential functions like maintaining login sessions.
-
-### Persistent Cookies
-
-Cookies that remain on your device for a set period. We limit persistent cookies to a maximum of 12 months, as recommended by privacy regulations, with most expiring much sooner.
-
-## Our Cookie Consent Solution
-
-We use CookieKit to ensure transparency and control over cookies:
-
-- Obtain explicit consent before setting non-essential cookies
-- Provide granular control over cookie preferences by category
-- Enable easy withdrawal of consent at any time
-- Maintain detailed consent records for compliance purposes
-- Update consent preferences in real-time across our platform
-
-## Healthcare Industry Best Practices
-
-As a platform serving the healthcare industry, we follow these additional best practices:
-
-- We implement a "privacy by default" approach, minimizing cookie usage
-- We regularly audit our cookie usage to ensure compliance with healthcare privacy standards
-- We separate analytics data from any healthcare-related information
-- We ensure all third-party cookie providers comply with relevant data protection regulations
-
-## Managing Cookie Preferences
-
-You can manage your cookie preferences in several ways:
-
-- Using our cookie consent banner upon first visit
-- Through your browser settings (instructions for common browsers provided below)
-- Via our preference center (accessible through the "Cookie Preferences" button in the footer)
-- By contacting our support team
-
-**Browser Settings:**
-- **Chrome**: Settings > Privacy and Security > Cookies and other site data
-- **Firefox**: Options > Privacy & Security > Cookies and Site Data
-- **Safari**: Preferences > Privacy > Cookies and website data
-- **Edge**: Settings > Cookies and site permissions > Cookies
-
-**Note:** Blocking essential cookies may affect the functionality of our website and platform, including security features.
+### For healthcare professionals:
+- No clinical data or patient information is ever stored in cookies
+- Cookie consent is required before non-essential cookies are set
+- Cookie data is never combined with clinical information stored in our systems
+- All cookies comply with healthcare industry security standards
 
 ## Third-Party Cookies
 
@@ -373,45 +327,76 @@ Cookie data may be processed and stored in the European Union and in the United 
 
 ## Regular Cookie Audits
 
-We conduct regular audits of our cookie usage to:
-- Identify and remove unnecessary cookies
+We conduct regular audits of the cookies used on our site to:
+- Ensure our Cookie Policy remains accurate
+- Remove any unnecessary cookies
 - Verify compliance with data protection regulations
-- Ensure accuracy of cookie descriptions in this policy
-- Minimize data collection to only what is necessary
+- Maintain minimal data collection practices
+- Ensure third-party cookies remain compliant with our standards
 
-## Updates to This Policy
+## Managing Your Cookie Preferences
 
-We may update this Cookie Policy to reflect changes in our practices or for legal compliance. We will notify you of any material changes and update the "Last updated" date accordingly. Significant changes may also be announced via a banner on our website.
+You can manage your cookie preferences by:
+
+1. **Using Our Cookie Banner:** When you first visit our website, you'll see a cookie banner that allows you to accept or decline non-essential cookies.
+
+2. **Adjusting Your Browser Settings:** Most web browsers allow you to manage your cookie preferences. You can set your browser to refuse cookies, delete cookies, or display a warning before a cookie is stored. Please note that if you disable or refuse cookies, some parts of our website may become inaccessible or not function properly.
+
+Here's how to manage cookies in common browsers:
+- **Chrome**: Settings > Privacy and security > Cookies and other site data
+- **Firefox**: Options > Privacy & Security > Cookies and Site Data
+- **Safari**: Preferences > Privacy > Cookies and website data
+- **Edge**: Settings > Cookies and site permissions > Cookies
+
+**Note:** Blocking essential cookies may affect the functionality of our website and platform, including security features.
+
+## Third-Party Cookies
+
+We minimize the use of third-party cookies. When required, we ensure our partners comply with relevant data protection regulations and maintain transparent privacy practices. Our third-party services include:
+
+- Clerk for user authentication
+- Stripe for payment processing
+- PostHog for minimal usage statistics and analytics
+- Beehiiv for newsletter subscription management
+
+Each of these providers has been selected based on their security practices and compliance with data protection standards relevant to healthcare applications.
+
+## Duration of Cookies
+
+Different cookies remain active for different periods:
+- **Session cookies:** These temporary cookies are deleted when you close your browser
+- **Persistent cookies:** These remain on your device until they expire or you delete them manually
+- **Essential security cookies:** May last up to 12 months to ensure continuous protection
+
+Specific durations for each cookie are documented in our internal cookie inventory and are reviewed regularly to ensure they store data for the minimum time necessary.
+
+## Changes to This Cookie Policy
+
+We may update this Cookie Policy from time to time to reflect changes in technology, regulation, or our business practices. Any changes will be posted on this page with an updated "Last Updated" date.
 
 ## Contact Us
 
-If you have questions about our Cookie Policy or our practices, please contact us at:
-- Email: [support@eleva.care](mailto:support@eleva.care)
-- Phone: +351 931897950
-- Postal Address: Rua Gil Vicente, 2 - 2775-198 Parede, Portugal
-`,
+If you have any questions about our use of cookies or this Cookie Policy, please contact us at:
+
+**Búzios e Tartarugas, Lda.**
+Email: privacy@eleva.care
+Address: [Portuguese company address]
+
+For more information about your privacy rights, please see our [Privacy Policy](https://eleva.care/legal/privacy).`,
   },
   dpa: {
     title: 'Data Processing Agreement',
-    content: `# Data Processing Agreement (DPA) between Búzios e Tartarugas, Lda. (Eleva.care) and Data Processors
+    content: `# Data Processing Agreement
 
 _Last Updated:_ March 2, 2025
 
-## 1. Parties
+This Data Processing Agreement ("DPA") is entered into between:
 
-**Data Controller:** 
-- Búzios e Tartarugas, Lda. (Eleva.care), Rua Gil Vicente, 2 - 2775-198 Parede (Portugal), VAT Number: PT515001708
+**Búzios e Tartarugas, Lda. ("Eleva.care")**, a company incorporated under the laws of Portugal, operating the Eleva.care platform; and
 
-**Data Processors:**
-- Neon Inc., 2261 Market Street STE 22601 San Francisco, CA, 94114, USA
-- Clerk, Inc., 660 King Street Unit 345 San Francisco, CA 94107 United States
-- Stripe, Inc., 510 Townsend St., San Francisco, CA United States
-- PostHog Inc., 2261 Market St STE 22301, San Francisco, CA 94114, United States
-- Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 United States (for Single Sign-On services only)
-- Beehiiv Inc., for processing newsletter data as defined in their applicable agreements.
-- Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, United States
+**The Customer** (as defined in the Terms of Service or other agreement between Eleva.care and the Customer).
 
-## 2. Definitions
+## 1. Definitions
 
 For the purposes of this DPA, the following terms shall have the meanings set out below:
 
@@ -419,134 +404,165 @@ For the purposes of this DPA, the following terms shall have the meanings set ou
 - **"Personal Data"** means any information relating to an identified or identifiable natural person as defined in Article 4(1) of the GDPR.
 - **"Special Categories of Personal Data"** means personal data revealing racial or ethnic origin, political opinions, religious or philosophical beliefs, trade union membership, genetic data, biometric data, data concerning health, sex life, or sexual orientation.
 - **"Processing"** means any operation performed on Personal Data as defined in Article 4(2) of the GDPR.
-- **"Data Subject"** means the identified or identifiable person to whom the Personal Data relates.
-- **"Personal Data Breach"** means a breach of security leading to the accidental or unlawful destruction, loss, alteration, unauthorized disclosure of, or access to, Personal Data.
-- **"Subprocessor"** means any processor engaged by a Data Processor to process Personal Data on behalf of the Data Controller.
-- **"Healthcare Data"** means any data related to the physical or mental health of an individual, including the provision of healthcare services, which reveals information about their health status.
+- **"Data Subject"** means an identified or identifiable natural person to whom Personal Data relates.
+- **"Data Controller"** means the entity that determines the purposes and means of the Processing of Personal Data.
+- **"Data Processor"** means the entity that processes Personal Data on behalf of the Data Controller.
+- **"Sub-processor"** means any Data Processor engaged by Eleva.care or its affiliates to assist in fulfilling its obligations with respect to providing the Services.
+- **"Services"** means the services provided by Eleva.care to the Customer under the Terms of Service or other agreement.
+- **"Security Incident"** means a breach of security leading to the accidental or unlawful destruction, loss, alteration, unauthorized disclosure of, or access to, Personal Data transmitted, stored, or otherwise processed.
 
-## 3. Subject Matter and Purpose of Processing
+## 2. Subject Matter and Duration
 
-This DPA governs the processing of personal data by the Data Processors on behalf of the Data Controller in connection with the provision of the following services:
+### 2.1 Subject Matter
+This DPA applies to the Processing of Personal Data by Eleva.care on behalf of the Customer in connection with the provision of the Services.
 
-- **Neon:** Database services for storing appointment data, synchronized with Clerk.
-- **Clerk:** User management services.
-- **Stripe:** Payment processing and storage of payment method data.
-- **PostHog:** Analytics and user behavior tracking services.
-- **Google Cloud:** Single Sign-On (SSO) services only.
-- **Beehiiv:** Newsletter services and related communications.
-- **Vercel:** Hosting and edge computing services.
+### 2.2 Duration
+This DPA shall commence on the date the Customer begins using the Services and shall continue until the termination of the Services. Upon termination of the Services, Eleva.care shall delete or return all Personal Data processed on behalf of the Customer, unless applicable law requires storage of the Personal Data.
 
-The purpose of processing is to facilitate the operation of Eleva.care's platform and services, including user authentication, appointment management, payment processing, and analytics in the context of a healthcare service platform.
+## 3. Nature and Purpose of Processing
 
-## 4. Types of Personal Data and Categories of Data Subjects
+### 3.1 Nature of Processing
+Eleva.care will process Personal Data as necessary to provide the Services to the Customer pursuant to the Terms of Service or other agreement between Eleva.care and the Customer.
 
-### Types of Personal Data processed:
+### 3.2 Purpose of Processing
+The purpose of the Processing is to provide the Services to the Customer, which may include:
+- Facilitating account creation and authentication
+- Enabling the scheduling and management of appointments
+- Providing video conferencing capabilities
+- Enabling healthcare professionals to record and access clinical notes and recommendations
+- Processing payments for services
+- Providing customer support
+- Maintaining the security and performance of the Services
 
-- **Identity Data:** Names, email addresses, phone numbers, user IDs
-- **Profile Data:** Professional information, credentials, specialties, profile pictures
-- **Account Data:** Username, password (hashed), account preferences
-- **Communication Data:** Messages, emails, communication preferences
-- **Technical Data:** IP addresses, cookies, device information, access logs
-- **Usage Data:** Platform interaction, feature usage, analytics data
-- **Payment Data:** Payment method details, transaction records, billing addresses
-- **Healthcare-Related Data:** Appointment types, scheduling information, clinical notes (encrypted)
+## 4. Categories of Data Subjects and Personal Data
 
-### Categories of Data Subjects:
+### 4.1 Categories of Data Subjects
+The categories of Data Subjects whose Personal Data may be processed under this DPA include:
+- The Customer and its employees, contractors, and representatives
+- The Customer's clients or patients
+- Other individuals whose Personal Data is processed by the Customer through the Services
 
-- Healthcare professionals using the platform
-- Clients/patients seeking healthcare services 
-- Eleva.care staff and administrators
-- Business partners and service providers
+### 4.2 Categories of Personal Data
+The categories of Personal Data that may be processed under this DPA include:
+- Basic personal information (name, email address, phone number)
+- Account credentials and authentication data
+- Payment information
+- Scheduling and appointment data
+- Communication content and metadata
+- IP addresses and device information
+- Healthcare-related information, which may include Special Categories of Personal Data
 
-## 5. Data Controller's Responsibilities
+### 4.3 Special Categories of Personal Data
+The Customer acknowledges that the Services are designed to process healthcare information, which may include Special Categories of Personal Data. Eleva.care has implemented enhanced security measures suitable for processing such data.
 
-Eleva.care, as the Data Controller, shall:
+## 5. Rights and Obligations of the Data Controller
 
+### 5.1 Instructions
+Eleva.care shall process Personal Data only on documented instructions from the Customer, including with regard to transfers of Personal Data to a third country or an international organization, unless required to do so by applicable law.
+
+### 5.2 Compliance with Data Protection Laws
+The Customer, as Data Controller, shall:
+- Ensure it has a lawful basis for processing Personal Data
 - Comply with all applicable data protection laws, including GDPR.
-- Provide clear and accurate instructions to the Data Processors regarding the processing of personal data.
-- Obtain and maintain all necessary consents from data subjects for the processing of their personal data.
-- Implement appropriate technical and organizational measures to ensure the security of personal data.
-- Respond to requests from Data Subjects regarding their Personal Data rights.
-- Conduct data protection impact assessments where required by law.
-- Maintain records of processing activities under its responsibility.
-- Select Data Processors that provide sufficient guarantees to implement appropriate technical and organizational measures.
+- Provide appropriate privacy notices to Data Subjects
+- Respond to Data Subject requests in accordance with applicable law
+- Obtain valid consent from Data Subjects where required
+- Implement appropriate technical and organizational measures to protect Personal Data
 
-## 6. Data Processors' Responsibilities
+### 5.3 Security Risk Assessment
+The Customer is responsible for conducting its own risk assessment to determine whether the security measures implemented by Eleva.care are appropriate for the Customer's intended use of the Services.
 
-Each Data Processor shall:
+## 6. Obligations of the Data Processor
 
-- Process Personal Data only on documented instructions from Eleva.care.
-- Ensure that persons authorized to process the Personal Data have committed themselves to confidentiality.
-- Implement appropriate technical and organizational measures to ensure a level of security appropriate to the risk, including:
-  - Encryption of Personal Data where appropriate
-  - Ensuring the ongoing confidentiality, integrity, availability, and resilience of processing systems
-  - Ability to restore availability and access to Personal Data in a timely manner
-  - Process for regularly testing, assessing, and evaluating the effectiveness of security measures
-- Not engage another processor without prior specific or general written authorization from Eleva.care.
-- Assist Eleva.care in responding to requests from Data Subjects.
-- Assist Eleva.care in ensuring compliance with security obligations, including data breach notification.
-- Delete or return all Personal Data to Eleva.care after the end of the provision of services.
-- Make available to Eleva.care all information necessary to demonstrate compliance with this DPA.
-- Not transfer Personal Data outside the EEA without adequate safeguards in place.
-- Maintain records of all processing activities carried out on behalf of Eleva.care.
+### 6.1 Compliance with Instructions
+Eleva.care shall process Personal Data only on documented instructions from the Customer, unless required by applicable law.
 
-## 7. Security Measures
+### 6.2 Confidentiality
+Eleva.care shall ensure that persons authorized to process the Personal Data have committed themselves to confidentiality or are under an appropriate statutory obligation of confidentiality.
 
-The Data Processors shall implement and maintain appropriate technical and organizational security measures, including:
+### 6.3 Security Measures
+Eleva.care shall implement appropriate technical and organizational measures to ensure a level of security appropriate to the risk, including:
+- Encryption of Personal Data in transit and at rest
+- Ability to ensure the ongoing confidentiality, integrity, availability, and resilience of processing systems and services
+- Ability to restore availability and access to Personal Data in a timely manner
+- Regular testing, assessing, and evaluating the effectiveness of security measures
 
-### For All Data Processors:
-- Access control systems with strong authentication
-- Regular security testing and vulnerability assessments
-- Encryption of data in transit using TLS/SSL
-- Role-based access controls
-- Employee training on data protection
-- Incident response procedures
-- Regular backup procedures
+### 6.4 Sub-processors
+Eleva.care shall not engage any Sub-processor without prior authorization from the Customer. The Customer hereby provides general authorization for Eleva.care to engage Sub-processors listed in Eleva.care's Sub-processor List, which shall be made available to the Customer upon request. For any new Sub-processors, Eleva.care shall inform the Customer in advance, giving the Customer the opportunity to object.
 
-### Healthcare Data-Specific Measures:
-- Encryption of sensitive healthcare data at rest using AES-256-GCM
-- Special access controls for healthcare-related information
-- Audit logging of all access to healthcare data
-- Strict separation of healthcare data from other types of data
-- Application of the principle of least privilege
+### 6.5 Data Subject Rights
+Eleva.care shall assist the Customer in responding to requests from Data Subjects exercising their rights under applicable Data Protection Laws, taking into account the nature of the processing.
 
-## 8. Personal Data Breach
+### 6.6 Security Incidents
+Eleva.care shall notify the Customer without undue delay after becoming aware of a Security Incident affecting the Customer's Personal Data. The notification shall include information required for the Customer to comply with its obligations under applicable Data Protection Laws.
 
-In the event of a Personal Data Breach, the relevant Data Processor shall:
+### 6.7 Data Protection Impact Assessments
+Eleva.care shall provide reasonable assistance to the Customer with any data protection impact assessments and prior consultations with supervisory authorities, taking into account the nature of processing and the information available to Eleva.care.
 
-- Notify Eleva.care without undue delay, and where feasible, within 24 hours upon becoming aware of a Personal Data Breach.
-- Provide sufficient information to allow Eleva.care to meet any obligations to report to supervisory authorities or inform Data Subjects, including:
-  - The nature of the breach
-  - Categories and approximate number of Data Subjects affected
-  - Categories and approximate number of records concerned
-  - Likely consequences of the breach
-  - Measures taken or proposed to address the breach
-- Cooperate with Eleva.care and take reasonable steps to assist in the investigation, mitigation, and remediation of each breach.
-- Document all breaches, including facts, effects, and remedial actions taken.
+### 6.8 Deletion or Return of Personal Data
+Upon termination of the Services, Eleva.care shall, at the choice of the Customer, delete or return all Personal Data to the Customer and delete existing copies, unless applicable law requires storage of the Personal Data.
 
-## 9. Data Subject Rights
+### 6.9 Audit Rights
+Eleva.care shall make available to the Customer all information necessary to demonstrate compliance with the obligations laid down in this DPA and allow for and contribute to audits, including inspections, conducted by the Customer or another auditor mandated by the Customer.
 
-The Data Processors shall assist Eleva.care in responding to requests from Data Subjects exercising their rights under Data Protection Laws, including:
+## 7. Sub-processors
 
-- Right of access to personal data
-- Right to rectification of inaccurate data
-- Right to erasure ("right to be forgotten")
-- Right to restriction of processing
-- Right to data portability
-- Right to object to processing
-- Rights related to automated decision making and profiling
+### 7.1 Authorization
+The Customer provides general authorization for Eleva.care to engage Sub-processors for the Processing of Personal Data, provided that Eleva.care:
+- Maintains an up-to-date list of Sub-processors
+- Informs the Customer of any intended changes concerning the addition or replacement of Sub-processors
+- Imposes data protection terms on any Sub-processor that are substantially similar to those contained in this DPA
 
-Each Data Processor shall promptly notify Eleva.care if it receives a request directly from a Data Subject and shall not respond to such request unless instructed to do so by Eleva.care.
+### 7.2 Objection to Sub-processors
+The Customer may object to Eleva.care's use of a new Sub-processor by notifying Eleva.care promptly in writing within 10 business days after Eleva.care's notice. If the Customer objects to a new Sub-processor, Eleva.care will use reasonable efforts to make available to the Customer a change in the Services or recommend a commercially reasonable change to the Customer's configuration or use of the Services to avoid processing of Personal Data by the objected-to Sub-processor.
 
-## 10. Compliance with Healthcare Regulations
+### 7.3 Liability
+Eleva.care shall remain responsible for the acts and omissions of its Sub-processors to the same extent Eleva.care would be liable if performing the services of each Sub-processor directly under the terms of this DPA.
 
-While Eleva.care and its Data Processors are not currently HIPAA-certified, the following provisions apply to healthcare data:
+## 8. Additional Security Measures
 
+### 8.1 Access Controls
+Eleva.care implements strict access controls based on the principle of least privilege. Access to Personal Data is limited to authorized personnel who require such access to perform their job functions. All access is logged and regularly reviewed.
+
+### 8.2 Encryption
+Eleva.care implements encryption for Personal Data in transit and at rest:
+- TLS 1.2 or higher for all data in transit
+- AES-256 encryption for data at rest
+- Secure key management practices
+
+### 8.3 Regular Security Testing
+Eleva.care conducts regular security testing, including:
+- Vulnerability scanning
+- Penetration testing
+- Code reviews
+- Security audits
+
+### 8.4 Employee Training
+Eleva.care ensures all employees receive regular training on data protection, privacy, and security.
+
+### 8.5 Healthcare Data
 - Healthcare data is stored with enhanced security measures including encryption.
-- Access to healthcare data is strictly controlled and monitored.
-- Healthcare data is kept separate from other types of data where technically feasible.
-- All Data Processors handling healthcare data implement industry best practices for health information security.
-- Eleva.care and its Data Processors are working toward achieving higher compliance standards, including aspects of HIPAA compliance where appropriate.
+- Access to healthcare data is strictly controlled and audited.
+- Healthcare data is segregated from other types of data where appropriate.
+
+## 9. Security Incidents
+
+### 9.1 Notification
+Eleva.care shall notify the Customer without undue delay, but in no case later than 48 hours, after becoming aware of a Security Incident affecting the Customer's Personal Data. Where possible, the notification shall include:
+- A description of the nature of the Security Incident
+- The name and contact details of Eleva.care's data protection officer or other contact point
+- A description of the likely consequences of the Security Incident
+- A description of the measures taken or proposed to be taken to address the Security Incident
+
+### 9.2 Remediation
+Eleva.care shall take prompt action to investigate and remediate any Security Incident and to mitigate any potential harm.
+
+### 9.3 Documentation
+Eleva.care shall maintain a record of all Security Incidents, including the facts relating to the Security Incident, its effects, and the remedial action taken.
+
+## 10. Compliance and Certifications
+
+Eleva.care maintains a comprehensive privacy and security program designed to comply with applicable data protection laws and industry standards. Eleva.care and its Data Processors are working toward achieving higher compliance standards, including aspects of HIPAA compliance where appropriate.
 
 ## 11. International Transfers
 
@@ -559,72 +575,58 @@ Where a Data Processor transfers Personal Data outside the European Economic Are
 
 Each Data Processor shall document the specific mechanism used for international transfers and make this information available to Eleva.care upon request.
 
-## 12. Audits and Inspections
+## 12. Term and Termination
 
-Upon request, each Data Processor shall make available to Eleva.care all information necessary to demonstrate compliance with this DPA and shall allow for and contribute to audits, including inspections, conducted by Eleva.care or another auditor mandated by Eleva.care.
+### 12.1 Term
+This DPA shall remain in effect for the duration of the Customer's use of the Services.
 
-Such audits shall be subject to reasonable notice and conducted during regular business hours, with due consideration for the Data Processor's business operations. Eleva.care shall ensure that any auditor is bound by appropriate confidentiality obligations.
-
-## 13. Termination
-
-Upon termination of services, each Data Processor shall, at the choice of Eleva.care:
-
-- Delete all Personal Data processed on behalf of Eleva.care
-- Return all Personal Data to Eleva.care and delete existing copies
-- Anonymize the data such that it can no longer be associated with any individual
+### 12.2 Termination
+Upon termination of the Services, this DPA shall automatically terminate. Upon termination, Eleva.care shall, at the choice of the Customer, delete or return all Personal Data to the Customer and delete existing copies, unless applicable law requires storage of the Personal Data.
 
 Unless storage is required by applicable law, in which case the Data Processor shall inform Eleva.care of such legal requirement and ensure the ongoing confidentiality of the stored data.
 
-## 14. Liability
+## 13. Miscellaneous
 
-Each Data Processor shall be liable for the damage caused by processing that infringes the Data Protection Laws or this DPA. A Data Processor shall be exempt from liability if it proves that it is not in any way responsible for the event giving rise to the damage.
+### 13.1 Modifications
+This DPA may only be modified by a written amendment signed by both parties.
 
-Where multiple Data Processors are involved in the same processing and are responsible for damage caused by the processing, each shall be held liable for the entire damage to ensure effective compensation of the Data Subject.
+### 13.2 Severability
+If any provision of this DPA is found to be invalid or unenforceable, the remaining provisions shall remain in effect.
 
-## 15. Subprocessing
+### 13.3 Conflicts
+In the event of any conflict between this DPA and any other agreements between the parties, this DPA shall prevail with respect to the parties' data protection obligations.
 
-Data Processors may engage subprocessors only with prior written authorization from Eleva.care. When authorized to engage subprocessors, Data Processors shall:
+### 13.4 Notices
+All notices under this DPA shall be in writing and delivered to the parties at their respective addresses set forth in the Terms of Service or other agreement between the parties.
 
-- Enter into a written agreement with each subprocessor imposing the same data protection obligations as set out in this DPA
-- Remain fully liable to Eleva.care for the performance of the subprocessor's obligations
-- Provide Eleva.care with information about any intended changes concerning the addition or replacement of subprocessors, giving Eleva.care the opportunity to object to such changes
+### 13.5 Governing Law
+This DPA shall be governed by the laws of Portugal, without regard to choice of law principles.
 
-## 16. Amendments
+## 14. Contact Information
 
-Any amendment to this DPA must be in writing and signed by authorized representatives of both parties. However, Eleva.care may update the security measures and compliance requirements by notifying the Data Processors, provided such updates do not materially reduce the overall protection of Personal Data.
+For any questions or concerns regarding this DPA, please contact us at:
 
-## 17. Severability
-
-If any provision of this DPA is found by any court of competent jurisdiction to be invalid or unenforceable, the invalidity or unenforceability of such provision shall not affect the other provisions of this DPA, and all provisions not affected by such invalidity or unenforceability shall remain in full force and effect.
-
-## Contact Information
-
-For questions regarding this Data Processing Agreement, please contact:
-
-- **Email:** [support@eleva.care](mailto:support@eleva.care)
-- **Phone:** +351 931897950
-- **Postal Address:** Rua Gil Vicente, 2 - 2775-198 Parede, Portugal
-`,
+**Búzios e Tartarugas, Lda.**
+Email: privacy@eleva.care
+Address: [Portuguese company address]`,
   },
 };
 
 export default async function LegalPage(props: {
   params: Promise<{ document: keyof typeof legalDocs }>;
 }) {
-  const params = await props.params;
+  const { document } = await props.params;
 
-  const { document } = params;
-
-  const doc = legalDocs[document];
-
-  if (!doc) {
+  if (!legalDocs[document]) {
     return notFound();
   }
 
+  const { title, content } = legalDocs[document];
+
   return (
-    <Card className="mx-auto max-w-4xl">
-      <CardContent className="p-6 sm:p-10">
-        <ReactMarkdown className="prose prose-slate max-w-none">{doc.content}</ReactMarkdown>
+    <Card className="mb-20">
+      <CardContent className="prose prose-lg max-w-none p-8">
+        <ReactMarkdown>{content}</ReactMarkdown>
       </CardContent>
     </Card>
   );
