@@ -5,6 +5,7 @@ import { EventTable, MeetingTable } from '@/drizzle/schema';
 import { logAuditEvent } from '@/lib/logAuditEvent';
 import { getServerStripe } from '@/lib/stripe';
 import { eventFormSchema } from '@/schema/events';
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 import { and, count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -67,6 +68,15 @@ export async function createEvent(
       ipAddress,
       userAgent,
     );
+
+    // If the event is marked as active, mark the events step as complete
+    if (data.isActive) {
+      try {
+        await markStepComplete('events');
+      } catch (error) {
+        console.error('Failed to mark events step as complete:', error);
+      }
+    }
 
     // Return success instead of redirecting
     return { error: false };
@@ -273,42 +283,54 @@ export async function updateEventActiveState(
     return { error: true };
   }
 
-  // Get the old event data
-  const [oldEvent] = await db
-    .select()
-    .from(EventTable)
-    .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
-    .execute();
+  try {
+    // Fetch the event to check ownership and log the previous state
+    const event = await db.query.EventTable.findFirst({
+      where: and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)),
+    });
 
-  if (!oldEvent) {
+    if (!event) {
+      return { error: true };
+    }
+
+    // Update the event's active status
+    await db
+      .update(EventTable)
+      .set({ isActive })
+      .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)));
+
+    // Log the update action
+    await logAuditEvent(
+      userId,
+      'update',
+      'events',
+      id,
+      { isActive: event.isActive },
+      { isActive },
+      ipAddress,
+      userAgent,
+    );
+
+    // If the event is being activated, mark the events step as complete
+    if (isActive) {
+      try {
+        await markStepComplete('events');
+      } catch (error) {
+        console.error('Failed to mark events step as complete:', error);
+      }
+    }
+
+    // Revalidate various paths to update UI
+    revalidatePath('/events');
+    revalidatePath(`/events/${event.slug}`);
+    revalidatePath('/');
+    revalidatePath(`/${event.slug}`);
+
+    return { error: false };
+  } catch (error) {
+    console.error('Update event active state error:', error);
     return { error: true };
   }
-
-  // Update the event
-  const [updatedEvent] = await db
-    .update(EventTable)
-    .set({ isActive })
-    .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
-    .returning({ id: EventTable.id, userId: EventTable.clerkUserId });
-
-  if (!updatedEvent) {
-    return { error: true };
-  }
-
-  // Log the event update
-  await logAuditEvent(
-    updatedEvent.userId,
-    'update',
-    'events',
-    updatedEvent.id,
-    oldEvent,
-    { isActive },
-    ipAddress,
-    userAgent,
-  );
-
-  revalidatePath('/events');
-  return { error: false };
 }
 
 export async function getEventMeetingsCount(eventId: string): Promise<number> {

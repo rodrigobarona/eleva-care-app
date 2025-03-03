@@ -1,12 +1,12 @@
+import { Card } from '@/components/atoms/card';
 import { ExpertForm } from '@/components/organisms/forms/ExpertForm';
 import { ProfilePublishToggle } from '@/components/organisms/ProfilePublishToggle';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { hasRole } from '@/lib/auth/roles.server';
-import { markStepComplete } from '@/server/actions/expert-setup';
+import { markStepCompleteNoRevalidate } from '@/server/actions/expert-setup';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 export default async function ProfilePage() {
@@ -33,14 +33,11 @@ export default async function ProfilePage() {
   // If profile exists and has required fields filled, mark step as complete
   if (profile?.firstName && profile?.lastName && profile?.shortBio) {
     // Mark profile step as complete (non-blocking)
-    markStepComplete('profile')
-      .then(() => {
-        // Server-side revalidation for the layout
-        revalidatePath('/(private)/layout');
-      })
-      .catch((error) => {
-        console.error('Failed to mark profile step as complete:', error);
-      });
+    try {
+      await markStepCompleteNoRevalidate('profile');
+    } catch (error) {
+      console.error('Failed to mark profile step as complete:', error);
+    }
   }
 
   // If no profile exists, create one with default values

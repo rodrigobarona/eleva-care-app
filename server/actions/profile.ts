@@ -1,6 +1,7 @@
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { profileFormSchema } from '@/schema/profile';
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { del } from '@vercel/blob';
 import type { z } from 'zod';
 
@@ -143,6 +144,15 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
           }>,
         },
       });
+
+    // Check if required profile fields are filled out and mark step as complete
+    if (validatedData.firstName && validatedData.lastName && validatedData.shortBio) {
+      try {
+        await markStepComplete('profile');
+      } catch (error) {
+        console.error('Failed to mark profile step as complete:', error);
+      }
+    }
 
     return { success: true };
   } catch (error) {

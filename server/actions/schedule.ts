@@ -4,6 +4,7 @@ import { db } from '@/drizzle/db';
 import { ScheduleAvailabilityTable, ScheduleTable } from '@/drizzle/schema';
 import { logAuditEvent } from '@/lib/logAuditEvent';
 import { scheduleFormSchema } from '@/schema/schedule';
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
@@ -121,4 +122,15 @@ export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema
     ipAddress,
     userAgent,
   );
+
+  // If the expert has set up availability, mark the step as complete
+  if (availabilities.length > 0) {
+    try {
+      await markStepComplete('availability');
+    } catch (error) {
+      console.error('Failed to mark availability step as complete:', error);
+    }
+  }
+
+  return { success: true };
 }

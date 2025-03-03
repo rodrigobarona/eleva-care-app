@@ -4,36 +4,27 @@ import { db } from '@/drizzle/db';
 import { EventTable, ProfileTable, ScheduleTable, UserTable } from '@/drizzle/schema';
 import { clerkClient, currentUser } from '@clerk/nextjs/server';
 import { count, eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
 
 export type ExpertSetupStep = 'profile' | 'availability' | 'events' | 'identity' | 'payment';
 
-/**
- * Check if a user has an expert role
- * Supports both array and string formats for roles
- */
+// Helper function to check if a user has an expert role
 function hasExpertRole(user: { publicMetadata?: Record<string, unknown> }): boolean {
-  const userRoles = user.publicMetadata?.role;
+  const roles = Array.isArray(user.publicMetadata?.role)
+    ? (user.publicMetadata.role as string[])
+    : [user.publicMetadata?.role as string];
 
-  if (Array.isArray(userRoles)) {
-    // New format: role is an array of strings
-    return userRoles.some((role) => role === 'community_expert' || role === 'top_expert');
-  }
-
-  if (typeof userRoles === 'string') {
-    // Legacy format: role is a single string
-    return userRoles === 'community_expert' || userRoles === 'top_expert';
-  }
-
-  return false;
+  return roles.some((role: string) => role === 'community_expert' || role === 'top_expert');
 }
 
 /**
- * Marks a step as complete in the expert setup process
+ * Safely marks a step as complete in the expert setup process without revalidation
+ * This version is safe to call during server component rendering
  *
  * @param step The setup step to mark as complete
  * @returns Object containing success status and updated setup status
  */
-export async function markStepComplete(step: ExpertSetupStep) {
+export async function markStepCompleteNoRevalidate(step: ExpertSetupStep) {
   try {
     // Get current user and verify authentication
     const user = await currentUser();
@@ -50,6 +41,14 @@ export async function markStepComplete(step: ExpertSetupStep) {
 
     // Get current setup status
     const currentSetup = (user.unsafeMetadata?.expertSetup as Record<string, boolean>) || {};
+
+    // If step is already marked as complete, don't do anything
+    if (currentSetup[step]) {
+      return {
+        success: true,
+        setupStatus: currentSetup,
+      };
+    }
 
     // Mark the step as complete
     const updatedSetup = {
@@ -71,7 +70,6 @@ export async function markStepComplete(step: ExpertSetupStep) {
     return {
       success: true,
       setupStatus: updatedSetup,
-      revalidatePath: '/(private)/layout' as const,
     };
   } catch (error) {
     console.error('Failed to mark step complete:', error);
@@ -80,6 +78,25 @@ export async function markStepComplete(step: ExpertSetupStep) {
       error: 'Failed to mark step as complete',
     };
   }
+}
+
+/**
+ * Marks a step as complete in the expert setup process
+ * This version calls revalidatePath and should NOT be used during server component rendering
+ *
+ * @param step The setup step to mark as complete
+ * @returns Object containing success status and updated setup status
+ */
+export async function markStepComplete(step: ExpertSetupStep) {
+  const result = await markStepCompleteNoRevalidate(step);
+
+  // Only revalidate if the operation was successful
+  if (result.success) {
+    // Revalidate the layout path to update the UI
+    revalidatePath('/(private)/layout');
+  }
+
+  return result;
 }
 
 /**
@@ -160,13 +177,15 @@ export async function checkExpertSetupStatus() {
           expertSetup: setupStatus,
         },
       });
+
+      // Revalidate the layout path when the status changes
+      revalidatePath('/(private)/layout');
     }
 
     return {
       success: true,
       setupStatus,
       isPublished: dbProfile?.published || false,
-      revalidatePath: '/(private)/layout' as const,
     };
   } catch (error) {
     console.error('Failed to check setup status:', error);
