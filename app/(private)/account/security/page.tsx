@@ -12,8 +12,8 @@ import {
   DialogTrigger,
 } from '@/components/molecules/dialog';
 import { useSession, useUser } from '@clerk/nextjs';
-import type { SessionWithActivitiesResource } from '@clerk/types';
-import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
+import type { OAuthProvider, SessionWithActivitiesResource } from '@clerk/types';
+import { Copy, Laptop, Mail, Smartphone, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -105,8 +105,8 @@ export default function SecurityPage() {
   };
 
   const connectedAccounts =
-    user?.externalAccounts.filter((account) =>
-      ['oauth_google', 'google', 'google_oauth2'].includes(account.provider.toLowerCase()),
+    user?.externalAccounts?.filter(
+      (account) => account.provider === ('oauth_google' as OAuthProvider),
     ) || [];
 
   const copyUserId = () => {
@@ -114,7 +114,7 @@ export default function SecurityPage() {
     toast.success('User ID copied to clipboard');
   };
 
-  async function handleDeleteAccount() {
+  const handleDeleteAccount = async () => {
     setIsLoading(true);
     try {
       await user?.delete();
@@ -128,7 +128,7 @@ export default function SecurityPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const handleRevokeDevice = async (sessionId: string) => {
     try {
@@ -148,35 +148,46 @@ export default function SecurityPage() {
       setIsRevokingDevice(false);
     }
   };
+
   const handleDisconnectAccount = async (accountId: string) => {
     try {
       setIsDisconnectingAccount(true);
-      await fetch(`/v1/me/external_accounts/${accountId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      router.refresh();
+      if (!user) {
+        toast.error('User not found');
+        return;
+      }
+
+      const account = user.externalAccounts.find((acc) => acc.id === accountId);
+      if (!account) {
+        toast.error('Account not found');
+        return;
+      }
+
+      // Use the account object to destroy/disconnect it
+      await account.destroy();
+
+      // Refresh user data to update the UI
+      await user.reload();
+
       toast.success('Account disconnected successfully');
     } catch (error) {
-      console.error('Error disconnecting account:', error);
+      console.error('Error disconnecting account', error);
       toast.error('Failed to disconnect account');
     } finally {
       setIsDisconnectingAccount(false);
     }
   };
 
-  const handleConnectAccount = async () => {
+  const handleConnectAccount = () => {
     try {
       setIsConnectingAccount(true);
-      window.location.href = `/sign-up/oauth_google?redirect_url=${encodeURIComponent(
-        `${window.location.origin}/account/security`,
-      )}`;
+
+      // Use the recommended URL format for connecting OAuth accounts with Clerk
+      const redirectUrl = encodeURIComponent(window.location.href);
+      window.location.href = `${process.env.NEXT_PUBLIC_CLERK_ACCOUNT_URL}/connections/oauth_google?redirect_url=${redirectUrl}`;
     } catch (error) {
-      console.error('Error connecting account:', error);
+      console.error('Error connecting account', error);
       toast.error('Failed to connect account');
-    } finally {
       setIsConnectingAccount(false);
     }
   };
@@ -308,6 +319,7 @@ export default function SecurityPage() {
                   onClick={() => handleConnectAccount()}
                   disabled={isConnectingAccount}
                 >
+                  <Mail className="mr-2 h-4 w-4" />
                   {isConnectingAccount ? 'Connecting...' : 'Connect Google Account'}
                 </Button>
               </div>
@@ -326,9 +338,11 @@ export default function SecurityPage() {
                   </div>
                   <Button
                     variant="outline"
+                    size="sm"
                     onClick={() => handleDisconnectAccount(account.id)}
                     disabled={isDisconnectingAccount}
                   >
+                    <X className="mr-2 h-4 w-4" />
                     {isDisconnectingAccount ? 'Disconnecting...' : 'Disconnect'}
                   </Button>
                 </div>
