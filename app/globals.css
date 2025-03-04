@@ -69,6 +69,15 @@ body {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Booking interface dimensions */
+    --booker-meta-width: 240px; /* Width for the meta panel (step indicators) */
+    --booker-main-width: 480px; /* Width for the main panel */
+    --booker-timeslots-width: 240px; /* Width for time slots panel */
+
+    /* Form transition properties */
+    --form-transition-duration: 300ms;
+    --form-ease: cubic-bezier(0.16, 1, 0.3, 1);
   }
   .dark {
     --background: 240 10% 3.9%;
@@ -145,4 +154,142 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --booker-meta-width: 280px;
+    --booker-main-width: 560px;
+    --booker-timeslots-width: 280px;
+  }
+}
+
+/* Form step transitions */
+.form-step-enter {
+  opacity: 0;
+  transform: translateX(30px);
+}
+
+.form-step-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition:
+    opacity var(--form-transition-duration) var(--form-ease),
+    transform var(--form-transition-duration) var(--form-ease);
+}
+
+.form-step-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.form-step-exit-active {
+  opacity: 0;
+  transform: translateX(-30px);
+  transition:
+    opacity var(--form-transition-duration) var(--form-ease),
+    transform var(--form-transition-duration) var(--form-ease);
+}
+
+/* Booking interface layout */
+.booking-interface {
+  display: grid;
+  max-width: 100%;
+  width: 100%;
+  margin: 0 auto;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+@media (min-width: 768px) {
+  .booking-interface {
+    grid-template-columns: minmax(200px, 280px) 1fr;
+  }
+}
+
+@media (min-width: 1024px) {
+  .booking-interface {
+    grid-template-columns: var(--booker-meta-width) var(--booker-main-width) var(
+        --booker-timeslots-width
+      );
+    max-width: calc(
+      var(--booker-meta-width) + var(--booker-main-width) + var(--booker-timeslots-width)
+    );
+  }
+}
+
+/* Step indicator styles */
+.step-indicator {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.step-indicator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 14px;
+  width: 2px;
+  height: 100%;
+  background-color: rgb(var(--eleva-neutral-200));
+  z-index: 0;
+}
+
+.step-indicator:first-child::before {
+  top: 50%;
+}
+
+.step-indicator:last-child::before {
+  height: 50%;
+}
+
+.step-indicator-circle {
+  z-index: 1;
+  position: relative;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 500;
+  margin-right: 12px;
+  transition: all 0.2s ease;
+}
+
+.step-indicator-circle.active {
+  background-color: rgb(var(--eleva-primary));
+  color: white;
+}
+
+.step-indicator-circle.completed {
+  background-color: rgb(var(--eleva-primary) / 0.1);
+  color: rgb(var(--eleva-primary));
+  border: 2px solid rgb(var(--eleva-primary));
+}
+
+.step-indicator-circle.inactive {
+  background-color: rgb(var(--eleva-neutral-200) / 0.5);
+  color: rgb(var(--eleva-neutral-900) / 0.7);
+}
+
+.step-indicator-text {
+  font-size: 15px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.step-indicator-text.active {
+  color: rgb(var(--eleva-primary));
+}
+
+.step-indicator-text.completed {
+  color: rgb(var(--eleva-primary));
+}
+
+.step-indicator-text.inactive {
+  color: rgb(var(--eleva-neutral-900) / 0.6);
 }
