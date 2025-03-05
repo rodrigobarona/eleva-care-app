@@ -166,12 +166,12 @@ export default function SecurityPage() {
     try {
       setIsConnectingAccount(true);
 
-      // According to Clerk's documentation, for connecting social accounts, we should use the User Portal
-      // The correct path is /user/connections/add/[provider]
+      // Use the correct Clerk Account Portal URL for connecting OAuth accounts
+      // The Account Portal URL should be "accounts.eleva.care" not "eleva.care/sign-in"
       const redirectUrl = encodeURIComponent(`${window.location.origin}/account/security`);
 
-      // Use the Clerk Account Portal URL for adding connections
-      window.location.href = `${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}/user/connections/add/oauth_google?redirect_url=${redirectUrl}`;
+      // For OAuth connections, we need to use the full Clerk Account Portal URL
+      window.location.href = `${process.env.NEXT_PUBLIC_CLERK_ACCOUNT_URL}/user/connections/add/oauth_google?redirect_url=${redirectUrl}`;
     } catch (error) {
       console.error('Error connecting account:', error);
       toast.error('Failed to connect account');
