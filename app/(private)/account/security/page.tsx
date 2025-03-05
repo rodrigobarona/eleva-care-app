@@ -66,18 +66,12 @@ export default function SecurityPage() {
   const handleInitiatePasswordSet = async () => {
     try {
       setIsSettingPassword(true);
-      await user?.update({
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          password: password,
-        },
-      });
+      // Instead of trying to update the user metadata with the password,
+      // just show the password form so the user can enter their password
       setShowPasswordForm(true);
-      router.refresh();
-      toast.success('Password set successfully');
     } catch (error) {
       console.error('Error initiating password set:', error);
-      toast.error('Failed to set password');
+      toast.error('Failed to initiate password setup');
     } finally {
       setIsSettingPassword(false);
     }
@@ -85,20 +79,21 @@ export default function SecurityPage() {
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    const form = e.target as HTMLFormElement;
-    const password = (form.elements.namedItem('password') as HTMLInputElement).value;
 
     try {
       setIsSettingPassword(true);
       await user?.updatePassword({
         newPassword: password,
       });
-      router.refresh();
       toast.success('Password updated successfully');
+      setPassword('');
+      setCode('');
       setShowPasswordForm(false);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error setting password:', error);
-      toast.error('Failed to update password');
+      toast.error(
+        `Failed to set password: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     } finally {
       setIsSettingPassword(false);
     }
