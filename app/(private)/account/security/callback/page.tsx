@@ -15,14 +15,16 @@ export default function GoogleCallbackPage() {
       try {
         // Handle the OAuth callback
         await handleRedirectCallback({
-          afterComplete: () => {
-            setStatus('Google account connected successfully!');
-            // Redirect back to the security page after a short delay
-            setTimeout(() => {
-              router.push('/account/security');
-            }, 2000);
-          },
+          redirectUrl: window.location.href,
         });
+
+        // Show success message
+        setStatus('Google account connected successfully!');
+
+        // Redirect back to the security page after a short delay
+        setTimeout(() => {
+          router.push('/account/security');
+        }, 2000);
       } catch (err) {
         console.error('Error handling OAuth callback:', err);
         setError(err instanceof Error ? err.message : 'Failed to connect your Google account');
