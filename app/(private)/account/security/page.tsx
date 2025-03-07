@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import { useClerk, useSession, useUser } from '@clerk/nextjs';
+import { useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
 import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -63,7 +63,6 @@ export default function SecurityPage() {
   const router = useRouter();
   const { isLoaded: isUserLoaded, user } = useUser();
   const { session } = useSession();
-  const clerk = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showChangePasswordForm, setShowChangePasswordForm] = useState(false);
@@ -289,18 +288,14 @@ export default function SecurityPage() {
     try {
       setIsConnectingAccount(true);
 
-      // Get the current origin and path for constructing the redirect URL
-      const redirectUrl = `${window.location.origin}/account/security`;
-
       if (!user) {
         throw new Error('User not found');
       }
 
-      // Use clerk.client.signIn to initiate the OAuth connection flow
-      await clerk.client.signIn.create({
+      // Create an OAuth connection using the user's createExternalAccount method
+      await user.createExternalAccount({
         strategy: 'oauth_google',
-        redirectUrl,
-        actionCompleteRedirectUrl: redirectUrl,
+        redirectUrl: `${window.location.origin}/account/security`,
       });
     } catch (error) {
       console.error('Error connecting account:', error);
