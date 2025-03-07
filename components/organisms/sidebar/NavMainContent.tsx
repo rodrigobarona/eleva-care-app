@@ -57,9 +57,9 @@ export function NavMainContent({ items }: NavMainContentProps) {
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild>
-                <Link href="/home">
+                <Link href="/dashboard">
                   <Home className="size-4" />
-                  <span>Home</span>
+                  <span>Dashboard</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
