@@ -16,7 +16,7 @@ import { useUser } from '@clerk/nextjs';
 import { Clock, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User, Users } from 'lucide-react';
 import { Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
-import { Suspense } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 
 interface SidebarItem {
   title: string;
@@ -56,14 +56,35 @@ const mainItems: SidebarItem[] = [
 ];
 
 export function AppSidebar() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
+  const [hasExpertRole, setHasExpertRole] = useState(false);
 
+  // Check if user has the required expert role
+  useEffect(() => {
+    if (isLoaded && user) {
+      const userRole = user.publicMetadata?.role;
+      const userRoles = Array.isArray(userRole) ? userRole : userRole ? [userRole] : [];
+
+      const isExpert = userRoles.some(
+        (role) => role === 'community_expert' || role === 'top_expert',
+      );
+
+      setHasExpertRole(isExpert);
+    }
+  }, [isLoaded, user]);
+
+  // Build secondary items conditionally
   const secondaryItems: SidebarItem[] = [
-    {
-      title: 'Public Expert Profile',
-      url: user?.username ? `/${user.username}` : '#',
-      icon: ExternalLink,
-    },
+    // Only include Public Expert Profile if user has the required role
+    ...(hasExpertRole && user?.username
+      ? [
+          {
+            title: 'Public Expert Profile',
+            url: `/${user.username}`,
+            icon: ExternalLink,
+          },
+        ]
+      : []),
     {
       title: 'Need help?',
       url: '#',
