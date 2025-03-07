@@ -235,7 +235,7 @@ export default async function BookingPage(props: { params: Promise<{ username: s
             </p>
           </div>
           <div className="mt-3 flex justify-end">
-            <Link href="/account">
+            <Link href="/expert">
               <Button variant="outline" size="sm">
                 Edit Profile
               </Button>
