@@ -7,6 +7,11 @@ interface UserMetadata {
   [key: string]: unknown;
 }
 
+// Debug helper
+function logDebug(prefix: string, value: unknown): void {
+  console.log(`[DEBUG] ${prefix}:`, value);
+}
+
 const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
@@ -18,14 +23,24 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 // Define routes that require expert roles (community_expert and top_expert)
-const isExpertRoute = createRouteMatcher([]);
+const isExpertRoute = createRouteMatcher([
+  '/customers(.*)',
+  '/events(.*)',
+  '/schedule(.*)',
+  '/expert(.*)',
+  '/appointments(.*)',
+  '/account/identity(.*)',
+  '/account/billing(.*)',
+]);
 
-// Allowed roles for expert routes (converted to lowercase for case-insensitive comparison)
+// Allowed roles for expert routes (lowercase for case-insensitive comparison)
 const allowedRoles = ['community_expert', 'top_expert', 'admin', 'superadmin'].map((role) =>
   role.toLowerCase(),
 );
 
 export default clerkMiddleware(async (auth, req) => {
+  logDebug('Path', req.nextUrl.pathname);
+
   const { userId } = await auth();
 
   // If user is authenticated and trying to access the root path, redirect to home
@@ -36,54 +51,67 @@ export default clerkMiddleware(async (auth, req) => {
   // Standard authentication check
   if (!isPublicRoute(req)) {
     await auth.protect();
+  } else {
+    // This is a public route, allow access
+    return NextResponse.next();
   }
 
   // Role-based access control for expert routes
   if (userId && isExpertRoute(req)) {
     try {
-      // Get the auth object with user data
+      // Get the auth object and session claims
       const authObj = await auth();
 
-      // Log session claims to help debug
-      console.log('Session claims:', authObj.sessionClaims);
+      // Log the full auth object for debugging
+      logDebug('Auth object', JSON.stringify(authObj, null, 2));
 
-      // Get the metadata with proper typing - public metadata is in sessionClaims.user_metadata
-      // In Clerk v6, publicMetadata is accessed through sessionClaims
-      const metadata = authObj.sessionClaims?.metadata as UserMetadata;
+      // Get the metadata from session claims
+      const claimsMetadata = authObj.sessionClaims?.metadata as UserMetadata | undefined;
+      logDebug('Claims metadata', claimsMetadata);
 
-      // Log the metadata to help debug
-      console.log('User metadata:', metadata);
-      console.log('User role:', metadata?.role);
+      // Extract role from metadata
+      const userRole = claimsMetadata?.role;
+      logDebug('User role from metadata', userRole);
 
-      // Check if user exists and has a role
-      if (!metadata?.role) {
+      // Check if role exists
+      if (!userRole) {
+        logDebug('No role found', 'Redirecting to unauthorized');
         return NextResponse.redirect(new URL('/unauthorized', req.url));
       }
 
-      // Get the user role (string or array) and convert to lowercase for case-insensitive comparison
-      const userRole = metadata.role;
-      const userRoles = Array.isArray(userRole)
-        ? userRole.map((r) => String(r).toLowerCase())
-        : [String(userRole).toLowerCase()];
+      // Process roles to lowercase strings for comparison
+      const normalizedRoles: string[] = [];
 
-      // Log the processed roles for debugging
-      console.log('User roles after processing:', userRoles);
-      console.log('Allowed roles:', allowedRoles);
+      if (Array.isArray(userRole)) {
+        // If role is an array, add each value
+        for (const role of userRole) {
+          normalizedRoles.push(String(role).toLowerCase());
+        }
+      } else {
+        // If role is a string or other value, convert to string
+        normalizedRoles.push(String(userRole).toLowerCase());
+      }
 
-      // Check if user has any of the allowed roles
-      const hasRequiredRole = userRoles.some((role) => allowedRoles.includes(role));
+      logDebug('Normalized user roles', normalizedRoles);
+      logDebug('Allowed roles', allowedRoles);
 
-      console.log('Has required role:', hasRequiredRole);
+      // Check if the user has any allowed role
+      const hasRequiredRole = normalizedRoles.some((role) => allowedRoles.includes(role));
+      logDebug('Has required role', hasRequiredRole);
 
       if (!hasRequiredRole) {
+        logDebug('Access denied', 'Redirecting to unauthorized');
         return NextResponse.redirect(new URL('/unauthorized', req.url));
       }
     } catch (error) {
       // If there's an error checking roles, redirect to unauthorized
-      console.error('Error checking user roles:', error);
+      console.error('[ERROR] checking user roles:', error);
       return NextResponse.redirect(new URL('/unauthorized', req.url));
     }
   }
+
+  // If we got here, allow the request to proceed
+  return NextResponse.next();
 });
 
 export const config = {
