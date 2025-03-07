@@ -18,6 +18,20 @@ import { useRouter } from 'next/navigation';
 import React, { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
+// Define types for Clerk global object
+declare global {
+  interface Window {
+    Clerk?: {
+      client: {
+        authenticateWithRedirect: (params: {
+          strategy: string;
+          redirectUrl: string;
+        }) => Promise<void>;
+      };
+    };
+  }
+}
+
 export default function SecurityPage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
@@ -136,16 +150,14 @@ export default function SecurityPage() {
   };
 
   const connectedAccounts =
-    user?.externalAccounts.filter((account) =>
-      ['oauth_google', 'google', 'google_oauth2'].includes(account.provider.toLowerCase()),
-    ) || [];
+    user?.externalAccounts?.filter((account) => account.provider.includes('google')) || [];
 
   const copyUserId = () => {
     navigator.clipboard.writeText(user?.id || '');
     toast.success('User ID copied to clipboard');
   };
 
-  async function handleDeleteAccount() {
+  const handleDeleteAccount = async () => {
     setIsLoading(true);
     try {
       await user?.delete();
@@ -159,7 +171,7 @@ export default function SecurityPage() {
     } finally {
       setIsLoading(false);
     }
-  }
+  };
 
   const handleRevokeDevice = async (sessionId: string) => {
     try {
@@ -179,20 +191,32 @@ export default function SecurityPage() {
       setIsRevokingDevice(false);
     }
   };
+
   const handleDisconnectAccount = async (accountId: string) => {
     try {
       setIsDisconnectingAccount(true);
-      await fetch(`/v1/me/external_accounts/${accountId}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      router.refresh();
+
+      // Find the account to disconnect
+      const accountToDisconnect = user?.externalAccounts.find(
+        (account) => account.id === accountId,
+      );
+
+      if (!accountToDisconnect) {
+        throw new Error('Account not found');
+      }
+
+      // Use the destroy() method on the external account object to disconnect it
+      await accountToDisconnect.destroy();
+
+      // Reload user data to reflect changes
+      await user?.reload();
+
       toast.success('Account disconnected successfully');
     } catch (error) {
       console.error('Error disconnecting account:', error);
-      toast.error('Failed to disconnect account');
+      toast.error(
+        `Failed to disconnect account: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
     } finally {
       setIsDisconnectingAccount(false);
     }
@@ -202,15 +226,34 @@ export default function SecurityPage() {
     try {
       setIsConnectingAccount(true);
 
-      const redirectUrl = encodeURIComponent(`${window.location.origin}/account/security`);
+      // Get the current origin and path for constructing the redirect URL
+      const redirectUrl = `${window.location.origin}/account/security`;
 
-      window.location.href = `${process.env.NEXT_PUBLIC_CLERK_ACCOUNT_URL}/user/connections/add/oauth_google?redirect_url=${redirectUrl}`;
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Use Clerk's API to create an external account connection
+      const params = {
+        strategy: 'oauth_google', // The OAuth strategy to use
+        redirectUrl: redirectUrl, // Where to redirect after the OAuth flow completes
+      };
+
+      // Use Clerk's authenticateWithRedirect method to start the OAuth flow
+      if (typeof window !== 'undefined' && window.Clerk) {
+        await window.Clerk.client.authenticateWithRedirect(params);
+      } else {
+        throw new Error('Clerk is not available');
+      }
     } catch (error) {
       console.error('Error connecting account:', error);
-      toast.error('Failed to connect account');
-    } finally {
+      toast.error(
+        `Failed to connect account: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
       setIsConnectingAccount(false);
     }
+    // Note: We don't need finally block with setIsConnectingAccount(false) here
+    // because the page will redirect and the state will be reset anyway
   };
 
   return (
