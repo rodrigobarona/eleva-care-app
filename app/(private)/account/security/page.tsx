@@ -3,6 +3,7 @@
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Input } from '@/components/atoms/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,7 @@ import {
 } from '@/components/molecules/dialog';
 import { useClerk, useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
-import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
+import { Copy, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -47,7 +48,6 @@ export default function SecurityPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
   const [isSettingPassword, setIsSettingPassword] = useState(false);
-  const [isRevokingDevice, setIsRevokingDevice] = useState(false);
   const [isDisconnectingAccount, setIsDisconnectingAccount] = useState(false);
   const [isConnectingAccount, setIsConnectingAccount] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -111,21 +111,15 @@ export default function SecurityPage() {
     .filter((session, index, self) => self.findIndex((s) => s.id === session.id) === index)
     .map((session) => {
       // Extract location details if available
-      let location = 'Location unknown';
+      let location = '';
 
       // Safely access location data from Clerk session
-      if (
-        session.latestActivity &&
-        'geoCity' in session.latestActivity &&
-        'geoCountry' in session.latestActivity
-      ) {
-        const city =
-          typeof session.latestActivity.geoCity === 'string' ? session.latestActivity.geoCity : '';
-        const country =
-          typeof session.latestActivity.geoCountry === 'string'
-            ? session.latestActivity.geoCountry
-            : 'Unknown';
-        location = city ? `${city}, ${country}` : country;
+      if (session.latestActivity) {
+        const city = session.latestActivity.city || '';
+        const country = session.latestActivity.country || '';
+        location = city && country ? `${city}, ${country}` : city || country || 'Location unknown';
+      } else {
+        location = 'Location unknown';
       }
 
       return {
@@ -232,25 +226,6 @@ export default function SecurityPage() {
       );
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleRevokeDevice = async (sessionId: string) => {
-    try {
-      setIsRevokingDevice(true);
-      await fetch(`/v1/client/sessions/${sessionId}/end`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      await loadSessions();
-      toast.success('Device access revoked');
-    } catch (error) {
-      console.error('Error revoking device:', error);
-      toast.error('Failed to revoke device access');
-    } finally {
-      setIsRevokingDevice(false);
     }
   };
 
@@ -629,37 +604,21 @@ export default function SecurityPage() {
         <CardContent>
           <div className="space-y-4">
             {devices.map((device) => (
-              <div
-                key={device.id}
-                className="flex items-center justify-between rounded-lg border p-4"
-              >
-                <div className="flex items-center gap-4">
-                  {device.type === 'desktop' ? (
-                    <Laptop className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <Smartphone className="h-5 w-5 text-muted-foreground" />
-                  )}
-                  <div>
-                    <p className="font-medium">{device.name}</p>
-                    <div className="space-y-1">
-                      <p className="text-sm text-muted-foreground">
-                        Last seen: {device.lastSeen}
-                        {device.isCurrent && ' (Current device)'}
-                      </p>
-                      <p className="text-sm text-muted-foreground">Location: {device.location}</p>
-                      <p className="text-sm text-muted-foreground">IP Address: {device.ip}</p>
-                    </div>
-                  </div>
+              <div key={device.id} className="flex flex-col space-y-1">
+                <div className="text-sm font-medium">{device.name}</div>
+                <div className="text-sm text-muted-foreground">
+                  Last seen: {device.lastSeen} {device.isCurrent && '(Current device)'}
                 </div>
-                {!device.isCurrent && (
-                  <Button
-                    variant="outline"
-                    onClick={() => handleRevokeDevice(device.sessionId)}
-                    disabled={isRevokingDevice}
-                  >
-                    {isRevokingDevice ? 'Revoking...' : 'Revoke Access'}
-                  </Button>
-                )}
+                <div className="text-sm text-muted-foreground">
+                  <Popover>
+                    <PopoverTrigger className="underline decoration-dotted">
+                      {device.location}
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto">
+                      <p className="text-sm">IP Address: {device.ip}</p>
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             ))}
           </div>
