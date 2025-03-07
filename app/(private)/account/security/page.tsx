@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import { useClerk, useSession, useUser } from '@clerk/nextjs';
+import { useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
 import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -63,7 +63,6 @@ export default function SecurityPage() {
   const router = useRouter();
   const { isLoaded: isUserLoaded, user } = useUser();
   const { session } = useSession();
-  const clerk = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showChangePasswordForm, setShowChangePasswordForm] = useState(false);
@@ -293,20 +292,23 @@ export default function SecurityPage() {
         throw new Error('User not found');
       }
 
-      // Create a redirect URL with a special parameter to force account selection
-      const redirectUrl = new URL(`${window.location.origin}/account/security/callback`);
-      redirectUrl.searchParams.append('prompt', 'select_account');
-
-      // Use Clerk's sign-in method which will trigger the account selection prompt
-      await clerk.client.signIn.authenticateWithRedirect({
+      // Create an OAuth connection directly
+      const externalAccount = await user.createExternalAccount({
         strategy: 'oauth_google',
-        redirectUrl: redirectUrl.toString(),
-        // Use the callback page to handle the OAuth response
-        redirectUrlComplete: `${window.location.origin}/account/security/callback`,
+        // String literal for the redirect URL
+        redirectUrl: `${window.location.origin}/account/security`,
       });
 
-      // The user will be redirected to Google's account selection page
-      // and then to the callback page after authentication
+      // If we have a verification URL, navigate to it
+      if (
+        externalAccount?.verification &&
+        typeof externalAccount.verification.externalVerificationRedirectURL === 'string'
+      ) {
+        // Force navigation to the Google OAuth page
+        window.location.href = externalAccount.verification.externalVerificationRedirectURL;
+      } else {
+        throw new Error('Failed to get verification URL');
+      }
     } catch (error) {
       console.error('Error connecting account:', error);
       toast.error(
