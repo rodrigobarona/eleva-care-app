@@ -24,8 +24,9 @@ export default function SecurityPage() {
   const { session } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [showChangePasswordForm, setShowChangePasswordForm] = useState(false);
   const [password, setPassword] = useState('');
-  const [code, setCode] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const [sessions, setSessions] = useState<SessionWithActivitiesResource[]>([]);
   const [currentSession, setCurrentSession] = useState<SessionWithActivitiesResource | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -63,36 +64,71 @@ export default function SecurityPage() {
       isCurrent: session.id === currentSession?.id,
     }));
 
-  const handleInitiatePasswordSet = async () => {
-    try {
-      setIsSettingPassword(true);
-      // Instead of trying to update the user metadata with the password,
-      // just show the password form so the user can enter their password
-      setShowPasswordForm(true);
-    } catch (error) {
-      console.error('Error initiating password set:', error);
-      toast.error('Failed to initiate password setup');
-    } finally {
-      setIsSettingPassword(false);
-    }
+  const handleInitiatePasswordSet = () => {
+    setShowPasswordForm(true);
+    setShowChangePasswordForm(false);
+  };
+
+  const handleInitiatePasswordChange = () => {
+    setShowChangePasswordForm(true);
+    setShowPasswordForm(false);
   };
 
   const handleSetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!password) {
+      toast.error('Please enter a new password');
+      return;
+    }
+
     try {
       setIsSettingPassword(true);
+
       await user?.updatePassword({
         newPassword: password,
       });
-      toast.success('Password updated successfully');
+
+      toast.success('Password set successfully');
       setPassword('');
-      setCode('');
       setShowPasswordForm(false);
     } catch (error: unknown) {
       console.error('Error setting password:', error);
       toast.error(
         `Failed to set password: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    } finally {
+      setIsSettingPassword(false);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!currentPassword || !password) {
+      toast.error('Please enter both current and new passwords');
+      return;
+    }
+
+    try {
+      setIsSettingPassword(true);
+
+      await user?.updatePassword({
+        currentPassword: currentPassword,
+        newPassword: password,
+        signOutOfOtherSessions: true,
+      });
+
+      toast.success('Password updated successfully');
+      setCurrentPassword('');
+      setPassword('');
+      setShowChangePasswordForm(false);
+
+      await loadSessions();
+    } catch (error: unknown) {
+      console.error('Error changing password:', error);
+      toast.error(
+        `Failed to change password: ${error instanceof Error ? error.message : 'Unknown error'}`,
       );
     } finally {
       setIsSettingPassword(false);
@@ -166,11 +202,8 @@ export default function SecurityPage() {
     try {
       setIsConnectingAccount(true);
 
-      // Use the correct Clerk Account Portal URL for connecting OAuth accounts
-      // The Account Portal URL should be "accounts.eleva.care" not "eleva.care/sign-in"
       const redirectUrl = encodeURIComponent(`${window.location.origin}/account/security`);
 
-      // For OAuth connections, we need to use the full Clerk Account Portal URL
       window.location.href = `${process.env.NEXT_PUBLIC_CLERK_ACCOUNT_URL}/user/connections/add/oauth_google?redirect_url=${redirectUrl}`;
     } catch (error) {
       console.error('Error connecting account:', error);
@@ -199,11 +232,57 @@ export default function SecurityPage() {
         </CardHeader>
         <CardContent>
           {user?.passwordEnabled ? (
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">Password is set</span>
-              <Button onClick={handleInitiatePasswordSet} disabled={isSettingPassword}>
-                {isSettingPassword ? 'Processing...' : 'Change Password'}
-              </Button>
+            <div>
+              {!showChangePasswordForm ? (
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-muted-foreground">Password is set</span>
+                  <Button onClick={handleInitiatePasswordChange} disabled={isSettingPassword}>
+                    {isSettingPassword ? 'Processing...' : 'Change Password'}
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleChangePassword} className="space-y-4">
+                  <div>
+                    <label htmlFor="current-password" className="mb-1 block text-sm font-medium">
+                      Current Password
+                    </label>
+                    <Input
+                      id="current-password"
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      className="w-full"
+                      placeholder="Enter your current password"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="new-password" className="mb-1 block text-sm font-medium">
+                      New Password
+                    </label>
+                    <Input
+                      id="new-password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full"
+                      placeholder="Enter your new password"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button type="submit" disabled={isSettingPassword}>
+                      {isSettingPassword ? 'Updating Password...' : 'Update Password'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowChangePasswordForm(false)}
+                      disabled={isSettingPassword}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              )}
             </div>
           ) : (
             <div>
@@ -217,29 +296,28 @@ export default function SecurityPage() {
                     <label htmlFor="new-password" className="mb-1 block text-sm font-medium">
                       New Password
                     </label>
-                    <input
+                    <Input
                       id="new-password"
                       type="password"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="w-full rounded border p-2"
+                      className="w-full"
+                      placeholder="Enter a new password"
                     />
                   </div>
-                  <div>
-                    <label htmlFor="verification-code" className="mb-1 block text-sm font-medium">
-                      Verification Code
-                    </label>
-                    <input
-                      id="verification-code"
-                      type="text"
-                      value={code}
-                      onChange={(e) => setCode(e.target.value)}
-                      className="w-full rounded border p-2"
-                    />
+                  <div className="flex items-center gap-2">
+                    <Button type="submit" disabled={isSettingPassword}>
+                      {isSettingPassword ? 'Setting Password...' : 'Set Password'}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowPasswordForm(false)}
+                      disabled={isSettingPassword}
+                    >
+                      Cancel
+                    </Button>
                   </div>
-                  <Button type="submit" disabled={isSettingPassword}>
-                    {isSettingPassword ? 'Setting Password...' : 'Confirm Password'}
-                  </Button>
                 </form>
               )}
             </div>
