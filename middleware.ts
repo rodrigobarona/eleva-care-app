@@ -22,13 +22,16 @@ const isExpertRoute = createRouteMatcher([
   '/customers(.*)',
   '/events(.*)',
   '/schedule(.*)',
+  '/expert(.*)',
   '/appointments(.*)',
   '/account/identity(.*)',
   '/account/billing(.*)',
 ]);
 
-// Allowed roles for expert routes
-const allowedRoles = ['community_expert', 'top_expert', 'admin', 'superadmin'];
+// Allowed roles for expert routes (converted to lowercase for case-insensitive comparison)
+const allowedRoles = ['community_expert', 'top_expert', 'admin', 'superadmin'].map((role) =>
+  role.toLowerCase(),
+);
 
 export default clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
@@ -49,20 +52,36 @@ export default clerkMiddleware(async (auth, req) => {
       // Get the auth object with user data
       const authObj = await auth();
 
-      // Get the metadata with proper typing
+      // Log session claims to help debug
+      console.log('Session claims:', authObj.sessionClaims);
+
+      // Get the metadata with proper typing - public metadata is in sessionClaims.user_metadata
+      // In Clerk v6, publicMetadata is accessed through sessionClaims
       const metadata = authObj.sessionClaims?.metadata as UserMetadata;
+
+      // Log the metadata to help debug
+      console.log('User metadata:', metadata);
+      console.log('User role:', metadata?.role);
 
       // Check if user exists and has a role
       if (!metadata?.role) {
         return NextResponse.redirect(new URL('/unauthorized', req.url));
       }
 
-      // Get the user role (string or array)
+      // Get the user role (string or array) and convert to lowercase for case-insensitive comparison
       const userRole = metadata.role;
-      const roles = Array.isArray(userRole) ? userRole : [userRole];
+      const userRoles = Array.isArray(userRole)
+        ? userRole.map((r) => String(r).toLowerCase())
+        : [String(userRole).toLowerCase()];
+
+      // Log the processed roles for debugging
+      console.log('User roles after processing:', userRoles);
+      console.log('Allowed roles:', allowedRoles);
 
       // Check if user has any of the allowed roles
-      const hasRequiredRole = roles.some((role) => allowedRoles.includes(String(role)));
+      const hasRequiredRole = userRoles.some((role) => allowedRoles.includes(role));
+
+      console.log('Has required role:', hasRequiredRole);
 
       if (!hasRequiredRole) {
         return NextResponse.redirect(new URL('/unauthorized', req.url));
