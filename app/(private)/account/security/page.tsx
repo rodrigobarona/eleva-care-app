@@ -28,12 +28,6 @@ declare global {
           strategy: string;
           redirectUrl: string;
         }) => Promise<void>;
-        users: {
-          createConnectionToken: (params: {
-            userId: string;
-            strategy: string;
-          }) => Promise<{ token: string }>;
-        };
       };
     };
   }
@@ -298,27 +292,28 @@ export default function SecurityPage() {
         throw new Error('User not found');
       }
 
-      // This uses the global Clerk object which has better support for adding connections
-      if (window.Clerk) {
-        // Create connection token for the current user
-        const { token } = await window.Clerk.client.users.createConnectionToken({
-          userId: user.id,
-          strategy: 'oauth_google',
-        });
+      // Use the proper Clerk API directly from the user object
+      // The Window.Clerk approach was incorrect
+      const params = {
+        strategy: 'oauth_google' as const,
+        redirectUrl: `${window.location.origin}/account/security`,
+      };
 
-        // Navigate to the OAuth connection URL with the token
-        const url = new URL('https://accounts.clerk.dev/oauth/connect');
-        url.searchParams.set('token', token);
-        url.searchParams.set('instance_strategy', 'oauth_google');
-        url.searchParams.set('redirect_url', `${window.location.origin}/account/security`);
-        // Force account selection - this is the key parameter
-        url.searchParams.set('prompt', 'select_account');
+      // Start the OAuth flow using user.createExternalAccount
+      // This is the proper method for adding connections in Clerk v6
+      await user.createExternalAccount(params).then((externalAccount) => {
+        // If we have a verification redirect URL, navigate to it
+        if (externalAccount?.verification?.externalVerificationRedirectURL) {
+          // Add prompt=select_account to force Google to show the account selector
+          const redirectUrl = new URL(externalAccount.verification.externalVerificationRedirectURL);
+          redirectUrl.searchParams.append('prompt', 'select_account');
 
-        // Navigate to the Clerk OAuth connection URL
-        window.location.href = url.toString();
-      } else {
-        throw new Error('Clerk client not available');
-      }
+          // Navigate to the OAuth URL
+          window.location.href = redirectUrl.toString();
+        } else {
+          throw new Error('No verification URL provided');
+        }
+      });
     } catch (error) {
       console.error('Error connecting account:', error);
       toast.error(
