@@ -14,7 +14,7 @@ import {
 } from '@/components/molecules/dialog';
 import { useClerk, useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
-import { Copy, Mail } from 'lucide-react';
+import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -32,6 +32,32 @@ declare global {
     };
   }
 }
+
+// Add this helper function at the top level of your file
+const formatLastSeen = (date: Date) => {
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const isToday = date.toDateString() === now.toDateString();
+  const isYesterday = date.toDateString() === yesterday.toDateString();
+
+  const timeString = date.toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+
+  if (isToday) {
+    return `Today at ${timeString}`;
+  }
+
+  if (isYesterday) {
+    return `Yesterday at ${timeString}`;
+  }
+
+  return `${date.toLocaleDateString()} at ${timeString}`;
+};
 
 export default function SecurityPage() {
   const router = useRouter();
@@ -127,7 +153,7 @@ export default function SecurityPage() {
         sessionId: session.id,
         name: `${session.latestActivity?.browserName || 'Unknown'} ${session.latestActivity?.deviceType || ''}`,
         type: session.latestActivity?.isMobile ? 'mobile' : 'desktop',
-        lastSeen: new Date(session.lastActiveAt).toLocaleDateString(),
+        lastSeen: formatLastSeen(new Date(session.lastActiveAt)),
         isCurrent: session.id === currentSession?.id,
         location,
         ip: session.latestActivity?.ipAddress || 'Unknown IP',
@@ -594,20 +620,33 @@ export default function SecurityPage() {
         <CardContent>
           <div className="space-y-4">
             {devices.map((device) => (
-              <div key={device.id} className="flex flex-col space-y-1">
-                <div className="text-sm font-medium">{device.name}</div>
-                <div className="text-sm text-muted-foreground">
-                  Last seen: {device.lastSeen} {device.isCurrent && '(Current device)'}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  <Popover>
-                    <PopoverTrigger className="underline decoration-dotted">
-                      {device.location}
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto">
-                      <p className="text-sm">IP Address: {device.ip}</p>
-                    </PopoverContent>
-                  </Popover>
+              <div
+                key={device.id}
+                className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
+              >
+                <div className="flex items-center gap-4">
+                  {device.type === 'desktop' ? (
+                    <Laptop className="h-5 w-5 text-muted-foreground" />
+                  ) : (
+                    <Smartphone className="h-5 w-5 text-muted-foreground" />
+                  )}
+                  <div className="space-y-1">
+                    <div className="text-sm font-medium">{device.name}</div>
+                    <div className="text-sm text-muted-foreground">
+                      {device.lastSeen}
+                      {device.isCurrent && ' (Current device)'}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      <Popover>
+                        <PopoverTrigger className="underline decoration-dotted">
+                          {device.location}
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto">
+                          <p className="text-sm">IP Address: {device.ip}</p>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
