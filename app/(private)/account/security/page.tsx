@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import { useSession, useUser } from '@clerk/nextjs';
+import { useSession, useSignIn, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
 import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -63,6 +63,7 @@ export default function SecurityPage() {
   const router = useRouter();
   const { isLoaded: isUserLoaded, user } = useUser();
   const { session } = useSession();
+  const { signIn, isLoaded: isSignInLoaded } = useSignIn();
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showChangePasswordForm, setShowChangePasswordForm] = useState(false);
@@ -288,15 +289,27 @@ export default function SecurityPage() {
     try {
       setIsConnectingAccount(true);
 
+      // Get the current origin and path for constructing the redirect URL
+      const redirectUrl = `${window.location.origin}/account/security`;
+
       if (!user) {
         throw new Error('User not found');
       }
 
-      // Create an OAuth connection using the user's createExternalAccount method
-      await user.createExternalAccount({
+      if (!isSignInLoaded || !signIn) {
+        throw new Error('Sign-in not available');
+      }
+
+      // Use signIn.authenticateWithRedirect to initiate the OAuth flow
+      // This will allow the user to select which Google account to connect
+      await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
-        redirectUrl: `${window.location.origin}/account/security`,
+        redirectUrl,
+        redirectUrlComplete: redirectUrl,
       });
+
+      // Note: The page will now redirect to Google's OAuth page
+      // and the user will be able to choose which account to connect
     } catch (error) {
       console.error('Error connecting account:', error);
       toast.error(
