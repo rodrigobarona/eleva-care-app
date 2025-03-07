@@ -18,15 +18,7 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 // Define routes that require expert roles (community_expert and top_expert)
-const isExpertRoute = createRouteMatcher([
-  '/customers(.*)',
-  '/events(.*)',
-  '/schedule(.*)',
-  '/expert(.*)',
-  '/appointments(.*)',
-  '/account/identity(.*)',
-  '/account/billing(.*)',
-]);
+const isExpertRoute = createRouteMatcher([]);
 
 // Allowed roles for expert routes (converted to lowercase for case-insensitive comparison)
 const allowedRoles = ['community_expert', 'top_expert', 'admin', 'superadmin'].map((role) =>
