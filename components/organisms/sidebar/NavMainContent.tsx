@@ -139,7 +139,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
         <SidebarGroup>
           <SidebarGroupLabel>
             <div className="flex items-center gap-2">
-              <Link href="/events" className="hover:text-foreground/80">
+              <Link href="/dashboard" className="hover:text-foreground/80">
                 <ChevronLeft className="size-4" />
               </Link>
               <span>Account Settings</span>
