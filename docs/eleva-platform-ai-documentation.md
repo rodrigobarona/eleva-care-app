@@ -206,15 +206,18 @@ Server-side operations are implemented as Server Actions for secure data operati
 #### 7.1.1 Core Server Actions
 
 - **Profile Management**
+
   - `updateProfile`: Updates expert profile information with validation
   - `toggleProfilePublication`: Controls profile visibility with prerequisite checks
   - `checkExpertSetupStatus`: Verifies completion of expert setup steps
 
 - **Scheduling and Availability**
+
   - `saveSchedule`: Manages expert availability time slots
   - `getExpertSchedule`: Retrieves availability for booking interfaces
 
 - **Event and Service Management**
+
   - `createEvent`: Creates new service offerings
   - `updateEvent`: Modifies existing services
   - `deleteEvent`: Removes services
@@ -222,6 +225,7 @@ Server-side operations are implemented as Server Actions for secure data operati
   - `updateEventActiveState`: Toggles service availability
 
 - **Booking and Meetings**
+
   - `createMeeting`: Creates appointments with validation and conflict checks
   - `cancelMeeting`: Handles appointment cancellations
   - `rescheduleAppointment`: Manages appointment time changes
@@ -236,19 +240,23 @@ Server-side operations are implemented as Server Actions for secure data operati
 Server actions follow a consistent pattern:
 
 1. **Authentication and Authorization**
+
    - Verify user is authenticated
    - Check appropriate role permissions
 
 2. **Input Validation**
+
    - Use Zod schemas for type-safe validation
    - Return early with error messages for invalid inputs
 
 3. **Business Logic**
+
    - Perform database operations
    - Integrate with external services (Stripe, Google Calendar)
    - Handle transactional operations when needed
 
 4. **Response Structure**
+
    - Return consistent response objects
    - Include success/error flags
    - Provide meaningful error messages and codes
@@ -260,6 +268,7 @@ Server actions follow a consistent pattern:
 #### 7.1.3 Error Handling
 
 Server actions implement robust error handling:
+
 ```typescript
 {
   success: boolean,
