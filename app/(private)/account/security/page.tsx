@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import { useSession, useUser } from '@clerk/nextjs';
+import { useSession, useSignIn, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
 import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -63,6 +63,7 @@ export default function SecurityPage() {
   const router = useRouter();
   const { isLoaded: isUserLoaded, user } = useUser();
   const { session } = useSession();
+  const { signIn, isLoaded: isSignInLoaded } = useSignIn();
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showChangePasswordForm, setShowChangePasswordForm] = useState(false);
@@ -292,23 +293,18 @@ export default function SecurityPage() {
         throw new Error('User not found');
       }
 
-      // Create an OAuth connection directly
-      const externalAccount = await user.createExternalAccount({
+      if (!isSignInLoaded || !signIn) {
+        throw new Error('Sign-in not available');
+      }
+
+      // Use the standard OAuth flow with the callback page
+      await signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
-        // String literal for the redirect URL
-        redirectUrl: `${window.location.origin}/account/security`,
+        redirectUrl: `${window.location.origin}/account/security/callback`,
+        redirectUrlComplete: `${window.location.origin}/account/security`,
       });
 
-      // If we have a verification URL, navigate to it
-      if (
-        externalAccount?.verification &&
-        typeof externalAccount.verification.externalVerificationRedirectURL === 'string'
-      ) {
-        // Force navigation to the Google OAuth page
-        window.location.href = externalAccount.verification.externalVerificationRedirectURL;
-      } else {
-        throw new Error('Failed to get verification URL');
-      }
+      // The page will be redirected to Google's OAuth page
     } catch (error) {
       console.error('Error connecting account:', error);
       toast.error(
