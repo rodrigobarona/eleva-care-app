@@ -6,7 +6,13 @@ import { clerkClient, currentUser } from '@clerk/nextjs/server';
 import { count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
-export type ExpertSetupStep = 'profile' | 'availability' | 'events' | 'identity' | 'payment';
+export type ExpertSetupStep =
+  | 'profile'
+  | 'availability'
+  | 'events'
+  | 'identity'
+  | 'payment'
+  | 'google_account';
 
 // Helper function to check if a user has an expert role
 function hasExpertRole(user: { publicMetadata?: Record<string, unknown> }): boolean {
@@ -129,6 +135,7 @@ export async function checkExpertSetupStatus() {
       events: false,
       identity: false,
       payment: false,
+      google_account: false,
     };
 
     // Perform database checks to verify actual completion status
@@ -165,6 +172,12 @@ export async function checkExpertSetupStatus() {
     // Verify payment setup - Check if user has completed Stripe Connect onboarding
     setupStatus.payment =
       !!dbUser?.stripeConnectAccountId && !!dbUser?.stripeConnectOnboardingComplete;
+
+    // Verify Google account connection - Check if user has connected a Google account
+    const externalAccounts = user.externalAccounts || [];
+    setupStatus.google_account = externalAccounts.some(
+      (account) => account.provider === 'google' && account.verification?.status === 'verified',
+    );
 
     // Update metadata if database checks differ from stored metadata
     if (JSON.stringify(setupStatus) !== JSON.stringify(metadataSetup)) {

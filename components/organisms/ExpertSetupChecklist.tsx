@@ -53,12 +53,20 @@ export function ExpertSetupChecklist() {
       priority: 3,
     },
     {
+      id: 'google_account',
+      name: 'Connect Google account',
+      description: 'Connect your Google account for calendar integration',
+      href: '/account/security',
+      completed: false,
+      priority: 4,
+    },
+    {
       id: 'identity',
       name: 'Verify your identity',
       description: 'Complete identity verification for your account',
       href: '/account/identity',
       completed: false,
-      priority: 4,
+      priority: 5,
     },
     {
       id: 'payment',
@@ -66,7 +74,7 @@ export function ExpertSetupChecklist() {
       description: 'Set up Stripe Connect to receive payments',
       href: '/account/billing',
       completed: false,
-      priority: 5,
+      priority: 6,
     },
   ]);
 
