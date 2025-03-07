@@ -296,13 +296,14 @@ export default function SecurityPage() {
       const callbackUrl = `${window.location.origin}/account/security/callback`;
 
       // Create a new external account connection
+      // We don't need to specify additionalScopes since they're configured in the Clerk Dashboard
       const externalAccount = await user.createExternalAccount({
         strategy: 'oauth_google' as const,
         redirectUrl: callbackUrl,
       });
 
       if (externalAccount?.verification?.externalVerificationRedirectURL) {
-        // Add the prompt parameter to force account selection
+        // Add prompt=select_account to force Google to show the account selector
         const redirectUrl = new URL(externalAccount.verification.externalVerificationRedirectURL);
         redirectUrl.searchParams.append('prompt', 'select_account');
 
