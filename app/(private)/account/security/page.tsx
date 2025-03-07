@@ -270,21 +270,11 @@ export default function SecurityPage() {
         throw new Error('User not found');
       }
 
-      // Use openSignIn to initiate the OAuth connection flow
-      // This will open the Clerk sign-in UI with Google as an option
-      clerk.openSignIn({
+      // Use clerk.client.signIn to initiate the OAuth connection flow
+      await clerk.client.signIn.create({
+        strategy: 'oauth_google',
         redirectUrl,
-        appearance: {
-          elements: {
-            // Only show the Google OAuth option
-            socialButtonsBlockButton: {
-              display: 'none',
-            },
-            socialButtonsBlockButtonGoogle: {
-              display: 'flex',
-            },
-          },
-        },
+        actionCompleteRedirectUrl: redirectUrl,
       });
     } catch (error) {
       console.error('Error connecting account:', error);
