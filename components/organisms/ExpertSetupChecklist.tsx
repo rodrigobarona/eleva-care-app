@@ -5,10 +5,10 @@ import { Progress } from '@/components/atoms/progress';
 import { cn } from '@/lib/utils';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { useUser } from '@clerk/nextjs';
-import { CheckCircle2, ChevronDown, ChevronUp, Circle } from 'lucide-react';
+import { CheckCircle2, ChevronDown, ChevronUp, Circle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 type SetupStep = {
@@ -83,42 +83,56 @@ export function ExpertSetupChecklist() {
   // Track if toast has been shown in this component instance
   const toastShownInThisSession = useRef(false);
 
-  useEffect(() => {
-    async function loadCompletionStatus() {
-      setLoading(true);
-      try {
-        const result = await checkExpertSetupStatus();
-        if (result.success && result.setupStatus) {
-          setSetupSteps((prev) =>
-            prev.map((step) => ({
-              ...step,
-              completed: result.setupStatus?.[step.id] || false,
-            })),
-          );
+  // Extract loadCompletionStatus to a function wrapped in useCallback
+  // so it can be reused in the pathname effect
+  const loadCompletionStatus = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await checkExpertSetupStatus();
+      if (result.success && result.setupStatus) {
+        setSetupSteps((prev) =>
+          prev.map((step) => ({
+            ...step,
+            completed: result.setupStatus?.[step.id] || false,
+          })),
+        );
 
-          // Track whether the profile is already published
-          if (result.isPublished !== undefined) {
-            setIsProfilePublished(result.isPublished);
-          }
-
-          // If revalidation path was returned, refresh the UI
-          if ('revalidatePath' in result) {
-            router.refresh();
-          }
-        } else if (result.error) {
-          console.error('Error checking expert setup status:', result.error);
+        // Track whether the profile is already published
+        if (result.isPublished !== undefined) {
+          setIsProfilePublished(result.isPublished);
         }
-      } catch (error) {
-        console.error('Failed to load completion status:', error);
-      } finally {
-        setLoading(false);
+
+        // If revalidation path was returned, refresh the UI
+        if ('revalidatePath' in result) {
+          router.refresh();
+        }
+      } else if (result.error) {
+        console.error('Error checking expert setup status:', result.error);
+      }
+    } catch (error) {
+      console.error('Failed to load completion status:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [router]); // router is the only dependency
+
+  // Handle navigation
+  useEffect(() => {
+    if (lastPathname.current !== pathname) {
+      lastPathname.current = pathname;
+      // Refresh the completion status when the path changes
+      // This helps update the checklist after form submissions
+      if (isLoaded) {
+        loadCompletionStatus();
       }
     }
+  }, [pathname, isLoaded, loadCompletionStatus]);
 
+  useEffect(() => {
     if (isLoaded) {
       loadCompletionStatus();
     }
-  }, [isLoaded, router]);
+  }, [isLoaded, loadCompletionStatus]);
 
   // Calculate progress percentage
   const completedSteps = setupSteps.filter((step) => step.completed).length;
@@ -189,13 +203,6 @@ export function ExpertSetupChecklist() {
     }
   }, [completedSteps, totalSteps, loading, isProfilePublished, router, isLoaded, user]);
 
-  // Handle navigation
-  useEffect(() => {
-    if (lastPathname.current !== pathname) {
-      lastPathname.current = pathname;
-    }
-  }, [pathname]);
-
   // If all steps are completed, don't show anything
   if (progressPercentage === 100) {
     return null;
@@ -230,6 +237,15 @@ export function ExpertSetupChecklist() {
               {nextIncompleteStep.name}
             </Button>
           )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => loadCompletionStatus()}
+            className="h-6 w-6"
+            title="Refresh setup status"
+          >
+            <RefreshCw className="h-3.5 w-3.5" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
