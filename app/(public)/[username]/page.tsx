@@ -6,7 +6,7 @@ import { formatEventDescription } from '@/lib/formatters';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import NextAvailableTimeClient from '@/lib/NextAvailableTimeClient';
 import GoogleCalendarService from '@/server/googleCalendar';
-import { createClerkClient } from '@clerk/nextjs/server';
+import { auth, createClerkClient } from '@clerk/nextjs/server';
 import { addMonths } from 'date-fns';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
@@ -168,54 +168,166 @@ export default async function BookingPage(props: { params: Promise<{ username: s
   const user = users.data[0];
   if (!user) return notFound();
 
+  // Get current user session for comparison with profile owner
+  const { userId: currentUserId } = await auth();
+  const isProfileOwner = currentUserId === user.id;
+
+  // Get profile data to check if it's published
+  const profile = await db.query.ProfileTable.findFirst({
+    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
+  });
+
+  // If profile doesn't exist or isn't published, require user to be the profile owner
+  if (!profile || !profile.published) {
+    if (!isProfileOwner) {
+      return notFound();
+    }
+
+    // Display preview mode banner for the profile owner
+    return (
+      <div className="mx-auto max-w-4xl px-4 py-12">
+        <div className="mb-8 rounded-md bg-yellow-50 p-4 text-yellow-800">
+          <div className="flex items-center">
+            <svg
+              className="mr-3 h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <p className="font-medium">
+              Preview Mode - Your profile is {profile ? 'not published' : 'incomplete'}. Only you
+              can see this page.
+            </p>
+          </div>
+          <div className="mt-3 flex justify-end">
+            <Link href="/account">
+              <Button variant="outline" size="sm">
+                Edit Profile
+              </Button>
+            </Link>
+          </div>
+        </div>
+
+        <h1 className="mb-12 text-4xl font-bold">Book a session</h1>
+
+        {/* Use Suspense to stream in the events section */}
+        <Suspense fallback={<EventsLoadingSkeleton />}>
+          <EventsListWithAccessControl
+            userId={user.id}
+            username={username}
+            isProfileOwner={isProfileOwner}
+          />
+        </Suspense>
+      </div>
+    );
+  }
+
+  // Public view for published profiles
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       <h1 className="mb-12 text-4xl font-bold">Book a session</h1>
 
       {/* Use Suspense to stream in the events section */}
       <Suspense fallback={<EventsLoadingSkeleton />}>
-        <EventsList userId={user.id} username={username} />
+        <EventsListWithAccessControl
+          userId={user.id}
+          username={username}
+          isProfileOwner={isProfileOwner}
+        />
       </Suspense>
     </div>
   );
 }
 
-// 2. Create a separate component for the events list that can be loaded with Suspense
-async function EventsList({ userId, username }: { userId: string; username: string }) {
-  try {
-    // Check calendar status
-    const calendarStatus = await getCalendarStatus(userId);
+// Added wrapper component to handle access control for events
+async function EventsListWithAccessControl({
+  userId,
+  username,
+  isProfileOwner,
+}: {
+  userId: string;
+  username: string;
+  isProfileOwner: boolean;
+}) {
+  // Check calendar status
+  const calendarStatus = await getCalendarStatus(userId);
 
-    if (!calendarStatus.isConnected) {
+  if (!calendarStatus.isConnected) {
+    return (
+      <Card className="mx-auto max-w-md">
+        <CardHeader>
+          <CardTitle>Calendar Access Required</CardTitle>
+          <CardDescription>
+            {calendarStatus.error === 'Calendar not connected'
+              ? 'The calendar owner needs to connect their Google Calendar to show available times.'
+              : 'Unable to access calendar. Please try again later.'}
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  try {
+    // Get events with different filtering based on whether user is the profile owner or not
+    const eventsQuery = isProfileOwner
+      ? // For profile owner: show all events regardless of active status
+        db.query.EventTable.findMany({
+          where: ({ clerkUserId: userIdCol }, { eq }) => eq(userIdCol, userId),
+          orderBy: ({ order }, { asc }) => asc(order),
+        })
+      : // For public: show only active events
+        db.query.EventTable.findMany({
+          where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
+            and(eq(userIdCol, userId), eq(isActive, true)),
+          orderBy: ({ order }, { asc }) => asc(order),
+        });
+
+    const events = await eventsQuery;
+
+    if (events.length === 0) {
       return (
         <Card className="mx-auto max-w-md">
           <CardHeader>
-            <CardTitle>Calendar Access Required</CardTitle>
+            <CardTitle>No Events Available</CardTitle>
             <CardDescription>
-              {calendarStatus.error === 'Calendar not connected'
-                ? 'The calendar owner needs to connect their Google Calendar to show available times.'
-                : 'Unable to access calendar. Please try again later.'}
+              {isProfileOwner
+                ? "You haven't created any bookable events yet."
+                : "This expert doesn't have any bookable events at the moment."}
             </CardDescription>
           </CardHeader>
+          {isProfileOwner && (
+            <div className="px-6 pb-6">
+              <Link href="/events/new">
+                <Button>Create Your First Event</Button>
+              </Link>
+            </div>
+          )}
         </Card>
       );
     }
 
-    const events = await db.query.EventTable.findMany({
-      where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
-        and(eq(userIdCol, userId), eq(isActive, true)),
-      orderBy: ({ order }, { asc }) => asc(order),
-    });
-
-    if (events.length === 0) return notFound();
-
     return (
       <div className="space-y-6">
         {events.map((event) => (
-          // Use Suspense for each event card to stream in availability data
-          <Suspense key={event.id} fallback={<LoadingEventCard />}>
-            <EventCardWithAvailability event={event} username={username} />
-          </Suspense>
+          <div key={event.id} className="relative">
+            {/* Show status badge for inactive events (only to profile owner) */}
+            {isProfileOwner && !event.isActive && (
+              <div className="absolute -right-2 -top-2 z-10 rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800 shadow">
+                Not Active
+              </div>
+            )}
+
+            {/* Use Suspense for each event card to stream in availability data */}
+            <Suspense fallback={<LoadingEventCard />}>
+              <EventCardWithAvailability event={event} username={username} />
+            </Suspense>
+          </div>
         ))}
       </div>
     );

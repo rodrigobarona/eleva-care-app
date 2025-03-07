@@ -24,7 +24,7 @@ const isExpertRoute = createRouteMatcher([
   '/schedule(.*)',
   '/appointments(.*)',
   '/account/identity(.*)',
-  '/account/security(.*)',
+  '/account/billing(.*)',
 ]);
 
 // Allowed roles for expert routes

@@ -1,6 +1,6 @@
 import { Skeleton } from '@/components/atoms/skeleton';
 import { db } from '@/drizzle/db';
-import { createClerkClient } from '@clerk/nextjs/server';
+import { auth, createClerkClient } from '@clerk/nextjs/server';
 import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
@@ -61,6 +61,9 @@ export default async function UserLayout(props: {
 
   const { username } = params;
 
+  // Get current user session for comparison with profile owner
+  const { userId: currentUserId } = await auth();
+
   const { children } = props;
 
   return (
@@ -68,7 +71,7 @@ export default async function UserLayout(props: {
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
         {/* Left Column - Profile Info with Suspense */}
         <React.Suspense fallback={<ProfileSkeleton />}>
-          <ProfileInfo username={username} />
+          <ProfileInfo username={username} currentUserId={currentUserId} />
         </React.Suspense>
 
         {/* Right Column - Content */}
@@ -79,7 +82,13 @@ export default async function UserLayout(props: {
 }
 
 // Separate component for profile info
-async function ProfileInfo({ username }: { username: string }) {
+async function ProfileInfo({
+  username,
+  currentUserId,
+}: {
+  username: string;
+  currentUserId: string | null;
+}) {
   // Only delay in development
 
   const clerk = createClerkClient({
@@ -92,6 +101,9 @@ async function ProfileInfo({ username }: { username: string }) {
   const user = users.data[0];
   if (!user) return notFound();
 
+  // Check if current user is the profile owner
+  const isProfileOwner = currentUserId === user.id;
+
   const profile = await db.query.ProfileTable.findFirst({
     where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
     with: {
@@ -100,8 +112,39 @@ async function ProfileInfo({ username }: { username: string }) {
     },
   });
 
+  // For non-owner users, profile must exist and be published
+  if (!profile && !isProfileOwner) {
+    return notFound();
+  }
+
+  // For public profiles, they must be published or viewer must be the owner
+  if (profile && !profile.published && !isProfileOwner) {
+    return notFound();
+  }
+
   return (
     <div className="space-y-6">
+      {/* Preview Mode Banner - Only visible to profile owner when profile is not published */}
+      {isProfileOwner && (!profile || !profile.published) && (
+        <div className="rounded-lg bg-yellow-50 p-4 text-yellow-800">
+          <div className="flex items-center">
+            <svg
+              className="mr-2 h-5 w-5"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              aria-hidden="true"
+            >
+              <path
+                fillRule="evenodd"
+                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <p className="text-sm font-medium">Preview Mode - Only you can see this page</p>
+          </div>
+        </div>
+      )}
+
       <div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
         <Image
           src={profile?.profilePicture || user.imageUrl}
