@@ -72,14 +72,36 @@ export default function SecurityPage() {
 
   const devices = sessions
     .filter((session, index, self) => self.findIndex((s) => s.id === session.id) === index)
-    .map((session) => ({
-      id: session.id,
-      sessionId: session.id,
-      name: `${session.latestActivity?.browserName || 'Unknown'} ${session.latestActivity?.deviceType || ''}`,
-      type: session.latestActivity?.isMobile ? 'mobile' : 'desktop',
-      lastSeen: new Date(session.lastActiveAt).toLocaleDateString(),
-      isCurrent: session.id === currentSession?.id,
-    }));
+    .map((session) => {
+      // Extract location details if available
+      let location = 'Location unknown';
+
+      // Safely access location data from Clerk session
+      if (
+        session.latestActivity &&
+        'geoCity' in session.latestActivity &&
+        'geoCountry' in session.latestActivity
+      ) {
+        const city =
+          typeof session.latestActivity.geoCity === 'string' ? session.latestActivity.geoCity : '';
+        const country =
+          typeof session.latestActivity.geoCountry === 'string'
+            ? session.latestActivity.geoCountry
+            : 'Unknown';
+        location = city ? `${city}, ${country}` : country;
+      }
+
+      return {
+        id: session.id,
+        sessionId: session.id,
+        name: `${session.latestActivity?.browserName || 'Unknown'} ${session.latestActivity?.deviceType || ''}`,
+        type: session.latestActivity?.isMobile ? 'mobile' : 'desktop',
+        lastSeen: new Date(session.lastActiveAt).toLocaleDateString(),
+        isCurrent: session.id === currentSession?.id,
+        location,
+        ip: session.latestActivity?.ipAddress || 'Unknown IP',
+      };
+    });
 
   const handleInitiatePasswordSet = () => {
     setShowPasswordForm(true);
@@ -552,10 +574,14 @@ export default function SecurityPage() {
                   )}
                   <div>
                     <p className="font-medium">{device.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Last seen: {device.lastSeen}
-                      {device.isCurrent && ' (Current device)'}
-                    </p>
+                    <div className="space-y-1">
+                      <p className="text-sm text-muted-foreground">
+                        Last seen: {device.lastSeen}
+                        {device.isCurrent && ' (Current device)'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Location: {device.location}</p>
+                      <p className="text-sm text-muted-foreground">IP Address: {device.ip}</p>
+                    </div>
                   </div>
                 </div>
                 {!device.isCurrent && (
