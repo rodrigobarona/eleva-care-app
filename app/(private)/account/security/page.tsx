@@ -297,6 +297,9 @@ export default function SecurityPage() {
       await user.createExternalAccount({
         strategy: 'oauth_google',
         redirectUrl: `${window.location.origin}/account/security`,
+        // Force Google to show the account selection screen
+        // even if the user is already logged in to a Google account
+        oidcPrompt: 'select_account',
       });
 
       // Note: This will redirect the user to Google's OAuth page
