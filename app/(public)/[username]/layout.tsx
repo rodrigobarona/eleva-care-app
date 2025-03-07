@@ -104,6 +104,7 @@ async function ProfileInfo({
   // Check if current user is the profile owner
   const isProfileOwner = currentUserId === user.id;
 
+  // Get the profile data and user's role
   const profile = await db.query.ProfileTable.findFirst({
     where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
     with: {
@@ -112,20 +113,54 @@ async function ProfileInfo({
     },
   });
 
-  // For non-owner users, profile must exist and be published
-  if (!profile && !isProfileOwner) {
-    return notFound();
-  }
+  // Get the target user's role to check if they're allowed to have a public profile
+  const targetUserData = await clerk.users.getUser(user.id);
+  const targetUserRole = targetUserData.publicMetadata?.role as string | string[] | undefined;
 
-  // For public profiles, they must be published or viewer must be the owner
-  if (profile && !profile.published && !isProfileOwner) {
-    return notFound();
+  // Convert to array for easier checking
+  const targetUserRoles = Array.isArray(targetUserRole)
+    ? targetUserRole
+    : targetUserRole
+      ? [targetUserRole]
+      : [];
+
+  // Check if user has required expert role
+  const hasExpertRole = targetUserRoles.some(
+    (role) => role === 'community_expert' || role === 'top_expert',
+  );
+
+  // For non-owners, both the profile must exist, be published, and the user must have an expert role
+  if (!isProfileOwner) {
+    if (!profile || !profile.published || !hasExpertRole) {
+      return notFound();
+    }
+  } else if (!hasExpertRole) {
+    // If the current user is the profile owner but doesn't have the required role,
+    // show a message explaining they need to upgrade to expert status
+    return (
+      <div className="space-y-6">
+        <div className="rounded-lg bg-amber-50 p-6 text-amber-800">
+          <h3 className="mb-2 text-lg font-medium">Expert Role Required</h3>
+          <p className="mb-4">
+            To have a public profile page, you need to be a Community Expert or Top Expert.
+            Currently, your account does not have the required role.
+          </p>
+          <p className="text-sm">
+            Please upgrade your account or contact support for assistance with becoming an expert.
+          </p>
+        </div>
+
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <p>This page is only visible to you.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="space-y-6">
       {/* Preview Mode Banner - Only visible to profile owner when profile is not published */}
-      {isProfileOwner && (!profile || !profile.published) && (
+      {isProfileOwner && (
         <div className="rounded-lg bg-yellow-50 p-4 text-yellow-800">
           <div className="flex items-center">
             <svg
@@ -140,7 +175,13 @@ async function ProfileInfo({
                 clipRule="evenodd"
               />
             </svg>
-            <p className="text-sm font-medium">Preview Mode - Only you can see this page</p>
+            <p className="text-sm font-medium">
+              {!profile || !profile.published ? (
+                <>Preview Mode - Only you can see this page</>
+              ) : (
+                <>Your profile is visible to the public</>
+              )}
+            </p>
           </div>
         </div>
       )}

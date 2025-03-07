@@ -51,6 +51,27 @@ async function getCalendarStatus(clerkUserId: string) {
   }
 }
 
+// Helper function to check if a user has expert role
+async function checkUserRole(userId: string) {
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
+
+  try {
+    const userData = await clerk.users.getUser(userId);
+    const userRole = userData.publicMetadata?.role as string | string[] | undefined;
+
+    // Convert to array for easier checking
+    const userRoles = Array.isArray(userRole) ? userRole : userRole ? [userRole] : [];
+
+    // Check if user has required expert role
+    return userRoles.some((role) => role === 'community_expert' || role === 'top_expert');
+  } catch (error) {
+    console.error('Error checking user role:', error);
+    return false;
+  }
+}
+
 async function getValidTimesForEvent(eventId: string) {
   try {
     const event = await db.query.EventTable.findFirst({
@@ -172,6 +193,14 @@ export default async function BookingPage(props: { params: Promise<{ username: s
   const { userId: currentUserId } = await auth();
   const isProfileOwner = currentUserId === user.id;
 
+  // Check if the profile owner has the required expert role
+  const hasExpertRole = await checkUserRole(user.id);
+
+  // If the user isn't the profile owner and doesn't have expert role, they can't have a public page
+  if (!isProfileOwner && !hasExpertRole) {
+    return notFound();
+  }
+
   // Get profile data to check if it's published
   const profile = await db.query.ProfileTable.findFirst({
     where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
@@ -214,6 +243,29 @@ export default async function BookingPage(props: { params: Promise<{ username: s
           </div>
         </div>
 
+        {!hasExpertRole && (
+          <div className="mb-8 rounded-md bg-amber-50 p-4 text-amber-800">
+            <div className="flex items-center">
+              <svg
+                className="mr-3 h-5 w-5"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <p className="font-medium">
+                Expert Role Required - To have a public profile, you need to be a Community Expert
+                or Top Expert.
+              </p>
+            </div>
+          </div>
+        )}
+
         <h1 className="mb-12 text-4xl font-bold">Book a session</h1>
 
         {/* Use Suspense to stream in the events section */}
@@ -228,7 +280,7 @@ export default async function BookingPage(props: { params: Promise<{ username: s
     );
   }
 
-  // Public view for published profiles
+  // Public view for published profiles of users with expert role
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       <h1 className="mb-12 text-4xl font-bold">Book a session</h1>
