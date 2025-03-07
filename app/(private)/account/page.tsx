@@ -8,7 +8,7 @@ export default function ProfilePage() {
   const { user, isLoaded } = useUser();
 
   if (!isLoaded) return null;
-  if (!user) return redirect('/unauthorized');
+  if (!user) return redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
 
   return (
     <div className="space-y-6">

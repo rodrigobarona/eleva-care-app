@@ -20,7 +20,7 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect('/unauthorized');
+    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
   }
 
   return (

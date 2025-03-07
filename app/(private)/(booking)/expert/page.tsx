@@ -22,7 +22,7 @@ export default async function ProfilePage() {
   const user = await currentUser();
 
   if (!userId || !user) {
-    redirect('/unauthorized');
+    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
   }
 
   // Check if user has either community_expert OR top_expert role
@@ -30,7 +30,7 @@ export default async function ProfilePage() {
   const isTopExpert = await hasRole('top_expert');
 
   if (!isCommunityExpert && !isTopExpert) {
-    redirect('/unauthorized');
+    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
   }
 
   // Try to find existing profile
@@ -92,7 +92,7 @@ export default async function ProfilePage() {
       );
     } catch (error) {
       console.error('Error creating profile:', error);
-      return redirect('/unauthorized'); // Redirect on error
+      return redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`); // Redirect on error
     }
   }
 

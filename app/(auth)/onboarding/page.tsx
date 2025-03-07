@@ -34,7 +34,7 @@ export default function OnboardingPage() {
 
   // Redirect if not signed in
   if (!isSignedIn) {
-    redirect('/unauthorized');
+    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
   }
 
   // Handle profile update

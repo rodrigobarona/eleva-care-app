@@ -10,7 +10,7 @@ export default async function EventsPage() {
   const { userId } = await auth();
 
   if (!userId) {
-    redirect('/unauthorized');
+    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
   }
 
   const clerk = createClerkClient({
