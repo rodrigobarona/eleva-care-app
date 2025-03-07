@@ -292,28 +292,25 @@ export default function SecurityPage() {
         throw new Error('User not found');
       }
 
-      // Use the proper Clerk API directly from the user object
-      // The Window.Clerk approach was incorrect
-      const params = {
+      // IMPORTANT: We need to redirect through the callback page for proper connection handling
+      const callbackUrl = `${window.location.origin}/account/security/callback`;
+
+      // Create a new external account connection
+      const externalAccount = await user.createExternalAccount({
         strategy: 'oauth_google' as const,
-        redirectUrl: `${window.location.origin}/account/security`,
-      };
-
-      // Start the OAuth flow using user.createExternalAccount
-      // This is the proper method for adding connections in Clerk v6
-      await user.createExternalAccount(params).then((externalAccount) => {
-        // If we have a verification redirect URL, navigate to it
-        if (externalAccount?.verification?.externalVerificationRedirectURL) {
-          // Add prompt=select_account to force Google to show the account selector
-          const redirectUrl = new URL(externalAccount.verification.externalVerificationRedirectURL);
-          redirectUrl.searchParams.append('prompt', 'select_account');
-
-          // Navigate to the OAuth URL
-          window.location.href = redirectUrl.toString();
-        } else {
-          throw new Error('No verification URL provided');
-        }
+        redirectUrl: callbackUrl,
       });
+
+      if (externalAccount?.verification?.externalVerificationRedirectURL) {
+        // Add the prompt parameter to force account selection
+        const redirectUrl = new URL(externalAccount.verification.externalVerificationRedirectURL);
+        redirectUrl.searchParams.append('prompt', 'select_account');
+
+        // Navigate to the OAuth URL
+        window.location.href = redirectUrl.toString();
+      } else {
+        throw new Error('No verification URL provided');
+      }
     } catch (error) {
       console.error('Error connecting account:', error);
       toast.error(
