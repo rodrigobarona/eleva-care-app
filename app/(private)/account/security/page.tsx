@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import { useSession, useSignIn, useUser } from '@clerk/nextjs';
+import { useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
 import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -28,6 +28,12 @@ declare global {
           strategy: string;
           redirectUrl: string;
         }) => Promise<void>;
+        users: {
+          createConnectionToken: (params: {
+            userId: string;
+            strategy: string;
+          }) => Promise<{ token: string }>;
+        };
       };
     };
   }
@@ -63,7 +69,6 @@ export default function SecurityPage() {
   const router = useRouter();
   const { isLoaded: isUserLoaded, user } = useUser();
   const { session } = useSession();
-  const { signIn, isLoaded: isSignInLoaded } = useSignIn();
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showChangePasswordForm, setShowChangePasswordForm] = useState(false);
@@ -293,18 +298,27 @@ export default function SecurityPage() {
         throw new Error('User not found');
       }
 
-      if (!isSignInLoaded || !signIn) {
-        throw new Error('Sign-in not available');
+      // This uses the global Clerk object which has better support for adding connections
+      if (window.Clerk) {
+        // Create connection token for the current user
+        const { token } = await window.Clerk.client.users.createConnectionToken({
+          userId: user.id,
+          strategy: 'oauth_google',
+        });
+
+        // Navigate to the OAuth connection URL with the token
+        const url = new URL('https://accounts.clerk.dev/oauth/connect');
+        url.searchParams.set('token', token);
+        url.searchParams.set('instance_strategy', 'oauth_google');
+        url.searchParams.set('redirect_url', `${window.location.origin}/account/security`);
+        // Force account selection - this is the key parameter
+        url.searchParams.set('prompt', 'select_account');
+
+        // Navigate to the Clerk OAuth connection URL
+        window.location.href = url.toString();
+      } else {
+        throw new Error('Clerk client not available');
       }
-
-      // Use the standard OAuth flow with the callback page
-      await signIn.authenticateWithRedirect({
-        strategy: 'oauth_google',
-        redirectUrl: `${window.location.origin}/account/security/callback`,
-        redirectUrlComplete: `${window.location.origin}/account/security`,
-      });
-
-      // The page will be redirected to Google's OAuth page
     } catch (error) {
       console.error('Error connecting account:', error);
       toast.error(
