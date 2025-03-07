@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import { useSession, useUser } from '@clerk/nextjs';
+import { useClerk, useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
 import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -63,6 +63,7 @@ export default function SecurityPage() {
   const router = useRouter();
   const { isLoaded: isUserLoaded, user } = useUser();
   const { session } = useSession();
+  const clerk = useClerk();
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [showChangePasswordForm, setShowChangePasswordForm] = useState(false);
@@ -292,18 +293,20 @@ export default function SecurityPage() {
         throw new Error('User not found');
       }
 
-      // Add an OAuth connection to the current user using Clerk's user.createExternalAccount method
-      // This method is specifically for adding connections to existing accounts
-      await user.createExternalAccount({
+      // Create a redirect URL with a special parameter to force account selection
+      const redirectUrl = new URL(`${window.location.origin}/account/security/callback`);
+      redirectUrl.searchParams.append('prompt', 'select_account');
+
+      // Use Clerk's sign-in method which will trigger the account selection prompt
+      await clerk.client.signIn.authenticateWithRedirect({
         strategy: 'oauth_google',
-        redirectUrl: `${window.location.origin}/account/security`,
-        // Force Google to show the account selection screen
-        // even if the user is already logged in to a Google account
-        oidcPrompt: 'select_account',
+        redirectUrl: redirectUrl.toString(),
+        // Use the callback page to handle the OAuth response
+        redirectUrlComplete: `${window.location.origin}/account/security/callback`,
       });
 
-      // Note: This will redirect the user to Google's OAuth page
-      // After authentication, they'll be redirected back to the security page
+      // The user will be redirected to Google's account selection page
+      // and then to the callback page after authentication
     } catch (error) {
       console.error('Error connecting account:', error);
       toast.error(
