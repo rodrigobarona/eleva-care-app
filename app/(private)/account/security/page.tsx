@@ -52,6 +52,7 @@ export default function SecurityPage() {
   const [isConnectingAccount, setIsConnectingAccount] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
 
   const loadSessions = useCallback(async () => {
     if (!user || !isUserLoaded) return;
@@ -69,6 +70,42 @@ export default function SecurityPage() {
   React.useEffect(() => {
     loadSessions();
   }, [loadSessions]);
+
+  // Calculate password strength whenever password changes
+  React.useEffect(() => {
+    // Password strength calculation based on criteria
+    const calculateStrength = (password: string): number => {
+      if (!password) return 0;
+
+      let score = 0;
+
+      // Length check (8 characters minimum required by Clerk)
+      if (password.length >= 8) score += 20;
+      if (password.length >= 12) score += 10;
+
+      // Character variety checks
+      if (/[A-Z]/.test(password)) score += 20; // Has uppercase
+      if (/[a-z]/.test(password)) score += 20; // Has lowercase
+      if (/[0-9]/.test(password)) score += 20; // Has number
+      if (/[^A-Za-z0-9]/.test(password)) score += 20; // Has special char
+
+      // Adjust final score to be between 0-100
+      return Math.min(100, score);
+    };
+
+    setPasswordStrength(calculateStrength(password));
+  }, [password]);
+
+  // Get strength label and color based on score
+  const getStrengthDetails = () => {
+    if (passwordStrength < 20) return { label: 'Very Weak', color: 'bg-red-500' };
+    if (passwordStrength < 40) return { label: 'Weak', color: 'bg-orange-500' };
+    if (passwordStrength < 60) return { label: 'Medium', color: 'bg-yellow-500' };
+    if (passwordStrength < 80) return { label: 'Strong', color: 'bg-lime-500' };
+    return { label: 'Very Strong', color: 'bg-green-500' };
+  };
+
+  const { label: strengthLabel, color: strengthColor } = getStrengthDetails();
 
   const devices = sessions
     .filter((session, index, self) => self.findIndex((s) => s.id === session.id) === index)
@@ -437,6 +474,21 @@ export default function SecurityPage() {
                         )}
                       </button>
                     </div>
+                    {password && (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium">
+                            Password Strength: {strengthLabel}
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-gray-200">
+                          <div
+                            className={`h-1.5 rounded-full ${strengthColor} transition-all duration-300`}
+                            style={{ width: `${passwordStrength}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <p className="mt-1 text-xs text-muted-foreground">
                       Password must be at least 8 characters and strong enough to meet security
                       requirements.
@@ -528,6 +580,21 @@ export default function SecurityPage() {
                         )}
                       </button>
                     </div>
+                    {password && (
+                      <div className="mt-2 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium">
+                            Password Strength: {strengthLabel}
+                          </span>
+                        </div>
+                        <div className="h-1.5 w-full rounded-full bg-gray-200">
+                          <div
+                            className={`h-1.5 rounded-full ${strengthColor} transition-all duration-300`}
+                            style={{ width: `${passwordStrength}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                     <p className="mt-1 text-xs text-muted-foreground">
                       Password must be at least 8 characters and strong enough to meet security
                       requirements.
