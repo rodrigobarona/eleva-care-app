@@ -11,31 +11,25 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     // Authenticate the user
-    const { userId } = auth();
-    
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const authData = await auth();
+
+    if (!authData.userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     // Get the user record from the database
     const dbUser = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, userId),
+      where: eq(UserTable.clerkUserId, authData.userId),
     });
-    
+
     if (!dbUser) {
-      return NextResponse.json(
-        { error: 'User not found in database' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'User not found in database' }, { status: 404 });
     }
-    
+
     // Check if the user has completed Stripe identity verification
-    const isVerified = dbUser.stripeIdentityVerificationId && 
-                       dbUser.stripeIdentityVerified === true;
-    
+    const isVerified =
+      dbUser.stripeIdentityVerificationId && dbUser.stripeIdentityVerified === true;
+
     // Return the verification status
     return NextResponse.json({
       verified: isVerified,
@@ -43,14 +37,11 @@ export async function GET() {
       // Include additional details that might be useful
       details: {
         hasVerificationId: !!dbUser.stripeIdentityVerificationId,
-        isMarkedVerified: dbUser.stripeIdentityVerified === true
-      }
+        isMarkedVerified: dbUser.stripeIdentityVerified === true,
+      },
     });
   } catch (error) {
     console.error('Error checking identity verification status:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

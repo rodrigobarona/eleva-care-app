@@ -133,30 +133,103 @@ export function ExpertSetupChecklist() {
     }
   }, [isLoaded, loadCompletionStatus]);
 
-  // Subscribe to events that might update the checklist status
-  useEffect(() => {
-    // Define function for handling custom events
-    const handleStatusUpdate = () => {
-      if (isLoaded) {
-        loadCompletionStatus();
-      }
-    };
+  // Add a function to monitor and sync with Clerk metadata
+  const syncWithClerkMetadata = useCallback(() => {
+    if (!isLoaded || !user) return;
 
-    // Handle Google account connection specifically
-    const handleGoogleAccountConnected = (event: Event) => {
+    // Extract expert setup status from user metadata
+    const expertSetupMetadata = (user.unsafeMetadata?.expertSetup as Record<string, boolean>) || {};
+
+    // Update setupSteps based on metadata, but only mark as complete
+    // This ensures we don't accidentally revert completed steps
+    setSetupSteps((prevSteps) =>
+      prevSteps.map((step) => {
+        const isCompleteInMetadata = !!expertSetupMetadata[step.id];
+        // Only update to true, never revert to false (which needs server validation)
+        if (isCompleteInMetadata && !step.completed) {
+          console.log(`Step ${step.id} marked as complete based on metadata update`);
+          return { ...step, completed: true };
+        }
+        return step;
+      }),
+    );
+
+    // Calculate new progress after update
+    const completedCount = Object.values(expertSetupMetadata).filter(Boolean).length;
+    const totalCount = setupSteps.length;
+    const newProgressPercentage = Math.round((completedCount / totalCount) * 100);
+
+    // Log the sync for debugging
+    console.log('Synced with Clerk metadata:', {
+      expertSetupMetadata,
+      newProgressPercentage,
+    });
+  }, [isLoaded, user, setupSteps]);
+
+  // Listen for Clerk user changes, including metadata updates
+  useEffect(() => {
+    if (!isLoaded || !user) return;
+
+    // Initial sync when user loads
+    syncWithClerkMetadata();
+
+    // Set up interval to check for metadata changes
+    // This is a workaround since we don't have direct listen() support
+    const intervalId = setInterval(() => {
+      // Refresh user data and check if metadata has changed
+      user
+        .reload()
+        .then(() => {
+          console.log('Polling for metadata updates');
+          syncWithClerkMetadata();
+        })
+        .catch((error) => {
+          console.error('Error refreshing user data:', error);
+        });
+    }, 10000); // Check every 10 seconds - adjust as needed for your app
+
+    // Clean up interval on unmount
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [isLoaded, user, syncWithClerkMetadata]);
+
+  // Add support for step completion events beyond just server actions
+  const markStepComplete = useCallback((stepId: string) => {
+    // Update local state immediately
+    setSetupSteps((prevSteps) =>
+      prevSteps.map((step) => (step.id === stepId ? { ...step, completed: true } : step)),
+    );
+
+    // Show immediate feedback to the user
+    toast.success(`${stepId.charAt(0).toUpperCase() + stepId.slice(1)} step completed!`);
+
+    // No need to call the server immediately - metadata sync will handle it
+    // This creates a smoother, more responsive UX
+  }, []);
+
+  // Enhance the handleGoogleAccountConnected to use the new markStepComplete
+  const handleGoogleAccountConnected = useCallback(
+    (event: Event) => {
       if (!isLoaded || !user) return;
 
       // Access the detailed event data if available
       const detail = (event as CustomEvent)?.detail;
       console.log('Google account connected event received:', detail);
 
-      // Update the Google account step immediately in the UI
-      setSetupSteps((prev) =>
-        prev.map((step) => (step.id === 'google_account' ? { ...step, completed: true } : step)),
-      );
+      // Use the reusable function to mark as complete
+      markStepComplete('google_account');
+    },
+    [isLoaded, user, markStepComplete],
+  );
 
-      // Then refresh all steps from the server
-      loadCompletionStatus();
+  // Subscribe to events with the enhanced handler
+  useEffect(() => {
+    // Define function for handling custom events
+    const handleStatusUpdate = () => {
+      if (isLoaded) {
+        loadCompletionStatus();
+      }
     };
 
     // Listen for custom events that signal a task update
@@ -168,7 +241,7 @@ export function ExpertSetupChecklist() {
       window.removeEventListener('expert-setup-updated', handleStatusUpdate);
       window.removeEventListener('google-account-connected', handleGoogleAccountConnected);
     };
-  }, [isLoaded, loadCompletionStatus, user]);
+  }, [isLoaded, loadCompletionStatus, handleGoogleAccountConnected]);
 
   // Add direct verification of Google account connection
   const verifyGoogleAccountConnection = useCallback(async () => {
@@ -220,9 +293,7 @@ export function ExpertSetupChecklist() {
 
       // Update the step status immediately if verified
       if (data.verified === true) {
-        setSetupSteps((prev) =>
-          prev.map((step) => (step.id === 'identity' ? { ...step, completed: true } : step)),
-        );
+        markStepComplete('identity');
         return true;
       }
 
@@ -231,7 +302,7 @@ export function ExpertSetupChecklist() {
       console.error('Error checking identity verification status:', error);
       return false;
     }
-  }, [isLoaded, user]);
+  }, [isLoaded, user, markStepComplete]);
 
   // Enhanced refresh with debounce logic to prevent multiple calls
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
