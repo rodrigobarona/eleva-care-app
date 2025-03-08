@@ -56,44 +56,74 @@ export default function GoogleCallbackPage() {
 
           // Check if the Google account was connected
           if (user) {
-            const googleConnected = user.externalAccounts.some(
+            const googleAccount = user.externalAccounts.find(
               (account) => account.provider === 'google',
             );
 
-            if (googleConnected) {
+            if (googleAccount) {
               setStatus('Successfully connected your Google account!');
               setProgress(80);
 
-              // Check if user is an expert (from session storage)
-              const isExpertFromStorage = sessionStorage.getItem('is_expert_oauth_flow');
-
-              if (isExpertFromStorage === 'true') {
+              // Ensure the Google account email is added to the user's email addresses if not already there
+              if (
+                googleAccount.emailAddress &&
+                !user.emailAddresses.some(
+                  (email) => email.emailAddress === googleAccount.emailAddress,
+                )
+              ) {
                 try {
-                  setStatus('Updating expert setup status...');
+                  setStatus('Adding Google email to your profile...');
+                  // Add the email to the user's account
+                  await user.createEmailAddress({
+                    email: googleAccount.emailAddress,
+                  });
+                  setStatus('Google email added to your profile!');
+                } catch (emailError) {
+                  console.error('Error adding Google email to profile:', emailError);
+                  setDebugInfo(
+                    `Failed to add Google email: ${emailError instanceof Error ? emailError.message : 'Unknown error'}`,
+                  );
+                }
+              }
 
-                  // Update expert setup status
-                  await checkExpertSetupStatus();
+              try {
+                // Always update the expert setup status regardless of expert role
+                // This ensures the Google account connection is properly reflected
+                await checkExpertSetupStatus();
 
-                  // Dispatch event to refresh checklist
+                // Create and dispatch a custom event with detailed data
+                if (typeof window !== 'undefined') {
+                  // Standard event for basic refresh
                   window.dispatchEvent(new Event('expert-setup-updated'));
 
-                  setStatus('Google account connected and expert status updated!');
-                  setProgress(100);
-                  setDebugInfo('Expert setup status updated successfully');
-                } catch (setupError) {
-                  console.error('Error updating expert setup status:', setupError);
-                  setDebugInfo('Failed to update expert setup status.');
-                  // Continue with the flow even if expert status update fails
-                  setProgress(90);
+                  // Enhanced event with additional data if needed
+                  const detailedEvent = new CustomEvent('google-account-connected', {
+                    detail: {
+                      timestamp: new Date().toISOString(),
+                      accountEmail: googleAccount.emailAddress || 'unknown',
+                      isExpert: sessionStorage.getItem('is_expert_oauth_flow') === 'true',
+                    },
+                  });
+                  window.dispatchEvent(detailedEvent);
                 }
-              } else {
+
                 setProgress(100);
+                setDebugInfo('Google account connected and setup status updated');
+              } catch (setupError) {
+                console.error('Error updating expert setup status:', setupError);
+                setDebugInfo(
+                  `Failed to update expert setup status: ${setupError instanceof Error ? setupError.message : 'Unknown error'}`,
+                );
+                setProgress(90);
               }
+
+              // Clean up session storage
+              sessionStorage.removeItem('is_expert_oauth_flow');
 
               // Show success toast that will appear after redirect
               setTimeout(() => {
                 toast.success('Google account connected successfully');
-              }, 2000);
+              }, 1000);
             } else {
               setStatus('Verification completed, but Google account not yet visible.');
               setDebugInfo('The account connection may take a moment to appear.');
@@ -101,12 +131,13 @@ export default function GoogleCallbackPage() {
             }
           }
 
-          // Clean up session storage
-          sessionStorage.removeItem('is_expert_oauth_flow');
+          // Get the return URL from session storage or default to security page
+          const returnUrl = sessionStorage.getItem('oauth_return_url') || '/account/security';
+          sessionStorage.removeItem('oauth_return_url'); // Clear after use
 
           // Redirect back after a short delay
           setTimeout(() => {
-            router.push('/account/security');
+            router.push(returnUrl);
           }, 2000);
         } else {
           throw new Error('No redirect callback handler available');
@@ -118,15 +149,17 @@ export default function GoogleCallbackPage() {
 
         // Clean up session storage
         sessionStorage.removeItem('is_expert_oauth_flow');
+        sessionStorage.removeItem('oauth_return_url');
 
         // Show error toast that will appear after redirect
         setTimeout(() => {
           toast.error('Failed to connect Google account');
-        }, 2000);
+        }, 1000);
 
-        // Still redirect back after a delay
+        // Still redirect back to security page after a delay
         setTimeout(() => {
-          router.push('/account/security');
+          const returnUrl = sessionStorage.getItem('oauth_return_url') || '/account/security';
+          router.push(returnUrl);
         }, 3000);
       }
     }
