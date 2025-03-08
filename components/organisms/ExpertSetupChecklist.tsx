@@ -63,7 +63,7 @@ export function ExpertSetupChecklist() {
     {
       id: 'identity',
       name: 'Verify your identity',
-      description: 'Complete Stripe identity verification process to verify your identity',
+      description: 'Complete identity verification for your account',
       href: '/account/identity',
       completed: false,
       priority: 5,
@@ -79,12 +79,16 @@ export function ExpertSetupChecklist() {
   ]);
 
   const lastPathname = useRef(pathname);
-
   // Track if toast has been shown in this component instance
   const toastShownInThisSession = useRef(false);
-
   // Add a ref to track which steps have already shown a toast in this session
   const toastShownForSteps = useRef<Record<string, boolean>>({});
+
+  // For refresh button state
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [pressTimer, setPressTimer] = useState<NodeJS.Timeout | null>(null);
+  const [pressCount, setPressCount] = useState(0);
 
   // Extract loadCompletionStatus to make it reusable
   const loadCompletionStatus = useCallback(async () => {
@@ -136,7 +140,59 @@ export function ExpertSetupChecklist() {
     }
   }, [isLoaded, loadCompletionStatus]);
 
-  // Modify the syncWithClerkMetadata function to handle toasts properly
+  // Subscribe to events that might update the checklist status
+  useEffect(() => {
+    // Define function for handling custom events
+    const handleStatusUpdate = () => {
+      if (isLoaded) {
+        loadCompletionStatus();
+      }
+    };
+
+    // Listen for custom events that signal a task update
+    window.addEventListener('expert-setup-updated', handleStatusUpdate);
+
+    // Clean up the event listener when component unmounts
+    return () => {
+      window.removeEventListener('expert-setup-updated', handleStatusUpdate);
+    };
+  }, [isLoaded, loadCompletionStatus]);
+
+  // Add a function to check if all steps are complete based on Clerk metadata
+  const checkAllStepsCompleteFromMetadata = useCallback(() => {
+    if (!isLoaded || !user) return false;
+
+    // Get the expert setup metadata
+    const expertSetupMetadata = user.unsafeMetadata?.expertSetup as
+      | Record<string, boolean>
+      | undefined;
+
+    // If no metadata exists, steps are not complete
+    if (!expertSetupMetadata) return false;
+
+    // Define the required steps
+    const requiredSteps = [
+      'profile',
+      'availability',
+      'events',
+      'identity',
+      'payment',
+      'google_account',
+    ];
+
+    // Check if all required steps exist and are true
+    const allComplete = requiredSteps.every((step) => expertSetupMetadata[step] === true);
+
+    console.log('Checking completion from metadata:', {
+      expertSetupMetadata,
+      requiredSteps,
+      allComplete,
+    });
+
+    return allComplete;
+  }, [isLoaded, user]);
+
+  // Enhanced sync with metadata to detect completion
   const syncWithClerkMetadata = useCallback(() => {
     if (!isLoaded || !user) return;
 
@@ -147,7 +203,6 @@ export function ExpertSetupChecklist() {
     const newlyCompletedSteps: string[] = [];
 
     // Update setupSteps based on metadata, but only mark as complete
-    // This ensures we don't accidentally revert completed steps
     setSetupSteps((prevSteps) =>
       prevSteps.map((step) => {
         const isCompleteInMetadata = !!expertSetupMetadata[step.id];
@@ -163,7 +218,6 @@ export function ExpertSetupChecklist() {
     );
 
     // Show toast for newly completed steps, but only once per session
-    // Using for...of loop instead of forEach to satisfy linter
     for (const stepId of newlyCompletedSteps) {
       if (!toastShownForSteps.current[stepId]) {
         const stepName = setupSteps.find((s) => s.id === stepId)?.name || stepId;
@@ -178,6 +232,13 @@ export function ExpertSetupChecklist() {
       }
     }
 
+    // Check if all steps are complete based on metadata directly
+    const allCompleteFromMetadata = checkAllStepsCompleteFromMetadata();
+    if (allCompleteFromMetadata) {
+      // Force an update of the completedSteps count to trigger the completion logic
+      setSetupSteps((currentSteps) => [...currentSteps]);
+    }
+
     // Calculate new progress after update
     const completedCount = Object.values(expertSetupMetadata).filter(Boolean).length;
     const totalCount = setupSteps.length;
@@ -188,10 +249,11 @@ export function ExpertSetupChecklist() {
       expertSetupMetadata,
       newProgressPercentage,
       newlyCompletedSteps,
+      allCompleteFromMetadata,
     });
-  }, [isLoaded, user, setupSteps]);
+  }, [isLoaded, user, setupSteps, checkAllStepsCompleteFromMetadata]);
 
-  // Modify the checkIdentityVerification function to prevent toast loops
+  // Check identity verification status directly from API
   const checkIdentityVerification = useCallback(async () => {
     if (!isLoaded || !user) return false;
 
@@ -206,7 +268,6 @@ export function ExpertSetupChecklist() {
       const data = await response.json();
 
       // Update the step status immediately if verified, but don't show toast here
-      // (Toast will be shown by syncWithClerkMetadata to prevent duplicates)
       if (data.verified === true) {
         // Just update the state, don't show toast
         setSetupSteps((prev) =>
@@ -222,106 +283,7 @@ export function ExpertSetupChecklist() {
     }
   }, [isLoaded, user]);
 
-  // Modify the polling mechanism to be more efficient
-  useEffect(() => {
-    if (!isLoaded || !user) return;
-
-    // Initial sync when user loads
-    syncWithClerkMetadata();
-
-    // Set up interval to check for metadata changes
-    // Use a reasonable interval to avoid excessive polling
-    const intervalId = setInterval(() => {
-      // Skip polling if component is not visible to the user
-      if (document.hidden) return;
-
-      // Only reload and sync if needed
-      user
-        .reload()
-        .then(() => {
-          syncWithClerkMetadata();
-        })
-        .catch((error) => {
-          console.error('Error refreshing user data:', error);
-        });
-    }, 15000); // Check every 15 seconds - longer interval to reduce unnecessary checks
-
-    // Clean up interval on unmount
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [isLoaded, user, syncWithClerkMetadata]);
-
-  // Add support for step completion events beyond just server actions
-  const markStepComplete = useCallback(
-    (stepId: string) => {
-      // First check if the step is already completed
-      const step = setupSteps.find((s) => s.id === stepId);
-      if (step?.completed) {
-        console.log(`Step ${stepId} is already marked as complete, skipping`);
-        return;
-      }
-
-      // Update local state immediately
-      setSetupSteps((prevSteps) =>
-        prevSteps.map((step) => (step.id === stepId ? { ...step, completed: true } : step)),
-      );
-
-      // Show immediate feedback to the user, but only if we haven't shown a toast for this step yet
-      if (!toastShownForSteps.current[stepId]) {
-        const stepName = setupSteps.find((s) => s.id === stepId)?.name || stepId;
-
-        toast.success(`${stepName} completed!`, {
-          id: `step-complete-${stepId}`, // Use ID to prevent duplicates
-          duration: 3000,
-        });
-
-        // Mark this step as having shown a toast in this session
-        toastShownForSteps.current[stepId] = true;
-      }
-
-      // No need to call the server immediately - metadata sync will handle it
-      // This creates a smoother, more responsive UX
-    },
-    [setupSteps],
-  );
-
-  // Enhance the handleGoogleAccountConnected to use the new markStepComplete
-  const handleGoogleAccountConnected = useCallback(
-    (event: Event) => {
-      if (!isLoaded || !user) return;
-
-      // Access the detailed event data if available
-      const detail = (event as CustomEvent)?.detail;
-      console.log('Google account connected event received:', detail);
-
-      // Use the reusable function to mark as complete
-      markStepComplete('google_account');
-    },
-    [isLoaded, user, markStepComplete],
-  );
-
-  // Subscribe to events with the enhanced handler
-  useEffect(() => {
-    // Define function for handling custom events
-    const handleStatusUpdate = () => {
-      if (isLoaded) {
-        loadCompletionStatus();
-      }
-    };
-
-    // Listen for custom events that signal a task update
-    window.addEventListener('expert-setup-updated', handleStatusUpdate);
-    window.addEventListener('google-account-connected', handleGoogleAccountConnected);
-
-    // Clean up the event listener when component unmounts
-    return () => {
-      window.removeEventListener('expert-setup-updated', handleStatusUpdate);
-      window.removeEventListener('google-account-connected', handleGoogleAccountConnected);
-    };
-  }, [isLoaded, loadCompletionStatus, handleGoogleAccountConnected]);
-
-  // Add direct verification of Google account connection
+  // Check Google account connection directly
   const verifyGoogleAccountConnection = useCallback(async () => {
     if (!isLoaded || !user) return false;
 
@@ -354,10 +316,85 @@ export function ExpertSetupChecklist() {
     }
   }, [isLoaded, user, setupSteps, loadCompletionStatus]);
 
-  // Enhanced refresh with debounce logic to prevent multiple calls
-  const [lastRefreshTime, setLastRefreshTime] = useState(0);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // Handle Google account connection event
+  const handleGoogleAccountConnected = useCallback(
+    (event: Event) => {
+      if (!isLoaded || !user) return;
 
+      // Access the detailed event data if available
+      const detail = (event as CustomEvent)?.detail;
+      console.log('Google account connected event received:', detail);
+
+      // Update setupSteps to mark Google account as connected
+      setSetupSteps((prev) =>
+        prev.map((step) => (step.id === 'google_account' ? { ...step, completed: true } : step)),
+      );
+
+      // Reload all step status from server
+      loadCompletionStatus();
+    },
+    [isLoaded, user, loadCompletionStatus],
+  );
+
+  useEffect(() => {
+    // Listen for the Google account connected event
+    window.addEventListener('google-account-connected', handleGoogleAccountConnected);
+
+    // Clean up
+    return () => {
+      window.removeEventListener('google-account-connected', handleGoogleAccountConnected);
+    };
+  }, [handleGoogleAccountConnected]);
+
+  // Check both Google account and identity verification on initial load
+  useEffect(() => {
+    if (isLoaded && user) {
+      verifyGoogleAccountConnection();
+      checkIdentityVerification();
+    }
+  }, [isLoaded, user, verifyGoogleAccountConnection, checkIdentityVerification]);
+
+  // Function to perform silent checks without toasts
+  const silentChecks = useCallback(async () => {
+    // Disable toasts temporarily for these checks
+    const originalToasts = { ...toastShownForSteps.current };
+
+    try {
+      await verifyGoogleAccountConnection();
+      await checkIdentityVerification();
+
+      // If all steps appear complete in metadata, check for completion
+      if (user) {
+        const metadataComplete = checkAllStepsCompleteFromMetadata();
+        const setupMetadata = user.unsafeMetadata?.expertSetup as
+          | Record<string, boolean>
+          | undefined;
+        const completionShown = user.unsafeMetadata?.setup_completion_toast_shown;
+
+        if (
+          metadataComplete &&
+          setupMetadata &&
+          Object.values(setupMetadata).every((val) => val === true) &&
+          !completionShown
+        ) {
+          // All steps seem complete but toast not shown - log this situation
+          console.log(
+            'Detected all steps complete in metadata but setup_completion_toast_shown is false',
+          );
+        }
+      }
+    } finally {
+      // Restore toast state
+      toastShownForSteps.current = originalToasts;
+    }
+  }, [
+    user,
+    verifyGoogleAccountConnection,
+    checkIdentityVerification,
+    checkAllStepsCompleteFromMetadata,
+  ]);
+
+  // Enhanced refresh with better handling
   const handleRefreshClick = useCallback(() => {
     const now = Date.now();
     // Throttle refreshes to once every 2 seconds
@@ -378,21 +415,7 @@ export function ExpertSetupChecklist() {
     const toastId = 'checklist-refresh';
     toast.loading('Updating setup status...', { id: toastId });
 
-    // First perform client-side checks without toasts
-    const silentChecks = async () => {
-      // Disable toasts temporarily for these checks
-      const originalToasts = { ...toastShownForSteps.current };
-
-      try {
-        await verifyGoogleAccountConnection();
-        await checkIdentityVerification();
-      } finally {
-        // Restore toast state
-        toastShownForSteps.current = originalToasts;
-      }
-    };
-
-    // Then update from server and show meaningful toast
+    // First silently check, then load from server
     Promise.all([silentChecks(), loadCompletionStatus()])
       .then(() => {
         // After loading from server, sync with metadata
@@ -406,22 +429,89 @@ export function ExpertSetupChecklist() {
       .finally(() => {
         setIsRefreshing(false);
       });
-  }, [
-    lastRefreshTime,
-    isRefreshing,
-    verifyGoogleAccountConnection,
-    checkIdentityVerification,
-    loadCompletionStatus,
-    syncWithClerkMetadata,
-  ]);
+  }, [lastRefreshTime, isRefreshing, silentChecks, loadCompletionStatus, syncWithClerkMetadata]);
 
-  // Check both Google account and identity verification on initial load and after navigation
-  useEffect(() => {
-    if (isLoaded && user) {
-      verifyGoogleAccountConnection();
-      checkIdentityVerification();
+  // Long-press handling functionality
+  const handleRefreshMouseDown = useCallback(() => {
+    // Start a timer when the button is pressed
+    setPressCount((count) => count + 1);
+
+    // If pressed 5 times rapidly, trigger force check
+    if (pressCount >= 4) {
+      // Reset counter
+      setPressCount(0);
+      // Show toast
+      toast.info('Force refreshing setup status...');
+      // Refresh status
+      loadCompletionStatus();
+      return;
     }
-  }, [isLoaded, user, verifyGoogleAccountConnection, checkIdentityVerification]);
+
+    const timer = setTimeout(() => {
+      // If button is held for 1.5 seconds, show indicator
+      toast.info('Release to force refresh', {
+        id: 'long-press-indicator',
+        duration: 1000,
+      });
+
+      setPressTimer(null);
+    }, 1500);
+
+    setPressTimer(timer);
+  }, [pressCount, loadCompletionStatus]);
+
+  const handleRefreshMouseUp = useCallback(() => {
+    // Clear the timer when button is released
+    if (pressTimer) {
+      clearTimeout(pressTimer);
+      setPressTimer(null);
+    }
+  }, [pressTimer]);
+
+  // Function to directly fix the completion status
+  const forceFixCompletionStatus = async () => {
+    if (!isLoaded || !user) return;
+
+    try {
+      toast.loading('Fixing completion status...', { id: 'fix-completion' });
+
+      // Check server-side status
+      const result = await checkExpertSetupStatus();
+
+      if (result.success && result.setupStatus) {
+        const allComplete = Object.values(result.setupStatus).every(Boolean);
+
+        if (allComplete) {
+          // If all steps are complete, update the metadata
+          const timestamp = new Date().toISOString();
+
+          await user.update({
+            unsafeMetadata: {
+              ...user.unsafeMetadata,
+              setup_completion_toast_shown: true,
+              setup_completion_toast_shown_at: timestamp,
+              setup_completed_at: timestamp,
+            },
+          });
+
+          toast.success('Completion status fixed!', { id: 'fix-completion' });
+
+          // Reload after a delay
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        } else {
+          // Not all steps complete
+          toast.error('Not all steps are complete', { id: 'fix-completion' });
+        }
+      } else {
+        toast.error('Failed to check completion status', { id: 'fix-completion' });
+      }
+    } catch (error) {
+      console.error('Error fixing completion status:', error);
+      toast.error('Error fixing completion status', { id: 'fix-completion' });
+    }
+  };
 
   // Calculate progress percentage
   const completedSteps = setupSteps.filter((step) => step.completed).length;
@@ -433,13 +523,60 @@ export function ExpertSetupChecklist() {
     .filter((step) => !step.completed)
     .sort((a, b) => a.priority - b.priority)[0];
 
+  // Create the refresh button component
+  const RefreshButton = (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={handleRefreshClick}
+      onMouseDown={handleRefreshMouseDown}
+      onMouseUp={handleRefreshMouseUp}
+      onMouseLeave={handleRefreshMouseUp}
+      className="relative h-6 w-6"
+      title="Refresh setup status (multiple clicks to force refresh)"
+      disabled={isRefreshing}
+    >
+      <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
+      {pressCount > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-3 w-3 items-center justify-center rounded-full bg-primary text-[8px] text-primary-foreground">
+          {pressCount}
+        </span>
+      )}
+    </Button>
+  );
+
+  // Check if we should show the fix button
+  const showFixButton =
+    isLoaded &&
+    user &&
+    user.unsafeMetadata?.expertSetup &&
+    Object.values(user.unsafeMetadata.expertSetup as Record<string, boolean>).every(Boolean) &&
+    !user.unsafeMetadata?.setup_completion_toast_shown;
+
+  // Create the fix button component (typed correctly)
+  const FixCompletionButton = showFixButton ? (
+    <Button variant="outline" size="sm" onClick={forceFixCompletionStatus} className="ml-2 text-xs">
+      Fix Completion
+    </Button>
+  ) : null;
+
   // Show congratulations toast when all steps are completed (only once)
   useEffect(() => {
     // Wait until everything is fully loaded
     if (!isLoaded || !user || loading) return;
 
-    // Only proceed if all steps are completed
-    if (completedSteps === totalSteps) {
+    // Check for completion in two ways:
+    // 1. Based on local state
+    const localStateComplete = completedSteps === totalSteps;
+
+    // 2. Based directly on metadata (more reliable)
+    const metadataComplete = checkAllStepsCompleteFromMetadata();
+
+    // Only proceed if all steps are complete by either method
+    if (localStateComplete || metadataComplete) {
+      // Log completion detection
+      console.log('Detected completion:', { localStateComplete, metadataComplete });
+
       // Check if we've already shown the toast in THIS session
       if (toastShownInThisSession.current) return;
 
@@ -509,7 +646,16 @@ export function ExpertSetupChecklist() {
         console.error('Failed to reset user metadata:', error);
       }
     }
-  }, [completedSteps, totalSteps, loading, isProfilePublished, router, isLoaded, user]);
+  }, [
+    isProfilePublished,
+    router,
+    isLoaded,
+    user,
+    loading,
+    checkAllStepsCompleteFromMetadata,
+    completedSteps,
+    totalSteps,
+  ]);
 
   // Add a helper function to get a more detailed description for a step
   const getStepDetails = (stepId: string) => {
@@ -570,16 +716,8 @@ export function ExpertSetupChecklist() {
               {nextIncompleteStep.name}
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleRefreshClick}
-            className="h-6 w-6"
-            title="Refresh setup status"
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
-          </Button>
+          {RefreshButton}
+          {FixCompletionButton}
           <Button
             variant="ghost"
             size="icon"
