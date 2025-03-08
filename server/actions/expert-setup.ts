@@ -182,45 +182,19 @@ export async function checkExpertSetupStatus() {
       !!dbUser?.stripeConnectAccountId && !!dbUser?.stripeConnectOnboardingComplete;
 
     // Verify Google account connection - Check if user has connected a Google account
-    // Perform a thorough check of external accounts
-    const externalAccounts = user.externalAccounts || [];
+    // Logging for debugging
+    console.log('External accounts:', user.externalAccounts);
 
-    // Check for Google accounts in multiple ways
-    // 1. Direct check for provider and verification status
-    const hasGoogleAccount = externalAccounts.some(
+    const externalAccounts = user.externalAccounts || [];
+    setupStatus.google_account = externalAccounts.some(
       (account) =>
         account.provider === 'google' &&
         (account.verification?.status === 'verified' ||
           account.verification?.status === 'unverified'),
     );
 
-    // 2. Check for email addresses that match Gmail domain
-    const hasGmailEmail = user.emailAddresses?.some(
-      (email) =>
-        email.emailAddress.toLowerCase().endsWith('@gmail.com') &&
-        email.verification?.status === 'verified',
-    );
-
-    // 3. Check if Google Calendar integration is set up separately (if applicable)
-    // This could involve checking a database flag or other integration status
-
-    // Set the status based on all checks (any of them passing is sufficient)
-    setupStatus.google_account =
-      hasGoogleAccount ||
-      // Only count Gmail addresses if we have OAuth scopes that indicate it was properly connected
-      (hasGmailEmail && externalAccounts.some((a) => a.provider === 'google' && a.emailAddress));
-
-    // Add detailed log for debugging
-    console.log('Google account verification details:', {
-      externalAccounts: externalAccounts.map((a) => ({
-        provider: a.provider,
-        status: a.verification?.status,
-        email: a.emailAddress,
-      })),
-      hasGoogleAccount,
-      hasGmailEmail,
-      result: setupStatus.google_account,
-    });
+    // Logging the computed status
+    console.log('Computed setup status:', setupStatus);
 
     // Update metadata if database checks differ from stored metadata
     if (JSON.stringify(setupStatus) !== JSON.stringify(metadataSetup)) {

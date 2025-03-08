@@ -285,27 +285,6 @@ export default function SecurityPage() {
         // Use the destroy() method on the external account object to disconnect it
         await accountToDisconnect.destroy();
 
-        // Find and remove the email address if it was from Google
-        if (isGoogleAccount && accountEmail) {
-          try {
-            // Find the email address in the user's email addresses
-            const emailToRemove = user.emailAddresses.find(
-              (email) => email.emailAddress === accountEmail,
-            );
-
-            // Only remove if it's not the primary email address
-            if (emailToRemove && !emailToRemove?.id.includes('primary')) {
-              // Remove the email address
-              await emailToRemove.destroy();
-              console.log(`Removed email address: ${accountEmail}`);
-            } else if (emailToRemove && emailToRemove?.id.includes('primary')) {
-              console.log(`Email ${accountEmail} is primary and cannot be removed automatically`);
-            }
-          } catch (emailError) {
-            console.error('Error removing email address:', emailError);
-          }
-        }
-
         // If a Google account was disconnected and user is an expert, update the setup status
         if (isGoogleAccount) {
           const isExpert =
@@ -393,10 +372,7 @@ export default function SecurityPage() {
         sessionStorage.setItem('is_expert_oauth_flow', 'true');
       }
 
-      // IMPORTANT: Store the return URL to handle proper redirection
-      sessionStorage.setItem('oauth_return_url', '/account/security');
-
-      // Create a callback URL for the OAuth flow - must match what's configured in Clerk dashboard
+      // Create a callback URL for the OAuth flow
       const callbackUrl = `${window.location.origin}/account/security/callback`;
 
       // Show loading toast
@@ -406,8 +382,6 @@ export default function SecurityPage() {
       const externalAccount = await user.createExternalAccount({
         strategy: 'oauth_google' as const,
         redirectUrl: callbackUrl,
-        // Note: scopes and verification are configured in the Clerk Dashboard
-        // and don't need to be specified here in the code
       });
 
       if (externalAccount?.verification?.externalVerificationRedirectURL) {
@@ -417,8 +391,6 @@ export default function SecurityPage() {
         // Add prompt=select_account to force Google to show the account selector
         const redirectUrl = new URL(externalAccount.verification.externalVerificationRedirectURL);
         redirectUrl.searchParams.append('prompt', 'select_account');
-        // Add login_hint if we want to suggest a specific email
-        // redirectUrl.searchParams.append('login_hint', 'user@example.com');
 
         // Navigate to the OAuth URL
         window.location.href = redirectUrl.toString();

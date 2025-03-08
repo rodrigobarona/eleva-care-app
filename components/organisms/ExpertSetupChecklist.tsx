@@ -27,7 +27,6 @@ export function ExpertSetupChecklist() {
   const [isExpanded, setIsExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isProfilePublished, setIsProfilePublished] = useState(false);
-  const [lastRefreshTime, setLastRefreshTime] = useState<Date | null>(null);
   const [setupSteps, setSetupSteps] = useState<SetupStep[]>([
     {
       id: 'profile',
@@ -84,95 +83,37 @@ export function ExpertSetupChecklist() {
   // Track if toast has been shown in this component instance
   const toastShownInThisSession = useRef(false);
 
-  // Function to directly check if Google account is connected
-  const verifyGoogleAccountConnection = useCallback(() => {
-    if (!user) return false;
+  // Extract loadCompletionStatus to make it reusable
+  const loadCompletionStatus = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await checkExpertSetupStatus();
+      if (result.success && result.setupStatus) {
+        setSetupSteps((prev) =>
+          prev.map((step) => ({
+            ...step,
+            completed: result.setupStatus?.[step.id] || false,
+          })),
+        );
 
-    const hasGoogleAccount = user.externalAccounts?.some(
-      (account) =>
-        account.provider === 'google' &&
-        (account.verification?.status === 'verified' ||
-          account.verification?.status === 'unverified'),
-    );
+        // Track whether the profile is already published
+        if (result.isPublished !== undefined) {
+          setIsProfilePublished(result.isPublished);
+        }
 
-    return hasGoogleAccount;
-  }, [user]);
-
-  // Enhanced loadCompletionStatus function
-  const loadCompletionStatus = useCallback(
-    async (options?: { showToast?: boolean; force?: boolean }) => {
-      const showToast = options?.showToast ?? false;
-      const force = options?.force ?? false;
-
-      // Avoid frequent refreshes (no more than once every 3 seconds) unless forced
-      if (!force && lastRefreshTime && new Date().getTime() - lastRefreshTime.getTime() < 3000) {
-        return;
+        // If revalidation path was returned, refresh the UI
+        if ('revalidatePath' in result) {
+          router.refresh();
+        }
+      } else if (result.error) {
+        console.error('Error checking expert setup status:', result.error);
       }
-
-      setLoading(true);
-      try {
-        // First update Google account status based on user data
-        if (user) {
-          // Direct check for Google account
-          const isGoogleConnected = verifyGoogleAccountConnection();
-
-          if (isGoogleConnected) {
-            // Update the Google account step immediately while server action is in progress
-            setSetupSteps((prev) =>
-              prev.map((step) =>
-                step.id === 'google_account' ? { ...step, completed: true } : step,
-              ),
-            );
-          }
-        }
-
-        // Get full status from server (for all steps)
-        const result = await checkExpertSetupStatus();
-        setLastRefreshTime(new Date());
-
-        if (result.success && result.setupStatus) {
-          setSetupSteps((prev) =>
-            prev.map((step) => ({
-              ...step,
-              completed: result.setupStatus?.[step.id] || false,
-            })),
-          );
-
-          // Track whether the profile is already published
-          if (result.isPublished !== undefined) {
-            setIsProfilePublished(result.isPublished);
-          }
-
-          // If revalidation path was returned, refresh the UI
-          if ('revalidatePath' in result) {
-            router.refresh();
-          }
-
-          if (showToast) {
-            toast.success('Expert setup status refreshed');
-          }
-        } else if (result.error) {
-          console.error('Error checking expert setup status:', result.error);
-          if (showToast) {
-            toast.error('Failed to refresh setup status');
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load completion status:', error);
-        if (showToast) {
-          toast.error('Failed to load your setup progress');
-        }
-      } finally {
-        setLoading(false);
-      }
-    },
-    [router, user, verifyGoogleAccountConnection, lastRefreshTime],
-  );
-
-  // Modified refresh button click handler
-  const handleRefreshClick = () => {
-    loadCompletionStatus({ showToast: true, force: true });
-  };
+    } catch (error) {
+      console.error('Failed to load completion status:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [router]);
 
   // Handle navigation - refresh status when path changes
   useEffect(() => {
@@ -201,32 +142,12 @@ export function ExpertSetupChecklist() {
       }
     };
 
-    // Handle Google account connection event with details
-    const handleGoogleAccountConnected = (event: Event) => {
-      if (isLoaded) {
-        console.log(
-          'Google account connection event received:',
-          (event as CustomEvent)?.detail || 'No details available',
-        );
-
-        // Immediately mark the Google account step as complete for instant UI feedback
-        setSetupSteps((prev) =>
-          prev.map((step) => (step.id === 'google_account' ? { ...step, completed: true } : step)),
-        );
-
-        // Then refresh all steps from the server for complete validation
-        loadCompletionStatus({ force: true });
-      }
-    };
-
     // Listen for custom events that signal a task update
     window.addEventListener('expert-setup-updated', handleStatusUpdate);
-    window.addEventListener('google-account-connected', handleGoogleAccountConnected);
 
     // Clean up the event listener when component unmounts
     return () => {
       window.removeEventListener('expert-setup-updated', handleStatusUpdate);
-      window.removeEventListener('google-account-connected', handleGoogleAccountConnected);
     };
   }, [isLoaded, loadCompletionStatus]);
 
@@ -336,12 +257,11 @@ export function ExpertSetupChecklist() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={handleRefreshClick}
+            onClick={() => loadCompletionStatus()}
             className="h-6 w-6"
             title="Refresh setup status"
-            disabled={loading}
           >
-            <RefreshCw className={cn('h-3.5 w-3.5', loading && 'animate-spin')} />
+            <RefreshCw className="h-3.5 w-3.5" />
           </Button>
           <Button
             variant="ghost"
