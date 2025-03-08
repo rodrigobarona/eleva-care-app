@@ -83,6 +83,9 @@ export function ExpertSetupChecklist() {
   // Track if toast has been shown in this component instance
   const toastShownInThisSession = useRef(false);
 
+  // Add a ref to track which steps have already shown a toast in this session
+  const toastShownForSteps = useRef<Record<string, boolean>>({});
+
   // Extract loadCompletionStatus to make it reusable
   const loadCompletionStatus = useCallback(async () => {
     setLoading(true);
@@ -133,26 +136,47 @@ export function ExpertSetupChecklist() {
     }
   }, [isLoaded, loadCompletionStatus]);
 
-  // Add a function to monitor and sync with Clerk metadata
+  // Modify the syncWithClerkMetadata function to handle toasts properly
   const syncWithClerkMetadata = useCallback(() => {
     if (!isLoaded || !user) return;
 
     // Extract expert setup status from user metadata
     const expertSetupMetadata = (user.unsafeMetadata?.expertSetup as Record<string, boolean>) || {};
 
+    // Keep track of any newly completed steps
+    const newlyCompletedSteps: string[] = [];
+
     // Update setupSteps based on metadata, but only mark as complete
     // This ensures we don't accidentally revert completed steps
     setSetupSteps((prevSteps) =>
       prevSteps.map((step) => {
         const isCompleteInMetadata = !!expertSetupMetadata[step.id];
+
         // Only update to true, never revert to false (which needs server validation)
         if (isCompleteInMetadata && !step.completed) {
           console.log(`Step ${step.id} marked as complete based on metadata update`);
+          newlyCompletedSteps.push(step.id);
           return { ...step, completed: true };
         }
         return step;
       }),
     );
+
+    // Show toast for newly completed steps, but only once per session
+    // Using for...of loop instead of forEach to satisfy linter
+    for (const stepId of newlyCompletedSteps) {
+      if (!toastShownForSteps.current[stepId]) {
+        const stepName = setupSteps.find((s) => s.id === stepId)?.name || stepId;
+
+        toast.success(`${stepName} completed!`, {
+          id: `step-complete-${stepId}`, // Use ID to prevent duplicates
+          duration: 3000,
+        });
+
+        // Mark this step as having shown a toast in this session
+        toastShownForSteps.current[stepId] = true;
+      }
+    }
 
     // Calculate new progress after update
     const completedCount = Object.values(expertSetupMetadata).filter(Boolean).length;
@@ -163,10 +187,42 @@ export function ExpertSetupChecklist() {
     console.log('Synced with Clerk metadata:', {
       expertSetupMetadata,
       newProgressPercentage,
+      newlyCompletedSteps,
     });
   }, [isLoaded, user, setupSteps]);
 
-  // Listen for Clerk user changes, including metadata updates
+  // Modify the checkIdentityVerification function to prevent toast loops
+  const checkIdentityVerification = useCallback(async () => {
+    if (!isLoaded || !user) return false;
+
+    try {
+      // Call a server action to check identity verification status
+      const response = await fetch('/api/expert/identity-status');
+
+      if (!response.ok) {
+        throw new Error('Failed to check identity verification status');
+      }
+
+      const data = await response.json();
+
+      // Update the step status immediately if verified, but don't show toast here
+      // (Toast will be shown by syncWithClerkMetadata to prevent duplicates)
+      if (data.verified === true) {
+        // Just update the state, don't show toast
+        setSetupSteps((prev) =>
+          prev.map((step) => (step.id === 'identity' ? { ...step, completed: true } : step)),
+        );
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error checking identity verification status:', error);
+      return false;
+    }
+  }, [isLoaded, user]);
+
+  // Modify the polling mechanism to be more efficient
   useEffect(() => {
     if (!isLoaded || !user) return;
 
@@ -174,19 +230,21 @@ export function ExpertSetupChecklist() {
     syncWithClerkMetadata();
 
     // Set up interval to check for metadata changes
-    // This is a workaround since we don't have direct listen() support
+    // Use a reasonable interval to avoid excessive polling
     const intervalId = setInterval(() => {
-      // Refresh user data and check if metadata has changed
+      // Skip polling if component is not visible to the user
+      if (document.hidden) return;
+
+      // Only reload and sync if needed
       user
         .reload()
         .then(() => {
-          console.log('Polling for metadata updates');
           syncWithClerkMetadata();
         })
         .catch((error) => {
           console.error('Error refreshing user data:', error);
         });
-    }, 10000); // Check every 10 seconds - adjust as needed for your app
+    }, 15000); // Check every 15 seconds - longer interval to reduce unnecessary checks
 
     // Clean up interval on unmount
     return () => {
@@ -195,18 +253,38 @@ export function ExpertSetupChecklist() {
   }, [isLoaded, user, syncWithClerkMetadata]);
 
   // Add support for step completion events beyond just server actions
-  const markStepComplete = useCallback((stepId: string) => {
-    // Update local state immediately
-    setSetupSteps((prevSteps) =>
-      prevSteps.map((step) => (step.id === stepId ? { ...step, completed: true } : step)),
-    );
+  const markStepComplete = useCallback(
+    (stepId: string) => {
+      // First check if the step is already completed
+      const step = setupSteps.find((s) => s.id === stepId);
+      if (step?.completed) {
+        console.log(`Step ${stepId} is already marked as complete, skipping`);
+        return;
+      }
 
-    // Show immediate feedback to the user
-    toast.success(`${stepId.charAt(0).toUpperCase() + stepId.slice(1)} step completed!`);
+      // Update local state immediately
+      setSetupSteps((prevSteps) =>
+        prevSteps.map((step) => (step.id === stepId ? { ...step, completed: true } : step)),
+      );
 
-    // No need to call the server immediately - metadata sync will handle it
-    // This creates a smoother, more responsive UX
-  }, []);
+      // Show immediate feedback to the user, but only if we haven't shown a toast for this step yet
+      if (!toastShownForSteps.current[stepId]) {
+        const stepName = setupSteps.find((s) => s.id === stepId)?.name || stepId;
+
+        toast.success(`${stepName} completed!`, {
+          id: `step-complete-${stepId}`, // Use ID to prevent duplicates
+          duration: 3000,
+        });
+
+        // Mark this step as having shown a toast in this session
+        toastShownForSteps.current[stepId] = true;
+      }
+
+      // No need to call the server immediately - metadata sync will handle it
+      // This creates a smoother, more responsive UX
+    },
+    [setupSteps],
+  );
 
   // Enhance the handleGoogleAccountConnected to use the new markStepComplete
   const handleGoogleAccountConnected = useCallback(
@@ -276,36 +354,10 @@ export function ExpertSetupChecklist() {
     }
   }, [isLoaded, user, setupSteps, loadCompletionStatus]);
 
-  // Add a function to directly check identity verification status
-  const checkIdentityVerification = useCallback(async () => {
-    if (!isLoaded || !user) return false;
-
-    try {
-      // Call a server action to check identity verification status
-      // This endpoint should check against Stripe verification
-      const response = await fetch('/api/expert/identity-status');
-
-      if (!response.ok) {
-        throw new Error('Failed to check identity verification status');
-      }
-
-      const data = await response.json();
-
-      // Update the step status immediately if verified
-      if (data.verified === true) {
-        markStepComplete('identity');
-        return true;
-      }
-
-      return false;
-    } catch (error) {
-      console.error('Error checking identity verification status:', error);
-      return false;
-    }
-  }, [isLoaded, user, markStepComplete]);
-
   // Enhanced refresh with debounce logic to prevent multiple calls
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
   const handleRefreshClick = useCallback(() => {
     const now = Date.now();
     // Throttle refreshes to once every 2 seconds
@@ -314,25 +366,53 @@ export function ExpertSetupChecklist() {
       return;
     }
 
+    // Prevent multiple refresh operations
+    if (isRefreshing) {
+      return;
+    }
+
     setLastRefreshTime(now);
-    setLoading(true);
-    toast.promise(
-      Promise.all([
-        verifyGoogleAccountConnection(),
-        checkIdentityVerification(),
-        loadCompletionStatus(),
-      ]),
-      {
-        loading: 'Checking setup status...',
-        success: 'Setup status updated',
-        error: 'Failed to check status',
-      },
-    );
+    setIsRefreshing(true);
+
+    // Show loading indicator
+    const toastId = 'checklist-refresh';
+    toast.loading('Updating setup status...', { id: toastId });
+
+    // First perform client-side checks without toasts
+    const silentChecks = async () => {
+      // Disable toasts temporarily for these checks
+      const originalToasts = { ...toastShownForSteps.current };
+
+      try {
+        await verifyGoogleAccountConnection();
+        await checkIdentityVerification();
+      } finally {
+        // Restore toast state
+        toastShownForSteps.current = originalToasts;
+      }
+    };
+
+    // Then update from server and show meaningful toast
+    Promise.all([silentChecks(), loadCompletionStatus()])
+      .then(() => {
+        // After loading from server, sync with metadata
+        syncWithClerkMetadata();
+        toast.success('Setup status updated', { id: toastId });
+      })
+      .catch((error) => {
+        console.error('Error refreshing setup status:', error);
+        toast.error('Failed to update status', { id: toastId });
+      })
+      .finally(() => {
+        setIsRefreshing(false);
+      });
   }, [
     lastRefreshTime,
+    isRefreshing,
     verifyGoogleAccountConnection,
     checkIdentityVerification,
     loadCompletionStatus,
+    syncWithClerkMetadata,
   ]);
 
   // Check both Google account and identity verification on initial load and after navigation
@@ -477,8 +557,9 @@ export function ExpertSetupChecklist() {
             onClick={handleRefreshClick}
             className="h-6 w-6"
             title="Refresh setup status"
+            disabled={isRefreshing}
           >
-            <RefreshCw className="h-3.5 w-3.5" />
+            <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
           </Button>
           <Button
             variant="ghost"
