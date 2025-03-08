@@ -257,151 +257,103 @@ export default function SecurityPage() {
   const handleDisconnectAccount = async (accountId: string) => {
     if (!user || !isUserLoaded) return;
 
-    // Get the account details before starting the disconnection
-    const accountToDisconnect = user.externalAccounts.find((account) => account.id === accountId);
+    try {
+      setIsDisconnectingAccount(true);
+      // Check if we're disconnecting a Google account
+      const accountToDisconnect = user.externalAccounts.find((account) => account.id === accountId);
 
-    if (!accountToDisconnect) {
-      toast.error('Account not found');
-      return;
-    }
+      if (!accountToDisconnect) {
+        throw new Error('Account not found');
+      }
 
-    // Get account info for user feedback
-    const accountProvider = accountToDisconnect.provider;
-    const accountEmail = accountToDisconnect.emailAddress;
-    const isGoogleAccount = accountProvider === 'google';
+      const isGoogleAccount = accountToDisconnect.provider === 'google';
 
-    // Confirm before disconnecting
-    if (
-      confirm(
-        `Are you sure you want to disconnect this ${accountProvider} account (${accountEmail || 'Unknown email'})? This action cannot be undone.`,
-      )
-    ) {
-      try {
-        setIsDisconnectingAccount(true);
+      // Remove the account from Clerk
+      await accountToDisconnect.destroy();
 
-        // Show loading toast
-        toast.loading('Disconnecting account...', { id: 'disconnect-account' });
+      // If a Google account was disconnected and user is an expert, update the setup status
+      if (isGoogleAccount) {
+        const isExpert =
+          user.publicMetadata?.role &&
+          (Array.isArray(user.publicMetadata.role)
+            ? user.publicMetadata.role.some((role) =>
+                ['community_expert', 'top_expert'].includes(String(role)),
+              )
+            : ['community_expert', 'top_expert'].includes(String(user.publicMetadata.role)));
 
-        // Use the destroy() method on the external account object to disconnect it
-        await accountToDisconnect.destroy();
+        if (isExpert) {
+          try {
+            // Import dynamically to avoid circular dependencies
+            const { checkExpertSetupStatus } = await import('@/server/actions/expert-setup');
 
-        // If a Google account was disconnected and user is an expert, update the setup status
-        if (isGoogleAccount) {
-          const isExpert =
-            user.publicMetadata?.role &&
-            (Array.isArray(user.publicMetadata.role)
-              ? user.publicMetadata.role.some((role) =>
-                  ['community_expert', 'top_expert'].includes(String(role)),
-                )
-              : ['community_expert', 'top_expert'].includes(String(user.publicMetadata.role)));
+            // Refresh expert setup status
+            await checkExpertSetupStatus();
 
-          if (isExpert) {
-            try {
-              // Import dynamically to avoid circular dependencies
-              const { checkExpertSetupStatus } = await import('@/server/actions/expert-setup');
-
-              // Refresh expert setup status
-              await checkExpertSetupStatus();
-
-              // Dispatch a custom event to trigger checklist refresh
+            // Dispatch a custom event to trigger checklist refresh
+            if (typeof window !== 'undefined') {
               window.dispatchEvent(new Event('expert-setup-updated'));
-            } catch (error) {
-              console.error('Failed to update expert setup status:', error);
             }
+          } catch (error) {
+            console.error('Failed to update expert setup status:', error);
           }
         }
-
-        toast.success('Account disconnected successfully', { id: 'disconnect-account' });
-
-        // Refresh the UI
-        await loadSessions();
-      } catch (error) {
-        console.error('Error disconnecting account:', error);
-        toast.error(
-          `Failed to disconnect account: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          { id: 'disconnect-account' },
-        );
-      } finally {
-        setIsDisconnectingAccount(false);
       }
+
+      toast.success('Account disconnected successfully');
+
+      // Refresh the UI
+      await loadSessions();
+    } catch (error) {
+      console.error('Error disconnecting account:', error);
+      toast.error(
+        `Failed to disconnect account: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      );
+    } finally {
+      setIsDisconnectingAccount(false);
     }
   };
 
   const handleConnectAccount = async () => {
+    if (!window.Clerk) {
+      toast.error('Clerk not initialized');
+      return;
+    }
+
     try {
       setIsConnectingAccount(true);
 
-      if (!user) {
-        throw new Error('User not found');
-      }
+      // Create a full callback URL that includes return path
+      const baseUrl = window.location.origin;
+      const redirectUrl = `${baseUrl}/account/security/callback`;
 
-      // Check if user already has a Google account connected
-      const existingGoogleAccounts = user.externalAccounts.filter(
-        (account) => account.provider === 'google',
-      );
-
-      if (existingGoogleAccounts.length > 0) {
-        // Let the user know they already have a Google account and ask if they want to add another
-        toast.info(
-          'You already have a Google account connected. You can continue to add another account or cancel.',
-          {
-            duration: 5000,
-            action: {
-              label: 'Cancel',
-              onClick: () => {
-                setIsConnectingAccount(false);
-                return;
-              },
-            },
-          },
-        );
-        // Continue after a short delay if they don't cancel
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-      }
-
-      // Store if user is an expert in session storage to use in callback
+      // Get user role to sync with ExpertSetupChecklist upon return
       const isExpert =
-        user.publicMetadata?.role &&
+        user?.publicMetadata?.role &&
         (Array.isArray(user.publicMetadata.role)
           ? user.publicMetadata.role.some((role) =>
               ['community_expert', 'top_expert'].includes(String(role)),
             )
           : ['community_expert', 'top_expert'].includes(String(user.publicMetadata.role)));
 
+      // Store the user is an expert in session storage to use in callback
       if (isExpert) {
         sessionStorage.setItem('is_expert_oauth_flow', 'true');
       }
 
-      // Create a callback URL for the OAuth flow
-      const callbackUrl = `${window.location.origin}/account/security/callback`;
+      // First build a URL with the correct prompt params
+      const signInUrl = new URL(`${baseUrl}/sign-in`);
+      signInUrl.searchParams.append('redirect_url', '/account/security');
+      signInUrl.searchParams.append('prompt', 'select_account');
 
-      // Show loading toast
-      toast.loading('Connecting to Google...', { id: 'google-connect' });
-
-      // Use the standard createExternalAccount method to start the OAuth flow
-      const externalAccount = await user.createExternalAccount({
-        strategy: 'oauth_google' as const,
-        redirectUrl: callbackUrl,
+      // Now authenticate with redirect using only the supported parameters
+      await window.Clerk.client.authenticateWithRedirect({
+        strategy: 'oauth_google',
+        redirectUrl,
       });
-
-      if (externalAccount?.verification?.externalVerificationRedirectURL) {
-        // Dismiss loading toast
-        toast.dismiss('google-connect');
-
-        // Add prompt=select_account to force Google to show the account selector
-        const redirectUrl = new URL(externalAccount.verification.externalVerificationRedirectURL);
-        redirectUrl.searchParams.append('prompt', 'select_account');
-
-        // Navigate to the OAuth URL
-        window.location.href = redirectUrl.toString();
-      } else {
-        throw new Error('No verification URL provided');
-      }
     } catch (error) {
       console.error('Error connecting account:', error);
       toast.error(
         `Failed to connect account: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { id: 'google-connect' },
       );
       setIsConnectingAccount(false);
     }
