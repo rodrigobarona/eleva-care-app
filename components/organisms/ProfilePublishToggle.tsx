@@ -89,11 +89,14 @@ export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishT
   const handleToggle = async () => {
     setIsLoading(true);
     try {
+      // If we're unpublishing, we can proceed directly with less validation
       const result = await toggleProfilePublication();
 
       if (result.success) {
         setIsPublished(result.isPublished);
         toast.success(result.message);
+        // Close the dialog on success
+        setShowConfirmDialog(false);
       } else {
         // If the toggle failed due to incomplete steps, show which steps are missing
         if (result.incompleteSteps) {
@@ -102,11 +105,15 @@ export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishT
           setShowConfirmDialog(true);
         } else {
           toast.error(result.message);
+          // Close the dialog on error
+          setShowConfirmDialog(false);
         }
       }
     } catch (error) {
       console.error('Error toggling profile publication:', error);
       toast.error('Failed to update publication status');
+      // Close the dialog on error
+      setShowConfirmDialog(false);
     } finally {
       setIsLoading(false);
     }

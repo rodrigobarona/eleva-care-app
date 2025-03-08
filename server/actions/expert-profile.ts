@@ -36,8 +36,11 @@ export async function toggleProfilePublication() {
       return { success: false, message: 'Profile not found', isPublished: false };
     }
 
-    // If trying to publish (currently unpublished), check if all steps are complete
-    if (!profile.published) {
+    // Calculate the target publication status
+    const targetPublishedStatus = !profile.published;
+    
+    // If trying to publish (not unpublish), check if all steps are complete
+    if (targetPublishedStatus === true) {
       // Check if all expert setup steps are complete
       const setupStatus = await checkExpertSetupStatus();
 
@@ -59,13 +62,12 @@ export async function toggleProfilePublication() {
         };
       }
     }
+    // If unpublishing, we don't need to check for completion status - allow it regardless
 
-    // Toggle published status
-    const newPublishedStatus = !profile.published;
-
+    // Update the published status
     await db
       .update(ProfileTable)
-      .set({ published: newPublishedStatus })
+      .set({ published: targetPublishedStatus })
       .where(eq(ProfileTable.clerkUserId, userId));
 
     // Revalidate paths where profile data might be displayed
@@ -77,8 +79,8 @@ export async function toggleProfilePublication() {
 
     return {
       success: true,
-      message: newPublishedStatus ? 'Profile published successfully' : 'Profile unpublished',
-      isPublished: newPublishedStatus,
+      message: targetPublishedStatus ? 'Profile published successfully' : 'Profile unpublished',
+      isPublished: targetPublishedStatus,
     };
   } catch (error) {
     console.error('Error toggling profile publication:', error);
