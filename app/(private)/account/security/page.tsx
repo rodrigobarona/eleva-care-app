@@ -255,54 +255,25 @@ export default function SecurityPage() {
   };
 
   const handleDisconnectAccount = async (accountId: string) => {
-    if (!user || !isUserLoaded) return;
-
     try {
       setIsDisconnectingAccount(true);
-      // Check if we're disconnecting a Google account
-      const accountToDisconnect = user.externalAccounts.find((account) => account.id === accountId);
+
+      // Find the account to disconnect
+      const accountToDisconnect = user?.externalAccounts.find(
+        (account) => account.id === accountId,
+      );
 
       if (!accountToDisconnect) {
         throw new Error('Account not found');
       }
 
-      const isGoogleAccount = accountToDisconnect.provider === 'google';
-
-      // Remove the account from Clerk
+      // Use the destroy() method on the external account object to disconnect it
       await accountToDisconnect.destroy();
 
-      // If a Google account was disconnected and user is an expert, update the setup status
-      if (isGoogleAccount) {
-        const isExpert =
-          user.publicMetadata?.role &&
-          (Array.isArray(user.publicMetadata.role)
-            ? user.publicMetadata.role.some((role) =>
-                ['community_expert', 'top_expert'].includes(String(role)),
-              )
-            : ['community_expert', 'top_expert'].includes(String(user.publicMetadata.role)));
-
-        if (isExpert) {
-          try {
-            // Import dynamically to avoid circular dependencies
-            const { checkExpertSetupStatus } = await import('@/server/actions/expert-setup');
-
-            // Refresh expert setup status
-            await checkExpertSetupStatus();
-
-            // Dispatch a custom event to trigger checklist refresh
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new Event('expert-setup-updated'));
-            }
-          } catch (error) {
-            console.error('Failed to update expert setup status:', error);
-          }
-        }
-      }
+      // Reload user data to reflect changes
+      await user?.reload();
 
       toast.success('Account disconnected successfully');
-
-      // Refresh the UI
-      await loadSessions();
     } catch (error) {
       console.error('Error disconnecting account:', error);
       toast.error(
@@ -314,42 +285,33 @@ export default function SecurityPage() {
   };
 
   const handleConnectAccount = async () => {
-    if (!window.Clerk) {
-      toast.error('Clerk not initialized');
-      return;
-    }
-
     try {
       setIsConnectingAccount(true);
 
-      // Create a full callback URL that includes return path
-      const baseUrl = window.location.origin;
-      const redirectUrl = `${baseUrl}/account/security/callback`;
-
-      // Get user role to sync with ExpertSetupChecklist upon return
-      const isExpert =
-        user?.publicMetadata?.role &&
-        (Array.isArray(user.publicMetadata.role)
-          ? user.publicMetadata.role.some((role) =>
-              ['community_expert', 'top_expert'].includes(String(role)),
-            )
-          : ['community_expert', 'top_expert'].includes(String(user.publicMetadata.role)));
-
-      // Store the user is an expert in session storage to use in callback
-      if (isExpert) {
-        sessionStorage.setItem('is_expert_oauth_flow', 'true');
+      if (!user) {
+        throw new Error('User not found');
       }
 
-      // First build a URL with the correct prompt params
-      const signInUrl = new URL(`${baseUrl}/sign-in`);
-      signInUrl.searchParams.append('redirect_url', '/account/security');
-      signInUrl.searchParams.append('prompt', 'select_account');
+      // IMPORTANT: We need to redirect through the callback page for proper connection handling
+      const callbackUrl = `${window.location.origin}/account/security/callback`;
 
-      // Now authenticate with redirect using only the supported parameters
-      await window.Clerk.client.authenticateWithRedirect({
-        strategy: 'oauth_google',
-        redirectUrl,
+      // Create a new external account connection
+      // We don't need to specify additionalScopes since they're configured in the Clerk Dashboard
+      const externalAccount = await user.createExternalAccount({
+        strategy: 'oauth_google' as const,
+        redirectUrl: callbackUrl,
       });
+
+      if (externalAccount?.verification?.externalVerificationRedirectURL) {
+        // Add prompt=select_account to force Google to show the account selector
+        const redirectUrl = new URL(externalAccount.verification.externalVerificationRedirectURL);
+        redirectUrl.searchParams.append('prompt', 'select_account');
+
+        // Navigate to the OAuth URL
+        window.location.href = redirectUrl.toString();
+      } else {
+        throw new Error('No verification URL provided');
+      }
     } catch (error) {
       console.error('Error connecting account:', error);
       toast.error(
