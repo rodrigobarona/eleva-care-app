@@ -164,17 +164,48 @@ export async function checkExpertSetupStatus() {
       .then((result) => result[0]?.count || 0);
     setupStatus.events = eventCount > 0;
 
-    // Verify identity - Check if user has completed identity verification
-    setupStatus.identity = false; // Default to false until proper verification
+    // Verify identity - Enhanced Stripe identity verification check
+    setupStatus.identity = false; // Default to false
 
-    // Check identity verification status
-    // 1. Check if Stripe identity verification is complete
-    if (dbUser?.stripeIdentityVerificationId && dbUser?.stripeIdentityVerified === true) {
-      setupStatus.identity = true;
+    // Only trust Stripe identity verification - no fallbacks
+    if (dbUser) {
+      // Log for debugging
+      console.log('Checking identity verification:', {
+        userId: user.id,
+        stripeIdentityVerificationId: dbUser.stripeIdentityVerificationId,
+        stripeIdentityVerified: dbUser.stripeIdentityVerified,
+      });
+
+      // Strict validation: Must have both a verification ID and verified=true
+      if (dbUser.stripeIdentityVerificationId && dbUser.stripeIdentityVerified === true) {
+        // Only set as verified if all conditions pass
+        setupStatus.identity = true;
+
+        console.log('Identity verification passed:', {
+          verificationId: dbUser.stripeIdentityVerificationId,
+        });
+      } else {
+        // Helpful debug logging for why verification failed
+        const reasons = [];
+        if (!dbUser.stripeIdentityVerificationId) reasons.push('No verification ID');
+        if (dbUser.stripeIdentityVerified !== true) reasons.push('Not marked as verified');
+
+        console.log('Identity verification incomplete:', {
+          userId: user.id,
+          reasons,
+        });
+      }
+    } else {
+      console.log('User record not found in database, identity verification failed');
     }
-    // 2. Fallback to existing metadata
-    else {
-      setupStatus.identity = !!metadataSetup.identity;
+
+    // Remove any old metadata about identity verification to prevent confusion
+    // On next metadata update, any incorrect flags will be removed
+    if (metadataSetup.identity !== setupStatus.identity) {
+      console.log('Correcting identity verification in metadata:', {
+        old: metadataSetup.identity,
+        new: setupStatus.identity,
+      });
     }
 
     // Verify payment setup - Check if user has completed Stripe Connect onboarding
@@ -196,9 +227,8 @@ export async function checkExpertSetupStatus() {
     // Method 2: Check if any email addresses match the Gmail domain and are verified
     const emailAddresses = user.emailAddresses || [];
     const hasVerifiedGmailAddress = emailAddresses.some(
-      (email) => 
-        email.emailAddress.endsWith('@gmail.com') && 
-        email.verification?.status === 'verified'
+      (email) =>
+        email.emailAddress.endsWith('@gmail.com') && email.verification?.status === 'verified',
     );
 
     // Method 3: Check if Google Calendar integration is set up (if applicable)

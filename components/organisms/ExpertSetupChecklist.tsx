@@ -63,7 +63,7 @@ export function ExpertSetupChecklist() {
     {
       id: 'identity',
       name: 'Verify your identity',
-      description: 'Complete identity verification for your account',
+      description: 'Complete Stripe identity verification process to verify your identity',
       href: '/account/identity',
       completed: false,
       priority: 5,
@@ -203,6 +203,36 @@ export function ExpertSetupChecklist() {
     }
   }, [isLoaded, user, setupSteps, loadCompletionStatus]);
 
+  // Add a function to directly check identity verification status
+  const checkIdentityVerification = useCallback(async () => {
+    if (!isLoaded || !user) return false;
+
+    try {
+      // Call a server action to check identity verification status
+      // This endpoint should check against Stripe verification
+      const response = await fetch('/api/expert/identity-status');
+
+      if (!response.ok) {
+        throw new Error('Failed to check identity verification status');
+      }
+
+      const data = await response.json();
+
+      // Update the step status immediately if verified
+      if (data.verified === true) {
+        setSetupSteps((prev) =>
+          prev.map((step) => (step.id === 'identity' ? { ...step, completed: true } : step)),
+        );
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error('Error checking identity verification status:', error);
+      return false;
+    }
+  }, [isLoaded, user]);
+
   // Enhanced refresh with debounce logic to prevent multiple calls
   const [lastRefreshTime, setLastRefreshTime] = useState(0);
   const handleRefreshClick = useCallback(() => {
@@ -215,19 +245,32 @@ export function ExpertSetupChecklist() {
 
     setLastRefreshTime(now);
     setLoading(true);
-    toast.promise(Promise.all([verifyGoogleAccountConnection(), loadCompletionStatus()]), {
-      loading: 'Checking setup status...',
-      success: 'Setup status updated',
-      error: 'Failed to check status',
-    });
-  }, [lastRefreshTime, verifyGoogleAccountConnection, loadCompletionStatus]);
+    toast.promise(
+      Promise.all([
+        verifyGoogleAccountConnection(),
+        checkIdentityVerification(),
+        loadCompletionStatus(),
+      ]),
+      {
+        loading: 'Checking setup status...',
+        success: 'Setup status updated',
+        error: 'Failed to check status',
+      },
+    );
+  }, [
+    lastRefreshTime,
+    verifyGoogleAccountConnection,
+    checkIdentityVerification,
+    loadCompletionStatus,
+  ]);
 
-  // Check Google account on initial load and after navigation
+  // Check both Google account and identity verification on initial load and after navigation
   useEffect(() => {
     if (isLoaded && user) {
       verifyGoogleAccountConnection();
+      checkIdentityVerification();
     }
-  }, [isLoaded, user, verifyGoogleAccountConnection]);
+  }, [isLoaded, user, verifyGoogleAccountConnection, checkIdentityVerification]);
 
   // Calculate progress percentage
   const completedSteps = setupSteps.filter((step) => step.completed).length;
@@ -297,6 +340,31 @@ export function ExpertSetupChecklist() {
       }
     }
   }, [completedSteps, totalSteps, loading, isProfilePublished, router, isLoaded, user]);
+
+  // Add a helper function to get a more detailed description for a step
+  const getStepDetails = (stepId: string) => {
+    switch (stepId) {
+      case 'identity':
+        return {
+          pendingDescription:
+            'You must complete the Stripe identity verification process to verify your identity',
+          completedDescription: 'Your identity has been verified through Stripe Verify',
+          inProgressDescription: 'Your identity verification is being processed by Stripe',
+        };
+      case 'google_account':
+        return {
+          pendingDescription: 'Connect your Google account for calendar integration',
+          completedDescription: 'Your Google account is connected',
+          inProgressDescription: 'Finalizing your Google account connection',
+        };
+      default:
+        return {
+          pendingDescription: '',
+          completedDescription: '',
+          inProgressDescription: '',
+        };
+    }
+  };
 
   // If all steps are completed, don't show anything
   if (progressPercentage === 100) {
@@ -382,7 +450,11 @@ export function ExpertSetupChecklist() {
                     </Button>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">{step.description}</p>
+                <p className="text-xs text-muted-foreground">
+                  {step.completed
+                    ? getStepDetails(step.id).completedDescription || step.description
+                    : getStepDetails(step.id).pendingDescription || step.description}
+                </p>
               </div>
             </div>
           ))}
