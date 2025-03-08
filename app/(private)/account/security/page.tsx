@@ -367,9 +367,6 @@ export default function SecurityPage() {
         // Force Google to show the account selector, even if user is already logged in
         redirectUrl.searchParams.append('prompt', 'select_account');
 
-        // Add access_type=offline to get a refresh token
-        redirectUrl.searchParams.append('access_type', 'offline');
-
         // Navigate to the OAuth URL
         window.location.href = redirectUrl.toString();
       } else {
