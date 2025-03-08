@@ -142,14 +142,92 @@ export function ExpertSetupChecklist() {
       }
     };
 
+    // Handle Google account connection specifically
+    const handleGoogleAccountConnected = (event: Event) => {
+      if (!isLoaded || !user) return;
+
+      // Access the detailed event data if available
+      const detail = (event as CustomEvent)?.detail;
+      console.log('Google account connected event received:', detail);
+
+      // Update the Google account step immediately in the UI
+      setSetupSteps((prev) =>
+        prev.map((step) => (step.id === 'google_account' ? { ...step, completed: true } : step)),
+      );
+
+      // Then refresh all steps from the server
+      loadCompletionStatus();
+    };
+
     // Listen for custom events that signal a task update
     window.addEventListener('expert-setup-updated', handleStatusUpdate);
+    window.addEventListener('google-account-connected', handleGoogleAccountConnected);
 
     // Clean up the event listener when component unmounts
     return () => {
       window.removeEventListener('expert-setup-updated', handleStatusUpdate);
+      window.removeEventListener('google-account-connected', handleGoogleAccountConnected);
     };
-  }, [isLoaded, loadCompletionStatus]);
+  }, [isLoaded, loadCompletionStatus, user]);
+
+  // Add direct verification of Google account connection
+  const verifyGoogleAccountConnection = useCallback(async () => {
+    if (!isLoaded || !user) return false;
+
+    try {
+      // Check if the user has a Google account connected
+      const hasGoogleAccount = user.externalAccounts.some(
+        (account) => account.provider === 'google',
+      );
+
+      // If Google account is connected but not showing as completed,
+      // update the step immediately for better UX
+      if (hasGoogleAccount) {
+        const googleStep = setupSteps.find((step) => step.id === 'google_account');
+        if (googleStep && !googleStep.completed) {
+          setSetupSteps((prev) =>
+            prev.map((step) =>
+              step.id === 'google_account' ? { ...step, completed: true } : step,
+            ),
+          );
+
+          // Then call the server to update all statuses
+          loadCompletionStatus();
+        }
+      }
+
+      return hasGoogleAccount;
+    } catch (error) {
+      console.error('Error verifying Google account connection:', error);
+      return false;
+    }
+  }, [isLoaded, user, setupSteps, loadCompletionStatus]);
+
+  // Enhanced refresh with debounce logic to prevent multiple calls
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const handleRefreshClick = useCallback(() => {
+    const now = Date.now();
+    // Throttle refreshes to once every 2 seconds
+    if (now - lastRefreshTime < 2000) {
+      toast.info('Please wait a moment before refreshing again');
+      return;
+    }
+
+    setLastRefreshTime(now);
+    setLoading(true);
+    toast.promise(Promise.all([verifyGoogleAccountConnection(), loadCompletionStatus()]), {
+      loading: 'Checking setup status...',
+      success: 'Setup status updated',
+      error: 'Failed to check status',
+    });
+  }, [lastRefreshTime, verifyGoogleAccountConnection, loadCompletionStatus]);
+
+  // Check Google account on initial load and after navigation
+  useEffect(() => {
+    if (isLoaded && user) {
+      verifyGoogleAccountConnection();
+    }
+  }, [isLoaded, user, verifyGoogleAccountConnection]);
 
   // Calculate progress percentage
   const completedSteps = setupSteps.filter((step) => step.completed).length;
@@ -257,7 +335,7 @@ export function ExpertSetupChecklist() {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => loadCompletionStatus()}
+            onClick={handleRefreshClick}
             className="h-6 w-6"
             title="Refresh setup status"
           >

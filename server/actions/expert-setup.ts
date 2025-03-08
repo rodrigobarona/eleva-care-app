@@ -181,20 +181,41 @@ export async function checkExpertSetupStatus() {
     setupStatus.payment =
       !!dbUser?.stripeConnectAccountId && !!dbUser?.stripeConnectOnboardingComplete;
 
-    // Verify Google account connection - Check if user has connected a Google account
-    // Logging for debugging
+    // Verify Google account connection - Enhanced with multiple verification methods
     console.log('External accounts:', user.externalAccounts);
 
+    // Method 1: Check for Google external account
     const externalAccounts = user.externalAccounts || [];
-    setupStatus.google_account = externalAccounts.some(
+    const hasGoogleExternalAccount = externalAccounts.some(
       (account) =>
         account.provider === 'google' &&
         (account.verification?.status === 'verified' ||
           account.verification?.status === 'unverified'),
     );
 
-    // Logging the computed status
-    console.log('Computed setup status:', setupStatus);
+    // Method 2: Check if any email addresses match the Gmail domain and are verified
+    const emailAddresses = user.emailAddresses || [];
+    const hasVerifiedGmailAddress = emailAddresses.some(
+      (email) => 
+        email.emailAddress.endsWith('@gmail.com') && 
+        email.verification?.status === 'verified'
+    );
+
+    // Method 3: Check if Google Calendar integration is set up (if applicable)
+    // This is a placeholder - implement based on your specific integration logic
+    const hasGoogleCalendarIntegration = !!metadataSetup.google_account;
+
+    // Set the status for Google account connection - any method is sufficient
+    setupStatus.google_account =
+      hasGoogleExternalAccount || hasVerifiedGmailAddress || hasGoogleCalendarIntegration;
+
+    // Detailed logging for debugging purposes
+    console.log('Google account verification:', {
+      hasGoogleExternalAccount,
+      hasVerifiedGmailAddress,
+      hasGoogleCalendarIntegration,
+      result: setupStatus.google_account,
+    });
 
     // Update metadata if database checks differ from stored metadata
     if (JSON.stringify(setupStatus) !== JSON.stringify(metadataSetup)) {

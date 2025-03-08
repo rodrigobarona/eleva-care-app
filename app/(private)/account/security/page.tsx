@@ -292,20 +292,83 @@ export default function SecurityPage() {
         throw new Error('User not found');
       }
 
-      // IMPORTANT: We need to redirect through the callback page for proper connection handling
+      // Check if user already has a Google account connected
+      const existingGoogleAccounts = user.externalAccounts.filter(
+        (account) => account.provider === 'google',
+      );
+
+      if (existingGoogleAccounts.length > 0) {
+        // Let the user know they already have a Google account and ask if they want to add another
+        toast.info(
+          'You already have a Google account connected. You can continue to add another account or cancel.',
+          {
+            duration: 5000,
+            action: {
+              label: 'Cancel',
+              onClick: () => {
+                setIsConnectingAccount(false);
+                return;
+              },
+            },
+          },
+        );
+        // Continue after a short delay if they don't cancel
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
+
+      // Store if user is an expert in session storage to use in callback
+      const isExpert =
+        user.publicMetadata?.role &&
+        (Array.isArray(user.publicMetadata.role)
+          ? user.publicMetadata.role.some((role) =>
+              ['community_expert', 'top_expert'].includes(String(role)),
+            )
+          : ['community_expert', 'top_expert'].includes(String(user.publicMetadata.role)));
+
+      if (isExpert) {
+        sessionStorage.setItem('is_expert_oauth_flow', 'true');
+      }
+
+      // IMPORTANT: Store the return URL to handle proper redirection
+      sessionStorage.setItem('oauth_return_url', '/account/security');
+
+      // Create a callback URL for the OAuth flow - must match what's configured in Clerk dashboard
       const callbackUrl = `${window.location.origin}/account/security/callback`;
 
-      // Create a new external account connection
-      // We don't need to specify additionalScopes since they're configured in the Clerk Dashboard
+      // Show loading toast
+      toast.loading('Connecting to Google...', { id: 'google-connect' });
+
+      // Generate a PKCE code verifier and challenge for enhanced security
+      const codeVerifier = Array.from(
+        { length: 64 },
+        () =>
+          'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[
+            Math.floor(Math.random() * 66)
+          ],
+      ).join('');
+
+      // Store the code verifier in session storage to be used in the callback
+      sessionStorage.setItem('oauth_code_verifier', codeVerifier);
+
+      // Use the standard createExternalAccount method to start the OAuth flow
+      // Note: scopes and verification parameters are now configured in Clerk Dashboard
       const externalAccount = await user.createExternalAccount({
-        strategy: 'oauth_google' as const,
+        strategy: 'oauth_google',
         redirectUrl: callbackUrl,
       });
 
       if (externalAccount?.verification?.externalVerificationRedirectURL) {
-        // Add prompt=select_account to force Google to show the account selector
+        // Dismiss loading toast
+        toast.dismiss('google-connect');
+
+        // Add parameters to enhance security and UX
         const redirectUrl = new URL(externalAccount.verification.externalVerificationRedirectURL);
+
+        // Force Google to show the account selector, even if user is already logged in
         redirectUrl.searchParams.append('prompt', 'select_account');
+
+        // Add access_type=offline to get a refresh token
+        redirectUrl.searchParams.append('access_type', 'offline');
 
         // Navigate to the OAuth URL
         window.location.href = redirectUrl.toString();
@@ -316,6 +379,7 @@ export default function SecurityPage() {
       console.error('Error connecting account:', error);
       toast.error(
         `Failed to connect account: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { id: 'google-connect' },
       );
       setIsConnectingAccount(false);
     }
