@@ -5,8 +5,7 @@ import { EventTable, MeetingTable } from '@/drizzle/schema';
 import { logAuditEvent } from '@/lib/logAuditEvent';
 import { getServerStripe } from '@/lib/stripe';
 import { eventFormSchema } from '@/schema/events';
-import { markStepComplete } from '@/server/actions/expert-setup';
-import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
+import { checkExpertSetupStatus, markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 import { and, count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -236,14 +235,7 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
 
     revalidatePath('/events');
 
-    // After deletion, check if there are any events left
-    const remainingEventsCount = await db
-      .select({ count: count() })
-      .from(EventTable)
-      .where(eq(EventTable.clerkUserId, userId))
-      .then((result) => result[0]?.count || 0);
-
-    // Check and update the expert setup status
+    // After deletion, check and update the expert setup status
     await checkExpertSetupStatus();
 
     return { error: false };
