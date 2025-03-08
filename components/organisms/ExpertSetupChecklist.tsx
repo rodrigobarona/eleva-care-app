@@ -435,26 +435,33 @@ export function ExpertSetupChecklist() {
 
   // Show congratulations toast when all steps are completed (only once)
   useEffect(() => {
-    // Prevent showing toast multiple times in same session
-    if (toastShownInThisSession.current) return;
-
     // Wait until everything is fully loaded
     if (!isLoaded || !user || loading) return;
 
     // Only proceed if all steps are completed
     if (completedSteps === totalSteps) {
-      // Strict check to make sure the value is exactly boolean true
-      const toastAlreadyShown = user.unsafeMetadata?.setup_completion_toast_shown === true;
+      // Check if we've already shown the toast in THIS session
+      if (toastShownInThisSession.current) return;
 
-      if (!toastAlreadyShown) {
+      // Check if we've already shown the toast EVER by looking at metadata
+      const completionToastTimestamp = user.unsafeMetadata?.setup_completion_toast_shown_at;
+      const hasShownToastBefore = !!completionToastTimestamp;
+
+      if (!hasShownToastBefore) {
         // Mark that we've shown the toast in this session immediately
         toastShownInThisSession.current = true;
+
+        // Get current timestamp to store in metadata
+        const currentTimestamp = new Date().toISOString();
 
         // Show the toast
         toast.success(
           <div className="flex flex-col">
             <span className="font-medium">Congratulations! 🎉</span>
             <span className="text-sm">You&apos;ve completed all the setup steps!</span>
+            <span className="mt-1 text-xs text-muted-foreground">
+              Completed on {new Date().toLocaleDateString()}
+            </span>
           </div>,
           {
             duration: 8000,
@@ -465,25 +472,37 @@ export function ExpertSetupChecklist() {
           },
         );
 
-        // Mark that we've shown the toast in Clerk's metadata
+        // Store timestamp in Clerk's metadata
         try {
           user.update({
             unsafeMetadata: {
               ...user.unsafeMetadata,
               setup_completion_toast_shown: true,
+              setup_completion_toast_shown_at: currentTimestamp,
+              setup_completed_at: currentTimestamp,
             },
           });
+
+          // Log for debugging
+          console.log('Stored setup completion timestamp in metadata:', currentTimestamp);
         } catch (error) {
-          console.error('Failed to update user metadata:', error);
+          console.error('Failed to update user metadata with completion timestamp:', error);
         }
+      } else {
+        // Already shown before, log for debugging
+        console.log('Setup completion toast already shown on:', completionToastTimestamp);
       }
-    } else if (user.unsafeMetadata?.setup_completion_toast_shown === true) {
+    } else if (
+      completedSteps < totalSteps &&
+      user.unsafeMetadata?.setup_completion_toast_shown === true
+    ) {
       // Reset the flag if steps are no longer complete
       try {
         user.update({
           unsafeMetadata: {
             ...user.unsafeMetadata,
             setup_completion_toast_shown: false,
+            // Don't remove the timestamp - we want to keep track of when it was completed before
           },
         });
       } catch (error) {

@@ -104,6 +104,46 @@ export function useExpertSetup() {
     (Object.values(setupStatus).filter(Boolean).length / Object.keys(setupStatus).length) * 100,
   );
 
+  // Function to get the completion date if available
+  const getCompletionDate = useCallback((): { date: Date | null; formattedDate: string | null } => {
+    if (!isLoaded || !user) {
+      return { date: null, formattedDate: null };
+    }
+
+    const completionTimestamp = user.unsafeMetadata?.setup_completed_at as string | undefined;
+
+    if (!completionTimestamp) {
+      return { date: null, formattedDate: null };
+    }
+
+    try {
+      const date = new Date(completionTimestamp);
+
+      // Format the date in a user-friendly way
+      const formattedDate = new Intl.DateTimeFormat('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      }).format(date);
+
+      return { date, formattedDate };
+    } catch (error) {
+      console.error('Error parsing completion date:', error);
+      return { date: null, formattedDate: null };
+    }
+  }, [isLoaded, user]);
+
+  // Function to check if the completion toast has been shown before
+  const hasShownCompletionToast = useCallback((): boolean => {
+    if (!isLoaded || !user) {
+      return false;
+    }
+
+    return !!user.unsafeMetadata?.setup_completion_toast_shown_at;
+  }, [isLoaded, user]);
+
   return {
     setupStatus,
     isLoading,
@@ -111,5 +151,9 @@ export function useExpertSetup() {
     isComplete: isComplete(),
     completeStep,
     refreshStatus: loadStatus,
+    completionInfo: {
+      completionDate: getCompletionDate(),
+      hasShownToast: hasShownCompletionToast(),
+    },
   };
 }
