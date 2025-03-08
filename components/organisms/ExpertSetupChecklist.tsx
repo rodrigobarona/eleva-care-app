@@ -24,7 +24,7 @@ export function ExpertSetupChecklist() {
   const { isLoaded, user } = useUser();
   const router = useRouter();
   const pathname = usePathname();
-  const [isExpanded, setIsExpanded] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isProfilePublished, setIsProfilePublished] = useState(false);
   const [setupSteps, setSetupSteps] = useState<SetupStep[]>([
@@ -83,8 +83,7 @@ export function ExpertSetupChecklist() {
   // Track if toast has been shown in this component instance
   const toastShownInThisSession = useRef(false);
 
-  // Extract loadCompletionStatus to a function wrapped in useCallback
-  // so it can be reused in the pathname effect
+  // Extract loadCompletionStatus to make it reusable
   const loadCompletionStatus = useCallback(async () => {
     setLoading(true);
     try {
@@ -114,24 +113,42 @@ export function ExpertSetupChecklist() {
     } finally {
       setLoading(false);
     }
-  }, [router]); // router is the only dependency
+  }, [router]);
 
-  // Handle navigation
+  // Handle navigation - refresh status when path changes
   useEffect(() => {
     if (lastPathname.current !== pathname) {
       lastPathname.current = pathname;
-      // Refresh the completion status when the path changes
-      // This helps update the checklist after form submissions
+      // Refresh the completion status when returning from a task page
       if (isLoaded) {
         loadCompletionStatus();
       }
     }
   }, [pathname, isLoaded, loadCompletionStatus]);
 
+  // Initial load
   useEffect(() => {
     if (isLoaded) {
       loadCompletionStatus();
     }
+  }, [isLoaded, loadCompletionStatus]);
+
+  // Subscribe to events that might update the checklist status
+  useEffect(() => {
+    // Define function for handling custom events
+    const handleStatusUpdate = () => {
+      if (isLoaded) {
+        loadCompletionStatus();
+      }
+    };
+
+    // Listen for custom events that signal a task update
+    window.addEventListener('expert-setup-updated', handleStatusUpdate);
+
+    // Clean up the event listener when component unmounts
+    return () => {
+      window.removeEventListener('expert-setup-updated', handleStatusUpdate);
+    };
   }, [isLoaded, loadCompletionStatus]);
 
   // Calculate progress percentage

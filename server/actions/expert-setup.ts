@@ -165,18 +165,15 @@ export async function checkExpertSetupStatus() {
     setupStatus.events = eventCount > 0;
 
     // Verify identity - Check if user has completed identity verification
-    // The current check only verifies email, which is insufficient
-    // It should check for actual identity verification status if available
     setupStatus.identity = false; // Default to false until proper verification
-    
-    // Check additional verification methods
-    if (dbUser?.verifiedIdentity === true) {
+
+    // Check identity verification status
+    // 1. Check if Stripe identity verification is complete
+    if (dbUser?.stripeIdentityVerificationId && dbUser?.stripeIdentityVerified === true) {
       setupStatus.identity = true;
-    } else if (user.verifiedPhoneNumber) {
-      // Having a verified phone can be considered a form of identity verification
-      setupStatus.identity = true;
-    } else {
-      // For now, rely on a database field or metadata that would be set when identity is verified
+    }
+    // 2. Fallback to existing metadata
+    else {
       setupStatus.identity = !!metadataSetup.identity;
     }
 
@@ -187,14 +184,15 @@ export async function checkExpertSetupStatus() {
     // Verify Google account connection - Check if user has connected a Google account
     // Logging for debugging
     console.log('External accounts:', user.externalAccounts);
-    
+
     const externalAccounts = user.externalAccounts || [];
     setupStatus.google_account = externalAccounts.some(
-      (account) => 
-        account.provider === 'google' && 
-        (account.verification?.status === 'verified' || account.verification?.status === 'unverified')
+      (account) =>
+        account.provider === 'google' &&
+        (account.verification?.status === 'verified' ||
+          account.verification?.status === 'unverified'),
     );
-    
+
     // Logging the computed status
     console.log('Computed setup status:', setupStatus);
 

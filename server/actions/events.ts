@@ -6,6 +6,7 @@ import { logAuditEvent } from '@/lib/logAuditEvent';
 import { getServerStripe } from '@/lib/stripe';
 import { eventFormSchema } from '@/schema/events';
 import { markStepComplete } from '@/server/actions/expert-setup';
+import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 import { and, count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -149,6 +150,18 @@ export async function updateEvent(
     userAgent,
   );
 
+  // If the event is active, mark the events step as complete
+  if (data.isActive) {
+    try {
+      await markStepComplete('events');
+    } catch (error) {
+      console.error('Failed to mark events step as complete:', error);
+    }
+  }
+
+  // After update, refresh the expert setup status
+  await checkExpertSetupStatus();
+
   redirect('/events');
 }
 
@@ -222,6 +235,17 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
     );
 
     revalidatePath('/events');
+
+    // After deletion, check if there are any events left
+    const remainingEventsCount = await db
+      .select({ count: count() })
+      .from(EventTable)
+      .where(eq(EventTable.clerkUserId, userId))
+      .then((result) => result[0]?.count || 0);
+
+    // Check and update the expert setup status
+    await checkExpertSetupStatus();
+
     return { error: false };
   } catch (error) {
     console.error('Delete event error:', error);
