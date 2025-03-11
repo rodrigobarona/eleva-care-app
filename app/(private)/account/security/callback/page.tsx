@@ -99,28 +99,10 @@ export default function GoogleCallbackPage() {
               sessionStorage.removeItem('is_expert_oauth_flow');
               sessionStorage.removeItem('oauth_code_verifier');
 
-              // Get the return URL from session storage or default to security page
-              const returnUrl = sessionStorage.getItem('oauth_return_url') || '/account/security';
-              sessionStorage.removeItem('oauth_return_url'); // Clear after use
-
-              // Log the return URL for debugging
-              console.log('OAuth callback: Redirecting to', returnUrl);
-
-              // Store the return URL in window.sessionStorage for access after page refresh
-              sessionStorage.setItem('post_oauth_redirect', returnUrl);
-
               // Show success toast that will appear after redirect
               setTimeout(() => {
                 toast.success('Google account connected successfully');
               }, 1000);
-
-              // Redirect back after a short delay
-              setTimeout(() => {
-                // Force the redirect to the security page
-                window.location.href = returnUrl.startsWith('/')
-                  ? `${window.location.origin}${returnUrl}`
-                  : returnUrl;
-              }, 2000);
             } else {
               // This case should be rare, but could happen if there's a race condition
               setStatus('Authentication completed, but Google account not yet visible.');
@@ -130,6 +112,24 @@ export default function GoogleCallbackPage() {
               setProgress(90);
             }
           }
+
+          // Get the return URL from session storage or default to security page
+          const returnUrl = sessionStorage.getItem('oauth_return_url') || '/account/security';
+          sessionStorage.removeItem('oauth_return_url'); // Clear after use
+
+          // Log the return URL for debugging
+          console.log('OAuth callback: Redirecting to', returnUrl);
+
+          // Store the return URL in window.sessionStorage for access after page refresh
+          sessionStorage.setItem('post_oauth_redirect', returnUrl);
+
+          // Redirect back after a short delay
+          setTimeout(() => {
+            // Force the redirect to the security page
+            window.location.href = returnUrl.startsWith('/')
+              ? `${window.location.origin}${returnUrl}`
+              : returnUrl;
+          }, 2000);
         } else {
           throw new Error('No redirect callback handler available');
         }
