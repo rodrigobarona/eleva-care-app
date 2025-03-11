@@ -1,183 +1,65 @@
-import { Button } from '@/components/atoms/button';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Skeleton } from '@/components/atoms/skeleton';
+import { EventBookingList } from '@/components/molecules/EventBookingList';
 import { db } from '@/drizzle/db';
-import { formatEventDescription } from '@/lib/formatters';
-import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
-import NextAvailableTimeClient from '@/lib/NextAvailableTimeClient';
-import GoogleCalendarService from '@/server/googleCalendar';
-import { auth, createClerkClient } from '@clerk/nextjs/server';
-import { addMonths } from 'date-fns';
-import Link from 'next/link';
+import { createClerkClient } from '@clerk/nextjs/server';
+import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
-import { Suspense } from 'react';
+import React from 'react';
 import ReactMarkdown from 'react-markdown';
 
-export const dynamic = 'force-dynamic';
+const SOCIAL_ICONS = {
+  instagram: Instagram,
+  twitter: Twitter,
+  linkedin: Linkedin,
+  youtube: Youtube,
+  tiktok: Music, // Using Music icon for TikTok since there's no TikTok icon in Lucide
+} as const;
+
 export const revalidate = 0;
 
-type Event = {
-  id: string;
-  name: string;
-  clerkUserId: string;
-  description: string | null;
-  durationInMinutes: number;
-  slug: string;
-  isActive: boolean;
-  price: number;
-};
-
-async function getCalendarStatus(clerkUserId: string) {
-  try {
-    const calendarService = GoogleCalendarService.getInstance();
-    const hasValidTokens = await calendarService.hasValidTokens(clerkUserId);
-
-    if (!hasValidTokens) {
-      return { isConnected: false, error: 'Calendar not connected' };
-    }
-
-    // Verify we can actually access the calendar
-    const now = new Date();
-    const endDate = addMonths(now, 1);
-    await calendarService.getCalendarEventTimes(clerkUserId, {
-      start: now,
-      end: endDate,
-    });
-
-    return { isConnected: true, error: null };
-  } catch (error) {
-    console.error('Calendar status check failed:', error);
-    return { isConnected: false, error: 'Calendar access error' };
-  }
-}
-
-// Helper function to check if a user has expert role
-async function checkUserRole(userId: string) {
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-
-  try {
-    const userData = await clerk.users.getUser(userId);
-    const userRole = userData.publicMetadata?.role as string | string[] | undefined;
-
-    // Convert to array for easier checking
-    const userRoles = Array.isArray(userRole) ? userRole : userRole ? [userRole] : [];
-
-    // Check if user has required expert role
-    return userRoles.some((role) => role === 'community_expert' || role === 'top_expert');
-  } catch (error) {
-    console.error('Error checking user role:', error);
-    return false;
-  }
-}
-
-async function getValidTimesForEvent(eventId: string) {
-  try {
-    const event = await db.query.EventTable.findFirst({
-      where: ({ id }, { eq }) => eq(id, eventId),
-    });
-
-    if (!event) return [];
-
-    const now = new Date();
-    // Round up to the next 15 minutes
-    const startDate = new Date(Math.ceil(now.getTime() / (15 * 60000)) * (15 * 60000));
-    const endDate = addMonths(startDate, 2);
-
-    // Get calendar events for the time range
-    const calendarService = GoogleCalendarService.getInstance();
-    const calendarEvents = await calendarService.getCalendarEventTimes(event.clerkUserId, {
-      start: startDate,
-      end: endDate,
-    });
-
-    // Generate all possible time slots
-    const timeSlots = [];
-    let currentTime = startDate;
-    while (currentTime < endDate) {
-      timeSlots.push(new Date(currentTime));
-      currentTime = new Date(currentTime.getTime() + 15 * 60000); // Add 15 minutes
-    }
-
-    // Use the working method from the page
-    const validTimes = await getValidTimesFromSchedule(timeSlots, event, calendarEvents);
-
-    console.log('[getValidTimesForEvent] Valid times found:', {
-      eventId,
-      count: validTimes.length,
-      firstTime: validTimes[0]?.toISOString(),
-    });
-
-    return validTimes;
-  } catch (error) {
-    console.error('[getValidTimesForEvent] Error:', {
-      eventId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-    return [];
-  }
-}
-
-// Separate component for the event card
-function EventCard({
-  event,
-  username,
-  nextAvailable,
-}: {
-  event: Event;
-  username: string;
-  nextAvailable: Date | null;
-}) {
+function ProfileSkeleton() {
   return (
-    <Card className="overflow-hidden border-2 transition-colors duration-200 hover:border-primary/50">
-      <div className="flex flex-col lg:flex-row">
-        <EventCardDetails
-          name={event.name}
-          description={event.description}
-          durationInMinutes={event.durationInMinutes}
-        />
-        <div className="flex flex-col justify-between bg-gray-50 p-6 lg:w-72 lg:border-l lg:p-8">
-          <div>
-            <div className="mb-1 text-lg font-semibold">Session</div>
-            <div className="mb-4 text-3xl font-bold">
-              {event.price === 0 ? (
-                'Free'
-              ) : (
-                <>
-                  €{' '}
-                  {(event.price / 100).toLocaleString('pt-PT', {
-                    minimumFractionDigits: 0,
-                    maximumFractionDigits: 2,
-                  })}
-                </>
-              )}
-            </div>
-            <NextAvailableTimeClient
-              date={nextAvailable}
-              eventName={event.name}
-              eventSlug={event.slug}
-              username={username}
-            />
-          </div>
+    <div className="space-y-6">
+      {/* Profile Image Skeleton */}
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg">
+        <Skeleton className="h-full w-full" />
+      </div>
 
-          <Button
-            className="w-full bg-blue-600 py-6 text-lg font-semibold text-white hover:bg-blue-700"
-            asChild
-          >
-            <Link href={`/${username}/${event.slug}`}>See times</Link>
-          </Button>
+      <div className="space-y-4">
+        {/* Name Skeleton */}
+        <div>
+          <Skeleton className="mb-2 h-9 w-48" /> {/* For the name */}
+          <Skeleton className="h-5 w-32" /> {/* For the username */}
+        </div>
+
+        {/* Headline Skeleton */}
+        <Skeleton className="h-6 w-full" />
+
+        {/* Short Bio Skeleton */}
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-[90%]" />
+          <Skeleton className="h-4 w-[80%]" />
+        </div>
+
+        {/* Social Links Skeleton */}
+        <div className="flex gap-4">
+          <Skeleton className="h-5 w-5 rounded-full" />
+          <Skeleton className="h-5 w-5 rounded-full" />
+          <Skeleton className="h-5 w-5 rounded-full" />
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
-export default async function BookingPage(props: { params: Promise<{ username: string }> }) {
+export default async function UserLayout(props: { params: Promise<{ username: string }> }) {
   const params = await props.params;
+
   const { username } = params;
 
-  // Get user data early and pass to children
+  // Get user data early
   const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
   });
@@ -189,295 +71,136 @@ export default async function BookingPage(props: { params: Promise<{ username: s
   const user = users.data[0];
   if (!user) return notFound();
 
-  // Get current user session for comparison with profile owner
-  const { userId: currentUserId } = await auth();
-  const isProfileOwner = currentUserId === user.id;
+  return (
+    <div className="container max-w-7xl pb-10 pt-32">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
+        {/* Left Column - Profile Info with Suspense */}
+        <React.Suspense fallback={<ProfileSkeleton />}>
+          <ProfileInfo username={username} />
+        </React.Suspense>
 
-  // Check if the profile owner has the required expert role
-  const hasExpertRole = await checkUserRole(user.id);
+        {/* Right Column - Content */}
+        <div className="space-y-6">
+          <EventBookingList userId={user.id} username={username} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
-  // If the user isn't the profile owner and doesn't have expert role, they can't have a public page
-  if (!isProfileOwner && !hasExpertRole) {
-    return notFound();
-  }
+// Separate component for profile info
+async function ProfileInfo({ username }: { username: string }) {
+  // Only delay in development
 
-  // Get profile data to check if it's published
-  const profile = await db.query.ProfileTable.findFirst({
-    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
+  const users = await clerk.users.getUserList({
+    username: [username],
   });
 
-  // If profile doesn't exist or isn't published, require user to be the profile owner
-  if (!profile || !profile.published) {
-    if (!isProfileOwner) {
-      return notFound();
-    }
+  const user = users.data[0];
+  if (!user) return notFound();
 
-    // Display preview mode banner for the profile owner
-    return (
-      <div className="mx-auto max-w-4xl px-4 py-12">
-        <div className="mb-8 rounded-md bg-yellow-50 p-4 text-yellow-800">
-          <div className="flex items-center">
-            <svg
-              className="mr-3 h-5 w-5"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <p className="font-medium">
-              Preview Mode - Your profile is {profile ? 'not published' : 'incomplete'}. Only you
-              can see this page.
-            </p>
-          </div>
-          <div className="mt-3 flex justify-end">
-            <Link href="/expert">
-              <Button variant="outline" size="sm">
-                Edit Profile
-              </Button>
-            </Link>
-          </div>
-        </div>
+  const profile = await db.query.ProfileTable.findFirst({
+    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
+    with: {
+      primaryCategory: true,
+      secondaryCategory: true,
+    },
+  });
 
-        {!hasExpertRole && (
-          <div className="mb-8 rounded-md bg-amber-50 p-4 text-amber-800">
-            <div className="flex items-center">
-              <svg
-                className="mr-3 h-5 w-5"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <p className="font-medium">
-                Expert Role Required - To have a public profile, you need to be a Community Expert
-                or Top Expert.
-              </p>
-            </div>
-          </div>
-        )}
-
-        <h1 className="mb-12 text-4xl font-bold">Book a session</h1>
-
-        {/* Use Suspense to stream in the events section */}
-        <Suspense fallback={<EventsLoadingSkeleton />}>
-          <EventsListWithAccessControl
-            userId={user.id}
-            username={username}
-            isProfileOwner={isProfileOwner}
-          />
-        </Suspense>
-      </div>
-    );
-  }
-
-  // Public view for published profiles of users with expert role
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <h1 className="mb-12 text-4xl font-bold">Book a session</h1>
-
-      {/* Use Suspense to stream in the events section */}
-      <Suspense fallback={<EventsLoadingSkeleton />}>
-        <EventsListWithAccessControl
-          userId={user.id}
-          username={username}
-          isProfileOwner={isProfileOwner}
-        />
-      </Suspense>
-    </div>
-  );
-}
-
-// Added wrapper component to handle access control for events
-async function EventsListWithAccessControl({
-  userId,
-  username,
-  isProfileOwner,
-}: {
-  userId: string;
-  username: string;
-  isProfileOwner: boolean;
-}) {
-  // Check calendar status
-  const calendarStatus = await getCalendarStatus(userId);
-
-  if (!calendarStatus.isConnected) {
-    return (
-      <Card className="mx-auto max-w-md">
-        <CardHeader>
-          <CardTitle>Calendar Access Required</CardTitle>
-          <CardDescription>
-            {calendarStatus.error === 'Calendar not connected'
-              ? 'The calendar owner needs to connect their Google Calendar to show available times.'
-              : 'Unable to access calendar. Please try again later.'}
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-
-  try {
-    // Get events with different filtering based on whether user is the profile owner or not
-    const eventsQuery = isProfileOwner
-      ? // For profile owner: show all events regardless of active status
-        db.query.EventTable.findMany({
-          where: ({ clerkUserId: userIdCol }, { eq }) => eq(userIdCol, userId),
-          orderBy: ({ order }, { asc }) => asc(order),
-        })
-      : // For public: show only active events
-        db.query.EventTable.findMany({
-          where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
-            and(eq(userIdCol, userId), eq(isActive, true)),
-          orderBy: ({ order }, { asc }) => asc(order),
-        });
-
-    const events = await eventsQuery;
-
-    if (events.length === 0) {
-      return (
-        <Card className="mx-auto max-w-md">
-          <CardHeader>
-            <CardTitle>No Events Available</CardTitle>
-            <CardDescription>
-              {isProfileOwner
-                ? "You haven't created any bookable events yet."
-                : "This expert doesn't have any bookable events at the moment."}
-            </CardDescription>
-          </CardHeader>
-          {isProfileOwner && (
-            <div className="px-6 pb-6">
-              <Link href="/events/new">
-                <Button>Create Your First Event</Button>
-              </Link>
-            </div>
-          )}
-        </Card>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        {events.map((event) => (
-          <div key={event.id} className="relative">
-            {/* Show status badge for inactive events (only to profile owner) */}
-            {isProfileOwner && !event.isActive && (
-              <div className="absolute -right-2 -top-2 z-10 rounded-full bg-yellow-100 px-3 py-1 text-xs font-medium text-yellow-800 shadow">
-                Not Active
-              </div>
-            )}
-
-            {/* Use Suspense for each event card to stream in availability data */}
-            <Suspense fallback={<LoadingEventCard />}>
-              <EventCardWithAvailability event={event} username={username} />
-            </Suspense>
-          </div>
-        ))}
-      </div>
-    );
-  } catch (error) {
-    console.error('[EventsList] Error:', error);
-    return (
-      <Card className="mx-auto max-w-md">
-        <CardHeader>
-          <CardTitle>Error</CardTitle>
-          <CardDescription>
-            An error occurred while loading the booking page. Please try again later.
-          </CardDescription>
-        </CardHeader>
-      </Card>
-    );
-  }
-}
-
-// 3. Create a component that handles fetching availability for a single event
-async function EventCardWithAvailability({ event, username }: { event: Event; username: string }) {
-  // Fetch availability data asynchronously
-  const validTimes = await getValidTimesForEvent(event.id);
-  const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
-
-  return <EventCard event={event} username={username} nextAvailable={nextAvailable} />;
-}
-
-// 4. Add a loading skeleton for the entire events list
-function EventsLoadingSkeleton() {
   return (
     <div className="space-y-6">
-      <LoadingEventCard />
-      <LoadingEventCard />
-    </div>
-  );
-}
-
-// Separate component for the main card details
-function EventCardDetails({
-  name,
-  description,
-  durationInMinutes,
-}: {
-  name: string;
-  description: string | null;
-  durationInMinutes: number;
-}) {
-  return (
-    <div className="flex-grow p-6 lg:p-8">
-      <div className="mb-4 inline-block rounded-full bg-black px-3 py-1 text-sm font-medium text-white">
-        Book a {durationInMinutes} minute video call
-      </div>
-
-      <h3 className="mb-2 text-2xl font-bold">{name}</h3>
-
-      {description ? (
-        <ReactMarkdown className="prose mb-4 text-base text-muted-foreground">
-          {description}
-        </ReactMarkdown>
-      ) : (
-        <p className="mb-4 text-base text-muted-foreground">No description available.</p>
-      )}
-
-      <div className="mb-1 flex items-center gap-2">
-        <span className="font-semibold">Duration:</span>
-        <span className="text-muted-foreground">{formatEventDescription(durationInMinutes)}</span>
-      </div>
-
-      <div className="mt-4 flex items-center gap-1 text-amber-400">
-        {'★'.repeat(5)}
-        <span className="ml-1 text-black">5.0</span>
-        <span className="text-muted-foreground">(10)</span>
-      </div>
-    </div>
-  );
-}
-
-function LoadingEventCard() {
-  return (
-    <Card className="overflow-hidden border-2">
-      <div className="flex flex-col lg:flex-row">
-        <div className="flex-grow p-6 lg:p-8">
-          <div className="mb-4 inline-block h-7 w-32 rounded-full bg-gray-200" />
-          <Skeleton className="mb-4 h-8 w-3/4" />
-          <Skeleton className="mb-4 h-20 w-full" />
-          <Skeleton className="mb-4 h-6 w-40" />
-          <Skeleton className="h-6 w-32" />
-        </div>
-
-        <div className="flex flex-col justify-between bg-gray-50 p-6 lg:w-72 lg:border-l lg:p-8">
-          <div>
-            <Skeleton className="mb-2 h-6 w-20" />
-            <Skeleton className="mb-4 h-10 w-24" />
-            <Skeleton className="mb-6 h-5 w-40" />
+      <div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
+        <Image
+          src={profile?.profilePicture || user.imageUrl}
+          alt={user.fullName || 'Profile picture'}
+          fill
+          className="object-cover"
+          priority
+          sizes="(max-width: 768px) 100vw, 50vw"
+          placeholder="blur"
+          blurDataURL={profile?.profilePicture || user.imageUrl}
+        />
+        {/* Top Expert Badge */}
+        {profile?.isTopExpert && (
+          <div className="absolute bottom-4 left-3">
+            <span className="rounded-sm bg-white px-3 py-2 text-base font-medium text-eleva-neutral-900">
+              <span>Top Expert</span>
+            </span>
           </div>
-          <Skeleton className="h-14 w-full" />
+        )}
+      </div>
+      <div className="space-y-12">
+        <div>
+          <h1 className="flex items-center gap-2 text-xl font-medium">
+            {profile ? `${profile.firstName} ${profile.lastName}` : user.fullName}
+            {profile?.isVerified && (
+              <Image
+                src="/img/expert-verified-icon.svg"
+                alt=""
+                className="h-5 w-5"
+                aria-hidden="true"
+                width={32}
+                height={32}
+              />
+            )}
+          </h1>
+          {profile?.headline && (
+            <p className="text-sm font-medium text-eleva-neutral-900/60">{profile.headline}</p>
+          )}
+          {/* Categories */}
+          {(profile?.primaryCategory || profile?.secondaryCategory) && (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {profile.primaryCategory && (
+                <span className="rounded-full bg-eleva-neutral-100 px-3 py-1 text-sm font-medium text-eleva-neutral-900">
+                  {profile.primaryCategory.name}
+                </span>
+              )}
+              {profile.secondaryCategory && (
+                <span className="rounded-full bg-eleva-neutral-100 px-3 py-1 text-sm font-medium text-eleva-neutral-900">
+                  {profile.secondaryCategory.name}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="space-y-4">
+          <h2 className="flex w-full items-center justify-between text-xl font-medium text-eleva-neutral-900">
+            About me
+            {profile?.socialLinks && profile.socialLinks.length > 0 && (
+              <div className="flex gap-3">
+                {profile.socialLinks.map((link) => {
+                  if (!link.url) return null;
+                  const Icon = SOCIAL_ICONS[link.name as keyof typeof SOCIAL_ICONS];
+                  return (
+                    <a
+                      key={link.name}
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener nofollow noreferrer"
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      {Icon && (
+                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-eleva-neutral-200 p-1">
+                          <Icon className="h-5 w-5 text-eleva-neutral-900" />
+                        </span>
+                      )}
+                      <span className="sr-only">{link.name}</span>
+                    </a>
+                  );
+                })}
+              </div>
+            )}
+          </h2>
+          {profile?.longBio && (
+            <div className="prose-eleva-neutral-900 prose-font-light prose prose-base">
+              <ReactMarkdown>{profile.longBio}</ReactMarkdown>
+            </div>
+          )}
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
