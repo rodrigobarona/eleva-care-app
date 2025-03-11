@@ -149,12 +149,28 @@ export function ExpertSetupChecklist() {
       }
     };
 
+    // Handle Google account disconnection specifically
+    const handleGoogleAccountDisconnected = (event: Event) => {
+      console.log('Google account disconnected event received:', event);
+      if (isLoaded) {
+        // Directly update the Google account step in the UI for immediate feedback
+        setSetupSteps((prev) =>
+          prev.map((step) => (step.id === 'google_account' ? { ...step, completed: false } : step)),
+        );
+
+        // Then reload the full status from the server to ensure everything is in sync
+        loadCompletionStatus();
+      }
+    };
+
     // Listen for custom events that signal a task update
     window.addEventListener('expert-setup-updated', handleStatusUpdate);
+    window.addEventListener('google-account-disconnected', handleGoogleAccountDisconnected);
 
     // Clean up the event listener when component unmounts
     return () => {
       window.removeEventListener('expert-setup-updated', handleStatusUpdate);
+      window.removeEventListener('google-account-disconnected', handleGoogleAccountDisconnected);
     };
   }, [isLoaded, loadCompletionStatus]);
 

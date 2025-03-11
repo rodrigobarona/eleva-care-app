@@ -12,6 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
+import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
 import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
@@ -267,11 +268,46 @@ export default function SecurityPage() {
         throw new Error('Account not found');
       }
 
+      // Check if this is a Google account being disconnected
+      const isGoogleAccount = accountToDisconnect.provider === 'google';
+
       // Use the destroy() method on the external account object to disconnect it
       await accountToDisconnect.destroy();
 
       // Reload user data to reflect changes
       await user?.reload();
+
+      // If this was a Google account, update the expert setup status
+      if (isGoogleAccount) {
+        try {
+          // Force refresh the expert setup status to update the Google account flag
+          await checkExpertSetupStatus();
+
+          // Notify any components listening for setup changes
+          if (typeof window !== 'undefined') {
+            // Dispatch an event to notify components that the Google account was disconnected
+            const disconnectEvent = new CustomEvent('google-account-disconnected', {
+              detail: {
+                timestamp: new Date().toISOString(),
+                accountType: 'google',
+              },
+            });
+            window.dispatchEvent(disconnectEvent);
+
+            // Also dispatch the general setup update event
+            window.dispatchEvent(new Event('expert-setup-updated'));
+          }
+
+          // Show a more specific toast message for Google accounts
+          toast.success(
+            'Google account disconnected. Your expert setup checklist has been updated.',
+          );
+          return;
+        } catch (setupError) {
+          console.error('Error updating expert setup status after disconnection:', setupError);
+          // Continue to show the general success message
+        }
+      }
 
       toast.success('Account disconnected successfully');
     } catch (error) {

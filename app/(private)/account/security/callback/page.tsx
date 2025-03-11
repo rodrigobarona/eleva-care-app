@@ -2,14 +2,12 @@
 
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { useClerk, useUser } from '@clerk/nextjs';
-import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function GoogleCallbackPage() {
   const { handleRedirectCallback } = useClerk();
   const { user, isLoaded } = useUser();
-  const router = useRouter();
   const [status, setStatus] = useState('Processing your authentication...');
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
@@ -119,9 +117,18 @@ export default function GoogleCallbackPage() {
           const returnUrl = sessionStorage.getItem('oauth_return_url') || '/account/security';
           sessionStorage.removeItem('oauth_return_url'); // Clear after use
 
+          // Log the return URL for debugging
+          console.log('OAuth callback: Redirecting to', returnUrl);
+
+          // Store the return URL in window.sessionStorage for access after page refresh
+          sessionStorage.setItem('post_oauth_redirect', returnUrl);
+
           // Redirect back after a short delay
           setTimeout(() => {
-            router.push(returnUrl);
+            // Force the redirect to the security page
+            window.location.href = returnUrl.startsWith('/')
+              ? `${window.location.origin}${returnUrl}`
+              : returnUrl;
           }, 2000);
         } else {
           throw new Error('No redirect callback handler available');
@@ -165,13 +172,20 @@ export default function GoogleCallbackPage() {
         // Still redirect back to security page after a delay
         setTimeout(() => {
           const returnUrl = sessionStorage.getItem('oauth_return_url') || '/account/security';
-          router.push(returnUrl);
+          sessionStorage.removeItem('oauth_return_url'); // Clear after use
+
+          console.log('OAuth callback (error case): Redirecting to', returnUrl);
+
+          // Force the redirect to the security page
+          window.location.href = returnUrl.startsWith('/')
+            ? `${window.location.origin}${returnUrl}`
+            : returnUrl;
         }, 3000);
       }
     }
 
     processCallback();
-  }, [handleRedirectCallback, router, isLoaded, user]);
+  }, [handleRedirectCallback, isLoaded, user]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
