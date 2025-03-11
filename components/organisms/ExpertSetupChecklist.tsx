@@ -142,7 +142,7 @@ export function ExpertSetupChecklist() {
 
   // Handle Google account disconnection specifically
   const handleGoogleAccountDisconnected = useCallback(
-    (event: Event) => {
+    async (event: Event) => {
       console.log('Google account disconnected event received:', event);
       if (isLoaded) {
         // Directly update the Google account step in the UI for immediate feedback
@@ -152,24 +152,39 @@ export function ExpertSetupChecklist() {
 
         // Update the metadata to reflect the disconnection
         if (user) {
-          const currentMetadata = { ...user.unsafeMetadata };
-          if (currentMetadata.expertSetup) {
-            const expertSetup = currentMetadata.expertSetup as Record<string, boolean>;
-            expertSetup.google_account = false;
+          try {
+            const currentMetadata = { ...user.unsafeMetadata };
+            if (currentMetadata.expertSetup) {
+              const expertSetup = currentMetadata.expertSetup as Record<string, boolean>;
+              expertSetup.google_account = false;
 
-            // Update the user metadata
-            user
-              .update({
-                unsafeMetadata: currentMetadata,
-              })
-              .catch((error) => {
-                console.error('Error updating user metadata after Google disconnection:', error);
+              // Update the user metadata with the modified expertSetup
+              await user.update({
+                unsafeMetadata: {
+                  ...currentMetadata,
+                  expertSetup,
+                  // Reset completion flags since a required step is now incomplete
+                  setup_completion_toast_shown: false,
+                  setup_completed_at: null,
+                },
               });
+
+              console.log('Updated user metadata after Google disconnection:', {
+                expertSetup,
+                currentMetadata,
+              });
+            }
+
+            // Then reload the full status from the server to ensure everything is in sync
+            await loadCompletionStatus();
+
+            // Dispatch the general setup update event
+            window.dispatchEvent(new Event('expert-setup-updated'));
+          } catch (error) {
+            console.error('Error updating user metadata after Google disconnection:', error);
+            toast.error('Failed to update setup status. Please refresh the page.');
           }
         }
-
-        // Then reload the full status from the server to ensure everything is in sync
-        loadCompletionStatus();
       }
     },
     [isLoaded, user, loadCompletionStatus],
