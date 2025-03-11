@@ -74,7 +74,6 @@ export default function SecurityPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [canDelete, setCanDelete] = useState(false);
   const [isSettingPassword, setIsSettingPassword] = useState(false);
-  const [isDisconnectingAccount, setIsDisconnectingAccount] = useState(false);
   const [isConnectingAccount, setIsConnectingAccount] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
@@ -257,66 +256,53 @@ export default function SecurityPage() {
 
   const handleDisconnectAccount = async (accountId: string) => {
     try {
-      setIsDisconnectingAccount(true);
+      setIsLoading(true);
+      const account = user?.externalAccounts.find((acc) => acc.id === accountId);
+      const googleEmail = account?.emailAddress;
 
-      // Find the account to disconnect
-      const accountToDisconnect = user?.externalAccounts.find(
-        (account) => account.id === accountId,
-      );
-
-      if (!accountToDisconnect) {
-        throw new Error('Account not found');
+      // Disconnect the account using the destroy() method
+      const accountToDisconnect = user?.externalAccounts.find((acc) => acc.id === accountId);
+      if (accountToDisconnect) {
+        await accountToDisconnect.destroy();
       }
 
-      // Check if this is a Google account being disconnected
-      const isGoogleAccount = accountToDisconnect.provider === 'google';
-
-      // Use the destroy() method on the external account object to disconnect it
-      await accountToDisconnect.destroy();
-
-      // Reload user data to reflect changes
-      await user?.reload();
-
-      // If this was a Google account, update the expert setup status
-      if (isGoogleAccount) {
-        try {
-          // Force refresh the expert setup status to update the Google account flag
-          await checkExpertSetupStatus();
-
-          // Notify any components listening for setup changes
-          if (typeof window !== 'undefined') {
-            // Dispatch an event to notify components that the Google account was disconnected
-            const disconnectEvent = new CustomEvent('google-account-disconnected', {
-              detail: {
-                timestamp: new Date().toISOString(),
-                accountType: 'google',
-              },
-            });
-            window.dispatchEvent(disconnectEvent);
-
-            // Also dispatch the general setup update event
-            window.dispatchEvent(new Event('expert-setup-updated'));
-          }
-
-          // Show a more specific toast message for Google accounts
-          toast.success(
-            'Google account disconnected. Your expert setup checklist has been updated.',
-          );
-          return;
-        } catch (setupError) {
-          console.error('Error updating expert setup status after disconnection:', setupError);
-          // Continue to show the general success message
+      // Find and remove the email if it's not the primary email
+      if (googleEmail && user?.primaryEmailAddress?.emailAddress !== googleEmail) {
+        const emailToRemove = user?.emailAddresses.find(
+          (email) => email.emailAddress === googleEmail,
+        );
+        if (emailToRemove) {
+          await emailToRemove.destroy();
         }
       }
 
-      toast.success('Account disconnected successfully');
+      // Update expert setup status
+      await checkExpertSetupStatus();
+
+      // Dispatch the disconnection event
+      window.dispatchEvent(
+        new CustomEvent('google-account-disconnected', {
+          detail: {
+            timestamp: new Date().toISOString(),
+            accountId,
+            email: googleEmail,
+          },
+        }),
+      );
+
+      toast.success(
+        `Successfully disconnected Google account${googleEmail ? ` (${googleEmail})` : ''}`,
+      );
+
+      // Force a reload after a short delay to ensure all changes are reflected
+      setTimeout(() => {
+        window.location.href = '/account/security';
+      }, 1500);
     } catch (error) {
       console.error('Error disconnecting account:', error);
-      toast.error(
-        `Failed to disconnect account: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      );
+      toast.error('Failed to disconnect account. Please try again.');
     } finally {
-      setIsDisconnectingAccount(false);
+      setIsLoading(false);
     }
   };
 
@@ -798,9 +784,9 @@ export default function SecurityPage() {
                   <Button
                     variant="outline"
                     onClick={() => handleDisconnectAccount(account.id)}
-                    disabled={isDisconnectingAccount}
+                    disabled={isLoading}
                   >
-                    {isDisconnectingAccount ? 'Disconnecting...' : 'Disconnect'}
+                    {isLoading ? 'Disconnecting...' : 'Disconnect'}
                   </Button>
                 </div>
               ))

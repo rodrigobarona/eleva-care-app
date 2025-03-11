@@ -140,17 +140,9 @@ export function ExpertSetupChecklist() {
     }
   }, [isLoaded, loadCompletionStatus]);
 
-  // Subscribe to events that might update the checklist status
-  useEffect(() => {
-    // Define function for handling custom events
-    const handleStatusUpdate = () => {
-      if (isLoaded) {
-        loadCompletionStatus();
-      }
-    };
-
-    // Handle Google account disconnection specifically
-    const handleGoogleAccountDisconnected = (event: Event) => {
+  // Handle Google account disconnection specifically
+  const handleGoogleAccountDisconnected = useCallback(
+    (event: Event) => {
       console.log('Google account disconnected event received:', event);
       if (isLoaded) {
         // Directly update the Google account step in the UI for immediate feedback
@@ -158,7 +150,36 @@ export function ExpertSetupChecklist() {
           prev.map((step) => (step.id === 'google_account' ? { ...step, completed: false } : step)),
         );
 
+        // Update the metadata to reflect the disconnection
+        if (user) {
+          const currentMetadata = { ...user.unsafeMetadata };
+          if (currentMetadata.expertSetup) {
+            const expertSetup = currentMetadata.expertSetup as Record<string, boolean>;
+            expertSetup.google_account = false;
+
+            // Update the user metadata
+            user
+              .update({
+                unsafeMetadata: currentMetadata,
+              })
+              .catch((error) => {
+                console.error('Error updating user metadata after Google disconnection:', error);
+              });
+          }
+        }
+
         // Then reload the full status from the server to ensure everything is in sync
+        loadCompletionStatus();
+      }
+    },
+    [isLoaded, user, loadCompletionStatus],
+  );
+
+  // Subscribe to events that might update the checklist status
+  useEffect(() => {
+    // Define function for handling custom events
+    const handleStatusUpdate = () => {
+      if (isLoaded) {
         loadCompletionStatus();
       }
     };
@@ -172,7 +193,7 @@ export function ExpertSetupChecklist() {
       window.removeEventListener('expert-setup-updated', handleStatusUpdate);
       window.removeEventListener('google-account-disconnected', handleGoogleAccountDisconnected);
     };
-  }, [isLoaded, loadCompletionStatus]);
+  }, [isLoaded, loadCompletionStatus, handleGoogleAccountDisconnected]);
 
   // Add a function to check if all steps are complete based on Clerk metadata
   const checkAllStepsCompleteFromMetadata = useCallback(() => {
