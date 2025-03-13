@@ -350,8 +350,9 @@ function MeetingFormContent({
                 <Input
                   {...field}
                   onChange={(e) => {
-                    field.onChange(e);
-                    setQueryStates({ name: e.target.value });
+                    const value = e.target.value;
+                    field.onChange(value);
+                    setQueryStates((prev) => ({ ...prev, name: value }));
                   }}
                   placeholder="Enter your full name"
                 />
@@ -371,8 +372,9 @@ function MeetingFormContent({
                   type="email"
                   {...field}
                   onChange={(e) => {
-                    field.onChange(e);
-                    setQueryStates({ email: e.target.value });
+                    const value = e.target.value;
+                    field.onChange(value);
+                    setQueryStates((prev) => ({ ...prev, email: value }));
                   }}
                   placeholder="you@example.com"
                 />

@@ -60,13 +60,14 @@ export function ClientProviders({ children }: ProvidersProps) {
       // Initialize PostHog with error handling
       posthog.init(apiKey, {
         api_host: apiHost,
-        capture_pageview: false, // Disable automatic pageview capture, as we capture manually
-        capture_pageleave: true, // Enable pageleave capture
+        capture_pageview: false,
+        capture_pageleave: true,
         loaded: (_ph) => {
           setPosthogLoaded(true);
         },
-        advanced_disable_decide: false, // If still getting remote config errors, set to true
-        disable_session_recording: true, // Disable session recording to prevent infinite recursion
+        advanced_disable_decide: true, // Disable remote configuration
+        disable_session_recording: true, // Disable session recording
+        autocapture: false, // Disable automatic event capture
       });
 
       // Add global error listener for PostHog
