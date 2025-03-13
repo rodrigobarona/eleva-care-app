@@ -69,11 +69,6 @@ export default async function BookEventPage(props: PageProps) {
   const calendarUser = await clerk.users.getUser(user.id);
 
   return (
-            </div>
-          )}
-        </div>
-      </CardHeader>
-
     <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center p-4 md:mt-0 md:h-dvh md:p-6">
       <CardContent className="p-0 pt-8">
         {/* Use Suspense to wrap the availability-dependent component */}
