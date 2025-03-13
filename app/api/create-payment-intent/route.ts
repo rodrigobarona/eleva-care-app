@@ -115,6 +115,7 @@ export async function POST(request: Request) {
         originalPrice: price,
         feeAmount: applicationFeeAmount,
         feePercentage: STRIPE_CONFIG.PLATFORM_FEE_PERCENTAGE,
+        expertAmount: price - applicationFeeAmount,
       });
 
       // Calculate transfer schedule (3 hours after session)
@@ -157,6 +158,8 @@ export async function POST(request: Request) {
               expertConnectAccountId: event.user.stripeConnectAccountId,
               sessionStartTime: sessionStartTime.toISOString(),
               scheduledTransferTime: transferDate.toISOString(),
+              platformFee: applicationFeeAmount.toString(), // Add platform fee to metadata for transparency
+              expertAmount: (price - applicationFeeAmount).toString(), // Add expert amount to metadata
             },
           },
           line_items: [

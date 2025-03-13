@@ -199,36 +199,76 @@ export function MeetingFormContent({
     }
   }, [checkoutUrl, eventId, price, username, eventSlug, form, clerkUserId]);
 
+  // Prefetch checkout URL when step 2 is filled out
+  React.useEffect(() => {
+    // Only prefetch if we're on step 2, have complete valid form data, price > 0, and not already fetched
+    const hasCompletedForm =
+      form.getValues('guestName')?.length > 2 &&
+      form.getValues('guestEmail')?.length > 5 &&
+      form.getValues('guestEmail').includes('@');
+
+    const canPrefetch =
+      currentStep === '2' && hasCompletedForm && price > 0 && !checkoutUrl && !isPrefetching;
+
+    if (canPrefetch) {
+      // Prefetch with a longer delay to avoid interfering with user typing
+      const timer = setTimeout(() => {
+        // Don't show UI indication during prefetch - do it silently
+        setIsPrefetching(true);
+        createPaymentIntent()
+          .then(() => {
+            // Successfully prefetched
+            console.log('Checkout URL prefetched successfully');
+          })
+          .catch((error) => {
+            // Prefetch failed, but we don't need to show an error to the user
+            console.error('Prefetch failed:', error);
+          })
+          .finally(() => {
+            setIsPrefetching(false);
+          });
+      }, 3000); // 3-second delay after user completes form
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, form, price, checkoutUrl, isPrefetching, createPaymentIntent]);
+
   // Handle next step with improved checkout flow
   const handleNextStep = React.useCallback(
     async (nextStep: typeof currentStep) => {
-      // If moving to step 3 and price is positive, start prefetching
-      if (nextStep === '3' && price > 0 && !isPrefetching && !checkoutUrl) {
-        setIsPrefetching(true);
-        createPaymentIntent().finally(() => setIsPrefetching(false));
+      // If not going to step 3, just transition
+      if (nextStep !== '3') {
+        transitionToStep(nextStep);
+        return;
       }
 
-      setIsSubmitting(true);
-
-      try {
-        if (nextStep !== '3') {
-          transitionToStep(nextStep);
-          setIsSubmitting(false);
-          return;
-        }
-
-        // Handle step 3
-        if (price === 0) {
+      // For free sessions, handle differently
+      if (price === 0) {
+        setIsSubmitting(true);
+        try {
           await form.handleSubmit(onSubmit)();
-          return;
+        } catch (error) {
+          console.error('Error submitting form:', error);
+          form.setError('root', {
+            message: 'Failed to process request',
+          });
+        } finally {
+          setIsSubmitting(false);
         }
+        return;
+      }
 
-        // For paid sessions, get or create checkout URL
+      // For paid sessions
+      setIsSubmitting(true);
+      try {
+        // First move to step 3 immediately to show loading
+        transitionToStep('3');
+
+        // Then get or create checkout URL
         const url = await createPaymentIntent();
 
         if (url) {
           // Keep loading state active until navigation
-          // Use router.push for client-side navigation when possible
           if (url.startsWith('/') || url.startsWith(window.location.origin)) {
             router.push(url);
           } else {
@@ -242,42 +282,13 @@ export function MeetingFormContent({
         form.setError('root', {
           message: 'Failed to process request',
         });
+        // Go back to step 2 on error
+        transitionToStep('2');
         setIsSubmitting(false);
       }
     },
-    [
-      form,
-      price,
-      createPaymentIntent,
-      onSubmit,
-      router,
-      transitionToStep,
-      isPrefetching,
-      checkoutUrl,
-    ],
+    [form, price, createPaymentIntent, onSubmit, router, transitionToStep],
   );
-
-  // Prefetch checkout URL when step 2 is filled out
-  React.useEffect(() => {
-    // Only prefetch if we're on step 2, have valid form data, price > 0, and not already fetched
-    const canPrefetch =
-      currentStep === '2' &&
-      form.getValues('guestName') &&
-      form.getValues('guestEmail') &&
-      price > 0 &&
-      !checkoutUrl &&
-      !isPrefetching;
-
-    if (canPrefetch) {
-      // Prefetch with a delay to avoid unnecessary requests during typing
-      const timer = setTimeout(() => {
-        setIsPrefetching(true);
-        createPaymentIntent().finally(() => setIsPrefetching(false));
-      }, 2000); // 2-second delay after user completes form
-
-      return () => clearTimeout(timer);
-    }
-  }, [currentStep, form, price, checkoutUrl, isPrefetching, createPaymentIntent]);
 
   // Effects
   React.useEffect(() => {
@@ -498,8 +509,7 @@ export function MeetingFormContent({
           className="relative"
         >
           {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
-          {(isSubmitting || isPrefetching) && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-          {isPrefetching && !isSubmitting && <span className="sr-only">Preparing checkout...</span>}
+          {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
         </Button>
       </div>
     </div>
