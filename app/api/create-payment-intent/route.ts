@@ -137,12 +137,6 @@ export async function POST(request: Request) {
           customer: customerId as string,
           payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
           mode: 'payment',
-          allow_promotion_codes: true,
-          billing_address_collection: 'required',
-          ui_mode: 'embedded',
-          return_url: `${baseUrl}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
-            meetingData.startTime,
-          )}`,
           payment_intent_data: {
             application_fee_amount: applicationFeeAmount,
             transfer_data: {
@@ -176,17 +170,26 @@ export async function POST(request: Request) {
             sessionStartTime: sessionStartTime.toISOString(),
             scheduledTransferTime: transferDate.toISOString(),
           },
+          success_url: `${baseUrl}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
+            meetingData.startTime,
+          )}`,
+          cancel_url: `${baseUrl}/${username}/${eventSlug}?s=2&d=${encodeURIComponent(
+            meetingData.date,
+          )}&t=${encodeURIComponent(meetingData.startTime)}&n=${encodeURIComponent(
+            meetingData.guestName,
+          )}&e=${encodeURIComponent(
+            meetingData.guestEmail,
+          )}&tz=${encodeURIComponent(meetingData.timezone)}`,
         } as Stripe.Checkout.SessionCreateParams),
       );
 
       console.log('Checkout session created successfully:', {
         sessionId: session.id,
-        clientSecret: session.client_secret,
+        url: session.url,
       });
 
       return NextResponse.json({
-        sessionId: session.id,
-        clientSecret: session.client_secret,
+        url: session.url,
       });
     } catch (error) {
       console.error('Checkout session creation failed:', {

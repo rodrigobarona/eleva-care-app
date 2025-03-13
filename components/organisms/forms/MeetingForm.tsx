@@ -13,7 +13,6 @@ import {
   FormMessage,
 } from '@/components/molecules/form';
 import { BookingLayout } from '@/components/organisms/BookingLayout';
-import { StripeCheckout } from '@/components/organisms/EmbeddedCheckout';
 import { hasValidTokens } from '@/lib/googleCalendarClient';
 import { cn } from '@/lib/utils';
 import { meetingFormSchema } from '@/schema/meetings';
@@ -75,10 +74,6 @@ function MeetingFormContent({
   const [transitionDirection, setTransitionDirection] = React.useState<'forward' | 'backward'>(
     'forward',
   );
-  const [checkoutData, setCheckoutData] = React.useState<{
-    clientSecret: string;
-    sessionId: string;
-  } | null>(null);
 
   // Query state configuration
   const queryStateParsers = React.useMemo(
@@ -217,10 +212,15 @@ function MeetingFormContent({
           throw new Error('Failed to create checkout session');
         }
 
-        const data = await response.json();
-        if (data.clientSecret && data.sessionId) {
-          setCheckoutData(data);
-          transitionToStep('3', 'forward');
+        const { url } = await response.json();
+        if (url) {
+          // Use router.push for client-side navigation when possible
+          // For external URLs (like Stripe), we still need to use window.location
+          if (url.startsWith('/') || url.startsWith(window.location.origin)) {
+            router.push(url);
+          } else {
+            window.location.href = url;
+          }
         }
       } catch (error) {
         console.error('Error:', error);
@@ -419,17 +419,11 @@ function MeetingFormContent({
 
   // Content for Step 3
   const Step3Content = () => (
-    <div className="mx-auto w-full max-w-3xl p-6">
-      {checkoutData ? (
-        <StripeCheckout clientSecret={checkoutData.clientSecret} />
-      ) : (
-        <div className="flex items-center justify-center py-12">
-          <div className="text-center">
-            <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-            <p className="mt-4 text-lg font-medium">Preparing checkout...</p>
-          </div>
-        </div>
-      )}
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-lg font-medium">Redirecting to payment...</p>
+      </div>
     </div>
   );
 
