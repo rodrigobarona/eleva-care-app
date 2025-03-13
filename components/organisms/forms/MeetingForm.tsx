@@ -101,6 +101,8 @@ export function MeetingFormContent({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
       timezone: queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+      guestName: queryStates.name || '',
+      guestEmail: queryStates.email || '',
     },
   });
 
@@ -222,6 +224,17 @@ export function MeetingFormContent({
     setQueryStates({ date: localDate });
   }, [validTimes, queryStates.date, form, setQueryStates]);
 
+  // Effect to sync form values with query params when they change
+  React.useEffect(() => {
+    // Only update form values if query params have values
+    if (queryStates.name) {
+      form.setValue('guestName', queryStates.name);
+    }
+    if (queryStates.email) {
+      form.setValue('guestEmail', queryStates.email);
+    }
+  }, [queryStates.name, queryStates.email, form]);
+
   React.useEffect(() => {
     const checkCalendarAccess = async () => {
       try {
@@ -317,9 +330,11 @@ export function MeetingFormContent({
                 <Input
                   {...field}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    field.onChange(value);
-                    setQueryStates((prev) => ({ ...prev, name: value }));
+                    field.onChange(e.target.value);
+                  }}
+                  onBlur={(e) => {
+                    field.onBlur();
+                    setQueryStates((prev) => ({ ...prev, name: e.target.value }));
                   }}
                   placeholder="Enter your full name"
                 />
@@ -339,9 +354,11 @@ export function MeetingFormContent({
                   type="email"
                   {...field}
                   onChange={(e) => {
-                    const value = e.target.value;
-                    field.onChange(value);
-                    setQueryStates((prev) => ({ ...prev, email: value }));
+                    field.onChange(e.target.value);
+                  }}
+                  onBlur={(e) => {
+                    field.onBlur();
+                    setQueryStates((prev) => ({ ...prev, email: e.target.value }));
                   }}
                   placeholder="you@example.com"
                 />
