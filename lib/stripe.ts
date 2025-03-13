@@ -452,9 +452,11 @@ export function getBaseUrl() {
 }
 
 export async function createStripeConnectAccount(email: string, country: string) {
+  console.log('Creating Stripe Connect account:', { email, country });
+
   const account = await stripe.accounts.create({
     type: 'express',
-    country,
+    country: country.toUpperCase(), // Ensure country code is uppercase
     email,
     capabilities: {
       card_payments: { requested: true },
@@ -469,6 +471,12 @@ export async function createStripeConnectAccount(email: string, country: string)
         },
       },
     },
+  });
+
+  console.log('Stripe Connect account created:', {
+    accountId: account.id,
+    country: account.country,
+    email: account.email,
   });
 
   return { accountId: account.id };
@@ -571,6 +579,7 @@ export async function getStripeConnectSetupOrLoginLink(accountId: string) {
         refresh_url: `${baseUrl}/account/billing?refresh=true`,
         return_url: `${baseUrl}/account/billing?success=true`,
         type: 'account_onboarding',
+        collect: 'eventually_due',
       });
       return accountLink.url;
     }
