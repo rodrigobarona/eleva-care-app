@@ -143,6 +143,7 @@ export async function POST(request: Request) {
           automatic_tax: { enabled: true },
           customer_update: {
             address: 'auto', // Save billing address to customer
+            name: 'auto', // Allow updating business name for tax ID collection
           },
           submit_type: 'book',
           payment_intent_data: {
