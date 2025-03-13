@@ -532,28 +532,51 @@ export async function getStripeConnectLoginLink(accountId: string) {
   }
 }
 
-export async function getStripeConnectSetupOrLoginLink(accountId: string) {
-  try {
-    // First check the account status
-    const account = await stripe.accounts.retrieve(accountId);
-    const baseUrl = getBaseUrl();
-
-    if (!account.details_submitted) {
-      // If onboarding is not complete, create a new setup link
-      const setupLink = await stripe.accountLinks.create({
-        account: accountId,
-        refresh_url: `${baseUrl}/account/billing?refresh=true`,
-        return_url: `${baseUrl}/account/billing?success=true`,
-        type: 'account_onboarding',
-      });
-      return setupLink.url;
+async function withRetry<T>(operation: () => Promise<T>, maxRetries = 3, delay = 1000): Promise<T> {
+  let lastError: Error | null = null;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (error instanceof Stripe.errors.StripeError) {
+        // Only retry on rate limiting or network errors
+        if (error.type === 'StripeRateLimitError' || error.type === 'StripeConnectionError') {
+          await new Promise((resolve) => setTimeout(resolve, delay * (i + 1)));
+          continue;
+        }
+      }
+      throw error;
     }
-
-    // If onboarding is complete, create a login link
-    const loginLink = await stripe.accounts.createLoginLink(accountId);
-    return loginLink.url;
-  } catch (error) {
-    console.error('Error creating Stripe Connect link:', error);
-    throw error;
   }
+  throw lastError;
+}
+
+export async function getStripeConnectSetupOrLoginLink(accountId: string) {
+  return withRetry(async () => {
+    try {
+      const account = await stripe.accounts.retrieve(accountId);
+      const baseUrl = getBaseUrl();
+
+      if (!account.details_submitted) {
+        const setupLink = await stripe.accountLinks.create({
+          account: accountId,
+          refresh_url: `${baseUrl}/account/billing?refresh=true`,
+          return_url: `${baseUrl}/account/billing?success=true`,
+          type: 'account_onboarding',
+        });
+        return setupLink.url;
+      }
+
+      const loginLink = await stripe.accounts.createLoginLink(accountId);
+      return loginLink.url;
+    } catch (error) {
+      console.error('Error creating Stripe Connect link:', {
+        error,
+        accountId,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
+  });
 }

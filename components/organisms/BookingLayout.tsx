@@ -153,7 +153,7 @@ export function BookingLayout({
         {/* Left column - Expert Profile */}
         <div
           className={cn(
-            'flex h-full flex-col space-y-6 p-6 md:border',
+            'flex h-full flex-col space-y-6 p-6 pr-0 md:border',
             showCalendar ? 'md:rounded-l-lg md:border-r-0' : 'md:rounded-lg',
           )}
         >
@@ -231,10 +231,10 @@ export function BookingLayout({
                 <span>{formattedPrice}</span>
               </div>
             )}
-            <div className="flex flex-col gap-2">
+            <div className="flex w-full flex-col gap-2">
               <Select value={timezone} onValueChange={(value) => onTimezoneChange?.(value)}>
                 <SelectTrigger className="h-9 w-full -translate-x-2 border-none px-2 text-sm shadow-none hover:bg-eleva-neutral-100 focus:ring-0">
-                  <Globe className="h-4 w-4" />
+                  <Globe className="mr-2 h-4 w-4" />
                   <SelectValue placeholder={timezone.replace('_', ' ')} />
                 </SelectTrigger>
                 <SelectContent>
