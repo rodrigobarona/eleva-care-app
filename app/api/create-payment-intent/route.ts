@@ -137,19 +137,16 @@ export async function POST(request: Request) {
           customer: customerId as string,
           payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
           mode: 'payment',
-          // Allow promotion codes
           allow_promotion_codes: true,
-          // To calculate tax automatically:
-          automatic_tax: { enabled: true },
-          // To collect a full billing address (and VAT number via tax ID collection):
           billing_address_collection: 'required',
           tax_id_collection: { enabled: true },
-          // Change the button text to “Book” (supported values include "book", "donate", etc.):
+          automatic_tax: { enabled: true },
+          customer_update: {
+            address: 'auto', // Save billing address to customer
+          },
           submit_type: 'book',
-          // Payment intent data
           payment_intent_data: {
             application_fee_amount: applicationFeeAmount,
-            // To save payment details for future off-session use:
             setup_future_usage: 'off_session',
             transfer_data: {
               destination: event.user.stripeConnectAccountId,
