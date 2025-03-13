@@ -464,7 +464,8 @@ export async function createStripeConnectAccount(email: string, country: string)
     settings: {
       payouts: {
         schedule: {
-          interval: 'manual',
+          interval: 'daily',
+          delay_days: 0,
         },
       },
     },

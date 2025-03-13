@@ -117,6 +117,10 @@ export async function POST(request: Request) {
         feePercentage: STRIPE_CONFIG.PLATFORM_FEE_PERCENTAGE,
       });
 
+      // Calculate transfer schedule (3 hours after session)
+      const sessionStartTime = new Date(meetingData.startTime);
+      const transferDate = new Date(sessionStartTime.getTime() + 3 * 60 * 60 * 1000); // 3 hours after session
+
       // Create checkout session with detailed logging
       console.log('Creating checkout session with params:', {
         customerId,
@@ -142,6 +146,11 @@ export async function POST(request: Request) {
               eventId,
               meetingData: JSON.stringify(meetingMetadata),
               expertConnectAccountId: event.user.stripeConnectAccountId,
+              sessionStartTime: sessionStartTime.toISOString(),
+              scheduledTransferTime: transferDate.toISOString(),
+            },
+            transfer_schedule: {
+              delay_days: Math.ceil((transferDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
             },
           },
           line_items: [
@@ -150,9 +159,7 @@ export async function POST(request: Request) {
                 currency: STRIPE_CONFIG.CURRENCY,
                 product_data: {
                   name: 'Consultation Booking',
-                  description: `Booking for ${meetingData.guestName} on ${new Date(
-                    meetingData.startTime,
-                  ).toLocaleString()}`,
+                  description: `Booking for ${meetingData.guestName} on ${sessionStartTime.toLocaleString()} (funds will be released 3 hours after session)`,
                 },
                 unit_amount: Math.round(price),
               },
@@ -163,6 +170,8 @@ export async function POST(request: Request) {
             eventId,
             meetingData: JSON.stringify(meetingMetadata),
             expertConnectAccountId: event.user.stripeConnectAccountId,
+            sessionStartTime: sessionStartTime.toISOString(),
+            scheduledTransferTime: transferDate.toISOString(),
           },
           success_url: `${baseUrl}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
             meetingData.startTime,
