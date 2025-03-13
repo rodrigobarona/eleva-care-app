@@ -41,6 +41,12 @@ export function ClientProviders({ children }: ProvidersProps) {
     // Only run on client
     if (typeof window === 'undefined') return;
 
+    // Skip PostHog on localhost/development environments
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      console.info('[PostHog] Skipped initialization on localhost');
+      return;
+    }
+
     // Check if we have valid config
     const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
     const apiHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
@@ -60,6 +66,7 @@ export function ClientProviders({ children }: ProvidersProps) {
           setPosthogLoaded(true);
         },
         advanced_disable_decide: false, // If still getting remote config errors, set to true
+        disable_session_recording: true, // Disable session recording to prevent infinite recursion
       });
 
       // Add global error listener for PostHog
