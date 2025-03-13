@@ -69,6 +69,14 @@ export function MeetingFormContent({
   const use24Hour = false;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isCalendarSynced, setIsCalendarSynced] = React.useState(true);
+  const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
+  const [isPrefetching, setIsPrefetching] = React.useState(false);
+
+  // Refs for input focus management
+  const nameInputRef = React.useRef<HTMLInputElement>(null);
+  const emailInputRef = React.useRef<HTMLInputElement>(null);
+  const [nameValue, setNameValue] = React.useState('');
+  const [emailValue, setEmailValue] = React.useState('');
 
   // Query state configuration
   const queryStateParsers = React.useMemo(
@@ -153,8 +161,53 @@ export function MeetingFormContent({
     [currentStep, price, eventId, clerkUserId, form, router],
   );
 
+  // Function to create or get payment intent
+  const createPaymentIntent = React.useCallback(async (): Promise<string | null> => {
+    try {
+      // If we already have a checkout URL, return it
+      if (checkoutUrl) return checkoutUrl;
+
+      const response = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          eventId,
+          price,
+          username,
+          eventSlug,
+          meetingData: {
+            ...form.getValues(),
+            clerkUserId,
+            startTime: form.getValues('startTime')?.toISOString(),
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const { url } = await response.json();
+      if (url) {
+        setCheckoutUrl(url);
+        return url;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error creating payment intent:', error);
+      return null;
+    }
+  }, [checkoutUrl, eventId, price, username, eventSlug, form, clerkUserId]);
+
+  // Handle next step with improved checkout flow
   const handleNextStep = React.useCallback(
     async (nextStep: typeof currentStep) => {
+      // If moving to step 3 and price is positive, start prefetching
+      if (nextStep === '3' && price > 0 && !isPrefetching && !checkoutUrl) {
+        setIsPrefetching(true);
+        createPaymentIntent().finally(() => setIsPrefetching(false));
+      }
+
       setIsSubmitting(true);
 
       try {
@@ -170,47 +223,61 @@ export function MeetingFormContent({
           return;
         }
 
-        const response = await fetch('/api/create-payment-intent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            eventId,
-            price,
-            username,
-            eventSlug,
-            meetingData: {
-              ...form.getValues(),
-              clerkUserId,
-              startTime: form.getValues('startTime')?.toISOString(),
-            },
-          }),
-        });
+        // For paid sessions, get or create checkout URL
+        const url = await createPaymentIntent();
 
-        if (!response.ok) {
-          throw new Error('Failed to create checkout session');
-        }
-
-        const { url } = await response.json();
         if (url) {
+          // Keep loading state active until navigation
           // Use router.push for client-side navigation when possible
-          // For external URLs (like Stripe), we still need to use window.location
           if (url.startsWith('/') || url.startsWith(window.location.origin)) {
             router.push(url);
           } else {
             window.location.href = url;
           }
+        } else {
+          throw new Error('Failed to get checkout URL');
         }
       } catch (error) {
         console.error('Error:', error);
         form.setError('root', {
           message: 'Failed to process request',
         });
-      } finally {
         setIsSubmitting(false);
       }
     },
-    [form, price, eventId, clerkUserId, onSubmit, username, eventSlug, router, transitionToStep],
+    [
+      form,
+      price,
+      createPaymentIntent,
+      onSubmit,
+      router,
+      transitionToStep,
+      isPrefetching,
+      checkoutUrl,
+    ],
   );
+
+  // Prefetch checkout URL when step 2 is filled out
+  React.useEffect(() => {
+    // Only prefetch if we're on step 2, have valid form data, price > 0, and not already fetched
+    const canPrefetch =
+      currentStep === '2' &&
+      form.getValues('guestName') &&
+      form.getValues('guestEmail') &&
+      price > 0 &&
+      !checkoutUrl &&
+      !isPrefetching;
+
+    if (canPrefetch) {
+      // Prefetch with a delay to avoid unnecessary requests during typing
+      const timer = setTimeout(() => {
+        setIsPrefetching(true);
+        createPaymentIntent().finally(() => setIsPrefetching(false));
+      }, 2000); // 2-second delay after user completes form
+
+      return () => clearTimeout(timer);
+    }
+  }, [currentStep, form, price, checkoutUrl, isPrefetching, createPaymentIntent]);
 
   // Effects
   React.useEffect(() => {
@@ -275,6 +342,37 @@ export function MeetingFormContent({
     setQueryStates({ timezone: newTimezone });
   };
 
+  // Effect to update URL params less frequently - only when form gets completed
+  React.useEffect(() => {
+    // Only update URL when there's a name value
+    if (nameValue && currentStep === '2') {
+      const timer = setTimeout(() => {
+        setQueryStates((prev) => ({ ...prev, name: nameValue }));
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [nameValue, currentStep, setQueryStates]);
+
+  // Effect to update URL params less frequently - only when form gets completed
+  React.useEffect(() => {
+    // Only update URL when there's an email value
+    if (emailValue && currentStep === '2') {
+      const timer = setTimeout(() => {
+        setQueryStates((prev) => ({ ...prev, email: emailValue }));
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [emailValue, currentStep, setQueryStates]);
+
+  // Effect to auto-focus name input field when step 2 is shown
+  React.useEffect(() => {
+    if (currentStep === '2' && nameInputRef.current) {
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [currentStep]);
+
   // Early return for calendar sync check
   if (!isCalendarSynced) {
     return (
@@ -329,12 +427,11 @@ export function MeetingFormContent({
               <FormControl>
                 <Input
                   {...field}
+                  ref={nameInputRef}
                   onChange={(e) => {
-                    field.onChange(e.target.value);
-                  }}
-                  onBlur={(e) => {
-                    field.onBlur();
-                    setQueryStates((prev) => ({ ...prev, name: e.target.value }));
+                    const value = e.target.value;
+                    field.onChange(value);
+                    setNameValue(value);
                   }}
                   placeholder="Enter your full name"
                 />
@@ -353,12 +450,11 @@ export function MeetingFormContent({
                 <Input
                   type="email"
                   {...field}
+                  ref={emailInputRef}
                   onChange={(e) => {
-                    field.onChange(e.target.value);
-                  }}
-                  onBlur={(e) => {
-                    field.onBlur();
-                    setQueryStates((prev) => ({ ...prev, email: e.target.value }));
+                    const value = e.target.value;
+                    field.onChange(value);
+                    setEmailValue(value);
                   }}
                   placeholder="you@example.com"
                 />
@@ -395,9 +491,15 @@ export function MeetingFormContent({
         >
           Back
         </Button>
-        <Button type="button" onClick={() => handleNextStep('3')} disabled={isSubmitting}>
+        <Button
+          type="button"
+          onClick={() => handleNextStep('3')}
+          disabled={isSubmitting}
+          className="relative"
+        >
           {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
-          {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+          {(isSubmitting || isPrefetching) && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+          {isPrefetching && !isSubmitting && <span className="sr-only">Preparing checkout...</span>}
         </Button>
       </div>
     </div>
@@ -408,7 +510,9 @@ export function MeetingFormContent({
     <div className="flex items-center justify-center py-12">
       <div className="text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-lg font-medium">Redirecting to payment...</p>
+        <p className="mt-4 text-lg font-medium">
+          {checkoutUrl ? 'Redirecting to payment...' : 'Preparing checkout...'}
+        </p>
       </div>
     </div>
   );

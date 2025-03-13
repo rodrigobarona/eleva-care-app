@@ -138,6 +138,7 @@ export async function POST(request: Request) {
           payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
           mode: 'payment',
           allow_promotion_codes: true,
+          billing_address_collection: 'auto',
           tax_id_collection: { enabled: true },
           automatic_tax: { enabled: true },
           customer_update: {
