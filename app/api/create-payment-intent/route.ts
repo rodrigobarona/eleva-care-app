@@ -1,7 +1,7 @@
 import { calculateApplicationFee, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable } from '@/drizzle/schema';
-import { getOrCreateStripeCustomer } from '@/lib/stripe';
+import { getBaseUrl, getOrCreateStripeCustomer, withRetry } from '@/lib/stripe';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -126,56 +126,56 @@ export async function POST(request: Request) {
         currency: STRIPE_CONFIG.CURRENCY,
       });
 
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
-        payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
-        mode: 'payment',
-        payment_intent_data: {
-          application_fee_amount: applicationFeeAmount,
-          transfer_data: {
-            destination: event.user.stripeConnectAccountId,
+      const baseUrl = getBaseUrl();
+
+      const session = await withRetry(async () =>
+        stripe.checkout.sessions.create({
+          customer: customerId as string,
+          payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
+          mode: 'payment',
+          payment_intent_data: {
+            application_fee_amount: applicationFeeAmount,
+            transfer_data: {
+              destination: event.user.stripeConnectAccountId,
+            },
+            metadata: {
+              eventId,
+              meetingData: JSON.stringify(meetingMetadata),
+              expertConnectAccountId: event.user.stripeConnectAccountId,
+            },
           },
+          line_items: [
+            {
+              price_data: {
+                currency: STRIPE_CONFIG.CURRENCY,
+                product_data: {
+                  name: 'Consultation Booking',
+                  description: `Booking for ${meetingData.guestName} on ${new Date(
+                    meetingData.startTime,
+                  ).toLocaleString()}`,
+                },
+                unit_amount: Math.round(price),
+              },
+              quantity: 1,
+            },
+          ],
           metadata: {
             eventId,
             meetingData: JSON.stringify(meetingMetadata),
             expertConnectAccountId: event.user.stripeConnectAccountId,
           },
-        },
-        line_items: [
-          {
-            price_data: {
-              currency: STRIPE_CONFIG.CURRENCY,
-              product_data: {
-                name: 'Consultation Booking',
-                description: `Booking for ${meetingData.guestName} on ${new Date(
-                  meetingData.startTime,
-                ).toLocaleString()}`,
-              },
-              unit_amount: Math.round(price),
-            },
-            quantity: 1,
-          },
-        ],
-        metadata: {
-          eventId,
-          meetingData: JSON.stringify(meetingMetadata),
-          expertConnectAccountId: event.user.stripeConnectAccountId,
-        },
-        success_url: `${request.headers.get(
-          'origin',
-        )}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
-          meetingData.startTime,
-        )}`,
-        cancel_url: `${request.headers.get(
-          'origin',
-        )}/${username}/${eventSlug}?s=2&d=${encodeURIComponent(
-          meetingData.date,
-        )}&t=${encodeURIComponent(meetingData.startTime)}&n=${encodeURIComponent(
-          meetingData.guestName,
-        )}&e=${encodeURIComponent(
-          meetingData.guestEmail,
-        )}&tz=${encodeURIComponent(meetingData.timezone)}`,
-      });
+          success_url: `${baseUrl}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
+            meetingData.startTime,
+          )}`,
+          cancel_url: `${baseUrl}/${username}/${eventSlug}?s=2&d=${encodeURIComponent(
+            meetingData.date,
+          )}&t=${encodeURIComponent(meetingData.startTime)}&n=${encodeURIComponent(
+            meetingData.guestName,
+          )}&e=${encodeURIComponent(
+            meetingData.guestEmail,
+          )}&tz=${encodeURIComponent(meetingData.timezone)}`,
+        } as Stripe.Checkout.SessionCreateParams),
+      );
 
       console.log('Checkout session created successfully:', {
         sessionId: session.id,

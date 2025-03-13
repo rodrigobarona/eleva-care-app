@@ -443,7 +443,7 @@ export async function createPaymentIntent({
 }
 
 // Helper function to get base URL with protocol
-function getBaseUrl() {
+export function getBaseUrl() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL;
   if (!baseUrl) {
     throw new Error('NEXT_PUBLIC_APP_URL environment variable is not set');
@@ -452,23 +452,25 @@ function getBaseUrl() {
 }
 
 export async function createStripeConnectAccount(email: string, country: string) {
-  try {
-    const account = await stripe.accounts.create({
-      type: 'standard',
-      country,
-      email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
+  const account = await stripe.accounts.create({
+    type: 'express',
+    country,
+    email,
+    capabilities: {
+      card_payments: { requested: true },
+      transfers: { requested: true },
+    },
+    business_type: 'individual',
+    settings: {
+      payouts: {
+        schedule: {
+          interval: 'manual',
+        },
       },
-      business_type: 'individual',
-    });
+    },
+  });
 
-    return { accountId: account.id };
-  } catch (error) {
-    console.error('Error creating Connect account:', error);
-    throw error;
-  }
+  return { accountId: account.id };
 }
 
 export async function getConnectAccountBalance(accountId: string) {
@@ -532,7 +534,11 @@ export async function getStripeConnectLoginLink(accountId: string) {
   }
 }
 
-async function withRetry<T>(operation: () => Promise<T>, maxRetries = 3, delay = 1000): Promise<T> {
+export async function withRetry<T>(
+  operation: () => Promise<T>,
+  maxRetries = 3,
+  delay = 1000,
+): Promise<T> {
   let lastError: Error | null = null;
   for (let i = 0; i < maxRetries; i++) {
     try {
@@ -554,29 +560,22 @@ async function withRetry<T>(operation: () => Promise<T>, maxRetries = 3, delay =
 
 export async function getStripeConnectSetupOrLoginLink(accountId: string) {
   return withRetry(async () => {
-    try {
-      const account = await stripe.accounts.retrieve(accountId);
-      const baseUrl = getBaseUrl();
+    const account = await stripe.accounts.retrieve(accountId);
+    const baseUrl = getBaseUrl();
 
-      if (!account.details_submitted) {
-        const setupLink = await stripe.accountLinks.create({
-          account: accountId,
-          refresh_url: `${baseUrl}/account/billing?refresh=true`,
-          return_url: `${baseUrl}/account/billing?success=true`,
-          type: 'account_onboarding',
-        });
-        return setupLink.url;
-      }
-
-      const loginLink = await stripe.accounts.createLoginLink(accountId);
-      return loginLink.url;
-    } catch (error) {
-      console.error('Error creating Stripe Connect link:', {
-        error,
-        accountId,
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+    if (!account.details_submitted) {
+      // For Express accounts that haven't completed onboarding
+      const accountLink = await stripe.accountLinks.create({
+        account: accountId,
+        refresh_url: `${baseUrl}/account/billing?refresh=true`,
+        return_url: `${baseUrl}/account/billing?success=true`,
+        type: 'account_onboarding',
       });
-      throw error;
+      return accountLink.url;
     }
+
+    // For Express accounts that have completed onboarding
+    const loginLink = await stripe.accounts.createLoginLink(accountId);
+    return loginLink.url;
   });
 }
