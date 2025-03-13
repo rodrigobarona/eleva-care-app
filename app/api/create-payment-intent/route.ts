@@ -137,6 +137,8 @@ export async function POST(request: Request) {
           customer: customerId as string,
           payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
           mode: 'payment',
+          allow_promotion_codes: true,
+          billing_address_collection: 'required',
           payment_intent_data: {
             application_fee_amount: applicationFeeAmount,
             transfer_data: {
