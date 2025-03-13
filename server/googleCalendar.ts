@@ -45,6 +45,11 @@ class GoogleCalendarService {
   async getCalendarEventTimes(clerkUserId: string, { start, end }: { start: Date; end: Date }) {
     const oAuthClient = await this.getOAuthClient(clerkUserId);
 
+    console.log('Fetching calendar events:', {
+      timeRange: { start: start.toISOString(), end: end.toISOString() },
+      userId: clerkUserId,
+    });
+
     const events = await google.calendar('v3').events.list({
       calendarId: 'primary',
       eventTypes: ['default'],
@@ -53,12 +58,40 @@ class GoogleCalendarService {
       timeMax: end.toISOString(),
       maxResults: 2500,
       auth: oAuthClient,
+      fields: 'items(id,status,summary,start,end,transparency,eventType)',
+    });
+
+    console.log('Calendar response:', {
+      totalEvents: events.data.items?.length || 0,
+      events: events.data.items?.map((event) => ({
+        summary: event.summary,
+        start: event.start,
+        end: event.end,
+        status: event.status,
+        transparency: event.transparency,
+        eventType: event.eventType,
+      })),
     });
 
     return (
       events.data.items
         ?.map((event) => {
+          if (event.transparency === 'transparent') {
+            console.log('Skipping transparent event:', event.summary);
+            return null;
+          }
+
+          if (event.status === 'cancelled') {
+            console.log('Skipping cancelled event:', event.summary);
+            return null;
+          }
+
           if (event.start?.date != null && event.end?.date != null) {
+            console.log('All-day event found:', {
+              summary: event.summary,
+              start: event.start.date,
+              end: event.end.date,
+            });
             return {
               start: startOfDay(event.start.date),
               end: endOfDay(event.end.date),
@@ -66,13 +99,21 @@ class GoogleCalendarService {
           }
 
           if (event.start?.dateTime != null && event.end?.dateTime != null) {
+            console.log('Timed event found:', {
+              summary: event.summary,
+              start: event.start.dateTime,
+              end: event.end.dateTime,
+            });
             return {
               start: new Date(event.start.dateTime),
               end: new Date(event.end.dateTime),
             };
           }
+
+          console.log('Event skipped due to invalid date format:', event);
+          return null;
         })
-        .filter((date) => date != null) || []
+        .filter((date): date is { start: Date; end: Date } => date != null) || []
     );
   }
 
