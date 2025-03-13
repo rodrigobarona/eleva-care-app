@@ -49,7 +49,7 @@ interface MeetingFormProps {
   eventLocation?: string;
 }
 
-function MeetingFormContent({
+export function MeetingFormContent({
   validTimes,
   eventId,
   clerkUserId,
@@ -67,13 +67,9 @@ function MeetingFormContent({
   const router = useRouter();
 
   // State management
-  const use24Hour = false; // Using a constant instead of state since we don't change it
+  const use24Hour = false;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isCalendarSynced, setIsCalendarSynced] = React.useState(true);
-  const [transition, setTransition] = React.useState(false);
-  const [transitionDirection, setTransitionDirection] = React.useState<'forward' | 'backward'>(
-    'forward',
-  );
 
   // Query state configuration
   const queryStateParsers = React.useMemo(
@@ -115,26 +111,11 @@ function MeetingFormContent({
   const startTime = form.watch('startTime');
   const currentStep = queryStates.step;
 
-  // Handle transitioning between steps
+  // Simplify step transition
   const transitionToStep = React.useCallback(
-    (nextStep: typeof currentStep, direction: 'forward' | 'backward' = 'forward') => {
-      // Set transition direction for animation
-      setTransitionDirection(direction);
-
-      // Start exit animation
-      setTransition(true);
-
-      // After animation completes, change the step
-      setTimeout(() => {
-        setQueryStates({ step: nextStep });
-
-        // Start entrance animation
-        setTimeout(() => {
-          setTransition(false);
-        }, 300);
-      }, 300);
+    (nextStep: typeof currentStep) => {
+      setQueryStates({ step: nextStep });
     },
-    // Only setQueryStates is needed as a dependency, not the entire setQueryStates object
     [setQueryStates],
   );
 
@@ -177,11 +158,7 @@ function MeetingFormContent({
 
       try {
         if (nextStep !== '3') {
-          if (nextStep === '1') {
-            transitionToStep(nextStep, 'backward');
-          } else {
-            transitionToStep(nextStep, 'forward');
-          }
+          transitionToStep(nextStep);
           setIsSubmitting(false);
           return;
         }
@@ -309,16 +286,7 @@ function MeetingFormContent({
 
   // Content for Step 2
   const Step2Content = () => (
-    <div
-      className={cn(
-        'rounded-lg border p-6 transition-all duration-500',
-        transition
-          ? transitionDirection === 'forward'
-            ? 'translate-x-10 opacity-0'
-            : '-translate-x-10 opacity-0'
-          : 'translate-x-0 opacity-100',
-      )}
-    >
+    <div className="rounded-lg border p-6">
       <div className="mb-6">
         <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
         <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
@@ -503,16 +471,7 @@ function MeetingFormContent({
           showCalendar={currentStep === '1'}
         >
           {currentStep !== '1' && (
-            <div
-              className={cn(
-                'transition-all duration-500',
-                transition
-                  ? transitionDirection === 'forward'
-                    ? 'translate-x-10 opacity-0'
-                    : '-translate-x-10 opacity-0'
-                  : 'translate-x-0 opacity-100',
-              )}
-            >
+            <div>
               {currentStep === '2' && <Step2Content />}
               {currentStep === '3' && <Step3Content />}
             </div>
