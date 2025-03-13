@@ -149,9 +149,6 @@ export async function POST(request: Request) {
               sessionStartTime: sessionStartTime.toISOString(),
               scheduledTransferTime: transferDate.toISOString(),
             },
-            transfer_schedule: {
-              delay_days: Math.ceil((transferDate.getTime() - Date.now()) / (24 * 60 * 60 * 1000)),
-            },
           },
           line_items: [
             {
