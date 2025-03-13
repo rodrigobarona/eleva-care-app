@@ -16,11 +16,9 @@ import { createClerkClient } from '@clerk/nextjs/server';
 import type { User } from '@clerk/nextjs/server';
 import { addMonths, eachMinuteOfInterval, endOfDay, roundToNearestMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { Clock as ClockIcon, WalletCards as WalletCardsIcon } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import ReactMarkdown from 'react-markdown';
 
 export const revalidate = 0;
 
@@ -71,39 +69,8 @@ export default async function BookEventPage(props: PageProps) {
   const calendarUser = await clerk.users.getUser(user.id);
 
   return (
-    <Card className="mx-auto max-w-4xl border-none p-0 shadow-none sm:rounded-none">
-      <CardHeader className="gap-4 p-4 sm:p-0">
-        <div>
-          <CardTitle className="text-xl font-bold sm:text-2xl">
-            Book a video call: {event.name}
-          </CardTitle>
-
-          {event.description && (
-            <div className="mt-4">
-              <div className="prose prose-sm max-w-none text-muted-foreground">
-                <ReactMarkdown>{event.description}</ReactMarkdown>
-              </div>
-            </div>
-          )}
-
-          {/* If you have idealFor data, add it here in similar format */}
-        </div>
-
-        <div className="flex flex-col gap-2 border-y py-3 text-sm text-muted-foreground sm:flex-row sm:items-center sm:gap-4">
-          <div className="flex items-center gap-2">
-            <ClockIcon className="h-4 w-4" />
-            <span>{event.durationInMinutes} minutes</span>
-          </div>
-          {event.price > 0 && (
-            <div className="flex items-center gap-2">
-              <WalletCardsIcon className="h-4 w-4" />
-              <span>€{(event.price / 100).toFixed(2)}</span>
-            </div>
-          )}
-        </div>
-      </CardHeader>
-
-      <CardContent className="p-4 sm:p-0 sm:pt-8">
+    <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center p-4 md:mt-0 md:h-dvh md:p-6">
+      <CardContent className="p-0 pt-8">
         {/* Use Suspense to wrap the availability-dependent component */}
         <Suspense fallback={<CalendarLoadingSkeleton />}>
           <CalendarWithAvailability
@@ -117,7 +84,7 @@ export default async function BookEventPage(props: PageProps) {
           />
         </Suspense>
       </CardContent>
-    </Card>
+    </div>
   );
 }
 
@@ -184,9 +151,10 @@ async function CalendarWithAvailability({
   );
 
   if (validTimes.length === 0) {
-    return <NoTimeSlots event={event} calendarUser={calendarUser} />;
+    return <NoTimeSlots event={event} calendarUser={calendarUser} username={username} />;
   }
 
+  // Enhanced MeetingForm with better metadata
   return (
     <MeetingForm
       validTimes={validTimes}
@@ -195,42 +163,82 @@ async function CalendarWithAvailability({
       price={price}
       username={username}
       eventSlug={eventSlug}
+      expertName={
+        calendarUser.firstName
+          ? `${calendarUser.firstName} ${calendarUser.lastName || ''}`.trim()
+          : calendarUser.fullName || 'Expert'
+      }
+      expertImageUrl={calendarUser.imageUrl || '/placeholder-avatar.jpg'}
+      eventTitle={event.name}
+      eventDescription={event.description || 'Book a consultation session'}
+      eventDuration={event.durationInMinutes}
+      eventLocation="Google Meet"
     />
   );
 }
 
 // Add a loading skeleton for the calendar
 function CalendarLoadingSkeleton() {
+  // Generate non-index based keys for calendar days
+  const generateCalendarDayKeys = () => {
+    return Array.from({ length: 35 }).map(
+      (_, i) => `cal-day-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 7)}`,
+    );
+  };
+
+  // Generate non-index based keys for time slots
+  const generateTimeSlotKeys = () => {
+    return Array.from({ length: 6 }).map(
+      (_, i) => `time-slot-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 7)}`,
+    );
+  };
+
+  const calendarDayKeys = generateCalendarDayKeys();
+  const timeSlotKeys = generateTimeSlotKeys();
+
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[300px,1fr,300px]">
+      {/* Expert profile skeleton */}
+      <div className="flex flex-col space-y-4 rounded-lg border p-6">
+        <div className="flex items-center space-x-4">
+          <Skeleton className="h-10 w-10 rounded-full" />
+          <div>
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="mt-1 h-3 w-20" />
+          </div>
+        </div>
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-32 w-full" />
         <div className="space-y-2">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-48" />
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-4 w-24" />
         </div>
       </div>
 
-      {/* Calendar month grid skeleton */}
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-full" />
+      {/* Calendar skeleton */}
+      <div className="rounded-lg border p-6">
+        <div className="mb-6 flex items-center justify-between">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-9 w-60" />
+        </div>
         <div className="grid grid-cols-7 gap-2">
-          {Array(35)
-            .fill(0)
-            .map((_, i) => (
-              <Skeleton key={`calendar-day-${i}`} className="h-14 w-full rounded-md" />
-            ))}
+          {Array.from({ length: 35 }).map((_, i) => (
+            <Skeleton key={calendarDayKeys[i]} className="h-14 w-full rounded-md" />
+          ))}
         </div>
       </div>
 
       {/* Time slots skeleton */}
-      <div className="mt-6 space-y-2">
-        <Skeleton className="h-6 w-32" />
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-          {Array(8)
-            .fill(0)
-            .map((_, i) => (
-              <Skeleton key={`time-slot-${i}`} className="h-10 w-full rounded-md" />
-            ))}
+      <div className="rounded-lg border p-6">
+        <div className="mb-4 flex items-center justify-between">
+          <Skeleton className="h-6 w-32" />
+          <Skeleton className="h-8 w-20 rounded-full" />
+        </div>
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={timeSlotKeys[i]} className="h-12 w-full rounded-md" />
+          ))}
         </div>
       </div>
     </div>
@@ -240,31 +248,27 @@ function CalendarLoadingSkeleton() {
 function NoTimeSlots({
   event,
   calendarUser,
+  username = '',
 }: {
   event: { name: string; description: string | null };
   calendarUser: { id: string; fullName: string | null };
+  username?: string;
 }) {
   return (
     <Card className="mx-auto max-w-md">
       <CardHeader>
-        <CardTitle>
-          Book {event.name} with {calendarUser.fullName}
-        </CardTitle>
-        {event.description && (
-          <CardDescription>
-            <ReactMarkdown>{event.description}</ReactMarkdown>
-          </CardDescription>
-        )}
+        <CardTitle>No Available Time Slots</CardTitle>
+        <CardDescription>
+          {calendarUser.fullName || 'This person'} doesn&apos;t have any available times for{' '}
+          {event.name}.
+        </CardDescription>
       </CardHeader>
-      <CardContent>
-        <p>No available time slots were found in the next 2 months.</p>
-        <p className="mt-2 text-muted-foreground">
-          The expert may be fully booked or hasn&apos;t set their availability yet.
+      <CardFooter className="flex flex-col items-start">
+        <p className="text-sm text-muted-foreground">
+          You can check back later or contact them directly.
         </p>
-      </CardContent>
-      <CardFooter>
-        <Button asChild>
-          <Link href={`/${calendarUser.id}`}>Choose Another Event</Link>
+        <Button asChild className="mt-4">
+          <Link href={`/${username}`}>View Profile</Link>
         </Button>
       </CardFooter>
     </Card>

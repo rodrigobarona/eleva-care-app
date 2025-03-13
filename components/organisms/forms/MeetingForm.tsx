@@ -4,7 +4,6 @@ import * as React from 'react';
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
 import { Textarea } from '@/components/atoms/textarea';
-import { Calendar } from '@/components/molecules/calendar';
 import {
   Form,
   FormControl,
@@ -13,14 +12,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/molecules/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/molecules/select';
-import { formatTimezoneOffset } from '@/lib/formatters';
+import { BookingLayout } from '@/components/organisms/BookingLayout';
 import { hasValidTokens } from '@/lib/googleCalendarClient';
 import { cn } from '@/lib/utils';
 import { meetingFormSchema } from '@/schema/meetings';
@@ -28,7 +20,7 @@ import { createMeeting } from '@/server/actions/meetings';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, startOfDay } from 'date-fns';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
-import { Calendar as CalendarIcon, Clock, Globe, Loader2 } from 'lucide-react';
+import { CalendarIcon, Clock, Globe, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   parseAsIsoDate,
@@ -48,6 +40,13 @@ interface MeetingFormProps {
   price: number;
   username: string;
   eventSlug: string;
+  expertName?: string;
+  expertImageUrl?: string;
+  expertLocation?: string;
+  eventTitle?: string;
+  eventDescription?: string;
+  eventDuration?: number;
+  eventLocation?: string;
 }
 
 function MeetingFormContent({
@@ -57,13 +56,24 @@ function MeetingFormContent({
   price,
   username,
   eventSlug,
+  expertName = 'Expert',
+  expertImageUrl = '/placeholder-avatar.jpg',
+  expertLocation,
+  eventTitle = 'Consultation',
+  eventDescription = 'Book a consultation session',
+  eventDuration = 45,
+  eventLocation = 'Google Meet',
 }: MeetingFormProps) {
   const router = useRouter();
 
   // State management
-  const [use24Hour, setUse24Hour] = React.useState(false);
+  const use24Hour = false; // Using a constant instead of state since we don't change it
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isCalendarSynced, setIsCalendarSynced] = React.useState(true);
+  const [transition, setTransition] = React.useState(false);
+  const [transitionDirection, setTransitionDirection] = React.useState<'forward' | 'backward'>(
+    'forward',
+  );
 
   // Query state configuration
   const queryStateParsers = React.useMemo(
@@ -105,44 +115,28 @@ function MeetingFormContent({
   const startTime = form.watch('startTime');
   const currentStep = queryStates.step;
 
-  // All memoized values
-  const validTimesInTimezone = React.useMemo(() => {
-    return validTimes.map((utcDate) => {
-      const zonedDate = toZonedTime(utcDate, timezone);
-      const displayTime = formatInTimeZone(utcDate, timezone, use24Hour ? 'HH:mm' : 'h:mm a');
-      const localDateOnly = startOfDay(zonedDate);
+  // Handle transitioning between steps
+  const transitionToStep = React.useCallback(
+    (nextStep: typeof currentStep, direction: 'forward' | 'backward' = 'forward') => {
+      // Set transition direction for animation
+      setTransitionDirection(direction);
 
-      return {
-        utcDate,
-        localDate: zonedDate,
-        localDateOnly,
-        displayTime,
-      };
-    });
-  }, [validTimes, timezone, use24Hour]);
+      // Start exit animation
+      setTransition(true);
 
-  const timesByDate = React.useMemo(() => {
-    return validTimesInTimezone.reduce(
-      (acc, time) => {
-        const dateKey = time.localDateOnly.toISOString();
-        if (!acc[dateKey]) {
-          acc[dateKey] = [];
-        }
-        acc[dateKey].push(time);
-        return acc;
-      },
-      {} as Record<string, typeof validTimesInTimezone>,
-    );
-  }, [validTimesInTimezone]);
+      // After animation completes, change the step
+      setTimeout(() => {
+        setQueryStates({ step: nextStep });
 
-  const availableTimezones = React.useMemo(() => Intl.supportedValuesOf('timeZone'), []);
-
-  const formattedTimezones = React.useMemo(() => {
-    return availableTimezones.map((timezone) => ({
-      value: timezone,
-      label: `${timezone.replace('_', ' ').replace('/', ' - ')} (${formatTimezoneOffset(timezone)})`,
-    }));
-  }, [availableTimezones]);
+        // Start entrance animation
+        setTimeout(() => {
+          setTransition(false);
+        }, 300);
+      }, 300);
+    },
+    // Only setQueryStates is needed as a dependency, not the entire setQueryStates object
+    [setQueryStates],
+  );
 
   const onSubmit = React.useCallback(
     async (values: z.infer<typeof meetingFormSchema>) => {
@@ -183,7 +177,12 @@ function MeetingFormContent({
 
       try {
         if (nextStep !== '3') {
-          setQueryStates({ step: nextStep });
+          if (nextStep === '1') {
+            transitionToStep(nextStep, 'backward');
+          } else {
+            transitionToStep(nextStep, 'forward');
+          }
+          setIsSubmitting(false);
           return;
         }
 
@@ -232,7 +231,7 @@ function MeetingFormContent({
         setIsSubmitting(false);
       }
     },
-    [form, price, eventId, clerkUserId, onSubmit, setQueryStates, username, eventSlug, router],
+    [form, price, eventId, clerkUserId, onSubmit, username, eventSlug, router, transitionToStep],
   );
 
   // Effects
@@ -268,6 +267,25 @@ function MeetingFormContent({
     checkCalendarAccess();
   }, [clerkUserId, router]);
 
+  // Handle date selection
+  const handleDateSelect = (selectedDate: Date) => {
+    form.setValue('date', selectedDate);
+    setQueryStates({ date: selectedDate });
+  };
+
+  // Handle time selection
+  const handleTimeSelect = (selectedTime: Date) => {
+    form.setValue('startTime', selectedTime);
+    setQueryStates({ time: selectedTime });
+    handleNextStep('2'); // Automatically move to step 2 when time is selected
+  };
+
+  // Handle timezone change
+  const handleTimezoneChange = (newTimezone: string) => {
+    form.setValue('timezone', newTimezone);
+    setQueryStates({ timezone: newTimezone });
+  };
+
   // Early return for calendar sync check
   if (!isCalendarSynced) {
     return (
@@ -289,10 +307,130 @@ function MeetingFormContent({
     );
   }
 
+  // Content for Step 2
+  const Step2Content = () => (
+    <div
+      className={cn(
+        'rounded-lg border p-6 transition-all duration-500',
+        transition
+          ? transitionDirection === 'forward'
+            ? 'translate-x-10 opacity-0'
+            : '-translate-x-10 opacity-0'
+          : 'translate-x-0 opacity-100',
+      )}
+    >
+      <div className="mb-6">
+        <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
+        <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <CalendarIcon className="h-4 w-4" />
+            <span>{date && format(date, 'EEEE, MMMM d, yyyy')}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4" />
+            <span>
+              {startTime && formatInTimeZone(startTime, timezone, use24Hour ? 'HH:mm' : 'h:mm a')}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Globe className="h-4 w-4" />
+            <span>{timezone.replace('_', ' ')}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-2">
+        <FormField
+          control={form.control}
+          name="guestName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="font-semibold">Your Name</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    setQueryStates({ name: e.target.value });
+                  }}
+                  placeholder="Enter your full name"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="guestEmail"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel className="font-semibold">Your Email</FormLabel>
+              <FormControl>
+                <Input
+                  type="email"
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    setQueryStates({ email: e.target.value });
+                  }}
+                  placeholder="you@example.com"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="guestNotes"
+          render={({ field }) => (
+            <FormItem className="md:col-span-2">
+              <FormLabel className="font-semibold">Additional Notes</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  placeholder="Share anything that will help prepare for our meeting..."
+                  className="min-h-32"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="mt-6 flex justify-between">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => handleNextStep('1')}
+          disabled={isSubmitting}
+        >
+          Back
+        </Button>
+        <Button type="button" onClick={() => handleNextStep('3')} disabled={isSubmitting}>
+          {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
+          {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+        </Button>
+      </div>
+    </div>
+  );
+
+  // Content for Step 3
+  const Step3Content = () => (
+    <div className="flex items-center justify-center py-12">
+      <div className="text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <p className="mt-4 text-lg font-medium">Redirecting to payment...</p>
+      </div>
+    </div>
+  );
+
   return (
     <Form {...form}>
       <form className="space-y-6">
-        <div className="mb-6 flex items-center">
+        <div className="mb-6 flex w-full flex-wrap items-center justify-center gap-4">
           <div className="flex items-center">
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '1' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
@@ -305,7 +443,7 @@ function MeetingFormContent({
               Select Date & Time
             </span>
           </div>
-          <div className="mx-2 h-0.5 w-6 bg-muted" />
+          <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
           <div className="flex items-center">
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '2' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
@@ -320,7 +458,7 @@ function MeetingFormContent({
           </div>
           {price > 0 && (
             <>
-              <div className="mx-2 h-0.5 w-6 bg-muted" />
+              <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
               <div className="flex items-center">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '3' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
@@ -336,283 +474,48 @@ function MeetingFormContent({
             </>
           )}
         </div>
-        {currentStep === '1' ? (
-          <>
-            <div className="grid gap-8 md:grid-cols-[minmax(auto,450px),350px]">
-              <div className="rounded-lg border p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Select a Date</h2>
-                  <FormField
-                    control={form.control}
-                    name="timezone"
-                    render={({ field }) => (
-                      <FormItem className="flex-shrink-0">
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="h-9 w-60 border-0 text-sm shadow-none">
-                              <div className="flex items-center gap-2">
-                                <Globe className="h-4 w-4" />
-                                <SelectValue placeholder={timezone.replace('_', ' ')} />
-                              </div>
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {formattedTimezones.map((timezone) => (
-                              <SelectItem
-                                key={timezone.value}
-                                value={timezone.value}
-                                className="text-sm"
-                              >
-                                {timezone.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <FormField
-                  control={form.control}
-                  name="date"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-col">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={(date) => {
-                          field.onChange(date);
-                          if (date) {
-                            setQueryStates({ date });
-                          }
-                        }}
-                        disabled={(date) => {
-                          if (!date) return true;
-                          const dateKey = startOfDay(date).toISOString();
-                          return !timesByDate[dateKey];
-                        }}
-                        showOutsideDays={false}
-                        fixedWeeks
-                        className="relative w-full rounded-md border p-4"
-                        classNames={{
-                          months: 'flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0',
-                          month: 'space-y-4 w-full',
-                          month_caption: 'flex justify-start pt-1 relative items-center gap-1',
-                          caption_label: 'text-lg font-semibold',
-                          dropdowns: 'flex gap-1',
-                          nav: 'flex items-center gap-1 absolute right-2 top-1 z-10',
-                          button_previous:
-                            'h-9 w-9 bg-transparent p-0 hover:opacity-100 opacity-75 relative',
-                          button_next:
-                            'h-9 w-9 bg-transparent p-0 hover:opacity-100 opacity-75 relative ml-1',
-                          month_grid: 'w-full border-collapse',
-                          weekdays: 'flex w-full',
-                          weekday: 'h-6 w-14 font-normal text-sm text-muted-foreground uppercase',
-                          week: 'flex w-full',
-                          day: 'h-14 w-14 relative p-0 text-center text-sm focus-within:relative focus-within:z-20 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md [&:has([aria-selected])]:rounded-md',
-                          day_button:
-                            'text-center h-14 w-14 p-0 font-normal text-base aria-selected:opacity-100 hover:bg-eleva-neutral-100 hover:text-eleva-neutral-900 transition-colors duration-200',
-                          range_start: 'day-range-start',
-                          range_end: 'day-range-end',
-                          selected:
-                            'bg-eleva-primary text-white hover:bg-eleva-primary hover:text-white focus:bg-eleva-primary focus:text-white after:absolute after:bottom-1.5 after:left-1/2 after:-translate-x-1/2 after:h-1 after:w-1 after:rounded-full after:bg-white',
-                          today: 'border-2 border-eleva-primary text-eleva-primary font-medium',
-                          outside:
-                            'text-eleva-neutral-200 hover:bg-transparent hover:cursor-default aria-selected:bg-eleva-neutral-100/30 aria-selected:text-eleva-neutral-200',
-                          disabled:
-                            'text-eleva-neutral-200/50 hover:bg-transparent hover:cursor-not-allowed line-through',
-                          hidden: 'invisible',
-                        }}
-                      />
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
 
-              <div className="rounded-lg border p-4">
-                <div className="mb-4 flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">
-                    {date ? format(date, 'EEEE, MMMM d') : 'Available Times'}
-                  </h2>
-                  <div className="flex rounded-full bg-muted p-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        'rounded-full px-4 text-sm font-normal',
-                        !use24Hour
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
-                      )}
-                      onClick={() => setUse24Hour(false)}
-                    >
-                      12h
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className={cn(
-                        'rounded-full px-4 text-sm font-normal',
-                        use24Hour
-                          ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
-                      )}
-                      onClick={() => setUse24Hour(true)}
-                    >
-                      24h
-                    </Button>
-                  </div>
-                </div>
-                <FormField
-                  control={form.control}
-                  name="startTime"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div
-                        className="grid gap-2 overflow-y-auto pr-4"
-                        style={{
-                          maxHeight: 'calc(450px - 3rem)',
-                          scrollbarGutter: 'stable',
-                        }}
-                      >
-                        {date &&
-                          timesByDate[startOfDay(date).toISOString()]?.map(
-                            ({ utcDate, displayTime }) => (
-                              <Button
-                                key={utcDate.toISOString()}
-                                type="button"
-                                variant="outline"
-                                className={cn(
-                                  'h-12 justify-center text-center text-base font-normal',
-                                  field.value?.toISOString() === utcDate.toISOString()
-                                    ? 'border-primary bg-primary/5 font-medium text-primary'
-                                    : 'hover:border-primary/50',
-                                )}
-                                onClick={() => {
-                                  field.onChange(utcDate);
-                                  setQueryStates({ time: utcDate });
-                                  handleNextStep('2');
-                                }}
-                              >
-                                {displayTime}
-                              </Button>
-                            ),
-                          )}
-                      </div>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+        <BookingLayout
+          expert={{
+            id: clerkUserId,
+            name: expertName,
+            imageUrl: expertImageUrl,
+            location: expertLocation,
+            username: username,
+          }}
+          event={{
+            id: eventId,
+            title: eventTitle,
+            description: eventDescription,
+            duration: eventDuration,
+            price: price,
+            location: eventLocation,
+          }}
+          validTimes={validTimes}
+          onDateSelect={handleDateSelect}
+          onTimeSlotSelect={handleTimeSelect}
+          selectedDate={date}
+          selectedTime={startTime}
+          timezone={timezone}
+          onTimezoneChange={handleTimezoneChange}
+          showCalendar={currentStep === '1'}
+        >
+          {currentStep !== '1' && (
+            <div
+              className={cn(
+                'transition-all duration-500',
+                transition
+                  ? transitionDirection === 'forward'
+                    ? 'translate-x-10 opacity-0'
+                    : '-translate-x-10 opacity-0'
+                  : 'translate-x-0 opacity-100',
+              )}
+            >
+              {currentStep === '2' && <Step2Content />}
+              {currentStep === '3' && <Step3Content />}
             </div>
-          </>
-        ) : currentStep === '2' ? (
-          <>
-            <div className="rounded-lg border p-6">
-              <div className="mb-6">
-                <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
-                <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4" />
-                    <span>{date && format(date, 'EEEE, MMMM d, yyyy')}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    <span>
-                      {startTime &&
-                        formatInTimeZone(startTime, timezone, use24Hour ? 'HH:mm' : 'h:mm a')}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Globe className="h-4 w-4" />
-                    <span>{timezone.replace('_', ' ')}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-6 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="guestName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">Your Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            setQueryStates({ name: e.target.value });
-                          }}
-                          placeholder="Enter your full name"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="guestEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="font-semibold">Your Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          {...field}
-                          onChange={(e) => {
-                            field.onChange(e);
-                            setQueryStates({ email: e.target.value });
-                          }}
-                          placeholder="you@example.com"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="guestNotes"
-                  render={({ field }) => (
-                    <FormItem className="md:col-span-2">
-                      <FormLabel className="font-semibold">Additional Notes</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder="Share anything that will help prepare for our meeting..."
-                          className="min-h-32"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="mt-6 flex justify-between">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setQueryStates({ step: '1' })}
-                  disabled={isSubmitting}
-                >
-                  Back
-                </Button>
-                <Button type="button" onClick={() => handleNextStep('3')} disabled={isSubmitting}>
-                  {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
-                  {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-                </Button>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div>Redirecting to payment...</div>
-        )}
+          )}
+        </BookingLayout>
       </form>
     </Form>
   );

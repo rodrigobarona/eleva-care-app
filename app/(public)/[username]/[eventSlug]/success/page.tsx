@@ -64,18 +64,20 @@ export default async function SuccessPage(props: {
   // If meeting exists, show success page
   if (meeting) {
     return (
-      <Card className="mx-auto max-w-xl">
-        <CardHeader>
-          <CardTitle>
-            Successfully Booked {event.name} with {calendarUser.fullName}
-          </CardTitle>
-          <CardDescription>{formatDateTime(startTimeDate)}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p>You should receive an email confirmation shortly.</p>
-          <p className="mt-2 text-muted-foreground">Meeting ID: {meeting.id}</p>
-        </CardContent>
-      </Card>
+      <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center p-4 md:mt-0 md:h-dvh md:p-6">
+        <Card className="mx-auto max-w-xl">
+          <CardHeader>
+            <CardTitle>
+              Successfully Booked {event.name} with {calendarUser.fullName}
+            </CardTitle>
+            <CardDescription>{formatDateTime(startTimeDate)}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>You should receive an email confirmation shortly.</p>
+            <p className="mt-2 text-muted-foreground">Meeting ID: {meeting.id}</p>
+          </CardContent>
+        </Card>
+      </div>
     );
   }
 
@@ -103,39 +105,43 @@ export default async function SuccessPage(props: {
 
       if (session.payment_status === 'paid') {
         return (
-          <Card className="mx-auto max-w-xl">
-            <CardHeader>
-              <CardTitle>Payment Confirmed</CardTitle>
-              <CardDescription>
-                Your payment has been confirmed and your meeting is being created.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Please wait a moment while we finalize your booking...</p>
-              <p className="mt-4 text-sm text-muted-foreground">
-                If this page doesn&apos;t update automatically, please refresh in a few seconds.
-              </p>
-              <meta httpEquiv="refresh" content="5" />
-            </CardContent>
-          </Card>
+          <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center p-4 md:mt-0 md:h-dvh md:p-6">
+            <Card className="mx-auto max-w-xl">
+              <CardHeader>
+                <CardTitle>Payment Confirmed</CardTitle>
+                <CardDescription>
+                  Your payment has been confirmed and your meeting is being created.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Please wait a moment while we finalize your booking...</p>
+                <p className="mt-4 text-sm text-muted-foreground">
+                  If this page doesn&apos;t update automatically, please refresh in a few seconds.
+                </p>
+                <meta httpEquiv="refresh" content="5" />
+              </CardContent>
+            </Card>
+          </div>
         );
       }
 
       if (session.payment_status === 'unpaid') {
         return (
-          <Card className="mx-auto max-w-xl">
-            <CardHeader>
-              <CardTitle>Payment Processing</CardTitle>
-              <CardDescription>Your payment is still being processed.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p>Please wait while we confirm your payment...</p>
-              <p className="mt-4 text-sm text-muted-foreground">
-                This page will automatically refresh when the payment is confirmed.
-              </p>
-              <meta httpEquiv="refresh" content="5" />
-            </CardContent>
-          </Card>
+          <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center p-4 md:mt-0 md:h-dvh md:p-6">
+            <Card className="mx-auto max-w-xl">
+              <CardHeader>
+                <CardTitle>Payment Processing</CardTitle>
+                <CardDescription>Your payment is still being processed.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>Please wait while we confirm your payment...</p>
+                <p className="mt-4 text-sm text-muted-foreground">
+                  This page will automatically refresh when the payment is confirmed.
+                </p>
+                <meta httpEquiv="refresh" content="5" />
+              </CardContent>
+            </Card>
+          </div>
         );
       }
 
