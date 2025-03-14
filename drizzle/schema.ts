@@ -8,6 +8,7 @@ import {
   json,
   pgEnum,
   pgTable,
+  serial,
   text,
   timestamp,
   uuid,
@@ -427,3 +428,34 @@ export const recordsRelations = relations(RecordTable, ({ one }) => ({
     references: [UserTable.clerkUserId],
   }),
 }));
+
+/**
+ * Payment Transfer table - stores information about payouts to experts
+ *
+ * Each record represents a payment that needs to be transferred to an expert's
+ * Stripe Connect account. The transfer can be scheduled automatically (after
+ * a delay from the session time) or require manual approval.
+ */
+export const PaymentTransferTable = pgTable('payment_transfers', {
+  id: serial('id').primaryKey(),
+  paymentIntentId: text('payment_intent_id').notNull(),
+  checkoutSessionId: text('checkout_session_id').notNull(),
+  eventId: text('event_id').notNull(),
+  expertConnectAccountId: text('expert_connect_account_id').notNull(),
+  expertClerkUserId: text('expert_clerk_user_id').notNull(),
+  amount: integer('amount').notNull(),
+  currency: text('currency').notNull().default('eur'),
+  platformFee: integer('platform_fee').notNull(),
+  sessionStartTime: timestamp('session_start_time').notNull(),
+  scheduledTransferTime: timestamp('scheduled_transfer_time').notNull(),
+  status: text('status').notNull().default('PENDING'),
+  transferId: text('transfer_id'),
+  stripeErrorCode: text('stripe_error_code'),
+  stripeErrorMessage: text('stripe_error_message'),
+  retryCount: integer('retry_count').default(0),
+  requiresApproval: boolean('requires_approval').default(false),
+  adminUserId: text('admin_user_id'),
+  adminNotes: text('admin_notes'),
+  created: timestamp('created').notNull().defaultNow(),
+  updated: timestamp('updated').notNull().defaultNow(),
+});

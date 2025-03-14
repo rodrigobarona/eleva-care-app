@@ -1,5 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
+import { PaymentTransferTable } from '@/drizzle/schema';
 import { syncStripeDataToKV } from '@/lib/stripe';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
@@ -35,6 +36,10 @@ interface StripeCheckoutSession extends Stripe.Checkout.Session {
     meetingData?: string;
     eventId?: string;
     clerkUserId?: string;
+    expertConnectAccountId?: string;
+    expertAmount?: string;
+    platformFee?: string;
+    requiresApproval?: string;
   };
   application_fee_amount?: number | null;
 }
@@ -139,11 +144,69 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     meetingId: result.meeting?.id,
   });
 
-  // If payment is paid, schedule payout for the expert
-  if (session.payment_status === 'paid' && result.meeting?.id) {
-    console.log('Scheduling payout for successful payment');
-    // Here you would call a function to schedule a payout
-    // We've removed the direct schedulePayout call since it's not available
+  // Record the payment for expert transfer if payment is successful
+  if (
+    session.payment_status === 'paid' &&
+    typeof session.payment_intent === 'string' &&
+    session.metadata.expertConnectAccountId
+  ) {
+    try {
+      console.log('Recording payment for future expert transfer:', session.payment_intent);
+
+      // Get the payment intent to verify amount
+      const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+
+      // Parse metadata values
+      const expertAmount = session.metadata.expertAmount
+        ? Number.parseInt(session.metadata.expertAmount, 10)
+        : Math.round(paymentIntent.amount * 0.85);
+
+      const platformFee = session.metadata.platformFee
+        ? Number.parseInt(session.metadata.platformFee, 10)
+        : Math.round(paymentIntent.amount * 0.15);
+
+      const requiresApproval = session.metadata.requiresApproval === 'true';
+
+      // Calculate scheduled transfer time (3 hours after session)
+      const sessionStartTime = new Date(meetingData.startTime);
+      const scheduledTransferTime = new Date(sessionStartTime.getTime() + 3 * 60 * 60 * 1000);
+
+      // Check if we already have a record for this payment intent
+      const existingTransfer = await db.query.PaymentTransferTable.findFirst({
+        where: ({ paymentIntentId }, { eq }) => eq(paymentIntentId, paymentIntent.id),
+      });
+
+      if (existingTransfer) {
+        console.log('Payment transfer record already exists:', existingTransfer.id);
+      } else {
+        // Insert the payment transfer record
+        await db.insert(PaymentTransferTable).values({
+          paymentIntentId: paymentIntent.id,
+          checkoutSessionId: session.id,
+          eventId: session.metadata.eventId,
+          expertConnectAccountId: session.metadata.expertConnectAccountId,
+          expertClerkUserId: meetingData.expertClerkUserId,
+          amount: expertAmount,
+          platformFee: platformFee,
+          currency: session.currency || 'eur',
+          sessionStartTime: sessionStartTime,
+          scheduledTransferTime: scheduledTransferTime,
+          status: requiresApproval ? 'PENDING_APPROVAL' : 'PENDING',
+          requiresApproval: requiresApproval,
+        });
+
+        console.log('Successfully recorded payment for future transfer to expert', {
+          paymentIntentId: paymentIntent.id,
+          expertConnectAccountId: session.metadata.expertConnectAccountId,
+          amount: expertAmount,
+          scheduledTransferTime: scheduledTransferTime.toISOString(),
+          requiresApproval: requiresApproval,
+        });
+      }
+    } catch (error) {
+      console.error('Error recording payment for expert transfer:', error);
+      // Don't throw, so we don't trigger webhook retry - we'll handle this in monitoring
+    }
   }
 
   return { success: true, meetingId: result.meeting?.id };

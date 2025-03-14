@@ -245,9 +245,13 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
               <div className="text-sm">
                 <h4 className="mb-2 font-medium">Payout Schedule</h4>
                 <p>
-                  Once your Stripe account is connected and verified, you&apos;ll receive payouts
-                  automatically according to your country&apos;s standard payout schedule. Most
-                  countries receive payouts within 2 business days.
+                  For session payments, you&apos;ll receive your funds automatically on the day
+                  after the session is completed. This delay ensures the session has been
+                  successfully delivered before processing your payment.
+                </p>
+                <p className="mt-2">
+                  Once transferred to your Stripe account, funds will follow your country&apos;s
+                  standard payout schedule (typically within 2 business days).
                 </p>
               </div>
               <div className="text-sm">
