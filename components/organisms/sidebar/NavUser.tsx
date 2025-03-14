@@ -120,13 +120,19 @@ export function NavUser() {
             <RequireRole roles={['admin', 'superadmin']}>
               <DropdownMenuItem asChild>
                 <Link href="/admin/users">
-                  Administration
+                  Users
                   <BadgeCheck className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/admin/categories">
                   Categories
+                  <BadgeCheck className="ml-auto h-4 w-4" />
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/admin/payment-transfers">
+                  Payment Transfers
                   <BadgeCheck className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>

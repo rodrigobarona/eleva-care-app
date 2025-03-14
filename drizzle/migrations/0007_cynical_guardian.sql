@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS "payment_transfers" (
+	"id" serial PRIMARY KEY NOT NULL,
+	"payment_intent_id" text NOT NULL,
+	"checkout_session_id" text NOT NULL,
+	"event_id" text NOT NULL,
+	"expert_connect_account_id" text NOT NULL,
+	"expert_clerk_user_id" text NOT NULL,
+	"amount" integer NOT NULL,
+	"currency" text DEFAULT 'eur' NOT NULL,
+	"platform_fee" integer NOT NULL,
+	"session_start_time" timestamp NOT NULL,
+	"scheduled_transfer_time" timestamp NOT NULL,
+	"status" text DEFAULT 'PENDING' NOT NULL,
+	"transfer_id" text,
+	"stripe_error_code" text,
+	"stripe_error_message" text,
+	"retry_count" integer DEFAULT 0,
+	"requires_approval" boolean DEFAULT false,
+	"admin_user_id" text,
+	"admin_notes" text,
+	"created" timestamp DEFAULT now() NOT NULL,
+	"updated" timestamp DEFAULT now() NOT NULL
+);
