@@ -1,11 +1,7 @@
 {
   "crons": [
     {
-      "path": "/api/keep-alive",
-      "schedule": "0 0 * * *"
-    },
-    {
-      "path": "/api/cron/process-expert-transfers?key=$CRON_API_KEY",
+      "path": "/api/cron/process-tasks",
       "schedule": "0 4 * * *"
     }
   ]
