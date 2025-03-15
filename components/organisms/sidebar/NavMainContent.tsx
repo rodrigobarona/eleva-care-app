@@ -46,7 +46,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
   const isAccountSection = pathname.startsWith('/account') || pathname.startsWith('/admin');
 
   return (
-    <div className="relative overflow-hidden">
+    <div className="relative h-full overflow-hidden">
       <div
         className={cn(
           'transition-transform duration-300 ease-in-out',
