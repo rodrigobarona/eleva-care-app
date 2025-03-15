@@ -154,6 +154,14 @@ import { useIsAdmin, useIsExpert } from '@/components/molecules/AuthorizationPro
 
 // components/ExampleProtectedComponent.tsx
 
+// components/ExampleProtectedComponent.tsx
+
+// components/ExampleProtectedComponent.tsx
+
+// components/ExampleProtectedComponent.tsx
+
+// components/ExampleProtectedComponent.tsx
+
 export function ExampleProtectedComponent() {
   const isAdmin = useIsAdmin();
   const isExpert = useIsExpert();
@@ -240,3 +248,191 @@ export async function GET() {
 3. **Audit Logging**: Track role changes for security monitoring
 4. **Time-Limited Roles**: Support for temporary role assignments
 5. **Dynamic Role UI**: Admin interface for managing roles
+
+## Layered Authorization Approach
+
+Our application implements role-based access control (RBAC) at multiple levels for defense in depth:
+
+### Level 1: Middleware Protection
+
+The first layer of defense is implemented in `middleware.ts`, which provides broad route protection:
+
+```typescript
+// Simplified example from middleware.ts
+const ADMIN_ROUTES = ['/admin(.*)', '/api/admin(.*)'];
+
+const EXPERT_ROUTES = [
+  '/booking(.*)',
+  '/appointments(.*)',
+  '/api/expert(.*)',
+  '/api/appointments(.*)',
+  // Additional expert-only routes...
+];
+```
+
+This middleware:
+
+- Allows public routes without authentication (homepage, sign-in, public profiles)
+- Protects API routes with appropriate status codes (401/403)
+- Restricts route groups based on user roles:
+  - `/admin/*` → Admin & Superadmin only
+  - `/api/admin/*` → Admin & Superadmin only
+  - `/booking/*` → Experts, Admins & Superadmins only
+  - `/appointments/*` → Experts, Admins & Superadmins only
+  - Expert-specific API routes → Experts, Admins & Superadmins only
+- Special handling for routes like cron jobs (API key validation)
+
+Benefits of middleware protection:
+
+- Early rejection of unauthorized requests
+- Consistent handling across similar route patterns
+- Clear overview of protected sections in one place
+- Proper HTTP status codes for API routes
+
+### Level 2: Layout Protection
+
+The second layer is at the layout level:
+
+- `app/(private)/(settings)/admin/layout.tsx` → verifies admin role
+- `app/(private)/appointments/layout.tsx` → verifies expert role
+- `app/(private)/booking/layout.tsx` → verifies expert role
+
+Example layout protection:
+
+```tsx
+// app/(private)/appointments/layout.tsx
+export default async function AppointmentsLayout({ children }) {
+  const userIsExpert = await isExpert();
+
+  if (!userIsExpert) {
+    redirect('/unauthorized');
+  }
+
+  return <>{children}</>;
+}
+```
+
+Benefits of layout protection:
+
+- Granular control at the route group level
+- Can access database and server context for complex checks
+- Catches any bypassed middleware protections
+
+### Level 3: Page-Specific Protection
+
+The third layer is at the page level, where specific pages may implement additional restrictions:
+
+- Resource ownership checks
+- Feature-specific permissions
+- Sub-role requirements (like Top Expert vs. Community Expert)
+
+Example page protection:
+
+```tsx
+// Example page with additional checks
+export default async function ManageAppointmentPage({ params }) {
+  // Check the expert role first
+  const userIsExpert = await isExpert();
+  if (!userIsExpert) redirect('/unauthorized');
+
+  // Then check resource ownership
+  const { appointmentId } = params;
+  const appointment = await db.appointments.findUnique({ where: { id: appointmentId } });
+
+  if (appointment.expertId !== userId) {
+    // Even though they're an expert, they don't own this resource
+    redirect('/unauthorized');
+  }
+
+  return <ManageAppointmentUI appointment={appointment} />;
+}
+```
+
+### Level 4: Component-Level Controls
+
+The final layer is UI component visibility with client-side hooks:
+
+- `useIsAdmin()` - check for admin role
+- `useIsExpert()` - check for any expert role
+- `useIsTopExpert()` - check specifically for top expert
+- `RequireRole` - conditional rendering component
+
+Example component protection:
+
+```tsx
+// Client component with conditional rendering
+function AppointmentActions({ appointment }) {
+  const isAdmin = useIsAdmin();
+  const isTopExpert = useIsTopExpert();
+
+  return (
+    <div className="actions">
+      {/* Everyone can see this */}
+      <ViewButton appointment={appointment} />
+
+      {/* Only admins and top experts can refund */}
+      {(isAdmin || isTopExpert) && <RefundButton appointment={appointment} />}
+
+      {/* Only admins can delete */}
+      {isAdmin && <DeleteButton appointment={appointment} />}
+    </div>
+  );
+}
+```
+
+## API Route Protection
+
+API routes follow the same multi-layered protection strategy:
+
+1. **Middleware layer**: Broad route pattern protection (e.g., `/api/admin/*`)
+2. **Route handler level**: Specific endpoint protection using server-side role helpers
+
+Example API route protection:
+
+```tsx
+// app/api/admin/users/route.ts
+export async function GET() {
+  // Already protected by middleware, but we double-check
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Process admin-only request
+  const users = await db.users.findMany();
+  return NextResponse.json({ users });
+}
+```
+
+## Special Authentication Cases
+
+Some routes require special authentication methods:
+
+1. **Cron Jobs**: Protected with API keys
+
+   ```typescript
+   // Example cron job request
+   fetch('/api/cron/process-payments', {
+     headers: {
+       'x-api-key': process.env.CRON_API_KEY,
+     },
+   });
+   ```
+
+2. **Webhooks**: Public routes but validated internally
+   ```typescript
+   // Example Stripe webhook validation
+   const sig = req.headers.get('stripe-signature');
+   const event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+   ```
+
+## Summary
+
+This multi-layered approach ensures:
+
+1. **Defense in depth**: Multiple checks at different levels
+2. **Performance**: Early rejection when possible
+3. **Granularity**: Fine-grained control where needed
+4. **Maintenance**: Clear organization of authorization logic
+5. **Security**: No single point of failure
