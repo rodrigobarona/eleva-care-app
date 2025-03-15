@@ -1,4 +1,5 @@
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { isAdmin } from '@/lib/auth/roles.server';
+import { auth } from '@clerk/nextjs/server';
 import { BanknoteIcon, Tag, Users } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -10,16 +11,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect('/sign-in');
   }
 
-  // Check if user is admin
-  const user = await (await clerkClient()).users.getUser(userId);
+  // Check if user is admin using the centralized isAdmin function
+  const userIsAdmin = await isAdmin();
 
-  // Check if role is an array that includes 'admin' or 'superadmin'
-  const userRoles = user.publicMetadata?.role as string[] | string | undefined;
-  const isAdmin = Array.isArray(userRoles)
-    ? userRoles.includes('admin') || userRoles.includes('superadmin')
-    : userRoles === 'admin' || userRoles === 'superadmin';
-
-  if (!isAdmin) {
+  if (!userIsAdmin) {
     redirect('/');
   }
 

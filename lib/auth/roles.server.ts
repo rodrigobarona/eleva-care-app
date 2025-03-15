@@ -18,6 +18,28 @@ function userHasRole(userRoles: UserRoles, roleToCheck: UserRole): boolean {
 }
 
 /**
+ * Check if the current user has any of the specified roles
+ */
+export async function hasAnyRole(roles: UserRole[]): Promise<boolean> {
+  const { userId } = await auth();
+  if (!userId) return false;
+
+  const clerk = await clerkClient();
+  const user = await clerk.users.getUser(userId);
+  const userRoles = user.publicMetadata.role as UserRoles;
+
+  if (!userRoles) return false;
+
+  // Check if user has any of the required roles
+  if (Array.isArray(userRoles)) {
+    return roles.some((role) => userRoles.includes(role));
+  }
+
+  // String role case
+  return roles.includes(userRoles);
+}
+
+/**
  * Check if the current user has the specified role
  */
 export async function hasRole(role: UserRole): Promise<boolean> {
@@ -29,6 +51,34 @@ export async function hasRole(role: UserRole): Promise<boolean> {
   const userRoles = user.publicMetadata.role as UserRoles;
 
   return userHasRole(userRoles, role);
+}
+
+/**
+ * Convenience function to check if user is an admin or superadmin
+ */
+export async function isAdmin(): Promise<boolean> {
+  return hasAnyRole(['admin', 'superadmin']);
+}
+
+/**
+ * Convenience function to check if user is any type of expert
+ */
+export async function isExpert(): Promise<boolean> {
+  return hasAnyRole(['top_expert', 'community_expert']);
+}
+
+/**
+ * Convenience function to check if user is a top expert
+ */
+export async function isTopExpert(): Promise<boolean> {
+  return hasRole('top_expert');
+}
+
+/**
+ * Convenience function to check if user is a community expert
+ */
+export async function isCommunityExpert(): Promise<boolean> {
+  return hasRole('community_expert');
 }
 
 /**

@@ -1,6 +1,7 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { isAdmin } from '@/lib/auth/roles.server';
+import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 
@@ -16,16 +17,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify admin role
-    const user = await (await clerkClient()).users.getUser(userId);
+    // Verify admin role using the centralized isAdmin function
+    const userIsAdmin = await isAdmin();
 
-    // Check if role is an array that includes 'admin' or 'superadmin'
-    const userRoles = user.publicMetadata?.role as string[] | string | undefined;
-    const isAdmin = Array.isArray(userRoles)
-      ? userRoles.includes('admin') || userRoles.includes('superadmin')
-      : userRoles === 'admin' || userRoles === 'superadmin';
-
-    if (!isAdmin) {
+    if (!userIsAdmin) {
       console.warn(`Non-admin user ${userId} attempted to approve transfer`);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }

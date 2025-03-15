@@ -1,6 +1,7 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { isAdmin } from '@/lib/auth/roles.server';
+import { auth } from '@clerk/nextjs/server';
 import { and, asc, desc, eq, gte, like, lte, sql } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 
@@ -29,18 +30,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify admin role
-    const clerkUserId = userId;
-    const clerk = await clerkClient();
-    const user = await clerk.users.getUser(clerkUserId);
+    // Verify admin role using the centralized isAdmin function
+    const userIsAdmin = await isAdmin();
 
-    // Check if role is an array that includes 'admin' or 'superadmin'
-    const userRoles = user.publicMetadata?.role as string[] | string | undefined;
-    const isAdmin = Array.isArray(userRoles)
-      ? userRoles.includes('admin') || userRoles.includes('superadmin')
-      : userRoles === 'admin' || userRoles === 'superadmin';
-
-    if (!isAdmin) {
+    if (!userIsAdmin) {
       console.warn(`Non-admin user ${userId} attempted to access payment transfers`);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
@@ -153,17 +146,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify admin role
-    const clerk = await clerkClient();
-    const user = await clerk.users.getUser(userId);
+    // Verify admin role using the centralized isAdmin function
+    const userIsAdmin = await isAdmin();
 
-    // Check if role is an array that includes 'admin' or 'superadmin'
-    const userRoles = user.publicMetadata?.role as string[] | string | undefined;
-    const isAdmin = Array.isArray(userRoles)
-      ? userRoles.includes('admin') || userRoles.includes('superadmin')
-      : userRoles === 'admin' || userRoles === 'superadmin';
-
-    if (!isAdmin) {
+    if (!userIsAdmin) {
       console.warn(`Non-admin user ${userId} attempted to update payment transfer`);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
