@@ -75,7 +75,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
                   <SidebarMenuButton asChild>
                     <Link href="/appointments" prefetch>
                       <Calendar className="size-4" />
-                      <span>All Appointments</span>
+                      <span>Schedule</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -83,7 +83,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
                   <SidebarMenuButton asChild>
                     <Link href="/appointments/records" prefetch>
                       <FileText className="size-4" />
-                      <span>Records</span>
+                      <span>Records & Notes</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

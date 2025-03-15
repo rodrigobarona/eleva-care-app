@@ -47,7 +47,7 @@ export async function GET(request: NextRequest, { params }: { params: { email: s
       .orderBy(desc(AppointmentTable.startTime));
 
     if (appointments.length === 0) {
-      return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+      return NextResponse.json({ error: 'Customer doesn&apos;t exist' }, { status: 404 });
     }
 
     // Get Stripe customer ID if available

@@ -40,13 +40,13 @@ const mainItems: SidebarItem[] = [
     ],
   },
   {
-    title: 'Availability',
+    title: 'Manage Calendar ',
     url: '/booking/schedule',
     icon: Clock,
   },
   {
     title: 'Customers',
-    url: '/booking/customers',
+    url: '/customers',
     icon: Users,
   },
   {

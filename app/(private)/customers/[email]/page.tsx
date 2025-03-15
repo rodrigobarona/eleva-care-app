@@ -131,7 +131,7 @@ function CustomerDetailsContent() {
           <CardHeader>
             <CardTitle>Customer Not Found</CardTitle>
             <CardDescription>
-              The customer you're looking for doesn't exist or has been deleted.
+              The customer you&apos;re looking for doesn&apos;t exist or has been deleted.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -296,7 +296,7 @@ function CustomerDetailsContent() {
             ) : (
               <div className="rounded-lg border border-dashed p-6 text-center">
                 <p className="mb-2 text-muted-foreground">
-                  This customer hasn't booked any appointments yet.
+                  This customer hasn&apos;t booked any appointments yet.
                 </p>
                 <Button asChild variant="outline">
                   <Link href="/appointments/events/new">Create an event to share</Link>
