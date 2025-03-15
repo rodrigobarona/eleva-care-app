@@ -58,7 +58,7 @@ export default function OnboardingPage() {
       });
 
       toast.success('Profile updated successfully');
-      redirect('/dashboard');
+      redirect(`/${process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}`);
     } catch (error) {
       console.error('Error updating profile:', error);
       toast.error('Failed to update profile. Please try again.');

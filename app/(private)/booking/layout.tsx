@@ -17,7 +17,7 @@ export default async function BookingLayout({ children }: BookingLayoutProps) {
   const userIsExpert = await isExpert();
 
   if (!userIsExpert) {
-    redirect('/dashboard');
+    redirect(`/${process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}`);
   }
 
   return <>{children}</>;

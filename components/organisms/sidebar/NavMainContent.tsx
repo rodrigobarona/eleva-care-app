@@ -43,7 +43,7 @@ interface NavMainContentProps {
 export function NavMainContent({ items }: NavMainContentProps) {
   const { isMobile } = useSidebar();
   const pathname = usePathname();
-  const isAccountSection = pathname.startsWith('/account');
+  const isAccountSection = pathname.startsWith('/account') || pathname.startsWith('/admin');
 
   return (
     <div className="relative overflow-hidden">

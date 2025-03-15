@@ -8,26 +8,45 @@ Currently, the application uses a straightforward role-based access control (RBA
 
 ### Available Roles
 
+All roles and route definitions are centrally defined in `/lib/constants/roles.ts`:
+
 ```typescript
-type UserRole = 'user' | 'community_expert' | 'top_expert' | 'lecturer' | 'admin' | 'superadmin';
+// Individual Role Names
+export const ROLE_USER = 'user' as const;
+export const ROLE_TOP_EXPERT = 'top_expert' as const;
+export const ROLE_COMMUNITY_EXPERT = 'community_expert' as const;
+export const ROLE_LECTURER = 'lecturer' as const;
+export const ROLE_ADMIN = 'admin' as const;
+export const ROLE_SUPERADMIN = 'superadmin' as const;
+
+// Type definitions (from lib/auth/roles.ts)
+type UserRole =
+  | typeof ROLE_USER
+  | typeof ROLE_TOP_EXPERT
+  | typeof ROLE_COMMUNITY_EXPERT
+  | typeof ROLE_LECTURER
+  | typeof ROLE_ADMIN
+  | typeof ROLE_SUPERADMIN;
 ```
+
+These constants are imported where needed to ensure consistency and prevent typos.
 
 ### Role-Based Access
 
 Each role grants access to specific parts of the application:
 
-- **Superadmin**: Complete system access with ability to assign any role
-- **Admin**: Administrative access to manage users, experts, content, and view reports
-- **Top Expert**: Full expert capabilities, including premium features
-- **Community Expert**: Standard expert capabilities
-- **Lecturer**: Access to create and manage educational content
-- **User (Customer)**: Basic access to use the platform services
+- **Superadmin** (`ROLE_SUPERADMIN`): Complete system access with ability to assign any role
+- **Admin** (`ROLE_ADMIN`): Administrative access to manage users, experts, content, and view reports
+- **Top Expert** (`ROLE_TOP_EXPERT`): Full expert capabilities, including premium features
+- **Community Expert** (`ROLE_COMMUNITY_EXPERT`): Standard expert capabilities
+- **Lecturer** (`ROLE_LECTURER`): Access to create and manage educational content
+- **User (Customer)** (`ROLE_USER`): Basic access to use the platform services
 
 Access control is implemented through:
 
-- Server-side role checks
-- Client-side conditional rendering
-- Middleware route protection
+- Server-side role checks using helpers from `lib/auth/roles.server.ts`
+- Client-side conditional rendering with hooks
+- Middleware route protection using route patterns from `lib/constants/roles.ts`
 
 ## Future Enhancement: Granular Permission System
 
@@ -108,14 +127,21 @@ The permission system will extend the current role-based system with:
 3. **UI Components**:
 
    ```tsx
-   <RequirePermission permission="users:edit">
+   // Import permission constants (future)
+   import { PERM_USERS_EDIT } from '@/lib/constants/permissions';
+
+   <RequirePermission permission={PERM_USERS_EDIT}>
      <UserEditForm />
-   </RequirePermission>
+   </RequirePermission>;
    ```
 
 4. **API Protection**:
+
    ```typescript
-   if (!(await hasPermission('reports:access'))) {
+   // Import permission constants (future)
+   import { PERM_REPORTS_ACCESS } from '@/lib/constants/permissions';
+
+   if (!(await hasPermission(PERM_REPORTS_ACCESS))) {
      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
    }
    ```
@@ -124,7 +150,7 @@ The permission system will extend the current role-based system with:
 
 When implementing the permission system:
 
-1. Define all permissions and their meanings
+1. Define all permissions and their meanings (using a similar constants approach)
 2. Map existing roles to permission sets
 3. Implement database schema for permissions
 4. Create helper functions and React components
@@ -141,7 +167,7 @@ When implementing the permission system:
 
 ## Current Status
 
-Until the permission system is implemented, continue using the role-based approach outlined in:
+Until the permission system is implemented, continue using the role-based approach with the centralized constants approach. See the following guides for more information:
 
 - [Role-Based Authorization](./role-based-authorization.md)
 - [Role Management Guide](./role-management-guide.md)

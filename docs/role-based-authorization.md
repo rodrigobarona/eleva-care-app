@@ -4,6 +4,58 @@
 
 The Role-Based Authorization System provides a flexible and secure way to manage user permissions across the Eleva Care application. The system uses Clerk's user metadata to store roles and implements a centralized approach to role checking across the application.
 
+## Centralized Role Constants
+
+All role names, route paths, and groupings are defined in a single location at `/lib/constants/roles.ts`. This provides a single source of truth for all role-related constants across the application:
+
+```typescript
+// lib/constants/roles.ts
+
+// Individual Role Names
+export const ROLE_USER = 'user' as const;
+export const ROLE_TOP_EXPERT = 'top_expert' as const;
+export const ROLE_COMMUNITY_EXPERT = 'community_expert' as const;
+export const ROLE_LECTURER = 'lecturer' as const;
+export const ROLE_ADMIN = 'admin' as const;
+export const ROLE_SUPERADMIN = 'superadmin' as const;
+
+// Complete list of roles
+export const ALL_ROLES = [
+  ROLE_USER,
+  ROLE_TOP_EXPERT,
+  ROLE_COMMUNITY_EXPERT,
+  ROLE_LECTURER,
+  ROLE_ADMIN,
+  ROLE_SUPERADMIN,
+] as const;
+
+// Role groupings for common use cases
+export const ADMIN_ROLES = [ROLE_ADMIN, ROLE_SUPERADMIN] as const;
+export const EXPERT_ROLES = [
+  ROLE_TOP_EXPERT,
+  ROLE_COMMUNITY_EXPERT,
+  ROLE_ADMIN,
+  ROLE_SUPERADMIN,
+] as const;
+
+// Route definitions for role-based access control
+export const PUBLIC_ROUTES = [
+  '/',
+  '/sign-in(.*)',
+  // ... other public routes
+] as const;
+
+export const ADMIN_ROUTES = [
+  '/admin(.*)',
+  '/api/admin(.*)',
+  // ... other admin routes
+] as const;
+
+// ... other route groupings
+```
+
+These constants are then re-exported from `/lib/auth/roles.ts` to maintain backward compatibility.
+
 ## Role Hierarchy
 
 The system defines the following primary user roles, in descending order of privilege:
@@ -26,12 +78,27 @@ The role system is implemented using a centralized approach with three main comp
 This module provides server-side role checking functionality:
 
 ```typescript
+import {
+  ADMIN_ROLES,
+  ROLE_ADMIN,
+  ROLE_COMMUNITY_EXPERT,
+  ROLE_TOP_EXPERT,
+} from '@/lib/constants/roles';
+
 // Core role checking functions
 async function hasRole(role: UserRole): Promise<boolean>;
 async function hasAnyRole(roles: UserRole[]): Promise<boolean>;
 
+// Middleware helper for role checking
+export function checkRoles(
+  userRoles: string | string[] | unknown,
+  requiredRoles: readonly string[],
+): boolean;
+
 // Specialized helper functions
-async function isAdmin(): Promise<boolean>;
+async function isAdmin(): Promise<boolean> {
+  return hasAnyRole([...ADMIN_ROLES] as UserRole[]);
+}
 async function isExpert(): Promise<boolean>;
 async function isTopExpert(): Promise<boolean>;
 async function isCommunityExpert(): Promise<boolean>;
@@ -46,6 +113,8 @@ async function updateUserRole(userId: string, roles: UserRoles): Promise<void>;
 Provides React context and hooks for client-side role checking:
 
 ```typescript
+import { ROLE_ADMIN /* etc */ } from '@/lib/constants/roles';
+
 // Core context provider and hook
 AuthorizationProvider // Context provider component
 useAuthorization() // Access to roles, hasRole function, and loading state
@@ -65,20 +134,23 @@ RequireRole // Conditional rendering component
 Middleware-based protection for entire routes:
 
 ```typescript
-// Configuration for protected routes
-const protectedRoutes = [
-  {
-    path: '/admin',
-    roles: ['admin', 'superadmin'],
-    redirectUrl: '/',
-  },
-  {
-    path: '/expert',
-    roles: ['top_expert', 'community_expert'],
-    redirectUrl: '/',
-  },
-  // Additional protected routes...
-];
+import { checkRoles } from '@/lib/auth/roles.server';
+import {
+  ADMIN_ROLES,
+  ADMIN_ROUTES,
+  EXPERT_ROLES,
+  EXPERT_ROUTES,
+  PUBLIC_ROUTES,
+  SPECIAL_AUTH_ROUTES,
+} from '@/lib/constants/roles';
+
+// In the middleware function:
+if (matchesPattern(path, ADMIN_ROUTES)) {
+  const isAdmin = checkRoles(userRoleData, ADMIN_ROLES);
+  if (!isAdmin) {
+    // Handle unauthorized access
+  }
+}
 ```
 
 ## Storage Implementation
@@ -152,16 +224,6 @@ import { useIsAdmin, useIsExpert } from '@/components/molecules/AuthorizationPro
 
 // components/ExampleProtectedComponent.tsx
 
-// components/ExampleProtectedComponent.tsx
-
-// components/ExampleProtectedComponent.tsx
-
-// components/ExampleProtectedComponent.tsx
-
-// components/ExampleProtectedComponent.tsx
-
-// components/ExampleProtectedComponent.tsx
-
 export function ExampleProtectedComponent() {
   const isAdmin = useIsAdmin();
   const isExpert = useIsExpert();
@@ -183,6 +245,7 @@ export function ExampleProtectedComponent() {
 ```tsx
 // Conditional rendering in components
 import { RequireRole } from '@/components/molecules/AuthorizationProvider';
+import { ROLE_ADMIN, ROLE_COMMUNITY_EXPERT, ROLE_TOP_EXPERT } from '@/lib/constants/roles';
 
 function Dashboard() {
   return (
@@ -190,12 +253,12 @@ function Dashboard() {
       <h1>Dashboard</h1>
 
       {/* Admin-only section */}
-      <RequireRole roles="admin">
+      <RequireRole roles={ROLE_ADMIN}>
         <AdminControls />
       </RequireRole>
 
       {/* Expert-only section */}
-      <RequireRole roles={['community_expert', 'top_expert']}>
+      <RequireRole roles={[ROLE_COMMUNITY_EXPERT, ROLE_TOP_EXPERT]}>
         <ExpertTools />
       </RequireRole>
     </div>
@@ -228,11 +291,12 @@ export async function GET() {
 
 ## Benefits of Centralized Approach
 
-1. **Consistency**: Same role logic applied everywhere
-2. **Maintainability**: Role logic updates in one place
-3. **Type Safety**: TypeScript types for role checking
-4. **Flexibility**: Handles both array and string role formats
+1. **Consistency**: Same role names and logic applied everywhere
+2. **Maintainability**: Role definitions and route patterns in one place
+3. **Type Safety**: TypeScript types for role checking with compile-time verification
+4. **Single Source of Truth**: Prevents mismatches between role definitions
 5. **Simplicity**: Clear helper functions for common role checks
+6. **Reliability**: Prevents typos in string literals representing roles
 
 ## Security Considerations
 
@@ -258,16 +322,17 @@ Our application implements role-based access control (RBAC) at multiple levels f
 The first layer of defense is implemented in `middleware.ts`, which provides broad route protection:
 
 ```typescript
-// Simplified example from middleware.ts
-const ADMIN_ROUTES = ['/admin(.*)', '/api/admin(.*)'];
+// Middleware uses centralized route and role definitions
+import { checkRoles } from '@/lib/auth/roles.server';
+import { ADMIN_ROLES, ADMIN_ROUTES, EXPERT_ROLES, EXPERT_ROUTES } from '@/lib/constants/roles';
 
-const EXPERT_ROUTES = [
-  '/booking(.*)',
-  '/appointments(.*)',
-  '/api/expert(.*)',
-  '/api/appointments(.*)',
-  // Additional expert-only routes...
-];
+// In middleware:
+if (matchesPattern(path, ADMIN_ROUTES)) {
+  const isAdmin = checkRoles(userRoleData, ADMIN_ROLES);
+  if (!isAdmin) {
+    // Handle unauthorized access
+  }
+}
 ```
 
 This middleware:

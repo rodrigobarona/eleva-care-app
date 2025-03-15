@@ -28,7 +28,7 @@ export function AppSidebar() {
   const navItems = [
     {
       title: 'Dashboard',
-      url: '/dashboard',
+      url: `/${process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}`,
       icon: HomeIcon,
       roles: ['user', 'community_expert', 'top_expert', 'admin', 'superadmin'] as UserRole[],
     },

@@ -1,31 +1,56 @@
+import {
+  ADMIN_ROLES,
+  ADMIN_ROUTES,
+  ALL_ROLES,
+  EXPERT_ROLES,
+  EXPERT_ROUTES,
+  PUBLIC_ROUTES,
+  ROLE_ADMIN,
+  ROLE_COMMUNITY_EXPERT,
+  ROLE_LECTURER,
+  ROLE_SUPERADMIN,
+  ROLE_TOP_EXPERT,
+  ROLE_USER,
+  SPECIAL_AUTH_ROUTES,
+} from '@/lib/constants/roles';
+
 // Common types and constants
 export type UserRole =
-  | 'user'
-  | 'top_expert'
-  | 'community_expert'
-  | 'lecturer'
-  | 'admin'
-  | 'superadmin';
+  | typeof ROLE_USER
+  | typeof ROLE_TOP_EXPERT
+  | typeof ROLE_COMMUNITY_EXPERT
+  | typeof ROLE_LECTURER
+  | typeof ROLE_ADMIN
+  | typeof ROLE_SUPERADMIN;
 
 export type UserRoles = UserRole | UserRole[];
 
-export const ROLES = [
-  'user',
-  'top_expert',
-  'community_expert',
-  'lecturer',
-  'admin',
-  'superadmin',
-] as const;
+export const ROLES = ALL_ROLES;
+
+// Re-export constants for backward compatibility
+export {
+  ROLE_USER,
+  ROLE_TOP_EXPERT,
+  ROLE_COMMUNITY_EXPERT,
+  ROLE_LECTURER,
+  ROLE_ADMIN,
+  ROLE_SUPERADMIN,
+  ADMIN_ROLES,
+  EXPERT_ROLES,
+  PUBLIC_ROUTES,
+  ADMIN_ROUTES,
+  EXPERT_ROUTES,
+  SPECIAL_AUTH_ROUTES,
+};
 
 // Role priority for UI purposes
 export const ROLE_PRIORITY: Record<UserRole, number> = {
-  superadmin: 6,
-  admin: 5,
-  top_expert: 4,
-  community_expert: 3,
-  lecturer: 2,
-  user: 1,
+  [ROLE_SUPERADMIN]: 6,
+  [ROLE_ADMIN]: 5,
+  [ROLE_TOP_EXPERT]: 4,
+  [ROLE_COMMUNITY_EXPERT]: 3,
+  [ROLE_LECTURER]: 2,
+  [ROLE_USER]: 1,
 };
 
 // Client-side role management

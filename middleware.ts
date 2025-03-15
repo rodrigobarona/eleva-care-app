@@ -11,73 +11,22 @@
  *
  * @see /docs/role-based-authorization.md for complete documentation
  */
+import { checkRoles } from '@/lib/auth/roles.server';
+import {
+  ADMIN_ROLES,
+  ADMIN_ROUTES,
+  EXPERT_ROLES,
+  EXPERT_ROUTES,
+  PUBLIC_ROUTES,
+  SPECIAL_AUTH_ROUTES,
+} from '@/lib/constants/roles';
 import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 /**
- * Routes that can be accessed without authentication
- */
-const PUBLIC_ROUTES = [
-  // Public pages
-  '/',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
-  '/unauthorized(.*)',
-  '/:username', // Public expert profiles (e.g., /barona)
-  '/:username/(.*)', // Public routes under usernames (e.g., /barona/event-name)
-  '/legal/(.*)', // Legal pages (privacy policy, terms, etc.)
-  '/explore',
-  '/experts/:path*',
-  '/blog/:path*',
-  '/contact',
-
-  // Public API endpoints
-  '/api/webhook(s)?/.*', // All webhook endpoints for external services
-  '/api/keep-alive', // Health check endpoint
-];
-
-/**
- * Routes that require admin role
- */
-const ADMIN_ROUTES = [
-  // Admin pages
-  '/admin(.*)',
-
-  // Admin API endpoints
-  '/api/admin(.*)',
-  '/api/categories(.*)', // To manage categories experts
-];
-
-/**
- * Routes that require expert role (includes community_expert, top_expert)
- */
-const EXPERT_ROUTES = [
-  // Expert pages
-  '/booking(.*)',
-  '/appointments(.*)',
-  '/account/identity(.*)',
-  '/account/billing(.*)',
-
-  // Expert API endpoints
-  '/api/expert(.*)',
-  '/api/appointments(.*)',
-  '/api/records(.*)',
-  '/api/meetings(.*)',
-  '/api/customers(.*)',
-  '/api/stripe(.*)', // Expert stripe connect operations
-];
-
-/**
- * Special routes that require custom authentication (e.g., API key)
- */
-const SPECIAL_AUTH_ROUTES = [
-  '/api/cron(.*)', // Cron jobs (requires API key)
-];
-
-/**
  * Check if a path matches any pattern in the list
  */
-function matchesPattern(path: string, patterns: string[]): boolean {
+function matchesPattern(path: string, patterns: readonly string[]): boolean {
   return patterns.some((pattern) => {
     // Handle wildcard patterns (e.g., /admin*)
     if (pattern.includes('*')) {
@@ -110,17 +59,6 @@ function matchesPattern(path: string, patterns: string[]): boolean {
     // Exact match
     return path === pattern;
   });
-}
-
-/**
- * Check if a user has any of the required roles
- */
-function hasAnyRole(userRoles: string[], requiredRoles: string[]): boolean {
-  // Convert everything to lowercase for case-insensitive comparison
-  const normalizedUserRoles = userRoles.map((r) => r.toLowerCase());
-  const normalizedRequiredRoles = requiredRoles.map((r) => r.toLowerCase());
-
-  return normalizedUserRoles.some((role) => normalizedRequiredRoles.includes(role));
 }
 
 /**
@@ -164,7 +102,9 @@ export default clerkMiddleware(async (auth, req) => {
 
   // 4. If user is authenticated but trying to access the root path, redirect to dashboard
   if (userId && path === '/') {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+    return NextResponse.redirect(
+      new URL(`/${process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}`, window.location.href),
+    );
   }
 
   // 5. Check role-based restrictions
@@ -175,16 +115,9 @@ export default clerkMiddleware(async (auth, req) => {
     const userMetadata = (authObj.sessionClaims?.metadata as { role?: string | string[] }) || {};
     const userRoleData = userMetadata.role;
 
-    // Convert role data to array format
-    const userRoles = Array.isArray(userRoleData)
-      ? userRoleData
-      : typeof userRoleData === 'string'
-        ? [userRoleData]
-        : [];
-
-    // Check admin routes
+    // Check admin routes using the centralized helper
     if (matchesPattern(path, ADMIN_ROUTES)) {
-      const isAdmin = hasAnyRole(userRoles, ['admin', 'superadmin']);
+      const isAdmin = checkRoles(userRoleData, ADMIN_ROLES);
       if (!isAdmin) {
         // For API routes, return JSON error
         if (path.startsWith('/api/')) {
@@ -197,14 +130,9 @@ export default clerkMiddleware(async (auth, req) => {
       }
     }
 
-    // Check expert routes
+    // Check expert routes using the centralized helper
     if (matchesPattern(path, EXPERT_ROUTES)) {
-      const isExpert = hasAnyRole(userRoles, [
-        'community_expert',
-        'top_expert',
-        'admin',
-        'superadmin',
-      ]);
+      const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
       if (!isExpert) {
         // For API routes, return JSON error
         if (path.startsWith('/api/')) {
