@@ -95,7 +95,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
               <SidebarMenu>
                 {items.map((item) => (
                   <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild>
+                    <SidebarMenuButton asChild isActive={pathname === item.url}>
                       <Link href={item.url} prefetch>
                         <item.icon className="size-4" />
                         <span>{item.title}</span>
