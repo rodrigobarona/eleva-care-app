@@ -14,7 +14,18 @@ import {
 } from '@/components/molecules/dropdown-menu';
 import { SidebarMenu, SidebarMenuItem, useSidebar } from '@/components/organisms/sidebar/sidebar';
 import { useClerk, useUser } from '@clerk/nextjs';
-import { BadgeCheck, ChevronsUpDown, CreditCard, Home, Lock, LogOut } from 'lucide-react';
+import {
+  BadgeCheck,
+  BanknoteIcon,
+  ChevronsUpDown,
+  CreditCard,
+  Home,
+  Lock,
+  LogOut,
+  Shield,
+  Tag,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 
 function NavUserSkeleton() {
@@ -111,7 +122,7 @@ export function NavUser() {
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link href="/account/identity">
                     Identity
-                    <BadgeCheck className="ml-auto h-4 w-4" />
+                    <Shield className="ml-auto h-4 w-4" />
                   </Link>
                 </DropdownMenuItem>
               </RequireRole>
@@ -121,19 +132,19 @@ export function NavUser() {
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/admin/users">
                   Users
-                  <BadgeCheck className="ml-auto h-4 w-4" />
+                  <Users className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/admin/categories">
                   Categories
-                  <BadgeCheck className="ml-auto h-4 w-4" />
+                  <Tag className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/admin/payments">
                   Manage Payments
-                  <BadgeCheck className="ml-auto h-4 w-4" />
+                  <BanknoteIcon className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />

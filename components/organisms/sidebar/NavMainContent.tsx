@@ -142,8 +142,8 @@ export function NavMainContent({ items }: NavMainContentProps) {
             <div className="flex items-center gap-2">
               <Link href="/dashboard" className="hover:text-foreground/80">
                 <ChevronLeft className="size-4" />
+                <span>Dashboard</span>
               </Link>
-              <span>Dashboard</span>
             </div>
           </SidebarGroupLabel>
         </SidebarGroup>
