@@ -6,7 +6,7 @@ The Customers section provides experts with a centralized view of all their clie
 
 ## Components
 
-### 1. Customer List Page (`/customers`)
+### 1. Customer List Page (`/appointments/patients`)
 
 The main customers page displays a table of all clients who have booked appointments with the expert. Key features include:
 
@@ -14,7 +14,7 @@ The main customers page displays a table of all clients who have booked appointm
 - **Customer Statistics**: View appointment count and total spend for each customer
 - **Quick Access**: Links to detailed customer profiles
 
-### 2. Customer Detail Page (`/customers/[id]`)
+### 2. Customer Detail Page (`/appointments/patients/[id]`)
 
 The detail page provides comprehensive information about an individual customer:
 

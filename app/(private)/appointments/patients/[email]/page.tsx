@@ -93,7 +93,7 @@ function CustomerDetailsContent() {
       <div className="container py-10">
         <div className="mb-6 flex items-center gap-4">
           <Link
-            href="/customers"
+            href="/appointments/patients"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -107,7 +107,7 @@ function CustomerDetailsContent() {
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link href="/customers">Return to Customers List</Link>
+              <Link href="/appointments/patients">Return to Customers List</Link>
             </Button>
           </CardContent>
         </Card>
@@ -120,7 +120,7 @@ function CustomerDetailsContent() {
       <div className="container py-10">
         <div className="mb-6 flex items-center gap-4">
           <Link
-            href="/customers"
+            href="/appointments/patients"
             className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -136,7 +136,7 @@ function CustomerDetailsContent() {
           </CardHeader>
           <CardContent>
             <Button asChild>
-              <Link href="/customers">Return to Customers List</Link>
+              <Link href="/appointments/patients">Return to Customers List</Link>
             </Button>
           </CardContent>
         </Card>
@@ -162,7 +162,7 @@ function CustomerDetailsContent() {
     <div className="container py-10">
       <div className="mb-6 flex items-center gap-4">
         <Link
-          href="/customers"
+          href="/appointments/patients"
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />

@@ -31,7 +31,7 @@ interface SidebarItem {
 
 const mainItems: SidebarItem[] = [
   {
-    title: 'Events Types',
+    title: 'Events',
     url: '/booking/events',
     icon: LinkIcon,
     items: [
@@ -46,7 +46,7 @@ const mainItems: SidebarItem[] = [
   },
   {
     title: 'Customers',
-    url: '/customers',
+    url: '/appointments/patients',
     icon: Users,
   },
   {

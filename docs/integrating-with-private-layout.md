@@ -40,7 +40,7 @@ export function AppSidebar() {
     },
     {
       title: 'Customers',
-      url: '/customers',
+      url: '/appointments/patients',
       icon: UsersIcon,
       roles: ['community_expert', 'top_expert', 'admin', 'superadmin'] as UserRole[],
     },

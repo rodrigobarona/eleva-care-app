@@ -1,8 +1,8 @@
 import { db } from '@/drizzle/db';
-import { AppointmentTable, EventTable, PaymentIntentTable, UserTable } from '@/drizzle/schema';
+import { EventTable, MeetingTable } from '@/drizzle/schema';
 import { isExpert } from '@/lib/auth/roles.server';
 import { auth } from '@clerk/nextjs/server';
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { desc, eq, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 /**
@@ -26,46 +26,26 @@ export async function GET() {
     // Find all unique customers who have booked appointments with this expert
     const customersWithAppointmentsQuery = db
       .select({
-        email: AppointmentTable.guestEmail,
-        name: AppointmentTable.guestName,
+        email: MeetingTable.guestEmail,
+        name: MeetingTable.guestName,
         // Count appointments per customer
-        appointmentsCount: sql<number>`count(${AppointmentTable.id})`.as('appointment_count'),
+        appointmentsCount: sql<number>`count(${MeetingTable.id})`.as('appointment_count'),
         // Calculate total spend
         totalSpend: sql<number>`sum(${EventTable.price})`.as('total_spend'),
         // Get most recent appointment date
-        lastAppointment: sql<string>`max(${AppointmentTable.startTime})`.as('last_appointment'),
+        lastAppointment: sql<string>`max(${MeetingTable.startTime})`.as('last_appointment'),
       })
-      .from(AppointmentTable)
-      .innerJoin(EventTable, eq(EventTable.id, AppointmentTable.eventId))
+      .from(MeetingTable)
+      .innerJoin(EventTable, eq(EventTable.id, MeetingTable.eventId))
       .where(eq(EventTable.clerkUserId, userId))
-      .groupBy(AppointmentTable.guestEmail, AppointmentTable.guestName)
+      .groupBy(MeetingTable.guestEmail, MeetingTable.guestName)
       .orderBy(desc(sql`last_appointment`));
 
     const customersWithAppointments = await customersWithAppointmentsQuery;
 
-    // Get Stripe customer IDs where available (this would come from your payment integration)
-    // This is a simplified example - in a real app, you'd link customers to their Stripe IDs
-    const stripeInfo = await db
-      .select({
-        email: AppointmentTable.guestEmail,
-        stripeCustomerId: PaymentIntentTable.stripeCustomerId,
-      })
-      .from(AppointmentTable)
-      .innerJoin(PaymentIntentTable, eq(PaymentIntentTable.appointmentId, AppointmentTable.id))
-      .innerJoin(EventTable, eq(EventTable.id, AppointmentTable.eventId))
-      .where(eq(EventTable.clerkUserId, userId))
-      .groupBy(AppointmentTable.guestEmail, PaymentIntentTable.stripeCustomerId);
-
-    // Create a map of email to Stripe customer ID
-    const stripeCustomerIdMap = stripeInfo.reduce(
-      (acc, { email, stripeCustomerId }) => {
-        if (email && stripeCustomerId) {
-          acc[email] = stripeCustomerId;
-        }
-        return acc;
-      },
-      {} as Record<string, string>,
-    );
+    // Get Stripe customer IDs where available
+    // Since we don't have direct PaymentIntentTable, we'll just use the customer data without Stripe IDs for now
+    // In a real-world scenario, you would have a proper payment intents table to join here
 
     // Format the response
     const customers = customersWithAppointments.map((customer) => ({
@@ -75,7 +55,7 @@ export async function GET() {
       appointmentsCount: customer.appointmentsCount,
       totalSpend: customer.totalSpend || 0,
       lastAppointment: customer.lastAppointment,
-      stripeCustomerId: stripeCustomerIdMap[customer.email] || null,
+      stripeCustomerId: null, // We don't have a way to get this without PaymentIntentTable
     }));
 
     return NextResponse.json({ customers });

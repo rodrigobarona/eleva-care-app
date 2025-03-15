@@ -65,7 +65,6 @@ export const EXPERT_ROUTES = [
   // Expert pages
   '/booking(.*)',
   '/appointments(.*)',
-  '/customers(.*)', // Unified customer management
   '/account/identity(.*)',
   '/account/billing(.*)',
 
