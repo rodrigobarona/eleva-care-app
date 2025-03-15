@@ -44,7 +44,7 @@ export default async function PaymentTransfersPage({
   return (
     <div className="container py-8">
       <div className="mb-8">
-        <h1 className="mb-2 text-3xl font-bold">Payment Transfers</h1>
+        <h1 className="mb-2 text-3xl font-bold">Manage Payments</h1>
         <p className="text-muted-foreground">Manage and monitor payments to experts</p>
       </div>
 

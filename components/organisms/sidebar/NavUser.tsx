@@ -89,26 +89,26 @@ export function NavUser() {
             <DropdownMenuSeparator />
 
             <DropdownMenuGroup>
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/account">
                   Personal Information
                   <BadgeCheck className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/account/security">
                   Security
                   <Lock className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
               <RequireRole roles={['community_expert', 'top_expert']}>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="cursor-pointer">
                   <Link href="/account/billing">
                     Billing
                     <CreditCard className="ml-auto h-4 w-4" />
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
+                <DropdownMenuItem asChild className="cursor-pointer">
                   <Link href="/account/identity">
                     Identity
                     <BadgeCheck className="ml-auto h-4 w-4" />
@@ -118,33 +118,33 @@ export function NavUser() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <RequireRole roles={['admin', 'superadmin']}>
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/admin/users">
                   Users
                   <BadgeCheck className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="cursor-pointer">
                 <Link href="/admin/categories">
                   Categories
                   <BadgeCheck className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/admin/payment-transfers">
-                  Payment Transfers
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href="/admin/payments">
+                  Manage Payments
                   <BadgeCheck className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
             </RequireRole>
-            <DropdownMenuItem asChild>
+            <DropdownMenuItem asChild className="cursor-pointer">
               <Link href="/?home=true">
                 Home Page
                 <Home className="ml-auto h-4 w-4" />
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => signOut()}>
+            <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
               Log out
               <LogOut className="ml-auto h-4 w-4" />
             </DropdownMenuItem>

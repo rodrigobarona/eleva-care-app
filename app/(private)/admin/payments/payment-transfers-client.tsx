@@ -120,7 +120,7 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
   };
 
   const handleClearFilters = () => {
-    router.push('/admin/payment-transfers');
+    router.push('/admin/payments');
   };
 
   const getStatusBadge = (status: string) => {
@@ -301,7 +301,7 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
                   <TableCell>{getStatusBadge(transfer.status)}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
-                      <Link href={`/admin/payment-transfers/${transfer.id}`}>
+                      <Link href={`/admin/payments/${transfer.id}`}>
                         <Button size="sm" variant="ghost">
                           <Eye className="mr-1 h-4 w-4" />
                           View

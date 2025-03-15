@@ -40,11 +40,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
                 <span>Categories</span>
               </Link>
               <Link
-                href="/admin/payment-transfers"
+                href="/admin/payments"
                 className="group flex w-full items-center rounded-md border border-transparent px-2 py-1 hover:bg-muted hover:text-foreground"
               >
                 <BanknoteIcon className="mr-2 h-4 w-4" />
-                <span>Payment Transfers</span>
+                <span>Manage Payments</span>
               </Link>
             </div>
           </nav>
