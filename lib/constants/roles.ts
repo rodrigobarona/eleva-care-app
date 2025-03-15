@@ -25,7 +25,12 @@ export const ALL_ROLES = [
 
 // Role groupings for common use cases
 export const ADMIN_ROLES = [ROLE_ADMIN, ROLE_SUPERADMIN] as const;
-export const EXPERT_ROLES = [ROLE_TOP_EXPERT, ROLE_COMMUNITY_EXPERT] as const;
+export const EXPERT_ROLES = [
+  ROLE_TOP_EXPERT,
+  ROLE_COMMUNITY_EXPERT,
+  ROLE_ADMIN,
+  ROLE_SUPERADMIN,
+] as const;
 
 // Route definitions for role-based access control
 export const PUBLIC_ROUTES = [
@@ -60,12 +65,14 @@ export const EXPERT_ROUTES = [
   // Expert pages
   '/booking(.*)',
   '/appointments(.*)',
+  '/customers(.*)', // Unified customer management
   '/account/identity(.*)',
   '/account/billing(.*)',
 
   // Expert API endpoints
   '/api/expert(.*)',
   '/api/appointments(.*)',
+  '/api/customers(.*)', // Unified customer API endpoints
   '/api/records(.*)',
   '/api/meetings(.*)',
   '/api/customers(.*)',

@@ -1,0 +1,24 @@
+import { isExpert } from '@/lib/auth/roles.server';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
+
+interface CustomersLayoutProps {
+  children: React.ReactNode;
+}
+
+export default async function CustomersLayout({ children }: CustomersLayoutProps) {
+  const { userId } = await auth();
+
+  if (!userId) {
+    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
+  }
+
+  // Check if user is an expert using the centralized isExpert function
+  const userIsExpert = await isExpert();
+
+  if (!userIsExpert) {
+    redirect(`/${process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}`);
+  }
+
+  return <>{children}</>;
+}
