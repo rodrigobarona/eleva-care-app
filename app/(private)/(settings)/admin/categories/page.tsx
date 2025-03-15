@@ -1,6 +1,5 @@
+import { CategoryList } from '@/components/organisms/category-list';
 import type { Metadata } from 'next';
-
-import { CategoryList } from './components/category-list';
 
 export const metadata: Metadata = {
   title: 'Categories Management',

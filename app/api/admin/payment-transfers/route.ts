@@ -33,7 +33,13 @@ export async function GET(request: NextRequest) {
     const clerkUserId = userId;
     const clerk = await clerkClient();
     const user = await clerk.users.getUser(clerkUserId);
-    const isAdmin = user.publicMetadata?.role === 'admin';
+
+    // Check if role is an array that includes 'admin' or 'superadmin'
+    const userRoles = user.publicMetadata?.role as string[] | string | undefined;
+    const isAdmin = Array.isArray(userRoles)
+      ? userRoles.includes('admin') || userRoles.includes('superadmin')
+      : userRoles === 'admin' || userRoles === 'superadmin';
+
     if (!isAdmin) {
       console.warn(`Non-admin user ${userId} attempted to access payment transfers`);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -150,7 +156,13 @@ export async function PATCH(request: NextRequest) {
     // Verify admin role
     const clerk = await clerkClient();
     const user = await clerk.users.getUser(userId);
-    const isAdmin = user.publicMetadata?.role === 'admin';
+
+    // Check if role is an array that includes 'admin' or 'superadmin'
+    const userRoles = user.publicMetadata?.role as string[] | string | undefined;
+    const isAdmin = Array.isArray(userRoles)
+      ? userRoles.includes('admin') || userRoles.includes('superadmin')
+      : userRoles === 'admin' || userRoles === 'superadmin';
+
     if (!isAdmin) {
       console.warn(`Non-admin user ${userId} attempted to update payment transfer`);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

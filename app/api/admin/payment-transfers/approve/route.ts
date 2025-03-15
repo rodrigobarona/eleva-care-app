@@ -18,7 +18,13 @@ export async function POST(request: NextRequest) {
 
     // Verify admin role
     const user = await (await clerkClient()).users.getUser(userId);
-    const isAdmin = user.publicMetadata?.role === 'admin';
+
+    // Check if role is an array that includes 'admin' or 'superadmin'
+    const userRoles = user.publicMetadata?.role as string[] | string | undefined;
+    const isAdmin = Array.isArray(userRoles)
+      ? userRoles.includes('admin') || userRoles.includes('superadmin')
+      : userRoles === 'admin' || userRoles === 'superadmin';
+
     if (!isAdmin) {
       console.warn(`Non-admin user ${userId} attempted to approve transfer`);
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });

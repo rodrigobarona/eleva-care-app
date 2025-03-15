@@ -12,7 +12,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   // Check if user is admin
   const user = await (await clerkClient()).users.getUser(userId);
-  const isAdmin = user.publicMetadata?.role === 'admin';
+
+  // Check if role is an array that includes 'admin' or 'superadmin'
+  const userRoles = user.publicMetadata?.role as string[] | string | undefined;
+  const isAdmin = Array.isArray(userRoles)
+    ? userRoles.includes('admin') || userRoles.includes('superadmin')
+    : userRoles === 'admin' || userRoles === 'superadmin';
 
   if (!isAdmin) {
     redirect('/');
