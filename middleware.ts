@@ -45,6 +45,7 @@ const ADMIN_ROUTES = [
 
   // Admin API endpoints
   '/api/admin(.*)',
+  '/api/categories(.*)', // To manage categories experts
 ];
 
 /**
@@ -64,7 +65,6 @@ const EXPERT_ROUTES = [
   '/api/meetings(.*)',
   '/api/customers(.*)',
   '/api/stripe(.*)', // Expert stripe connect operations
-  '/api/categories(.*)', // Only if experts need to manage categories
 ];
 
 /**
@@ -191,7 +191,9 @@ export default clerkMiddleware(async (auth, req) => {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
         // For page routes, redirect to unauthorized
-        return NextResponse.redirect(new URL('/unauthorized', req.url));
+        return NextResponse.redirect(
+          new URL(`/${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`, req.url),
+        );
       }
     }
 
@@ -209,7 +211,9 @@ export default clerkMiddleware(async (auth, req) => {
           return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
         // For page routes, redirect to unauthorized
-        return NextResponse.redirect(new URL('/unauthorized', req.url));
+        return NextResponse.redirect(
+          new URL(`/${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`, req.url),
+        );
       }
     }
   }
