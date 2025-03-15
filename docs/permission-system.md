@@ -1,14 +1,41 @@
 # Permission System
 
-This document explains how permissions work in the Eleva Care application's role-based authorization system.
+This document explains the current authorization approach in the Eleva Care application and outlines future plans for a more granular permission system.
 
-## Overview
+## Current Implementation: Role-Based Access Control
 
-While roles define broad access levels, permissions provide granular control over specific actions within the application. Permissions are assigned to roles, and users inherit the permissions of all their assigned roles.
+Currently, the application uses a straightforward role-based access control (RBAC) system, where access to features and resources is determined by a user's role or roles.
 
-## Permission Structure
+### Available Roles
 
-Permissions in Eleva Care follow a resource-action pattern:
+```typescript
+type UserRole = 'user' | 'community_expert' | 'top_expert' | 'lecturer' | 'admin' | 'superadmin';
+```
+
+### Role-Based Access
+
+Each role grants access to specific parts of the application:
+
+- **Superadmin**: Complete system access with ability to assign any role
+- **Admin**: Administrative access to manage users, experts, content, and view reports
+- **Top Expert**: Full expert capabilities, including premium features
+- **Community Expert**: Standard expert capabilities
+- **Lecturer**: Access to create and manage educational content
+- **User (Customer)**: Basic access to use the platform services
+
+Access control is implemented through:
+
+- Server-side role checks
+- Client-side conditional rendering
+- Middleware route protection
+
+## Future Enhancement: Granular Permission System
+
+In future releases, we plan to implement a more granular permission system to provide finer control over user capabilities.
+
+### Planned Permission Structure
+
+Permissions will follow a resource-action pattern:
 
 ```
 [resource]:[action]
@@ -21,15 +48,15 @@ Examples:
 - `users:manage` - Allows full management of users
 - `billing:access` - Allows access to billing information
 
-## Default Permission Sets
+### Planned Permission Sets
 
-Each role has a predefined set of permissions:
+Each role will have a predefined set of permissions:
 
-### Superadmin
+#### Superadmin
 
 - All permissions (system-wide access)
 
-### Admin
+#### Admin
 
 - `users:view`, `users:edit`
 - `experts:manage`
@@ -37,7 +64,7 @@ Each role has a predefined set of permissions:
 - `billing:view`
 - `reports:access`
 
-### Top Expert
+#### Top Expert
 
 - `appointments:manage`
 - `customers:view`
@@ -45,189 +72,77 @@ Each role has a predefined set of permissions:
 - `profile:customize`
 - `billing:access`
 
-### Community Expert
+#### Community Expert
 
 - `appointments:manage`
 - `customers:view`
 - `events:create`
 - `profile:basic`
-- `billing:access`
 
-### User (Customer)
+#### Lecturer
+
+- `content:create`
+- `content:manage`
+- `profile:basic`
+
+#### User
 
 - `appointments:book`
-- `profile:edit`
+- `profile:view`
+- `content:access`
 
-## Database Implementation
+### Planned Implementation
 
-Permissions are stored in the database in two main tables:
+The permission system will extend the current role-based system with:
 
-1. `permissions` - Stores all available permissions
-2. `role_permissions` - Maps permissions to roles
+1. **Permission Storage**:
 
-### Creating New Permissions
+   - Permissions stored in a database table
+   - Role-permission mappings in a join table
 
-To add new permissions to the system, insert them into the `permissions` table:
+2. **Permission Checks**:
 
-```sql
-INSERT INTO permissions (name, description)
-VALUES
-('events:create', 'Create new events'),
-('events:edit', 'Edit existing events'),
-('events:delete', 'Delete events');
-```
+   - Server helpers: `hasPermission(permission)`, `hasAnyPermission([permissions])`
+   - Client hooks: `useHasPermission(permission)`
 
-### Assigning Permissions to Roles
+3. **UI Components**:
 
-To assign permissions to roles, insert mappings into the `role_permissions` table:
-
-```sql
--- Get permission IDs
-WITH perm_ids AS (
-  SELECT id, name FROM permissions
-  WHERE name IN ('events:create', 'events:edit')
-)
--- Insert mappings for the community_expert role
-INSERT INTO role_permissions (role, permission_id)
-SELECT 'community_expert', id FROM perm_ids;
-```
-
-## Checking Permissions
-
-### Backend Permission Checks
-
-In server-side code, use the `hasPermission` function:
-
-```typescript
-import { db } from '@/drizzle/db';
-import { hasPermission } from '@/lib/auth/roles';
-
-// In an API route or server action
-async function protectedOperation(userId: string) {
-  const canCreateEvent = await hasPermission(db, userId, 'events:create');
-
-  if (!canCreateEvent) {
-    throw new Error('Permission denied');
-  }
-
-  // Proceed with operation...
-}
-```
-
-### Frontend Permission Checks
-
-In client components, use the `useAuthorization` hook or `RequirePermission` component:
-
-```tsx
-import { RequirePermission, useAuthorization } from '@/components/molecules/AuthorizationProvider';
-
-function EventsPage() {
-  const { hasPermission } = useAuthorization();
-
-  return (
-    <div>
-      <h1>Events</h1>
-
-      {/* Using the hook */}
-      {hasPermission('events:create') && (
-        <button onClick={handleCreateEvent}>Create New Event</button>
-      )}
-
-      {/* Using the component */}
-      <RequirePermission permission="events:edit">
-        <EditEventSection />
-      </RequirePermission>
-    </div>
-  );
-}
-```
-
-## Advanced Permission Features
-
-### Multiple Permission Checks
-
-Check if a user has any of several permissions:
-
-```typescript
-// Backend
-const canManageEvents = await Promise.any([
-  hasPermission(db, userId, 'events:create'),
-  hasPermission(db, userId, 'events:edit'),
-  hasPermission(db, userId, 'events:delete')
-]).catch(() => false);
-
-// Frontend
-const { hasAnyPermission } = useAuthorization();
-const canManageEvents = hasAnyPermission(['events:create', 'events:edit', 'events:delete']);
-```
-
-### Resource-Specific Permissions
-
-For permissions tied to specific resources, use dynamic permission naming:
-
-```typescript
-// Check if user can edit a specific event
-const eventId = '123';
-const canEditThisEvent = await hasPermission(db, userId, `events:edit:${eventId}`);
-```
-
-## Managing Permissions
-
-### Adding New Permissions
-
-When adding new functionality to the application:
-
-1. Add new permission records to the `permissions` table
-2. Assign these permissions to appropriate roles in `role_permissions`
-3. Update the migration files to include these permissions for new installations
-
-### Updating Role Permissions
-
-To modify the permissions assigned to a role:
-
-1. Add new permissions:
-
-   ```sql
-   INSERT INTO role_permissions (role, permission_id)
-   SELECT 'community_expert', id FROM permissions
-   WHERE name = 'new:permission';
-   ```
-
-2. Remove permissions:
-   ```sql
-   DELETE FROM role_permissions
-   WHERE role = 'community_expert'
-   AND permission_id IN (SELECT id FROM permissions WHERE name = 'old:permission');
-   ```
-
-## Permission Audit and Debugging
-
-When troubleshooting permission issues:
-
-1. Check user roles:
-
-   ```sql
-   SELECT role FROM user_roles WHERE clerk_user_id = 'user_id';
-   ```
-
-2. Check role permissions:
-
-   ```sql
-   SELECT p.name FROM role_permissions rp
-   JOIN permissions p ON rp.permission_id = p.id
-   WHERE rp.role IN (SELECT role FROM user_roles WHERE clerk_user_id = 'user_id');
-   ```
-
-3. Use the frontend debugging tools:
    ```tsx
-   const { userRoles, userPermissions } = useAuthorization();
-   console.log({ userRoles, userPermissions });
+   <RequirePermission permission="users:edit">
+     <UserEditForm />
+   </RequirePermission>
    ```
 
-## Best Practices
+4. **API Protection**:
+   ```typescript
+   if (!(await hasPermission('reports:access'))) {
+     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+   }
+   ```
 
-1. **Be Specific**: Create granular permissions for better security control
-2. **Consistent Naming**: Follow the resource:action pattern consistently
-3. **Documentation**: Keep a central list of all permissions and their meanings
-4. **Default Deny**: Design systems to deny access by default, requiring explicit permission
-5. **Regular Audit**: Periodically review permission assignments for adherence to principle of least privilege
+## Migration Plan
+
+When implementing the permission system:
+
+1. Define all permissions and their meanings
+2. Map existing roles to permission sets
+3. Implement database schema for permissions
+4. Create helper functions and React components
+5. Update existing role checks to use permissions
+6. Maintain backward compatibility during transition
+
+## Benefits of Adding Permissions
+
+1. **Granular Control**: Assign specific capabilities independent of roles
+2. **Flexible Role Configuration**: Create custom roles with specific permission sets
+3. **Easier Maintenance**: Change permissions without modifying code
+4. **Better Auditability**: Track exactly what actions users can perform
+5. **Scalability**: Support complex organizational structures
+
+## Current Status
+
+Until the permission system is implemented, continue using the role-based approach outlined in:
+
+- [Role-Based Authorization](./role-based-authorization.md)
+- [Role Management Guide](./role-management-guide.md)
+- [Route Protection Guide](./route-protection-guide.md)

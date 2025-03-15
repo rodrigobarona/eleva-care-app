@@ -1,5 +1,4 @@
 import { Separator } from '@/components/atoms/separator';
-import React from 'react';
 
 export default function SettingsLayout({ children }: { children: React.ReactNode }) {
   return (

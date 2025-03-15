@@ -65,7 +65,7 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
 
   const currentPage = Number(searchParams.get('page') || '1');
   const limit = Number(searchParams.get('limit') || '10');
-  const currentStatus = searchParams.get('status') || '';
+  const currentStatus = searchParams.get('status') || 'all';
   const expertId = searchParams.get('expertId') || '';
   const startDate = searchParams.get('startDate') || '';
   const endDate = searchParams.get('endDate') || '';
@@ -101,7 +101,8 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
 
   // Handle filter changes
   const handleStatusChange = (status: string) => {
-    router.push(`?${createQueryString({ status, page: '1' })}`);
+    const statusParam = status === 'all' ? '' : status;
+    router.push(`?${createQueryString({ status: statusParam, page: '1' })}`);
   };
 
   const handleExpertIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,7 +202,7 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="APPROVED">Approved</SelectItem>
                 <SelectItem value="COMPLETED">Completed</SelectItem>

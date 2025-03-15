@@ -2,88 +2,105 @@
 
 ## Overview
 
-The application implements a robust role-based access control (RBAC) system using Clerk for authentication and custom role management. This guide explains how to implement and use role-based authorization throughout the application.
+The application implements a robust role-based access control (RBAC) system using Clerk for authentication and centralized role management utilities. This guide explains how to implement and use role-based authorization throughout the application.
 
 ## Available Roles
 
 The system supports the following roles:
 
 ```typescript
-type UserRole = 'user' | 'community_expert' | 'top_expert' | 'admin' | 'superadmin';
+type UserRole = 'user' | 'community_expert' | 'top_expert' | 'lecturer' | 'admin' | 'superadmin';
+```
+
+## Centralized Role Management
+
+The role system is implemented using a centralized approach, which makes role checking consistent across the entire application:
+
+### 1. Server-Side Role Management (`/lib/auth/roles.server.ts`)
+
+For server components, API routes, or server actions:
+
+```typescript
+import {
+  hasAnyRole,
+  hasRole,
+  isAdmin,
+  isCommunityExpert,
+  isExpert,
+  isTopExpert,
+} from '@/lib/auth/roles.server';
+
+// Check for a specific role
+const hasAdminRole = await hasRole('admin');
+
+// Check for any of multiple roles
+const hasExpertRoles = await hasAnyRole(['community_expert', 'top_expert']);
+
+// Specialized helper functions
+const userIsAdmin = await isAdmin();
+const userIsExpert = await isExpert();
+const userIsTopExpert = await isTopExpert();
+const userIsCommunityExpert = await isCommunityExpert();
+```
+
+### 2. Client-Side Role Management (`/components/molecules/AuthorizationProvider.tsx`)
+
+For React components and client-side role checking:
+
+```typescript
+import {
+  useAuthorization,
+  useIsAdmin,
+  useIsExpert,
+  useIsTopExpert,
+  useIsCommunityExpert,
+  RequireRole
+} from '@/components/molecules/AuthorizationProvider';
+
+// General authorization context
+const { hasRole, roles, isLoading } = useAuthorization();
+
+// Specialized role hooks
+const isAdmin = useIsAdmin();
+const isExpert = useIsExpert();
+const isTopExpert = useIsTopExpert();
+const isCommunityExpert = useIsCommunityExpert();
+
+// Conditional rendering component
+<RequireRole roles="admin" fallback={<AccessDenied />}>
+  <AdminPanel />
+</RequireRole>
+```
+
+### 3. Middleware Route Protection (`/middleware.ts`)
+
+For protecting entire routes based on roles:
+
+```typescript
+const protectedRoutes = [
+  {
+    path: '/admin',
+    roles: ['admin', 'superadmin'],
+    redirectUrl: '/',
+  },
+  {
+    path: '/expert',
+    roles: ['top_expert', 'community_expert'],
+    redirectUrl: '/',
+  },
+];
 ```
 
 ## Implementation Methods
 
 There are three main ways to implement role-based access control in the application:
 
-### 1. Client-Side Role Checking (React Components)
-
-#### Using the `useRoleCheck` Hook
+### 1. Server-Side Role Checking
 
 ```typescript
-import { useRoleCheck } from '@/lib/hooks/useRoleCheck';
-
-function MyComponent() {
-  const { hasRole, hasAnyRole, isLoading } = useRoleCheck();
-
-  if (isLoading) return null;
-
-  // Check for a single role
-  if (hasRole('admin')) {
-    return <AdminContent />;
-  }
-
-  // Check for multiple roles
-  if (hasAnyRole(['community_expert', 'top_expert'])) {
-    return <ExpertContent />;
-  }
-
-  return <RegularUserContent />;
-}
-```
-
-#### Using the `RequireRole` Component
-
-```typescript
-import { RequireRole } from '@/components/molecules/RequireRole';
-
-// Basic usage
-<RequireRole roles="admin">
-  <AdminPanel />
-</RequireRole>
-
-// With multiple roles
-<RequireRole roles={['community_expert', 'top_expert']}>
-  <ExpertDashboard />
-</RequireRole>
-
-// With fallback content
-<RequireRole
-  roles="admin"
-  fallback={<AccessDenied />}
->
-  <AdminPanel />
-</RequireRole>
-
-// With redirect
-<RequireRole
-  roles="admin"
-  redirectTo="/unauthorized"
->
-  <AdminPanel />
-</RequireRole>
-```
-
-### 2. Server-Side Role Checking
-
-For server components, API routes, or server actions, use the `hasRole` helper:
-
-```typescript
-import { hasRole } from '@/lib/auth/roles.server';
-
 // In a Server Component
 export default async function AdminPage() {
-  if (!(await hasRole('admin'))) {
+  if (!(await isAdmin())) {
     redirect('/unauthorized');
   }
 
@@ -92,40 +109,66 @@ export default async function AdminPage() {
 
 // In an API Route
 export async function GET() {
-  if (!(await hasRole('admin'))) {
-    return new NextResponse('Unauthorized', { status: 401 });
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (!(await isAdmin())) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   // Process admin-only request
 }
 ```
 
-### 3. API Route Protection
+### 2. Client-Side Role Checking
 
-Example of protecting an API route with role checks:
+```tsx
+// Using hooks
+function AdminComponent() {
+  const isAdmin = useIsAdmin();
+
+  if (!isAdmin) {
+    return <AccessDenied />;
+  }
+
+  return <AdminContent />;
+}
+
+// Using conditional rendering
+function Dashboard() {
+  return (
+    <div>
+      <h1>Dashboard</h1>
+
+      <RequireRole roles="admin">
+        <AdminControls />
+      </RequireRole>
+
+      <RequireRole roles={['community_expert', 'top_expert']}>
+        <ExpertTools />
+      </RequireRole>
+    </div>
+  );
+}
+```
+
+### 3. Middleware Route Protection
+
+Protected routes are defined in middleware.ts and applied automatically:
 
 ```typescript
-async function isAdmin(userId: string) {
-  return (await hasRole('admin')) || (await hasRole('superadmin'));
-}
+// In middleware.ts
+const protectedRoutes = [
+  {
+    path: '/admin',
+    roles: ['admin', 'superadmin'],
+    redirectUrl: '/',
+  },
+];
 
-export async function GET() {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
-
-    if (!(await isAdmin(userId))) {
-      return new NextResponse('Forbidden', { status: 403 });
-    }
-
-    // Process admin-only request
-  } catch (error) {
-    console.error('Error:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
-  }
-}
+// Middleware logic checks user roles before allowing access to protected routes
 ```
 
 ## Best Practices
@@ -134,68 +177,67 @@ export async function GET() {
 
    - UI level (hide unauthorized content)
    - Client-side routing (prevent unauthorized navigation)
-   - API routes (prevent unauthorized access to data)
-   - Server actions (prevent unauthorized operations)
+   - API routes (prevent unauthorized data access)
+   - Server components (prevent unauthorized content rendering)
+   - Middleware (prevent unauthorized route access)
 
-2. **Error Handling**:
+2. **Use Helper Functions**:
 
-   - Always provide meaningful feedback to users when access is denied
-   - Log unauthorized access attempts for security monitoring
-   - Use appropriate HTTP status codes (401 for unauthenticated, 403 for unauthorized)
+   - Prefer specialized helpers like `isAdmin()` over generic `hasRole('admin')`
+   - This improves code readability and maintainability
 
-3. **Performance**:
+3. **Handle Loading States**:
 
-   - Use `isLoading` checks to prevent flickering during role verification
-   - Cache role check results when appropriate
-   - Implement role checks at the highest possible level in the component tree
+   - Always check `isLoading` in client components
+   - Provide appropriate loading indicators
+   - Prevent UI flashing during role checks
 
-4. **Type Safety**:
-   - Use TypeScript to ensure role names are consistent
-   - Define role constants to prevent typos
-   - Use union types for role definitions
+4. **Consistent Redirection**:
+
+   - Use standard redirection paths (e.g., `/unauthorized`, `/`)
+   - Provide clear messaging about access restrictions
+
+5. **Multiple Roles**:
+   - Remember users can have multiple roles
+   - Check for appropriate combinations with `hasAnyRole()`
 
 ## Common Use Cases
 
-### Protecting Routes
+### Protecting Admin Routes
 
 ```typescript
-// In a page component
-export default async function ProtectedPage() {
-  const { userId } = await auth();
-  const user = await currentUser();
+// app/(private)/(settings)/admin/layout.tsx
+import { isAdmin } from '@/lib/auth/roles.server';
 
-  if (!userId || !user) {
-    redirect('/unauthorized');
+export default async function AdminLayout({ children }) {
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    redirect('/');
   }
 
-  const hasAccess = await hasRole(['community_expert', 'top_expert']);
-  if (!hasAccess) {
-    redirect('/unauthorized');
-  }
-
-  return <ProtectedContent />;
+  return (
+    // Admin layout with navigation, etc.
+    <main>{children}</main>
+  );
 }
 ```
 
-### Conditional UI Rendering
+### Role-Specific UI Elements
 
-```typescript
-function Dashboard() {
+```tsx
+import { useIsAdmin, useIsExpert } from '@/components/molecules/AuthorizationProvider';
+
+function ActionButtons() {
+  const isAdmin = useIsAdmin();
+  const isExpert = useIsExpert();
+
   return (
-    <>
-      {/* Basic features available to all */}
-      <BasicFeatures />
-
-      {/* Expert-only features */}
-      <RequireRole roles={['community_expert', 'top_expert']}>
-        <ExpertFeatures />
-      </RequireRole>
-
-      {/* Admin-only features */}
-      <RequireRole roles="admin">
-        <AdminFeatures />
-      </RequireRole>
-    </>
+    <div className="flex gap-2">
+      {isAdmin && <AdminActionButton />}
+      {isExpert && <ExpertActionButton />}
+      <CommonActionButton />
+    </div>
   );
 }
 ```
@@ -203,23 +245,21 @@ function Dashboard() {
 ### API Protection
 
 ```typescript
-export async function POST(request: Request) {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      return new NextResponse('Unauthorized', { status: 401 });
-    }
+// app/api/admin/users/route.ts
+import { isAdmin } from '@/lib/auth/roles.server';
 
-    const hasAccess = await hasRole(['admin', 'superadmin']);
-    if (!hasAccess) {
-      return new NextResponse('Forbidden', { status: 403 });
-    }
-
-    // Process protected request
-  } catch (error) {
-    console.error('Error:', error);
-    return new NextResponse('Internal Server Error', { status: 500 });
+export async function GET() {
+  const { userId } = await auth();
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const userIsAdmin = await isAdmin();
+  if (!userIsAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Fetch and return users data
 }
 ```
 
@@ -227,22 +267,38 @@ export async function POST(request: Request) {
 
 Common issues and their solutions:
 
-1. **Role Not Updating**:
+1. **Role Not Being Recognized**:
 
-   - Ensure Clerk metadata is properly synchronized
-   - Check if the user session is current
-   - Verify role assignment in Clerk dashboard
+   - Check Clerk dashboard to confirm role is set correctly
+   - Ensure role spelling matches the type definition
+   - Verify role is stored in the proper format (string vs array)
 
-2. **Flickering Content**:
+2. **Loading State Issues**:
 
-   - Use `isLoading` check from `useRoleCheck`
-   - Implement loading states
-   - Consider server-side rendering when possible
+   - Check if components are rendering before role checks complete
+   - Add appropriate `isLoading` checks
+   - Use Suspense boundaries for server components
 
-3. **Type Errors**:
-   - Ensure role names match the `UserRole` type
-   - Use type assertions carefully
-   - Keep role definitions synchronized
+3. **Multiple Roles Conflicts**:
+   - Ensure `hasAnyRole()` is used when checking for multiple possible roles
+   - Verify array format for multiple roles is correct
+   - Debug by logging the actual roles with `console.log(user.publicMetadata.role)`
+
+## Managing User Roles
+
+To update a user's roles, use the `updateUserRole` function:
+
+```typescript
+import { updateUserRole } from '@/lib/auth/roles.server';
+
+// Set a single role
+await updateUserRole(userId, 'admin');
+
+// Set multiple roles
+await updateUserRole(userId, ['admin', 'top_expert']);
+```
+
+Note that only admin or superadmin users can update roles, and only superadmins can assign the superadmin role.
 
 ## Security Considerations
 

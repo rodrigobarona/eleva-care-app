@@ -8,14 +8,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { userId } = await auth();
 
   if (!userId) {
-    redirect('/sign-in');
+    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
   }
 
   // Check if user is admin using the centralized isAdmin function
   const userIsAdmin = await isAdmin();
 
   if (!userIsAdmin) {
-    redirect('/');
+    redirect('/dashboard');
   }
 
   return (

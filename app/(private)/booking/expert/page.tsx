@@ -2,7 +2,7 @@ import { ExpertForm } from '@/components/organisms/forms/ExpertForm';
 import { ProfilePublishToggle } from '@/components/organisms/ProfilePublishToggle';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
-import { hasRole } from '@/lib/auth/roles.server';
+import { isExpert, isTopExpert } from '@/lib/auth/roles.server';
 import type { profileFormSchema } from '@/schema/profile';
 import { markStepCompleteNoRevalidate } from '@/server/actions/expert-setup';
 import { auth, currentUser } from '@clerk/nextjs/server';
@@ -25,12 +25,12 @@ export default async function ProfilePage() {
     redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
   }
 
-  // Check if user has either community_expert OR top_expert role
-  const isCommunityExpert = await hasRole('community_expert');
-  const isTopExpert = await hasRole('top_expert');
+  // Check if user is an expert using the centralized isExpert function
+  const userIsExpert = await isExpert();
+  const userIsTopExpert = await isTopExpert();
 
-  if (!isCommunityExpert && !isTopExpert) {
-    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
+  if (!userIsExpert && !userIsTopExpert) {
+    redirect('/');
   }
 
   // Try to find existing profile

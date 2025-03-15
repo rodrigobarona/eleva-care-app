@@ -1,234 +1,312 @@
 # Route Protection Guide
 
-This guide explains how to use the role-based authorization system to protect routes in the Eleva Care application.
-
 ## Overview
 
-Route protection ensures that only users with appropriate roles or permissions can access certain pages or API endpoints. The application provides two main approaches to route protection:
+The application implements comprehensive route protection to ensure users can only access pages and resources for which they have appropriate permissions. This guide explains the different approaches to route protection in the application.
 
-1. **Middleware-based protection** for server-side routes
-2. **Component-based protection** for client-side UI elements
+## Route Protection Layers
 
-## Middleware-Based Route Protection
+Our application implements route protection at three distinct layers:
 
-Middleware functions provide the most secure method for protecting routes as they run on the server before the page is even rendered. This prevents unauthorized users from seeing protected content entirely.
+1. **Middleware Layer**: Global protection for route patterns
+2. **Server Component Layer**: Role checking in layouts and pages
+3. **Client Component Layer**: Conditional rendering based on roles
 
-### Protecting Routes with Roles
+## 1. Middleware Route Protection
 
-To protect a route requiring specific roles, use the `withRoleAuthorization` middleware:
+The most comprehensive protection is implemented in the middleware, which runs before any route is accessed.
 
-```typescript
-// app/(private)/admin/settings/page.tsx
-import { withRoleAuthorization } from '@/middleware/withAuthorization';
-
-function AdminSettingsPage() {
-  return (
-    <div>
-      <h1>Admin Settings</h1>
-      {/* Admin settings content */}
-    </div>
-  );
-}
-
-// Protect this page, requiring either admin or superadmin role
-export default withRoleAuthorization(['admin', 'superadmin'])(AdminSettingsPage);
-```
-
-### Protecting Routes with Permissions
-
-For more granular control, you can protect routes based on specific permissions:
+### Implementation in `middleware.ts`
 
 ```typescript
-// app/(private)/admin/users/page.tsx
-import { withPermissionAuthorization } from '@/middleware/withAuthorization';
-
-function UserManagementPage() {
-  return (
-    <div>
-      <h1>User Management</h1>
-      {/* User management content */}
-    </div>
-  );
-}
-
-// Protect this page, requiring the 'manage_users' permission
-export default withPermissionAuthorization(['manage_users'])(UserManagementPage);
-```
-
-### Protecting API Routes
-
-For API routes, you typically handle authorization within the route handler:
-
-```typescript
-// app/api/admin/settings/route.ts
-import { db } from '@/drizzle/db';
-import { hasRole } from '@/lib/auth/roles';
-import { auth } from '@clerk/nextjs';
+import { authMiddleware, clerkClient } from '@clerk/nextjs';
 import { NextResponse } from 'next/server';
 
-export async function GET() {
-  const { userId } = auth();
+// Define routes that require specific roles
+const protectedRoutes = [
+  {
+    path: '/admin',
+    roles: ['admin', 'superadmin'],
+    redirectUrl: '/',
+  },
+  {
+    path: '/expert',
+    roles: ['top_expert', 'community_expert'],
+    redirectUrl: '/',
+  },
+  {
+    path: '/top-expert',
+    roles: ['top_expert'],
+    redirectUrl: '/',
+  },
+];
 
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+// Auth middleware with role-based protection
+export default authMiddleware({
+  publicRoutes: [
+    '/',
+    '/about',
+    '/login',
+    '/sign-up',
+    '/api/webhook',
+    // Add other public routes
+  ],
+  async afterAuth(auth, req) {
+    // Check if authenticated and attempting to access protected route
+    if (auth.userId && req.nextUrl.pathname) {
+      const pathname = req.nextUrl.pathname;
+
+      // Find if the route is protected
+      const protectedRoute = protectedRoutes.find((route) => pathname.startsWith(route.path));
+
+      if (protectedRoute) {
+        // Get user to check roles
+        const user = await clerkClient.users.getUser(auth.userId);
+        const userRoles = user.publicMetadata.role || [];
+
+        // Convert to array if it's a string
+        const roles = Array.isArray(userRoles) ? userRoles : [userRoles];
+
+        // Check if user has any of the required roles
+        const hasRequiredRole = protectedRoute.roles.some((role) => roles.includes(role));
+
+        if (!hasRequiredRole) {
+          // Redirect to specified URL if user lacks required roles
+          return NextResponse.redirect(new URL(protectedRoute.redirectUrl, req.url));
+        }
+      }
+    }
+
+    return NextResponse.next();
+  },
+});
+
+// Specify which routes the middleware should run on
+export const config = {
+  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/(api|trpc)(.*)'],
+};
+```
+
+### How It Works
+
+1. Define `protectedRoutes` array with paths, required roles, and redirect URLs
+2. In the `afterAuth` function, check if the user is trying to access a protected route
+3. Get the user's roles from Clerk metadata
+4. Check if the user has any of the required roles for the route
+5. If not, redirect to the specified URL
+6. The `matcher` ensures the middleware runs on all routes except static assets
+
+## 2. Server Component Protection
+
+For more specific protection within route groups or layouts, use server component checks:
+
+### Layout-Level Protection
+
+```typescript
+// app/(private)/(settings)/admin/layout.tsx
+import { isAdmin } from '@/lib/auth/roles.server';
+import { redirect } from 'next/navigation';
+
+export default async function AdminLayout({ children }) {
+  // Check if user is an admin
+  const userIsAdmin = await isAdmin();
+
+  // Redirect if not an admin
+  if (!userIsAdmin) {
+    redirect('/');
   }
 
-  // Check if user has admin role
-  const isAdmin = await hasRole(db, userId, 'admin');
-
-  if (!isAdmin) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  // Return protected data
-  return NextResponse.json({
-    settings: {
-      /* admin settings */
-    },
-  });
+  return (
+    <div className="admin-layout">
+      <AdminSidebar />
+      <main>{children}</main>
+    </div>
+  );
 }
 ```
 
-## Component-Based Protection
+### Page-Level Protection
 
-For protecting UI elements within a page, use the authorization components and hooks.
+```typescript
+// app/(private)/expert-dashboard/page.tsx
+import { isExpert } from '@/lib/auth/roles.server';
+import { redirect } from 'next/navigation';
 
-### Using the `RequireRole` Component
+export default async function ExpertDashboardPage() {
+  // Check if user is an expert
+  const userIsExpert = await isExpert();
 
-The `RequireRole` component conditionally renders its children based on the user's roles:
+  // Redirect if not an expert
+  if (!userIsExpert) {
+    redirect('/unauthorized');
+  }
+
+  return <ExpertDashboard />;
+}
+```
+
+## 3. Client Component Protection
+
+For client-side route protection or conditional rendering:
+
+### Using Specialized Hooks
+
+```tsx
+import { useIsAdmin } from '@/components/molecules/AuthorizationProvider';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
+
+function AdminPanel() {
+  const isAdmin = useIsAdmin();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isAdmin === false) {
+      // Check it's exactly false (not undefined or loading)
+      router.push('/unauthorized');
+    }
+  }, [isAdmin, router]);
+
+  if (!isAdmin) {
+    return null; // Don't render anything while redirecting
+  }
+
+  return <AdminPanelContent />;
+}
+```
+
+### Using RequireRole Component
 
 ```tsx
 import { RequireRole } from '@/components/molecules/AuthorizationProvider';
 
-function DashboardPage() {
+function Dashboard() {
   return (
     <div>
       <h1>Dashboard</h1>
 
-      {/* Only visible to admins */}
-      <RequireRole role="admin">
-        <AdminPanel />
+      <RequireRole roles="admin" fallback={<AccessDenied />}>
+        <AdminControls />
       </RequireRole>
 
-      {/* Only visible to experts */}
-      <RequireRole role={['top_expert', 'community_expert']}>
+      <RequireRole roles={['community_expert', 'top_expert']}>
         <ExpertTools />
       </RequireRole>
-
-      {/* With a fallback for unauthorized users */}
-      <RequireRole
-        role="superadmin"
-        fallback={<p>You need superadmin privileges to view this section.</p>}
-      >
-        <SuperAdminControls />
-      </RequireRole>
     </div>
   );
 }
 ```
-
-### Using the `useAuthorization` Hook
-
-For more programmatic control, use the `useAuthorization` hook:
-
-```tsx
-import { useAuthorization } from '@/components/molecules/AuthorizationProvider';
-
-function ComplexComponent() {
-  const { hasRole, hasPermission, userRoles, isLoading } = useAuthorization();
-
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-
-  return (
-    <div>
-      <h2>Account Management</h2>
-
-      {hasRole('admin') && <button onClick={handleAdminAction}>Admin Action</button>}
-
-      {hasPermission('delete_users') && <button onClick={handleDeleteUser}>Delete User</button>}
-
-      <div>Your roles: {userRoles.join(', ')}</div>
-    </div>
-  );
-}
-```
-
-## Mixed Protection Strategy
-
-For the most secure implementation, combine both approaches:
-
-1. Use middleware to protect the entire route
-2. Use components for fine-grained UI control within protected pages
-
-```typescript
-// app/(private)/admin/dashboard/page.tsx
-import { withRoleAuthorization } from '@/middleware/withAuthorization';
-import { RequirePermission } from '@/components/molecules/AuthorizationProvider';
-
-function AdminDashboardPage() {
-  return (
-    <div>
-      <h1>Admin Dashboard</h1>
-
-      {/* These sections have additional permission requirements */}
-      <RequirePermission permission="view_revenue">
-        <RevenueSection />
-      </RequirePermission>
-
-      <RequirePermission permission="manage_experts">
-        <ExpertManagementSection />
-      </RequirePermission>
-    </div>
-  );
-}
-
-// First protect the entire page
-export default withRoleAuthorization(['admin', 'superadmin'])(AdminDashboardPage);
-```
-
-## Handling Unauthorized Access
-
-When a user attempts to access a protected route without proper authorization:
-
-1. **Middleware protection**: The user is redirected to the `/unauthorized` page
-2. **Component protection**: The component is not rendered (or the fallback is shown)
-
-The `/unauthorized` page provides a user-friendly error message and navigation options.
 
 ## Best Practices
 
-1. **Defense in Depth**: Always implement authorization at multiple levels
-2. **Principle of Least Privilege**: Grant only the minimum roles/permissions needed
-3. **Clear Feedback**: Always show users why they don't have access
-4. **Loading States**: Handle loading states to prevent flashes of unauthorized content
-5. **Testing**: Verify authorization works by testing with different user roles
+1. **Defense in Depth**: Implement protection at multiple layers
 
-## Common Issues
+   - Middleware for broad route protection
+   - Server components for specific layouts/pages
+   - Client components for dynamic content
 
-### Flashing Content
+2. **Performance Considerations**:
 
-If protected content briefly appears before disappearing, make sure to handle loading states:
+   - Use layout-level protection to avoid redundant checks in child pages
+   - Middleware protection is most efficient for entire route groups
 
-```tsx
-const { hasRole, isLoading } = useAuthorization();
+3. **UX Guidelines**:
 
-if (isLoading) {
-  return <LoadingSpinner />;
+   - Provide clear feedback when redirecting users
+   - Use consistent redirect destinations
+   - Implement proper loading states during role checks
+
+4. **Testing Protection**:
+   - Create tests with users of different roles
+   - Verify redirects work as expected
+   - Test edge cases like expired sessions
+
+## Common Use Cases
+
+### Admin Section Protection
+
+```typescript
+// Middleware handles /admin/* routes automatically
+// Additional protection in layout
+
+// app/(private)/(settings)/admin/layout.tsx
+import { isAdmin } from '@/lib/auth/roles.server';
+
+export default async function AdminLayout({ children }) {
+  if (!(await isAdmin())) {
+    redirect('/');
+  }
+
+  return (
+    <AdminDashboardLayout>
+      {children}
+    </AdminDashboardLayout>
+  );
 }
-
-return hasRole('admin') ? <AdminContent /> : null;
 ```
 
-### Session Issues
+### Expert Portal Protection
 
-If role checks aren't working correctly after role changes, ensure the user's session is refreshed:
+```typescript
+// Middleware handles /expert/* routes automatically
+// Additional logic for different expert types
 
-```tsx
-// After role changes
-const handleRoleChange = async () => {
-  await fetch('/api/auth/user-authorization');
-  window.location.reload(); // Force a full page refresh
-};
+// app/(private)/expert/layout.tsx
+import { isExpert, isTopExpert } from '@/lib/auth/roles.server';
+
+export default async function ExpertLayout({ children }) {
+  // Verify user is any type of expert
+  if (!(await isExpert())) {
+    redirect('/');
+  }
+
+  // Get if user is a top expert for conditional rendering
+  const userIsTopExpert = await isTopExpert();
+
+  return (
+    <ExpertDashboardLayout isTopExpert={userIsTopExpert}>
+      {children}
+    </ExpertDashboardLayout>
+  );
+}
 ```
+
+### API Route Protection
+
+```typescript
+// app/api/admin/settings/route.ts
+import { isAdmin } from '@/lib/auth/roles.server';
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  // Check if user is admin
+  const userIsAdmin = await isAdmin();
+
+  if (!userIsAdmin) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Process admin-only request
+}
+```
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Infinite Redirects**:
+
+   - Check for circular redirects in middleware
+   - Verify middleware logic correctly identifies protected routes
+   - Ensure public routes are properly excluded from protection
+
+2. **Flashing Content**:
+
+   - Use `isLoading` states in client components
+   - Ensure server components check roles before rendering content
+   - Consider using suspense boundaries
+
+3. **Excessive Role Checks**:
+   - Use layout components for role checks instead of individual pages
+   - Cache role results when appropriate
+   - Use `AuthorizationProvider` to provide role context to all children

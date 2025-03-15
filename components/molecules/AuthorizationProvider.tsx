@@ -57,6 +57,27 @@ export function useAuthorization() {
   return useContext(AuthorizationContext);
 }
 
+// Client-side role helper hooks
+export function useIsAdmin(): boolean {
+  const { hasRole } = useAuthorization();
+  return hasRole(['admin', 'superadmin']);
+}
+
+export function useIsExpert(): boolean {
+  const { hasRole } = useAuthorization();
+  return hasRole(['community_expert', 'top_expert']);
+}
+
+export function useIsTopExpert(): boolean {
+  const { hasRole } = useAuthorization();
+  return hasRole('top_expert');
+}
+
+export function useIsCommunityExpert(): boolean {
+  const { hasRole } = useAuthorization();
+  return hasRole('community_expert');
+}
+
 // Authorization component for role-based UI rendering
 interface RequireRoleProps {
   children: ReactNode;

@@ -96,17 +96,17 @@ function PaymentTransfersLoading() {
   return (
     <div className="space-y-4">
       <div className="mb-4 flex items-center space-x-4">
-        <div className="h-8 w-24 animate-pulse rounded bg-gray-200"></div>
-        <div className="h-8 w-32 animate-pulse rounded bg-gray-200"></div>
-        <div className="h-8 w-40 animate-pulse rounded bg-gray-200"></div>
+        <div className="h-8 w-24 animate-pulse rounded bg-gray-200" />
+        <div className="h-8 w-32 animate-pulse rounded bg-gray-200" />
+        <div className="h-8 w-40 animate-pulse rounded bg-gray-200" />
       </div>
       <div className="rounded-lg border">
-        <div className="h-12 border-b bg-gray-50"></div>
+        <div className="h-12 border-b bg-gray-50" />
         {Array.from({ length: 5 }).map((_, i) => (
           <div
             key={i}
             className="h-16 animate-pulse border-b bg-gray-50 opacity-70 last:border-0"
-          ></div>
+          />
         ))}
       </div>
     </div>
