@@ -155,7 +155,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === '/account'}>
                 <Link href="/account">
-                  <span>Account</span>
+                  <span>Personal Information</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
