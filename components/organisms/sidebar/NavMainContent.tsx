@@ -136,15 +136,21 @@ export function NavMainContent({ items }: NavMainContentProps) {
           isAccountSection ? 'translate-x-0' : 'translate-x-full',
         )}
       >
+        {/* Back to dashboard section */}
         <SidebarGroup>
           <SidebarGroupLabel>
             <div className="flex items-center gap-2">
               <Link href="/dashboard" className="hover:text-foreground/80">
                 <ChevronLeft className="size-4" />
               </Link>
-              <span>Account Settings</span>
+              <span>Dashboard</span>
             </div>
           </SidebarGroupLabel>
+        </SidebarGroup>
+
+        {/* Account settings section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Account Settings</SidebarGroupLabel>
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton asChild isActive={pathname === '/account'}>
@@ -162,26 +168,55 @@ export function NavMainContent({ items }: NavMainContentProps) {
               </SidebarMenuButton>
             </SidebarMenuItem>
 
+            {/* Billing and identity section */}
             <RequireRole roles={['community_expert', 'top_expert']}>
-              <>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === '/account/billing'}>
-                    <Link href="/account/billing">
-                      <span>Billing</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={pathname === '/account/identity'}>
-                    <Link href="/account/identity">
-                      <span>Identity</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === '/account/billing'}>
+                  <Link href="/account/billing">
+                    <span>Billing</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === '/account/identity'}>
+                  <Link href="/account/identity">
+                    <span>Identity</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </RequireRole>
           </SidebarMenu>
         </SidebarGroup>
+
+        {/* Admin section */}
+        <RequireRole roles={['admin', 'superadmin']}>
+          <SidebarGroup>
+            <SidebarGroupLabel>Administration</SidebarGroupLabel>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === '/admin/users'}>
+                  <Link href="/admin/users">
+                    <span>Users</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === '/admin/categories'}>
+                  <Link href="/admin/categories">
+                    <span>Expert categories</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname === '/admin/payments'}>
+                  <Link href="/admin/payments">
+                    <span>Manage payments</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroup>
+        </RequireRole>
       </div>
     </div>
   );

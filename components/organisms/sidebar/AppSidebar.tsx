@@ -1,5 +1,6 @@
 'use client';
 
+import { useIsExpert } from '@/components/molecules/AuthorizationProvider';
 import { NavMain } from '@/components/organisms/sidebar/NavMain';
 import { NavSecondary } from '@/components/organisms/sidebar/NavSecondary';
 import { NavUser } from '@/components/organisms/sidebar/NavUser';
@@ -16,7 +17,7 @@ import { useUser } from '@clerk/nextjs';
 import { Clock, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User, Users } from 'lucide-react';
 import { Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense } from 'react';
 
 interface SidebarItem {
   title: string;
@@ -31,52 +32,38 @@ interface SidebarItem {
 const mainItems: SidebarItem[] = [
   {
     title: 'Events Types',
-    url: '/events',
+    url: '/booking/events',
     icon: LinkIcon,
     items: [
-      { title: 'All Events', url: '/events' },
-      { title: 'Create Event', url: '/events/new' },
+      { title: 'All Events', url: '/booking/events' },
+      { title: 'Create Event', url: '/booking/events/new' },
     ],
   },
   {
     title: 'Availability',
-    url: '/schedule',
+    url: '/booking/schedule',
     icon: Clock,
   },
   {
     title: 'Customers',
-    url: '/customers',
+    url: '/booking/customers',
     icon: Users,
   },
   {
     title: 'Expert Profile',
-    url: '/expert',
+    url: '/booking/expert',
     icon: User,
   },
 ];
 
 export function AppSidebar() {
-  const { user, isLoaded } = useUser();
-  const [hasExpertRole, setHasExpertRole] = useState(false);
-
-  // Check if user has the required expert role
-  useEffect(() => {
-    if (isLoaded && user) {
-      const userRole = user.publicMetadata?.role;
-      const userRoles = Array.isArray(userRole) ? userRole : userRole ? [userRole] : [];
-
-      const isExpert = userRoles.some(
-        (role) => role === 'community_expert' || role === 'top_expert',
-      );
-
-      setHasExpertRole(isExpert);
-    }
-  }, [isLoaded, user]);
+  const { user } = useUser();
+  const isExpert = useIsExpert();
 
   // Build secondary items conditionally
   const secondaryItems: SidebarItem[] = [
     // Only include Public Expert Profile if user has the required role
-    ...(hasExpertRole && user?.username
+    ...(isExpert && user?.username
       ? [
           {
             title: 'Public Expert Profile',

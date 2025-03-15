@@ -38,7 +38,7 @@ export default async function HomePage() {
             one place.
           </p>
           <Button asChild variant="secondary" className="font-medium">
-            <Link href="/events">
+            <Link href="/appointments/events">
               Explore Services <ArrowRightIcon className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -104,7 +104,7 @@ export default async function HomePage() {
               Discover a range of health and wellness services available on Eleva.
             </p>
             <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
-              <Link href="/events">View Services</Link>
+              <Link href="/appointments/events">View Services</Link>
             </Button>
           </CardContent>
         </Card>

@@ -38,13 +38,13 @@ const NoCustomersEmptyState = () => (
     </p>
     <div className="flex flex-col gap-3 sm:flex-row">
       <Button asChild>
-        <Link href="/events/new">
+        <Link href="/appointments/events/new">
           <PlusCircle className="mr-2 h-4 w-4" />
           Create an event
         </Link>
       </Button>
       <Button variant="outline" asChild>
-        <Link href="/schedule">
+        <Link href="/appointments/schedule">
           <CalendarClock className="mr-2 h-4 w-4" />
           Setup your schedule
         </Link>
@@ -190,7 +190,7 @@ export default function CustomersPage() {
             <div className="flex gap-3">
               <Button onClick={loadCustomers}>Try Again</Button>
               <Button variant="outline" asChild>
-                <Link href="/events">Go to Events</Link>
+                <Link href="/appointments/events">Go to Events</Link>
               </Button>
             </div>
           </CardContent>
