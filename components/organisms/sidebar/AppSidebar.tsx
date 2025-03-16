@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
 } from '@/components/organisms/sidebar/sidebar';
 import { useUser } from '@clerk/nextjs';
-import { Clock, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User, Users } from 'lucide-react';
+import { Clock, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
 import { Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
