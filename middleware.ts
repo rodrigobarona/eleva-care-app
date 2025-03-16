@@ -103,7 +103,7 @@ export default clerkMiddleware(async (auth, req) => {
   // 4. If user is authenticated but trying to access the root path, redirect to dashboard
   if (userId && path === '/') {
     return NextResponse.redirect(
-      new URL(`/${process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL}`, window.location.href),
+      new URL(process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL || '/dashboard', req.url),
     );
   }
 

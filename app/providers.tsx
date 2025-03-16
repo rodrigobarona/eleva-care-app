@@ -27,7 +27,16 @@ interface ProvidersProps {
  * It should be used at the root level of the application
  */
 export function Providers({ children }: ProvidersProps) {
-  return <ClerkProvider>{children}</ClerkProvider>;
+  return (
+    <ClerkProvider
+      signInFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}
+      signUpFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL}
+      signInUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}
+      signUpUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}
+    >
+      {children}
+    </ClerkProvider>
+  );
 }
 
 /**
