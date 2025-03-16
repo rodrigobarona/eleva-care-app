@@ -44,11 +44,7 @@ const mainItems: SidebarItem[] = [
     url: '/booking/schedule',
     icon: Clock,
   },
-  {
-    title: 'Customers',
-    url: '/appointments/patients',
-    icon: Users,
-  },
+
   {
     title: 'Expert Profile',
     url: '/booking/expert',

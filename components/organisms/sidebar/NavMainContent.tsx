@@ -24,6 +24,7 @@ import {
   Home,
   type LucideIcon,
   MoreHorizontal,
+  Users,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -72,18 +73,26 @@ export function NavMainContent({ items }: NavMainContentProps) {
               <SidebarGroupLabel>Appointments</SidebarGroupLabel>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={pathname === '/appointments'}>
                     <Link href="/appointments" prefetch>
                       <Calendar className="size-4" />
-                      <span>Schedule</span>
+                      <span>Bookings</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={pathname === '/appointments/records'}>
                     <Link href="/appointments/records" prefetch>
                       <FileText className="size-4" />
                       <span>Records & Notes</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={pathname === '/appointments/patients'}>
+                    <Link href="/appointments/patients" prefetch>
+                      <Users className="size-4" />
+                      <span>Patients</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
