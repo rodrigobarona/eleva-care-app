@@ -11,8 +11,9 @@ export default function SignUpPage() {
           },
         }}
         routing="path"
-        path="/sign-up"
-        signInUrl="/sign-in"
+        path={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}
+        signInUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}
+        fallbackRedirectUrl={`/${process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL}`}
       />
     </div>
   );

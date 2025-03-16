@@ -32,7 +32,10 @@ export default function UnauthorizedPage() {
           </p>
         </CardContent>
         <CardFooter className="flex justify-center gap-4">
-          <Button variant="default" onClick={() => router.push('/')}>
+          <Button 
+            variant="default" 
+            onClick={() => router.push(`/${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`)}
+          >
             Go Home
           </Button>
           <Button variant="outline" onClick={() => router.back()}>

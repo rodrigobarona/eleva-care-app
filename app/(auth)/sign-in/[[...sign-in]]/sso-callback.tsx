@@ -32,12 +32,12 @@ export default function SSOCallback() {
       }
 
       // If no redirect URL in query params, go to dashboard
-      console.log('No redirect URL in query params, going to dashboard');
+      console.log('No redirect URL in query params, going to fallback URL');
 
       // Small delay to ensure Clerk has processed authentication
       setTimeout(() => {
-        console.log('Redirecting to dashboard');
-        router.push('/dashboard');
+        console.log('Redirecting to fallback URL');
+        router.push(`/${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
       }, 500);
     };
 
@@ -48,8 +48,8 @@ export default function SSOCallback() {
     const fallbackTimer = setTimeout(() => {
       console.log('Fallback timer triggered, checking if we need to redirect');
       if (document.cookie.includes('__client')) {
-        console.log('Clerk cookie found, seems authenticated, redirecting to dashboard');
-        router.push('/dashboard');
+        console.log('Clerk cookie found, seems authenticated, redirecting to fallback URL');
+        router.push(`/${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
       }
     }, 2000);
 
@@ -68,7 +68,7 @@ export default function SSOCallback() {
           <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
           <p>Completing authentication...</p>
           <p className="mt-2 text-sm text-muted-foreground">
-            You&apos;ll be redirected to your dashboard in a moment.
+            You&apos;ll be redirected automatically in a moment.
           </p>
         </div>
       </div>

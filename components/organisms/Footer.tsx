@@ -107,7 +107,7 @@ export default function Footer() {
                           </li>
                           <li>
                             <Link
-                              href="https://accounts.eleva.care/waitlist"
+                              href={`${process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}`}
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
                               Join Us
@@ -115,7 +115,7 @@ export default function Footer() {
                           </li>
                           <li>
                             <Link
-                              href="https://accounts.eleva.care/sign-in"
+                              href={`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}`}
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
                               Expert Dashboard
