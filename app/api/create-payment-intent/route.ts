@@ -128,7 +128,6 @@ export async function POST(request: Request) {
         customer: customerId as string,
         payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
         mode: 'payment',
-        ui_mode: 'embedded',
         allow_promotion_codes: true,
         billing_address_collection: 'auto',
         automatic_tax: {
