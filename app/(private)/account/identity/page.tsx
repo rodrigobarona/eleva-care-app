@@ -1,6 +1,8 @@
+import { isExpert } from '@/lib/auth/roles.server';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
 
 import { IdentityPageClient } from './identity-client';
 
@@ -9,7 +11,12 @@ export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 export default async function IdentityPage() {
-  const { getToken } = await auth();
+  const { userId, getToken } = await auth();
+
+  // Check if user has expert role, redirect to unauthorized if not
+  if (!userId || !(await isExpert())) {
+    return redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
+  }
 
   try {
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/user/identity`, {
