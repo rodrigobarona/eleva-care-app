@@ -78,6 +78,8 @@ export async function POST(request: Request) {
       guestEmail: meetingData.guestEmail,
       timezone: meetingData.timezone,
       startTime: meetingData.startTime,
+      isEuropeanCustomer: meetingData.timezone?.includes('Europe') ? 'true' : 'false',
+      preferredTaxHandling: 'vat_only',
     };
 
     console.log('Prepared meeting metadata');
@@ -124,16 +126,18 @@ export async function POST(request: Request) {
     const session = await withRetry(async () =>
       stripe.checkout.sessions.create({
         customer: customerId as string,
-        payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS], // Use card for reliable payments
+        payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
         mode: 'payment',
         allow_promotion_codes: true,
-        billing_address_collection: 'required',
+        billing_address_collection: 'auto',
         tax_id_collection: { enabled: true },
+        customer_creation: customerId ? undefined : 'always',
+        locale: meetingData.timezone?.includes('Europe') ? 'auto' : 'en',
         automatic_tax: { enabled: true },
         customer_update: {
-          address: 'auto', // Save billing address to customer
-          shipping: 'auto', // Also save shipping address if collected
-          name: 'auto', // Allow updating business name for tax ID collection
+          address: 'auto',
+          name: 'auto',
+          tax_id: 'auto',
         },
         submit_type: 'book',
         payment_intent_data: {
