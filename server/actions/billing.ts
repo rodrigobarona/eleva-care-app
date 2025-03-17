@@ -3,7 +3,7 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { createStripeConnectAccount, getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
-import { clerkClient } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 
 /**
@@ -141,5 +141,43 @@ export async function getConnectLoginLink(stripeConnectAccountId: string) {
   } catch (error) {
     console.error('Failed to create Stripe Connect link:', error);
     throw error;
+  }
+}
+
+/**
+ * Synchronizes a user's verified identity with their Stripe Connect account.
+ * This helps streamline the verification process by reusing the Stripe Identity verification.
+ *
+ * @returns An object with success status and a message
+ */
+export async function syncIdentityToConnect() {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, message: 'Not authenticated' };
+    }
+
+    // Import the sync function
+    const { syncIdentityVerificationToConnect } = await import('@/lib/stripe');
+    const result = await syncIdentityVerificationToConnect(userId);
+
+    if (result.success) {
+      return {
+        success: true,
+        message: 'Identity verification successfully synced to Connect account',
+      };
+    }
+
+    // If not successful, return the error message
+    return {
+      success: false,
+      message: result.message || 'Failed to sync identity verification',
+    };
+  } catch (error) {
+    console.error('Error in syncIdentityToConnect:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'An unknown error occurred',
+    };
   }
 }

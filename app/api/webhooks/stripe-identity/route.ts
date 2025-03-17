@@ -161,6 +161,23 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
         const { markStepCompleteForUser } = await import('@/server/actions/expert-setup');
         await markStepCompleteForUser('identity', user.clerkUserId);
         console.log(`Marked identity step as complete for user ${user.clerkUserId}`);
+
+        // Now sync the identity verification to the Connect account if it exists
+        try {
+          const { syncIdentityVerificationToConnect } = await import('@/lib/stripe');
+          const result = await syncIdentityVerificationToConnect(user.clerkUserId);
+
+          if (result.success) {
+            console.log(
+              `Successfully synced identity verification to Connect account for user ${user.clerkUserId}`,
+            );
+          } else {
+            console.log(`Could not sync identity verification to Connect: ${result.message}`);
+          }
+        } catch (syncError) {
+          console.error('Error syncing identity verification to Connect account:', syncError);
+          // Continue even if sync fails - we can retry later
+        }
       } catch (error) {
         console.error('Failed to mark identity step as complete:', error);
       }

@@ -2,13 +2,15 @@
 
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
-import React, { Suspense } from 'react';
+import { syncIdentityToConnect } from '@/server/actions/billing';
+import React, { Suspense, useState } from 'react';
 import { toast } from 'sonner';
 
 interface BillingPageClientProps {
   dbUser: {
     id: string;
     stripeConnectAccountId: string | null;
+    stripeIdentityVerified: boolean;
   };
   accountStatus: {
     detailsSubmitted: boolean;
@@ -21,6 +23,7 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
   const [isConnecting, setIsConnecting] = React.useState(false);
   const [isLoadingDashboard, setIsLoadingDashboard] = React.useState(false);
   const [isInitializing, setIsInitializing] = React.useState(true);
+  const [isSyncingIdentity, setIsSyncingIdentity] = useState(false);
 
   // Rebuild KV data when component mounts
   React.useEffect(() => {
@@ -141,6 +144,32 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
     }
   };
 
+  const handleSyncIdentity = async () => {
+    try {
+      setIsSyncingIdentity(true);
+      const result = await syncIdentityToConnect();
+
+      if (result.success) {
+        toast.success(result.message);
+        // Refresh the page to get updated account status
+        window.location.reload();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      console.error('Failed to sync identity verification:', error);
+      toast.error('Failed to sync identity verification. Please try again.');
+    } finally {
+      setIsSyncingIdentity(false);
+    }
+  };
+
+  // Add this code where it makes sense in your UI, likely near the dashboard button
+  const showSyncIdentityButton =
+    dbUser.stripeIdentityVerified &&
+    dbUser.stripeConnectAccountId &&
+    (!accountStatus?.payoutsEnabled || !accountStatus?.chargesEnabled);
+
   return (
     <div className="container pb-16">
       <h1 className="mb-6 text-3xl font-bold">
@@ -213,6 +242,22 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
                         : 'Complete Stripe Setup'}
                   </Button>
                 </div>
+                {showSyncIdentityButton && (
+                  <div className="mt-4 border-t pt-4">
+                    <p className="mb-2 text-sm text-amber-600">
+                      We noticed you&apos;ve verified your identity but your Stripe Connect account
+                      may need additional verification.
+                    </p>
+                    <Button
+                      onClick={handleSyncIdentity}
+                      variant="outline"
+                      className="w-full"
+                      disabled={isSyncingIdentity}
+                    >
+                      {isSyncingIdentity ? 'Syncing...' : 'Sync Identity Verification'}
+                    </Button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="space-y-4">
