@@ -130,7 +130,7 @@ export default clerkMiddleware(async (auth, req) => {
         }
         // For page routes, redirect to unauthorized
         return NextResponse.redirect(
-          new URL(`/${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`, req.url),
+          new URL(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`, req.url),
         );
       }
     }
@@ -145,7 +145,7 @@ export default clerkMiddleware(async (auth, req) => {
         }
         // For page routes, redirect to unauthorized
         return NextResponse.redirect(
-          new URL(`/${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`, req.url),
+          new URL(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`, req.url),
         );
       }
     }

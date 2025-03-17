@@ -157,9 +157,9 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
     // If verification is verified, add to expert onboarding progress
     if (verificationStatus.status === 'verified') {
       try {
-        // Call the markStepComplete function, imported dynamically to avoid circular dependencies
-        const { markStepComplete } = await import('@/server/actions/expert-setup');
-        await markStepComplete('identity', user.clerkUserId);
+        // Call the markStepCompleteForUser function, imported dynamically to avoid circular dependencies
+        const { markStepCompleteForUser } = await import('@/server/actions/expert-setup');
+        await markStepCompleteForUser('identity', user.clerkUserId);
         console.log(`Marked identity step as complete for user ${user.clerkUserId}`);
       } catch (error) {
         console.error('Failed to mark identity step as complete:', error);

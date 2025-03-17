@@ -276,3 +276,71 @@ export async function checkExpertSetupStatus() {
     };
   }
 }
+
+/**
+ * Marks a step as complete for a specific user ID
+ * This version is designed for webhook handlers where currentUser() isn't available
+ *
+ * @param step The setup step to mark as complete
+ * @param userId The Clerk user ID to mark the step complete for
+ * @returns Object containing success status and updated setup status
+ */
+export async function markStepCompleteForUser(step: ExpertSetupStep, userId: string) {
+  try {
+    // Initialize Clerk client
+    const clerk = await clerkClient();
+
+    // Get user by ID
+    const user = await clerk.users.getUser(userId);
+
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
+
+    // Check if user has an expert role
+    const isExpert = hasExpertRole(user);
+
+    if (!isExpert) {
+      return { success: false, error: 'User is not an expert' };
+    }
+
+    // Get current setup status
+    const currentSetup = (user.unsafeMetadata?.expertSetup as Record<string, boolean>) || {};
+
+    // If step is already marked as complete, don't do anything
+    if (currentSetup[step]) {
+      return {
+        success: true,
+        setupStatus: currentSetup,
+      };
+    }
+
+    // Mark the step as complete
+    const updatedSetup = {
+      ...currentSetup,
+      [step]: true,
+    };
+
+    // Update the user metadata
+    await clerk.users.updateUser(user.id, {
+      unsafeMetadata: {
+        ...user.unsafeMetadata,
+        expertSetup: updatedSetup,
+      },
+    });
+
+    // Revalidate the layout path to update the UI when needed
+    revalidatePath('/(private)/layout');
+
+    return {
+      success: true,
+      setupStatus: updatedSetup,
+    };
+  } catch (error) {
+    console.error('Failed to mark step complete for user:', error);
+    return {
+      success: false,
+      error: 'Failed to mark step as complete',
+    };
+  }
+}
