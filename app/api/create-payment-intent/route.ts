@@ -135,9 +135,6 @@ export async function POST(request: Request) {
           terms_of_service: 'required',
         },
         custom_text: {
-          shipping_address: {
-            message: 'VAT/NIF number is recommended but optional',
-          },
           terms_of_service_acceptance: {
             message: 'I agree to the [Terms of Service](https://eleva.care/legal/terms)',
           },
