@@ -128,9 +128,15 @@ export async function POST(request: Request) {
         customer: customerId as string,
         payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
         mode: 'payment',
+        ui_mode: 'embedded',
         allow_promotion_codes: true,
-        billing_address_collection: 'required',
-        tax_id_collection: { enabled: true },
+        billing_address_collection: 'auto',
+        automatic_tax: {
+          enabled: true,
+          liability: { type: 'account', account: event.user.stripeConnectAccountId },
+          status: 'complete',
+        },
+        tax_id_collection: { enabled: true, required: 'if_supported' },
         consent_collection: {
           terms_of_service: 'required',
         },
@@ -141,13 +147,14 @@ export async function POST(request: Request) {
         },
         customer_creation: customerId ? undefined : 'always',
         locale: 'auto',
-        automatic_tax: { enabled: true },
         customer_update: {
           address: 'auto',
           name: 'auto',
         },
         submit_type: 'book',
-
+        invoice_creation: {
+          enabled: true,
+        },
         payment_intent_data: {
           application_fee_amount: applicationFeeAmount,
           transfer_data: {
