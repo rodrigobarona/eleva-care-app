@@ -129,13 +129,13 @@ export async function POST(request: Request) {
         payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
         mode: 'payment',
         allow_promotion_codes: true,
-        billing_address_collection: 'auto',
+        billing_address_collection: 'required',
         tax_id_collection: { enabled: true },
         consent_collection: {
           terms_of_service: 'required',
         },
         custom_text: {
-          submit: {
+          billing_address: {
             message: 'VAT/NIF number is recommended but optional',
           },
           terms_of_service_acceptance: {
