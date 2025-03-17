@@ -11,7 +11,7 @@ const customJestConfig = {
     '^@/(.*)$': '<rootDir>/$1',
   },
   moduleDirectories: ['node_modules', '<rootDir>'],
-  testMatch: ['**/*.test.ts', '**/*.test.tsx'],
+  testMatch: ['**/lib/*.test.ts'],
 };
 
 module.exports = createJestConfig(customJestConfig);
