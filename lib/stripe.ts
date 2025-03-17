@@ -624,15 +624,31 @@ export async function syncIdentityVerificationToConnect(clerkUserId: string) {
       stripeIdentityVerificationStatus: user.stripeIdentityVerificationStatus,
     });
 
+    // First, check if the Connect account is already fully verified
+    const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
+
+    console.log('Initial Connect account status:', {
+      connectAccountId: user.stripeConnectAccountId,
+      detailsSubmitted: account.details_submitted,
+      chargesEnabled: account.charges_enabled,
+      payoutsEnabled: account.payouts_enabled,
+      individualVerification: account.individual?.verification?.status,
+      metadata: account.metadata,
+    });
+
     // Enhanced check - if identity verification ID exists, verify it's truly verified
     // This handles cases where database might be out of sync with Stripe
+    let verificationStatus = {
+      status: user.stripeIdentityVerificationStatus || 'unknown',
+      lastUpdated: undefined as string | undefined,
+    };
+    let forceVerify = false;
+
     if (user.stripeIdentityVerificationId) {
       try {
         // Import the verification function dynamically to avoid circular dependencies
         const { getIdentityVerificationStatus } = await import('./stripe/identity');
-        const verificationStatus = await getIdentityVerificationStatus(
-          user.stripeIdentityVerificationId,
-        );
+        verificationStatus = await getIdentityVerificationStatus(user.stripeIdentityVerificationId);
 
         // Log the verification status for debugging
         console.log('Retrieved verification status:', {
@@ -642,10 +658,23 @@ export async function syncIdentityVerificationToConnect(clerkUserId: string) {
           lastUpdated: verificationStatus.lastUpdated,
         });
 
+        // Force verification if the verification status indicates it's verified but Connect doesn't show it
+        if (
+          verificationStatus.status === 'verified' &&
+          account.individual?.verification?.status !== 'verified'
+        ) {
+          forceVerify = true;
+          console.log('Force verifying due to status mismatch:', {
+            identityStatus: verificationStatus.status,
+            connectStatus: account.individual?.verification?.status,
+          });
+        }
+
         // Update the database if status doesn't match what we have
         if (
           (verificationStatus.status === 'verified' && !user.stripeIdentityVerified) ||
-          (verificationStatus.status !== 'verified' && user.stripeIdentityVerified)
+          (verificationStatus.status !== 'verified' && user.stripeIdentityVerified) ||
+          user.stripeIdentityVerificationStatus !== verificationStatus.status
         ) {
           await db
             .update(UserTable)
@@ -660,61 +689,77 @@ export async function syncIdentityVerificationToConnect(clerkUserId: string) {
           console.log('Updated user verification status in database', {
             userId: user.id,
             verified: verificationStatus.status === 'verified',
+            status: verificationStatus.status,
           });
+        }
 
-          // If not verified, exit early
-          if (verificationStatus.status !== 'verified') {
-            return {
-              success: false,
-              message: `User's identity verification status is ${verificationStatus.status}`,
-            };
-          }
+        // If not verified and not forcing verification, exit early
+        if (verificationStatus.status !== 'verified' && !forceVerify) {
+          return {
+            success: false,
+            message: `User's identity verification status is ${verificationStatus.status}`,
+          };
         }
       } catch (error) {
         console.error('Error checking verification status:', error);
-        // Continue with verification attempt using database values
+        // If the user was previously marked as verified but we can't check now,
+        // we'll proceed with the sync anyway as a fallback
+        if (user.stripeIdentityVerified) {
+          forceVerify = true;
+          console.log(
+            'Force verifying due to error checking verification status but user marked as verified',
+          );
+        } else {
+          return { success: false, message: 'Unable to verify identity verification status' };
+        }
       }
-    } else if (!user.stripeIdentityVerified) {
+    } else if (!user.stripeIdentityVerified && !forceVerify) {
       console.error('Cannot sync identity - not verified:', clerkUserId);
       return { success: false, message: 'User has not completed identity verification' };
     }
 
-    // We don't need to retrieve the verification session details for now
-    // Just retrieve the account to check current verification status
-    const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
-
-    // If already verified, don't update, but log the verification metadata
-    if (account.individual?.verification?.status === 'verified') {
-      console.log('Connect account already verified:', {
+    // Check if already verified and has correct metadata, don't update in that case
+    if (
+      account.individual?.verification?.status === 'verified' &&
+      account.metadata?.identity_verified === 'true' &&
+      account.metadata?.identity_verification_id === user.stripeIdentityVerificationId
+    ) {
+      console.log('Connect account already properly verified with correct metadata:', {
         userId: user.id,
         connectAccountId: user.stripeConnectAccountId,
-        metadata: account.metadata,
       });
 
-      // Ensure we have the verification metadata set correctly
-      if (!account.metadata?.identity_verified) {
-        // Update metadata even if verification status is good
-        await stripe.accounts.update(user.stripeConnectAccountId, {
-          metadata: {
-            ...account.metadata,
-            identity_verified: 'true',
-            identity_verified_at: new Date().toISOString(),
-            identity_verification_id: user.stripeIdentityVerificationId,
-          },
-        });
-        console.log(
-          'Updated Connect account metadata for verification tracking:',
-          user.stripeConnectAccountId,
-        );
-      }
+      return { success: true, message: 'Connect account already verified with correct metadata' };
+    }
 
-      return { success: true, message: 'Connect account already verified' };
+    // If already verified but missing metadata, just update the metadata
+    if (
+      account.individual?.verification?.status === 'verified' &&
+      !account.metadata?.identity_verified
+    ) {
+      console.log('Connect account verified but missing metadata. Updating metadata only:', {
+        userId: user.id,
+        connectAccountId: user.stripeConnectAccountId,
+      });
+
+      await stripe.accounts.update(user.stripeConnectAccountId, {
+        metadata: {
+          ...account.metadata,
+          identity_verified: 'true',
+          identity_verified_at: new Date().toISOString(),
+          identity_verification_id: user.stripeIdentityVerificationId,
+        },
+      });
+
+      console.log('Updated metadata on already verified account:', user.stripeConnectAccountId);
+      return { success: true, message: 'Updated metadata on already verified account' };
     }
 
     console.log('Updating Connect account with verification:', {
       userId: user.id,
       connectAccountId: user.stripeConnectAccountId,
       verificationId: user.stripeIdentityVerificationId,
+      forceVerify,
     });
 
     // Apply the verification status to the Connect account
@@ -737,6 +782,7 @@ export async function syncIdentityVerificationToConnect(clerkUserId: string) {
         identity_verified: 'true',
         identity_verified_at: new Date().toISOString(),
         identity_verification_id: user.stripeIdentityVerificationId,
+        last_sync_attempt: new Date().toISOString(),
       },
     });
 
