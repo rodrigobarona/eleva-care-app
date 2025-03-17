@@ -134,7 +134,6 @@ export async function POST(request: Request) {
           enabled: true,
           liability: { type: 'account', account: event.user.stripeConnectAccountId },
         },
-        issuer: 'card',
         tax_id_collection: { enabled: true, required: 'if_supported' },
         consent_collection: {
           terms_of_service: 'required',
