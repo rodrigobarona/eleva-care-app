@@ -129,8 +129,13 @@ export async function POST(request: Request) {
         payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
         mode: 'payment',
         allow_promotion_codes: true,
-        billing_address_collection: meetingData.timezone?.includes('Europe') ? 'required' : 'auto',
+        billing_address_collection: 'auto',
         tax_id_collection: { enabled: true },
+        business_profile: {
+          headline: meetingData.timezone?.includes('Europe')
+            ? 'VAT/NIF number is recommended but optional'
+            : undefined,
+        },
         customer_creation: customerId ? undefined : 'always',
         locale: meetingData.timezone?.includes('Europe') ? 'auto' : 'en',
         automatic_tax: { enabled: true },
