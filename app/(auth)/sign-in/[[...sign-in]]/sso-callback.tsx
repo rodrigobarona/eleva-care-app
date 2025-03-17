@@ -37,7 +37,7 @@ export default function SSOCallback() {
       // Small delay to ensure Clerk has processed authentication
       setTimeout(() => {
         console.log('Redirecting to fallback URL');
-        router.push(`/${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
+        router.push(`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
       }, 500);
     };
 
@@ -49,7 +49,7 @@ export default function SSOCallback() {
       console.log('Fallback timer triggered, checking if we need to redirect');
       if (document.cookie.includes('__client')) {
         console.log('Clerk cookie found, seems authenticated, redirecting to fallback URL');
-        router.push(`/${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
+        router.push(`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
       }
     }, 2000);
 

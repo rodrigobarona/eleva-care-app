@@ -13,7 +13,7 @@ export default function SignInPage() {
         routing="path"
         path={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}
         signUpUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}
-        fallbackRedirectUrl={`/${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`}
+        fallbackRedirectUrl={`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`}
       />
     </div>
   );

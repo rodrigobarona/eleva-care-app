@@ -15,7 +15,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const userIsAdmin = await isAdmin();
 
   if (!userIsAdmin) {
-    redirect(`/${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
+    redirect(`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
   }
 
   return (

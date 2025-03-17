@@ -9,7 +9,7 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
   const { userId } = await auth();
   if (userId != null) {
     // Special case handling for SSO callback is now in the component itself
-    redirect(`/${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
+    redirect(`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
   }
 
   return <div className="flex min-h-screen flex-col items-center justify-center">{children}</div>;

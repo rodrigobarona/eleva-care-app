@@ -17,7 +17,7 @@ export default async function CustomersLayout({ children }: CustomersLayoutProps
   const userIsExpert = await isExpert();
 
   if (!userIsExpert) {
-    redirect(`/${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
+    redirect(`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
   }
 
   return <>{children}</>;
