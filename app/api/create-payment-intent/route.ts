@@ -131,8 +131,16 @@ export async function POST(request: Request) {
         allow_promotion_codes: true,
         billing_address_collection: 'auto',
         tax_id_collection: { enabled: true },
+        consent_collection: {
+          terms_of_service: 'required',
+        },
         custom_text: {
-          billing_address: 'VAT/NIF number is recommended but optional',
+          submit: {
+            message: 'VAT/NIF number is recommended but optional',
+          },
+          terms_of_service_acceptance: {
+            message: 'I agree to the [Terms of Service](https://eleva.care/legal/terms)',
+          },
         },
         customer_creation: customerId ? undefined : 'always',
         locale: 'auto',
@@ -142,6 +150,7 @@ export async function POST(request: Request) {
           name: 'auto',
         },
         submit_type: 'book',
+
         payment_intent_data: {
           application_fee_amount: applicationFeeAmount,
           transfer_data: {
