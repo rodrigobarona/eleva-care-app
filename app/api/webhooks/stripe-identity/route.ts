@@ -135,11 +135,13 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
     // Get detailed status
     const verificationStatus = await getIdentityVerificationStatus(verificationId);
 
+    const isVerified = verificationStatus.status === 'verified';
+
     // Update user verification status in database
     await db
       .update(UserTable)
       .set({
-        stripeIdentityVerified: verificationStatus.status === 'verified',
+        stripeIdentityVerified: isVerified,
         stripeIdentityVerificationStatus: verificationStatus.status,
         stripeIdentityVerificationLastChecked: new Date(),
         updatedAt: new Date(),
@@ -155,7 +157,7 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
     });
 
     // If verification is verified, add to expert onboarding progress
-    if (verificationStatus.status === 'verified') {
+    if (isVerified) {
       try {
         // Call the markStepCompleteForUser function, imported dynamically to avoid circular dependencies
         const { markStepCompleteForUser } = await import('@/server/actions/expert-setup');
@@ -164,19 +166,67 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
 
         // Now sync the identity verification to the Connect account if it exists
         try {
-          const { syncIdentityVerificationToConnect } = await import('@/lib/stripe');
-          const result = await syncIdentityVerificationToConnect(user.clerkUserId);
+          // Check if user has a Connect account first
+          if (!user.stripeConnectAccountId) {
+            console.log('User has no Connect account yet, skipping sync:', user.clerkUserId);
+            return;
+          }
 
-          if (result.success) {
-            console.log(
-              `Successfully synced identity verification to Connect account for user ${user.clerkUserId}`,
-            );
-          } else {
-            console.log(`Could not sync identity verification to Connect: ${result.message}`);
+          // Retry the sync up to 3 times with exponential backoff
+          let syncSuccess = false;
+          let lastError: Error | null = null;
+
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              console.log(
+                `Syncing identity verification attempt ${attempt} for user ${user.clerkUserId}`,
+              );
+
+              const { syncIdentityVerificationToConnect } = await import('@/lib/stripe');
+              const result = await syncIdentityVerificationToConnect(user.clerkUserId);
+
+              if (result.success) {
+                console.log(
+                  `Successfully synced identity verification to Connect account for user ${user.clerkUserId}`,
+                  {
+                    attempt,
+                    verificationStatus: result.verificationStatus,
+                  },
+                );
+                syncSuccess = true;
+                break;
+              } else {
+                console.log(`Sync attempt ${attempt} failed: ${result.message}`);
+                lastError = new Error(result.message);
+
+                // Wait before retrying (exponential backoff)
+                if (attempt < 3) {
+                  const delay = attempt * 1000; // 1s, 2s, 3s
+                  await new Promise((resolve) => setTimeout(resolve, delay));
+                }
+              }
+            } catch (syncError) {
+              console.error(`Error in sync attempt ${attempt}:`, syncError);
+              lastError = syncError instanceof Error ? syncError : new Error('Unknown error');
+
+              // Wait before retrying (exponential backoff)
+              if (attempt < 3) {
+                const delay = attempt * 1000;
+                await new Promise((resolve) => setTimeout(resolve, delay));
+              }
+            }
+          }
+
+          // Log outcome after all attempts
+          if (!syncSuccess) {
+            console.error('All attempts to sync identity verification failed:', {
+              userId: user.id,
+              clerkUserId: user.clerkUserId,
+              errorMessage: lastError?.message || 'Unknown error',
+            });
           }
         } catch (syncError) {
-          console.error('Error syncing identity verification to Connect account:', syncError);
-          // Continue even if sync fails - we can retry later
+          console.error('Unhandled error in identity sync process:', syncError);
         }
       } catch (error) {
         console.error('Failed to mark identity step as complete:', error);

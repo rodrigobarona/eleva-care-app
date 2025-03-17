@@ -614,7 +614,67 @@ export async function syncIdentityVerificationToConnect(clerkUserId: string) {
       return { success: false, message: 'No Stripe Connect account found' };
     }
 
-    if (!user.stripeIdentityVerified || !user.stripeIdentityVerificationId) {
+    // For debugging, log all verification data
+    console.log('Syncing identity for user:', {
+      userId: user.id,
+      clerkUserId,
+      email: user.email,
+      stripeIdentityVerified: user.stripeIdentityVerified,
+      stripeIdentityVerificationId: user.stripeIdentityVerificationId,
+      stripeIdentityVerificationStatus: user.stripeIdentityVerificationStatus,
+    });
+
+    // Enhanced check - if identity verification ID exists, verify it's truly verified
+    // This handles cases where database might be out of sync with Stripe
+    if (user.stripeIdentityVerificationId) {
+      try {
+        // Import the verification function dynamically to avoid circular dependencies
+        const { getIdentityVerificationStatus } = await import('./stripe/identity');
+        const verificationStatus = await getIdentityVerificationStatus(
+          user.stripeIdentityVerificationId,
+        );
+
+        // Log the verification status for debugging
+        console.log('Retrieved verification status:', {
+          userId: user.id,
+          verificationId: user.stripeIdentityVerificationId,
+          status: verificationStatus.status,
+          lastUpdated: verificationStatus.lastUpdated,
+        });
+
+        // Update the database if status doesn't match what we have
+        if (
+          (verificationStatus.status === 'verified' && !user.stripeIdentityVerified) ||
+          (verificationStatus.status !== 'verified' && user.stripeIdentityVerified)
+        ) {
+          await db
+            .update(UserTable)
+            .set({
+              stripeIdentityVerified: verificationStatus.status === 'verified',
+              stripeIdentityVerificationStatus: verificationStatus.status,
+              stripeIdentityVerificationLastChecked: new Date(),
+              updatedAt: new Date(),
+            })
+            .where(eq(UserTable.id, user.id));
+
+          console.log('Updated user verification status in database', {
+            userId: user.id,
+            verified: verificationStatus.status === 'verified',
+          });
+
+          // If not verified, exit early
+          if (verificationStatus.status !== 'verified') {
+            return {
+              success: false,
+              message: `User's identity verification status is ${verificationStatus.status}`,
+            };
+          }
+        }
+      } catch (error) {
+        console.error('Error checking verification status:', error);
+        // Continue with verification attempt using database values
+      }
+    } else if (!user.stripeIdentityVerified) {
       console.error('Cannot sync identity - not verified:', clerkUserId);
       return { success: false, message: 'User has not completed identity verification' };
     }
@@ -623,11 +683,39 @@ export async function syncIdentityVerificationToConnect(clerkUserId: string) {
     // Just retrieve the account to check current verification status
     const account = await stripe.accounts.retrieve(user.stripeConnectAccountId);
 
-    // If already verified, don't update
+    // If already verified, don't update, but log the verification metadata
     if (account.individual?.verification?.status === 'verified') {
-      console.log('Connect account already verified:', user.stripeConnectAccountId);
+      console.log('Connect account already verified:', {
+        userId: user.id,
+        connectAccountId: user.stripeConnectAccountId,
+        metadata: account.metadata,
+      });
+
+      // Ensure we have the verification metadata set correctly
+      if (!account.metadata?.identity_verified) {
+        // Update metadata even if verification status is good
+        await stripe.accounts.update(user.stripeConnectAccountId, {
+          metadata: {
+            ...account.metadata,
+            identity_verified: 'true',
+            identity_verified_at: new Date().toISOString(),
+            identity_verification_id: user.stripeIdentityVerificationId,
+          },
+        });
+        console.log(
+          'Updated Connect account metadata for verification tracking:',
+          user.stripeConnectAccountId,
+        );
+      }
+
       return { success: true, message: 'Connect account already verified' };
     }
+
+    console.log('Updating Connect account with verification:', {
+      userId: user.id,
+      connectAccountId: user.stripeConnectAccountId,
+      verificationId: user.stripeIdentityVerificationId,
+    });
 
     // Apply the verification status to the Connect account
     await stripe.accounts.update(user.stripeConnectAccountId, {
@@ -652,13 +740,22 @@ export async function syncIdentityVerificationToConnect(clerkUserId: string) {
       },
     });
 
+    // Verify the update worked by retrieving the account again
+    const updatedAccount = await stripe.accounts.retrieve(user.stripeConnectAccountId);
+
     console.log('Successfully synced identity verification to Connect account:', {
       clerkUserId,
       connectAccountId: user.stripeConnectAccountId,
       identityVerificationId: user.stripeIdentityVerificationId,
+      verificationStatus: updatedAccount.individual?.verification?.status,
+      metadata: updatedAccount.metadata,
     });
 
-    return { success: true, message: 'Identity verification synced successfully' };
+    return {
+      success: true,
+      message: 'Identity verification synced successfully',
+      verificationStatus: updatedAccount.individual?.verification?.status,
+    };
   } catch (error) {
     console.error('Error syncing identity verification to Connect:', error);
     return {
