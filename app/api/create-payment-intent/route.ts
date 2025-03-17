@@ -134,6 +134,7 @@ export async function POST(request: Request) {
           enabled: true,
           liability: { type: 'account', account: event.user.stripeConnectAccountId },
         },
+        issuer: 'card',
         tax_id_collection: { enabled: true, required: 'if_supported' },
         consent_collection: {
           terms_of_service: 'required',
@@ -150,9 +151,6 @@ export async function POST(request: Request) {
           name: 'auto',
         },
         submit_type: 'book',
-        invoice_creation: {
-          enabled: true,
-        },
         payment_intent_data: {
           application_fee_amount: applicationFeeAmount,
           transfer_data: {
