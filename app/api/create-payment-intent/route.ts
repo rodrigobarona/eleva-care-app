@@ -137,7 +137,6 @@ export async function POST(request: Request) {
         customer_update: {
           address: 'auto',
           name: 'auto',
-          tax_id: 'auto',
         },
         submit_type: 'book',
         payment_intent_data: {
