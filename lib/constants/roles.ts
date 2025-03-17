@@ -48,7 +48,9 @@ export const PUBLIC_ROUTES = [
   '/contact',
 
   // Public API endpoints
-  '/api/webhook(s)?/.*', // All webhook endpoints for external services
+  '/api/webhooks/stripe(.*)', // Stripe webhooks (payments, subscriptions)
+  '/api/webhooks/stripe-identity(.*)', // Stripe Identity verification webhooks
+  '/api/webhooks/stripe-connect(.*)', // Stripe Connect webhooks (connect accounts)
   '/api/keep-alive', // Health check endpoint
 ] as const;
 
