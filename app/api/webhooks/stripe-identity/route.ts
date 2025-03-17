@@ -89,15 +89,40 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
       sessionId: verificationId,
       status: session.status,
       eventType: event.type,
+      metadata: session.metadata,
     });
 
-    // Find the user with this verification ID
-    const user = await db.query.UserTable.findFirst({
+    // Try to find user by verification ID first
+    let user = await db.query.UserTable.findFirst({
       where: eq(UserTable.stripeIdentityVerificationId, verificationId),
     });
 
+    // If no user found by verification ID, check metadata for clerkUserId
+    if (!user && session.metadata && session.metadata.clerkUserId) {
+      const clerkUserId = session.metadata.clerkUserId as string;
+      console.log('Looking up user by Clerk ID from metadata:', clerkUserId);
+
+      user = await db.query.UserTable.findFirst({
+        where: eq(UserTable.clerkUserId, clerkUserId),
+      });
+
+      // If we found a user, update their verification ID
+      if (user) {
+        await db
+          .update(UserTable)
+          .set({
+            stripeIdentityVerificationId: verificationId,
+            updatedAt: new Date(),
+          })
+          .where(eq(UserTable.id, user.id));
+      }
+    }
+
     if (!user) {
-      console.error('No user found with verification ID:', verificationId);
+      console.error('No user found for verification session:', {
+        verificationId,
+        metadata: session.metadata,
+      });
       return;
     }
 
@@ -109,12 +134,15 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
       .update(UserTable)
       .set({
         stripeIdentityVerified: verificationStatus.status === 'verified',
+        stripeIdentityVerificationStatus: verificationStatus.status,
+        stripeIdentityVerificationLastChecked: new Date(),
         updatedAt: new Date(),
       })
       .where(eq(UserTable.id, user.id));
 
     console.log('Updated user verification status:', {
       userId: user.id,
+      clerkUserId: user.clerkUserId,
       status: verificationStatus.status,
     });
   } catch (error) {

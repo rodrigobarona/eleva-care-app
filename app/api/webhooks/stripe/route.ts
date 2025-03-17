@@ -1,9 +1,10 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable } from '@/drizzle/schema';
+import { PaymentTransferTable, UserTable } from '@/drizzle/schema';
 import { syncStripeDataToKV } from '@/lib/stripe';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
+import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
@@ -329,6 +330,60 @@ export async function POST(request: Request) {
     switch (event.type) {
       case 'checkout.session.completed':
         await handleCheckoutSession(event.data.object as StripeCheckoutSession);
+        break;
+      // Handle identity verification events by delegating to the appropriate handler
+      case 'identity.verification_session.verified':
+      case 'identity.verification_session.requires_input':
+      case 'identity.verification_session.processing':
+      case 'identity.verification_session.created':
+        // Import and call the identity handler function
+        try {
+          console.log('Forwarding identity event to identity handler:', event.type);
+          // We can't directly import route handlers, so handle the identity event here
+          // The user should have both webhooks set up in Stripe
+          console.log('Identity verification event received via main webhook.', {
+            type: event.type,
+            sessionId: (event.data.object as Stripe.Identity.VerificationSession).id,
+            metadata: (event.data.object as Stripe.Identity.VerificationSession).metadata,
+          });
+
+          // Update user if we can find them by metadata
+          const verificationSession = event.data.object as Stripe.Identity.VerificationSession;
+          if (verificationSession.metadata?.clerkUserId) {
+            const clerkUserId = verificationSession.metadata.clerkUserId as string;
+            console.log('Found clerk user ID in metadata:', clerkUserId);
+
+            // Update the user's verification status
+            try {
+              const user = await db.query.UserTable.findFirst({
+                where: (user) => eq(user.clerkUserId, clerkUserId),
+              });
+
+              if (user) {
+                console.log('Updating user verification status:', user.id);
+                await db
+                  .update(UserTable)
+                  .set({
+                    stripeIdentityVerificationId: verificationSession.id,
+                    stripeIdentityVerified: verificationSession.status === 'verified',
+                    stripeIdentityVerificationStatus: verificationSession.status,
+                    stripeIdentityVerificationLastChecked: new Date(),
+                    updatedAt: new Date(),
+                  })
+                  .where(eq(UserTable.id, user.id));
+
+                console.log('Successfully updated user verification status');
+              } else {
+                console.log('No user found with clerk ID:', clerkUserId);
+              }
+            } catch (error) {
+              console.error('Error updating user verification status:', error);
+            }
+          }
+        } catch (error) {
+          console.error('Error handling identity event:', error);
+          // Continue processing - we don't want to fail the webhook for this
+        }
         break;
       // Add other event handlers as needed
       default:
