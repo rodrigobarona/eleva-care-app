@@ -10,6 +10,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
+// Set the Verification Flow ID
+const VERIFICATION_FLOW_ID = process.env.STRIPE_VERIFICATION_FLOW_ID;
+
 // Update the interface to match Stripe's types more accurately
 interface ExtendedVerificationSession
   extends Omit<Stripe.Identity.VerificationSession, 'last_error'> {
@@ -22,6 +25,7 @@ interface ExtendedVerificationSession
 
 /**
  * Creates a new identity verification session for the current user
+ * Uses a pre-configured Verification Flow for consistent user experience
  *
  * @returns URL to the identity verification page and session ID
  */
@@ -41,7 +45,7 @@ export async function createIdentityVerificationSession() {
       throw new Error('User not found in database');
     }
 
-    // Create a new verification session
+    // Create a new verification session using the configured Verification Flow
     const verificationSession = await stripe.identity.verificationSessions.create({
       type: 'document',
       metadata: {
@@ -49,6 +53,7 @@ export async function createIdentityVerificationSession() {
         clerkUserId: userId,
         email: user.email,
       },
+      verification_flow: VERIFICATION_FLOW_ID, // Use the configured Verification Flow
       return_url: `${process.env.NEXT_PUBLIC_APP_URL}/account/identity?session_completed=true`,
     });
 

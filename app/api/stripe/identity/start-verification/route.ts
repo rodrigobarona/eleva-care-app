@@ -14,7 +14,15 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    console.log(
+      `Starting identity verification for user ${userId} using configured Verification Flow`,
+    );
+
     const verificationSession = await createIdentityVerificationSession();
+
+    console.log(
+      `Successfully created verification session ${verificationSession.sessionId} for user ${userId}`,
+    );
 
     return NextResponse.json({
       url: verificationSession.url,

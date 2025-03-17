@@ -157,6 +157,10 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
                 Please complete identity verification to ensure security and compliance. This is a
                 quick process that requires a government-issued photo ID and a selfie.
               </p>
+              <p className="mb-4 text-sm text-muted-foreground">
+                We use a specialized verification flow that ensures a smooth and secure verification
+                process.
+              </p>
               <Button onClick={handleStartVerification} disabled={isStartingVerification}>
                 {isStartingVerification ? 'Starting...' : 'Start Verification'}
               </Button>
@@ -200,7 +204,7 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
                 {verificationStatus.details || 'Please try again.'}
               </p>
               <Button onClick={handleStartVerification} disabled={isStartingVerification}>
-                {isStartingVerification ? 'Starting...' : 'Retry Verification'}
+                {isStartingVerification ? 'Starting...' : 'Try Again'}
               </Button>
               {verificationStatus.lastUpdated && (
                 <p className="mt-4 text-sm text-muted-foreground">

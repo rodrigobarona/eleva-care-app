@@ -90,6 +90,7 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
       status: session.status,
       eventType: event.type,
       metadata: session.metadata,
+      verificationFlow: session.verification_flow || 'No verification flow specified',
     });
 
     // Try to find user by verification ID first
@@ -144,7 +145,21 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
       userId: user.id,
       clerkUserId: user.clerkUserId,
       status: verificationStatus.status,
+      lastChecked: new Date().toISOString(),
+      verificationFlow: session.verification_flow || 'Standard flow',
     });
+
+    // If verification is verified, add to expert onboarding progress
+    if (verificationStatus.status === 'verified') {
+      try {
+        // Call the markStepComplete function, imported dynamically to avoid circular dependencies
+        const { markStepComplete } = await import('@/server/actions/expert-setup');
+        await markStepComplete('identity', user.clerkUserId);
+        console.log(`Marked identity step as complete for user ${user.clerkUserId}`);
+      } catch (error) {
+        console.error('Failed to mark identity step as complete:', error);
+      }
+    }
   } catch (error) {
     console.error('Error handling verification session event:', error);
     throw error;
