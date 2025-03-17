@@ -127,16 +127,21 @@ export async function POST(request: Request) {
         payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS], // Use card for reliable payments
         mode: 'payment',
         allow_promotion_codes: true,
-        billing_address_collection: 'auto',
+        billing_address_collection: 'required',
         tax_id_collection: { enabled: true },
         automatic_tax: { enabled: true },
         customer_update: {
           address: 'auto', // Save billing address to customer
+          shipping: 'auto', // Also save shipping address if collected
           name: 'auto', // Allow updating business name for tax ID collection
         },
         submit_type: 'book',
         payment_intent_data: {
-          // No transfer_data here - funds will be held in the platform account
+          setup_future_usage: 'off_session',
+          application_fee_amount: applicationFeeAmount,
+          transfer_data: {
+            destination: event.user.stripeConnectAccountId,
+          },
           metadata: {
             eventId,
             meetingData: JSON.stringify(meetingMetadata),

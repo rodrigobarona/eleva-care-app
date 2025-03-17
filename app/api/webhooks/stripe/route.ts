@@ -41,6 +41,9 @@ interface StripeCheckoutSession extends Stripe.Checkout.Session {
     expertAmount?: string;
     platformFee?: string;
     requiresApproval?: string;
+    transferStatus?: string;
+    sessionStartTime?: string;
+    scheduledTransferTime?: string;
   };
   application_fee_amount?: number | null;
 }
