@@ -123,6 +123,25 @@ export async function POST(request: Request) {
 
     const baseUrl = getBaseUrl();
 
+    const invoiceData: {
+      description: string;
+      footer: string;
+      issuer: { account: string; type: 'account' | 'self' };
+      custom_fields: { name: string; value: string }[];
+      rendering_options: { amount_tax_display: string };
+    } = {
+      description: 'Consultation Booking with Eleva 15% Service Fee',
+      footer: '',
+      issuer: {
+        account: event.user.stripeConnectAccountId,
+        type: 'account',
+      },
+      custom_fields: [{ name: 'Service Fee', value: '15%' }],
+      rendering_options: {
+        amount_tax_display: 'inclusive',
+      },
+    };
+
     const session = await withRetry(async () =>
       stripe.checkout.sessions.create({
         customer: customerId as string,
@@ -148,6 +167,10 @@ export async function POST(request: Request) {
         customer_update: {
           address: 'auto',
           name: 'auto',
+        },
+        invoice_creation: {
+          enabled: true,
+          invoice_data: invoiceData,
         },
         submit_type: 'book',
         payment_intent_data: {
@@ -204,7 +227,7 @@ export async function POST(request: Request) {
         )}&e=${encodeURIComponent(
           meetingData.guestEmail,
         )}&tz=${encodeURIComponent(meetingData.timezone)}`,
-      } as Stripe.Checkout.SessionCreateParams),
+      } as unknown as Stripe.Checkout.SessionCreateParams),
     );
 
     console.log('Checkout session created successfully:', {
