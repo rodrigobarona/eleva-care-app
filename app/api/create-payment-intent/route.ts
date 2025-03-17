@@ -134,7 +134,6 @@ export async function POST(request: Request) {
         automatic_tax: {
           enabled: true,
           liability: { type: 'account', account: event.user.stripeConnectAccountId },
-          status: 'complete',
         },
         tax_id_collection: { enabled: true, required: 'if_supported' },
         consent_collection: {
