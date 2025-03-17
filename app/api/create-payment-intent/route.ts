@@ -129,7 +129,7 @@ export async function POST(request: Request) {
         payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
         mode: 'payment',
         allow_promotion_codes: true,
-        billing_address_collection: 'auto',
+        billing_address_collection: meetingData.timezone?.includes('Europe') ? 'required' : 'auto',
         tax_id_collection: { enabled: true },
         customer_creation: customerId ? undefined : 'always',
         locale: meetingData.timezone?.includes('Europe') ? 'auto' : 'en',
