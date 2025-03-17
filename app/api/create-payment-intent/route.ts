@@ -131,8 +131,8 @@ export async function POST(request: Request) {
         allow_promotion_codes: true,
         billing_address_collection: 'auto',
         tax_id_collection: { enabled: true },
-        business_profile: {
-          headline: meetingData.timezone?.includes('Europe')
+        custom_text: {
+          billing_address: meetingData.timezone?.includes('Europe')
             ? 'VAT/NIF number is recommended but optional'
             : undefined,
         },
