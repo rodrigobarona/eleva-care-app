@@ -140,7 +140,6 @@ export async function POST(request: Request) {
         },
         submit_type: 'book',
         payment_intent_data: {
-          setup_future_usage: 'off_session',
           application_fee_amount: applicationFeeAmount,
           transfer_data: {
             destination: event.user.stripeConnectAccountId,
