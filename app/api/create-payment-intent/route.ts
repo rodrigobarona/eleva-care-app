@@ -132,12 +132,10 @@ export async function POST(request: Request) {
         billing_address_collection: 'auto',
         tax_id_collection: { enabled: true },
         custom_text: {
-          billing_address: meetingData.timezone?.includes('Europe')
-            ? 'VAT/NIF number is recommended but optional'
-            : undefined,
+          billing_address: 'VAT/NIF number is recommended but optional',
         },
         customer_creation: customerId ? undefined : 'always',
-        locale: meetingData.timezone?.includes('Europe') ? 'auto' : 'en',
+        locale: 'auto',
         automatic_tax: { enabled: true },
         customer_update: {
           address: 'auto',
