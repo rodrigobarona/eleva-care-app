@@ -215,6 +215,9 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
 export async function POST(request: Request) {
   try {
+    // Log the request info (useful for debugging)
+    console.log('Received webhook request to /api/webhooks/stripe');
+
     if (!process.env.STRIPE_WEBHOOK_SECRET) {
       throw new Error('Missing STRIPE_WEBHOOK_SECRET environment variable');
     }
@@ -224,6 +227,7 @@ export async function POST(request: Request) {
     const signature = request.headers.get('stripe-signature');
 
     if (!signature) {
+      console.error('Missing Stripe signature header');
       return NextResponse.json({ error: 'Missing Stripe signature' }, { status: 400 });
     }
 

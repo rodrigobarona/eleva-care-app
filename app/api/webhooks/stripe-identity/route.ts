@@ -9,6 +9,8 @@ import Stripe from 'stripe';
 // Add route segment config
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+export const preferredRegion = 'auto';
+export const maxDuration = 60;
 
 // Add GET handler to quickly return 405 Method Not Allowed
 export async function GET() {
@@ -21,6 +23,9 @@ export async function POST(request: Request) {
   let eventId = 'unknown';
 
   try {
+    // Log the request info (useful for debugging)
+    console.log('Received webhook request to /api/webhooks/stripe-identity');
+
     if (!process.env.STRIPE_IDENTITY_WEBHOOK_SECRET) {
       console.error('Missing STRIPE_IDENTITY_WEBHOOK_SECRET environment variable');
       throw new Error('Missing STRIPE_IDENTITY_WEBHOOK_SECRET environment variable');
@@ -31,7 +36,7 @@ export async function POST(request: Request) {
     const signature = request.headers.get('stripe-signature');
 
     if (!signature) {
-      console.error('Missing Stripe signature');
+      console.error('Missing Stripe signature header');
       return NextResponse.json({ error: 'Missing Stripe signature' }, { status: 400 });
     }
 
