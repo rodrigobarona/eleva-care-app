@@ -43,10 +43,10 @@ const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description,
       <section id="team" className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <div className="mb-12">
-            <h2 className="text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60 font-mono text-xs/5 font-semibold uppercase tracking-widest">
+            <h2 className="text-elevaNeutral-900/70 data-dark:text-elevaNeutral-900/60 font-mono text-xs/5 font-semibold uppercase tracking-widest">
               {title}
             </h2>
-            <h3 className="text-seco text-elevaPrimary data-[dark]:text-elevaNeutral-100 mt-2 text-pretty font-serif text-4xl font-light tracking-tighter sm:text-6xl">
+            <h3 className="text-seco text-elevaPrimary data-dark:text-elevaNeutral-100 mt-2 text-pretty font-serif text-4xl font-light tracking-tighter sm:text-6xl">
               {subtitle}
             </h3>
           </div>
@@ -64,18 +64,18 @@ const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description,
               <CarouselContent className="-ml-4">
                 {members.map((member, index) => (
                   <CarouselItem key={index} className="pl-4 md:basis-1/2 lg:basis-1/3">
-                    <Card className="border-elevaNeutral-200 relative flex aspect-[9/15] overflow-hidden rounded-3xl">
+                    <Card className="border-elevaNeutral-200 relative flex aspect-9/15 overflow-hidden rounded-3xl">
                       <CardContent className="flex flex-col items-center justify-end p-0">
                         <Image
                           src={member.image}
                           alt={member.name}
                           width={1200}
                           height={1200}
-                          className="absolute inset-x-0 top-0 aspect-[3/4] w-full object-cover"
+                          className="absolute inset-x-0 top-0 aspect-3/4 w-full object-cover"
                         />
                         <div
                           aria-hidden="true"
-                          className="from-elevaNeutral-900 absolute inset-0 top-0 z-20 h-full w-full rounded-3xl bg-gradient-to-t from-25% to-40%"
+                          className="from-elevaNeutral-900 absolute inset-0 top-0 z-20 h-full w-full rounded-3xl bg-linear-to-t from-25% to-40%"
                         ></div>
                         <figure className="relative z-20 p-10">
                           <blockquote>
@@ -94,7 +94,7 @@ const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description,
                               {member.name}
                             </h3>
                             <p className="text-sm/6 font-medium">
-                              <span className="from-elevaHighlight-yellow to-elevaHighlight-red bg-gradient-to-r from-[28%] bg-clip-text text-transparent">
+                              <span className="from-elevaHighlight-yellow to-elevaHighlight-red bg-linear-to-r from-28% bg-clip-text text-transparent">
                                 {member.role}
                               </span>
                             </p>

@@ -144,9 +144,9 @@ export function RecordDialog({
         className={cn(
           'border shadow-lg transition-all duration-200',
           isMinimized
-            ? '!fixed bottom-4 right-4 !h-[64px] !max-w-[400px] overflow-hidden !rounded-t-lg'
-            : '!fixed bottom-4 right-4 !h-[85vh] !w-[800px] !max-w-[90vw] !rounded-t-lg',
-          '!top-auto !translate-y-0',
+            ? 'fixed! bottom-4 right-4 h-[64px]! max-w-[400px]! overflow-hidden rounded-t-lg!'
+            : 'fixed! bottom-4 right-4 h-[85vh]! w-[800px]! max-w-[90vw]! rounded-t-lg!',
+          'top-auto! translate-y-0!',
         )}
       >
         <DialogHeader className="flex flex-row items-center justify-between bg-muted/50 px-4 py-2">

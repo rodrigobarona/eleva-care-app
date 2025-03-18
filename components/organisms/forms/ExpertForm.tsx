@@ -283,7 +283,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                         <label
                           htmlFor="picture-upload"
                           className={cn(
-                            'flex h-9 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                            'flex h-9 cursor-pointer items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                             isUploading && 'pointer-events-none opacity-50',
                           )}
                         >
@@ -305,7 +305,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                               setSelectedFile(null);
                             }}
                             className={cn(
-                              'flex h-9 items-center justify-center rounded-md border border-destructive bg-destructive/10 px-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                              'flex h-9 items-center justify-center rounded-md border border-destructive bg-destructive/10 px-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                               isUploading && 'pointer-events-none opacity-50',
                             )}
                             disabled={isUploading}

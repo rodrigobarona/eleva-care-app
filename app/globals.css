@@ -1,109 +1,241 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-serif: var(--font-lora), ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+  --font-sans:
+    var(--font-alexandria), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-mono:
+    var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+    'Courier New', monospace;
+
+  --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  --color-eleva-primary: rgb(var(--eleva-primary));
+  --color-eleva-primary-light: rgb(var(--eleva-primary-light));
+
+  --color-eleva-secondary: rgb(var(--eleva-secondary));
+  --color-eleva-secondary-light: rgb(var(--eleva-secondary-light));
+
+  --color-eleva-accent: rgb(var(--eleva-accent));
+
+  --color-eleva-neutral-100: rgb(var(--eleva-neutral-100));
+  --color-eleva-neutral-200: rgb(var(--eleva-neutral-200));
+  --color-eleva-neutral-900: rgb(var(--eleva-neutral-900));
+
+  --color-eleva-highlight-red: rgb(var(--eleva-highlight-red));
+  --color-eleva-highlight-purple: rgb(var(--eleva-highlight-purple));
+  --color-eleva-highlight-yellow: rgb(var(--eleva-highlight-yellow));
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar-background);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+
+  @keyframes caret-blink {
+    0%,
+    70%,
+    100% {
+      opacity: 1;
+    }
+    20%,
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
+}
+
+@utility container {
+  margin-inline: auto;
+  padding-inline: 2rem;
+  @media (width >= --theme(--breakpoint-sm)) {
+    max-width: none;
+  }
+  @media (width >= 1400px) {
+    max-width: 1400px;
+  }
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+}
+
+@utility text-balance {
+  text-wrap: balance;
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  body {
+    font-family: Arial, Helvetica, sans-serif;
   }
 }
 
-@layer base {
-  :root {
-    /* ELEVA CARE */
-    /* Primary Colors */
-    --eleva-primary: 0 109 119; /* #006D77 - Deep Teal */
-    --eleva-primary-light: 131 197 190; /* #83C5BE - Sage Green */
+:root {
+  /* ELEVA CARE */
+  /* Primary Colors */
+  --eleva-primary: 0 109 119; /* #006D77 - Deep Teal */
+  --eleva-primary-light: 131 197 190; /* #83C5BE - Sage Green */
 
-    /* Secondary Colors */
-    --eleva-secondary: 226 149 120; /* #E29578 - Soft Coral */
-    --eleva-secondary-light: 255 221 210; /* #FFDDD2 - Warm Sand */
+  /* Secondary Colors */
+  --eleva-secondary: 226 149 120; /* #E29578 - Soft Coral */
+  --eleva-secondary-light: 255 221 210; /* #FFDDD2 - Warm Sand */
 
-    /* Accent Color */
-    --eleva-accent: 224 251 252; /* #E0FBFC - Pale Lavender */
+  /* Accent Color */
+  --eleva-accent: 224 251 252; /* #E0FBFC - Pale Lavender */
 
-    /* Neutral Colors */
-    --eleva-neutral-100: 247 249 249; /* #F7F9F9 - Soft White */
-    --eleva-neutral-200: 209 209 209; /* #D1D1D1 - Light Grey */
-    --eleva-neutral-900: 51 51 51; /* #333333 - Charcoal*/
+  /* Neutral Colors */
+  --eleva-neutral-100: 247 249 249; /* #F7F9F9 - Soft White */
+  --eleva-neutral-200: 209 209 209; /* #D1D1D1 - Light Grey */
+  --eleva-neutral-900: 51 51 51; /* #333333 - Charcoal*/
 
-    /* Highlight Colors */
-    --eleva-highlight-red: 238 66 102; /* #EE4266 - Vibrant Rose */
-    --eleva-highlight-purple: 84 13 110; /* #540D6E - Deep Purple */
-    --eleva-highlight-yellow: 255 210 63; /* #FFD23F - Sunshine Yellow */
+  /* Highlight Colors */
+  --eleva-highlight-red: 238 66 102; /* #EE4266 - Vibrant Rose */
+  --eleva-highlight-purple: 84 13 110; /* #540D6E - Deep Purple */
+  --eleva-highlight-yellow: 255 210 63; /* #FFD23F - Sunshine Yellow */
 
-    --background: 210 40% 99%;
-    --foreground: 240 10% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-    --primary: 185 100% 23%; /* elevaCare #006D77 - Deep Teal */
-    --primary-foreground: 172 39% 64%; /* elevaCare #83C5BE - Sage Green */
-    --secondary: 14 67% 68%; /* elevaCare #E29578 - Soft Coral */
-    --secondary-foreground: 14 100% 91%; /* elevaCare #FFDDD2 - Warm Sand */
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 240 10% 3.9%;
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 240 4.9% 83.9%;
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
+  --background: var(--eleva-neutral-100);
+  --foreground: var(--eleva-neutral-900);
+  --card: var(--eleva-neutral-100);
+  --card-foreground: var(--eleva-neutral-900);
+  --popover: var(--eleva-neutral-100);
+  --popover-foreground: var(--eleva-neutral-900);
+  --primary: hsl(185 100% 23%); /* elevaCare #006D77 - Deep Teal */
+  --primary-foreground: hsl(172 39% 64%); /* elevaCare #83C5BE - Sage Green */
+  --secondary: hsl(14 67% 68%); /* elevaCare #E29578 - Soft Coral */
+  --secondary-foreground: hsl(14 100% 91%); /* elevaCare #FFDDD2 - Warm Sand */
+  --muted: hsl(240 4.8% 95.9%);
+  --muted-foreground: hsl(240 3.8% 46.1%);
+  --accent: hsl(240 4.8% 95.9%);
+  --accent-foreground: hsl(240 5.9% 10%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(240 5.9% 90%);
+  --input: hsl(240 5.9% 90%);
+  --ring: hsl(240 10% 3.9%);
+  --chart-1: hsl(12 76% 61%);
+  --chart-2: hsl(173 58% 39%);
+  --chart-3: hsl(197 37% 24%);
+  --chart-4: hsl(43 74% 66%);
+  --chart-5: hsl(27 87% 67%);
+  --radius: 0.5rem;
+  --sidebar-background: var(--eleva-neutral-100);
+  --sidebar-foreground: var(--eleva-neutral-900);
+  --sidebar-primary: var(--eleva-primary);
+  --sidebar-primary-foreground: var(--eleva-neutral-100);
+  --sidebar-accent: var(--eleva-accent);
+  --sidebar-accent-foreground: var(--eleva-neutral-900);
+  --sidebar-border: var(--eleva-neutral-200);
+  --sidebar-ring: var(--eleva-neutral-900);
+}
+.dark {
+  --background: hsl(240 10% 3.9%);
+  --foreground: hsl(0 0% 98%);
+  --card: hsl(240 10% 3.9%);
+  --card-foreground: hsl(0 0% 98%);
+  --popover: hsl(240 10% 3.9%);
+  --popover-foreground: hsl(0 0% 98%);
+  --primary: hsl(0 0% 98%);
+  --primary-foreground: hsl(240 5.9% 10%);
+  --secondary: hsl(240 3.7% 15.9%);
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(240 3.7% 15.9%);
+  --muted-foreground: hsl(240 5% 64.9%);
+  --accent: hsl(240 3.7% 15.9%);
+  --accent-foreground: hsl(0 0% 98%);
+  --destructive: hsl(0 62.8% 30.6%);
+  --destructive-foreground: hsl(0 0% 98%);
+  --border: hsl(240 3.7% 15.9%);
+  --input: hsl(240 3.7% 15.9%);
+  --ring: hsl(240 4.9% 83.9%);
+  --chart-1: hsl(220 70% 50%);
+  --chart-2: hsl(160 60% 45%);
+  --chart-3: hsl(30 80% 55%);
+  --chart-4: hsl(280 65% 60%);
+  --chart-5: hsl(340 75% 55%);
+  --sidebar-background: hsl(240 5.9% 10%);
+  --sidebar-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-primary: hsl(224.3 76.3% 48%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
 @layer base {
@@ -115,27 +247,29 @@ body {
   }
 }
 
-/* Tiptap editor styles */
-.prose-container .ProseMirror p.is-editor-empty:first-child::before {
-  color: #adb5bd;
-  content: attr(data-placeholder);
-  float: left;
-  height: 0;
-  pointer-events: none;
-}
+@layer utilities {
+  /* Tiptap editor styles */
+  .prose-container .ProseMirror p.is-editor-empty:first-child::before {
+    color: #adb5bd;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+  }
 
-/* Ensure proper spacing in the editor */
-.prose-container .ProseMirror {
-  min-height: 100px;
-}
+  /* Ensure proper spacing in the editor */
+  .prose-container .ProseMirror {
+    min-height: 100px;
+  }
 
-.prose-container .ProseMirror p {
-  margin-top: 0.5em;
-  margin-bottom: 0.5em;
-}
+  .prose-container .ProseMirror p {
+    margin-top: 0.5em;
+    margin-bottom: 0.5em;
+  }
 
-.prose-container .ProseMirror > * + * {
-  margin-top: 0.5em;
+  .prose-container .ProseMirror > * + * {
+    margin-top: 0.5em;
+  }
 }
 
 @layer base {

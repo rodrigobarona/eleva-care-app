@@ -22,7 +22,7 @@ function ProfileSkeleton() {
   return (
     <div className="space-y-6">
       {/* Profile Image Skeleton */}
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg">
+      <div className="relative aspect-2/3 w-full overflow-hidden rounded-lg">
         <Skeleton className="h-full w-full" />
       </div>
 
@@ -112,7 +112,7 @@ async function ProfileInfo({ username }: { username: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
+      <div className="relative aspect-18/21 w-full overflow-hidden rounded-lg">
         <Image
           src={profile?.profilePicture || user.imageUrl}
           alt={user.fullName || 'Profile picture'}
@@ -120,7 +120,7 @@ async function ProfileInfo({ username }: { username: string }) {
           className="object-cover"
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
-          placeholder="blur"
+          placeholder="blur-sm"
           blurDataURL={profile?.profilePicture || user.imageUrl}
         />
         {/* Top Expert Badge */}

@@ -197,7 +197,7 @@ function CalendarLoadingSkeleton() {
   const timeSlotKeys = generateTimeSlotKeys();
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-[300px,1fr,300px]">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-[300px_1fr_300px]">
       {/* Expert profile skeleton */}
       <div className="flex flex-col space-y-4 rounded-lg border p-6">
         <div className="flex items-center space-x-4">

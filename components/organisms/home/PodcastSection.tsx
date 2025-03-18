@@ -17,7 +17,7 @@ const PodcastSection: React.FC<PodcastSectionProps> = ({ title, subtitle, descri
     <FadeInSection>
       <section
         id="podcast"
-        className="from-elevaPrimary via-elevaPrimary-light to-elevaPrimary lg:rounded-5xl mx-2 mt-20 rounded-3xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-[5%] via-[20%] to-[45%] px-6 py-12 lg:mt-40 lg:bg-[linear-gradient(115deg,var(--tw-gradient-stops))] lg:from-[28%] lg:via-[70%] lg:to-[95%] lg:pb-24 lg:pt-20"
+        className="from-elevaPrimary via-elevaPrimary-light to-elevaPrimary lg:rounded-5xl mx-2 mt-20 rounded-3xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-5% via-20% to-45% px-6 py-12 lg:mt-40 lg:bg-[linear-gradient(115deg,var(--tw-gradient-stops))] lg:from-28% lg:via-70% lg:to-95% lg:pb-24 lg:pt-20"
       >
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <div className="flex flex-col items-center gap-4 lg:flex-row-reverse lg:gap-16">
@@ -38,10 +38,10 @@ const PodcastSection: React.FC<PodcastSectionProps> = ({ title, subtitle, descri
             </div>
             <div className="mt-10 w-full flex-auto space-y-4 lg:mt-0 lg:w-3/5">
               <div className="mb-6">
-                <h2 className="text-elevaNeutral-100 data-[dark]:text-elevaNeutral-100/60 font-mono text-xs/5 font-semibold uppercase tracking-widest">
+                <h2 className="text-elevaNeutral-100 data-dark:text-elevaNeutral-100/60 font-mono text-xs/5 font-semibold uppercase tracking-widest">
                   {subtitle}
                 </h2>
-                <h3 className="text-elevaNeutral-100 data-[dark]:text-elevaNeutral-100 mt-2 text-pretty font-serif text-4xl font-light tracking-tighter sm:text-6xl">
+                <h3 className="text-elevaNeutral-100 data-dark:text-elevaNeutral-100 mt-2 text-pretty font-serif text-4xl font-light tracking-tighter sm:text-6xl">
                   {title}
                 </h3>
               </div>
