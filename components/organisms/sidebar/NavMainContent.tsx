@@ -148,7 +148,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
         {/* Back to dashboard section */}
         <SidebarGroup>
           <SidebarGroupLabel>
-            <div className="flex items-center gap-2 ">
+            <div className="flex items-center gap-2">
               <Link href="/dashboard" className="hover:text-foreground/80">
                 <ChevronLeft className="size-4" />
                 <span>Dashboard</span>

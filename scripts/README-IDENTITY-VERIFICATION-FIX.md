@@ -27,6 +27,7 @@ node scripts/fix-patricia-account.js
 ```
 
 This script will:
+
 1. Update Patricia's database record to show as verified
 2. Force-update her Stripe Connect account verification status
 3. Add appropriate metadata to ensure the verification stays consistent
@@ -54,6 +55,7 @@ When a verification is completed in Stripe Identity, a webhook notifies your app
 - API response inconsistencies
 
 Our updated code adds several safeguards:
+
 - Multiple retry attempts with exponential backoff
 - Detailed logging of synchronization attempts
 - Verification of successful updates
@@ -68,7 +70,8 @@ Our updated code adds several safeguards:
 ## Technical Documentation
 
 For more details on how the verification sync works, see:
+
 - `lib/stripe.ts` - `syncIdentityVerificationToConnect` function
 - `app/api/webhooks/stripe-identity/route.ts` - Webhook handler
 - `app/api/internal/sync-identity/route.ts` - Manual sync endpoint
-- `app/api/internal/force-verification/route.ts` - Admin force verification endpoint 
+- `app/api/internal/force-verification/route.ts` - Admin force verification endpoint

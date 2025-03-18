@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/atoms/card';
+import { Textarea } from '@/components/atoms/textarea';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import { Textarea } from '@/components/atoms/textarea';
 import { formatCurrency } from '@/lib/utils';
 import {
   AlertCircle,

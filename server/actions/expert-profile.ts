@@ -38,7 +38,7 @@ export async function toggleProfilePublication() {
 
     // Calculate the target publication status
     const targetPublishedStatus = !profile.published;
-    
+
     // If trying to publish (not unpublish), check if all steps are complete
     if (targetPublishedStatus === true) {
       // Check if all expert setup steps are complete

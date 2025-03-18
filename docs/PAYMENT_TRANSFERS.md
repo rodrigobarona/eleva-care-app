@@ -12,6 +12,7 @@ When a customer books a session with an expert:
 4. The platform fee (15%) remains in Eleva's account
 
 This approach provides several advantages:
+
 - Ensures service delivery before funds are transferred to experts
 - Allows time for potential customer issues to be addressed
 - Follows Stripe's recommended practice of separating payment collection from payout
@@ -54,6 +55,7 @@ CREATE TABLE payment_transfers (
 #### a. Initial Payment Capture
 
 When a checkout session is created (`/api/create-payment-intent/route.ts`):
+
 - The full payment amount is collected from the customer
 - Payment stays in Eleva's platform account
 - The payment intent does NOT include automatic transfer data
@@ -62,6 +64,7 @@ When a checkout session is created (`/api/create-payment-intent/route.ts`):
 #### b. Webhook Handler
 
 When a checkout is completed (`/api/webhooks/stripe/route.ts`):
+
 - Payment information is recorded in the `payment_transfers` table
 - The status is set to "PENDING"
 - The scheduled transfer time is stored for future processing
@@ -69,6 +72,7 @@ When a checkout is completed (`/api/webhooks/stripe/route.ts`):
 #### c. Scheduled Transfer Job
 
 A CRON job (`/api/cron/process-expert-transfers/route.ts`) runs once daily at 4:00 AM to:
+
 - Find all pending transfers that are due (current time ≥ scheduled transfer time)
 - Process each transfer by calling Stripe's Transfer API
 - Update the status to "COMPLETED" or handle errors
@@ -85,6 +89,7 @@ Admin endpoints are available for managing transfers:
 ## Error Handling
 
 The system includes comprehensive error handling:
+
 - Failed transfers are retried automatically (up to 3 times)
 - Detailed error information is stored in the database
 - Administrative tools allow for manual intervention when needed
@@ -122,7 +127,8 @@ To ensure the system operates smoothly:
 ## Future Enhancements
 
 Potential improvements to consider:
+
 - Expert notifications when transfers are completed
 - Customer notifications when session has been completed
 - More detailed transaction reporting for experts
-- Integration with accounting systems for financial reporting 
+- Integration with accounting systems for financial reporting
