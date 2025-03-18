@@ -1,6 +1,7 @@
 ---
-description: 
+description: Privacy Compliance Rule: GDPR, SOC 2, and HIPAA
 globs: 
+alwaysApply: false
 ---
 # Privacy Compliance Rule: GDPR, SOC 2, and HIPAA
 

@@ -1,6 +1,7 @@
 ---
-description: 
+description: Neon.tech & Postgres Integration with Drizzler
 globs: 
+alwaysApply: false
 ---
 # Neon.tech & Postgres Integration with Drizzler
 

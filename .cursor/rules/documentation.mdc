@@ -1,6 +1,7 @@
 ---
-description: 
+description: Documentation Rule: JSDoc + MDX Generation for Interactive Docs
 globs: 
+alwaysApply: false
 ---
 # Documentation Rule: JSDoc + MDX Generation for Interactive Docs
 
@@ -94,10 +95,10 @@ This rule directs the AI to:
 - **Tooling Suggestions:**  
   Consider using tools such as `jsdoc-to-markdown` to generate Markdown output from JSDoc comments and then post-process it into MDX format.
 - **References:**  
-  - [JSDoc Documentation](https://jsdoc.app/)
-  - [jsdoc-to-markdown GitHub](https://github.com/jsdoc2md/jsdoc-to-markdown)
-  - [Fumadocs](https://fumadocs.com/)
-  - [Mintlify](https://mintlify.com/)
+  - [JSDoc Documentation](mdc:https:/jsdoc.app)
+  - [jsdoc-to-markdown GitHub](mdc:https:/github.com/jsdoc2md/jsdoc-to-markdown)
+  - [Fumadocs](mdc:https:/fumadocs.com)
+  - [Mintlify](mdc:https:/mintlify.com)
 
 ## Additional Guidelines
 - **Consistency:**  

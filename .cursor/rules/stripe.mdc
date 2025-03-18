@@ -1,6 +1,7 @@
 ---
-description: 
+description: Stripe Integration Rule: Payments, Connect, and Identity
 globs: 
+alwaysApply: false
 ---
 # Stripe Integration Rule: Payments, Connect, and Identity
 

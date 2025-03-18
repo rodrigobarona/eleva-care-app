@@ -1,6 +1,7 @@
 ---
-description: 
+description: Clerk.com Integration Rule
 globs: 
+alwaysApply: false
 ---
 # Clerk.com Integration Rule
 
