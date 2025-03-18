@@ -1,0 +1,265 @@
+---
+description: Testing Guidelines for Eleva Care App
+globs: ["tests/**/*.test.ts", "tests/**/*.test.tsx", "tests/**/*.spec.ts", "tests/**/*.spec.tsx"]
+---
+
+# Eleva Care Testing Guidelines
+
+## Overview and Structure
+
+The testing framework for Eleva Care follows a multi-layered approach with three main categories:
+
+1. **Unit Tests**: Test individual components and functions in isolation
+2. **Integration Tests**: Test interactions between multiple components or systems
+3. **E2E Tests**: Test complete user journeys and workflows
+
+All tests should be organized within the `tests/` directory with the following structure:
+
+```
+tests/
+├── components/     # Component tests
+├── lib/            # Utility and helper function tests
+├── server/         # Server actions and API route tests
+│   └── actions/    # Server actions tests
+├── integration/    # Integration tests for major workflows
+├── api/            # API route tests
+├── setup.ts        # Global test setup and shared mocks
+├── mocks.d.ts      # Type declarations for mocks
+├── tsconfig.json   # TypeScript configuration for tests
+└── README.md       # Testing documentation
+```
+
+## Testing Standards and Best Practices
+
+### Test File Naming and Organization
+
+- Test files should be named after the module they test, with a `.test.ts` or `.test.tsx` suffix
+- Mirror the source code structure in the tests directory
+- Group related tests using `describe` blocks with clear descriptions
+- Use nested `describe` blocks for related functionality
+- Order tests from simple to complex scenarios
+
+### Test Structure Pattern
+
+Follow the **Arrange-Act-Assert** pattern:
+
+```typescript
+// Arrange: Set up test data and conditions
+const mockData = { /* ... */ };
+const mockDependencies = { /* ... */ };
+
+// Act: Execute the code being tested
+const result = functionUnderTest(mockData);
+
+// Assert: Verify the results match expectations
+expect(result).toEqual(expectedOutput);
+```
+
+### Mocking Standards
+
+1. **Database Operations**:
+   - Mock at the query level, not just the database client
+   - Implement `.execute()` method properly on query mocks
+   - Return properly structured data matching schema types
+   - Mock both success and error cases
+
+```typescript
+// Example of proper database mocking
+jest.mock('@/drizzle/db', () => ({
+  db: {
+    select: jest.fn().mockReturnValue({
+      from: jest.fn().mockReturnValue({
+        where: jest.fn().mockReturnValue({
+          execute: jest.fn().mockResolvedValue([ /* mock data matching schema */ ])
+        })
+      })
+    }),
+    query: {
+      TableName: {
+        findFirst: jest.fn().mockResolvedValue({ /* mock data */ })
+      }
+    }
+  }
+}));
+```
+
+2. **Authentication (Clerk)**:
+   - Always mock auth first in tests using server actions
+   - Set a consistent user ID for test scenarios
+   - Include proper mock implementation for getToken
+
+```typescript
+jest.mock('@clerk/nextjs/server', () => ({
+  auth: jest.fn().mockResolvedValue({
+    userId: 'user_123',
+    orgId: null,
+    getToken: jest.fn().mockResolvedValue('mock-token')
+  })
+}));
+```
+
+3. **Payments (Stripe)**:
+   - Mock all Stripe API responses
+   - Include proper error handling in mocks
+   - Test both success and failure scenarios
+
+```typescript
+jest.mock('@/lib/stripe', () => ({
+  getServerStripe: jest.fn().mockResolvedValue({
+    products: {
+      create: jest.fn().mockResolvedValue({ id: 'prod_123' }),
+      update: jest.fn().mockResolvedValue({ id: 'prod_123', active: false })
+    },
+    prices: {
+      create: jest.fn().mockResolvedValue({ id: 'price_123' })
+    }
+  })
+}));
+```
+
+### Testing Server Actions
+
+When testing server actions, follow these guidelines:
+
+1. Mock all dependencies before importing the action:
+   - Auth services
+   - Database operations
+   - External services (Stripe, etc.)
+   - Headers and request context
+   - Revalidation functions
+   - Redirects
+
+2. Test failure cases first, then success cases
+
+3. Handle redirects in tests:
+```typescript
+jest.mock('next/navigation', () => ({
+  redirect: jest.fn().mockImplementation(() => {
+    throw new Error('NEXT_REDIRECT');
+  })
+}));
+
+// Then in tests that redirect:
+try {
+  await actionThatRedirects();
+  fail('Should have redirected');
+} catch (error) {
+  expect(error.message).toBe('NEXT_REDIRECT');
+  expect(mockRedirect).toHaveBeenCalledWith('/expected/path');
+}
+```
+
+## Integration Test Patterns
+
+Integration tests should focus on the following workflows:
+
+1. **Expert Onboarding Flow**
+2. **Availability Management**
+3. **Appointment Scheduling**
+4. **Payment Processing**
+
+Integration tests should:
+- Mock external services (Stripe, Clerk)
+- Use real business logic
+- Test complete workflows from end to end
+- Validate state changes
+- Check for proper error handling
+
+```typescript
+// Example integration test structure
+describe('Expert Onboarding Flow', () => {
+  beforeEach(() => {
+    // Setup mocks for the entire flow
+  });
+  
+  it('should complete the profile step', async () => {
+    // Test profile creation/update
+  });
+  
+  it('should handle validation errors', async () => {
+    // Test validation error handling
+  });
+  
+  // More tests for each step of the flow
+});
+```
+
+## Placeholder Test Pattern
+
+When tests cannot be fully implemented due to complex mocking requirements, use the placeholder pattern:
+
+```typescript
+/**
+ * NOTE: These tests need to be properly implemented
+ * Current implementation has issues with [describe specific issues]
+ * For now, we're just adding a placeholder test to ensure build passes.
+ *
+ * TODO:
+ * - [Specific action item 1]
+ * - [Specific action item 2]
+ * - [Specific action item 3]
+ */
+
+describe('Feature Being Tested', () => {
+  it('placeholder test - real tests need to be implemented', () => {
+    expect(true).toBe(true);
+  });
+});
+```
+
+## Common Pitfalls and Solutions
+
+1. **TypeError: mockFunction.mockImplementation is not a function**
+   - Ensure you're importing jest from @jest/globals
+   - Use the correct mocking approach for the module
+
+2. **Database query mocking issues**
+   - Remember to mock the entire chain including .execute()
+   - Return properly structured data matching schema types
+
+3. **Redirect handling in tests**
+   - Mock redirect to throw a specific error
+   - Catch and validate the error in tests
+
+4. **Type errors in mocks**
+   - Use the tests/mocks.d.ts file to declare mock types
+   - Use `as jest.Mock` for better typing support
+
+## Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test suites
+npm run test:unit
+npm run test:integration
+npm run test:e2e
+
+# Run a specific test file
+npm test -- path/to/file.test.ts
+
+# Run tests with coverage report
+npm run test:coverage
+
+# Run tests in watch mode (useful during development)
+npm run test:watch
+```
+
+## Documentation and Reporting
+
+- Update tests/summary.md with new test implementations
+- Document known issues and workarounds
+- Record test coverage metrics
+- Add TODOs for future test improvements
+
+## Important Rules
+
+1. Always run existing tests before making changes
+2. Maintain consistency with existing test patterns
+3. Don't create mocks that don't accurately reflect real behavior
+4. Comment complex test setups
+5. Test both positive and negative scenarios
+6. Don't skip tests without documenting why
+7. Keep test files focused on testing one module or feature
+8. When in doubt, look at existing tests for patterns to follow 

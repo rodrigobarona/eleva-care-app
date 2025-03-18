@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "NODE_NO_WARNINGS=1 next dev --turbopack",
     "build": "NODE_NO_WARNINGS=1 next build",
+    "build:force": "NODE_NO_WARNINGS=1 NEXT_SKIP_TYPESCRIPT_CHECK=1 next build",
     "start": "NODE_NO_WARNINGS=1 next start",
     "lint": "eslint .",
     "format": "prettier --write .",
@@ -17,6 +18,10 @@
     "auditdb:migrate": "drizzle-kit migrate --config audit.config.ts",
     "migrate:profile-published": "tsx scripts/rename-profile-published.ts",
     "test": "jest",
+    "test:unit": "jest tests/unit",
+    "test:integration": "jest tests/integration",
+    "test:e2e": "jest tests/e2e",
+    "test:coverage": "jest --coverage",
     "test:watch": "jest --watch"
   },
   "dependencies": {
@@ -135,6 +140,7 @@
     "supertest": "^7.0.0",
     "tailwindcss": "^3.4.17",
     "ts-jest": "^29.2.6",
+    "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"
   },

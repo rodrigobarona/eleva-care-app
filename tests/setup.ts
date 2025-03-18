@@ -1,14 +1,95 @@
-import { jest } from '@jest/globals';
+// No need to import jest here as it's already globally available in the test environment
 // Add jest-dom matchers
+// Jest setup file
+import { jest } from '@jest/globals';
 import '@testing-library/jest-dom';
+
+// Declare types for global mocks
+declare global {
+  // eslint-disable-next-line no-var
+  var __mocks: {
+    db: never;
+    clerkUser: never;
+    clerkUsers: never;
+  };
+}
 
 // Add required polyfills for TextEncoder/Decoder
 if (typeof TextEncoder === 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const util = require('node:util');
-  global.TextEncoder = util.TextEncoder;
-  global.TextDecoder = util.TextDecoder;
+  // Use a dynamic import for Node.js util module
+  import('node:util').then((util) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).TextEncoder = util.TextEncoder;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (globalThis as any).TextDecoder = util.TextDecoder;
+  });
 }
+
+// Mock Next.js headers
+jest.mock('next/headers', () => ({
+  headers: jest.fn(() => new Map()),
+  cookies: jest.fn(() => ({
+    get: jest.fn().mockReturnValue({ value: 'mock-cookie' }),
+  })),
+}));
+
+// Mock Stripe
+jest.mock('stripe', () => {
+  const mockStripeInstance = {
+    customers: {
+      create: jest.fn().mockResolvedValue({ id: 'cus_mock' } as never),
+      retrieve: jest.fn().mockResolvedValue({ id: 'cus_mock' } as never),
+    },
+    paymentIntents: {
+      create: jest
+        .fn()
+        .mockResolvedValue({ id: 'pi_mock', client_secret: 'pi_mock_secret' } as never),
+      retrieve: jest.fn().mockResolvedValue({ id: 'pi_mock', status: 'succeeded' } as never),
+    },
+    charges: {
+      retrieve: jest.fn().mockResolvedValue({ id: 'ch_mock' } as never),
+    },
+    checkout: {
+      sessions: {
+        create: jest
+          .fn()
+          .mockResolvedValue({ id: 'cs_mock', url: 'https://checkout.stripe.com/mock' } as never),
+      },
+    },
+    accounts: {
+      create: jest.fn().mockResolvedValue({ id: 'acct_mock' } as never),
+      retrieve: jest.fn().mockResolvedValue({ id: 'acct_mock', charges_enabled: true } as never),
+    },
+    accountLinks: {
+      create: jest.fn().mockResolvedValue({ url: 'https://connect.stripe.com/mock' } as never),
+    },
+    identity: {
+      verificationSessions: {
+        create: jest
+          .fn()
+          .mockResolvedValue({ id: 'vs_mock', url: 'https://verify.stripe.com/mock' } as never),
+        retrieve: jest.fn().mockResolvedValue({ id: 'vs_mock', status: 'verified' } as never),
+      },
+    },
+    events: {
+      retrieve: jest
+        .fn()
+        .mockResolvedValue({ id: 'evt_mock', type: 'payment_intent.succeeded' } as never),
+    },
+    products: {
+      create: jest.fn().mockResolvedValue({ id: 'prod_mock' } as never),
+      update: jest.fn().mockResolvedValue({ id: 'prod_mock', active: false } as never),
+      retrieve: jest.fn().mockResolvedValue({ id: 'prod_mock' } as never),
+    },
+    prices: {
+      create: jest.fn().mockResolvedValue({ id: 'price_mock' } as never),
+      retrieve: jest.fn().mockResolvedValue({ id: 'price_mock' } as never),
+    },
+  };
+
+  // Return a constructor function that returns the mock
+  return jest.fn().mockImplementation(() => mockStripeInstance);
+});
 
 // Mock drizzle to prevent database connections during tests
 const mockDb = {
@@ -29,24 +110,26 @@ const mockDb = {
   },
   select: jest.fn().mockReturnValue({
     from: jest.fn().mockReturnValue({
-      where: jest.fn().mockResolvedValue([{ count: 2 }]),
+      where: jest.fn().mockResolvedValue([{ count: 2 }] as never),
     }),
   }),
   insert: jest.fn().mockReturnValue({
     values: jest.fn().mockReturnValue({
-      returning: jest.fn().mockImplementation(() => Promise.resolve([{ id: 'mock-id' }])),
+      returning: jest.fn().mockImplementation(() => Promise.resolve([{ id: 'mock-id' }] as never)),
     }),
   }),
   update: jest.fn().mockReturnValue({
     set: jest.fn().mockReturnValue({
       where: jest.fn().mockReturnValue({
-        returning: jest.fn().mockImplementation(() => Promise.resolve([{ id: 'mock-id' }])),
+        returning: jest
+          .fn()
+          .mockImplementation(() => Promise.resolve([{ id: 'mock-id' }] as never)),
       }),
     }),
   }),
   delete: jest.fn().mockReturnValue({
     where: jest.fn().mockReturnValue({
-      returning: jest.fn().mockImplementation(() => Promise.resolve([{ id: 'mock-id' }])),
+      returning: jest.fn().mockImplementation(() => Promise.resolve([{ id: 'mock-id' }] as never)),
     }),
   }),
 };
@@ -67,8 +150,8 @@ const mockClerkUser = {
 
 // Mock Clerk client
 const mockUsers = {
-  updateUser: jest.fn().mockResolvedValue({ id: 'user_123' }),
-  getUser: jest.fn().mockResolvedValue(mockClerkUser),
+  updateUser: jest.fn().mockResolvedValue({ id: 'user_123' } as never),
+  getUser: jest.fn().mockResolvedValue(mockClerkUser as never),
 };
 
 // Setup Jest mocks
@@ -93,10 +176,49 @@ jest.mock('drizzle-orm', () => ({
 }));
 
 jest.mock('@clerk/nextjs/server', () => ({
-  currentUser: jest.fn().mockResolvedValue(mockClerkUser),
+  currentUser: jest.fn().mockResolvedValue(mockClerkUser as never),
   clerkClient: jest.fn().mockReturnValue({
     users: mockUsers,
   }),
+  auth: jest.fn().mockResolvedValue({
+    userId: 'user_123',
+    orgId: null,
+    getToken: jest.fn().mockResolvedValue('mock-token' as never),
+  }),
+}));
+
+// Add comprehensive Clerk auth mock
+jest.mock('@clerk/nextjs', () => ({
+  auth: jest.fn().mockResolvedValue({
+    userId: 'user_123',
+    sessionId: 'sess_123',
+    sessionClaims: {
+      sub: 'user_123',
+      sid: 'sess_123',
+      role: ['community_expert'],
+    },
+    getToken: jest.fn().mockResolvedValue('mock-token' as never),
+  }),
+  ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
+  useAuth: jest.fn().mockReturnValue({
+    isLoaded: true,
+    isSignedIn: true,
+    userId: 'user_123',
+    sessionId: 'sess_123',
+  }),
+  useUser: jest.fn().mockReturnValue({
+    isLoaded: true,
+    isSignedIn: true,
+    user: mockClerkUser,
+  }),
+  useOrganization: jest.fn().mockReturnValue({
+    isLoaded: true,
+    organization: null,
+  }),
+  SignIn: () => 'SignIn',
+  SignUp: () => 'SignUp',
+  SignedIn: ({ children }: { children: React.ReactNode }) => children,
+  SignedOut: () => null,
 }));
 
 jest.mock('next/cache', () => ({
@@ -106,9 +228,9 @@ jest.mock('next/cache', () => ({
 
 // Make common mocks available to tests
 global.__mocks = {
-  db: mockDb,
-  clerkUser: mockClerkUser,
-  clerkUsers: mockUsers,
+  db: mockDb as never,
+  clerkUser: mockClerkUser as never,
+  clerkUsers: mockUsers as never,
 };
 
 // Mock Google Calendar
@@ -118,7 +240,7 @@ jest.mock('@/server/googleCalendar', () => ({
 
 // Mock schedule validation
 jest.mock('@/lib/getValidTimesFromSchedule', () => ({
-  getValidTimesFromSchedule: jest.fn().mockResolvedValue([]),
+  getValidTimesFromSchedule: jest.fn().mockResolvedValue([] as never),
 }));
 
 // Mock audit logging
@@ -126,20 +248,14 @@ jest.mock('@/lib/logAuditEvent', () => ({
   logAuditEvent: jest.fn(),
 }));
 
-// Mock Next.js headers
-jest.mock('next/headers', () => ({
-  headers: jest.fn(() => new Map()),
-}));
-
-// Add TextEncoder polyfill for environments that don't have it
-if (typeof global.TextEncoder === 'undefined') {
-  global.TextEncoder = require('node:util').TextEncoder;
-}
-
-// Add TextDecoder polyfill for environments that don't have it
-if (typeof global.TextDecoder === 'undefined') {
-  global.TextDecoder = require('node:util').TextDecoder;
-}
+// Add global fetch mock for Stripe
+global.fetch = jest.fn().mockImplementation(() =>
+  Promise.resolve({
+    ok: true,
+    json: () => Promise.resolve({}),
+    text: () => Promise.resolve(''),
+  } as Response),
+) as jest.MockedFunction<typeof fetch>;
 
 // Suppress console.log statements during tests to keep output clean
 const originalConsoleLog = console.log;
@@ -149,4 +265,9 @@ beforeAll(() => {
 
 afterAll(() => {
   console.log = originalConsoleLog;
+});
+
+// Set up global beforeEach to clear mocks
+beforeEach(() => {
+  jest.clearAllMocks();
 });
