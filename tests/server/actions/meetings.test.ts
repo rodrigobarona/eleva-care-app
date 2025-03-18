@@ -204,14 +204,13 @@ describe('Meeting Actions', () => {
       // Mock the EventTable.findFirst to return the event
       mockDb.db.query.EventTable.findFirst.mockResolvedValueOnce(mockEvent);
 
-      // Temporarily mock console.log to avoid output in test results
-      const originalConsoleLog = console.log;
-      console.log = jest.fn();
+      // Use jest.spyOn to monitor console.log calls without hiding them
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
 
       try {
         const result = await createMeeting(validMeetingData);
 
-        // If the implementation actually returns an error, let's check for that specific error
+        // Verify the expected error behavior
         expect(result.error).toBe(true);
         expect(result.code).toBe('EVENT_NOT_FOUND');
 
@@ -222,8 +221,8 @@ describe('Meeting Actions', () => {
           expect(logAuditEvent).toHaveBeenCalled();
         }
       } finally {
-        // Restore original console.log
-        console.log = originalConsoleLog;
+        // Restore original console.log behavior
+        consoleSpy.mockRestore();
       }
     });
 

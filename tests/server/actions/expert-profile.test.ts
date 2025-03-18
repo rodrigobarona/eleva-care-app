@@ -244,9 +244,9 @@ describe('toggleProfilePublication', () => {
       throw new Error('Database error');
     };
 
-    // Temporarily mock console.error to avoid output
-    const originalConsoleError = console.error;
-    console.error = jest.fn();
+    // Use jest.spyOn instead of replacing console.error
+    // This allows viewing the log but prevents it from cluttering test output
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
     try {
       // Act
@@ -262,15 +262,15 @@ describe('toggleProfilePublication', () => {
       // Verify error is handled gracefully
       expect(revalidatePathMock).not.toHaveBeenCalled();
 
-      // Verify console.error was called with expected arguments
-      expect(console.error).toHaveBeenCalledWith(
+      // Verify the error was logged (without hiding it)
+      expect(consoleSpy).toHaveBeenCalledWith(
         'Error toggling profile publication:',
         expect.any(Error),
       );
     } finally {
-      // Restore original mocks
+      // Restore original mock
       jest.requireMock('@/drizzle/db').db.update = originalUpdate;
-      console.error = originalConsoleError;
+      consoleSpy.mockRestore();
     }
   });
 });
