@@ -7,10 +7,10 @@ export default function Footer() {
 
   return (
     <footer>
-      <div className="lg:rounded-5xl mx-2 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple">
+      <div className="lg:rounded-5xl mx-2 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-28% via-eleva-highlight-red via-70% to-eleva-highlight-purple">
         <div className="lg:rounded-5xl relative rounded-2xl">
           {/* Frosted glass effect overlay */}
-          <div className="lg:rounded-5xl absolute inset-0 rounded-2xl bg-white/80 backdrop-blur-sm" />
+          <div className="lg:rounded-5xl absolute inset-0 rounded-2xl bg-white/80 backdrop-blur-xs" />
 
           <div className="relative px-6 lg:px-8">
             <div className="mx-auto max-w-2xl lg:max-w-7xl">
@@ -43,7 +43,7 @@ export default function Footer() {
 
               {/* Navigation Links */}
               <div className="pb-16">
-                <div className="group/row relative isolate pt-[calc(theme(spacing.2)+1px)] last:pb-[calc(theme(spacing.2)+1px)]">
+                <div className="group/row relative isolate pt-[calc(--spacing(2)+1px)] last:pb-[calc(--spacing(2)+1px)]">
                   <div className="grid grid-cols-2 gap-y-10 pb-6 lg:grid-cols-6 lg:gap-8">
                     {/* Logo Column */}
                     <div className="col-span-2 flex">

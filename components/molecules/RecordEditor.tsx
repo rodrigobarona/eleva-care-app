@@ -81,7 +81,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
     editorProps: {
       attributes: {
         class:
-          'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] h-full px-3 py-2',
+          'prose prose-sm dark:prose-invert max-w-none focus:outline-hidden min-h-[200px] h-full px-3 py-2',
       },
     },
   });

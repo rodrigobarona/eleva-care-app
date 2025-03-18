@@ -147,7 +147,7 @@ function EventCardDetails({
   durationInMinutes: number;
 }) {
   return (
-    <div className="flex-grow p-6 lg:p-8">
+    <div className="grow p-6 lg:p-8">
       <div className="mb-4 inline-block rounded-full bg-black px-3 py-1 text-sm font-medium text-white">
         Book a {durationInMinutes} minute video call
       </div>
@@ -180,7 +180,7 @@ function LoadingEventCard() {
   return (
     <Card className="overflow-hidden border-2">
       <div className="flex flex-col lg:flex-row">
-        <div className="flex-grow p-6 lg:p-8">
+        <div className="grow p-6 lg:p-8">
           <div className="mb-4 inline-block h-7 w-32 rounded-full bg-gray-200" />
           <Skeleton className="mb-4 h-8 w-3/4" />
           <Skeleton className="mb-4 h-20 w-full" />

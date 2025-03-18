@@ -461,7 +461,7 @@ export default function AboutPage() {
                 />
                 <div
                   aria-hidden="true"
-                  className="absolute inset-0 rounded-3xl bg-gradient-to-t from-black from-10% to-75% ring-1 ring-inset ring-eleva-neutral-900/10 lg:from-25%"
+                  className="absolute inset-0 rounded-3xl bg-linear-to-t from-black from-10% to-75% ring-1 ring-inset ring-eleva-neutral-900/10 lg:from-25%"
                 />
                 <figure className="relative p-10">
                   <blockquote>
@@ -473,7 +473,7 @@ export default function AboutPage() {
                   <figcaption className="mt-6 border-t border-white/20 pt-6">
                     <p className="text-sm/6 font-medium text-white">Dr. Jennifer Martinez</p>
                     <p className="text-sm/6 font-medium">
-                      <span className="from-28% bg-gradient-to-r from-[#fff1be] via-[#ee87cb] via-70% to-[#b060ff] bg-clip-text text-transparent">
+                      <span className="from-28% bg-linear-to-r from-[#fff1be] via-[#ee87cb] via-70% to-[#b060ff] bg-clip-text text-transparent">
                         OB-GYN, Eleva Provider
                       </span>
                     </p>

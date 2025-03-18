@@ -728,7 +728,7 @@ export function ExpertSetupChecklist() {
   if (loading && completedSteps === 0) return null;
 
   return (
-    <div className="mb-6 mt-1 w-full rounded-lg border border-border bg-card p-4 shadow-sm">
+    <div className="mb-6 mt-1 w-full rounded-lg border border-border bg-card p-4 shadow-xs">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h3 className="text-sm font-medium">Complete your expert setup</h3>

@@ -109,7 +109,7 @@ export function ScheduleForm({
           )}
         />
 
-        <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-6">
+        <div className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-6">
           {DAYS_OF_WEEK_IN_ORDER.map((dayOfWeek) => (
             <Fragment key={dayOfWeek}>
               <div className="text-sm font-semibold capitalize">{dayOfWeek.substring(0, 3)}</div>
