@@ -26,7 +26,7 @@ export default async function TransferDetailsPage({
       <div className="mb-8">
         <Link
           href="/admin/payments"
-          className="text-muted-foreground hover:text-foreground mb-4 inline-flex items-center text-sm transition-colors"
+          className="mb-4 inline-flex items-center text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Transfers

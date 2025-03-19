@@ -30,11 +30,11 @@ interface Customer {
 
 const NoCustomersEmptyState = () => (
   <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-10 text-center">
-    <div className="bg-primary/10 mb-4 flex h-20 w-20 items-center justify-center rounded-full">
-      <Users className="text-primary h-10 w-10" />
+    <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+      <Users className="h-10 w-10 text-primary" />
     </div>
     <h3 className="mb-3 text-xl font-medium">No customers yet</h3>
-    <p className="text-muted-foreground mb-6 max-w-sm">
+    <p className="mb-6 max-w-sm text-muted-foreground">
       When clients book appointments with you, they&apos;ll appear here. Create an event and share
       it to start getting bookings.
     </p>
@@ -57,11 +57,11 @@ const NoCustomersEmptyState = () => (
 
 const NoSearchResultsEmptyState = ({ query, onClear }: { query: string; onClear: () => void }) => (
   <div className="flex flex-col items-center justify-center rounded-lg border border-dashed p-10 text-center">
-    <div className="bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full">
-      <Search className="text-muted-foreground h-8 w-8" />
+    <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+      <Search className="h-8 w-8 text-muted-foreground" />
     </div>
     <h3 className="mb-2 text-lg font-medium">No results found</h3>
-    <p className="text-muted-foreground mb-4">
+    <p className="mb-4 text-muted-foreground">
       No customers matching &quot;{query}&quot; were found.
     </p>
     <Button variant="outline" onClick={onClear}>
@@ -163,7 +163,7 @@ export default function CustomersPage() {
             <CardDescription>Please wait while we load your customer data.</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center py-6">
-            <div className="border-primary h-6 w-6 animate-spin rounded-full border-t-2 border-b-2" />
+            <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
           </CardContent>
         </Card>
       </div>
@@ -179,13 +179,13 @@ export default function CustomersPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <AlertCircle className="text-destructive h-5 w-5" />
+              <AlertCircle className="h-5 w-5 text-destructive" />
               <CardTitle className="text-destructive">Error</CardTitle>
             </div>
             <CardDescription className="mt-2">{error}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground mb-4 text-sm">
+            <p className="mb-4 text-sm text-muted-foreground">
               The server may be temporarily unavailable or the API endpoint might not be set up yet.
             </p>
             <div className="flex gap-3">

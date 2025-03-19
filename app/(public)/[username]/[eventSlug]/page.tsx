@@ -264,7 +264,7 @@ function NoTimeSlots({
         </CardDescription>
       </CardHeader>
       <CardFooter className="flex flex-col items-start">
-        <p className="text-muted-foreground text-sm">
+        <p className="text-sm text-muted-foreground">
           You can check back later or contact them directly.
         </p>
         <Button asChild className="mt-4">

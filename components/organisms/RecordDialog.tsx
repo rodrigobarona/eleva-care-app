@@ -144,12 +144,12 @@ export function RecordDialog({
         className={cn(
           'border shadow-lg transition-all duration-200',
           isMinimized
-            ? '!fixed right-4 bottom-4 !h-[64px] !max-w-[400px] overflow-hidden !rounded-t-lg'
-            : '!fixed right-4 bottom-4 !h-[85vh] !w-[800px] !max-w-[90vw] !rounded-t-lg',
+            ? '!fixed bottom-4 right-4 !h-[64px] !max-w-[400px] overflow-hidden !rounded-t-lg'
+            : '!fixed bottom-4 right-4 !h-[85vh] !w-[800px] !max-w-[90vw] !rounded-t-lg',
           '!top-auto !translate-y-0',
         )}
       >
-        <DialogHeader className="bg-muted/50 flex flex-row items-center justify-between px-4 py-2">
+        <DialogHeader className="flex flex-row items-center justify-between bg-muted/50 px-4 py-2">
           <div>
             <DialogTitle className="text-sm font-medium">Patient Record - {guestName}</DialogTitle>
             {!isMinimized && (
@@ -180,7 +180,7 @@ export function RecordDialog({
 
         {!isMinimized && (
           <div className="flex h-[calc(100%-60px)] flex-col overflow-hidden">
-            <div className="text-muted-foreground border-b px-4 py-1 text-xs">
+            <div className="border-b px-4 py-1 text-xs text-muted-foreground">
               {records.length > 0
                 ? `Last modified: ${format(
                     new Date(records[0].lastModifiedAt),

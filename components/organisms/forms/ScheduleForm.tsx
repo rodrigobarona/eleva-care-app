@@ -80,7 +80,7 @@ export function ScheduleForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
         {form.formState.errors.root && (
-          <div className="text-destructive text-sm">{form.formState.errors.root.message}</div>
+          <div className="text-sm text-destructive">{form.formState.errors.root.message}</div>
         )}
         {successMessage && <div className="text-sm text-green-500">{successMessage}</div>}
         <FormField

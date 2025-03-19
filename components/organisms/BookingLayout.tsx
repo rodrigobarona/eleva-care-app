@@ -160,7 +160,7 @@ export function BookingLayout({
           <div className="flex items-center space-x-4">
             {expert.username ? (
               <Link href={`/${expert.username}`} className="group">
-                <Avatar className="group-hover:ring-primary/50 h-10 w-10 transition-all duration-200 group-hover:ring-2">
+                <Avatar className="h-10 w-10 transition-all duration-200 group-hover:ring-2 group-hover:ring-primary/50">
                   <AvatarImage src={expert.imageUrl} alt={expert.name} />
                   <AvatarFallback>{expert.name.charAt(0)}</AvatarFallback>
                 </Avatar>
@@ -175,7 +175,7 @@ export function BookingLayout({
               {expert.username ? (
                 <Link
                   href={`/${expert.username}`}
-                  className="hover:text-primary font-medium hover:underline"
+                  className="font-medium hover:text-primary hover:underline"
                 >
                   {expert.name}
                 </Link>
@@ -183,7 +183,7 @@ export function BookingLayout({
                 <h3 className="font-medium">{expert.name}</h3>
               )}
               {expert.location && (
-                <p className="text-muted-foreground text-sm">{expert.location}</p>
+                <p className="text-sm text-muted-foreground">{expert.location}</p>
               )}
             </div>
           </div>
@@ -195,7 +195,7 @@ export function BookingLayout({
                 <DialogTrigger asChild>
                   <button
                     type="button"
-                    className="bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground flex h-6 w-6 items-center justify-center rounded-full"
+                    className="flex h-6 w-6 items-center justify-center rounded-full bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
                     aria-label="View event description"
                   >
                     <Info className="h-4 w-4" />
@@ -216,7 +216,7 @@ export function BookingLayout({
             </div>
           </div>
 
-          <div className="text-muted-foreground space-y-3 pt-3 text-sm">
+          <div className="space-y-3 pt-3 text-sm text-muted-foreground">
             <div className="flex items-center">
               <Clock className="mr-2 h-4 w-4" />
               <span>{event.duration}m</span>
@@ -233,7 +233,7 @@ export function BookingLayout({
             )}
             <div className="flex w-full flex-col gap-2">
               <Select value={timezone} onValueChange={(value) => onTimezoneChange?.(value)}>
-                <SelectTrigger className="hover:bg-eleva-neutral-100 h-9 w-full -translate-x-2 border-none px-2 text-sm shadow-none focus:ring-0">
+                <SelectTrigger className="h-9 w-full -translate-x-2 border-none px-2 text-sm shadow-none hover:bg-eleva-neutral-100 focus:ring-0">
                   <Globe className="mr-2 h-4 w-4" />
                   <SelectValue placeholder={timezone.replace('_', ' ')} />
                 </SelectTrigger>
@@ -310,7 +310,7 @@ export function BookingLayout({
                       ? formatInTimeZone(selectedDate, timezone, 'EE, d')
                       : 'Available Times'}
                   </h2>
-                  <div className="bg-muted flex rounded-full p-1">
+                  <div className="flex rounded-full bg-muted p-1">
                     <Button
                       type="button"
                       variant="ghost"
@@ -319,7 +319,7 @@ export function BookingLayout({
                         'rounded-full px-4 text-sm font-normal',
                         !use24Hour
                           ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-transparent',
+                          : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
                       )}
                       onClick={() => setUse24Hour(false)}
                     >
@@ -333,7 +333,7 @@ export function BookingLayout({
                         'rounded-full px-4 text-sm font-normal',
                         use24Hour
                           ? 'bg-background text-foreground shadow-sm'
-                          : 'text-muted-foreground hover:text-foreground hover:bg-transparent',
+                          : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
                       )}
                       onClick={() => setUse24Hour(true)}
                     >
@@ -352,7 +352,7 @@ export function BookingLayout({
                         className={cn(
                           'h-12 justify-center text-center text-base font-normal',
                           selectedTime?.toISOString() === timeSlot.utcDate.toISOString()
-                            ? 'border-primary bg-primary/5 text-primary font-medium'
+                            ? 'border-primary bg-primary/5 font-medium text-primary'
                             : 'hover:border-primary/50',
                         )}
                         onClick={() => handleTimeSelect(timeSlot)}
@@ -361,7 +361,7 @@ export function BookingLayout({
                       </Button>
                     ))}
                   {(!selectedDate || !timesByDate[startOfDay(selectedDate).toISOString()]) && (
-                    <div className="text-muted-foreground py-8 text-center">
+                    <div className="py-8 text-center text-muted-foreground">
                       {selectedDate
                         ? 'No available times for this date'
                         : 'Select a date to view available times'}
@@ -372,7 +372,7 @@ export function BookingLayout({
             </div>
 
             {/* Desktop: Middle column - Calendar */}
-            <div className={cn('hidden h-full p-2 md:block md:border md:border-r-0 md:border-l-0')}>
+            <div className={cn('hidden h-full p-2 md:block md:border md:border-l-0 md:border-r-0')}>
               <Calendar
                 mode="single"
                 selected={selectedDate || undefined}
@@ -427,7 +427,7 @@ export function BookingLayout({
                     ? formatInTimeZone(selectedDate, timezone, 'EE, d')
                     : 'Available Times'}
                 </h2>
-                <div className="bg-muted flex rounded-full p-1">
+                <div className="flex rounded-full bg-muted p-1">
                   <Button
                     type="button"
                     variant="ghost"
@@ -436,7 +436,7 @@ export function BookingLayout({
                       'rounded-full px-4 text-sm font-normal',
                       !use24Hour
                         ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-transparent',
+                        : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
                     )}
                     onClick={() => setUse24Hour(false)}
                   >
@@ -450,7 +450,7 @@ export function BookingLayout({
                       'rounded-full px-4 text-sm font-normal',
                       use24Hour
                         ? 'bg-background text-foreground shadow-sm'
-                        : 'text-muted-foreground hover:text-foreground hover:bg-transparent',
+                        : 'text-muted-foreground hover:bg-transparent hover:text-foreground',
                     )}
                     onClick={() => setUse24Hour(true)}
                   >
@@ -475,7 +475,7 @@ export function BookingLayout({
                       className={cn(
                         'h-12 justify-center text-center text-base font-normal',
                         selectedTime?.toISOString() === timeSlot.utcDate.toISOString()
-                          ? 'border-primary bg-primary/5 text-primary font-medium'
+                          ? 'border-primary bg-primary/5 font-medium text-primary'
                           : 'hover:border-primary/50',
                       )}
                       onClick={() => handleTimeSelect(timeSlot)}
@@ -484,7 +484,7 @@ export function BookingLayout({
                     </Button>
                   ))}
                 {(!selectedDate || !timesByDate[startOfDay(selectedDate).toISOString()]) && (
-                  <div className="text-muted-foreground py-8 text-center">
+                  <div className="py-8 text-center text-muted-foreground">
                     {selectedDate
                       ? 'No available times for this date'
                       : 'Select a date to view available times'}

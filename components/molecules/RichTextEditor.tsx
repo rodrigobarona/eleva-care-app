@@ -70,7 +70,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
 
   return (
     <div className="overflow-hidden rounded-md border">
-      <div className="bg-muted/50 flex gap-2 border-b p-2">
+      <div className="flex gap-2 border-b bg-muted/50 p-2">
         <Button
           type="button"
           variant="outline"

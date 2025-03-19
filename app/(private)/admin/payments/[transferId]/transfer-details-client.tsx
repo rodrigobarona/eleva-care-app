@@ -210,29 +210,29 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <p className="text-muted-foreground text-sm font-medium">ID</p>
+                <p className="text-sm font-medium text-muted-foreground">ID</p>
                 <p>{transfer.id}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-sm font-medium">Status</p>
+                <p className="text-sm font-medium text-muted-foreground">Status</p>
                 <p>{transfer.status}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-sm font-medium">Amount</p>
+                <p className="text-sm font-medium text-muted-foreground">Amount</p>
                 <p className="font-semibold">
                   {formatCurrency(transfer.amount, transfer.currency)}
                 </p>
               </div>
               <div>
-                <p className="text-muted-foreground text-sm font-medium">Platform Fee</p>
+                <p className="text-sm font-medium text-muted-foreground">Platform Fee</p>
                 <p>{formatCurrency(transfer.platformFee, transfer.currency)}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-sm font-medium">Session Time</p>
+                <p className="text-sm font-medium text-muted-foreground">Session Time</p>
                 <p>{formatDate(transfer.sessionStartTime)}</p>
               </div>
               <div>
-                <p className="text-muted-foreground text-sm font-medium">Scheduled Transfer</p>
+                <p className="text-sm font-medium text-muted-foreground">Scheduled Transfer</p>
                 <p>{formatDate(transfer.scheduledTransferTime)}</p>
               </div>
             </div>
@@ -240,14 +240,14 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
             <hr className="my-4" />
 
             <div>
-              <p className="text-muted-foreground mb-2 text-sm font-medium">Payment Intent ID</p>
-              <p className="font-mono text-xs break-all">{transfer.paymentIntentId}</p>
+              <p className="mb-2 text-sm font-medium text-muted-foreground">Payment Intent ID</p>
+              <p className="break-all font-mono text-xs">{transfer.paymentIntentId}</p>
             </div>
 
             {transfer.transferId && (
               <div>
-                <p className="text-muted-foreground mb-2 text-sm font-medium">Transfer ID</p>
-                <p className="font-mono text-xs break-all">{transfer.transferId}</p>
+                <p className="mb-2 text-sm font-medium text-muted-foreground">Transfer ID</p>
+                <p className="break-all font-mono text-xs">{transfer.transferId}</p>
               </div>
             )}
           </CardContent>
@@ -261,7 +261,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <div className="text-muted-foreground mb-2 flex items-center text-sm font-medium">
+              <div className="mb-2 flex items-center text-sm font-medium text-muted-foreground">
                 <User className="mr-1 h-4 w-4" />
                 Expert Details
               </div>
@@ -286,7 +286,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
             <div>
               <label
                 htmlFor="notes"
-                className="text-muted-foreground mb-2 block text-sm font-medium"
+                className="mb-2 block text-sm font-medium text-muted-foreground"
               >
                 Admin Notes
               </label>
@@ -300,7 +300,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
             </div>
 
             <div>
-              <label className="text-muted-foreground mb-2 flex items-center gap-2 text-sm font-medium">
+              <label className="mb-2 flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <input
                   type="checkbox"
                   checked={requiresApproval}
@@ -379,7 +379,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
               </div>
               <div className="flex-1">
                 <p className="font-medium">Payment received</p>
-                <p className="text-muted-foreground text-sm">{formatDate(transfer.created)}</p>
+                <p className="text-sm text-muted-foreground">{formatDate(transfer.created)}</p>
               </div>
             </div>
 
@@ -390,7 +390,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">Admin updated transfer</p>
-                  <p className="text-muted-foreground text-sm">{formatDate(transfer.updated)}</p>
+                  <p className="text-sm text-muted-foreground">{formatDate(transfer.updated)}</p>
                   {transfer.adminNotes && (
                     <p className="mt-1 rounded-md bg-gray-50 p-2 text-sm">{transfer.adminNotes}</p>
                   )}
@@ -405,7 +405,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">Funds transferred to expert</p>
-                  <p className="text-muted-foreground text-sm">{formatDate(transfer.updated)}</p>
+                  <p className="text-sm text-muted-foreground">{formatDate(transfer.updated)}</p>
                   <p className="mt-1 text-sm font-medium">
                     Transfer ID: <span className="font-mono text-xs">{transfer.transferId}</span>
                   </p>
@@ -420,7 +420,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">Transfer failed</p>
-                  <p className="text-muted-foreground text-sm">{formatDate(transfer.updated)}</p>
+                  <p className="text-sm text-muted-foreground">{formatDate(transfer.updated)}</p>
                   <div className="mt-1 rounded-md bg-red-50 p-2">
                     <p className="text-sm text-red-700">
                       {transfer.stripeErrorCode && (
@@ -443,7 +443,7 @@ export function TransferDetailsClient({ transfer }: { transfer: PaymentTransfer 
                 </div>
                 <div className="flex-1">
                   <p className="font-medium">Scheduled for transfer</p>
-                  <p className="text-muted-foreground text-sm">
+                  <p className="text-sm text-muted-foreground">
                     {formatDate(transfer.scheduledTransferTime)}
                   </p>
                   {transfer.requiresApproval && (

@@ -40,17 +40,17 @@ type TeamSectionProps = {
 const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description, members }) => {
   return (
     <FadeInSection>
-      <section id="team" className="w-full px-6 pt-12 pb-24 md:py-24 lg:px-8 lg:py-32">
+      <section id="team" className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <div className="mb-12">
-            <h2 className="text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60 font-mono text-xs/5 font-semibold tracking-widest uppercase">
+            <h2 className="text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60 font-mono text-xs/5 font-semibold uppercase tracking-widest">
               {title}
             </h2>
-            <h3 className="text-seco text-elevaPrimary data-[dark]:text-elevaNeutral-100 mt-2 font-serif text-4xl font-light tracking-tighter text-pretty sm:text-6xl">
+            <h3 className="text-seco text-elevaPrimary data-[dark]:text-elevaNeutral-100 mt-2 text-pretty font-serif text-4xl font-light tracking-tighter sm:text-6xl">
               {subtitle}
             </h3>
           </div>
-          <p className="text-elevaNeutral-900 mt-6 text-base font-light text-balance lg:text-xl">
+          <p className="text-elevaNeutral-900 mt-6 text-balance text-base font-light lg:text-xl">
             {description}
           </p>
           <div className="embla">
@@ -79,7 +79,7 @@ const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description,
                         ></div>
                         <figure className="relative z-20 p-10">
                           <blockquote>
-                            <p className="text-elevaNeutral-100 relative text-sm/4 text-pretty lg:text-xl/7">
+                            <p className="text-elevaNeutral-100 relative text-pretty text-sm/4 lg:text-xl/7">
                               <span aria-hidden="true" className="absolute -translate-x-full">
                                 “
                               </span>

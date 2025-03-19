@@ -54,7 +54,7 @@ function PaymentProcessingContent(props: {
       </CardHeader>
       <CardContent className="flex flex-col items-center py-8">
         <Icons.spinner className="h-8 w-8 animate-spin" />
-        <p className="text-muted-foreground mt-4">Please wait while we confirm your payment...</p>
+        <p className="mt-4 text-muted-foreground">Please wait while we confirm your payment...</p>
       </CardContent>
     </Card>
   );

@@ -56,7 +56,7 @@ export function NavUser() {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <div className="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex w-full items-center gap-3 rounded-lg px-3 py-2">
+            <div className="flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
               <Avatar className="h-8 w-8 shrink-0 rounded-lg">
                 <AvatarImage src={user.imageUrl} alt={user.fullName || ''} />
                 <AvatarFallback className="rounded-lg">
@@ -80,7 +80,7 @@ export function NavUser() {
             <DropdownMenuLabel className="p-0 font-normal">
               <Link
                 href="/account"
-                className="hover:bg-accent flex items-center gap-2 rounded-md px-1 py-1.5 text-left text-sm transition-colors"
+                className="flex items-center gap-2 rounded-md px-1 py-1.5 text-left text-sm transition-colors hover:bg-accent"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
                   <AvatarImage src={user.imageUrl} alt={user.fullName || ''} />
@@ -91,7 +91,7 @@ export function NavUser() {
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{user.fullName}</span>
-                  <span className="text-muted-foreground truncate text-xs">
+                  <span className="truncate text-xs text-muted-foreground">
                     Manage your account
                   </span>
                 </div>

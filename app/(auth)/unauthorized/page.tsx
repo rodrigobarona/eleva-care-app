@@ -20,13 +20,13 @@ export default function UnauthorizedPage() {
       <Card className="mx-auto w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mb-4 flex justify-center">
-            <ShieldAlert className="text-destructive h-12 w-12" />
+            <ShieldAlert className="h-12 w-12 text-destructive" />
           </div>
           <CardTitle className="text-2xl">Access Denied</CardTitle>
           <CardDescription>You don&apos;t have permission to access this resource.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground text-center">
+          <p className="text-center text-muted-foreground">
             This area requires higher privileges than what your account currently has. Please
             contact an administrator if you believe you should have access.
           </p>

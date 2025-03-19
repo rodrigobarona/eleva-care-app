@@ -14,7 +14,7 @@ export default function ProfilePage() {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium">Profile</h3>
-        <p className="text-muted-foreground text-sm">Update your personal information.</p>
+        <p className="text-sm text-muted-foreground">Update your personal information.</p>
       </div>
 
       <AccountForm />

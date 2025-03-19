@@ -7,7 +7,7 @@ function AppBreadcrumbSkeleton() {
   return (
     <Breadcrumb>
       <BreadcrumbList>
-        <div className="bg-muted h-6 w-24 animate-pulse rounded" />
+        <div className="h-6 w-24 animate-pulse rounded bg-muted" />
       </BreadcrumbList>
     </Breadcrumb>
   );

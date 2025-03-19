@@ -26,10 +26,10 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
   return (
     <PrivateLayoutWrapper>
       <SidebarProvider>
-        <div className="bg-eleva-neutral-200/50 flex min-h-screen w-full pl-2">
+        <div className="flex min-h-screen w-full bg-eleva-neutral-200/50 pl-2">
           <AppSidebar />
           <SidebarInset>
-            <div className="bg-background w-full rounded-xl">
+            <div className="w-full rounded-xl bg-background">
               <ExpertSetupChecklistWrapper />
               <header className="flex h-16 shrink-0 items-center gap-2 rounded-t-xl border-b">
                 <div className="flex items-center gap-2 px-4">
@@ -39,7 +39,7 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
                 </div>
               </header>
               <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
-                <div className="bg-background w-full rounded-xl">{children}</div>
+                <div className="w-full rounded-xl bg-background">{children}</div>
               </div>
             </div>
           </SidebarInset>

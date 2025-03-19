@@ -65,7 +65,7 @@ export default function RootLayout({
         <head>
           <meta name="viewport" content="width=device-width, initial-scale=1" />
         </head>
-        <body className="bg-background min-h-screen font-sans antialiased" suppressHydrationWarning>
+        <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
           <ErrorBoundaryWrapper>
             <NuqsAdapter>
               <ClientProviders>

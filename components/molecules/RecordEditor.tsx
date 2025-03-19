@@ -111,7 +111,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
 
   return (
     <div className="flex h-full flex-col">
-      <div className="bg-muted/50 flex flex-wrap gap-2 border-b p-2">
+      <div className="flex flex-wrap gap-2 border-b bg-muted/50 p-2">
         <div className="flex gap-2 border-r pr-2">
           <Button
             type="button"

@@ -11,7 +11,7 @@ export default function CategoriesPage() {
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Categories Management</h1>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-sm text-muted-foreground">
           Create, edit, and organize categories and subcategories for expert profiles.
         </p>
       </div>

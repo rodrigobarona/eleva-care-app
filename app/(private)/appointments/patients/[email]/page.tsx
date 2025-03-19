@@ -82,7 +82,7 @@ function CustomerDetailsContent() {
     return (
       <div className="container py-10">
         <div className="flex justify-center py-8">
-          <div className="border-primary h-8 w-8 animate-spin rounded-full border-t-2 border-b-2" />
+          <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
         </div>
       </div>
     );
@@ -94,7 +94,7 @@ function CustomerDetailsContent() {
         <div className="mb-6 flex items-center gap-4">
           <Link
             href="/appointments/patients"
-            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Customers
@@ -121,7 +121,7 @@ function CustomerDetailsContent() {
         <div className="mb-6 flex items-center gap-4">
           <Link
             href="/appointments/patients"
-            className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm"
+            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Back to Customers
@@ -163,7 +163,7 @@ function CustomerDetailsContent() {
       <div className="mb-6 flex items-center gap-4">
         <Link
           href="/appointments/patients"
-          className="text-muted-foreground hover:text-foreground inline-flex items-center gap-2 text-sm"
+          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to Customers
@@ -180,24 +180,24 @@ function CustomerDetailsContent() {
           <CardContent>
             <div className="space-y-4">
               <div className="flex items-center">
-                <User className="text-muted-foreground mr-2 h-4 w-4" />
+                <User className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">{customer.name || 'Not provided'}</span>
               </div>
 
               <div className="flex items-center">
-                <Mail className="text-muted-foreground mr-2 h-4 w-4" />
+                <Mail className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span>{customer.email}</span>
               </div>
 
               {customer.phoneNumber && (
                 <div className="flex items-center">
-                  <span className="text-muted-foreground mr-2">📱</span>
+                  <span className="mr-2 text-muted-foreground">📱</span>
                   <span>{customer.phoneNumber}</span>
                 </div>
               )}
 
               <div className="flex items-center">
-                <Calendar className="text-muted-foreground mr-2 h-4 w-4" />
+                <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span>
                   {customer.appointmentsCount} appointment
                   {customer.appointmentsCount !== 1 ? 's' : ''}
@@ -205,25 +205,25 @@ function CustomerDetailsContent() {
               </div>
 
               <div className="flex items-center">
-                <CreditCard className="text-muted-foreground mr-2 h-4 w-4" />
+                <CreditCard className="mr-2 h-4 w-4 text-muted-foreground" />
                 <span>Total spent: {formatCurrency(customer.totalSpend || 0)}</span>
               </div>
 
               {customer.stripeCustomerId && (
                 <div className="mt-4 border-t pt-4">
-                  <p className="text-muted-foreground mb-1 text-xs">Stripe Customer ID:</p>
-                  <code className="bg-muted rounded p-1 text-xs">{customer.stripeCustomerId}</code>
+                  <p className="mb-1 text-xs text-muted-foreground">Stripe Customer ID:</p>
+                  <code className="rounded bg-muted p-1 text-xs">{customer.stripeCustomerId}</code>
                 </div>
               )}
 
               {customer.notes && (
                 <div className="mt-4 border-t pt-4">
                   <p className="mb-1 text-sm font-medium">Notes:</p>
-                  <p className="text-muted-foreground text-sm">{customer.notes}</p>
+                  <p className="text-sm text-muted-foreground">{customer.notes}</p>
                 </div>
               )}
 
-              <div className="text-muted-foreground mt-4 border-t pt-4 text-xs">
+              <div className="mt-4 border-t pt-4 text-xs text-muted-foreground">
                 <p>
                   Customer since: {new Date(customer.createdAt || Date.now()).toLocaleDateString()}
                 </p>
@@ -295,7 +295,7 @@ function CustomerDetailsContent() {
               </Tabs>
             ) : (
               <div className="rounded-lg border border-dashed p-6 text-center">
-                <p className="text-muted-foreground mb-2">
+                <p className="mb-2 text-muted-foreground">
                   This customer hasn&apos;t booked any appointments yet.
                 </p>
                 <Button asChild variant="outline">

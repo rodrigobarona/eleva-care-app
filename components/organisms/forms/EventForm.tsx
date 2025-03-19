@@ -53,7 +53,7 @@ import type { z } from 'zod';
 const SimpleRichTextEditor = dynamic(() => import('@/components/molecules/RichTextEditor'), {
   ssr: false,
   loading: () => (
-    <div className="bg-muted/50 min-h-[100px] animate-pulse rounded-md border px-3 py-2" />
+    <div className="min-h-[100px] animate-pulse rounded-md border bg-muted/50 px-3 py-2" />
   ),
 });
 
@@ -234,7 +234,7 @@ export function EventForm({
             </FormControl>
             <span className="text-muted-foreground">EUR</span>
             {isStripeProcessing && (
-              <span className="text-muted-foreground text-sm">Syncing with Stripe...</span>
+              <span className="text-sm text-muted-foreground">Syncing with Stripe...</span>
             )}
           </div>
           <FormDescription>
@@ -254,7 +254,7 @@ export function EventForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8">
         {form.formState.errors.root && (
-          <div className="text-destructive text-sm">{form.formState.errors.root.message}</div>
+          <div className="text-sm text-destructive">{form.formState.errors.root.message}</div>
         )}
 
         <div className="space-y-6">
@@ -304,16 +304,16 @@ export function EventForm({
                 <FormItem>
                   <FormLabel>URL</FormLabel>
                   <div className="flex w-full items-center overflow-hidden rounded-md border">
-                    <div className="bg-muted text-muted-foreground flex h-full items-center px-3 py-2 text-sm">
+                    <div className="flex h-full items-center bg-muted px-3 py-2 text-sm text-muted-foreground">
                       eleva.care/{user?.username || 'username'}/
                     </div>
-                    <div className="bg-border w-px self-stretch" />
+                    <div className="w-px self-stretch bg-border" />
                     <FormControl>
                       <Input
                         {...field}
                         onChange={onSlugChange}
                         onKeyDown={onSlugKeyDown}
-                        className="bg-background flex-1 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                        className="flex-1 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
                         placeholder="event-name"
                       />
                     </FormControl>
@@ -405,7 +405,7 @@ export function EventForm({
                         .
                       </span>
                       {meetingsCount > 0 && (
-                        <span className="text-destructive block font-medium">
+                        <span className="block font-medium text-destructive">
                           Warning: All associated meetings will also be deleted!
                         </span>
                       )}

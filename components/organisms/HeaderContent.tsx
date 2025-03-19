@@ -15,7 +15,7 @@ interface NavLinkProps {
 const NavLink = ({ href, isScrolled, isRootPath, children }: NavLinkProps) => (
   <Link
     href={href}
-    className={`hover:text-sidebar-accent-foreground rounded-full px-4 py-1 text-sm font-medium transition-colors hover:bg-white/10 ${
+    className={`rounded-full px-4 py-1 text-sm font-medium transition-colors hover:bg-white/10 hover:text-sidebar-accent-foreground ${
       isRootPath && !isScrolled ? 'text-white' : 'text-foreground'
     }`}
   >
@@ -60,8 +60,8 @@ export function HeaderContent() {
     <header
       className={`fixed z-50 w-full justify-between px-6 transition-all lg:px-8 ${
         isRootPath && !isScrolled
-          ? 'bg-transparent pt-6 pb-4'
-          : 'bg-white/20 pt-2 pb-2 backdrop-blur-md'
+          ? 'bg-transparent pb-4 pt-6'
+          : 'bg-white/20 pb-2 pt-2 backdrop-blur-md'
       }`}
     >
       <div className="mx-auto flex max-w-2xl lg:max-w-7xl">

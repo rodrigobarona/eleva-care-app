@@ -166,25 +166,25 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
       <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
         <Card>
           <CardContent className="p-4">
-            <div className="text-muted-foreground text-sm font-medium">Pending</div>
+            <div className="text-sm font-medium text-muted-foreground">Pending</div>
             <div className="text-2xl font-bold">{statusCounts.pending}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-muted-foreground text-sm font-medium">Approved</div>
+            <div className="text-sm font-medium text-muted-foreground">Approved</div>
             <div className="text-2xl font-bold">{statusCounts.approved}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-muted-foreground text-sm font-medium">Completed</div>
+            <div className="text-sm font-medium text-muted-foreground">Completed</div>
             <div className="text-2xl font-bold">{statusCounts.completed}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <div className="text-muted-foreground text-sm font-medium">Failed</div>
+            <div className="text-sm font-medium text-muted-foreground">Failed</div>
             <div className="text-2xl font-bold">{statusCounts.failed}</div>
           </CardContent>
         </Card>
@@ -237,7 +237,7 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
               onChange={(e) => handleDateChange('startDate', e.target.value)}
               className="w-full md:w-[180px]"
             />
-            <Calendar className="text-muted-foreground absolute top-3 right-3 h-4 w-4" />
+            <Calendar className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
           </div>
         </div>
 
@@ -253,7 +253,7 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
               onChange={(e) => handleDateChange('endDate', e.target.value)}
               className="w-full md:w-[180px]"
             />
-            <Calendar className="text-muted-foreground absolute top-3 right-3 h-4 w-4" />
+            <Calendar className="absolute right-3 top-3 h-4 w-4 text-muted-foreground" />
           </div>
         </div>
 
@@ -286,7 +286,7 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
           <TableBody>
             {data.data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-muted-foreground py-8 text-center">
+                <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
                   No payment transfers found
                 </TableCell>
               </TableRow>
@@ -318,7 +318,7 @@ export function PaymentTransfersClient({ data }: { data: PaymentTransfersRespons
 
       {/* Pagination */}
       <div className="flex items-center justify-between">
-        <div className="text-muted-foreground text-sm">
+        <div className="text-sm text-muted-foreground">
           Showing {Math.min((currentPage - 1) * limit + 1, data.pagination.total)} to{' '}
           {Math.min(currentPage * limit, data.pagination.total)} of {data.pagination.total}{' '}
           transfers

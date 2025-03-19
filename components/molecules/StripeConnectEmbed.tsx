@@ -81,8 +81,8 @@ export function StripeConnectEmbed({ onSuccess, onCancel }: StripeConnectEmbedPr
   if (isLoading) {
     return (
       <div className="flex h-full w-full items-center justify-center">
-        <div className="border-t-primary h-8 w-8 animate-spin rounded-full border-4 border-gray-200" />
-        <span className="text-muted-foreground ml-3">Loading Connect onboarding...</span>
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary" />
+        <span className="ml-3 text-muted-foreground">Loading Connect onboarding...</span>
       </div>
     );
   }
@@ -93,7 +93,7 @@ export function StripeConnectEmbed({ onSuccess, onCancel }: StripeConnectEmbedPr
         <div className="text-destructive">Error: {error}</div>
         <button
           type="button"
-          className="bg-primary text-primary-foreground mt-4 rounded px-4 py-2"
+          className="mt-4 rounded bg-primary px-4 py-2 text-primary-foreground"
           onClick={() => window.location.reload()}
         >
           Retry
