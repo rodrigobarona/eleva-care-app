@@ -83,9 +83,8 @@ export function MeetingFormContent({
       step: parseAsStringLiteral(['1', '2', '3'] as const).withDefault('1'),
       date: parseAsIsoDate,
       time: parseAsIsoDateTime,
-      name: parseAsString.withDefault(''),
-      email: parseAsString.withDefault(''),
       timezone: parseAsString.withDefault(''),
+      // Removed name and email fields from URL parameters for privacy
     }),
     [],
   );
@@ -97,9 +96,8 @@ export function MeetingFormContent({
       step: 's',
       date: 'd',
       time: 't',
-      name: 'n',
-      email: 'e',
       timezone: 'tz',
+      // Removed name and email URL keys
     },
   });
 
@@ -108,9 +106,9 @@ export function MeetingFormContent({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
       timezone: queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-      guestName: queryStates.name || '',
-      guestEmail: queryStates.email || '',
-      guestNotes: '', // Initialize with empty string
+      guestName: '', // Always initialize with empty string, not from URL
+      guestEmail: '', // Always initialize with empty string, not from URL
+      guestNotes: '', // Always initialize with empty string
       // Initialize with date and time from URL if they exist
       ...(queryStates.date && { date: queryStates.date }),
       ...(queryStates.time && { startTime: queryStates.time }),
@@ -240,6 +238,7 @@ export function MeetingFormContent({
           )
         : '';
 
+      // Use form values directly without syncing to URL for privacy
       const response = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -378,33 +377,8 @@ export function MeetingFormContent({
     setQueryStates({ date: localDate });
   }, [validTimes, queryStates.date, form, setQueryStates]);
 
-  // Simplified URL update without complex handlers
-  const updateURLOnSubmit = React.useCallback(() => {
-    if (currentStep !== '2') return;
-
-    // Get current form values
-    const name = form.getValues('guestName')?.trim();
-    const email = form.getValues('guestEmail')?.trim();
-
-    // Update URL all at once
-    const updates: Record<string, string | undefined> = {};
-    if (name) updates.name = name;
-    if (email) updates.email = email;
-
-    setQueryStates((prev) => ({ ...prev, ...updates }));
-  }, [currentStep, form, setQueryStates]);
-
-  // Synchronize values from URL parameters to form
+  // Simplify the URL synchronization to only handle date, time, and timezone, not personal data
   React.useEffect(() => {
-    // Synchronize name and email if they're in the URL
-    if (queryStates.name && queryStates.name !== form.getValues('guestName')) {
-      form.setValue('guestName', queryStates.name, { shouldValidate: false, shouldDirty: true });
-    }
-
-    if (queryStates.email && queryStates.email !== form.getValues('guestEmail')) {
-      form.setValue('guestEmail', queryStates.email, { shouldValidate: false, shouldDirty: true });
-    }
-
     // Synchronize date and time - critical for returning from checkout or refresh
     if (queryStates.date) {
       const currentDate = form.getValues('date');
@@ -425,7 +399,7 @@ export function MeetingFormContent({
         form.setValue('startTime', queryStates.time, { shouldValidate: false, shouldDirty: true });
       }
     }
-  }, [queryStates.name, queryStates.email, queryStates.date, queryStates.time, form]);
+  }, [queryStates.date, queryStates.time, form]);
 
   // Check if user has valid calendar access
   React.useEffect(() => {
@@ -505,14 +479,12 @@ export function MeetingFormContent({
       step: queryStates.step,
       date: queryStates.date ? queryStates.date.toISOString() : null,
       time: queryStates.time ? queryStates.time.toISOString() : null,
-      name: queryStates.name,
-      email: queryStates.email,
+      timezone: queryStates.timezone,
     },
     formValues: {
       date: form.getValues('date') ? form.getValues('date').toISOString() : null,
       startTime: form.getValues('startTime') ? form.getValues('startTime').toISOString() : null,
-      guestName: form.getValues('guestName'),
-      guestEmail: form.getValues('guestEmail'),
+      // Personal form values no longer logged for privacy
     },
   });
 
@@ -648,11 +620,7 @@ export function MeetingFormContent({
           </Button>
           <Button
             type="button"
-            onClick={() => {
-              // Update URL parameters before proceeding
-              updateURLOnSubmit();
-              handleNextStep('3');
-            }}
+            onClick={() => handleNextStep('3')}
             disabled={isSubmitting}
             className="relative"
           >
