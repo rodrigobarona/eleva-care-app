@@ -77,9 +77,6 @@ export function MeetingFormContent({
   const emailInputRef = React.useRef<HTMLInputElement>(null);
   const notesInputRef = React.useRef<HTMLTextAreaElement>(null);
 
-  // Use a simpler approach for tracking typing state
-  const isTypingRef = React.useRef(false);
-
   // Query state configuration
   const queryStateParsers = React.useMemo(
     () => ({
@@ -397,30 +394,24 @@ export function MeetingFormContent({
     setQueryStates({ date: localDate });
   }, [validTimes, queryStates.date, form, setQueryStates]);
 
-  // Simplified URL update without all the complex debouncing logic
-  const updateURL = React.useCallback(() => {
-    // Only run if we're on the contact info step
+  // Simplified URL update without complex handlers
+  const updateURLOnSubmit = React.useCallback(() => {
     if (currentStep !== '2') return;
 
     // Get current form values
     const name = form.getValues('guestName')?.trim();
     const email = form.getValues('guestEmail')?.trim();
 
-    // Only update URL if we have values to update
-    if (name || email) {
-      const updates: Record<string, string> = {};
-      if (name) updates.name = name;
-      if (email) updates.email = email;
+    // Update URL all at once
+    const updates: Record<string, string | undefined> = {};
+    if (name) updates.name = name;
+    if (email) updates.email = email;
 
-      setQueryStates((prev) => ({ ...prev, ...updates }));
-    }
+    setQueryStates((prev) => ({ ...prev, ...updates }));
   }, [currentStep, form, setQueryStates]);
 
-  // Remove the typing-based URL update effect and use onBlur handlers instead
+  // Synchronize values from URL parameters to form
   React.useEffect(() => {
-    // Skip if we're currently typing
-    if (isTypingRef.current) return;
-
     // Synchronize name and email if they're in the URL
     if (queryStates.name && queryStates.name !== form.getValues('guestName')) {
       form.setValue('guestName', queryStates.name, { shouldValidate: false, shouldDirty: true });
@@ -452,6 +443,7 @@ export function MeetingFormContent({
     }
   }, [queryStates.name, queryStates.email, queryStates.date, queryStates.time, form]);
 
+  // Check if user has valid calendar access
   React.useEffect(() => {
     const checkCalendarAccess = async () => {
       try {
@@ -617,20 +609,7 @@ export function MeetingFormContent({
               <FormItem>
                 <FormLabel className="font-semibold">Your Name</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    ref={nameInputRef}
-                    placeholder="Enter your full name"
-                    onFocus={() => {
-                      // Set typing flag when focus enters field
-                      isTypingRef.current = true;
-                    }}
-                    onBlur={() => {
-                      // When focus leaves field, update the URL
-                      isTypingRef.current = false;
-                      updateURL();
-                    }}
-                  />
+                  <Input placeholder="Enter your full name" {...field} ref={nameInputRef} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -645,18 +624,9 @@ export function MeetingFormContent({
                 <FormControl>
                   <Input
                     type="email"
+                    placeholder="you@example.com"
                     {...field}
                     ref={emailInputRef}
-                    placeholder="you@example.com"
-                    onFocus={() => {
-                      // Set typing flag when focus enters field
-                      isTypingRef.current = true;
-                    }}
-                    onBlur={() => {
-                      // When focus leaves field, update the URL
-                      isTypingRef.current = false;
-                      updateURL();
-                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -671,18 +641,10 @@ export function MeetingFormContent({
                 <FormLabel className="font-semibold">Additional Notes</FormLabel>
                 <FormControl>
                   <Textarea
-                    {...field}
-                    ref={notesInputRef}
                     placeholder="Share anything that will help prepare for our meeting..."
                     className="min-h-32"
-                    onFocus={() => {
-                      // Set typing flag when focus enters field
-                      isTypingRef.current = true;
-                    }}
-                    onBlur={() => {
-                      // No need to update URL for notes field
-                      isTypingRef.current = false;
-                    }}
+                    {...field}
+                    ref={notesInputRef}
                   />
                 </FormControl>
                 <FormMessage />
@@ -702,7 +664,11 @@ export function MeetingFormContent({
           </Button>
           <Button
             type="button"
-            onClick={() => handleNextStep('3')}
+            onClick={() => {
+              // Update URL parameters before proceeding
+              updateURLOnSubmit();
+              handleNextStep('3');
+            }}
             disabled={isSubmitting}
             className="relative"
           >
