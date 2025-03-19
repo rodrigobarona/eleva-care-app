@@ -75,6 +75,7 @@ export function MeetingFormContent({
   // Refs for input focus management
   const nameInputRef = React.useRef<HTMLInputElement>(null);
   const emailInputRef = React.useRef<HTMLInputElement>(null);
+  const notesInputRef = React.useRef<HTMLTextAreaElement>(null);
 
   // Keep track of whether we are currently typing (to prevent URL updates while typing)
   const isTypingRef = React.useRef(false);
@@ -395,31 +396,122 @@ export function MeetingFormContent({
     }
   }, [currentStep, form, setQueryStates]);
 
-  // Debounced update triggered by form changes
+  // Enhanced focus management for input fields
+  const [activeFieldId, setActiveFieldId] = React.useState<string | null>(null);
+
+  // Effect to auto-focus name input field when step 2 is shown
+  React.useEffect(() => {
+    if (currentStep === '2' && nameInputRef.current) {
+      // Set initial focus with a small delay to ensure the UI is ready
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+        setActiveFieldId('guestName');
+      }, 100);
+    }
+  }, [currentStep]);
+
+  // Function to restore focus when it might be lost
+  const restoreFocus = React.useCallback(() => {
+    if (activeFieldId === 'guestName' && nameInputRef.current) {
+      nameInputRef.current.focus();
+    } else if (activeFieldId === 'guestEmail' && emailInputRef.current) {
+      emailInputRef.current.focus();
+    } else if (activeFieldId === 'guestNotes' && notesInputRef.current) {
+      notesInputRef.current.focus();
+    }
+  }, [activeFieldId]);
+
+  // Restore focus after any state updates that might cause focus loss
+  React.useEffect(() => {
+    if (activeFieldId && currentStep === '2') {
+      const timerId = setTimeout(restoreFocus, 0);
+      return () => clearTimeout(timerId);
+    }
+  }, [activeFieldId, currentStep, restoreFocus]);
+
+  // Modify the debounce behavior to prevent focus issues on the first keystroke
   const updateUrlDebounced = React.useMemo(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
+    let isFirstKeystroke = true;
 
     return () => {
       // Clear previous timer
       if (timer) clearTimeout(timer);
 
-      // Set typing flag to prevent other effects
-      isTypingRef.current = true;
+      // For the first keystroke, use a longer delay and don't set the typing flag
+      // This prevents focus issues when starting to type
+      if (isFirstKeystroke) {
+        isFirstKeystroke = false;
+        timer = setTimeout(() => {
+          debouncedUpdateUrl();
+          // Reset first keystroke flag after a while
+          setTimeout(() => {
+            isFirstKeystroke = true;
+          }, 5000); // Reset after 5 seconds of inactivity
+        }, 2000); // Extra long delay for first keystroke
+        return;
+      }
 
-      // Schedule URL update after typing stops
+      // After first keystroke, use normal debounce with typing flag
+      isTypingRef.current = true;
       timer = setTimeout(() => {
         isTypingRef.current = false;
         debouncedUpdateUrl();
-      }, 1500); // Longer delay to ensure typing has stopped
+      }, 1500);
     };
   }, [debouncedUpdateUrl]);
 
-  // Subscribe to form changes to update URL params in a controlled manner
+  // Subscribe to form changes to update URL params in a controlled manner but skip first keystroke
   React.useEffect(() => {
-    const subscription = form.watch((value) => {
-      // If values change and we're on step 2, schedule URL update
-      if (currentStep === '2' && (value.guestName || value.guestEmail)) {
-        updateUrlDebounced();
+    // Track the last values we've seen to avoid unnecessary updates
+    const lastValues = {
+      guestName: form.getValues('guestName'),
+      guestEmail: form.getValues('guestEmail'),
+    };
+
+    const skipFirstKeystroke = {
+      guestName: true,
+      guestEmail: true,
+    };
+
+    const subscription = form.watch((value, { name }) => {
+      // Only process for fields we care about
+      if (name !== 'guestName' && name !== 'guestEmail') return;
+
+      // Only run if we're on step 2
+      if (currentStep !== '2') return;
+
+      // Handle name/email updates for URL syncing
+      if (name === 'guestName' && value.guestName) {
+        // Skip very first keystroke for each field to avoid focus loss
+        if (skipFirstKeystroke.guestName) {
+          if (value.guestName.length === 1 && lastValues.guestName === '') {
+            skipFirstKeystroke.guestName = false;
+            lastValues.guestName = value.guestName;
+            return; // Skip further processing
+          }
+        }
+
+        if (value.guestName !== lastValues.guestName) {
+          lastValues.guestName = value.guestName;
+          updateUrlDebounced();
+        }
+      }
+
+      if (name === 'guestEmail' && value.guestEmail) {
+        // Skip very first keystroke for each field
+        if (skipFirstKeystroke.guestEmail) {
+          if (value.guestEmail.length === 1 && lastValues.guestEmail === '') {
+            skipFirstKeystroke.guestEmail = false;
+            lastValues.guestEmail = value.guestEmail;
+            return; // Skip further processing
+          }
+        }
+
+        if (value.guestEmail !== lastValues.guestEmail) {
+          lastValues.guestEmail = value.guestEmail;
+          updateUrlDebounced();
+        }
       }
     });
 
@@ -456,15 +548,6 @@ export function MeetingFormContent({
       });
     }
   }, [queryStates, form]);
-
-  // Effect to auto-focus name input field when step 2 is shown
-  React.useEffect(() => {
-    if (currentStep === '2' && nameInputRef.current) {
-      setTimeout(() => {
-        nameInputRef.current?.focus();
-      }, 100);
-    }
-  }, [currentStep]);
 
   // Early return for calendar sync check
   if (!isCalendarSynced) {
@@ -518,7 +601,25 @@ export function MeetingFormContent({
             <FormItem>
               <FormLabel className="font-semibold">Your Name</FormLabel>
               <FormControl>
-                <Input {...field} ref={nameInputRef} placeholder="Enter your full name" />
+                <Input
+                  {...field}
+                  ref={nameInputRef}
+                  placeholder="Enter your full name"
+                  onFocus={() => setActiveFieldId('guestName')}
+                  onBlur={(e) => {
+                    // Only clear active field if we're not clicking within the same form
+                    // This prevents losing focus when clicking on a different part of the input
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      // Small delay to allow potential click events to finish
+                      setTimeout(() => {
+                        if (document.activeElement !== nameInputRef.current) {
+                          setActiveFieldId(null);
+                        }
+                      }, 50);
+                    }
+                  }}
+                  className="focus:z-10" // Ensure focused element is on top
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -531,7 +632,25 @@ export function MeetingFormContent({
             <FormItem>
               <FormLabel className="font-semibold">Your Email</FormLabel>
               <FormControl>
-                <Input type="email" {...field} ref={emailInputRef} placeholder="you@example.com" />
+                <Input
+                  type="email"
+                  {...field}
+                  ref={emailInputRef}
+                  placeholder="you@example.com"
+                  onFocus={() => setActiveFieldId('guestEmail')}
+                  onBlur={(e) => {
+                    // Only clear active field if we're not clicking within the same form
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      // Small delay to allow potential click events to finish
+                      setTimeout(() => {
+                        if (document.activeElement !== emailInputRef.current) {
+                          setActiveFieldId(null);
+                        }
+                      }, 50);
+                    }
+                  }}
+                  className="focus:z-10" // Ensure focused element is on top
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -546,8 +665,21 @@ export function MeetingFormContent({
               <FormControl>
                 <Textarea
                   {...field}
+                  ref={notesInputRef}
                   placeholder="Share anything that will help prepare for our meeting..."
-                  className="min-h-32"
+                  className="min-h-32 focus:z-10"
+                  onFocus={() => setActiveFieldId('guestNotes')}
+                  onBlur={(e) => {
+                    // Only clear active field if we're not clicking within the same form
+                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                      // Small delay to allow potential click events to finish
+                      setTimeout(() => {
+                        if (document.activeElement !== notesInputRef.current) {
+                          setActiveFieldId(null);
+                        }
+                      }, 50);
+                    }
+                  }}
                 />
               </FormControl>
               <FormMessage />
