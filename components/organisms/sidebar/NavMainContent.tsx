@@ -24,6 +24,7 @@ import {
   Home,
   type LucideIcon,
   MoreHorizontal,
+  Settings2,
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -64,6 +65,16 @@ export function NavMainContent({ items }: NavMainContentProps) {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+            <RequireRole roles={['community_expert', 'top_expert']}>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/setup">
+                    <Settings2 className="size-4" />
+                    <span>Setup</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </RequireRole>
           </SidebarMenu>
         </SidebarGroup>
         {/* Expert section */}
