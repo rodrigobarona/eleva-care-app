@@ -366,22 +366,6 @@ export function MeetingFormContent({
     [form, price, createPaymentIntent, onSubmit, router, transitionToStep],
   );
 
-  // Enhanced function to ensure we go back to step 1 with date/time preserved
-  const handleBackToStep1 = React.useCallback(() => {
-    // Ensure date and time are preserved when going back
-    const currentDate = form.getValues('date');
-    const currentTime = form.getValues('startTime');
-
-    // Log for debugging
-    console.log('Going back to Step 1 with:', {
-      date: currentDate,
-      time: currentTime,
-    });
-
-    // Update URL parameters with the step change but preserve all other values
-    setQueryStates({ step: '1' });
-  }, [form, setQueryStates]);
-
   // Effects
   React.useEffect(() => {
     if (!validTimes.length || queryStates.date) return;
@@ -657,7 +641,7 @@ export function MeetingFormContent({
           <Button
             type="button"
             variant="outline"
-            onClick={handleBackToStep1}
+            onClick={() => transitionToStep('1')}
             disabled={isSubmitting}
           >
             Back
