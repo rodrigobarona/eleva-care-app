@@ -75,8 +75,9 @@ export function MeetingFormContent({
   // Refs for input focus management
   const nameInputRef = React.useRef<HTMLInputElement>(null);
   const emailInputRef = React.useRef<HTMLInputElement>(null);
-  const [nameValue, setNameValue] = React.useState('');
-  const [emailValue, setEmailValue] = React.useState('');
+
+  // Keep track of whether we are currently typing (to prevent URL updates while typing)
+  const isTypingRef = React.useRef(false);
 
   // Query state configuration
   const queryStateParsers = React.useMemo(
@@ -104,14 +105,17 @@ export function MeetingFormContent({
     },
   });
 
-  // Form initialization
+  // Form initialization with enhanced defaults from URL
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
       timezone: queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       guestName: queryStates.name || '',
       guestEmail: queryStates.email || '',
+      guestNotes: '', // Initialize with empty string
     },
+    // Don't validate on mount to avoid confusion
+    mode: 'onBlur',
   });
 
   // Extract values we'll use in memos
@@ -304,12 +308,30 @@ export function MeetingFormContent({
 
   // Effect to sync form values with query params when they change
   React.useEffect(() => {
-    // Only update form values if query params have values
+    // Skip if we're currently typing to avoid focus issues
+    if (isTypingRef.current) return;
+
+    // Only update form values if query params have values and they differ from current form values
     if (queryStates.name) {
-      form.setValue('guestName', queryStates.name);
+      const currentName = form.getValues('guestName');
+      if (queryStates.name !== currentName) {
+        form.setValue('guestName', queryStates.name, {
+          shouldValidate: false,
+          shouldDirty: true,
+          shouldTouch: false, // Prevents focus issues
+        });
+      }
     }
+
     if (queryStates.email) {
-      form.setValue('guestEmail', queryStates.email);
+      const currentEmail = form.getValues('guestEmail');
+      if (queryStates.email !== currentEmail) {
+        form.setValue('guestEmail', queryStates.email, {
+          shouldValidate: false,
+          shouldDirty: true,
+          shouldTouch: false, // Prevents focus issues
+        });
+      }
     }
   }, [queryStates.name, queryStates.email, form]);
 
@@ -353,27 +375,87 @@ export function MeetingFormContent({
     setQueryStates({ timezone: newTimezone });
   };
 
-  // Effect to update URL params less frequently - only when form gets completed
-  React.useEffect(() => {
-    // Only update URL when there's a name value
-    if (nameValue && currentStep === '2') {
-      const timer = setTimeout(() => {
-        setQueryStates((prev) => ({ ...prev, name: nameValue }));
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [nameValue, currentStep, setQueryStates]);
+  // Add a debounced URL update function to avoid constant re-renders while typing
+  const debouncedUpdateUrl = React.useCallback(() => {
+    // Only run if we're on the contact info step
+    if (currentStep !== '2') return;
 
-  // Effect to update URL params less frequently - only when form gets completed
-  React.useEffect(() => {
-    // Only update URL when there's an email value
-    if (emailValue && currentStep === '2') {
-      const timer = setTimeout(() => {
-        setQueryStates((prev) => ({ ...prev, email: emailValue }));
-      }, 1000);
-      return () => clearTimeout(timer);
+    // Get current form values
+    const formValues = form.getValues();
+    const name = formValues.guestName?.trim();
+    const email = formValues.guestEmail?.trim();
+
+    // Only update URL if we have meaningful content
+    if (name && name.length > 1) {
+      setQueryStates((prev) => ({ ...prev, name }));
     }
-  }, [emailValue, currentStep, setQueryStates]);
+
+    if (email && email.length > 3) {
+      setQueryStates((prev) => ({ ...prev, email }));
+    }
+  }, [currentStep, form, setQueryStates]);
+
+  // Debounced update triggered by form changes
+  const updateUrlDebounced = React.useMemo(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
+    return () => {
+      // Clear previous timer
+      if (timer) clearTimeout(timer);
+
+      // Set typing flag to prevent other effects
+      isTypingRef.current = true;
+
+      // Schedule URL update after typing stops
+      timer = setTimeout(() => {
+        isTypingRef.current = false;
+        debouncedUpdateUrl();
+      }, 1500); // Longer delay to ensure typing has stopped
+    };
+  }, [debouncedUpdateUrl]);
+
+  // Subscribe to form changes to update URL params in a controlled manner
+  React.useEffect(() => {
+    const subscription = form.watch((value) => {
+      // If values change and we're on step 2, schedule URL update
+      if (currentStep === '2' && (value.guestName || value.guestEmail)) {
+        updateUrlDebounced();
+      }
+    });
+
+    // Cleanup function
+    return () => subscription.unsubscribe();
+  }, [form, currentStep, updateUrlDebounced]);
+
+  // Reset the form completely when URL parameters change drastically
+  // This helps with shared URLs where all parameters change at once
+  React.useEffect(() => {
+    // Only run this when NOT typing to prevent focus issues
+    if (isTypingRef.current) return;
+
+    // Check if this looks like a completely new set of parameters
+    // Only reset if multiple parameters changed at once
+    const changesCount = [
+      queryStates.name !== form.getValues('guestName') && !!queryStates.name,
+      queryStates.email !== form.getValues('guestEmail') && !!queryStates.email,
+      queryStates.timezone !== form.getValues('timezone') && !!queryStates.timezone,
+    ].filter(Boolean).length;
+
+    // If multiple parameters changed at once, this is likely a shared URL
+    if (changesCount >= 2) {
+      console.log('Resetting form with URL parameters', queryStates);
+
+      // Reset the form with the new values
+      form.reset({
+        timezone: queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+        guestName: queryStates.name || '',
+        guestEmail: queryStates.email || '',
+        guestNotes: form.getValues('guestNotes'), // Preserve notes
+        date: form.getValues('date'), // Preserve date
+        startTime: form.getValues('startTime'), // Preserve time
+      });
+    }
+  }, [queryStates, form]);
 
   // Effect to auto-focus name input field when step 2 is shown
   React.useEffect(() => {
@@ -389,7 +471,7 @@ export function MeetingFormContent({
     return (
       <div className="py-8 text-center">
         <h2 className="mb-4 text-lg font-semibold">Calendar Sync Required</h2>
-        <p className="text-muted-foreground mb-4">
+        <p className="mb-4 text-muted-foreground">
           We need access to your Google Calendar to show available time slots.
         </p>
         <Button
@@ -410,7 +492,7 @@ export function MeetingFormContent({
     <div className="rounded-lg border p-6">
       <div className="mb-6">
         <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
-        <div className="bg-muted/50 text-muted-foreground flex flex-col gap-1 rounded-md p-3">
+        <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
           <div className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
             <span>{date && format(date, 'EEEE, MMMM d, yyyy')}</span>
@@ -436,16 +518,7 @@ export function MeetingFormContent({
             <FormItem>
               <FormLabel className="font-semibold">Your Name</FormLabel>
               <FormControl>
-                <Input
-                  {...field}
-                  ref={nameInputRef}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    field.onChange(value);
-                    setNameValue(value);
-                  }}
-                  placeholder="Enter your full name"
-                />
+                <Input {...field} ref={nameInputRef} placeholder="Enter your full name" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -458,17 +531,7 @@ export function MeetingFormContent({
             <FormItem>
               <FormLabel className="font-semibold">Your Email</FormLabel>
               <FormControl>
-                <Input
-                  type="email"
-                  {...field}
-                  ref={emailInputRef}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    field.onChange(value);
-                    setEmailValue(value);
-                  }}
-                  placeholder="you@example.com"
-                />
+                <Input type="email" {...field} ref={emailInputRef} placeholder="you@example.com" />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -519,7 +582,7 @@ export function MeetingFormContent({
   const Step3Content = () => (
     <div className="flex items-center justify-center py-12">
       <div className="text-center">
-        <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
+        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
         <p className="mt-4 text-lg font-medium">
           {checkoutUrl ? 'Redirecting to payment...' : 'Preparing checkout...'}
         </p>
@@ -543,7 +606,7 @@ export function MeetingFormContent({
               Select Date & Time
             </span>
           </div>
-          <div className="bg-muted mx-1 h-0.5 w-4 md:mx-2 md:w-6" />
+          <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
           <div className="flex items-center">
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '2' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
@@ -558,7 +621,7 @@ export function MeetingFormContent({
           </div>
           {price > 0 && (
             <>
-              <div className="bg-muted mx-1 h-0.5 w-4 md:mx-2 md:w-6" />
+              <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
               <div className="flex items-center">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '3' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
