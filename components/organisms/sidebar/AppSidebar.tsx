@@ -10,13 +10,18 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarInset,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
 } from '@/components/organisms/sidebar/sidebar';
-import { useUser } from '@clerk/nextjs';
-import { Clock, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
-import { Link as LinkIcon } from 'lucide-react';
+import {
+  Calendar,
+  CalendarDays,
+  CheckSquare,
+  Clock,
+  Leaf,
+  LifeBuoy,
+  type LucideIcon,
+  User,
+  Users,
+} from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
 
@@ -30,82 +35,82 @@ interface SidebarItem {
   }[];
 }
 
-const mainItems: SidebarItem[] = [
-  {
-    title: 'Events',
-    url: '/booking/events',
-    icon: LinkIcon,
-    items: [
-      { title: 'All Events', url: '/booking/events' },
-      { title: 'Create Event', url: '/booking/events/new' },
-    ],
-  },
-  {
-    title: 'Manage Calendar ',
-    url: '/booking/schedule',
-    icon: Clock,
-  },
-
-  {
-    title: 'Expert Profile',
-    url: '/booking/expert',
-    icon: User,
-  },
-];
-
 export function AppSidebar() {
-  const { user } = useUser();
   const isExpert = useIsExpert();
 
-  // Build secondary items conditionally
-  const secondaryItems: SidebarItem[] = [
-    // Only include Public Expert Profile if user has the required role
-    ...(isExpert && user?.username
-      ? [
-          {
-            title: 'Public Expert Profile',
-            url: `/${user.username}`,
-            icon: ExternalLink,
-          },
-        ]
-      : []),
+  // Regular user navigation items
+  const navigationItems: SidebarItem[] = [
     {
-      title: 'Need help?',
-      url: '#',
+      title: 'Dashboard',
+      url: '/dashboard',
+      icon: Leaf,
+    },
+    {
+      title: 'Profile',
+      url: '/profile',
+      icon: User,
+    },
+  ];
+
+  // Expert specific navigation items
+  const expertItems: SidebarItem[] = [
+    {
+      title: 'Setup',
+      url: '/setup',
+      icon: CheckSquare,
+    },
+    {
+      title: 'Appointments',
+      url: '/appointments',
+      icon: CalendarDays,
+    },
+    {
+      title: 'Events',
+      url: '/booking/events',
+      icon: Calendar,
+    },
+    {
+      title: 'Customers',
+      url: '/appointments/patients',
+      icon: Users,
+    },
+  ];
+
+  const secondaryItems = [
+    {
+      title: 'Help',
+      url: '/help',
       icon: LifeBuoy,
+    },
+    {
+      title: 'Roadmap',
+      url: '/roadmap',
+      icon: Clock,
     },
   ];
 
   return (
-    <Sidebar variant="inset" collapsible="icon">
-      <SidebarInset>
-        <SidebarHeader>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton size="lg" asChild>
-                <Link href="/">
-                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                    <Leaf className="size-4" />
-                  </div>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">Eleva Care</span>
-                    <span className="truncate text-xs">Professional</span>
-                  </div>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarHeader>
-        <SidebarContent>
-          <NavMain items={mainItems} />
-          <NavSecondary items={secondaryItems} className="mt-auto" />
-        </SidebarContent>
-        <SidebarFooter>
-          <Suspense fallback={<NavUser.Skeleton />}>
-            <NavUser />
+    <Sidebar>
+      <SidebarHeader>
+        <Link href="/">
+          <h2 className="text-xl font-bold">Eleva Care</h2>
+        </Link>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarInset>
+          <Suspense fallback={<div>Loading...</div>}>
+            <NavMain items={navigationItems} />
+
+            {/* Expert navigation section */}
+            {isExpert && <NavMain items={expertItems} />}
+
+            <NavSecondary items={secondaryItems} />
           </Suspense>
-        </SidebarFooter>
-      </SidebarInset>
+        </SidebarInset>
+      </SidebarContent>
+      <SidebarFooter>
+        <NavUser />
+      </SidebarFooter>
     </Sidebar>
   );
 }

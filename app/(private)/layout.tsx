@@ -1,5 +1,4 @@
 import { Separator } from '@/components/atoms/separator';
-import { ExpertSetupChecklistWrapper } from '@/components/organisms/ExpertSetupChecklistWrapper';
 import { PrivateLayoutWrapper } from '@/components/organisms/PrivateLayoutWrapper';
 import { AppBreadcrumb } from '@/components/organisms/sidebar/AppBreadcrumb';
 import { AppSidebar } from '@/components/organisms/sidebar/AppSidebar';
@@ -30,7 +29,6 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
           <AppSidebar />
           <SidebarInset>
             <div className="w-full rounded-xl bg-background">
-              <ExpertSetupChecklistWrapper />
               <header className="flex h-16 shrink-0 items-center gap-2 rounded-t-xl border-b">
                 <div className="flex items-center gap-2 px-4">
                   <SidebarTrigger className="-ml-1" />

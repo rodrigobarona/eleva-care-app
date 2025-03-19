@@ -17,6 +17,7 @@ import { useClerk, useUser } from '@clerk/nextjs';
 import {
   BadgeCheck,
   BanknoteIcon,
+  CheckSquare,
   ChevronsUpDown,
   CreditCard,
   Home,
@@ -113,6 +114,12 @@ export function NavUser() {
                 </Link>
               </DropdownMenuItem>
               <RequireRole roles={['community_expert', 'top_expert']}>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link href="/setup">
+                    Setup Guide
+                    <CheckSquare className="ml-auto h-4 w-4" />
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild className="cursor-pointer">
                   <Link href="/account/billing">
                     Billing
