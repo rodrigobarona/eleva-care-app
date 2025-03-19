@@ -19,12 +19,12 @@ import {
 import { cn } from '@/lib/utils';
 import {
   Calendar,
+  CheckSquare,
   ChevronLeft,
   FileText,
   Home,
   type LucideIcon,
   MoreHorizontal,
-  Settings2,
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -69,8 +69,8 @@ export function NavMainContent({ items }: NavMainContentProps) {
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link href="/setup">
-                    <Settings2 className="size-4" />
-                    <span>Setup</span>
+                    <CheckSquare className="size-4" />
+                    <span>Setup Guide</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
