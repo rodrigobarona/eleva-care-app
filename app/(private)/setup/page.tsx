@@ -33,7 +33,6 @@ type SetupStep = {
 
 export default function ExpertSetupPage() {
   const { isLoaded, user } = useUser();
-  const [loading, setLoading] = useState(true);
   const [steps, setSteps] = useState<SetupStep[]>([
     {
       id: 'profile',
@@ -106,7 +105,6 @@ export default function ExpertSetupPage() {
     const loadSetupStatus = async () => {
       if (!isLoaded || !user) return;
 
-      setLoading(true);
       try {
         const result = await checkExpertSetupStatus();
         if (result.success && result.setupStatus) {
@@ -114,24 +112,17 @@ export default function ExpertSetupPage() {
           setSteps((prev) =>
             prev.map((step) => ({
               ...step,
-              completed: !!result.setupStatus?.[step.id],
+              completed: !!result.setupStatus?.[step.id as keyof typeof result.setupStatus],
             })),
           );
         }
       } catch (error) {
         console.error('Failed to load setup status:', error);
-      } finally {
-        setLoading(false);
       }
     };
 
     loadSetupStatus();
   }, [isLoaded, user]);
-
-  // Calculate completion percentage
-  const completedCount = steps.filter((step) => step.completed).length;
-  const totalCount = steps.length;
-  const progressPercentage = Math.round((completedCount / totalCount) * 100);
 
   if (!isLoaded) {
     return <SetupSkeleton />;

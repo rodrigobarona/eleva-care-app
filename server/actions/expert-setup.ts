@@ -244,7 +244,8 @@ export async function updateSetupStepStatus(stepId: string, completed: boolean) 
     expertSetup[stepId] = completed;
 
     // Save the updated metadata
-    await clerkClient.users.updateUser(user.id, {
+    const clerk = await clerkClient();
+    await clerk.users.updateUser(user.id, {
       unsafeMetadata: currentMetadata,
     });
 

@@ -34,7 +34,7 @@ export function ExpertSetupBanner() {
           ];
 
           const completedCount = requiredSteps.filter(
-            (step) => !!result.setupStatus?.[step],
+            (step) => !!result.setupStatus?.[step as keyof typeof result.setupStatus],
           ).length;
 
           const percentage = Math.round((completedCount / requiredSteps.length) * 100);

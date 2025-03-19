@@ -99,13 +99,13 @@ export function ExpertSetupChecklist() {
         setSetupSteps((prev) =>
           prev.map((step) => ({
             ...step,
-            completed: result.setupStatus?.[step.id] || false,
+            completed: result.setupStatus?.[step.id as keyof typeof result.setupStatus] || false,
           })),
         );
 
         // Track whether the profile is already published
         if (result.isPublished !== undefined) {
-          setIsProfilePublished(result.isPublished);
+          setIsProfilePublished(!!result.isPublished);
         }
 
         // If revalidation path was returned, refresh the UI
@@ -575,7 +575,7 @@ export function ExpertSetupChecklist() {
     >
       <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
       {pressCount > 0 && (
-        <span className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full text-[8px]">
+        <span className="absolute -right-1 -top-1 flex h-3 w-3 items-center justify-center rounded-full bg-primary text-[8px] text-primary-foreground">
           {pressCount}
         </span>
       )}
@@ -633,7 +633,7 @@ export function ExpertSetupChecklist() {
           <div className="flex flex-col">
             <span className="font-medium">Congratulations! 🎉</span>
             <span className="text-sm">You&apos;ve completed all the setup steps!</span>
-            <span className="text-muted-foreground mt-1 text-xs">
+            <span className="mt-1 text-xs text-muted-foreground">
               Completed on {new Date().toLocaleDateString()}
             </span>
           </div>,
@@ -728,7 +728,7 @@ export function ExpertSetupChecklist() {
   if (loading && completedSteps === 0) return null;
 
   return (
-    <div className="border-border bg-card mt-1 mb-6 w-full rounded-lg border p-4 shadow-sm">
+    <div className="mb-6 mt-1 w-full rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h3 className="text-sm font-medium">Complete your expert setup</h3>
@@ -737,7 +737,7 @@ export function ExpertSetupChecklist() {
               value={loading ? undefined : progressPercentage}
               className={cn('h-2 w-[100px]', loading && 'animate-pulse')}
             />
-            <span className="text-muted-foreground text-xs">
+            <span className="text-xs text-muted-foreground">
               {loading ? 'Loading...' : `${progressPercentage}% complete`}
             </span>
           </div>
@@ -772,11 +772,11 @@ export function ExpertSetupChecklist() {
             <div key={step.id} className="flex items-start space-x-3">
               <div className="mt-0.5">
                 {loading ? (
-                  <Circle className="text-muted-foreground h-5 w-5 animate-pulse" />
+                  <Circle className="h-5 w-5 animate-pulse text-muted-foreground" />
                 ) : step.completed ? (
-                  <CheckCircle2 className="text-primary h-5 w-5" />
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
                 ) : (
-                  <Circle className="text-muted-foreground h-5 w-5" />
+                  <Circle className="h-5 w-5 text-muted-foreground" />
                 )}
               </div>
               <div className="flex-1">
@@ -796,7 +796,7 @@ export function ExpertSetupChecklist() {
                     </Button>
                   )}
                 </div>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-xs text-muted-foreground">
                   {step.completed
                     ? getStepDetails(step.id).completedDescription || step.description
                     : getStepDetails(step.id).pendingDescription || step.description}
