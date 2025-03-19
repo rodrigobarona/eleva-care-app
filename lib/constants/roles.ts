@@ -46,6 +46,12 @@ export const PUBLIC_ROUTES = [
   '/experts/:path*',
   '/blog/:path*',
   '/contact',
+  '/img/:path*',
+  '/video/:path*',
+  '/locales/:path*',
+  '/favicon.ico',
+  '/robots.txt',
+  '/sitemap.xml',
 
   // Public API endpoints
   '/api/webhooks/stripe(.*)', // Stripe webhooks (payments, subscriptions)
