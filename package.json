@@ -94,6 +94,7 @@
     "postgres": "^3.4.5",
     "posthog-js": "^1.231.0",
     "react": "^19.0.0",
+    "react-confetti": "^6.4.0",
     "react-cookie-manager": "^3.3.1",
     "react-day-picker": "9.5.1",
     "react-dom": "^19.0.0",

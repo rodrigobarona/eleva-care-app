@@ -8,6 +8,7 @@ import { useUser } from '@clerk/nextjs';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import ReactConfetti from 'react-confetti';
 
 // Generate unique IDs for skeleton items
 const skeletonIds = [
@@ -33,70 +34,55 @@ type SetupStep = {
 
 export default function ExpertSetupPage() {
   const { isLoaded, user } = useUser();
+  const [showConfetti, setShowConfetti] = useState(false);
   const [steps, setSteps] = useState<SetupStep[]>([
     {
       id: 'profile',
-      name: 'Create your store',
-      description: 'Take the first step towards making a living online',
+      name: 'Fill out your expert profile',
+      description: 'Complete your profile with your expertise, bio, and profile picture',
       href: '/booking/expert',
       completed: false,
       position: 1,
     },
     {
       id: 'availability',
-      name: 'Fine tune your store settings',
-      description: 'Add a logo, contact email, and more',
+      name: 'Set your availability',
+      description: "Define when you're available for consultations",
       href: '/booking/schedule',
       completed: false,
       position: 2,
     },
     {
       id: 'events',
-      name: 'Add business details',
-      description: 'Enable live payments and all features',
+      name: 'Create a service',
+      description: 'Create at least one service to offer to clients',
       href: '/booking/events',
       completed: false,
       position: 3,
     },
     {
-      id: 'identity',
-      name: 'Verify your identity',
-      description: 'Add your personal information',
-      href: '/account/identity',
+      id: 'google_account',
+      name: 'Connect Google account',
+      description: 'Connect your Google account for calendar integration',
+      href: '/account/security',
       completed: false,
       position: 4,
     },
     {
-      id: 'google_account',
-      name: 'Set up two-factor authentication (2FA)',
-      description: 'Add additional security to your account',
-      href: '/account/security',
+      id: 'identity',
+      name: 'Verify your identity',
+      description: 'Complete identity verification for your account',
+      href: '/account/identity',
       completed: false,
       position: 5,
     },
     {
       id: 'payment',
-      name: 'Create your first product',
-      description: 'Create and share your products',
+      name: 'Connect payment account',
+      description: 'Set up Stripe Connect to receive payments',
       href: '/account/billing',
       completed: false,
       position: 6,
-    },
-    {
-      id: 'discount',
-      name: 'Add discount code',
-      description: 'Level up your sales with discounts',
-      href: '/booking/events',
-      completed: false,
-      position: 7,
-    },
-    {
-      id: 'bank_account',
-      name: 'Connect a bank account',
-      description: 'Set up payout details so you can get paid',
-      href: '/account/billing',
-      completed: false,
-      position: 8,
     },
   ]);
 
@@ -124,17 +110,30 @@ export default function ExpertSetupPage() {
     loadSetupStatus();
   }, [isLoaded, user]);
 
+  // Check if all steps are completed
+  const allStepsCompleted = steps.every((step) => step.completed);
+
+  // Show confetti when all steps are completed
+  useEffect(() => {
+    if (allStepsCompleted) {
+      setShowConfetti(true);
+      const timer = setTimeout(() => setShowConfetti(false), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [allStepsCompleted]);
+
   if (!isLoaded) {
     return <SetupSkeleton />;
   }
 
   return (
     <div className="container py-10">
+      {showConfetti && <ReactConfetti recycle={false} numberOfPieces={200} />}
       <div className="mx-auto max-w-3xl">
         <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold">Congrats on the new store!</h1>
+          <h1 className="text-3xl font-bold">Welcome to Eleva Care!</h1>
           <p className="mt-2 text-muted-foreground">
-            Complete these simple steps to get your store up and running
+            Complete these steps to set up your expert profile and start helping others
           </p>
         </div>
 
