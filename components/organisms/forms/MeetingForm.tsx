@@ -122,11 +122,35 @@ export function MeetingFormContent({
     mode: 'onBlur',
   });
 
-  // Extract values we'll use in memos
+  // Extract values we'll use for various purposes
   const timezone = form.watch('timezone');
+
+  // Watch form values for reactive UI updates while also ensuring we get the latest
+  // values from either the form or URL parameters for the BookingLayout
   const date = form.watch('date');
   const startTime = form.watch('startTime');
+  const selectedDateValue = form.getValues('date') || queryStates.date;
+  const selectedTimeValue = form.getValues('startTime') || queryStates.time;
   const currentStep = queryStates.step;
+
+  // Log when date and time values change
+  React.useEffect(() => {
+    if (date || startTime) {
+      console.log('Form values updated:', { date, startTime });
+    }
+  }, [date, startTime]);
+
+  // Log when these values change for debugging
+  React.useEffect(() => {
+    console.log('Selected date/time values updated:', {
+      formDate: form.getValues('date'),
+      formTime: form.getValues('startTime'),
+      urlDate: queryStates.date,
+      urlTime: queryStates.time,
+      selectedDateValue,
+      selectedTimeValue,
+    });
+  }, [selectedDateValue, selectedTimeValue, queryStates.date, queryStates.time, form]);
 
   // Enhanced step transition with validation
   const transitionToStep = React.useCallback(
@@ -344,6 +368,22 @@ export function MeetingFormContent({
     },
     [form, price, createPaymentIntent, onSubmit, router, transitionToStep],
   );
+
+  // Enhanced function to ensure we go back to step 1 with date/time preserved
+  const handleBackToStep1 = React.useCallback(() => {
+    // Ensure date and time are preserved when going back
+    const currentDate = form.getValues('date');
+    const currentTime = form.getValues('startTime');
+
+    // Log for debugging
+    console.log('Going back to Step 1 with:', {
+      date: currentDate,
+      time: currentTime,
+    });
+
+    // Update URL parameters with the step change but preserve all other values
+    setQueryStates({ step: '1' });
+  }, [form, setQueryStates]);
 
   // Effects
   React.useEffect(() => {
@@ -655,7 +695,7 @@ export function MeetingFormContent({
           <Button
             type="button"
             variant="outline"
-            onClick={() => handleNextStep('1')}
+            onClick={handleBackToStep1}
             disabled={isSubmitting}
           >
             Back
@@ -753,8 +793,8 @@ export function MeetingFormContent({
           validTimes={validTimes}
           onDateSelect={handleDateSelect}
           onTimeSlotSelect={handleTimeSelect}
-          selectedDate={date}
-          selectedTime={startTime}
+          selectedDate={selectedDateValue}
+          selectedTime={selectedTimeValue}
           timezone={timezone}
           onTimezoneChange={handleTimezoneChange}
           showCalendar={currentStep === '1'}
