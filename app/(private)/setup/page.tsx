@@ -117,7 +117,7 @@ export default function ExpertSetupPage() {
   useEffect(() => {
     if (allStepsCompleted) {
       setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 5000);
+      const timer = setTimeout(() => setShowConfetti(false), 8000);
       return () => clearTimeout(timer);
     }
   }, [allStepsCompleted]);
@@ -128,7 +128,16 @@ export default function ExpertSetupPage() {
 
   return (
     <div className="container py-10">
-      {showConfetti && <ReactConfetti recycle={false} numberOfPieces={200} />}
+      {showConfetti && (
+        <ReactConfetti
+          recycle={false}
+          numberOfPieces={500}
+          wind={0.01}
+          gravity={0.3}
+          initialVelocityY={20}
+          tweenDuration={100}
+        />
+      )}
       <div className="mx-auto max-w-3xl">
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold">Welcome to Eleva Care!</h1>

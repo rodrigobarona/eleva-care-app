@@ -1,8 +1,9 @@
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
+import { ROLE_COMMUNITY_EXPERT, ROLE_TOP_EXPERT } from '@/lib/auth/roles';
 import { UserButton } from '@clerk/nextjs';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { ArrowRightIcon, CalendarIcon, CompassIcon, UsersIcon } from 'lucide-react';
+import { CalendarIcon, CompassIcon, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function HomePage() {
@@ -16,6 +17,20 @@ export default async function HomePage() {
 
   // Extract first name from user data
   const firstName = user.firstName || 'there';
+
+  // Check if user is an expert
+  const userRoles = Array.isArray(user.publicMetadata.role)
+    ? user.publicMetadata.role
+    : [user.publicMetadata.role];
+  const isExpert = userRoles.some(
+    (role) => role === ROLE_TOP_EXPERT || role === ROLE_COMMUNITY_EXPERT,
+  );
+
+  // Check if expert setup is completed (only for experts)
+  const expertSetup = isExpert
+    ? (user.unsafeMetadata?.expertSetup as Record<string, boolean> | undefined)
+    : undefined;
+  const isSetupCompleted = expertSetup && Object.values(expertSetup).every(Boolean);
 
   return (
     <div className="container max-w-6xl py-10">
@@ -37,16 +52,11 @@ export default async function HomePage() {
             Connect with experts, schedule appointments, and manage your healthcare journey all in
             one place.
           </p>
-          <Button asChild variant="secondary" className="font-medium">
-            <Link href="/appointments/events">
-              Explore Services <ArrowRightIcon className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
         </div>
         <div className="absolute -bottom-10 right-0 opacity-20">
           <svg
-            width="300"
-            height="300"
+            width="250"
+            height="250"
             viewBox="0 0 600 600"
             xmlns="http://www.w3.org/2000/svg"
             aria-label="Eleva Logo"
@@ -63,96 +73,105 @@ export default async function HomePage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Expert Consultations</CardTitle>
-            <UsersIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Connect with verified healthcare professionals and wellness experts.
-            </p>
-            <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
-              <Link href="/experts">Find Experts</Link>
-            </Button>
-          </CardContent>
-        </Card>
+      {isExpert && (
+        <>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Appointments</CardTitle>
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  View and manage your upcoming consultations and bookings.
+                </p>
+                <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
+                  <Link href="/appointments">View Calendar</Link>
+                </Button>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming Appointments</CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              View and manage your scheduled appointments and consultations.
-            </p>
-            <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
-              <Link href="/appointments">My Calendar</Link>
-            </Button>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Records & Notes</CardTitle>
+                <CompassIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Access and manage consultation records and patient notes.
+                </p>
+                <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
+                  <Link href="/appointments/records">View Records</Link>
+                </Button>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Explore Services</CardTitle>
-            <CompassIcon className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              Discover a range of health and wellness services available on Eleva.
-            </p>
-            <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
-              <Link href="/appointments/events">View Services</Link>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Patients</CardTitle>
+                <UsersIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Manage your patient list and view customer information.
+                </p>
+                <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
+                  <Link href="/appointments/patients">View Patients</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
 
-      <div className="mt-10 rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
-        <h2 className="mb-4 text-2xl font-bold tracking-tight">Getting Started with Eleva</h2>
-        <div className="space-y-4">
-          <div className="flex items-start gap-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              1
+          {!isSetupCompleted && (
+            <div className="mt-10 rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+              <h2 className="mb-4 text-2xl font-bold tracking-tight">Complete Your Expert Setup</h2>
+              <div className="space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    1
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Set up your expert profile</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Complete your profile with expertise, bio, and profile picture to attract
+                      clients.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    2
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Configure your availability</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Set your working hours and connect your Google Calendar for seamless
+                      scheduling.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-4">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    3
+                  </div>
+                  <div>
+                    <h3 className="font-medium">Set up payments</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Connect your payment account and verify your identity to start receiving
+                      payments.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="mt-6">
+                <Button asChild>
+                  <Link href="/setup">Complete Expert Setup</Link>
+                </Button>
+              </div>
             </div>
-            <div>
-              <h3 className="font-medium">Complete your profile</h3>
-              <p className="text-sm text-muted-foreground">
-                Add your details to get personalized recommendations and better service.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              2
-            </div>
-            <div>
-              <h3 className="font-medium">Browse available experts</h3>
-              <p className="text-sm text-muted-foreground">
-                Explore our network of verified healthcare professionals and specialists.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-start gap-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-              3
-            </div>
-            <div>
-              <h3 className="font-medium">Book your first consultation</h3>
-              <p className="text-sm text-muted-foreground">
-                Schedule an appointment with your chosen expert at a time that works for you.
-              </p>
-            </div>
-          </div>
-        </div>
-        <div className="mt-6">
-          <Button asChild>
-            <Link href="/account">Complete Your Profile</Link>
-          </Button>
-        </div>
-      </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
