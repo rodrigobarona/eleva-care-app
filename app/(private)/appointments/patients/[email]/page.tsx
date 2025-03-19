@@ -299,7 +299,7 @@ function CustomerDetailsContent() {
                   This customer hasn&apos;t booked any appointments yet.
                 </p>
                 <Button asChild variant="outline">
-                  <Link href="/appointments/events/new">Create an event to share</Link>
+                  <Link href="/booking/events/new">Create an event to share</Link>
                 </Button>
               </div>
             )}

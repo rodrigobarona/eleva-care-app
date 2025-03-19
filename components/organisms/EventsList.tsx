@@ -155,7 +155,7 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
           <p className="text-muted-foreground">Manage your booking events and availability.</p>
         </div>
         <Button asChild>
-          <Link href="/appointments/events/new">
+          <Link href="/booking/events/new">
             <CalendarPlus className="mr-2 h-4 w-4" />
             New event
           </Link>
@@ -187,7 +187,7 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
             Create your first event to start accepting bookings.
           </p>
           <Button asChild>
-            <Link href="/appointments/events/new">
+            <Link href="/booking/events/new">
               <CalendarPlus className="mr-2 h-4 w-4" />
               New event
             </Link>
@@ -250,7 +250,7 @@ function SortableEventCard({
           <div className="mb-1 flex items-start justify-between gap-4">
             <div>
               <Link
-                href={`/appointments/events/${event.slug}/edit`}
+                href={`/booking/events/${event.slug}/edit`}
                 className="group hover:text-foreground inline-flex items-center gap-2"
               >
                 <h3
@@ -334,7 +334,7 @@ function SortableEventCard({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button asChild size="icon" variant="ghost" className="rounded-l-none">
-                      <Link href={`/appointments/events/${event.slug}/edit`}>
+                      <Link href={`/booking/events/${event.slug}/edit`}>
                         <Pencil className="h-4 w-4" />
                       </Link>
                     </Button>

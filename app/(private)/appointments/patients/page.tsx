@@ -40,13 +40,13 @@ const NoCustomersEmptyState = () => (
     </p>
     <div className="flex flex-col gap-3 sm:flex-row">
       <Button asChild>
-        <Link href="/appointments/events/new">
+        <Link href="/booking/events/new">
           <PlusCircle className="mr-2 h-4 w-4" />
           Create an event
         </Link>
       </Button>
       <Button variant="outline" asChild>
-        <Link href="/appointments/schedule">
+        <Link href="/booking/schedule">
           <CalendarClock className="mr-2 h-4 w-4" />
           Setup your schedule
         </Link>
