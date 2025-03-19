@@ -207,6 +207,18 @@ export function MeetingFormContent({
       // If we already have a checkout URL, return it
       if (checkoutUrl) return checkoutUrl;
 
+      // Get the current timezone from form
+      const currentTimezone = form.getValues('timezone');
+
+      // Format the start time in the selected timezone for display
+      const startTimeFormatted = form.getValues('startTime')
+        ? formatInTimeZone(
+            form.getValues('startTime'),
+            currentTimezone,
+            'PPpp', // Format: "Apr 29, 2023, 9:30 AM GMT+2"
+          )
+        : '';
+
       const response = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -219,6 +231,9 @@ export function MeetingFormContent({
             ...form.getValues(),
             clerkUserId,
             startTime: form.getValues('startTime')?.toISOString(),
+            // Add these explicitly to make timezone handling clearer
+            timezone: currentTimezone,
+            startTimeFormatted, // Pre-formatted time string in user's timezone
           },
         }),
       });

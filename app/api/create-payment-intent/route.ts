@@ -161,6 +161,8 @@ export async function POST(request: Request) {
             expertConnectAccountId: event.user.stripeConnectAccountId,
             expertClerkUserId: event.clerkUserId,
             sessionStartTime: sessionStartTime.toISOString(),
+            sessionStartTimeFormatted:
+              meetingData.startTimeFormatted || sessionStartTime.toLocaleString(),
             scheduledTransferTime: transferDate.toISOString(),
             platformFee: applicationFeeAmount.toString(),
             expertAmount: expertAmount.toString(),
@@ -174,7 +176,7 @@ export async function POST(request: Request) {
               currency: STRIPE_CONFIG.CURRENCY,
               product_data: {
                 name: 'Consultation Booking',
-                description: `Booking for ${meetingData.guestName} on ${sessionStartTime.toLocaleString()} (funds will be released to expert the day after session${requiresApproval ? ' pending approval' : ''})`,
+                description: `Booking for ${meetingData.guestName} on ${meetingData.startTimeFormatted || sessionStartTime.toLocaleString()} (funds will be released to expert the day after session${requiresApproval ? ' pending approval' : ''})`,
               },
               unit_amount: Math.round(price),
             },
@@ -188,6 +190,8 @@ export async function POST(request: Request) {
           expertClerkUserId: event.clerkUserId,
           clerkUserId: event.clerkUserId,
           sessionStartTime: sessionStartTime.toISOString(),
+          sessionStartTimeFormatted:
+            meetingData.startTimeFormatted || sessionStartTime.toLocaleString(),
           scheduledTransferTime: transferDate.toISOString(),
           platformFee: applicationFeeAmount.toString(),
           expertAmount: expertAmount.toString(),
