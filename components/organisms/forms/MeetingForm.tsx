@@ -357,7 +357,26 @@ export function MeetingFormContent({
     setQueryStates({ date: localDate });
   }, [validTimes, queryStates.date, form, setQueryStates]);
 
-  // Simplified effect to sync form values with query params when they change
+  // Simplified URL update without all the complex debouncing logic
+  const updateURL = React.useCallback(() => {
+    // Only run if we're on the contact info step
+    if (currentStep !== '2') return;
+
+    // Get current form values
+    const name = form.getValues('guestName')?.trim();
+    const email = form.getValues('guestEmail')?.trim();
+
+    // Only update URL if we have values to update
+    if (name || email) {
+      const updates: Record<string, string> = {};
+      if (name) updates.name = name;
+      if (email) updates.email = email;
+
+      setQueryStates((prev) => ({ ...prev, ...updates }));
+    }
+  }, [currentStep, form, setQueryStates]);
+
+  // Remove the typing-based URL update effect and use onBlur handlers instead
   React.useEffect(() => {
     // Skip if we're currently typing
     if (isTypingRef.current) return;
@@ -432,52 +451,6 @@ export function MeetingFormContent({
     form.setValue('timezone', newTimezone);
     setQueryStates({ timezone: newTimezone });
   };
-
-  // Simplified URL update without all the complex debouncing logic
-  const updateURL = React.useCallback(() => {
-    // Only run if we're on the contact info step
-    if (currentStep !== '2') return;
-
-    // Get current form values
-    const name = form.getValues('guestName')?.trim();
-    const email = form.getValues('guestEmail')?.trim();
-
-    // Only update URL if we have values to update
-    if (name || email) {
-      const updates: Record<string, string> = {};
-      if (name) updates.name = name;
-      if (email) updates.email = email;
-
-      setQueryStates((prev) => ({ ...prev, ...updates }));
-    }
-  }, [currentStep, form, setQueryStates]);
-
-  // Simplified form watching for URL updates - debounced to prevent too many updates
-  React.useEffect(() => {
-    let debounceTimer: ReturnType<typeof setTimeout>;
-
-    const subscription = form.watch((value, { name }) => {
-      // Only handle name and email updates
-      if (name !== 'guestName' && name !== 'guestEmail') return;
-
-      // Set typing flag true
-      isTypingRef.current = true;
-
-      // Clear any existing timer
-      clearTimeout(debounceTimer);
-
-      // Set a timer to update URL params after typing stops
-      debounceTimer = setTimeout(() => {
-        isTypingRef.current = false;
-        updateURL();
-      }, 1000);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-      clearTimeout(debounceTimer);
-    };
-  }, [form, updateURL]);
 
   // Simplified effect to handle the auto-focus of name field when entering step 2
   React.useEffect(() => {
@@ -604,7 +577,20 @@ export function MeetingFormContent({
               <FormItem>
                 <FormLabel className="font-semibold">Your Name</FormLabel>
                 <FormControl>
-                  <Input {...field} ref={nameInputRef} placeholder="Enter your full name" />
+                  <Input
+                    {...field}
+                    ref={nameInputRef}
+                    placeholder="Enter your full name"
+                    onFocus={() => {
+                      // Set typing flag when focus enters field
+                      isTypingRef.current = true;
+                    }}
+                    onBlur={() => {
+                      // When focus leaves field, update the URL
+                      isTypingRef.current = false;
+                      updateURL();
+                    }}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -622,6 +608,15 @@ export function MeetingFormContent({
                     {...field}
                     ref={emailInputRef}
                     placeholder="you@example.com"
+                    onFocus={() => {
+                      // Set typing flag when focus enters field
+                      isTypingRef.current = true;
+                    }}
+                    onBlur={() => {
+                      // When focus leaves field, update the URL
+                      isTypingRef.current = false;
+                      updateURL();
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
@@ -640,6 +635,14 @@ export function MeetingFormContent({
                     ref={notesInputRef}
                     placeholder="Share anything that will help prepare for our meeting..."
                     className="min-h-32"
+                    onFocus={() => {
+                      // Set typing flag when focus enters field
+                      isTypingRef.current = true;
+                    }}
+                    onBlur={() => {
+                      // No need to update URL for notes field
+                      isTypingRef.current = false;
+                    }}
                   />
                 </FormControl>
                 <FormMessage />
