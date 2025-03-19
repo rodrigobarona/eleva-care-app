@@ -106,7 +106,7 @@ export function MeetingFormContent({
     },
   });
 
-  // Form initialization with enhanced defaults from URL
+  // Form initialization with enhanced defaults from URL including date and time
   const form = useForm<z.infer<typeof meetingFormSchema>>({
     resolver: zodResolver(meetingFormSchema),
     defaultValues: {
@@ -114,6 +114,9 @@ export function MeetingFormContent({
       guestName: queryStates.name || '',
       guestEmail: queryStates.email || '',
       guestNotes: '', // Initialize with empty string
+      // Initialize with date and time from URL if they exist
+      ...(queryStates.date && { date: queryStates.date }),
+      ...(queryStates.time && { startTime: queryStates.time }),
     },
     // Don't validate on mount to avoid confusion
     mode: 'onBlur',
@@ -125,12 +128,44 @@ export function MeetingFormContent({
   const startTime = form.watch('startTime');
   const currentStep = queryStates.step;
 
-  // Simplify step transition
+  // Enhanced step transition with validation
   const transitionToStep = React.useCallback(
     (nextStep: typeof currentStep) => {
+      // Special handling for transition to step 2
+      if (nextStep === '2') {
+        // Check that we have the required date and time
+        const hasDate = !!form.getValues('date');
+        const hasTime = !!form.getValues('startTime');
+
+        if (!hasDate || !hasTime) {
+          console.log('Cannot transition to step 2: missing date or time', {
+            hasDate,
+            hasTime,
+            urlDate: !!queryStates.date,
+            urlTime: !!queryStates.time,
+          });
+
+          // If we have date/time in the URL but not in form, synchronize them
+          if (!hasDate && queryStates.date) {
+            form.setValue('date', queryStates.date);
+          }
+
+          if (!hasTime && queryStates.time) {
+            form.setValue('startTime', queryStates.time);
+          }
+
+          // If we still don't have all required values, stay on step 1
+          if (!form.getValues('date') || !form.getValues('startTime')) {
+            setQueryStates({ step: '1' });
+            return;
+          }
+        }
+      }
+
+      // Update the step in the URL
       setQueryStates({ step: nextStep });
     },
-    [setQueryStates],
+    [setQueryStates, form, queryStates.date, queryStates.time],
   );
 
   const onSubmit = React.useCallback(
@@ -312,7 +347,7 @@ export function MeetingFormContent({
     // Skip if we're currently typing to avoid focus issues
     if (isTypingRef.current) return;
 
-    // Only update form values if query params have values and they differ from current form values
+    // Synchronize name and email
     if (queryStates.name) {
       const currentName = form.getValues('guestName');
       if (queryStates.name !== currentName) {
@@ -334,7 +369,34 @@ export function MeetingFormContent({
         });
       }
     }
-  }, [queryStates.name, queryStates.email, form]);
+
+    // Synchronize date and time - critical for returning from checkout or refresh
+    if (queryStates.date) {
+      const currentDate = form.getValues('date');
+      const dateChanged = !currentDate || currentDate.getTime() !== queryStates.date.getTime();
+
+      if (dateChanged) {
+        console.log('Restoring date from URL:', queryStates.date);
+        form.setValue('date', queryStates.date, {
+          shouldValidate: false,
+          shouldDirty: true,
+        });
+      }
+    }
+
+    if (queryStates.time) {
+      const currentTime = form.getValues('startTime');
+      const timeChanged = !currentTime || currentTime.getTime() !== queryStates.time.getTime();
+
+      if (timeChanged) {
+        console.log('Restoring time from URL:', queryStates.time);
+        form.setValue('startTime', queryStates.time, {
+          shouldValidate: false,
+          shouldDirty: true,
+        });
+      }
+    }
+  }, [queryStates.name, queryStates.email, queryStates.date, queryStates.time, form]);
 
   React.useEffect(() => {
     const checkCalendarAccess = async () => {
@@ -543,11 +605,52 @@ export function MeetingFormContent({
         guestName: queryStates.name || '',
         guestEmail: queryStates.email || '',
         guestNotes: form.getValues('guestNotes'), // Preserve notes
-        date: form.getValues('date'), // Preserve date
-        startTime: form.getValues('startTime'), // Preserve time
+        // Use date and time from URL parameters if available, otherwise preserve current values
+        date: queryStates.date || form.getValues('date'),
+        startTime: queryStates.time || form.getValues('startTime'),
       });
     }
   }, [queryStates, form]);
+
+  // Validate required data for the current step
+  React.useEffect(() => {
+    if (currentStep === '2') {
+      const hasDate = !!form.getValues('date');
+      const hasTime = !!form.getValues('startTime');
+
+      // If we're on step 2 but missing date or time, go back to step 1
+      if (!hasDate || !hasTime) {
+        console.log('Step 2 requires date and time selection:', { hasDate, hasTime });
+
+        // Check if we have these values in the URL params
+        if (queryStates.date && queryStates.time) {
+          // Apply the values from URL
+          form.setValue('date', queryStates.date);
+          form.setValue('startTime', queryStates.time);
+        } else {
+          // Go back to step 1 to select date and time
+          transitionToStep('1');
+        }
+      }
+    }
+  }, [currentStep, queryStates.date, queryStates.time, form, transitionToStep]);
+
+  // Log the form and URL state for debugging (outside of useEffect to avoid dependency issues)
+  console.log('MeetingForm rendering with state:', {
+    urlParameters: {
+      step: queryStates.step,
+      date: queryStates.date ? queryStates.date.toISOString() : null,
+      time: queryStates.time ? queryStates.time.toISOString() : null,
+      name: queryStates.name,
+      email: queryStates.email,
+    },
+    formValues: {
+      date: form.getValues('date') ? form.getValues('date').toISOString() : null,
+      startTime: form.getValues('startTime') ? form.getValues('startTime').toISOString() : null,
+      guestName: form.getValues('guestName'),
+      guestEmail: form.getValues('guestEmail'),
+    },
+  });
 
   // Early return for calendar sync check
   if (!isCalendarSynced) {
@@ -571,144 +674,172 @@ export function MeetingFormContent({
   }
 
   // Content for Step 2
-  const Step2Content = () => (
-    <div className="rounded-lg border p-6">
-      <div className="mb-6">
-        <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
-        <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <CalendarIcon className="h-4 w-4" />
-            <span>{date && format(date, 'EEEE, MMMM d, yyyy')}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4" />
-            <span>
-              {startTime && formatInTimeZone(startTime, timezone, use24Hour ? 'HH:mm' : 'h:mm a')}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Globe className="h-4 w-4" />
-            <span>{timezone.replace('_', ' ')}</span>
+  const Step2Content = () => {
+    // Get values directly from form, not just watched values
+    // This ensures we have access to them after refresh
+    const currentDate = form.getValues('date');
+    const currentTime = form.getValues('startTime');
+    const currentTimezone = form.getValues('timezone');
+
+    // If date or time is missing but present in URL, try to use those
+    const displayDate = currentDate || queryStates.date;
+    const displayTime = currentTime || queryStates.time;
+
+    // No need for the effect here - we'll handle this in the main component function
+
+    return (
+      <div className="rounded-lg border p-6">
+        <div className="mb-6">
+          <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
+          <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              <span>
+                {displayDate ? (
+                  format(displayDate, 'EEEE, MMMM d, yyyy')
+                ) : (
+                  <em className="text-red-500">Date not selected</em>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span>
+                {displayTime ? (
+                  formatInTimeZone(
+                    displayTime,
+                    currentTimezone || timezone,
+                    use24Hour ? 'HH:mm' : 'h:mm a',
+                  )
+                ) : (
+                  <em className="text-red-500">Time not selected</em>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              <span>{(currentTimezone || timezone).replace('_', ' ')}</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <FormField
-          control={form.control}
-          name="guestName"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-semibold">Your Name</FormLabel>
-              <FormControl>
-                <Input
-                  {...field}
-                  ref={nameInputRef}
-                  placeholder="Enter your full name"
-                  onFocus={() => setActiveFieldId('guestName')}
-                  onBlur={(e) => {
-                    // Only clear active field if we're not clicking within the same form
-                    // This prevents losing focus when clicking on a different part of the input
-                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                      // Small delay to allow potential click events to finish
-                      setTimeout(() => {
-                        if (document.activeElement !== nameInputRef.current) {
-                          setActiveFieldId(null);
-                        }
-                      }, 50);
-                    }
-                  }}
-                  className="focus:z-10" // Ensure focused element is on top
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="guestEmail"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel className="font-semibold">Your Email</FormLabel>
-              <FormControl>
-                <Input
-                  type="email"
-                  {...field}
-                  ref={emailInputRef}
-                  placeholder="you@example.com"
-                  onFocus={() => setActiveFieldId('guestEmail')}
-                  onBlur={(e) => {
-                    // Only clear active field if we're not clicking within the same form
-                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                      // Small delay to allow potential click events to finish
-                      setTimeout(() => {
-                        if (document.activeElement !== emailInputRef.current) {
-                          setActiveFieldId(null);
-                        }
-                      }, 50);
-                    }
-                  }}
-                  className="focus:z-10" // Ensure focused element is on top
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name="guestNotes"
-          render={({ field }) => (
-            <FormItem className="md:col-span-2">
-              <FormLabel className="font-semibold">Additional Notes</FormLabel>
-              <FormControl>
-                <Textarea
-                  {...field}
-                  ref={notesInputRef}
-                  placeholder="Share anything that will help prepare for our meeting..."
-                  className="min-h-32 focus:z-10"
-                  onFocus={() => setActiveFieldId('guestNotes')}
-                  onBlur={(e) => {
-                    // Only clear active field if we're not clicking within the same form
-                    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                      // Small delay to allow potential click events to finish
-                      setTimeout(() => {
-                        if (document.activeElement !== notesInputRef.current) {
-                          setActiveFieldId(null);
-                        }
-                      }, 50);
-                    }
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="guestName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="font-semibold">Your Name</FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    ref={nameInputRef}
+                    placeholder="Enter your full name"
+                    onFocus={() => setActiveFieldId('guestName')}
+                    onBlur={(e) => {
+                      // Only clear active field if we're not clicking within the same form
+                      // This prevents losing focus when clicking on a different part of the input
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        // Small delay to allow potential click events to finish
+                        setTimeout(() => {
+                          if (document.activeElement !== nameInputRef.current) {
+                            setActiveFieldId(null);
+                          }
+                        }, 50);
+                      }
+                    }}
+                    className="focus:z-10" // Ensure focused element is on top
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="guestEmail"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="font-semibold">Your Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    {...field}
+                    ref={emailInputRef}
+                    placeholder="you@example.com"
+                    onFocus={() => setActiveFieldId('guestEmail')}
+                    onBlur={(e) => {
+                      // Only clear active field if we're not clicking within the same form
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        // Small delay to allow potential click events to finish
+                        setTimeout(() => {
+                          if (document.activeElement !== emailInputRef.current) {
+                            setActiveFieldId(null);
+                          }
+                        }, 50);
+                      }
+                    }}
+                    className="focus:z-10" // Ensure focused element is on top
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="guestNotes"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel className="font-semibold">Additional Notes</FormLabel>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    ref={notesInputRef}
+                    placeholder="Share anything that will help prepare for our meeting..."
+                    className="min-h-32 focus:z-10"
+                    onFocus={() => setActiveFieldId('guestNotes')}
+                    onBlur={(e) => {
+                      // Only clear active field if we're not clicking within the same form
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        // Small delay to allow potential click events to finish
+                        setTimeout(() => {
+                          if (document.activeElement !== notesInputRef.current) {
+                            setActiveFieldId(null);
+                          }
+                        }, 50);
+                      }
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-      <div className="mt-6 flex justify-between">
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => handleNextStep('1')}
-          disabled={isSubmitting}
-        >
-          Back
-        </Button>
-        <Button
-          type="button"
-          onClick={() => handleNextStep('3')}
-          disabled={isSubmitting}
-          className="relative"
-        >
-          {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
-          {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-        </Button>
+        <div className="mt-6 flex justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleNextStep('1')}
+            disabled={isSubmitting}
+          >
+            Back
+          </Button>
+          <Button
+            type="button"
+            onClick={() => handleNextStep('3')}
+            disabled={isSubmitting}
+            className="relative"
+          >
+            {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
+            {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+          </Button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Content for Step 3
   const Step3Content = () => (
