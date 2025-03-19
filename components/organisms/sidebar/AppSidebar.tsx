@@ -9,6 +9,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarInset,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -76,33 +77,35 @@ export function AppSidebar() {
   ];
 
   return (
-    <Sidebar variant="inset">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <Link href="/">
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                  <Leaf className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Eleva Care</span>
-                  <span className="truncate text-xs">Professional</span>
-                </div>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        <NavMain items={mainItems} />
-        <NavSecondary items={secondaryItems} className="mt-auto" />
-      </SidebarContent>
-      <SidebarFooter>
-        <Suspense fallback={<NavUser.Skeleton />}>
-          <NavUser />
-        </Suspense>
-      </SidebarFooter>
+    <Sidebar variant="inset" collapsible="icon">
+      <SidebarInset>
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild>
+                <Link href="/">
+                  <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                    <Leaf className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-semibold">Eleva Care</span>
+                    <span className="truncate text-xs">Professional</span>
+                  </div>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <NavMain items={mainItems} />
+          <NavSecondary items={secondaryItems} className="mt-auto" />
+        </SidebarContent>
+        <SidebarFooter>
+          <Suspense fallback={<NavUser.Skeleton />}>
+            <NavUser />
+          </Suspense>
+        </SidebarFooter>
+      </SidebarInset>
     </Sidebar>
   );
 }
