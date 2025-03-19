@@ -59,21 +59,21 @@ function NextAvailableTimeContent({
       username,
       eventSlug,
     });
-    return <div className="text-sm text-muted-foreground">No booking link available</div>;
+    return <div className="text-muted-foreground text-sm">No booking link available</div>;
   }
 
   if (isLoading) {
-    return <div className="text-sm text-muted-foreground">Loading next available time...</div>;
+    return <div className="text-muted-foreground text-sm">Loading next available time...</div>;
   }
 
   if (error) {
     console.error('[NextAvailableTimeClient] Error:', error);
-    return <div className="text-sm text-muted-foreground">Unable to load next available time</div>;
+    return <div className="text-muted-foreground text-sm">Unable to load next available time</div>;
   }
 
   if (parsedDate && Number.isNaN(parsedDate.getTime())) {
     console.error('[NextAvailableTimeClient] Invalid date:', date);
-    return <div className="text-sm text-muted-foreground">No times available</div>;
+    return <div className="text-muted-foreground text-sm">No times available</div>;
   }
 
   const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -152,12 +152,12 @@ function NextAvailableTimeContent({
 
   function ErrorFallback({ error }: { error: Error }) {
     console.error('[NextAvailableTimeClient] Error boundary caught error:', error);
-    return <div className="text-sm text-muted-foreground">No times available</div>;
+    return <div className="text-muted-foreground text-sm">No times available</div>;
   }
 
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <div className="mb-6 text-sm text-muted-foreground">
+      <div className="text-muted-foreground mb-6 text-sm">
         {parsedDate ? (
           <TooltipProvider>
             <span>Next available — </span>
@@ -187,7 +187,7 @@ function NextAvailableTimeContent({
 function NextAvailableTimeClient(props: NextAvailableTimeClientProps) {
   return (
     <Suspense
-      fallback={<div className="text-sm text-muted-foreground">Loading next available time...</div>}
+      fallback={<div className="text-muted-foreground text-sm">Loading next available time...</div>}
     >
       <NextAvailableTimeContent {...props} />
     </Suspense>

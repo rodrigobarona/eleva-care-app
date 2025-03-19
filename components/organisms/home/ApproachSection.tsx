@@ -23,14 +23,14 @@ const ApproachSection: React.FC = () => {
   return (
     <section
       id="approach"
-      className="lg:rounded-5xl mx-2 mt-24 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple py-10 lg:mt-32 lg:bg-[linear-gradient(115deg,var(--tw-gradient-stops))] lg:pb-32 lg:pt-20"
+      className="lg:rounded-5xl from-eleva-highlight-yellow via-eleva-highlight-red to-eleva-highlight-purple mx-2 mt-24 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-[28%] via-[70%] py-10 lg:mt-32 lg:bg-[linear-gradient(115deg,var(--tw-gradient-stops))] lg:pt-20 lg:pb-32"
     >
       <div className="mx-auto max-w-2xl lg:max-w-7xl">
         <div className="grid grid-flow-row-dense grid-cols-1 gap-8 lg:grid-cols-12">
           <div className="col-span-12 -mt-24 lg:col-span-5 lg:-mt-52">
-            <div className="lg:rounded-4xl -m-4 aspect-[3/4] rounded-xl bg-eleva-neutral-100/15 shadow-[inset_0_0_2px_1px_#ffffff4d] ring-1 ring-eleva-neutral-900/5 max-lg:mx-auto max-lg:max-w-xs lg:-m-10">
-              <div className="lg:rounded-4xl rounded-xl p-2 shadow-md shadow-eleva-neutral-900/5">
-                <div className="overflow-hidden rounded-xl shadow-2xl outline outline-1 -outline-offset-1 outline-eleva-neutral-900/10 lg:rounded-3xl">
+            <div className="bg-eleva-neutral-100/15 ring-eleva-neutral-900/5 -m-4 aspect-[3/4] rounded-xl shadow-[inset_0_0_2px_1px_#ffffff4d] ring-1 max-lg:mx-auto max-lg:max-w-xs lg:-m-10 lg:rounded-4xl">
+              <div className="shadow-eleva-neutral-900/5 rounded-xl p-2 shadow-md lg:rounded-4xl">
+                <div className="outline-eleva-neutral-900/10 overflow-hidden rounded-xl shadow-2xl outline outline-1 -outline-offset-1 lg:rounded-3xl">
                   <Image
                     alt=""
                     src="/img/Three-Women-Posing-Photo.jpg"
@@ -45,11 +45,11 @@ const ApproachSection: React.FC = () => {
 
           <div className="col-span-12 pl-6 lg:col-span-7 lg:pl-16">
             <div>
-              <h2 className="text-pretty font-serif text-3xl font-light tracking-tighter text-eleva-neutral-100 data-[dark]:text-eleva-neutral-100 lg:text-6xl">
+              <h2 className="text-eleva-neutral-100 data-[dark]:text-eleva-neutral-100 font-serif text-3xl font-light tracking-tighter text-pretty lg:text-6xl">
                 {t.approach.title}
               </h2>
             </div>
-            <ol className="mx-auto mt-6 list-none text-eleva-neutral-100 marker:text-[#40514e] lg:mt-8">
+            <ol className="text-eleva-neutral-100 mx-auto mt-6 list-none marker:text-[#40514e] lg:mt-8">
               {t.approach.items.map((item, index) => (
                 <li
                   key={item}

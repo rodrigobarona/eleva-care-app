@@ -95,29 +95,29 @@ const ExpertsSection = async () => {
     });
 
   return (
-    <section id="experts" className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
+    <section id="experts" className="w-full px-6 pt-12 pb-24 md:py-24 lg:px-8 lg:py-32">
       <div className="mx-auto max-w-2xl lg:max-w-7xl">
         <div className="mb-12">
-          <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70 data-[dark]:text-eleva-neutral-900/60">
+          <h2 className="text-eleva-neutral-900/70 data-[dark]:text-eleva-neutral-900/60 font-mono text-xs/5 font-semibold tracking-widest uppercase">
             Top Experts
           </h2>
-          <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-primary data-[dark]:text-eleva-neutral-100 sm:text-6xl">
+          <h3 className="text-eleva-primary data-[dark]:text-eleva-neutral-100 mt-2 font-serif text-4xl font-light tracking-tighter text-pretty sm:text-6xl">
             Access to the best has never been easier
           </h3>
         </div>
-        <p className="mt-6 text-balance text-base font-light text-eleva-neutral-900 lg:text-xl">
+        <p className="text-eleva-neutral-900 mt-6 text-base font-light text-balance lg:text-xl">
           Connect with top-rated experts in physiotherapy, and women&apos;s health. Our platform
           offers access to leading professionals ready to support your unique health and wellness
           journey.
         </p>
         <Carousel
-          className="-ml-2 mt-10"
+          className="mt-10 -ml-2"
           opts={{
             align: 'start',
             loop: false,
           }}
         >
-          <CarouselContent className="-ml-6 pl-2 pt-1">
+          <CarouselContent className="-ml-6 pt-1 pl-2">
             {expertsWithPricing.map((expert) => (
               <CarouselItem key={expert.id} className="pl-6 md:basis-1/2 lg:basis-80">
                 <Link
@@ -138,7 +138,7 @@ const ExpertsSection = async () => {
                       {/* Top Expert Badge */}
                       {expert.isTopExpert && (
                         <div className="absolute bottom-4 left-4">
-                          <span className="rounded-sm bg-white px-3 py-2 text-base font-medium text-eleva-neutral-900">
+                          <span className="text-eleva-neutral-900 rounded-sm bg-white px-3 py-2 text-base font-medium">
                             <span>Top Expert</span>
                           </span>
                         </div>
@@ -150,7 +150,7 @@ const ExpertsSection = async () => {
                       {/* Name and Rating */}
                       <div className="flex items-start justify-between">
                         <div className="flex w-full items-center justify-between">
-                          <h3 className="flex items-center gap-1 text-base font-semibold text-eleva-neutral-900">
+                          <h3 className="text-eleva-neutral-900 flex items-center gap-1 text-base font-semibold">
                             {expert.name}
                             {expert.isVerified && (
                               <Image
@@ -167,7 +167,7 @@ const ExpertsSection = async () => {
                             <span className="text-xs text-amber-400" aria-hidden="true">
                               ★
                             </span>
-                            <span className="text-xs font-light text-eleva-neutral-900">
+                            <span className="text-eleva-neutral-900 text-xs font-light">
                               {expert.rating}
                             </span>
                           </div>
@@ -175,18 +175,18 @@ const ExpertsSection = async () => {
                       </div>
 
                       {/* Price */}
-                      <div className="flex items-center gap-2 text-eleva-neutral-900">
+                      <div className="text-eleva-neutral-900 flex items-center gap-2">
                         <span className="text-sm font-light">{expert.price}</span>
                       </div>
 
                       {/* Short Bio */}
-                      <p className="text-balance text-base font-light text-eleva-neutral-900/80">
+                      <p className="text-eleva-neutral-900/80 text-base font-light text-balance">
                         {expert.shortBio}
                       </p>
 
                       {/* Category */}
                       {expert.category && (
-                        <p className="text-sm text-eleva-neutral-900/80">{expert.category}</p>
+                        <p className="text-eleva-neutral-900/80 text-sm">{expert.category}</p>
                       )}
                     </CardContent>
                   </Card>

@@ -166,7 +166,7 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={events} strategy={verticalListSortingStrategy}>
             <Card className="overflow-hidden">
-              <div className="divide-y divide-border">
+              <div className="divide-border divide-y">
                 {events.map((event) => (
                   <SortableEventCard
                     key={event.id}
@@ -181,9 +181,9 @@ export function EventsList({ initialEvents, username }: EventsListProps) {
         </DndContext>
       ) : (
         <Card className="flex flex-col items-center justify-center p-8 text-center">
-          <CalendarRange className="mb-4 h-12 w-12 text-muted-foreground" />
+          <CalendarRange className="text-muted-foreground mb-4 h-12 w-12" />
           <h3 className="mb-2 text-lg font-semibold">No events yet</h3>
-          <p className="mb-4 text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             Create your first event to start accepting bookings.
           </p>
           <Button asChild>
@@ -220,7 +220,7 @@ function SortableEventCard({
     <div ref={setNodeRef} style={style} className={cn('relative', isDragging && 'z-50')}>
       <div
         className={cn(
-          'flex items-center gap-4 bg-background p-4',
+          'bg-background flex items-center gap-4 p-4',
           !event.isActive && 'bg-muted/50',
           isDragging && 'shadow-lg',
         )}
@@ -231,9 +231,9 @@ function SortableEventCard({
               <button
                 {...attributes}
                 {...listeners}
-                className="group -m-2 cursor-move touch-none rounded-md p-2 hover:bg-muted"
+                className="group hover:bg-muted -m-2 cursor-move touch-none rounded-md p-2"
               >
-                <div className="flex flex-col items-center gap-0.5 text-muted-foreground group-hover:text-foreground">
+                <div className="text-muted-foreground group-hover:text-foreground flex flex-col items-center gap-0.5">
                   <ChevronUp className="h-3 w-3" />
                   <GripVertical className="h-4 w-4" />
                   <ChevronDown className="h-3 w-3" />
@@ -251,7 +251,7 @@ function SortableEventCard({
             <div>
               <Link
                 href={`/appointments/events/${event.slug}/edit`}
-                className="group inline-flex items-center gap-2 hover:text-foreground"
+                className="group hover:text-foreground inline-flex items-center gap-2"
               >
                 <h3
                   className={cn(
@@ -266,11 +266,11 @@ function SortableEventCard({
               <CardDescription>{`/${username}/${event.slug}`}</CardDescription>
               <CardFooter className="mt-2 p-0">
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                  <span className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium">
                     <Clock className="h-3 w-3" />
                     {formatEventDescription(event.durationInMinutes)}
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
+                  <span className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium">
                     <Euro className="h-3 w-3" />
                     {event.price === 0
                       ? 'Free'
@@ -288,7 +288,7 @@ function SortableEventCard({
               <TooltipTrigger asChild>
                 <div className="flex items-center gap-2">
                   {!event.isActive && (
-                    <span className="flex-shrink-0 rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                    <span className="bg-muted text-muted-foreground flex-shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium">
                       Inactive
                     </span>
                   )}

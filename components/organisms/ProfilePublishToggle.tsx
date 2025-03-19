@@ -135,7 +135,7 @@ export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishT
               Profile Published
             </span>
           ) : (
-            <span className="flex items-center text-muted-foreground">
+            <span className="text-muted-foreground flex items-center">
               <Info className="mr-1 h-4 w-4" />
               Profile Not Published
             </span>

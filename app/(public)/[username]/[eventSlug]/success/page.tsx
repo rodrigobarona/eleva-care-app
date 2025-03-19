@@ -74,7 +74,7 @@ export default async function SuccessPage(props: {
           </CardHeader>
           <CardContent>
             <p>You should receive an email confirmation shortly.</p>
-            <p className="mt-2 text-muted-foreground">Meeting ID: {meeting.id}</p>
+            <p className="text-muted-foreground mt-2">Meeting ID: {meeting.id}</p>
           </CardContent>
         </Card>
       </div>
@@ -115,7 +115,7 @@ export default async function SuccessPage(props: {
               </CardHeader>
               <CardContent>
                 <p>Please wait a moment while we finalize your booking...</p>
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-4 text-sm">
                   If this page doesn&apos;t update automatically, please refresh in a few seconds.
                 </p>
                 <meta httpEquiv="refresh" content="5" />
@@ -135,7 +135,7 @@ export default async function SuccessPage(props: {
               </CardHeader>
               <CardContent>
                 <p>Please wait while we confirm your payment...</p>
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-4 text-sm">
                   This page will automatically refresh when the payment is confirmed.
                 </p>
                 <meta httpEquiv="refresh" content="5" />

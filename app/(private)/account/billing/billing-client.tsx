@@ -175,8 +175,8 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
       <h1 className="mb-6 text-3xl font-bold">
         Billing
         {isInitializing && (
-          <span className="ml-3 inline-flex items-center text-sm font-normal text-muted-foreground">
-            <div className="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <span className="text-muted-foreground ml-3 inline-flex items-center text-sm font-normal">
+            <div className="border-primary mr-2 h-3 w-3 animate-spin rounded-full border-2 border-t-transparent" />
             Initializing...
           </span>
         )}
@@ -261,7 +261,7 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
               </div>
             ) : (
               <div className="space-y-4">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   You haven&apos;t connected your Stripe account yet. Connect now to start receiving
                   payments.
                 </p>

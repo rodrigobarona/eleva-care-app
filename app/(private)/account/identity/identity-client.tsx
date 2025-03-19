@@ -157,7 +157,7 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
                 Please complete identity verification to ensure security and compliance. This is a
                 quick process that requires a government-issued photo ID and a selfie.
               </p>
-              <p className="mb-4 text-sm text-muted-foreground">
+              <p className="text-muted-foreground mb-4 text-sm">
                 We use a specialized verification flow that ensures a smooth and secure verification
                 process.
               </p>
@@ -180,7 +180,7 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
                 </Button>
               </div>
               {verificationStatus.lastUpdated && (
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-4 text-sm">
                   Last updated: {new Date(verificationStatus.lastUpdated).toLocaleString()}
                 </p>
               )}
@@ -192,7 +192,7 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
                 important security step.
               </p>
               {verificationStatus.lastUpdated && (
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-4 text-sm">
                   Verified on: {new Date(verificationStatus.lastUpdated).toLocaleString()}
                 </p>
               )}
@@ -207,7 +207,7 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
                 {isStartingVerification ? 'Starting...' : 'Try Again'}
               </Button>
               {verificationStatus.lastUpdated && (
-                <p className="mt-4 text-sm text-muted-foreground">
+                <p className="text-muted-foreground mt-4 text-sm">
                   Last attempted: {new Date(verificationStatus.lastUpdated).toLocaleString()}
                 </p>
               )}

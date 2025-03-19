@@ -72,7 +72,7 @@ export default async function UserLayout(props: { params: Promise<{ username: st
   if (!user) return notFound();
 
   return (
-    <div className="container max-w-7xl pb-10 pt-32">
+    <div className="container max-w-7xl pt-32 pb-10">
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
         {/* Left Column - Profile Info with Suspense */}
         <React.Suspense fallback={<ProfileSkeleton />}>
@@ -126,7 +126,7 @@ async function ProfileInfo({ username }: { username: string }) {
         {/* Top Expert Badge */}
         {profile?.isTopExpert && (
           <div className="absolute bottom-4 left-3">
-            <span className="rounded-sm bg-white px-3 py-2 text-base font-medium text-eleva-neutral-900">
+            <span className="text-eleva-neutral-900 rounded-sm bg-white px-3 py-2 text-base font-medium">
               <span>Top Expert</span>
             </span>
           </div>
@@ -148,18 +148,18 @@ async function ProfileInfo({ username }: { username: string }) {
             )}
           </h1>
           {profile?.headline && (
-            <p className="text-sm font-medium text-eleva-neutral-900/60">{profile.headline}</p>
+            <p className="text-eleva-neutral-900/60 text-sm font-medium">{profile.headline}</p>
           )}
           {/* Categories */}
           {(profile?.primaryCategory || profile?.secondaryCategory) && (
             <div className="mt-2 flex flex-wrap gap-2">
               {profile.primaryCategory && (
-                <span className="rounded-full bg-eleva-neutral-100 px-3 py-1 text-sm font-medium text-eleva-neutral-900">
+                <span className="bg-eleva-neutral-100 text-eleva-neutral-900 rounded-full px-3 py-1 text-sm font-medium">
                   {profile.primaryCategory.name}
                 </span>
               )}
               {profile.secondaryCategory && (
-                <span className="rounded-full bg-eleva-neutral-100 px-3 py-1 text-sm font-medium text-eleva-neutral-900">
+                <span className="bg-eleva-neutral-100 text-eleva-neutral-900 rounded-full px-3 py-1 text-sm font-medium">
                   {profile.secondaryCategory.name}
                 </span>
               )}
@@ -167,7 +167,7 @@ async function ProfileInfo({ username }: { username: string }) {
           )}
         </div>
         <div className="space-y-4">
-          <h2 className="flex w-full items-center justify-between text-xl font-medium text-eleva-neutral-900">
+          <h2 className="text-eleva-neutral-900 flex w-full items-center justify-between text-xl font-medium">
             About me
             {profile?.socialLinks && profile.socialLinks.length > 0 && (
               <div className="flex gap-3">
@@ -183,8 +183,8 @@ async function ProfileInfo({ username }: { username: string }) {
                       className="text-muted-foreground hover:text-foreground"
                     >
                       {Icon && (
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-eleva-neutral-200 p-1">
-                          <Icon className="h-5 w-5 text-eleva-neutral-900" />
+                        <span className="bg-eleva-neutral-200 flex h-6 w-6 items-center justify-center rounded-full p-1">
+                          <Icon className="text-eleva-neutral-900 h-5 w-5" />
                         </span>
                       )}
                       <span className="sr-only">{link.name}</span>

@@ -389,7 +389,7 @@ export function MeetingFormContent({
     return (
       <div className="py-8 text-center">
         <h2 className="mb-4 text-lg font-semibold">Calendar Sync Required</h2>
-        <p className="mb-4 text-muted-foreground">
+        <p className="text-muted-foreground mb-4">
           We need access to your Google Calendar to show available time slots.
         </p>
         <Button
@@ -410,7 +410,7 @@ export function MeetingFormContent({
     <div className="rounded-lg border p-6">
       <div className="mb-6">
         <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
-        <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
+        <div className="bg-muted/50 text-muted-foreground flex flex-col gap-1 rounded-md p-3">
           <div className="flex items-center gap-2">
             <CalendarIcon className="h-4 w-4" />
             <span>{date && format(date, 'EEEE, MMMM d, yyyy')}</span>
@@ -519,7 +519,7 @@ export function MeetingFormContent({
   const Step3Content = () => (
     <div className="flex items-center justify-center py-12">
       <div className="text-center">
-        <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="text-primary mx-auto h-8 w-8 animate-spin" />
         <p className="mt-4 text-lg font-medium">
           {checkoutUrl ? 'Redirecting to payment...' : 'Preparing checkout...'}
         </p>
@@ -543,7 +543,7 @@ export function MeetingFormContent({
               Select Date & Time
             </span>
           </div>
-          <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
+          <div className="bg-muted mx-1 h-0.5 w-4 md:mx-2 md:w-6" />
           <div className="flex items-center">
             <div
               className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '2' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}
@@ -558,7 +558,7 @@ export function MeetingFormContent({
           </div>
           {price > 0 && (
             <>
-              <div className="mx-1 h-0.5 w-4 bg-muted md:mx-2 md:w-6" />
+              <div className="bg-muted mx-1 h-0.5 w-4 md:mx-2 md:w-6" />
               <div className="flex items-center">
                 <div
                   className={`flex h-8 w-8 items-center justify-center rounded-full ${currentStep === '3' ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}

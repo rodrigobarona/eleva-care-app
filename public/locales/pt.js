@@ -34,7 +34,7 @@ export const translations = {
       'Obtenha cuidados personalizados com profissionais altamente qualificados em saúde feminina em todo o mundo. Proporcionamos-lhe o aconsenhamento que necessita, desde consultas online até recursos locais, tudo adaptado à sua jornada de saúde.',
     items: [
       {
-        icon: <Baby className="h-12 w-12 text-eleva-primary" />,
+        icon: <Baby className="text-eleva-primary h-12 w-12" />,
         title: 'Gravidez e Pós-Parto',
         description:
           'Apoio abrangente para mulheres durante a transformação da gravidez e maternidade.',
@@ -49,7 +49,7 @@ export const translations = {
         cta: 'Saber mais',
       },
       {
-        icon: <Droplets className="h-12 w-12 text-eleva-primary" />,
+        icon: <Droplets className="text-eleva-primary h-12 w-12" />,
         title: 'Saúde Pélvica',
         description:
           'Cuidados especializados que satisfazem as necessidades únicas da saúde pélvica ao longo da vida.',
@@ -62,7 +62,7 @@ export const translations = {
         cta: 'Saber mais',
       },
       {
-        icon: <Flower2 className="h-12 w-12 text-eleva-primary" />,
+        icon: <Flower2 className="text-eleva-primary h-12 w-12" />,
         title: 'Em Todas as Fases',
         description:
           'Apoio holístico para a saúde feminina, desde a adolescência até a menopausa e em todos os desafios da sua vida.',
@@ -77,7 +77,7 @@ export const translations = {
         cta: 'Saber mais',
       },
       {
-        icon: <Ribbon className="h-12 w-12 text-eleva-primary" />,
+        icon: <Ribbon className="text-eleva-primary h-12 w-12" />,
         title: 'Empoderando a sua Jornada Contra o Cancro',
         description:
           'Apoio especializado para mulheres que enfrentam cancros da mama e ginecológicos, proporcionando cuidados abrangentes desde o diagnóstico até à sobrevivência.',

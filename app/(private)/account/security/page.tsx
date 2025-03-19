@@ -408,7 +408,7 @@ export default function SecurityPage() {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium">Security Settings</h3>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground text-sm">
           Manage your password and security preferences.
         </p>
       </div>
@@ -426,7 +426,7 @@ export default function SecurityPage() {
             <div>
               {!showChangePasswordForm ? (
                 <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">Password is set</span>
+                  <span className="text-muted-foreground text-sm">Password is set</span>
                   <Button onClick={handleInitiatePasswordChange} disabled={isSettingPassword}>
                     {isSettingPassword ? 'Processing...' : 'Change Password'}
                   </Button>
@@ -450,7 +450,7 @@ export default function SecurityPage() {
                       <button
                         type="button"
                         onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                        className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500"
                         tabIndex={-1}
                       >
                         {showCurrentPassword ? (
@@ -513,7 +513,7 @@ export default function SecurityPage() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                        className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500"
                         tabIndex={-1}
                       >
                         {showPassword ? (
@@ -573,7 +573,7 @@ export default function SecurityPage() {
                         </div>
                       </div>
                     )}
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="text-muted-foreground mt-1 text-xs">
                       Password must be at least 8 characters and strong enough to meet security
                       requirements.
                     </p>
@@ -619,7 +619,7 @@ export default function SecurityPage() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
+                        className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500"
                         tabIndex={-1}
                       >
                         {showPassword ? (
@@ -679,7 +679,7 @@ export default function SecurityPage() {
                         </div>
                       </div>
                     )}
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="text-muted-foreground mt-1 text-xs">
                       Password must be at least 8 characters and strong enough to meet security
                       requirements.
                     </p>
@@ -715,21 +715,21 @@ export default function SecurityPage() {
             {devices.map((device) => (
               <div
                 key={device.id}
-                className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
+                className="hover:bg-muted/50 flex items-center justify-between rounded-lg border p-4 transition-colors"
               >
                 <div className="flex items-center gap-4">
                   {device.type === 'desktop' ? (
-                    <Laptop className="h-5 w-5 text-muted-foreground" />
+                    <Laptop className="text-muted-foreground h-5 w-5" />
                   ) : (
-                    <Smartphone className="h-5 w-5 text-muted-foreground" />
+                    <Smartphone className="text-muted-foreground h-5 w-5" />
                   )}
                   <div className="space-y-1">
                     <div className="text-sm font-medium">{device.name}</div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-muted-foreground text-sm">
                       {device.lastSeen}
                       {device.isCurrent && ' (Current device)'}
                     </div>
-                    <div className="text-sm text-muted-foreground">
+                    <div className="text-muted-foreground text-sm">
                       <Popover>
                         <PopoverTrigger className="underline decoration-dotted">
                           {device.location}
@@ -759,7 +759,7 @@ export default function SecurityPage() {
           <div className="space-y-4">
             {connectedAccounts.length === 0 ? (
               <div className="flex flex-col items-start gap-4">
-                <p className="text-sm text-muted-foreground">No connected accounts found.</p>
+                <p className="text-muted-foreground text-sm">No connected accounts found.</p>
                 <Button
                   variant="outline"
                   onClick={() => handleConnectAccount()}
@@ -775,10 +775,10 @@ export default function SecurityPage() {
                   className="flex items-center justify-between rounded-lg border p-4"
                 >
                   <div className="flex items-center gap-4">
-                    <Mail className="h-5 w-5 text-muted-foreground" />
+                    <Mail className="text-muted-foreground h-5 w-5" />
                     <div>
                       <p className="font-medium">Google Account</p>
-                      <p className="text-sm text-muted-foreground">{account.emailAddress}</p>
+                      <p className="text-muted-foreground text-sm">{account.emailAddress}</p>
                     </div>
                   </div>
                   <Button
@@ -801,7 +801,7 @@ export default function SecurityPage() {
           <CardTitle>Your User ID</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-x-2 rounded-md bg-muted p-3">
+          <div className="bg-muted flex items-center gap-x-2 rounded-md p-3">
             <code className="text-sm">{user?.id}</code>
             <Button variant="ghost" size="sm" onClick={copyUserId} className="ml-auto">
               <Copy className="h-4 w-4" />
@@ -816,8 +816,8 @@ export default function SecurityPage() {
           <CardTitle>Delete Account</CardTitle>
         </CardHeader>
         <CardContent>
-          <fieldset className="rounded-lg border-2 border-destructive/20 p-4">
-            <p className="mb-4 text-sm text-muted-foreground">
+          <fieldset className="border-destructive/20 rounded-lg border-2 p-4">
+            <p className="text-muted-foreground mb-4 text-sm">
               Permanently delete your workspace, custom domain, and all associated links + their
               stats. This action cannot be undone - please proceed with caution.
             </p>
@@ -830,7 +830,7 @@ export default function SecurityPage() {
                   <DialogTitle className="text-destructive">Delete Account</DialogTitle>
                   <DialogDescription className="pt-4">
                     <div className="space-y-4">
-                      <p className="font-semibold text-foreground">
+                      <p className="text-foreground font-semibold">
                         Warning: This will permanently delete your account and all associated data:
                       </p>
                       <ul className="list-disc space-y-2 pl-4 text-sm">

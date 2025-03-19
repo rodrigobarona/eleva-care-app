@@ -94,7 +94,7 @@ function EventCard({
   nextAvailable: Date | null;
 }) {
   return (
-    <Card className="overflow-hidden border-2 transition-colors duration-200 hover:border-primary/50">
+    <Card className="hover:border-primary/50 overflow-hidden border-2 transition-colors duration-200">
       <div className="flex flex-col lg:flex-row">
         <EventCardDetails
           name={event.name}
@@ -155,11 +155,11 @@ function EventCardDetails({
       <h3 className="mb-2 text-2xl font-bold">{name}</h3>
 
       {description ? (
-        <ReactMarkdown className="prose mb-4 text-base text-muted-foreground">
+        <ReactMarkdown className="prose text-muted-foreground mb-4 text-base">
           {description}
         </ReactMarkdown>
       ) : (
-        <p className="mb-4 text-base text-muted-foreground">No description available.</p>
+        <p className="text-muted-foreground mb-4 text-base">No description available.</p>
       )}
 
       <div className="mb-1 flex items-center gap-2">

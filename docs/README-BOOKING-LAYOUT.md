@@ -59,7 +59,7 @@ export default async function BookingPage({ params }) {
     <div className="container mx-auto py-6 md:py-8">
       <Card className="mx-auto max-w-5xl border-none p-0 shadow-none">
         <CardContent className="p-0">
-          <Suspense fallback={<div className="h-96 w-full animate-pulse bg-muted"></div>}>
+          <Suspense fallback={<div className="bg-muted h-96 w-full animate-pulse"></div>}>
             <BookingLayout
               expert={{
                 id: user.id,

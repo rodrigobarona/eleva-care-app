@@ -7,7 +7,7 @@ export default function Footer() {
 
   return (
     <footer>
-      <div className="lg:rounded-5xl mx-2 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple">
+      <div className="lg:rounded-5xl from-eleva-highlight-yellow via-eleva-highlight-red to-eleva-highlight-purple mx-2 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-[28%] via-[70%]">
         <div className="lg:rounded-5xl relative rounded-2xl">
           {/* Frosted glass effect overlay */}
           <div className="lg:rounded-5xl absolute inset-0 rounded-2xl bg-white/80 backdrop-blur-sm" />
@@ -16,11 +16,11 @@ export default function Footer() {
             <div className="mx-auto max-w-2xl lg:max-w-7xl">
               {/* CTA Section */}
               <section className="relative my-32">
-                <div className="relative pb-16 pt-20 text-center sm:py-24">
-                  <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
+                <div className="relative pt-20 pb-16 text-center sm:py-24">
+                  <h2 className="text-eleva-neutral-900/70 font-mono text-xs/5 font-semibold tracking-widest uppercase">
                     Join Our Network
                   </h2>
-                  <p className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-neutral-900 sm:text-6xl">
+                  <p className="text-eleva-neutral-900 mt-2 font-serif text-4xl font-light tracking-tighter text-pretty sm:text-6xl">
                     Discover Your Personalized
                     <br />
                     Care Journey Today
@@ -50,11 +50,11 @@ export default function Footer() {
                       <div className="pt-6 lg:pb-6">
                         <Link
                           href="/"
-                          className="font-serif text-xl font-medium text-eleva-primary"
+                          className="text-eleva-primary font-serif text-xl font-medium"
                         >
                           Eleva Care
                         </Link>
-                        <p className="mt-4 text-sm text-eleva-neutral-900/60">
+                        <p className="text-eleva-neutral-900/60 mt-4 text-sm">
                           Empowering women&apos;s health through expert care and innovation.
                         </p>
                       </div>
@@ -63,14 +63,14 @@ export default function Footer() {
                     {/* Navigation Columns */}
                     <div className="col-span-2 grid grid-cols-2 gap-x-8 gap-y-12 lg:col-span-4 lg:grid-cols-4 lg:pt-6">
                       <div>
-                        <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">
+                        <h3 className="text-eleva-neutral-900/50 text-sm/6 font-medium">
                           Services
                         </h3>
                         <ul className="mt-6 space-y-4 text-sm/6">
                           <li>
                             <Link
                               href="/services/pregnancy"
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Pregnancy Care
                             </Link>
@@ -78,7 +78,7 @@ export default function Footer() {
                           <li>
                             <Link
                               href="/services/postpartum"
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Postpartum Support
                             </Link>
@@ -86,7 +86,7 @@ export default function Footer() {
                           <li>
                             <Link
                               href="/services/menopause"
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Menopause Care
                             </Link>
@@ -95,12 +95,12 @@ export default function Footer() {
                       </div>
 
                       <div>
-                        <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">Company</h3>
+                        <h3 className="text-eleva-neutral-900/50 text-sm/6 font-medium">Company</h3>
                         <ul className="mt-6 space-y-4 text-sm/6">
                           <li>
                             <Link
                               href="/about"
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               About Us
                             </Link>
@@ -108,7 +108,7 @@ export default function Footer() {
                           <li>
                             <Link
                               href={`${process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}`}
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Join Us
                             </Link>
@@ -116,7 +116,7 @@ export default function Footer() {
                           <li>
                             <Link
                               href={`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}`}
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Expert Dashboard
                             </Link>
@@ -125,12 +125,12 @@ export default function Footer() {
                       </div>
 
                       <div>
-                        <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">Support</h3>
+                        <h3 className="text-eleva-neutral-900/50 text-sm/6 font-medium">Support</h3>
                         <ul className="mt-6 space-y-4 text-sm/6">
                           <li>
                             <Link
                               href="/help"
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Help Center
                             </Link>
@@ -138,7 +138,7 @@ export default function Footer() {
                           <li>
                             <Link
                               href="/community"
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Community
                             </Link>
@@ -146,7 +146,7 @@ export default function Footer() {
                           <li>
                             <Link
                               href="/contact"
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Contact
                             </Link>
@@ -155,12 +155,12 @@ export default function Footer() {
                       </div>
 
                       <div>
-                        <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">Legal</h3>
+                        <h3 className="text-eleva-neutral-900/50 text-sm/6 font-medium">Legal</h3>
                         <ul className="mt-6 space-y-4 text-sm/6">
                           <li>
                             <Link
                               href="/legal/terms"
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Terms of Service
                             </Link>
@@ -168,7 +168,7 @@ export default function Footer() {
                           <li>
                             <Link
                               href="/legal/privacy"
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Privacy Policy
                             </Link>
@@ -176,7 +176,7 @@ export default function Footer() {
                           <li>
                             <Link
                               href="/legal/cookie"
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Cookie Policy
                             </Link>
@@ -185,7 +185,7 @@ export default function Footer() {
                             <button
                               type="button"
                               onClick={() => showConsentBanner?.()}
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Cookies Preferences
                             </button>
@@ -193,7 +193,7 @@ export default function Footer() {
                           <li>
                             <Link
                               href="/legal/dpa"
-                              className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              className="text-eleva-neutral-900 hover:text-eleva-primary font-medium"
                             >
                               Data Processing
                             </Link>

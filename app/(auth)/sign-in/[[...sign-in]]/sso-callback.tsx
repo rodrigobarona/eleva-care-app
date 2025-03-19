@@ -65,9 +65,9 @@ export default function SSOCallback() {
       <AuthenticateWithRedirectCallback />
       <div className="fixed inset-0 flex items-center justify-center">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-b-2 border-t-2 border-primary" />
+          <div className="border-primary mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-t-2 border-b-2" />
           <p>Completing authentication...</p>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="text-muted-foreground mt-2 text-sm">
             You&apos;ll be redirected automatically in a moment.
           </p>
         </div>

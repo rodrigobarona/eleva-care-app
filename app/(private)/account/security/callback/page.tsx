@@ -188,31 +188,31 @@ export default function GoogleCallbackPage() {
   }, [handleRedirectCallback, isLoaded, user]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12 sm:px-6 lg:px-8">
+    <div className="bg-background flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 text-center">
         {error ? (
-          <div className="rounded border border-destructive/20 bg-destructive/10 px-4 py-3 text-destructive">
+          <div className="border-destructive/20 bg-destructive/10 text-destructive rounded border px-4 py-3">
             <h2 className="mb-2 text-xl font-bold">Connection Error</h2>
             <p>{error}</p>
             {debugInfo && (
-              <div className="mt-2 overflow-auto rounded bg-muted/50 p-2 text-left text-xs">
+              <div className="bg-muted/50 mt-2 overflow-auto rounded p-2 text-left text-xs">
                 <pre>{debugInfo}</pre>
               </div>
             )}
             <p className="mt-4 text-sm">Redirecting you back...</p>
           </div>
         ) : (
-          <div className="rounded-lg bg-card p-6 shadow-lg">
+          <div className="bg-card rounded-lg p-6 shadow-lg">
             <div className="mb-4 flex justify-center">
-              <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+              <div className="border-primary h-10 w-10 animate-spin rounded-full border-4 border-t-transparent" />
             </div>
-            <h2 className="text-xl font-bold text-foreground">{status}</h2>
-            {debugInfo && <p className="mt-2 text-sm text-muted-foreground">{debugInfo}</p>}
+            <h2 className="text-foreground text-xl font-bold">{status}</h2>
+            {debugInfo && <p className="text-muted-foreground mt-2 text-sm">{debugInfo}</p>}
 
             {/* Progress bar */}
-            <div className="mt-4 h-2 w-full overflow-hidden rounded-full bg-muted">
+            <div className="bg-muted mt-4 h-2 w-full overflow-hidden rounded-full">
               <div
-                className="h-full rounded-full bg-primary transition-all duration-300 ease-in-out"
+                className="bg-primary h-full rounded-full transition-all duration-300 ease-in-out"
                 style={{ width: `${progress}%` }}
               />
             </div>

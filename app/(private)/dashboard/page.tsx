@@ -22,7 +22,7 @@ export default async function HomePage() {
       <div className="mb-10 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Welcome, {firstName}!</h1>
-          <p className="mt-1 text-muted-foreground">
+          <p className="text-muted-foreground mt-1">
             We&apos;re excited to have you on the Eleva platform
           </p>
         </div>
@@ -43,7 +43,7 @@ export default async function HomePage() {
             </Link>
           </Button>
         </div>
-        <div className="absolute -bottom-10 right-0 opacity-20">
+        <div className="absolute right-0 -bottom-10 opacity-20">
           <svg
             width="300"
             height="300"
@@ -67,10 +67,10 @@ export default async function HomePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Expert Consultations</CardTitle>
-            <UsersIcon className="h-4 w-4 text-muted-foreground" />
+            <UsersIcon className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Connect with verified healthcare professionals and wellness experts.
             </p>
             <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
@@ -82,10 +82,10 @@ export default async function HomePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Upcoming Appointments</CardTitle>
-            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+            <CalendarIcon className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               View and manage your scheduled appointments and consultations.
             </p>
             <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
@@ -97,10 +97,10 @@ export default async function HomePage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Explore Services</CardTitle>
-            <CompassIcon className="h-4 w-4 text-muted-foreground" />
+            <CompassIcon className="text-muted-foreground h-4 w-4" />
           </CardHeader>
           <CardContent>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Discover a range of health and wellness services available on Eleva.
             </p>
             <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
@@ -110,38 +110,38 @@ export default async function HomePage() {
         </Card>
       </div>
 
-      <div className="mt-10 rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+      <div className="bg-card text-card-foreground mt-10 rounded-xl border p-6 shadow-sm">
         <h2 className="mb-4 text-2xl font-bold tracking-tight">Getting Started with Eleva</h2>
         <div className="space-y-4">
           <div className="flex items-start gap-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <div className="bg-primary text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
               1
             </div>
             <div>
               <h3 className="font-medium">Complete your profile</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Add your details to get personalized recommendations and better service.
               </p>
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <div className="bg-primary text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
               2
             </div>
             <div>
               <h3 className="font-medium">Browse available experts</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Explore our network of verified healthcare professionals and specialists.
               </p>
             </div>
           </div>
           <div className="flex items-start gap-4">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+            <div className="bg-primary text-primary-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full">
               3
             </div>
             <div>
               <h3 className="font-medium">Book your first consultation</h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Schedule an appointment with your chosen expert at a time that works for you.
               </p>
             </div>
