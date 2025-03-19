@@ -276,7 +276,20 @@ export default function SecurityPage() {
         }
       }
 
-      // Update expert setup status
+      // Directly update the metadata for expert setup
+      if (user?.unsafeMetadata?.expertSetup) {
+        const expertSetup = { ...(user.unsafeMetadata.expertSetup as Record<string, boolean>) };
+        expertSetup.google_account = false;
+
+        await user.update({
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            expertSetup,
+          },
+        });
+      }
+
+      // Update expert setup status from server
       await checkExpertSetupStatus();
 
       // Dispatch the disconnection event
@@ -394,6 +407,37 @@ export default function SecurityPage() {
       } else {
         throw new Error('No verification URL provided');
       }
+
+      // Add a custom function to automatically update metadata after connection
+      window.addEventListener(
+        'google-account-connected',
+        async function onConnected(event) {
+          console.log('Detected Google account connection event:', event);
+          try {
+            // Remove the listener to prevent duplicate handling
+            window.removeEventListener('google-account-connected', onConnected);
+
+            // Update the metadata directly in addition to the server check
+            if (user?.unsafeMetadata) {
+              const expertSetup = {
+                ...((user.unsafeMetadata.expertSetup as Record<string, boolean>) || {}),
+              };
+              expertSetup.google_account = true;
+
+              await user.update({
+                unsafeMetadata: {
+                  ...user.unsafeMetadata,
+                  expertSetup,
+                },
+              });
+              console.log('Updated Google account connection status in metadata');
+            }
+          } catch (updateError) {
+            console.error('Error updating metadata after Google connection:', updateError);
+          }
+        },
+        { once: true },
+      ); // Ensure it only runs once
     } catch (error) {
       console.error('Error connecting account:', error);
       toast.error(
@@ -408,7 +452,7 @@ export default function SecurityPage() {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-medium">Security Settings</h3>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-sm text-muted-foreground">
           Manage your password and security preferences.
         </p>
       </div>
@@ -426,7 +470,7 @@ export default function SecurityPage() {
             <div>
               {!showChangePasswordForm ? (
                 <div className="flex items-center gap-4">
-                  <span className="text-muted-foreground text-sm">Password is set</span>
+                  <span className="text-sm text-muted-foreground">Password is set</span>
                   <Button onClick={handleInitiatePasswordChange} disabled={isSettingPassword}>
                     {isSettingPassword ? 'Processing...' : 'Change Password'}
                   </Button>
@@ -450,7 +494,7 @@ export default function SecurityPage() {
                       <button
                         type="button"
                         onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
                         tabIndex={-1}
                       >
                         {showCurrentPassword ? (
@@ -513,7 +557,7 @@ export default function SecurityPage() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
                         tabIndex={-1}
                       >
                         {showPassword ? (
@@ -573,7 +617,7 @@ export default function SecurityPage() {
                         </div>
                       </div>
                     )}
-                    <p className="text-muted-foreground mt-1 text-xs">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Password must be at least 8 characters and strong enough to meet security
                       requirements.
                     </p>
@@ -619,7 +663,7 @@ export default function SecurityPage() {
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-500"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500"
                         tabIndex={-1}
                       >
                         {showPassword ? (
@@ -679,7 +723,7 @@ export default function SecurityPage() {
                         </div>
                       </div>
                     )}
-                    <p className="text-muted-foreground mt-1 text-xs">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       Password must be at least 8 characters and strong enough to meet security
                       requirements.
                     </p>
@@ -715,21 +759,21 @@ export default function SecurityPage() {
             {devices.map((device) => (
               <div
                 key={device.id}
-                className="hover:bg-muted/50 flex items-center justify-between rounded-lg border p-4 transition-colors"
+                className="flex items-center justify-between rounded-lg border p-4 transition-colors hover:bg-muted/50"
               >
                 <div className="flex items-center gap-4">
                   {device.type === 'desktop' ? (
-                    <Laptop className="text-muted-foreground h-5 w-5" />
+                    <Laptop className="h-5 w-5 text-muted-foreground" />
                   ) : (
-                    <Smartphone className="text-muted-foreground h-5 w-5" />
+                    <Smartphone className="h-5 w-5 text-muted-foreground" />
                   )}
                   <div className="space-y-1">
                     <div className="text-sm font-medium">{device.name}</div>
-                    <div className="text-muted-foreground text-sm">
+                    <div className="text-sm text-muted-foreground">
                       {device.lastSeen}
                       {device.isCurrent && ' (Current device)'}
                     </div>
-                    <div className="text-muted-foreground text-sm">
+                    <div className="text-sm text-muted-foreground">
                       <Popover>
                         <PopoverTrigger className="underline decoration-dotted">
                           {device.location}
@@ -759,7 +803,7 @@ export default function SecurityPage() {
           <div className="space-y-4">
             {connectedAccounts.length === 0 ? (
               <div className="flex flex-col items-start gap-4">
-                <p className="text-muted-foreground text-sm">No connected accounts found.</p>
+                <p className="text-sm text-muted-foreground">No connected accounts found.</p>
                 <Button
                   variant="outline"
                   onClick={() => handleConnectAccount()}
@@ -775,10 +819,10 @@ export default function SecurityPage() {
                   className="flex items-center justify-between rounded-lg border p-4"
                 >
                   <div className="flex items-center gap-4">
-                    <Mail className="text-muted-foreground h-5 w-5" />
+                    <Mail className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="font-medium">Google Account</p>
-                      <p className="text-muted-foreground text-sm">{account.emailAddress}</p>
+                      <p className="text-sm text-muted-foreground">{account.emailAddress}</p>
                     </div>
                   </div>
                   <Button
@@ -801,7 +845,7 @@ export default function SecurityPage() {
           <CardTitle>Your User ID</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="bg-muted flex items-center gap-x-2 rounded-md p-3">
+          <div className="flex items-center gap-x-2 rounded-md bg-muted p-3">
             <code className="text-sm">{user?.id}</code>
             <Button variant="ghost" size="sm" onClick={copyUserId} className="ml-auto">
               <Copy className="h-4 w-4" />
@@ -816,8 +860,8 @@ export default function SecurityPage() {
           <CardTitle>Delete Account</CardTitle>
         </CardHeader>
         <CardContent>
-          <fieldset className="border-destructive/20 rounded-lg border-2 p-4">
-            <p className="text-muted-foreground mb-4 text-sm">
+          <fieldset className="rounded-lg border-2 border-destructive/20 p-4">
+            <p className="mb-4 text-sm text-muted-foreground">
               Permanently delete your workspace, custom domain, and all associated links + their
               stats. This action cannot be undone - please proceed with caution.
             </p>
@@ -830,7 +874,7 @@ export default function SecurityPage() {
                   <DialogTitle className="text-destructive">Delete Account</DialogTitle>
                   <DialogDescription className="pt-4">
                     <div className="space-y-4">
-                      <p className="text-foreground font-semibold">
+                      <p className="font-semibold text-foreground">
                         Warning: This will permanently delete your account and all associated data:
                       </p>
                       <ul className="list-disc space-y-2 pl-4 text-sm">

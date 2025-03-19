@@ -161,7 +161,7 @@ export async function checkExpertSetupStatus() {
       .select({ count: count() })
       .from(EventTable)
       .where(eq(EventTable.clerkUserId, user.id))
-      .then((result) => result[0]?.count || 0);
+      .then((result: { count: number }[]) => result[0]?.count || 0);
     setupStatus.events = eventCount > 0;
 
     // Verify identity - Enhanced Stripe identity verification check
@@ -224,6 +224,18 @@ export async function checkExpertSetupStatus() {
           account.verification?.status === 'unverified'),
     );
 
+    // Log detailed information about the Google account verification
+    console.log('Google account verification in expert setup check:', {
+      hasGoogleExternalAccount,
+      previousValue: metadataSetup?.google_account,
+      externalAccountsCount: externalAccounts.length,
+      externalAccounts: externalAccounts.map((a) => ({
+        provider: a.provider,
+        verification: a.verification?.status,
+        email: a.emailAddress,
+      })),
+    });
+
     // Set the status for Google account connection - ONLY using OAuth connection
     setupStatus.google_account = hasGoogleExternalAccount;
 
@@ -231,19 +243,46 @@ export async function checkExpertSetupStatus() {
     console.log('Google account verification:', {
       hasGoogleExternalAccount,
       result: setupStatus.google_account,
+      previousValue: metadataSetup?.google_account,
+      changed: metadataSetup?.google_account !== setupStatus.google_account,
+      externalAccountsCount: externalAccounts.length,
+      externalAccounts: externalAccounts.map((a) => ({
+        provider: a.provider,
+        verification: a.verification?.status,
+        email: a.emailAddress,
+      })),
     });
+
+    // Explicitly checking if we need to update the Google account status
+    const googleAccountChanged = metadataSetup?.google_account !== setupStatus.google_account;
+    if (googleAccountChanged) {
+      console.log(
+        `Google account status change detected: ${metadataSetup?.google_account} -> ${setupStatus.google_account}`,
+      );
+    }
 
     // Update metadata if database checks differ from stored metadata
     if (JSON.stringify(setupStatus) !== JSON.stringify(metadataSetup)) {
       // Initialize Clerk client
       const clerk = await clerkClient();
 
-      await clerk.users.updateUser(user.id, {
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          expertSetup: setupStatus,
-        },
+      console.log('Updating user metadata with new expert setup status', {
+        userId: user.id,
+        before: metadataSetup,
+        after: setupStatus,
       });
+
+      try {
+        await clerk.users.updateUser(user.id, {
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
+            expertSetup: setupStatus,
+          },
+        });
+        console.log('Successfully updated user metadata');
+      } catch (updateError) {
+        console.error('Failed to update user metadata:', updateError);
+      }
 
       // Revalidate the layout path when the status changes
       revalidatePath('/(private)/layout');
@@ -339,6 +378,8 @@ export async function markStepCompleteForUser(step: ExpertSetupStep, userId: str
  */
 export async function fixInconsistentMetadata() {
   try {
+    console.log('Starting fixInconsistentMetadata function execution');
+
     // Get current user and verify authentication
     const user = await currentUser();
     if (!user) {
@@ -354,6 +395,53 @@ export async function fixInconsistentMetadata() {
     const metadata = user.unsafeMetadata || {};
     const expertSetup = metadata.expertSetup as Record<string, boolean> | undefined;
     const setupCompletedAt = metadata.setup_completed_at;
+
+    // Initialize Clerk client - we'll need it for any metadata updates
+    const clerk = await clerkClient();
+
+    // First check: Always verify Google account status directly from OAuth connections
+    const hasGoogleAccountConnection = user.externalAccounts.some(
+      (account) => account.provider === 'google',
+    );
+
+    // If the user has expertSetup metadata, check if Google account status needs updating
+    if (expertSetup) {
+      const currentGoogleStatus = expertSetup.google_account || false;
+
+      // Log the current state for debugging
+      console.log('Google account connection status check:', {
+        hasOAuthConnection: hasGoogleAccountConnection,
+        metadataStatus: currentGoogleStatus,
+        mismatch: hasGoogleAccountConnection !== currentGoogleStatus,
+      });
+
+      // If there's a mismatch, update the metadata
+      if (hasGoogleAccountConnection !== currentGoogleStatus) {
+        console.log(
+          `Fixing Google account connection status: ${currentGoogleStatus} -> ${hasGoogleAccountConnection}`,
+        );
+
+        // Update just the expertSetup metadata with the correct Google account status
+        const updatedExpertSetup = { ...expertSetup, google_account: hasGoogleAccountConnection };
+
+        // Update the user metadata
+        await clerk.users.updateUser(user.id, {
+          unsafeMetadata: {
+            ...metadata,
+            expertSetup: updatedExpertSetup,
+          },
+        });
+
+        // Revalidate paths that depend on this data
+        revalidatePath('/(private)/layout');
+
+        return {
+          success: true,
+          action: 'fixed-google-account-status',
+          message: `Fixed Google account connection status (${hasGoogleAccountConnection ? 'connected' : 'disconnected'})`,
+        };
+      }
+    }
 
     // Case 1: setup_completed_at exists but some steps are not marked as complete
     if (setupCompletedAt && expertSetup) {
@@ -372,9 +460,6 @@ export async function fixInconsistentMetadata() {
             console.log('Fixing metadata: User has Google account but it was marked as false');
             // Update just the google_account field
             expertSetup.google_account = true;
-
-            // Initialize Clerk client
-            const clerk = await clerkClient();
 
             // Update the metadata
             await clerk.users.updateUser(user.id, {
@@ -397,20 +482,23 @@ export async function fixInconsistentMetadata() {
         // remove the completion flags
         console.log('Fixing metadata: setup_completed_at exists but not all steps are complete');
 
-        // Initialize Clerk client
-        const clerk = await clerkClient();
+        // Create a new metadata object without the completion flags
+        const cleanMetadata: Record<string, unknown> = {};
 
-        // Remove the completion flags
-        const {
-          setup_completed_at,
-          setup_completion_toast_shown,
-          setup_completion_toast_shown_at,
-          ...restMetadata
-        } = metadata;
+        // Copy all metadata except the completion flags
+        for (const key of Object.keys(metadata)) {
+          if (
+            key !== 'setup_completed_at' &&
+            key !== 'setup_completion_toast_shown' &&
+            key !== 'setup_completion_toast_shown_at'
+          ) {
+            cleanMetadata[key] = metadata[key];
+          }
+        }
 
         // Update the metadata
         await clerk.users.updateUser(user.id, {
-          unsafeMetadata: restMetadata,
+          unsafeMetadata: cleanMetadata,
         });
 
         revalidatePath('/(private)/layout');
@@ -425,9 +513,6 @@ export async function fixInconsistentMetadata() {
     // Case 2: All steps are complete but setup_completed_at doesn't exist
     if (expertSetup && Object.values(expertSetup).every(Boolean) && !setupCompletedAt) {
       console.log('Fixing metadata: All steps complete but setup_completed_at missing');
-
-      // Initialize Clerk client
-      const clerk = await clerkClient();
 
       // Add the completion timestamp
       const timestamp = new Date().toISOString();
