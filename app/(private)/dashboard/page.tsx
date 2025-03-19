@@ -33,8 +33,8 @@ export default async function HomePage() {
   const isSetupCompleted = expertSetup && Object.values(expertSetup).every(Boolean);
 
   return (
-    <div className="container max-w-6xl py-10">
-      <div className="mb-10 flex items-center justify-between">
+    <div className="over container max-w-6xl py-6">
+      <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Welcome, {firstName}!</h1>
           <p className="mt-1 text-muted-foreground">
@@ -45,7 +45,7 @@ export default async function HomePage() {
       </div>
 
       {/* Hero Banner */}
-      <div className="relative mb-10 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-8 text-white">
+      <div className="relative mb-6 overflow-hidden rounded-xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-8 text-white">
         <div className="relative z-10 max-w-2xl">
           <h2 className="mb-4 text-3xl font-bold">Eleva - Elevate Your Healthcare Experience</h2>
           <p className="mb-6 text-lg opacity-90">
@@ -75,55 +75,8 @@ export default async function HomePage() {
 
       {isExpert && (
         <>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Appointments</CardTitle>
-                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  View and manage your upcoming consultations and bookings.
-                </p>
-                <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
-                  <Link href="/appointments">View Calendar</Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Records & Notes</CardTitle>
-                <CompassIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Access and manage consultation records and patient notes.
-                </p>
-                <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
-                  <Link href="/appointments/records">View Records</Link>
-                </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Patients</CardTitle>
-                <UsersIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs text-muted-foreground">
-                  Manage your patient list and view customer information.
-                </p>
-                <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
-                  <Link href="/appointments/patients">View Patients</Link>
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
           {!isSetupCompleted && (
-            <div className="mt-10 rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
+            <div className="mb-6 rounded-xl border bg-card p-6 text-card-foreground shadow-sm">
               <h2 className="mb-4 text-2xl font-bold tracking-tight">Complete Your Expert Setup</h2>
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
@@ -170,6 +123,52 @@ export default async function HomePage() {
               </div>
             </div>
           )}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Appointments</CardTitle>
+                <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  View and manage your upcoming consultations and bookings.
+                </p>
+                <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
+                  <Link href="/appointments">View Calendar</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Records & Notes</CardTitle>
+                <CompassIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Access and manage consultation records and patient notes.
+                </p>
+                <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
+                  <Link href="/appointments/records">View Records</Link>
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Patients</CardTitle>
+                <UsersIcon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-muted-foreground">
+                  Manage your patient list and view customer information.
+                </p>
+                <Button variant="link" asChild className="mt-2 h-auto p-0 text-sm">
+                  <Link href="/appointments/patients">View Patients</Link>
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
         </>
       )}
     </div>

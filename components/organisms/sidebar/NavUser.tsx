@@ -17,7 +17,6 @@ import { useClerk, useUser } from '@clerk/nextjs';
 import {
   BadgeCheck,
   BanknoteIcon,
-  CheckSquare,
   ChevronsUpDown,
   CreditCard,
   Home,
