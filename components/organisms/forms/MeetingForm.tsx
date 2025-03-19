@@ -72,12 +72,12 @@ export function MeetingFormContent({
   const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
   const [isPrefetching, setIsPrefetching] = React.useState(false);
 
-  // Refs for input focus management
+  // Simple refs for input elements - no complex focus management needed
   const nameInputRef = React.useRef<HTMLInputElement>(null);
   const emailInputRef = React.useRef<HTMLInputElement>(null);
   const notesInputRef = React.useRef<HTMLTextAreaElement>(null);
 
-  // Keep track of whether we are currently typing (to prevent URL updates while typing)
+  // Use a simpler approach for tracking typing state
   const isTypingRef = React.useRef(false);
 
   // Query state configuration
@@ -342,32 +342,18 @@ export function MeetingFormContent({
     setQueryStates({ date: localDate });
   }, [validTimes, queryStates.date, form, setQueryStates]);
 
-  // Effect to sync form values with query params when they change
+  // Simplified effect to sync form values with query params when they change
   React.useEffect(() => {
-    // Skip if we're currently typing to avoid focus issues
+    // Skip if we're currently typing
     if (isTypingRef.current) return;
 
-    // Synchronize name and email
-    if (queryStates.name) {
-      const currentName = form.getValues('guestName');
-      if (queryStates.name !== currentName) {
-        form.setValue('guestName', queryStates.name, {
-          shouldValidate: false,
-          shouldDirty: true,
-          shouldTouch: false, // Prevents focus issues
-        });
-      }
+    // Synchronize name and email if they're in the URL
+    if (queryStates.name && queryStates.name !== form.getValues('guestName')) {
+      form.setValue('guestName', queryStates.name, { shouldValidate: false, shouldDirty: true });
     }
 
-    if (queryStates.email) {
-      const currentEmail = form.getValues('guestEmail');
-      if (queryStates.email !== currentEmail) {
-        form.setValue('guestEmail', queryStates.email, {
-          shouldValidate: false,
-          shouldDirty: true,
-          shouldTouch: false, // Prevents focus issues
-        });
-      }
+    if (queryStates.email && queryStates.email !== form.getValues('guestEmail')) {
+      form.setValue('guestEmail', queryStates.email, { shouldValidate: false, shouldDirty: true });
     }
 
     // Synchronize date and time - critical for returning from checkout or refresh
@@ -377,10 +363,7 @@ export function MeetingFormContent({
 
       if (dateChanged) {
         console.log('Restoring date from URL:', queryStates.date);
-        form.setValue('date', queryStates.date, {
-          shouldValidate: false,
-          shouldDirty: true,
-        });
+        form.setValue('date', queryStates.date, { shouldValidate: false, shouldDirty: true });
       }
     }
 
@@ -390,10 +373,7 @@ export function MeetingFormContent({
 
       if (timeChanged) {
         console.log('Restoring time from URL:', queryStates.time);
-        form.setValue('startTime', queryStates.time, {
-          shouldValidate: false,
-          shouldDirty: true,
-        });
+        form.setValue('startTime', queryStates.time, { shouldValidate: false, shouldDirty: true });
       }
     }
   }, [queryStates.name, queryStates.email, queryStates.date, queryStates.time, form]);
@@ -438,179 +418,59 @@ export function MeetingFormContent({
     setQueryStates({ timezone: newTimezone });
   };
 
-  // Add a debounced URL update function to avoid constant re-renders while typing
-  const debouncedUpdateUrl = React.useCallback(() => {
+  // Simplified URL update without all the complex debouncing logic
+  const updateURL = React.useCallback(() => {
     // Only run if we're on the contact info step
     if (currentStep !== '2') return;
 
     // Get current form values
-    const formValues = form.getValues();
-    const name = formValues.guestName?.trim();
-    const email = formValues.guestEmail?.trim();
+    const name = form.getValues('guestName')?.trim();
+    const email = form.getValues('guestEmail')?.trim();
 
-    // Only update URL if we have meaningful content
-    if (name && name.length > 1) {
-      setQueryStates((prev) => ({ ...prev, name }));
-    }
+    // Only update URL if we have values to update
+    if (name || email) {
+      const updates: Record<string, string> = {};
+      if (name) updates.name = name;
+      if (email) updates.email = email;
 
-    if (email && email.length > 3) {
-      setQueryStates((prev) => ({ ...prev, email }));
+      setQueryStates((prev) => ({ ...prev, ...updates }));
     }
   }, [currentStep, form, setQueryStates]);
 
-  // Enhanced focus management for input fields
-  const [activeFieldId, setActiveFieldId] = React.useState<string | null>(null);
-
-  // Effect to auto-focus name input field when step 2 is shown
+  // Simplified form watching for URL updates - debounced to prevent too many updates
   React.useEffect(() => {
-    if (currentStep === '2' && nameInputRef.current) {
-      // Set initial focus with a small delay to ensure the UI is ready
-      setTimeout(() => {
-        nameInputRef.current?.focus();
-        setActiveFieldId('guestName');
-      }, 100);
-    }
-  }, [currentStep]);
-
-  // Function to restore focus when it might be lost
-  const restoreFocus = React.useCallback(() => {
-    if (activeFieldId === 'guestName' && nameInputRef.current) {
-      nameInputRef.current.focus();
-    } else if (activeFieldId === 'guestEmail' && emailInputRef.current) {
-      emailInputRef.current.focus();
-    } else if (activeFieldId === 'guestNotes' && notesInputRef.current) {
-      notesInputRef.current.focus();
-    }
-  }, [activeFieldId]);
-
-  // Restore focus after any state updates that might cause focus loss
-  React.useEffect(() => {
-    if (activeFieldId && currentStep === '2') {
-      const timerId = setTimeout(restoreFocus, 0);
-      return () => clearTimeout(timerId);
-    }
-  }, [activeFieldId, currentStep, restoreFocus]);
-
-  // Modify the debounce behavior to prevent focus issues on the first keystroke
-  const updateUrlDebounced = React.useMemo(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    let isFirstKeystroke = true;
-
-    return () => {
-      // Clear previous timer
-      if (timer) clearTimeout(timer);
-
-      // For the first keystroke, use a longer delay and don't set the typing flag
-      // This prevents focus issues when starting to type
-      if (isFirstKeystroke) {
-        isFirstKeystroke = false;
-        timer = setTimeout(() => {
-          debouncedUpdateUrl();
-          // Reset first keystroke flag after a while
-          setTimeout(() => {
-            isFirstKeystroke = true;
-          }, 5000); // Reset after 5 seconds of inactivity
-        }, 2000); // Extra long delay for first keystroke
-        return;
-      }
-
-      // After first keystroke, use normal debounce with typing flag
-      isTypingRef.current = true;
-      timer = setTimeout(() => {
-        isTypingRef.current = false;
-        debouncedUpdateUrl();
-      }, 1500);
-    };
-  }, [debouncedUpdateUrl]);
-
-  // Subscribe to form changes to update URL params in a controlled manner but skip first keystroke
-  React.useEffect(() => {
-    // Track the last values we've seen to avoid unnecessary updates
-    const lastValues = {
-      guestName: form.getValues('guestName'),
-      guestEmail: form.getValues('guestEmail'),
-    };
-
-    const skipFirstKeystroke = {
-      guestName: true,
-      guestEmail: true,
-    };
+    let debounceTimer: ReturnType<typeof setTimeout>;
 
     const subscription = form.watch((value, { name }) => {
-      // Only process for fields we care about
+      // Only handle name and email updates
       if (name !== 'guestName' && name !== 'guestEmail') return;
 
-      // Only run if we're on step 2
-      if (currentStep !== '2') return;
+      // Set typing flag true
+      isTypingRef.current = true;
 
-      // Handle name/email updates for URL syncing
-      if (name === 'guestName' && value.guestName) {
-        // Skip very first keystroke for each field to avoid focus loss
-        if (skipFirstKeystroke.guestName) {
-          if (value.guestName.length === 1 && lastValues.guestName === '') {
-            skipFirstKeystroke.guestName = false;
-            lastValues.guestName = value.guestName;
-            return; // Skip further processing
-          }
-        }
+      // Clear any existing timer
+      clearTimeout(debounceTimer);
 
-        if (value.guestName !== lastValues.guestName) {
-          lastValues.guestName = value.guestName;
-          updateUrlDebounced();
-        }
-      }
-
-      if (name === 'guestEmail' && value.guestEmail) {
-        // Skip very first keystroke for each field
-        if (skipFirstKeystroke.guestEmail) {
-          if (value.guestEmail.length === 1 && lastValues.guestEmail === '') {
-            skipFirstKeystroke.guestEmail = false;
-            lastValues.guestEmail = value.guestEmail;
-            return; // Skip further processing
-          }
-        }
-
-        if (value.guestEmail !== lastValues.guestEmail) {
-          lastValues.guestEmail = value.guestEmail;
-          updateUrlDebounced();
-        }
-      }
+      // Set a timer to update URL params after typing stops
+      debounceTimer = setTimeout(() => {
+        isTypingRef.current = false;
+        updateURL();
+      }, 1000);
     });
 
-    // Cleanup function
-    return () => subscription.unsubscribe();
-  }, [form, currentStep, updateUrlDebounced]);
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(debounceTimer);
+    };
+  }, [form, updateURL]);
 
-  // Reset the form completely when URL parameters change drastically
-  // This helps with shared URLs where all parameters change at once
+  // Simplified effect to handle the auto-focus of name field when entering step 2
   React.useEffect(() => {
-    // Only run this when NOT typing to prevent focus issues
-    if (isTypingRef.current) return;
-
-    // Check if this looks like a completely new set of parameters
-    // Only reset if multiple parameters changed at once
-    const changesCount = [
-      queryStates.name !== form.getValues('guestName') && !!queryStates.name,
-      queryStates.email !== form.getValues('guestEmail') && !!queryStates.email,
-      queryStates.timezone !== form.getValues('timezone') && !!queryStates.timezone,
-    ].filter(Boolean).length;
-
-    // If multiple parameters changed at once, this is likely a shared URL
-    if (changesCount >= 2) {
-      console.log('Resetting form with URL parameters', queryStates);
-
-      // Reset the form with the new values
-      form.reset({
-        timezone: queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
-        guestName: queryStates.name || '',
-        guestEmail: queryStates.email || '',
-        guestNotes: form.getValues('guestNotes'), // Preserve notes
-        // Use date and time from URL parameters if available, otherwise preserve current values
-        date: queryStates.date || form.getValues('date'),
-        startTime: queryStates.time || form.getValues('startTime'),
-      });
+    if (currentStep === '2' && nameInputRef.current) {
+      // Simple focus without all the complex state tracking
+      nameInputRef.current.focus();
     }
-  }, [queryStates, form]);
+  }, [currentStep]);
 
   // Validate required data for the current step
   React.useEffect(() => {
@@ -685,8 +545,6 @@ export function MeetingFormContent({
     const displayDate = currentDate || queryStates.date;
     const displayTime = currentTime || queryStates.time;
 
-    // No need for the effect here - we'll handle this in the main component function
-
     return (
       <div className="rounded-lg border p-6">
         <div className="mb-6">
@@ -731,25 +589,7 @@ export function MeetingFormContent({
               <FormItem>
                 <FormLabel className="font-semibold">Your Name</FormLabel>
                 <FormControl>
-                  <Input
-                    {...field}
-                    ref={nameInputRef}
-                    placeholder="Enter your full name"
-                    onFocus={() => setActiveFieldId('guestName')}
-                    onBlur={(e) => {
-                      // Only clear active field if we're not clicking within the same form
-                      // This prevents losing focus when clicking on a different part of the input
-                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                        // Small delay to allow potential click events to finish
-                        setTimeout(() => {
-                          if (document.activeElement !== nameInputRef.current) {
-                            setActiveFieldId(null);
-                          }
-                        }, 50);
-                      }
-                    }}
-                    className="focus:z-10" // Ensure focused element is on top
-                  />
+                  <Input {...field} ref={nameInputRef} placeholder="Enter your full name" />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -767,19 +607,6 @@ export function MeetingFormContent({
                     {...field}
                     ref={emailInputRef}
                     placeholder="you@example.com"
-                    onFocus={() => setActiveFieldId('guestEmail')}
-                    onBlur={(e) => {
-                      // Only clear active field if we're not clicking within the same form
-                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                        // Small delay to allow potential click events to finish
-                        setTimeout(() => {
-                          if (document.activeElement !== emailInputRef.current) {
-                            setActiveFieldId(null);
-                          }
-                        }, 50);
-                      }
-                    }}
-                    className="focus:z-10" // Ensure focused element is on top
                   />
                 </FormControl>
                 <FormMessage />
@@ -797,19 +624,7 @@ export function MeetingFormContent({
                     {...field}
                     ref={notesInputRef}
                     placeholder="Share anything that will help prepare for our meeting..."
-                    className="min-h-32 focus:z-10"
-                    onFocus={() => setActiveFieldId('guestNotes')}
-                    onBlur={(e) => {
-                      // Only clear active field if we're not clicking within the same form
-                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                        // Small delay to allow potential click events to finish
-                        setTimeout(() => {
-                          if (document.activeElement !== notesInputRef.current) {
-                            setActiveFieldId(null);
-                          }
-                        }, 50);
-                      }
-                    }}
+                    className="min-h-32"
                   />
                 </FormControl>
                 <FormMessage />
