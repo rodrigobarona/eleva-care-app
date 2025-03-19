@@ -330,3 +330,137 @@ export async function markStepCompleteForUser(step: ExpertSetupStep, userId: str
     };
   }
 }
+
+/**
+ * Fixes inconsistent metadata state where setup_completed_at exists but some steps are marked as false
+ * This can happen if steps were manually marked as complete or if the process was interrupted
+ *
+ * @returns Object containing success status and the action taken
+ */
+export async function fixInconsistentMetadata() {
+  try {
+    // Get current user and verify authentication
+    const user = await currentUser();
+    if (!user) {
+      return { success: false, error: 'User not authenticated' };
+    }
+
+    // Check if user has an expert role
+    const isExpert = hasExpertRole(user);
+    if (!isExpert) {
+      return { success: false, error: 'User is not an expert' };
+    }
+
+    const metadata = user.unsafeMetadata || {};
+    const expertSetup = metadata.expertSetup as Record<string, boolean> | undefined;
+    const setupCompletedAt = metadata.setup_completed_at;
+
+    // Case 1: setup_completed_at exists but some steps are not marked as complete
+    if (setupCompletedAt && expertSetup) {
+      const allStepsComplete = Object.values(expertSetup).every(Boolean);
+
+      if (!allStepsComplete) {
+        // Option 1: If Google account is specifically marked as false,
+        // but the user has a Google account connected, correct it
+        if (expertSetup.google_account === false) {
+          // Check if the user actually has a Google account connected
+          const hasGoogleAccount = user.externalAccounts.some(
+            (account) => account.provider === 'google',
+          );
+
+          if (hasGoogleAccount) {
+            console.log('Fixing metadata: User has Google account but it was marked as false');
+            // Update just the google_account field
+            expertSetup.google_account = true;
+
+            // Initialize Clerk client
+            const clerk = await clerkClient();
+
+            // Update the metadata
+            await clerk.users.updateUser(user.id, {
+              unsafeMetadata: {
+                ...metadata,
+                expertSetup,
+              },
+            });
+
+            revalidatePath('/(private)/layout');
+            return {
+              success: true,
+              action: 'corrected-google-account',
+              message: 'Fixed inconsistent Google account metadata',
+            };
+          }
+        }
+
+        // Option 2: If setup_completed_at exists but steps are not complete,
+        // remove the completion flags
+        console.log('Fixing metadata: setup_completed_at exists but not all steps are complete');
+
+        // Initialize Clerk client
+        const clerk = await clerkClient();
+
+        // Remove the completion flags
+        const {
+          setup_completed_at,
+          setup_completion_toast_shown,
+          setup_completion_toast_shown_at,
+          ...restMetadata
+        } = metadata;
+
+        // Update the metadata
+        await clerk.users.updateUser(user.id, {
+          unsafeMetadata: restMetadata,
+        });
+
+        revalidatePath('/(private)/layout');
+        return {
+          success: true,
+          action: 'removed-completion-flags',
+          message: 'Removed inconsistent completion flags',
+        };
+      }
+    }
+
+    // Case 2: All steps are complete but setup_completed_at doesn't exist
+    if (expertSetup && Object.values(expertSetup).every(Boolean) && !setupCompletedAt) {
+      console.log('Fixing metadata: All steps complete but setup_completed_at missing');
+
+      // Initialize Clerk client
+      const clerk = await clerkClient();
+
+      // Add the completion timestamp
+      const timestamp = new Date().toISOString();
+
+      // Update the metadata
+      await clerk.users.updateUser(user.id, {
+        unsafeMetadata: {
+          ...metadata,
+          setup_completed_at: timestamp,
+          setup_completion_toast_shown: true,
+          setup_completion_toast_shown_at: timestamp,
+        },
+      });
+
+      revalidatePath('/(private)/layout');
+      return {
+        success: true,
+        action: 'added-completion-flags',
+        message: 'Added missing completion flags',
+      };
+    }
+
+    // No inconsistency found
+    return {
+      success: true,
+      action: 'no-action-needed',
+      message: 'No inconsistency found in metadata',
+    };
+  } catch (error) {
+    console.error('Failed to fix inconsistent metadata:', error);
+    return {
+      success: false,
+      error: 'Failed to fix inconsistent metadata',
+    };
+  }
+}

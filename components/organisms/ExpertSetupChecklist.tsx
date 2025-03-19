@@ -3,7 +3,7 @@
 import { Button } from '@/components/atoms/button';
 import { Progress } from '@/components/atoms/progress';
 import { cn } from '@/lib/utils';
-import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
+import { checkExpertSetupStatus, fixInconsistentMetadata } from '@/server/actions/expert-setup';
 import { useUser } from '@clerk/nextjs';
 import { CheckCircle2, ChevronDown, ChevronUp, Circle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
@@ -512,37 +512,21 @@ export function ExpertSetupChecklist() {
     try {
       toast.loading('Fixing completion status...', { id: 'fix-completion' });
 
-      // Check server-side status
-      const result = await checkExpertSetupStatus();
+      // Use the new server action to fix inconsistent metadata
+      const result = await fixInconsistentMetadata();
 
-      if (result.success && result.setupStatus) {
-        const allComplete = Object.values(result.setupStatus).every(Boolean);
+      if (result.success) {
+        toast.success(`${result.message || 'Completion status fixed!'}`, { id: 'fix-completion' });
 
-        if (allComplete) {
-          // If all steps are complete, update the metadata
-          const timestamp = new Date().toISOString();
+        // Force update component state
+        await loadCompletionStatus();
 
-          await user.update({
-            unsafeMetadata: {
-              ...user.unsafeMetadata,
-              setup_completion_toast_shown: true,
-              setup_completion_toast_shown_at: timestamp,
-              setup_completed_at: timestamp,
-            },
-          });
-
-          toast.success('Completion status fixed!', { id: 'fix-completion' });
-
-          // Reload after a delay
-          setTimeout(() => {
-            window.location.reload();
-          }, 1500);
-        } else {
-          // Not all steps complete
-          toast.error('Not all steps are complete', { id: 'fix-completion' });
-        }
+        // Reload after a delay to ensure UI is updated
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
       } else {
-        toast.error('Failed to check completion status', { id: 'fix-completion' });
+        toast.error(result.error || 'Failed to fix completion status', { id: 'fix-completion' });
       }
     } catch (error) {
       console.error('Error fixing completion status:', error);
@@ -554,6 +538,9 @@ export function ExpertSetupChecklist() {
   const completedSteps = setupSteps.filter((step) => step.completed).length;
   const totalSteps = setupSteps.length;
   const progressPercentage = Math.round((completedSteps / totalSteps) * 100);
+
+  // Check if setup is considered complete based on metadata
+  const setupCompletedAt = user?.unsafeMetadata?.setup_completed_at;
 
   // Find the next step to complete based on priority
   const nextIncompleteStep = setupSteps
@@ -575,27 +562,44 @@ export function ExpertSetupChecklist() {
     >
       <RefreshCw className={cn('h-3.5 w-3.5', isRefreshing && 'animate-spin')} />
       {pressCount > 0 && (
-        <span className="bg-primary text-primary-foreground absolute -top-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full text-[8px]">
+        <span className="absolute -right-1 -top-1 flex h-3 w-3 items-center justify-center rounded-full bg-primary text-[8px] text-primary-foreground">
           {pressCount}
         </span>
       )}
     </Button>
   );
 
-  // Check if we should show the fix button
-  const showFixButton =
+  // Check if we should show the fix button - specifically for inconsistent metadata
+  const hasInconsistentMetadata =
+    isLoaded &&
+    user &&
+    user.unsafeMetadata?.setup_completed_at &&
+    user.unsafeMetadata?.expertSetup &&
+    !Object.values(user.unsafeMetadata.expertSetup as Record<string, boolean>).every(Boolean);
+
+  // Determine if we should show the standard fix button
+  const showStandardFixButton =
     isLoaded &&
     user &&
     user.unsafeMetadata?.expertSetup &&
     Object.values(user.unsafeMetadata.expertSetup as Record<string, boolean>).every(Boolean) &&
     !user.unsafeMetadata?.setup_completion_toast_shown;
 
-  // Create the fix button component (typed correctly)
-  const FixCompletionButton = showFixButton ? (
-    <Button variant="outline" size="sm" onClick={forceFixCompletionStatus} className="ml-2 text-xs">
-      Fix Completion
-    </Button>
-  ) : null;
+  // Create the fix button component
+  const FixCompletionButton =
+    showStandardFixButton || hasInconsistentMetadata ? (
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={forceFixCompletionStatus}
+        className="ml-2 text-xs"
+        title={
+          hasInconsistentMetadata ? 'Fix inconsistent setup metadata' : 'Fix completion status'
+        }
+      >
+        Fix {hasInconsistentMetadata ? 'Metadata' : 'Completion'}
+      </Button>
+    ) : null;
 
   // Show congratulations toast when all steps are completed (only once)
   useEffect(() => {
@@ -633,7 +637,7 @@ export function ExpertSetupChecklist() {
           <div className="flex flex-col">
             <span className="font-medium">Congratulations! 🎉</span>
             <span className="text-sm">You&apos;ve completed all the setup steps!</span>
-            <span className="text-muted-foreground mt-1 text-xs">
+            <span className="mt-1 text-xs text-muted-foreground">
               Completed on {new Date().toLocaleDateString()}
             </span>
           </div>,
@@ -719,16 +723,25 @@ export function ExpertSetupChecklist() {
     }
   };
 
-  // If all steps are completed, don't show anything
-  if (progressPercentage === 100) {
+  // Handle inconsistent metadata cases - show checklist if:
+  // 1. Google account is specifically not connected (don't trust setup_completed_at in this case)
+  const googleAccountStep = setupSteps.find((step) => step.id === 'google_account');
+  const isGoogleAccountMissing = googleAccountStep && !googleAccountStep.completed;
+
+  // Don't show checklist if:
+  // 1. All steps are completed (100%) OR
+  // 2. There's a setup_completed_at timestamp AND it's not an inconsistent state with missing Google account
+  // 3. Still loading and no steps are loaded yet
+  if (
+    progressPercentage === 100 ||
+    (setupCompletedAt && !isGoogleAccountMissing) ||
+    (loading && completedSteps === 0)
+  ) {
     return null;
   }
 
-  // Don't show anything if still loading and no steps are loaded yet
-  if (loading && completedSteps === 0) return null;
-
   return (
-    <div className="border-border bg-card mt-1 mb-6 w-full rounded-lg border p-4 shadow-sm">
+    <div className="mb-6 mt-1 w-full rounded-lg border border-border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <div className="space-y-1">
           <h3 className="text-sm font-medium">Complete your expert setup</h3>
@@ -737,7 +750,7 @@ export function ExpertSetupChecklist() {
               value={loading ? undefined : progressPercentage}
               className={cn('h-2 w-[100px]', loading && 'animate-pulse')}
             />
-            <span className="text-muted-foreground text-xs">
+            <span className="text-xs text-muted-foreground">
               {loading ? 'Loading...' : `${progressPercentage}% complete`}
             </span>
           </div>
@@ -772,11 +785,11 @@ export function ExpertSetupChecklist() {
             <div key={step.id} className="flex items-start space-x-3">
               <div className="mt-0.5">
                 {loading ? (
-                  <Circle className="text-muted-foreground h-5 w-5 animate-pulse" />
+                  <Circle className="h-5 w-5 animate-pulse text-muted-foreground" />
                 ) : step.completed ? (
-                  <CheckCircle2 className="text-primary h-5 w-5" />
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
                 ) : (
-                  <Circle className="text-muted-foreground h-5 w-5" />
+                  <Circle className="h-5 w-5 text-muted-foreground" />
                 )}
               </div>
               <div className="flex-1">
@@ -796,7 +809,7 @@ export function ExpertSetupChecklist() {
                     </Button>
                   )}
                 </div>
-                <p className="text-muted-foreground text-xs">
+                <p className="text-xs text-muted-foreground">
                   {step.completed
                     ? getStepDetails(step.id).completedDescription || step.description
                     : getStepDetails(step.id).pendingDescription || step.description}
