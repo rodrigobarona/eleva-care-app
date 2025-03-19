@@ -161,7 +161,7 @@ export async function updateEvent(
   // After update, refresh the expert setup status
   await checkExpertSetupStatus();
 
-  redirect('/events');
+  redirect('/booking/events');
 }
 
 /**
@@ -233,7 +233,7 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
       userAgent,
     );
 
-    revalidatePath('/events');
+    revalidatePath('/booking/events');
 
     // After deletion, check and update the expert setup status
     await checkExpertSetupStatus();
@@ -264,7 +264,7 @@ export async function updateEventOrder(updates: { id: string; order: number }[])
     }
 
     // Revalidate the events page to reflect the new order
-    revalidatePath('/events');
+    revalidatePath('/booking/events');
     return { success: true };
   } catch (error) {
     console.error('Failed to update event order:', error);
@@ -337,7 +337,7 @@ export async function updateEventActiveState(
     }
 
     // Revalidate various paths to update UI
-    revalidatePath('/events');
+    revalidatePath('/booking/events');
     revalidatePath(`/events/${event.slug}`);
     revalidatePath('/');
     revalidatePath(`/${event.slug}`);

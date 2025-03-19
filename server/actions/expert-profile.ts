@@ -73,9 +73,9 @@ export async function toggleProfilePublication() {
     // Revalidate paths where profile data might be displayed
     revalidatePath('/');
     revalidatePath('/experts');
-    revalidatePath('/expert/[username]');
+    revalidatePath('/booking/expert/[username]');
     revalidatePath('/account');
-    revalidatePath('/expert');
+    revalidatePath('/booking/expert');
 
     return {
       success: true,

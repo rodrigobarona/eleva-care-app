@@ -46,7 +46,7 @@ export function AppSidebar() {
     },
     {
       title: 'Events',
-      url: '/events',
+      url: '/booking/events',
       icon: CalendarIcon,
       roles: ['community_expert', 'top_expert', 'admin', 'superadmin'] as UserRole[],
     },

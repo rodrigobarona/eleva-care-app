@@ -195,7 +195,7 @@ export function EventForm({
       }
 
       // Use router.push for navigation
-      router.push('/events');
+      router.push('/booking/events');
     } catch (error) {
       console.error('Form submission error:', error);
       form.setError('root', {
@@ -426,7 +426,7 @@ export function EventForm({
                               reject(new Error('Failed to delete event'));
                             } else {
                               resolve(true);
-                              router.push('/events');
+                              router.push('/booking/events');
                             }
                           } catch (error) {
                             reject(error);

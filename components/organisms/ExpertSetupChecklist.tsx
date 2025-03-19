@@ -641,7 +641,7 @@ export function ExpertSetupChecklist() {
             duration: 8000,
             action: {
               label: isProfilePublished ? 'Manage Profile' : 'Publish Profile',
-              onClick: () => router.push('/expert'),
+              onClick: () => router.push('/booking/expert'),
             },
           },
         );
