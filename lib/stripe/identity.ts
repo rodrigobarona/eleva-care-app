@@ -1,160 +1,253 @@
-import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 
-// Initialize Stripe with API version
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
-});
-
-// Set the Verification Flow ID
-const VERIFICATION_FLOW_ID = process.env.STRIPE_VERIFICATION_FLOW_ID;
-
-// Update the interface to match Stripe's types more accurately
-interface ExtendedVerificationSession
-  extends Omit<Stripe.Identity.VerificationSession, 'last_error'> {
-  last_verified_at?: number;
-  last_error?: {
-    created?: number;
-    message?: string;
-  } | null;
-}
+import { getBaseUrl, getServerStripe } from '../stripe';
 
 /**
- * Creates a new identity verification session for the current user
- * Uses a pre-configured Verification Flow for consistent user experience
+ * Creates a Stripe Identity verification session
+ * This is the first step in the expert verification process
  *
- * @returns URL to the identity verification page and session ID
+ * @param userId - Database user ID
+ * @param clerkUserId - Clerk user ID for authentication
+ * @param email - User's email address
+ * @returns Object containing success status and session details
  */
-export async function createIdentityVerificationSession() {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
+export async function createIdentityVerification(
+  userId: string,
+  clerkUserId: string,
+  email: string,
+): Promise<{
+  success: boolean;
+  status?: string;
+  verificationId?: string;
+  redirectUrl?: string | null;
+  message?: string;
+  error?: string;
+}> {
+  const stripe = await getServerStripe();
+  const baseUrl = getBaseUrl();
 
-    // Get user data from database
+  try {
+    // Check if user already has an active verification
     const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, userId),
+      where: eq(UserTable.clerkUserId, clerkUserId),
     });
 
-    if (!user) {
-      throw new Error('User not found in database');
+    if (user?.stripeIdentityVerificationId) {
+      // Check the status of the existing verification
+      const verificationStatus = await getIdentityVerificationStatus(
+        user.stripeIdentityVerificationId,
+      );
+
+      if (verificationStatus.status === 'verified') {
+        return {
+          success: true,
+          status: verificationStatus.status,
+          verificationId: user.stripeIdentityVerificationId,
+          redirectUrl: null,
+          message: 'Identity already verified',
+        };
+      }
     }
 
-    // Create a new verification session using the configured Verification Flow
+    // Create a new verification session
     const verificationSession = await stripe.identity.verificationSessions.create({
       type: 'document',
       metadata: {
-        userId: user.id,
-        clerkUserId: userId,
-        email: user.email,
+        userId,
+        clerkUserId,
+        email,
+        created_at: new Date().toISOString(),
       },
-      verification_flow: VERIFICATION_FLOW_ID, // Use the configured Verification Flow
-      return_url: `${process.env.NEXT_PUBLIC_APP_URL}/account/identity?session_completed=true`,
+      return_url: `${baseUrl}/account/identity/callback`,
     });
 
-    // Update user record with verification session ID
+    // Store the verification session ID in the database
     await db
       .update(UserTable)
       .set({
         stripeIdentityVerificationId: verificationSession.id,
+        stripeIdentityVerificationStatus: verificationSession.status,
+        stripeIdentityVerificationLastChecked: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(UserTable.id, user.id));
+      .where(eq(UserTable.clerkUserId, clerkUserId));
 
     return {
-      url: verificationSession.url,
-      sessionId: verificationSession.id,
+      success: true,
+      status: verificationSession.status,
+      verificationId: verificationSession.id,
+      redirectUrl: verificationSession.url,
+      message: 'Identity verification created successfully',
     };
   } catch (error) {
-    console.error('Failed to create identity verification session:', error);
-    throw error;
+    console.error('Error creating identity verification:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
   }
 }
 
 /**
- * Retrieves the status of an identity verification session
+ * Gets the status of a Stripe Identity verification session
  *
- * @param verificationId ID of the verification session to check
- * @returns Object containing status and last updated timestamp
+ * @param verificationId - Stripe verification session ID
+ * @returns Object containing status information
  */
-export async function getIdentityVerificationStatus(verificationId: string) {
+export async function getIdentityVerificationStatus(verificationId: string): Promise<{
+  status: string;
+  lastUpdated: string | undefined;
+  details?: string;
+}> {
+  const stripe = await getServerStripe();
+
   try {
     const verificationSession = await stripe.identity.verificationSessions.retrieve(verificationId);
-    const extendedSession = verificationSession as unknown as ExtendedVerificationSession;
 
-    // Map Stripe status to our application status
-    let status: 'unverified' | 'pending' | 'verified' | 'rejected';
-    switch (extendedSession.status) {
-      case 'verified':
-        status = 'verified';
-        break;
-      case 'requires_input':
-      case 'processing':
-        status = 'pending';
-        break;
-      case 'canceled':
-        status = 'unverified';
-        break;
-      default:
-        status = 'rejected';
+    // We access the status directly since it's part of the standard API
+    const status = verificationSession.status;
+
+    // For timestamps and other properties that might not be properly typed,
+    // we use a more specific type definition
+    let lastUpdated: string | undefined = undefined;
+
+    // Define more specific types for stripe object properties
+    type StripeTimestamp = number;
+    interface StripeError {
+      message?: string;
+      code?: string;
+    }
+
+    // Type cast for accessing properties safely
+    const stripeSession = verificationSession as Stripe.Identity.VerificationSession & {
+      created: StripeTimestamp;
+      last_error?: StripeError;
+    };
+
+    // Get timestamp
+    if (stripeSession.created) {
+      lastUpdated = new Date(stripeSession.created * 1000).toISOString();
     }
 
     return {
       status,
-      lastUpdated: extendedSession.last_error?.created
-        ? new Date(extendedSession.last_error.created * 1000).toISOString()
-        : extendedSession.last_verified_at
-          ? new Date(extendedSession.last_verified_at * 1000).toISOString()
-          : new Date(extendedSession.created * 1000).toISOString(),
-      details: extendedSession.last_error?.message,
+      lastUpdated,
+      details: stripeSession.last_error?.message,
     };
   } catch (error) {
-    console.error('Failed to retrieve identity verification status:', error);
+    console.error('Error retrieving verification status:', error);
     throw error;
   }
 }
 
 /**
- * Updates the verification status of the current user from Stripe
+ * Creates a Connect account using verified identity information
+ * This should be called after identity verification is complete
+ *
+ * @param clerkUserId - Clerk user ID for authentication
+ * @param email - User's email address
+ * @param country - Two-letter country code
+ * @returns Object containing success status and account details
  */
-export async function updateVerificationStatus() {
-  try {
-    const { userId } = await auth();
-    if (!userId) {
-      throw new Error('User not authenticated');
-    }
+export async function createConnectAccountWithVerifiedIdentity(
+  clerkUserId: string,
+  email: string,
+  country: string,
+): Promise<{
+  success: boolean;
+  accountId?: string;
+  detailsSubmitted?: boolean;
+  onboardingUrl?: string;
+  error?: string;
+}> {
+  const stripe = await getServerStripe();
+  const baseUrl = getBaseUrl();
 
-    // Get user data
+  try {
+    // Get the user from the database
     const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, userId),
+      where: eq(UserTable.clerkUserId, clerkUserId),
     });
 
-    if (!user || !user.stripeIdentityVerificationId) {
-      throw new Error('User has no active verification session');
+    if (!user) {
+      throw new Error('User not found');
     }
 
-    // Fetch status from Stripe
+    // Check if the user has a verified identity
+    if (!user.stripeIdentityVerificationId) {
+      throw new Error('User has not completed identity verification');
+    }
+
+    // Get verification status
     const verificationStatus = await getIdentityVerificationStatus(
       user.stripeIdentityVerificationId,
     );
 
-    // Update user record with latest status
+    if (verificationStatus.status !== 'verified') {
+      throw new Error(`Identity verification is not complete: ${verificationStatus.status}`);
+    }
+
+    // Create the Connect account using the verified identity
+    const account = await stripe.accounts.create({
+      type: 'express',
+      country: country.toUpperCase(),
+      email,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+      business_type: 'individual',
+      settings: {
+        payouts: {
+          schedule: {
+            interval: 'daily',
+            delay_days: 0,
+          },
+        },
+      },
+      metadata: {
+        clerkUserId,
+        identity_verified: 'true',
+        identity_verified_at: new Date().toISOString(),
+        identity_verification_id: user.stripeIdentityVerificationId,
+      },
+    });
+
+    // Update the user record with the Connect account ID
     await db
       .update(UserTable)
       .set({
-        stripeIdentityVerified: verificationStatus.status === 'verified',
+        stripeConnectAccountId: account.id,
+        stripeConnectDetailsSubmitted: account.details_submitted,
+        stripeConnectPayoutsEnabled: account.payouts_enabled,
+        stripeConnectChargesEnabled: account.charges_enabled,
         updatedAt: new Date(),
       })
-      .where(eq(UserTable.id, user.id));
+      .where(eq(UserTable.clerkUserId, clerkUserId));
 
-    return verificationStatus;
+    // Create account link for onboarding
+    const accountLink = await stripe.accountLinks.create({
+      account: account.id,
+      refresh_url: `${baseUrl}/account/billing?refresh=true`,
+      return_url: `${baseUrl}/account/billing?success=true`,
+      type: 'account_onboarding',
+      collect: 'eventually_due',
+    });
+
+    return {
+      success: true,
+      accountId: account.id,
+      detailsSubmitted: account.details_submitted,
+      onboardingUrl: accountLink.url,
+    };
   } catch (error) {
-    console.error('Failed to update verification status:', error);
-    throw error;
+    console.error('Error creating Connect account with verified identity:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
+    };
   }
 }

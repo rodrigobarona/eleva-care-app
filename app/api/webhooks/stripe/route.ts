@@ -1,11 +1,13 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable, UserTable } from '@/drizzle/schema';
-import { syncStripeDataToKV } from '@/lib/stripe';
+import { getServerStripe, syncStripeDataToKV } from '@/lib/stripe';
+import { markStepCompleteForUser } from '@/server/actions/expert-setup';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+import { headers } from 'next/headers';
+import { type NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 // Add route segment config
@@ -216,194 +218,171 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
   return { success: true, meetingId: result.meeting?.id };
 }
 
-export async function POST(request: Request) {
+/**
+ * Handles webhook events from Stripe for identity verification and Connect accounts
+ *
+ * @param request The incoming request from Stripe
+ * @returns A JSON response indicating success or failure
+ */
+export async function POST(request: NextRequest) {
+  const stripe = await getServerStripe();
+  const body = await request.text();
+  const headersList = await headers();
+  const sig = headersList.get('stripe-signature') as string;
+
+  let event: Stripe.Event;
+
   try {
-    // Log the request info (useful for debugging)
-    console.log('Received webhook request to /api/webhooks/stripe');
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET as string);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`Webhook Error: ${errorMessage}`);
+    return NextResponse.json({ error: `Webhook Error: ${errorMessage}` }, { status: 400 });
+  }
 
-    if (!process.env.STRIPE_WEBHOOK_SECRET) {
-      throw new Error('Missing STRIPE_WEBHOOK_SECRET environment variable');
-    }
+  // Handle the event
+  try {
+    console.log('Processing webhook event:', event.type, event.id);
 
-    // Get the raw body as text
-    const body = await request.text();
-    const signature = request.headers.get('stripe-signature');
-
-    if (!signature) {
-      console.error('Missing Stripe signature header');
-      return NextResponse.json({ error: 'Missing Stripe signature' }, { status: 400 });
-    }
-
-    let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET);
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err);
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-    }
-
-    console.log('Received Stripe webhook event:', {
-      type: event.type,
-      id: event.id,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Extract customer ID from event data to sync (if applicable)
-    let customerId: string | undefined = undefined;
-    let clerkUserId: string | undefined = undefined;
-
-    // Extract customer ID based on event type
     switch (event.type) {
       case 'checkout.session.completed':
-      case 'checkout.session.async_payment_succeeded':
-      case 'checkout.session.async_payment_failed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        customerId = typeof session.customer === 'string' ? session.customer : undefined;
-        clerkUserId = session.metadata?.clerkUserId;
-        break;
-      }
-
-      case 'customer.created':
-      case 'customer.updated':
-      case 'customer.deleted': {
-        const customer = event.data.object as Stripe.Customer;
-        customerId = customer.id;
-        clerkUserId = customer.metadata?.userId as string | undefined;
-        console.log(`Handling ${event.type} event:`, {
-          customerId,
-          clerkUserId,
-          name: customer.name,
-          email: customer.email,
-        });
-        break;
-      }
-
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-      case 'customer.subscription.deleted':
-      case 'customer.subscription.trial_will_end': {
-        const subscription = event.data.object as Stripe.Subscription;
-        customerId = typeof subscription.customer === 'string' ? subscription.customer : undefined;
-        break;
-      }
-
-      case 'invoice.paid':
-      case 'invoice.payment_failed':
-      case 'invoice.payment_succeeded': {
-        const invoice = event.data.object as Stripe.Invoice;
-        customerId = typeof invoice.customer === 'string' ? invoice.customer : undefined;
-        break;
-      }
-
-      case 'payment_intent.succeeded':
-      case 'payment_intent.payment_failed': {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        customerId =
-          typeof paymentIntent.customer === 'string' ? paymentIntent.customer : undefined;
-        clerkUserId = paymentIntent.metadata?.clerkUserId;
-        break;
-      }
-
-      default:
-        // For events not explicitly handled, we don't need to sync customer data
-        break;
-    }
-
-    // If we have a Clerk user ID, prioritize full synchronization
-    if (clerkUserId) {
-      try {
-        console.log('Ensuring full user synchronization:', clerkUserId);
-        await ensureFullUserSynchronization(clerkUserId);
-      } catch (error) {
-        console.error('Error syncing user data:', error);
-        // Continue webhook processing even if sync fails
-      }
-    }
-    // Otherwise fall back to Stripe-only sync
-    else if (customerId) {
-      try {
-        console.log('Syncing customer data to KV:', customerId);
-        await syncStripeDataToKV(customerId).catch((error) => {
-          console.error('Error syncing customer data to KV:', error);
-          // We still want to process the webhook even if KV sync fails
-        });
-      } catch (error) {
-        console.error('Error preparing to sync customer data:', error);
-        // Continue webhook processing even if sync preparation fails
-      }
-    }
-
-    // Handle specific business logic based on event type
-    switch (event.type) {
-      case 'checkout.session.completed':
+        // Handle checkout completion
         await handleCheckoutSession(event.data.object as StripeCheckoutSession);
         break;
-      // Handle identity verification events by delegating to the appropriate handler
+
       case 'identity.verification_session.verified':
-      case 'identity.verification_session.requires_input':
-      case 'identity.verification_session.processing':
-      case 'identity.verification_session.created':
-        // Import and call the identity handler function
-        try {
-          console.log('Forwarding identity event to identity handler:', event.type);
-          // We can't directly import route handlers, so handle the identity event here
-          // The user should have both webhooks set up in Stripe
-          console.log('Identity verification event received via main webhook.', {
-            type: event.type,
-            sessionId: (event.data.object as Stripe.Identity.VerificationSession).id,
-            metadata: (event.data.object as Stripe.Identity.VerificationSession).metadata,
-          });
-
-          // Update user if we can find them by metadata
-          const verificationSession = event.data.object as Stripe.Identity.VerificationSession;
-          if (verificationSession.metadata?.clerkUserId) {
-            const clerkUserId = verificationSession.metadata.clerkUserId as string;
-            console.log('Found clerk user ID in metadata:', clerkUserId);
-
-            // Update the user's verification status
-            try {
-              const user = await db.query.UserTable.findFirst({
-                where: (user) => eq(user.clerkUserId, clerkUserId),
-              });
-
-              if (user) {
-                console.log('Updating user verification status:', user.id);
-                await db
-                  .update(UserTable)
-                  .set({
-                    stripeIdentityVerificationId: verificationSession.id,
-                    stripeIdentityVerified: verificationSession.status === 'verified',
-                    stripeIdentityVerificationStatus: verificationSession.status,
-                    stripeIdentityVerificationLastChecked: new Date(),
-                    updatedAt: new Date(),
-                  })
-                  .where(eq(UserTable.id, user.id));
-
-                console.log('Successfully updated user verification status');
-              } else {
-                console.log('No user found with clerk ID:', clerkUserId);
-              }
-            } catch (error) {
-              console.error('Error updating user verification status:', error);
-            }
-          }
-        } catch (error) {
-          console.error('Error handling identity event:', error);
-          // Continue processing - we don't want to fail the webhook for this
-        }
+        // Handle identity verification success
+        await handleVerificationSessionVerified(
+          event.data.object as Stripe.Identity.VerificationSession,
+        );
         break;
-      // Add other event handlers as needed
+
+      case 'identity.verification_session.requires_input':
+        // Handle identity verification that needs more information
+        await handleVerificationSessionRequiresInput(
+          event.data.object as Stripe.Identity.VerificationSession,
+        );
+        break;
+
+      case 'account.updated':
+        // Handle Stripe Connect account updates
+        await handleAccountUpdated(event.data.object as Stripe.Account);
+        break;
+
       default:
-        console.log(`Unhandled event type ${event.type}`);
+        console.log(`Unhandled event type: ${event.type}`);
     }
 
-    // Return a 200 success response quickly
-    return NextResponse.json({ received: true, status: 'success' });
+    return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Error processing webhook:', error);
-    return NextResponse.json(
-      { error: 'Internal server error processing webhook' },
-      { status: 500 },
-    );
+    console.error(`Error processing webhook: ${error}`);
+    return NextResponse.json({ error: 'Error processing webhook' }, { status: 500 });
+  }
+}
+
+/**
+ * Handles when a Stripe Identity verification session is verified
+ * Updates the user record and marks the identity step as complete
+ *
+ * @param session The verification session object from Stripe
+ */
+async function handleVerificationSessionVerified(session: Stripe.Identity.VerificationSession) {
+  console.log('Identity verification verified:', session.id);
+
+  // Find the user associated with this verification
+  const clerkUserId = session.metadata?.clerkUserId;
+  if (!clerkUserId) {
+    console.error('No clerk user ID found in verification metadata');
+    return;
+  }
+
+  // Update user record
+  const user = await db.query.UserTable.findFirst({
+    where: eq(UserTable.clerkUserId, clerkUserId as string),
+  });
+
+  if (!user) {
+    console.error('User not found for verification:', clerkUserId);
+    return;
+  }
+
+  // Update user record
+  await db
+    .update(UserTable)
+    .set({
+      stripeIdentityVerified: true,
+      stripeIdentityVerificationStatus: 'verified',
+      stripeIdentityVerificationLastChecked: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(UserTable.id, user.id));
+
+  // Mark identity step as complete in expert setup
+  await markStepCompleteForUser('identity', clerkUserId as string);
+}
+
+/**
+ * Handles when a Stripe Identity verification session requires additional input
+ * Updates the user record with the requires_input status
+ *
+ * @param session The verification session object from Stripe
+ */
+async function handleVerificationSessionRequiresInput(
+  session: Stripe.Identity.VerificationSession,
+) {
+  console.log('Identity verification requires input:', session.id);
+
+  const clerkUserId = session.metadata?.clerkUserId;
+  if (!clerkUserId) {
+    console.error('No clerk user ID found in verification metadata');
+    return;
+  }
+
+  // Update user record
+  await db
+    .update(UserTable)
+    .set({
+      stripeIdentityVerified: false,
+      stripeIdentityVerificationStatus: 'requires_input',
+      stripeIdentityVerificationLastChecked: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(UserTable.clerkUserId, clerkUserId as string));
+}
+
+/**
+ * Handles when a Stripe Connect account is updated
+ * Updates the user record with the latest account status
+ * If the account is fully enabled, marks the payment step as complete
+ *
+ * @param account The account object from Stripe
+ */
+async function handleAccountUpdated(account: Stripe.Account) {
+  console.log('Connect account updated:', account.id);
+
+  // Find the user associated with this account
+  const user = await db.query.UserTable.findFirst({
+    where: eq(UserTable.stripeConnectAccountId, account.id),
+  });
+
+  if (!user) {
+    console.error('User not found for Connect account:', account.id);
+    return;
+  }
+
+  // Update user record
+  await db
+    .update(UserTable)
+    .set({
+      stripeConnectDetailsSubmitted: account.details_submitted,
+      stripeConnectPayoutsEnabled: account.payouts_enabled,
+      stripeConnectChargesEnabled: account.charges_enabled,
+      updatedAt: new Date(),
+    })
+    .where(eq(UserTable.id, user.id));
+
+  // If account is fully enabled, mark payment step as complete
+  if (account.charges_enabled && account.payouts_enabled) {
+    await markStepCompleteForUser('payment', user.clerkUserId);
   }
 }
