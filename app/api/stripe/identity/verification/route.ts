@@ -1,6 +1,6 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { createIdentityVerification } from '@/lib/stripe/identity';
+import { createIdentityVerification, getIdentityVerificationStatus } from '@/lib/stripe/identity';
 import { currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -30,6 +30,48 @@ export async function POST() {
 
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Check if user already has an active verification session
+    if (dbUser.stripeIdentityVerificationId) {
+      console.log(
+        `User ${dbUser.id} already has a verification session: ${dbUser.stripeIdentityVerificationId}`,
+      );
+
+      // Get the status of the existing verification
+      try {
+        const verificationStatus = await getIdentityVerificationStatus(
+          dbUser.stripeIdentityVerificationId,
+        );
+
+        // If already verified, return success with the status
+        if (verificationStatus.status === 'verified') {
+          return NextResponse.json({
+            success: true,
+            status: verificationStatus.status,
+            verificationId: dbUser.stripeIdentityVerificationId,
+            redirectUrl: null,
+            message: 'Identity already verified',
+          });
+        }
+
+        // If session is in a usable state (requires_input or processing), return it
+        if (['requires_input', 'processing'].includes(verificationStatus.status)) {
+          console.log(
+            `Returning existing verification session in status: ${verificationStatus.status}`,
+          );
+          // We need to retrieve the redirect URL for an existing session
+          // For now, create a new session which will replace the existing one
+        }
+
+        // For other states (canceled, etc), create a new session
+        console.log(
+          `Existing verification session is in status ${verificationStatus.status}, creating a new one`,
+        );
+      } catch (error) {
+        console.error(`Error checking existing verification status: ${error}`);
+        // If there was an error retrieving the status, we'll create a new session
+      }
     }
 
     // Create verification session

@@ -34,7 +34,13 @@ export async function POST(request: Request) {
     }
 
     // Get request body for country
-    const body = await request.json();
+    let body: { country?: string };
+    try {
+      body = await request.json();
+    } catch (error) {
+      console.error('Error parsing request body:', error);
+      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+    }
     const { country = 'US' } = body;
 
     // Create Connect account with verified identity
