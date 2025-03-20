@@ -166,6 +166,54 @@ export async function createConnectAccountWithVerifiedIdentity(
   const stripe = await getServerStripe();
   const baseUrl = getBaseUrl();
 
+  // Validate country code - list of supported Stripe Connect countries
+  const validCountryCodes = [
+    'US',
+    'GB',
+    'AU',
+    'CA',
+    'DE',
+    'FR',
+    'IT',
+    'ES',
+    'NL',
+    'BE',
+    'AT',
+    'CH',
+    'IE',
+    'SE',
+    'DK',
+    'NO',
+    'FI',
+    'SG',
+    'HK',
+    'JP',
+    'NZ',
+    'PT',
+    'LU',
+    'MX',
+    'BR',
+    'MY',
+    'TH',
+    'PL',
+    'CZ',
+    'SK',
+    'EE',
+    'LT',
+    'LV',
+    'GR',
+    'CY',
+  ];
+
+  const countryCode = country.toUpperCase();
+  if (!validCountryCodes.includes(countryCode)) {
+    logError('Invalid country code', { clerkUserId, email, country });
+    return {
+      success: false,
+      error: `Invalid country code: ${country}. Must be one of: ${validCountryCodes.join(', ')}`,
+    };
+  }
+
   try {
     // Get the user from the database
     const user = await db.query.UserTable.findFirst({
@@ -173,11 +221,13 @@ export async function createConnectAccountWithVerifiedIdentity(
     });
 
     if (!user) {
+      logError('User not found', { clerkUserId, email });
       throw new Error('User not found');
     }
 
     // Check if the user has a verified identity
     if (!user.stripeIdentityVerificationId) {
+      logError('User has not completed identity verification', { clerkUserId, userId: user.id });
       throw new Error('User has not completed identity verification');
     }
 
@@ -187,55 +237,133 @@ export async function createConnectAccountWithVerifiedIdentity(
     );
 
     if (verificationStatus.status !== 'verified') {
+      logError('Identity verification is not complete', {
+        clerkUserId,
+        userId: user.id,
+        status: verificationStatus.status,
+      });
       throw new Error(`Identity verification is not complete: ${verificationStatus.status}`);
     }
 
-    // Create the Connect account using the verified identity
-    const account = await stripe.accounts.create({
-      type: 'express',
-      country: country.toUpperCase(),
-      email,
-      capabilities: {
-        card_payments: { requested: true },
-        transfers: { requested: true },
-      },
-      business_type: 'individual',
-      settings: {
-        payouts: {
-          schedule: {
-            interval: 'daily',
-            delay_days: 0,
+    // Step 1: Check if account already exists to avoid duplication
+    if (user.stripeConnectAccountId) {
+      // Get account details from Stripe to verify it's valid
+      try {
+        const existingAccount = await stripe.accounts.retrieve(user.stripeConnectAccountId);
+
+        // If account exists and is active, create a new account link
+        if (existingAccount.id) {
+          const accountLink = await stripe.accountLinks.create({
+            account: existingAccount.id,
+            refresh_url: `${baseUrl}/account/billing?refresh=true`,
+            return_url: `${baseUrl}/account/billing?success=true`,
+            type: 'account_onboarding',
+            collect: 'eventually_due',
+          });
+
+          return {
+            success: true,
+            accountId: existingAccount.id,
+            detailsSubmitted: existingAccount.details_submitted,
+            onboardingUrl: accountLink.url,
+          };
+        }
+      } catch (error: unknown) {
+        // If the existing account ID is invalid, we'll create a new one
+        logError('Existing Connect account not found in Stripe', {
+          clerkUserId,
+          accountId: user.stripeConnectAccountId,
+          error,
+        });
+      }
+    }
+
+    // Step 2: Create the Connect account using the verified identity
+    let account;
+    try {
+      account = await stripe.accounts.create({
+        type: 'express',
+        country: countryCode,
+        email,
+        capabilities: {
+          card_payments: { requested: true },
+          transfers: { requested: true },
+        },
+        business_type: 'individual',
+        settings: {
+          payouts: {
+            schedule: {
+              interval: 'daily',
+              delay_days: 0,
+            },
           },
         },
-      },
-      metadata: {
+        metadata: {
+          clerkUserId,
+          identity_verified: 'true',
+          identity_verified_at: new Date().toISOString(),
+          identity_verification_id: user.stripeIdentityVerificationId,
+        },
+      });
+    } catch (error) {
+      logError('Failed to create Stripe Connect account', { clerkUserId, email, country, error });
+      throw error;
+    }
+
+    // Step 3: Update the user record with the Connect account ID
+    try {
+      await db
+        .update(UserTable)
+        .set({
+          stripeConnectAccountId: account.id,
+          stripeConnectDetailsSubmitted: account.details_submitted,
+          stripeConnectPayoutsEnabled: account.payouts_enabled,
+          stripeConnectChargesEnabled: account.charges_enabled,
+          updatedAt: new Date(),
+        })
+        .where(eq(UserTable.clerkUserId, clerkUserId));
+    } catch (dbError) {
+      // If database update fails, we should delete the Stripe account to maintain consistency
+      logError('Failed to update user record with Connect account', {
         clerkUserId,
-        identity_verified: 'true',
-        identity_verified_at: new Date().toISOString(),
-        identity_verification_id: user.stripeIdentityVerificationId,
-      },
-    });
+        accountId: account.id,
+        error: dbError,
+      });
 
-    // Update the user record with the Connect account ID
-    await db
-      .update(UserTable)
-      .set({
-        stripeConnectAccountId: account.id,
-        stripeConnectDetailsSubmitted: account.details_submitted,
-        stripeConnectPayoutsEnabled: account.payouts_enabled,
-        stripeConnectChargesEnabled: account.charges_enabled,
-        updatedAt: new Date(),
-      })
-      .where(eq(UserTable.clerkUserId, clerkUserId));
+      try {
+        // Attempt to delete the created account to avoid orphaned accounts
+        await stripe.accounts.del(account.id);
+      } catch (deleteError) {
+        logError('Failed to delete orphaned Connect account after DB update failure', {
+          clerkUserId,
+          accountId: account.id,
+          error: deleteError,
+        });
+      }
 
-    // Create account link for onboarding
-    const accountLink = await stripe.accountLinks.create({
-      account: account.id,
-      refresh_url: `${baseUrl}/account/billing?refresh=true`,
-      return_url: `${baseUrl}/account/billing?success=true`,
-      type: 'account_onboarding',
-      collect: 'eventually_due',
-    });
+      throw dbError;
+    }
+
+    // Step 4: Create account link for onboarding
+    let accountLink;
+    try {
+      accountLink = await stripe.accountLinks.create({
+        account: account.id,
+        refresh_url: `${baseUrl}/account/billing?refresh=true`,
+        return_url: `${baseUrl}/account/billing?success=true`,
+        type: 'account_onboarding',
+        collect: 'eventually_due',
+      });
+    } catch (linkError: unknown) {
+      logError('Failed to create account link for onboarding', {
+        clerkUserId,
+        accountId: account.id,
+        error: linkError,
+      });
+      // We don't delete the account here since it was successfully created and saved to DB
+      // The user can try again later to get an onboarding link
+      throw linkError;
+    }
 
     return {
       success: true,
@@ -244,10 +372,29 @@ export async function createConnectAccountWithVerifiedIdentity(
       onboardingUrl: accountLink.url,
     };
   } catch (error) {
-    console.error('Error creating Connect account with verified identity:', error);
+    logError('Error creating Connect account with verified identity', {
+      clerkUserId,
+      email,
+      country,
+      error,
+    });
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error occurred',
     };
   }
+}
+
+/**
+ * Central logging function for Stripe operations
+ * This can be replaced with your preferred logging solution
+ */
+function logError(message: string, context: Record<string, unknown>): void {
+  // Log to console for now, but could be replaced with a more sophisticated logging solution
+  console.error(`[STRIPE ERROR] ${message}:`, context);
+
+  // TODO: Integrate with monitoring services like Sentry, DataDog, etc.
+  // if (process.env.NODE_ENV === 'production') {
+  //   // Example: Sentry.captureException(new Error(message), { extra: context });
+  // }
 }
