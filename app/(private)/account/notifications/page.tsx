@@ -4,6 +4,7 @@ import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/atoms/tabs';
 import { NotificationsList } from '@/components/molecules/NotificationsList';
+import type { NotificationType } from '@/lib/notifications';
 import { Bell, CheckCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -11,7 +12,7 @@ import { toast } from 'sonner';
 // Define the Notification type
 interface Notification {
   id: string;
-  type: string;
+  type: NotificationType;
   title: string;
   message: string;
   actionUrl?: string | null;
@@ -59,20 +60,39 @@ export default function NotificationsPage() {
     }
 
     try {
-      // Mark each notification as read one by one
-      for (const id of unreadIds) {
-        await fetch(`/api/notifications/${id}`, {
-          method: 'PATCH',
-        });
-      }
-
-      // Update local state to show all as read
+      // Optimistic update
       setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })));
+
+      // Send all IDs to be marked as read in a single request
+      const response = await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ids: unreadIds }),
+      });
+
+      if (!response.ok) {
+        // Get error details from response if available
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage =
+          errorData.error || `Failed to mark notifications as read (HTTP ${response.status})`;
+        throw new Error(errorMessage);
+      }
 
       toast.success('All notifications marked as read');
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
-      toast.error('Failed to mark all as read');
+      // Rollback optimistic update
+      setNotifications((prev) =>
+        prev.map((notification) => ({
+          ...notification,
+          read: !unreadIds.includes(notification.id),
+        })),
+      );
+      toast.error('Failed to mark all as read', {
+        description: error instanceof Error ? error.message : 'Please try again later',
+      });
     }
   };
 
@@ -150,7 +170,7 @@ export default function NotificationsPage() {
               <LoadingState />
             ) : allNotifications.length > 0 ? (
               <NotificationsList
-                notifications={allNotifications}
+                notifications={allNotifications as Notification[]}
                 onNotificationRead={handleNotificationRead}
               />
             ) : (
@@ -163,7 +183,7 @@ export default function NotificationsPage() {
               <LoadingState />
             ) : verificationNotifications.length > 0 ? (
               <NotificationsList
-                notifications={verificationNotifications}
+                notifications={verificationNotifications as Notification[]}
                 onNotificationRead={handleNotificationRead}
               />
             ) : (
@@ -176,7 +196,7 @@ export default function NotificationsPage() {
               <LoadingState />
             ) : accountNotifications.length > 0 ? (
               <NotificationsList
-                notifications={accountNotifications}
+                notifications={accountNotifications as Notification[]}
                 onNotificationRead={handleNotificationRead}
               />
             ) : (
@@ -189,7 +209,7 @@ export default function NotificationsPage() {
               <LoadingState />
             ) : securityNotifications.length > 0 ? (
               <NotificationsList
-                notifications={securityNotifications}
+                notifications={securityNotifications as Notification[]}
                 onNotificationRead={handleNotificationRead}
               />
             ) : (
@@ -202,7 +222,7 @@ export default function NotificationsPage() {
               <LoadingState />
             ) : systemNotifications.length > 0 ? (
               <NotificationsList
-                notifications={systemNotifications}
+                notifications={systemNotifications as Notification[]}
                 onNotificationRead={handleNotificationRead}
               />
             ) : (

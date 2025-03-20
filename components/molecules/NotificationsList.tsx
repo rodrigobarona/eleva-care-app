@@ -4,15 +4,16 @@ import { Badge } from '@/components/atoms/badge';
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/atoms/card';
 import { markNotificationAsRead } from '@/lib/notifications';
+import type { NotificationType } from '@/lib/notifications';
 import { AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { type KeyboardEvent, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-// Type definition for notification
+// Type definition for notification with proper type enum
 interface Notification {
   id: string;
-  type: string;
+  type: NotificationType;
   title: string;
   message: string;
   actionUrl?: string | null;
@@ -28,6 +29,42 @@ interface NotificationsListProps {
 export function NotificationsList({ notifications, onNotificationRead }: NotificationsListProps) {
   const router = useRouter();
   const [readNotifications, setReadNotifications] = useState<Record<string, boolean>>({});
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const listRef = useRef<HTMLUListElement>(null);
+
+  // Handle keyboard navigation
+  const handleKeyDown = (
+    event: KeyboardEvent<HTMLDivElement>,
+    index: number,
+    notification: Notification,
+  ) => {
+    switch (event.key) {
+      case 'ArrowDown': {
+        event.preventDefault();
+        const nextIndex = Math.min(index + 1, notifications.length - 1);
+        setSelectedIndex(nextIndex);
+        const nextItem = listRef.current?.children[nextIndex] as HTMLElement;
+        nextItem?.focus();
+        break;
+      }
+      case 'ArrowUp': {
+        event.preventDefault();
+        const prevIndex = Math.max(index - 1, 0);
+        setSelectedIndex(prevIndex);
+        const prevItem = listRef.current?.children[prevIndex] as HTMLElement;
+        prevItem?.focus();
+        break;
+      }
+      case 'Enter':
+      case ' ': {
+        event.preventDefault();
+        if (notification.actionUrl) {
+          handleAction(notification);
+        }
+        break;
+      }
+    }
+  };
 
   if (!notifications || notifications.length === 0) {
     return (
@@ -65,51 +102,59 @@ export function NotificationsList({ notifications, onNotificationRead }: Notific
   };
 
   return (
-    <div className="space-y-4">
-      {notifications.map((notification) => (
-        <Card
-          key={notification.id}
-          className={`transition-colors ${isRead(notification) ? 'bg-muted/50' : 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20'}`}
-        >
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-medium">
-                {notification.type === 'VERIFICATION_HELP' ? (
-                  <span className="flex items-center">
-                    <AlertCircle className="mr-2 h-4 w-4 text-amber-500" />
-                    {notification.title}
-                  </span>
-                ) : (
-                  notification.title
-                )}
-              </CardTitle>
-              <NotificationTypeBadge type={notification.type} />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="whitespace-pre-line text-sm">{notification.message}</p>
-          </CardContent>
-          <CardFooter className="flex justify-between pt-0">
-            <p className="text-xs text-muted-foreground">
-              {new Date(notification.createdAt).toLocaleDateString()}
-            </p>
-            {notification.actionUrl && (
-              <Button
-                size="sm"
-                variant={isRead(notification) ? 'outline' : 'default'}
-                onClick={() => handleAction(notification)}
-              >
-                {notification.type === 'VERIFICATION_HELP' ? 'Fix Verification' : 'View Details'}
-              </Button>
-            )}
-          </CardFooter>
-        </Card>
+    <ul ref={listRef} className="space-y-4" aria-label="Notifications">
+      {notifications.map((notification, index) => (
+        <li key={notification.id}>
+          <Card
+            tabIndex={0}
+            onKeyDown={(e) => handleKeyDown(e, index, notification)}
+            className={`transition-colors focus:outline-none focus:ring-2 focus:ring-ring ${
+              isRead(notification)
+                ? 'bg-muted/50'
+                : 'border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950/20'
+            } ${selectedIndex === index ? 'ring-2 ring-ring' : ''}`}
+          >
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base font-medium">
+                  {notification.type === 'VERIFICATION_HELP' ? (
+                    <span className="flex items-center">
+                      <AlertCircle className="mr-2 h-4 w-4 text-amber-500" />
+                      {notification.title}
+                    </span>
+                  ) : (
+                    notification.title
+                  )}
+                </CardTitle>
+                <NotificationTypeBadge type={notification.type} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <p className="whitespace-pre-line text-sm">{notification.message}</p>
+            </CardContent>
+            <CardFooter className="flex justify-between pt-0">
+              <p className="text-xs text-muted-foreground">
+                {new Date(notification.createdAt).toLocaleDateString()}
+              </p>
+              {notification.actionUrl && (
+                <Button
+                  size="sm"
+                  variant={isRead(notification) ? 'outline' : 'default'}
+                  onClick={() => handleAction(notification)}
+                  aria-label={`${notification.type === 'VERIFICATION_HELP' ? 'Fix Verification' : 'View Details'} for ${notification.title}`}
+                >
+                  {notification.type === 'VERIFICATION_HELP' ? 'Fix Verification' : 'View Details'}
+                </Button>
+              )}
+            </CardFooter>
+          </Card>
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
-function NotificationTypeBadge({ type }: { type: string }) {
+function NotificationTypeBadge({ type }: { type: NotificationType }) {
   switch (type) {
     case 'VERIFICATION_HELP':
       return (

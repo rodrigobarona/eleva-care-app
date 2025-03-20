@@ -13,6 +13,39 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+interface VerificationState {
+  started: boolean;
+  expiresAt: number;
+}
+
+function setVerificationStarted() {
+  const expirationTime = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  const state: VerificationState = {
+    started: true,
+    expiresAt: expirationTime,
+  };
+  localStorage.setItem('identityVerificationStarted', JSON.stringify(state));
+}
+
+function getVerificationStarted(): boolean {
+  try {
+    const stored = localStorage.getItem('identityVerificationStarted');
+    if (!stored) return false;
+
+    const state = JSON.parse(stored) as VerificationState;
+    if (Date.now() > state.expiresAt) {
+      // Clear expired state
+      localStorage.removeItem('identityVerificationStarted');
+      return false;
+    }
+    return state.started;
+  } catch {
+    // If there's any error parsing, clear the item and return false
+    localStorage.removeItem('identityVerificationStarted');
+    return false;
+  }
+}
+
 export default function IdentityPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -20,9 +53,12 @@ export default function IdentityPage() {
 
   // Check verification status on load
   useEffect(() => {
-    async function checkStatus() {
+    const checkVerification = async () => {
+      // Only check status if verification was started and hasn't expired
+      if (!getVerificationStarted()) return;
+
       try {
-        const response = await fetch('/api/stripe/identity/status');
+        const response = await fetch('/api/stripe/identity/verification/status');
         const data = await response.json();
 
         if (data.verified) {
@@ -34,11 +70,14 @@ export default function IdentityPage() {
           setVerificationStatus(data.status);
         }
       } catch (error) {
-        console.error('Error checking identity status:', error);
+        console.error('Error checking verification status:', error);
       }
-    }
+    };
 
-    checkStatus();
+    checkVerification();
+    // Set up polling if verification is in progress
+    const interval = setInterval(checkVerification, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const startVerification = async () => {
@@ -78,8 +117,8 @@ export default function IdentityPage() {
       const data = await response.json();
 
       if (data.redirectUrl) {
-        // Track that verification was started
-        localStorage.setItem('identityVerificationStarted', 'true');
+        // Track that verification was started with expiration
+        setVerificationStarted();
 
         // Redirect to Stripe's verification flow
         window.location.href = data.redirectUrl;

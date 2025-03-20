@@ -1,8 +1,15 @@
 'use client';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/atoms/alert';
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent } from '@/components/atoms/card';
 import { Skeleton } from '@/components/atoms/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/atoms/tooltip';
 import { BellIcon, CheckIcon, XIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -26,16 +33,19 @@ export function UserNotifications() {
     async function fetchNotifications() {
       try {
         setLoading(true);
+        setError(null);
         const response = await fetch('/api/notifications');
 
         if (!response.ok) {
-          throw new Error('Failed to fetch notifications');
+          const data = await response.json();
+          throw new Error(data.error || 'Failed to fetch notifications');
         }
 
         const data = await response.json();
         setNotifications(data.notifications || []);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error');
+        const errorMessage = err instanceof Error ? err.message : 'Failed to load notifications';
+        setError(errorMessage);
         console.error('Error fetching notifications:', err);
       } finally {
         setLoading(false);
@@ -53,14 +63,28 @@ export function UserNotifications() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to mark notification as read');
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to mark notification as read');
       }
 
       // Update local state
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update notification';
       console.error('Error marking notification as read:', err);
+      // Show error in UI
+      setError(errorMessage);
     }
+  }
+
+  // If there's an error, show it prominently
+  if (error) {
+    return (
+      <Alert variant="destructive" className="mb-6">
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
   }
 
   // If loading, show skeleton
@@ -81,9 +105,19 @@ export function UserNotifications() {
     );
   }
 
-  // If no notifications, don't show the component
+  // If no notifications, show a friendly message
   if (notifications.length === 0) {
-    return null;
+    return (
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <BellIcon className="h-5 w-5 text-primary" />
+            <h2 className="text-xl font-semibold">Notifications</h2>
+          </div>
+          <p className="text-muted-foreground">No new notifications at this time.</p>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
@@ -94,22 +128,27 @@ export function UserNotifications() {
           <h2 className="text-xl font-semibold">Notifications</h2>
         </div>
 
-        {error && (
-          <div className="mb-4 rounded-md bg-destructive/10 p-3 text-destructive">{error}</div>
-        )}
-
         <div className="space-y-4">
           {notifications.map((notification) => (
             <div key={notification.id} className="relative rounded-lg border p-4">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-2"
-                onClick={() => markAsRead(notification.id)}
-                aria-label="Dismiss notification"
-              >
-                <XIcon className="h-4 w-4" />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-2"
+                      onClick={() => markAsRead(notification.id)}
+                      aria-label="Dismiss notification"
+                    >
+                      <XIcon className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Dismiss notification</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
               <h3 className="font-semibold">{notification.title}</h3>
               <p className="mt-1 whitespace-pre-line text-sm text-muted-foreground">
@@ -122,15 +161,24 @@ export function UserNotifications() {
                     <Link href={notification.actionUrl}>Take Action</Link>
                   </Button>
                 )}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => markAsRead(notification.id)}
-                  className="flex items-center gap-1"
-                >
-                  <CheckIcon className="h-3 w-3" />
-                  Mark as Read
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => markAsRead(notification.id)}
+                        className="flex items-center gap-1"
+                      >
+                        <CheckIcon className="h-3 w-3" />
+                        Mark as Read
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Mark this notification as read</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
 
               <div className="mt-2 text-xs text-muted-foreground">

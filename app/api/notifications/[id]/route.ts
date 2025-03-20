@@ -20,10 +20,7 @@ export const preferredRegion = 'auto';
  * @returns 404 - User or notification not found
  * @returns 500 - Server error
  */
-export async function PATCH(
-  request: Request, 
-  props: { params: Promise<{ id: string }> }
-) {
+export async function PATCH(request: Request, props: { params: Promise<{ id: string }> }) {
   try {
     // Get the current user
     const user = await currentUser();
@@ -61,7 +58,11 @@ export async function PATCH(
     }
 
     // Mark as read
-    await markNotificationAsRead(id);
+    const success = await markNotificationAsRead(id);
+
+    if (!success) {
+      return NextResponse.json({ error: 'Failed to update notification' }, { status: 500 });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

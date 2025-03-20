@@ -1,5 +1,6 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
+import { getServerStripe } from '@/lib/stripe';
 import { createIdentityVerification, getIdentityVerificationStatus } from '@/lib/stripe/identity';
 import { currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
@@ -11,14 +12,14 @@ const RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
 /**
  * POST /api/stripe/identity/verification
  *
- * Creates a new Stripe Identity verification session for the current user
+ * Creates or retrieves a Stripe Identity verification session
  *
  * @returns 200 - Success with redirect URL or verification status
  * @returns 400 - Error from verification creation
  * @returns 401 - Unauthorized if no user is authenticated
  * @returns 404 - User not found in database
  * @returns 429 - Too Many Requests when rate limit is exceeded
- * @returns 500 - Server error during verification creation
+ * @returns 500 - Server error during verification session creation
  */
 export async function POST() {
   try {
@@ -35,6 +36,8 @@ export async function POST() {
     if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    const stripe = await getServerStripe();
 
     // Check if user already has an active verification session
     if (dbUser.stripeIdentityVerificationId) {
@@ -64,8 +67,26 @@ export async function POST() {
           console.log(
             `Returning existing verification session in status: ${verificationStatus.status}`,
           );
-          // We need to retrieve the redirect URL for an existing session
-          // For now, create a new session which will replace the existing one
+
+          // Retrieve the existing session with URL
+          try {
+            const existingSession = await stripe.identity.verificationSessions.retrieve(
+              dbUser.stripeIdentityVerificationId,
+            );
+
+            if (existingSession.url) {
+              return NextResponse.json({
+                success: true,
+                status: verificationStatus.status,
+                verificationId: dbUser.stripeIdentityVerificationId,
+                redirectUrl: existingSession.url,
+                message: `Continuing existing verification in status: ${verificationStatus.status}`,
+              });
+            }
+          } catch (error) {
+            console.error(`Error retrieving existing verification session URL: ${error}`);
+            // Fall through to create a new session
+          }
         }
 
         // For other states (canceled, etc), create a new session
@@ -108,7 +129,7 @@ export async function POST() {
       })
       .where(eq(UserTable.id, dbUser.id));
 
-    // Create verification session
+    // Create a new verification session
     const result = await createIdentityVerification(
       dbUser.id,
       user.id,
@@ -116,11 +137,6 @@ export async function POST() {
         ? user.emailAddresses[0].emailAddress
         : dbUser.email,
     );
-
-    if (!result.success) {
-      return NextResponse.json({ error: result.error }, { status: 400 });
-    }
-
     return NextResponse.json(result);
   } catch (error) {
     console.error('Error creating identity verification:', error);

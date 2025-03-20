@@ -1,11 +1,12 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
+import { createVerificationHelpNotification } from '@/config/verification-messages';
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable, UserTable } from '@/drizzle/schema';
-import { createUserNotification } from '@/lib/notifications';
+import { NotificationTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
 import { getServerStripe, syncStripeDataToKV } from '@/lib/stripe';
 import { markStepCompleteForUser } from '@/server/actions/expert-setup';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
+import { createId } from '@paralleldrive/cuid2';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -330,111 +331,27 @@ async function handleVerificationSessionVerified(session: Stripe.Identity.Verifi
  */
 async function handleVerificationSessionRequiresInput(
   session: Stripe.Identity.VerificationSession,
-) {
-  console.log('Identity verification requires input:', session.id);
-
-  const clerkUserId = session.metadata?.clerkUserId;
-  if (!clerkUserId) {
-    console.error('No clerk user ID found in verification metadata');
-    return;
-  }
-
-  // Get the current user record to check if this is a repeated requires_input status
-  const userRecord = await db.query.UserTable.findFirst({
-    where: eq(UserTable.clerkUserId, clerkUserId as string),
-  });
-
-  if (!userRecord) {
-    console.error('User not found for verification requires_input:', clerkUserId);
-    return;
-  }
-
-  // Track if this is a repeated requires_input status
-  const isRepeatedRequiresInput = userRecord.stripeIdentityVerificationStatus === 'requires_input';
-
-  // Get last error from the verification session if available
-  let lastErrorMessage: string | undefined;
+): Promise<void> {
   try {
-    // Cast to access potential error details
-    const sessionWithError = session as unknown as {
-      last_error?: { code?: string; message?: string };
-    };
+    // Get the last error message if any
+    const lastError = (session.last_error as { message?: string } | undefined)?.message;
 
-    lastErrorMessage = sessionWithError.last_error?.message;
-    console.log('Verification error details:', {
-      code: sessionWithError.last_error?.code,
-      message: lastErrorMessage,
+    // Create notification with appropriate help message
+    const notification = createVerificationHelpNotification(lastError);
+
+    // Create notification in database
+    await db.insert(NotificationTable).values({
+      id: createId(),
+      userId: session.metadata.userId as string,
+      ...notification,
+      read: false,
+      createdAt: new Date(),
+      actionUrl: '/account/identity',
     });
   } catch (error) {
-    console.error('Error extracting verification session details:', error);
+    console.error('Error creating verification help notification:', error);
+    throw error;
   }
-
-  // Update user record
-  await db
-    .update(UserTable)
-    .set({
-      stripeIdentityVerified: false,
-      stripeIdentityVerificationStatus: 'requires_input',
-      stripeIdentityVerificationLastChecked: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(UserTable.clerkUserId, clerkUserId as string));
-
-  // If this is a repeated requires_input event or contains specific errors,
-  // we should take additional action to help the user
-  if (isRepeatedRequiresInput || lastErrorMessage) {
-    try {
-      // Create a notification in the user's dashboard
-      await createUserNotification({
-        userId: userRecord.id,
-        type: 'VERIFICATION_HELP',
-        title: 'Your identity verification needs attention',
-        message: getVerificationHelpMessage(lastErrorMessage),
-        actionUrl: '/account/identity',
-        // Set notification to expire in 7 days
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      });
-
-      console.log('Created dashboard notification for user with verification issues:', {
-        clerkUserId,
-        userId: userRecord.id,
-        isRepeatedRequiresInput,
-        lastErrorMessage,
-      });
-
-      // Future enhancements:
-      // 1. Send an email to the user with guidance
-      // 2. Flag for customer support to reach out after multiple failed attempts
-    } catch (notificationError) {
-      console.error('Failed to send verification help notification:', notificationError);
-    }
-  }
-}
-
-/**
- * Generate a helpful message based on the error type
- */
-function getVerificationHelpMessage(errorMessage?: string): string {
-  // If no specific error, provide general guidance
-  if (!errorMessage) {
-    return "We noticed you're having trouble completing your identity verification. Please try again with the following tips:\n\n• Use a well-lit environment\n• Ensure your ID is fully visible\n• Remove any coverings or glare from your ID\n• Look directly at the camera for selfie verification";
-  }
-
-  // Check for common error types and provide specific guidance
-  if (errorMessage.includes('document')) {
-    return "There was an issue with your ID document. Please ensure it's not expired, is fully visible in the frame, and there's no glare or obstruction covering important information.";
-  }
-
-  if (errorMessage.includes('selfie') || errorMessage.includes('face')) {
-    return "There was an issue with your selfie verification. Please ensure you're in a well-lit environment, looking directly at the camera, and that your face is fully visible without sunglasses or other coverings.";
-  }
-
-  if (errorMessage.includes('match')) {
-    return "The system couldn't match your selfie to your ID photo. Please ensure both are clear, well-lit, and show your face clearly without obstructions.";
-  }
-
-  // Default guidance with the actual error included
-  return `We encountered an issue with your identity verification: "${errorMessage}". Please try again and ensure you're following all instructions carefully.`;
 }
 
 /**

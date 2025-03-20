@@ -97,6 +97,14 @@ The verification flow is designed to be intuitive:
 3. Helpful error messages for any issues
 4. Seamless transition from identity verification to Connect setup
 
+For detailed UI/UX specifications and visual references:
+
+- [Figma Design System](https://www.figma.com/file/eleva-care/identity-verification)
+- [User Flow Diagrams](https://www.figma.com/file/eleva-care/verification-flow)
+- [Component Library](https://eleva-care.vercel.app/docs/components/identity)
+
+### Edge Cases & Testing
+
 QA should test these specific edge cases:
 
 - Expired verification sessions (sessions expire after 24 hours)
@@ -104,6 +112,27 @@ QA should test these specific edge cases:
 - Multiple verification attempts by the same user
 - Rate limiting behavior for repeated attempts
 - Verification timeout handling
+
+### Environment Setup
+
+Required environment variables:
+
+```env
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_test_...
+STRIPE_CONNECT_CLIENT_ID=ca_test_...
+```
+
+### Design Guidelines
+
+The verification UI follows our design system:
+
+- Uses the shadcn/ui component library
+- Maintains consistent branding and color schemes
+- Provides clear visual feedback for each step
+- Implements responsive design for all device sizes
+
+See the [Design Documentation](https://eleva-care.vercel.app/docs/design/identity) for detailed specifications and component usage.
 
 ## Testing
 
@@ -113,7 +142,7 @@ To test the identity verification flow:
 2. For identity verification, use [Stripe's test images](https://stripe.com/docs/identity/test-verification)
 3. For Connect, use the test account data provided in Stripe's documentation
 4. Set these environment variables for testing:
-   ```
+   ```env
    STRIPE_SECRET_KEY=sk_test_...
    STRIPE_WEBHOOK_SECRET=whsec_test_...
    STRIPE_CONNECT_CLIENT_ID=ca_test_...

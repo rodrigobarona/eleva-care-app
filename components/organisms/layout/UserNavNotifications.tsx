@@ -3,14 +3,16 @@
 import { Button } from '@/components/atoms/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
 import { NotificationsList } from '@/components/molecules/NotificationsList';
+import type { NotificationType } from '@/lib/notifications';
 import { Bell } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 
-// Add this interface matching the Notification type from NotificationsList
+// Define the Notification type using the shared NotificationType enum
 interface Notification {
   id: string;
-  type: string;
+  type: NotificationType;
   title: string;
   message: string;
   actionUrl?: string | null;
@@ -20,7 +22,7 @@ interface Notification {
 
 export function UserNavNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
@@ -44,6 +46,9 @@ export function UserNavNotifications() {
       setNotifications(data.notifications || []);
     } catch (error) {
       console.error('Error fetching notifications:', error);
+      toast.error('Failed to load notifications', {
+        description: error instanceof Error ? error.message : 'Please try again later',
+      });
     } finally {
       setLoading(false);
     }
@@ -51,22 +56,48 @@ export function UserNavNotifications() {
 
   const handleNotificationRead = async (id: string) => {
     try {
-      // Update local state first for better UX
+      // Store original notifications state for rollback if needed
+      const originalNotifications = notifications;
+
+      // Optimistic update
       setNotifications((prev) =>
         prev.map((notification) =>
           notification.id === id ? { ...notification, read: true } : notification,
         ),
       );
 
-      // Then update on server
-      await fetch(`/api/notifications/${id}`, {
+      // Send request to server
+      const response = await fetch(`/api/notifications/${id}`, {
         method: 'PATCH',
       });
 
-      // Close popover
+      if (!response.ok) {
+        // Get error details from response if available
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage =
+          errorData.error || `Failed to mark notification as read (HTTP ${response.status})`;
+
+        // Rollback optimistic update
+        setNotifications(originalNotifications);
+        throw new Error(errorMessage);
+      }
+
+      // Close popover on success
       setOpen(false);
     } catch (error) {
       console.error('Error marking notification as read:', error);
+      // Show error toast
+      toast.error('Failed to update notification', {
+        description: error instanceof Error ? error.message : 'Please try again later',
+      });
+      // Rollback optimistic update if not already done
+      if (error instanceof Error && !error.message.includes('HTTP')) {
+        setNotifications((prev) =>
+          prev.map((notification) =>
+            notification.id === id ? { ...notification, read: false } : notification,
+          ),
+        );
+      }
     }
   };
 
