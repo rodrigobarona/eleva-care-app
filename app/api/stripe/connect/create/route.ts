@@ -46,7 +46,9 @@ export async function POST(request: Request) {
     // Create Connect account with verified identity
     const result = await createConnectAccountWithVerifiedIdentity(
       user.id,
-      user.emailAddresses[0]?.emailAddress || dbUser.email,
+      user.emailAddresses && user.emailAddresses.length > 0
+        ? user.emailAddresses[0].emailAddress
+        : dbUser.email,
       country,
     );
 

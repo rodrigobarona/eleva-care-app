@@ -35,6 +35,13 @@ These patterns ensure that whenever a file touches on Stripe functionality, this
   - Always implement Identity verification before Connect account creation
   - Store verification status in database with proper timestamps
   - Use webhooks to update verification status in real-time
+  - Typical user flow timeline (per [Stripe docs](mdc:https://stripe.com/docs/identity/verification-sessions)): 
+    1. User initiates verification (1-2 minutes)
+    2. User completes document and selfie verification (3-5 minutes)
+    3. Verification processing by Stripe (typically seconds to minutes)
+    4. Upon success, proceed to Connect account creation (1-2 minutes)
+    5. User completes Connect onboarding (5-10 minutes)
+  - Allow at least 24 hours for full end-to-end process completion in some cases
 
 - **Key Components:**
   - Core functions in `lib/stripe/identity.ts`
@@ -143,6 +150,12 @@ stripeConnectChargesEnabled BOOLEAN DEFAULT false,
 - Show real-time status updates during verification process
 - Handle errors gracefully with helpful messages
 - Ensure seamless transition from identity verification to Connect setup
+- Implement fallback options for service disruptions:
+  - Provide a "Try Again Later" option if Stripe verification is unavailable
+  - Include contact support option for verification issues
+  - Implement a status page that checks Stripe's service status
+  - Display estimated wait times during longer verification processes
+  - Use rate limiting with clear cooldown messages for repeated attempts
 
 ## Testing & Debugging
 
@@ -150,10 +163,16 @@ stripeConnectChargesEnabled BOOLEAN DEFAULT false,
 - Utilize Stripe's test identity verification images
 - Verify webhook endpoints with Stripe CLI
 - Log all verification status updates for debugging
+- Handle stuck test verifications:
+  - Implement timeout handling for verifications that don't progress
+  - Create manual admin override capabilities for test environments
+  - Use Stripe CLI's `trigger` command to simulate webhook events
+  - For tests that get stuck in "processing" state, implement a reset option
+  - Document common test verification failures (e.g., blurry test images, missing documents)
 
 ## Automatic Attachment & References
 - **Automatic Inclusion:**  
-  - When any file references "stripe" or matches the file patterns above, this rule should automatically be attached.
+  - When any file references "stripe", "identity", or matches the file patterns above, this rule should automatically be attached.
 - **References:**  
   - If needed, chain with a global Stripe guideline file using `@file stripe-docs.mdc` to include extra context from official documentation.
 

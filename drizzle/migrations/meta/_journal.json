@@ -57,6 +57,13 @@
       "when": 1741931489680,
       "tag": "0007_cynical_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1742497329019,
+      "tag": "0008_tan_butterfly",
+      "breakpoints": true
     }
   ]
 }

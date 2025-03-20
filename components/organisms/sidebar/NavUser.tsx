@@ -12,11 +12,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/molecules/dropdown-menu';
+import { UserNavNotifications } from '@/components/organisms/layout/UserNavNotifications';
 import { SidebarMenu, SidebarMenuItem, useSidebar } from '@/components/organisms/sidebar/sidebar';
 import { useClerk, useUser } from '@clerk/nextjs';
 import {
   BadgeCheck,
   BanknoteIcon,
+  Bell,
   ChevronsUpDown,
   CreditCard,
   Home,
@@ -53,6 +55,9 @@ export function NavUser() {
 
   return (
     <SidebarMenu>
+      <SidebarMenuItem>
+        <UserNavNotifications />
+      </SidebarMenuItem>
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -104,6 +109,12 @@ export function NavUser() {
                 <Link href="/account">
                   Personal Information
                   <BadgeCheck className="ml-auto h-4 w-4" />
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link href="/account/notifications">
+                  Notifications
+                  <Bell className="ml-auto h-4 w-4" />
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild className="cursor-pointer">

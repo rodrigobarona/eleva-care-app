@@ -75,6 +75,13 @@ export function NavMainContent({ items }: NavMainContentProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </RequireRole>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === '/account/notifications'}>
+                <Link href="/account/notifications">
+                  <span>Notifications</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
         {/* Expert section */}

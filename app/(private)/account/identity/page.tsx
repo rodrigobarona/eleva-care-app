@@ -48,6 +48,33 @@ export default function IdentityPage() {
         method: 'POST',
       });
 
+      // Check if response is OK before parsing JSON
+      if (!response.ok) {
+        // Handle HTTP error responses
+        const errorText = await response.text();
+        let errorMessage = `Error: ${response.status} ${response.statusText}`;
+
+        try {
+          // Try to parse as JSON if possible
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+
+          // Special handling for rate limiting (429)
+          if (response.status === 429 && errorData.cooldownRemaining) {
+            errorMessage = `Too many verification attempts. Please try again in ${errorData.cooldownRemaining} seconds.`;
+          }
+        } catch {
+          // If not JSON, use the raw text
+          if (errorText) errorMessage += ` - ${errorText}`;
+        }
+
+        toast.error('Verification Error', {
+          description: errorMessage,
+        });
+        setLoading(false);
+        return;
+      }
+
       const data = await response.json();
 
       if (data.redirectUrl) {
@@ -69,7 +96,10 @@ export default function IdentityPage() {
     } catch (error) {
       console.error('Error starting identity verification:', error);
       toast.error('Error', {
-        description: 'An error occurred while starting the verification process',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'An error occurred while starting the verification process',
       });
     } finally {
       setLoading(false);

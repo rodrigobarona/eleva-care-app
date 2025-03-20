@@ -6,8 +6,8 @@ This document outlines our implementation of Stripe Identity verification and Co
 
 Our implementation follows a secure, sequential approach to identity verification and payment account setup:
 
-1. **Identity Verification**: Users complete identity verification through Stripe Identity before creating a Connect account
-2. **Connect Account Creation**: Once verified, users create a Stripe Connect account linked to their verified identity
+1. **Identity Verification**: Users complete identity verification through Stripe Identity before creating a Stripe Connect account
+2. **Connect Account Creation**: Once verified, users move forward with Connect onboarding to receive payments
 3. **Webhook Integration**: Real-time updates via webhooks ensure our system stays in sync with verification status
 
 ## Implementation Details
@@ -97,6 +97,14 @@ The verification flow is designed to be intuitive:
 3. Helpful error messages for any issues
 4. Seamless transition from identity verification to Connect setup
 
+QA should test these specific edge cases:
+
+- Expired verification sessions (sessions expire after 24 hours)
+- Network interruptions during verification
+- Multiple verification attempts by the same user
+- Rate limiting behavior for repeated attempts
+- Verification timeout handling
+
 ## Testing
 
 To test the identity verification flow:
@@ -104,6 +112,13 @@ To test the identity verification flow:
 1. Use Stripe test mode and test credentials
 2. For identity verification, use [Stripe's test images](https://stripe.com/docs/identity/test-verification)
 3. For Connect, use the test account data provided in Stripe's documentation
+4. Set these environment variables for testing:
+   ```
+   STRIPE_SECRET_KEY=sk_test_...
+   STRIPE_WEBHOOK_SECRET=whsec_test_...
+   STRIPE_CONNECT_CLIENT_ID=ca_test_...
+   ```
+5. Toggle test mode in the Stripe dashboard to avoid accidental charges
 
 ## Troubleshooting
 
@@ -112,6 +127,8 @@ Common issues and solutions:
 1. **Verification Stuck**: Check the webhook logs and ensure events are being received
 2. **Connect Account Not Created**: Verify identity status before Connect account creation
 3. **Webhook Errors**: Check signature verification and event handling logic
+4. **Missing Events**: Verify server logs for request/response data and check Stripe Dashboard for event delivery status
+5. **Environment Variables**: Ensure all required environment variables are properly set and available to the application
 
 ## Future Improvements
 
@@ -121,6 +138,9 @@ Potential enhancements to consider:
 2. Support for additional identity verification methods
 3. Localization of verification instructions
 4. Analytics tracking for verification completion rates
+5. Multi-locale testing suite to ensure proper translation and regional compliance
+6. Automated retry mechanism for failed verification attempts
+7. Custom branding options for the verification flow (when supported by Stripe)
 
 ## References
 

@@ -20,6 +20,49 @@ export const STRIPE_CONFIG = {
     ] as const,
   },
 
+  // Connect Account Configuration
+  CONNECT: {
+    // Countries officially supported by Stripe Connect
+    // Source: https://stripe.com/global
+    SUPPORTED_COUNTRIES: [
+      'US', // United States
+      'GB', // United Kingdom
+      'AU', // Australia
+      'CA', // Canada
+      'DE', // Germany
+      'FR', // France
+      'IT', // Italy
+      'ES', // Spain
+      'NL', // Netherlands
+      'BE', // Belgium
+      'AT', // Austria
+      'CH', // Switzerland
+      'IE', // Ireland
+      'SE', // Sweden
+      'DK', // Denmark
+      'NO', // Norway
+      'FI', // Finland
+      'SG', // Singapore
+      'HK', // Hong Kong
+      'JP', // Japan
+      'NZ', // New Zealand
+      'PT', // Portugal
+      'LU', // Luxembourg
+      'MX', // Mexico
+      'BR', // Brazil
+      'MY', // Malaysia
+      'TH', // Thailand
+      'PL', // Poland
+      'CZ', // Czech Republic
+      'SK', // Slovakia
+      'EE', // Estonia
+      'LT', // Lithuania
+      'LV', // Latvia
+      'GR', // Greece
+      'CY', // Cyprus
+    ] as const,
+  },
+
   // Webhook Configuration
   WEBHOOK_EVENTS: {
     ALLOWED_EVENTS: [
@@ -34,6 +77,9 @@ export const STRIPE_CONFIG = {
     ] as const,
   },
 } as const;
+
+// Export the supported countries list for easy access
+export const STRIPE_CONNECT_SUPPORTED_COUNTRIES = STRIPE_CONFIG.CONNECT.SUPPORTED_COUNTRIES;
 
 // Shared helper functions for fee calculations
 export function calculateApplicationFee(amount: number | null): number {

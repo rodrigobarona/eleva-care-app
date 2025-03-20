@@ -5,6 +5,9 @@ import { currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
+// Rate limiting configuration
+const RATE_LIMIT_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+
 /**
  * POST /api/stripe/identity/verification
  *
@@ -14,6 +17,7 @@ import { NextResponse } from 'next/server';
  * @returns 400 - Error from verification creation
  * @returns 401 - Unauthorized if no user is authenticated
  * @returns 404 - User not found in database
+ * @returns 429 - Too Many Requests when rate limit is exceeded
  * @returns 500 - Server error during verification creation
  */
 export async function POST() {
@@ -74,11 +78,43 @@ export async function POST() {
       }
     }
 
+    // Implement rate limiting - check last verification check timestamp
+    if (dbUser.stripeIdentityVerificationLastChecked) {
+      const lastAttemptTime = new Date(dbUser.stripeIdentityVerificationLastChecked).getTime();
+      const currentTime = Date.now();
+      const timeSinceLastAttempt = currentTime - lastAttemptTime;
+
+      if (timeSinceLastAttempt < RATE_LIMIT_COOLDOWN_MS) {
+        const remainingCooldown = Math.ceil((RATE_LIMIT_COOLDOWN_MS - timeSinceLastAttempt) / 1000);
+        console.log(
+          `Rate limit exceeded for user ${dbUser.id}. Cooldown remaining: ${remainingCooldown}s`,
+        );
+
+        return NextResponse.json(
+          {
+            error: `Too many verification attempts. Please try again in ${remainingCooldown} seconds.`,
+            cooldownRemaining: remainingCooldown,
+          },
+          { status: 429 },
+        );
+      }
+    }
+
+    // Update the verification last checked timestamp
+    await db
+      .update(UserTable)
+      .set({
+        stripeIdentityVerificationLastChecked: new Date(),
+      })
+      .where(eq(UserTable.id, dbUser.id));
+
     // Create verification session
     const result = await createIdentityVerification(
       dbUser.id,
       user.id,
-      user.emailAddresses[0]?.emailAddress || dbUser.email,
+      user.emailAddresses && user.emailAddresses.length > 0
+        ? user.emailAddresses[0].emailAddress
+        : dbUser.email,
     );
 
     if (!result.success) {
