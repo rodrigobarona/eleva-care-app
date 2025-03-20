@@ -46,9 +46,6 @@ export const PUBLIC_ROUTES = [
   '/experts/:path*',
   '/blog/:path*',
   '/contact',
-  '/img/:path*', // images in public folder
-  '/video/:path*', // videos in public folder
-  '/locales/:path*', // locales in public folder
   '/favicon.ico',
   '/robots.txt',
   '/sitemap.xml',

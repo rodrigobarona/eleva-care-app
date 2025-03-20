@@ -30,7 +30,7 @@ const Hero = () => {
     >
       <Suspense fallback={<p>Loading video...</p>}>
         <VideoPlayer
-          src="/videos/eleva-care-intro-banner.webm"
+          src="/img/videos/eleva-care-intro-banner.webm"
           width={1920}
           height={1080}
           playsInline={true}
