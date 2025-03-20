@@ -216,8 +216,10 @@ export default clerkMiddleware(async (auth, req) => {
 
 /**
  * Configure which paths the middleware runs on
- * This matches everything except static files
+ * This matches everything except static files and img directory
  */
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|img|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|webm)).*)',
+  ],
 };
