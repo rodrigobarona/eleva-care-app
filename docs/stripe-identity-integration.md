@@ -14,11 +14,11 @@ Our implementation follows a secure, sequential approach to identity verificatio
 
 ### Core Components
 
-- **`lib/stripe/identity.ts`**: Core functions for identity verification and Connect account creation
-- **`app/api/stripe/identity/`**: API endpoints for verification flows
-- **`app/api/stripe/connect/`**: API endpoints for Connect account creation
-- **`app/api/webhooks/stripe/`**: Webhook handlers for Stripe events
-- **`app/(private)/account/identity/`**: User-facing pages for the verification flow
+**`lib/stripe/identity.ts`**: Core functions for identity verification and Connect account creation
+**`app/api/stripe/identity/`**: API endpoints for verification flows
+**`app/api/stripe/connect/`**: API endpoints for Connect account creation
+**`app/api/webhooks/stripe/`**: Webhook handlers for Stripe events
+**`app/(private)/account/identity/`**: User-facing pages for the verification flow
 
 ### Process Flow
 
@@ -30,7 +30,7 @@ Our implementation follows a secure, sequential approach to identity verificatio
 
 2. **Verification Callback**:
 
-   - After completion, Stripe redirects to `/account/identity/callback`
+   - After completion, Stripe redirects to `/account/identity/callback`.
    - The callback page checks verification status
    - If verified, the user is redirected to the success page
 
@@ -77,9 +77,9 @@ stripeConnectChargesEnabled BOOLEAN DEFAULT false,
 
 Our webhook handler at `/api/webhooks/stripe` processes these events:
 
-- `identity.verification_session.verified`: When verification is complete
-- `identity.verification_session.requires_input`: When verification requires additional information
-- `account.updated`: When Connect account details change
+`identity.verification_session.verified`: When verification is complete
+`identity.verification_session.requires_input`: When verification requires additional information
+`account.updated`: When Connect account details change
 
 ## Security Considerations
 

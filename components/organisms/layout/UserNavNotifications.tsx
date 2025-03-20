@@ -140,10 +140,7 @@ export function UserNavNotifications() {
             <p>Loading notifications...</p>
           </div>
         ) : (
-          <NotificationsList
-            notifications={notifications}
-            onNotificationRead={handleNotificationRead}
-          />
+          <NotificationsList notifications={notifications} onMarkAsRead={handleNotificationRead} />
         )}
         {notifications.length > 0 && (
           <div className="mt-2 text-center">

@@ -3,15 +3,14 @@
 import { Badge } from '@/components/atoms/badge';
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/atoms/card';
-import { markNotificationAsRead } from '@/lib/notifications';
 import type { NotificationType } from '@/lib/notifications';
+import { debounce } from 'lodash';
 import { AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
+import { type KeyboardEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-// Type definition for notification with proper type enum
-interface Notification {
+interface NotificationListItem {
   id: string;
   type: NotificationType;
   title: string;
@@ -22,15 +21,36 @@ interface Notification {
 }
 
 interface NotificationsListProps {
-  notifications: Notification[];
-  onNotificationRead?: (id: string) => void;
+  notifications: NotificationListItem[];
+  onMarkAsRead: (id: string) => Promise<void>;
 }
 
-export function NotificationsList({ notifications, onNotificationRead }: NotificationsListProps) {
+// Define debounced function outside component to prevent recreation on each render
+const debouncedMarkAsRead = debounce(
+  async (notification: NotificationListItem, onMarkAsRead: (id: string) => Promise<void>) => {
+    try {
+      await onMarkAsRead(notification.id);
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      toast.error('Failed to mark notification as read');
+    }
+  },
+  500,
+);
+
+export function NotificationsList({ notifications, onMarkAsRead }: NotificationsListProps) {
   const router = useRouter();
-  const [readNotifications, setReadNotifications] = useState<Record<string, boolean>>({});
-  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const listRef = useRef<HTMLUListElement>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number>(-1);
+  const [readNotifications, setReadNotifications] = useState<Record<string, boolean>>({});
+
+  // Memoize isRead function
+  const isRead = useCallback(
+    (notification: NotificationListItem) => {
+      return readNotifications[notification.id] || notification.read;
+    },
+    [readNotifications],
+  );
 
   // Restore focus on component mount
   useEffect(() => {
@@ -39,21 +59,20 @@ export function NotificationsList({ notifications, onNotificationRead }: Notific
       const index = notifications.findIndex((n) => n.id === lastFocusedId);
       if (index >= 0) {
         setSelectedIndex(index);
-        // Small delay to ensure DOM is ready
-        setTimeout(() => {
+        // Use requestAnimationFrame for more reliable timing with DOM updates
+        requestAnimationFrame(() => {
           const item = listRef.current?.children[index] as HTMLElement;
           item?.focus();
           localStorage.removeItem('lastFocusedNotification');
-        }, 100);
+        });
       }
     }
   }, [notifications]);
 
-  // Handle keyboard navigation
   const handleKeyDown = (
     event: KeyboardEvent<HTMLDivElement>,
     index: number,
-    notification: Notification,
+    notification: NotificationListItem,
   ) => {
     switch (event.key) {
       case 'ArrowDown': {
@@ -70,6 +89,21 @@ export function NotificationsList({ notifications, onNotificationRead }: Notific
         setSelectedIndex(prevIndex);
         const prevItem = listRef.current?.children[prevIndex] as HTMLElement;
         prevItem?.focus();
+        break;
+      }
+      case 'Home': {
+        event.preventDefault();
+        setSelectedIndex(0);
+        const firstItem = listRef.current?.children[0] as HTMLElement;
+        firstItem?.focus();
+        break;
+      }
+      case 'End': {
+        event.preventDefault();
+        const lastIndex = notifications.length - 1;
+        setSelectedIndex(lastIndex);
+        const lastItem = listRef.current?.children[lastIndex] as HTMLElement;
+        lastItem?.focus();
         break;
       }
       case 'Enter':
@@ -91,18 +125,13 @@ export function NotificationsList({ notifications, onNotificationRead }: Notific
     );
   }
 
-  const handleAction = async (notification: Notification) => {
+  const handleAction = async (notification: NotificationListItem) => {
     try {
       // Mark as read in UI immediately for better UX
       setReadNotifications((prev) => ({ ...prev, [notification.id]: true }));
 
-      // Mark as read in DB
-      await markNotificationAsRead(notification.id);
-
-      // Callback if provided
-      if (onNotificationRead) {
-        onNotificationRead(notification.id);
-      }
+      // Mark as read in DB with debounce
+      await debouncedMarkAsRead(notification, onMarkAsRead);
 
       // Navigate if there's an action URL
       if (notification.actionUrl) {
@@ -113,20 +142,24 @@ export function NotificationsList({ notifications, onNotificationRead }: Notific
     } catch (error) {
       console.error('Error handling notification action:', error);
       toast.error('Failed to process notification');
+      // Revert UI state on error
+      setReadNotifications((prev) => {
+        const newState = { ...prev };
+        delete newState[notification.id];
+        return newState;
+      });
     }
-  };
-
-  const isRead = (notification: Notification) => {
-    return readNotifications[notification.id] || notification.read;
   };
 
   return (
     <ul ref={listRef} className="space-y-4" aria-label="Notifications">
       {notifications.map((notification, index) => (
-        <li key={notification.id}>
+        <li key={notification.id} aria-setsize={notifications.length} aria-posinset={index + 1}>
           <Card
             tabIndex={0}
             onKeyDown={(e) => handleKeyDown(e, index, notification)}
+            aria-selected={selectedIndex === index}
+            aria-current={selectedIndex === index ? 'true' : undefined}
             className={`transition-colors focus:outline-none focus:ring-2 focus:ring-ring ${
               isRead(notification)
                 ? 'bg-muted/50'

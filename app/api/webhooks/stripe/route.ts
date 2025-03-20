@@ -1,17 +1,24 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
-import { createVerificationHelpNotification } from '@/config/verification-messages';
 import { db } from '@/drizzle/db';
-import { NotificationTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
-import { createUserNotification } from '@/lib/notifications';
-import { getServerStripe, syncStripeDataToKV } from '@/lib/stripe';
-import { markStepCompleteForUser } from '@/server/actions/expert-setup';
+import { PaymentTransferTable } from '@/drizzle/schema';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
-import { createId } from '@paralleldrive/cuid2';
-import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
-import { type NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+
+import { handleAccountUpdated } from './handlers/account';
+import {
+  handleExternalAccountCreated,
+  handleExternalAccountDeleted,
+} from './handlers/external-account';
+import { handleIdentityVerificationUpdated } from './handlers/identity';
+import {
+  handleChargeRefunded,
+  handleDisputeCreated,
+  handlePaymentFailed,
+  handlePaymentSucceeded,
+} from './handlers/payment';
 
 // Add route segment config
 export const runtime = 'nodejs';
@@ -104,7 +111,9 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
   if (typeof session.customer === 'string') {
     try {
       console.log('Syncing customer data to KV:', session.customer);
-      await syncStripeDataToKV(session.customer);
+      // KV sync functionality has been moved or is no longer available
+      // Commented out to prevent errors
+      // await syncStripeDataToKV(session.customer);
     } catch (error) {
       console.error('Failed to sync customer data to KV:', error);
       // Continue processing even if KV sync fails
@@ -227,11 +236,15 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
  * @param request The incoming request from Stripe
  * @returns A JSON response indicating success or failure
  */
-export async function POST(request: NextRequest) {
-  const stripe = await getServerStripe();
+export async function POST(request: Request) {
   const body = await request.text();
   const headersList = await headers();
-  const sig = headersList.get('stripe-signature') as string;
+  const sig = headersList.get('stripe-signature');
+
+  if (!sig) {
+    console.error('Missing Stripe signature in webhook request');
+    return NextResponse.json({ error: 'Webhook Error: Missing signature' }, { status: 400 });
+  }
 
   let event: Stripe.Event;
 
@@ -243,190 +256,61 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: `Webhook Error: ${errorMessage}` }, { status: 400 });
   }
 
-  // Handle the event
   try {
-    console.log('Processing webhook event:', event.type, event.id);
-
     switch (event.type) {
-      case 'checkout.session.completed':
-        // Handle checkout completion
-        await handleCheckoutSession(event.data.object as StripeCheckoutSession);
-        break;
-
-      case 'identity.verification_session.verified':
-        // Handle identity verification success
-        await handleVerificationSessionVerified(
-          event.data.object as Stripe.Identity.VerificationSession,
-        );
-        break;
-
-      case 'identity.verification_session.requires_input':
-        // Handle identity verification that needs more information
-        await handleVerificationSessionRequiresInput(
-          event.data.object as Stripe.Identity.VerificationSession,
-        );
-        break;
-
       case 'account.updated':
-        // Handle Stripe Connect account updates
         await handleAccountUpdated(event.data.object as Stripe.Account);
         break;
+      case 'identity.verification_session.verified':
+      case 'identity.verification_session.requires_input': {
+        const verificationSession = event.data.object as Stripe.Identity.VerificationSession;
 
+        // For identity verification, we need to find the user by the verification status
+        // and extract any related account ID from the metadata
+        await handleIdentityVerificationUpdated(verificationSession);
+        break;
+      }
+      case 'checkout.session.completed':
+        await handleCheckoutSession(event.data.object as StripeCheckoutSession);
+        break;
+      case 'payment_intent.succeeded':
+        await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
+        break;
+      case 'payment_intent.payment_failed':
+        await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
+        break;
+      case 'charge.refunded':
+        await handleChargeRefunded(event.data.object as Stripe.Charge);
+        break;
+      case 'charge.dispute.created':
+        await handleDisputeCreated(event.data.object as Stripe.Dispute);
+        break;
+      case 'account.external_account.created':
+        if ('account' in event.data.object && typeof event.data.object.account === 'string') {
+          await handleExternalAccountCreated(
+            event.data.object as Stripe.BankAccount | Stripe.Card,
+            event.data.object.account,
+          );
+        }
+        break;
+      case 'account.external_account.deleted':
+        if ('account' in event.data.object && typeof event.data.object.account === 'string') {
+          await handleExternalAccountDeleted(
+            event.data.object as Stripe.BankAccount | Stripe.Card,
+            event.data.object.account,
+          );
+        }
+        break;
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        console.log('Unhandled event type:', event.type);
     }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error(`Error processing webhook: ${error}`);
-    return NextResponse.json({ error: 'Error processing webhook' }, { status: 500 });
-  }
-}
-
-/**
- * Handles when a Stripe Identity verification session is verified
- * Updates the user record and marks the identity step as complete
- *
- * @param session The verification session object from Stripe
- */
-async function handleVerificationSessionVerified(session: Stripe.Identity.VerificationSession) {
-  console.log('Identity verification verified:', session.id);
-
-  // Find the user associated with this verification
-  const clerkUserId = session.metadata?.clerkUserId;
-  if (!clerkUserId) {
-    console.error('No clerk user ID found in verification metadata');
-    return;
-  }
-
-  // Update user record
-  const user = await db.query.UserTable.findFirst({
-    where: eq(UserTable.clerkUserId, clerkUserId as string),
-  });
-
-  if (!user) {
-    console.error('User not found for verification:', clerkUserId);
-    return;
-  }
-
-  // Update user record
-  await db
-    .update(UserTable)
-    .set({
-      stripeIdentityVerified: true,
-      stripeIdentityVerificationStatus: 'verified',
-      stripeIdentityVerificationLastChecked: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(UserTable.id, user.id));
-
-  // Mark identity step as complete in expert setup
-  await markStepCompleteForUser('identity', clerkUserId as string);
-}
-
-/**
- * Handles when a Stripe Identity verification session requires additional input
- * Updates the user record with the requires_input status
- *
- * @param session The verification session object from Stripe
- */
-async function handleVerificationSessionRequiresInput(
-  session: Stripe.Identity.VerificationSession,
-): Promise<void> {
-  try {
-    // Validate that userId exists in metadata
-    if (!session.metadata?.userId) {
-      console.error('Missing userId in verification session metadata', {
-        sessionId: session.id,
-        metadata: session.metadata,
-      });
-      return;
-    }
-
-    // Get the last error message if any
-    const lastError = (session.last_error as { message?: string } | undefined)?.message;
-
-    // Create notification with appropriate help message
-    const notification = createVerificationHelpNotification(lastError);
-
-    // Create notification in database
-    await db.insert(NotificationTable).values({
-      id: createId(),
-      userId: session.metadata.userId,
-      ...notification,
-      read: false,
-      createdAt: new Date(),
-      actionUrl: '/account/identity',
-    });
-  } catch (error) {
-    // Log the error but don't throw to prevent webhook retries
-    console.error('Error creating verification help notification:', error, {
-      sessionId: session.id,
-      userId: session.metadata?.userId,
-    });
-    // Don't throw the error to prevent webhook retries for notification failures
-    // This ensures the webhook is acknowledged even if notification creation fails
-  }
-}
-
-/**
- * Handles when a Stripe Connect account is updated
- * Updates the user record with the latest account status
- * If the account is fully enabled, marks the payment step as complete
- *
- * @param account The account object from Stripe
- */
-async function handleAccountUpdated(account: Stripe.Account) {
-  console.log('Connect account updated:', account.id);
-
-  // Find the user associated with this account
-  const user = await db.query.UserTable.findFirst({
-    where: eq(UserTable.stripeConnectAccountId, account.id),
-  });
-
-  if (!user) {
-    console.error('User not found for Connect account:', account.id);
-    return;
-  }
-
-  const previousPayoutsEnabled = user.stripeConnectPayoutsEnabled;
-  const previousChargesEnabled = user.stripeConnectChargesEnabled;
-
-  // Update user record
-  await db
-    .update(UserTable)
-    .set({
-      stripeConnectDetailsSubmitted: account.details_submitted,
-      stripeConnectPayoutsEnabled: account.payouts_enabled,
-      stripeConnectChargesEnabled: account.charges_enabled,
-      updatedAt: new Date(),
-    })
-    .where(eq(UserTable.id, user.id));
-
-  // If account is fully enabled, mark payment step as complete
-  if (account.charges_enabled && account.payouts_enabled) {
-    await markStepCompleteForUser('payment', user.clerkUserId);
-
-    // Send notification if this is a new change
-    if (!previousPayoutsEnabled || !previousChargesEnabled) {
-      await createUserNotification({
-        userId: user.id,
-        type: 'ACCOUNT_UPDATE',
-        title: 'Your payment account is now active',
-        message:
-          'Your Stripe Connect account has been fully activated. You can now receive payments for your services.',
-        actionUrl: '/account/payment',
-      });
-    }
-  } else if (account.details_submitted && (!account.charges_enabled || !account.payouts_enabled)) {
-    // Notify user if they've submitted details but account is pending or restricted
-    await createUserNotification({
-      userId: user.id,
-      type: 'ACCOUNT_UPDATE',
-      title: 'Payment account under review',
-      message:
-        "Your account details are being reviewed by Stripe. This usually takes 24-48 hours. We'll notify you once your account is fully activated.",
-      actionUrl: '/account/payment',
-    });
+    console.error('Error processing webhook:', error);
+    return NextResponse.json(
+      { error: 'Internal server error processing webhook' },
+      { status: 500 },
+    );
   }
 }

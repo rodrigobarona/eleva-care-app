@@ -5,58 +5,56 @@ import { LoadingSpinner } from '@/components/atoms/LoadingSpinner';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
-export default function IdentityCallbackPage() {
+export default function IdentityVerificationCallback() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState('Checking verification status...');
   const [showRetryButton, setShowRetryButton] = useState(false);
+  const [retryDisabled, setRetryDisabled] = useState(false);
 
   const checkVerificationStatus = useCallback(async () => {
     setIsLoading(true);
     setShowRetryButton(false);
+    setRetryDisabled(true);
     setMessage('Checking verification status...');
 
     try {
-      const response = await fetch('/api/stripe/identity/verification/status');
-
-      if (!response.ok) {
-        throw new Error(
-          `Verification status check failed: ${response.status} ${response.statusText}`,
-        );
-      }
-
+      const response = await fetch('/api/stripe/identity/status');
       const data = await response.json();
 
-      if (data.success) {
-        setMessage('Verification successful!');
-        // Use replace to prevent going back to callback page
-        setTimeout(() => {
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to check verification status');
+      }
+
+      switch (data.status) {
+        case 'verified':
+          setMessage('Identity verification successful!');
           router.replace('/account/identity/success');
-        }, 3000);
-      } else if (data.status === 'requires_input') {
-        setMessage('Additional verification required');
-        // Use replace to force user back to identity page
-        setTimeout(() => {
+          break;
+        case 'requires_input':
+          setMessage('Additional information required.');
           router.replace('/account/identity');
-        }, 3000);
-      } else {
-        // For other statuses, show retry option
-        setMessage(
-          'Failed to check verification status. Please try again or contact support if this continues.',
-        );
-        setShowRetryButton(true);
+          break;
+        case 'processing':
+          setMessage('Verification is still processing...');
+          setShowRetryButton(true);
+          break;
+        case 'unverified':
+          setMessage('Verification failed. Please try again.');
+          router.replace('/account/identity');
+          break;
+        default:
+          setMessage('Unknown verification status.');
+          setShowRetryButton(true);
       }
     } catch (error) {
       console.error('Error checking verification status:', error);
-      // Provide more specific error messages based on the error type
-      setMessage(
-        error instanceof Error
-          ? `Error: ${error.message}. Please try again or contact support.`
-          : 'Failed to check verification status. Please try again or contact support if this continues.',
-      );
+      setMessage('Failed to check verification status.');
       setShowRetryButton(true);
     } finally {
       setIsLoading(false);
+      // Enable retry after 2 seconds
+      setTimeout(() => setRetryDisabled(false), 2000);
     }
   }, [router]);
 
@@ -70,7 +68,9 @@ export default function IdentityCallbackPage() {
       <h1 className="mb-2 text-xl font-semibold">{message}</h1>
       {showRetryButton ? (
         <div className="mt-4 flex flex-col items-center gap-2">
-          <Button onClick={checkVerificationStatus}>Retry Verification Check</Button>
+          <Button onClick={checkVerificationStatus} disabled={retryDisabled}>
+            {retryDisabled ? 'Please wait...' : 'Retry Verification Check'}
+          </Button>
           <Button
             variant="outline"
             onClick={() => router.replace('/account/identity')}

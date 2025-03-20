@@ -1,7 +1,7 @@
 import { db } from '@/drizzle/db';
 import { NotificationTable } from '@/drizzle/schema';
 import { currentUser } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
+import { DrizzleError, eq } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 
 // Add route segment config
@@ -36,9 +36,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Missing notification ID' }, { status: 400 });
     }
 
-    // Get notification and verify ownership
+    // Get notification and verify ownership - only fetch needed fields
     const notification = await db.query.NotificationTable.findFirst({
       where: eq(NotificationTable.id, id),
+      columns: {
+        id: true,
+        userId: true,
+      },
     });
 
     if (!notification) {
@@ -50,10 +54,21 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    // Update notification
-    await db.update(NotificationTable).set({ read: true }).where(eq(NotificationTable.id, id));
+    try {
+      // Update notification
+      await db.update(NotificationTable).set({ read: true }).where(eq(NotificationTable.id, id));
 
-    return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true });
+    } catch (updateError) {
+      console.error('Error updating notification:', updateError);
+      if (updateError instanceof DrizzleError) {
+        return NextResponse.json(
+          { error: 'Database error while updating notification' },
+          { status: 500 },
+        );
+      }
+      throw updateError; // Re-throw unexpected errors
+    }
   } catch (error) {
     console.error('Error marking notification as read:', error);
     return NextResponse.json({ error: 'Failed to mark notification as read' }, { status: 500 });

@@ -44,9 +44,16 @@ export function UserNotifications() {
         const data = await response.json();
         setNotifications(data.notifications || []);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load notifications';
+        const errorMessage =
+          err instanceof Error
+            ? `Failed to load notifications: ${err.message}`
+            : 'Failed to load notifications: Unknown error';
         setError(errorMessage);
-        console.error('Error fetching notifications:', err);
+        console.error('Error fetching notifications:', {
+          error: err,
+          endpoint: '/api/notifications',
+          timestamp: new Date().toISOString(),
+        });
       } finally {
         setLoading(false);
       }
@@ -190,7 +197,13 @@ export function UserNotifications() {
               </div>
 
               <div className="mt-2 text-xs text-muted-foreground">
-                {new Date(notification.createdAt).toLocaleDateString()}
+                {new Date(notification.createdAt).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
               </div>
             </div>
           ))}

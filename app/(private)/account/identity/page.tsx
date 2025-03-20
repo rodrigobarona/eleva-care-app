@@ -72,16 +72,31 @@ export default function IdentityPage() {
         const response = await fetch('/api/stripe/identity/verification/status');
         const data = await response.json();
 
-        if (data.verified) {
-          setVerificationStatus('verified');
-          toast.success('Identity verified', {
-            description: 'Your identity has been successfully verified.',
-          });
-          return true; // Signal completion
+        // Handle terminal states
+        if (data.verified || data.status === 'canceled' || data.status === 'failed') {
+          // Clear verification data from localStorage
+          localStorage.removeItem('verification_started');
+          localStorage.removeItem('verification_timestamp');
+
+          if (data.verified) {
+            setVerificationStatus('verified');
+            toast.success('Identity verified', {
+              description: 'Your identity has been successfully verified.',
+            });
+          } else {
+            setVerificationStatus(data.status);
+            toast.error('Verification unsuccessful', {
+              description:
+                data.status === 'canceled'
+                  ? 'Identity verification was canceled.'
+                  : 'Identity verification failed. Please try again.',
+            });
+          }
+          return true; // Signal completion for any terminal state
         }
 
         setVerificationStatus(data.status);
-        return false; // Continue polling
+        return false; // Continue polling for non-terminal states
       } catch (error) {
         console.error('Error checking verification status:', error);
         return false;
@@ -91,6 +106,9 @@ export default function IdentityPage() {
     const pollWithBackoff = () => {
       if (pollAttempts.current >= MAX_POLL_ATTEMPTS) {
         console.log('Max polling attempts reached, stopping polls');
+        // Clear stale verification data if max attempts reached
+        localStorage.removeItem('verification_started');
+        localStorage.removeItem('verification_timestamp');
         return;
       }
 

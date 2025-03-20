@@ -1,3 +1,4 @@
+import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { createConnectAccountWithVerifiedIdentity } from '@/lib/stripe/identity';
@@ -6,22 +7,15 @@ import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
-// List of supported countries for Stripe Connect
-// https://stripe.com/global
-const SUPPORTED_COUNTRIES = [
-  'US', // United States
-  'GB', // United Kingdom
-  'CA', // Canada
-  'AU', // Australia
-  'NZ', // New Zealand
-  'SG', // Singapore
-  // Add more supported countries as needed
-] as const;
+// Email validation schema
+const emailSchema = z.string().email({
+  message: 'Invalid email address format',
+});
 
 // Zod schema for request validation
 const createConnectAccountSchema = z
   .object({
-    country: z.enum(SUPPORTED_COUNTRIES, {
+    country: z.enum(STRIPE_CONNECT_SUPPORTED_COUNTRIES, {
       required_error: 'Country is required',
       invalid_type_error: 'Country must be a valid ISO 3166-1 alpha-2 code',
     }),
@@ -39,7 +33,7 @@ type CreateConnectAccountRequest = z.infer<typeof createConnectAccountSchema>;
  * @returns 200 - Success with onboarding URL
  * @returns 401 - Unauthorized if no user is authenticated
  * @returns 404 - User not found in database
- * @returns 422 - Invalid request body or unsupported country code
+ * @returns 422 - Invalid request body, unsupported country code, or invalid email
  * @returns 409 - Identity verification incomplete or Connect account already exists
  * @returns 500 - Server error during Connect account creation
  */
@@ -89,14 +83,32 @@ export async function POST(request: Request) {
       );
     }
 
+    // Get and validate email from either Clerk or database
+    let email: string;
+    try {
+      // Try Clerk email first
+      const clerkEmail = user.emailAddresses?.[0]?.emailAddress;
+      if (clerkEmail) {
+        email = emailSchema.parse(clerkEmail);
+      } else if (dbUser.email) {
+        // Fallback to database email
+        email = emailSchema.parse(dbUser.email);
+      } else {
+        throw new Error('No valid email found');
+      }
+    } catch (error) {
+      console.error('Error validating user email:', error);
+      return NextResponse.json(
+        {
+          error: 'Invalid email',
+          details: 'A valid email address is required to create a Stripe Connect account',
+        },
+        { status: 422 },
+      );
+    }
+
     // Create Connect account with verified identity
-    const result = await createConnectAccountWithVerifiedIdentity(
-      user.id,
-      user.emailAddresses && user.emailAddresses.length > 0
-        ? user.emailAddresses[0].emailAddress
-        : dbUser.email,
-      body.country,
-    );
+    const result = await createConnectAccountWithVerifiedIdentity(user.id, email, body.country);
 
     if (!result.success) {
       // Determine appropriate error status based on the error type

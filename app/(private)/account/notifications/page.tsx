@@ -1,13 +1,12 @@
 'use client';
 
 import { Button } from '@/components/atoms/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
+import { Card, CardContent } from '@/components/atoms/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/atoms/tabs';
 import { NotificationsList } from '@/components/molecules/NotificationsList';
 import type { NotificationType } from '@/lib/notifications';
-import { Bell, CheckCircle } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
 
 // Define the Notification type
 interface Notification {
@@ -23,114 +22,119 @@ interface Notification {
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch notifications on page load
   useEffect(() => {
+    async function fetchNotifications() {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await fetch('/api/notifications');
+
+        if (!response.ok) {
+          let errorMessage = `Failed to fetch notifications (HTTP ${response.status})`;
+          try {
+            const errorData = await response.json();
+            if (errorData.error) {
+              errorMessage = errorData.error;
+            }
+          } catch (parseError) {
+            console.warn('Could not parse error response:', parseError);
+          }
+          throw new Error(errorMessage);
+        }
+
+        const data = await response.json();
+        setNotifications(data.notifications || []);
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error
+            ? `Failed to load notifications: ${err.message}`
+            : 'Failed to load notifications: Unknown error';
+        setError(errorMessage);
+        console.error('Error fetching notifications:', {
+          error: err,
+          endpoint: '/api/notifications',
+          timestamp: new Date().toISOString(),
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
     fetchNotifications();
   }, []);
 
-  const fetchNotifications = async () => {
+  async function handleNotificationRead(id: string) {
     try {
-      setLoading(true);
-      const response = await fetch('/api/notifications?includeRead=true');
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
-      }
-
-      const data = await response.json();
-      setNotifications(data.notifications || []);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      toast.error('Failed to load notifications');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    // Get all unread notification IDs
-    const unreadIds = notifications
-      .filter((notification) => !notification.read)
-      .map((notification) => notification.id);
-
-    if (unreadIds.length === 0) {
-      toast.info('No unread notifications');
-      return;
-    }
-
-    try {
-      // Optimistic update
-      setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })));
-
-      // Send all IDs to be marked as read in a single request
-      const response = await fetch('/api/notifications/mark-all-read', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ ids: unreadIds }),
-      });
-
-      if (!response.ok) {
-        // Get error details from response if available
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
-          errorData.error || `Failed to mark notifications as read (HTTP ${response.status})`;
-        throw new Error(errorMessage);
-      }
-
-      toast.success('All notifications marked as read');
-    } catch (error) {
-      console.error('Error marking all notifications as read:', error);
-      // Rollback optimistic update
-      setNotifications((prev) =>
-        prev.map((notification) => ({
-          ...notification,
-          read: !unreadIds.includes(notification.id),
-        })),
-      );
-      toast.error('Failed to mark all as read', {
-        description: error instanceof Error ? error.message : 'Please try again later',
-      });
-    }
-  };
-
-  const handleNotificationRead = async (id: string) => {
-    // Store original state for potential rollback
-    const originalState = [...notifications];
-
-    try {
-      // Update local state optimistically
-      setNotifications((prev) =>
-        prev.map((notification) =>
-          notification.id === id ? { ...notification, read: true } : notification,
-        ),
-      );
-
       const response = await fetch(`/api/notifications/${id}`, {
         method: 'PATCH',
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(
-          data.error || `Failed to mark notification as read (HTTP ${response.status})`,
-        );
+        let errorMessage = `Failed to mark notifications as read (HTTP ${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          console.warn('Could not parse error response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
-    } catch (error) {
-      // Revert to original state on error
-      setNotifications(originalState);
 
-      console.error('Error marking notification as read:', error);
-      toast.error('Failed to update notification', {
-        description: error instanceof Error ? error.message : 'Please try again later',
+      // Update local state after successful API call
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? `Failed to mark notification as read: ${err.message}`
+          : 'Failed to mark notification as read: Unknown error';
+      setError(errorMessage);
+      console.error('Error marking notification as read:', {
+        error: err,
+        notificationId: id,
+        timestamp: new Date().toISOString(),
       });
     }
-  };
+  }
+
+  async function handleMarkAllRead() {
+    try {
+      const response = await fetch('/api/notifications/mark-all-read', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        let errorMessage = `Failed to mark all notifications as read (HTTP ${response.status})`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (parseError) {
+          console.warn('Could not parse error response:', parseError);
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Clear all notifications from local state
+      setNotifications([]);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error
+          ? `Failed to mark all notifications as read: ${err.message}`
+          : 'Failed to mark all notifications as read: Unknown error';
+      setError(errorMessage);
+      console.error('Error marking all notifications as read:', {
+        error: err,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
 
   // Filter notifications by type
-  const allNotifications = notifications;
   const verificationNotifications = notifications.filter((n) => n.type === 'VERIFICATION_HELP');
   const accountNotifications = notifications.filter((n) => n.type === 'ACCOUNT_UPDATE');
   const securityNotifications = notifications.filter((n) => n.type === 'SECURITY_ALERT');
@@ -149,7 +153,7 @@ export default function NotificationsPage() {
           </p>
         </div>
         {unreadCount > 0 && (
-          <Button variant="outline" onClick={markAllAsRead} className="flex items-center gap-2">
+          <Button variant="outline" onClick={handleMarkAllRead} className="flex items-center gap-2">
             <CheckCircle className="h-4 w-4" />
             Mark all as read
           </Button>
@@ -172,112 +176,64 @@ export default function NotificationsPage() {
             <TabsTrigger value="security">Security</TabsTrigger>
             <TabsTrigger value="system">System</TabsTrigger>
           </TabsList>
-
-          <Button variant="ghost" size="sm" onClick={fetchNotifications} disabled={loading}>
-            Refresh
-          </Button>
         </div>
 
         <div className="mt-6">
           <TabsContent value="all">
             {loading ? (
-              <LoadingState />
-            ) : allNotifications.length > 0 ? (
+              <div className="space-y-4">
+                <div className="h-24 animate-pulse rounded-lg bg-muted" />
+                <div className="h-24 animate-pulse rounded-lg bg-muted" />
+              </div>
+            ) : error ? (
+              <Card>
+                <CardContent className="flex items-center justify-center p-6 text-destructive">
+                  {error}
+                </CardContent>
+              </Card>
+            ) : notifications.length > 0 ? (
               <NotificationsList
-                notifications={allNotifications as Notification[]}
-                onNotificationRead={handleNotificationRead}
+                notifications={notifications}
+                onMarkAsRead={handleNotificationRead}
               />
             ) : (
-              <EmptyState />
+              <Card>
+                <CardContent className="flex items-center justify-center p-6 text-muted-foreground">
+                  No notifications to display.
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
 
           <TabsContent value="verification">
-            {loading ? (
-              <LoadingState />
-            ) : verificationNotifications.length > 0 ? (
-              <NotificationsList
-                notifications={verificationNotifications as Notification[]}
-                onNotificationRead={handleNotificationRead}
-              />
-            ) : (
-              <EmptyState type="verification" />
-            )}
+            <NotificationsList
+              notifications={verificationNotifications}
+              onMarkAsRead={handleNotificationRead}
+            />
           </TabsContent>
 
           <TabsContent value="account">
-            {loading ? (
-              <LoadingState />
-            ) : accountNotifications.length > 0 ? (
-              <NotificationsList
-                notifications={accountNotifications as Notification[]}
-                onNotificationRead={handleNotificationRead}
-              />
-            ) : (
-              <EmptyState type="account" />
-            )}
+            <NotificationsList
+              notifications={accountNotifications}
+              onMarkAsRead={handleNotificationRead}
+            />
           </TabsContent>
 
           <TabsContent value="security">
-            {loading ? (
-              <LoadingState />
-            ) : securityNotifications.length > 0 ? (
-              <NotificationsList
-                notifications={securityNotifications as Notification[]}
-                onNotificationRead={handleNotificationRead}
-              />
-            ) : (
-              <EmptyState type="security" />
-            )}
+            <NotificationsList
+              notifications={securityNotifications}
+              onMarkAsRead={handleNotificationRead}
+            />
           </TabsContent>
 
           <TabsContent value="system">
-            {loading ? (
-              <LoadingState />
-            ) : systemNotifications.length > 0 ? (
-              <NotificationsList
-                notifications={systemNotifications as Notification[]}
-                onNotificationRead={handleNotificationRead}
-              />
-            ) : (
-              <EmptyState type="system" />
-            )}
+            <NotificationsList
+              notifications={systemNotifications}
+              onMarkAsRead={handleNotificationRead}
+            />
           </TabsContent>
         </div>
       </Tabs>
     </div>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div className="flex items-center justify-center py-12">
-      <div className="text-center">
-        <div className="mb-4 animate-pulse">
-          <Bell className="mx-auto h-12 w-12 text-muted-foreground" />
-        </div>
-        <p className="text-muted-foreground">Loading notifications...</p>
-      </div>
-    </div>
-  );
-}
-
-function EmptyState({ type }: { type?: string }) {
-  let message = "You don't have any notifications";
-
-  if (type) {
-    message = `You don't have any ${type} notifications`;
-  }
-
-  return (
-    <Card>
-      <CardHeader className="pb-8 pt-10">
-        <CardTitle className="text-center">No notifications</CardTitle>
-        <CardDescription className="text-center">{message}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex justify-center pb-10">
-        <Bell className="h-16 w-16 text-muted-foreground/30" />
-      </CardContent>
-    </Card>
   );
 }
