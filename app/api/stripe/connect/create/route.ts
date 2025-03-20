@@ -1,17 +1,34 @@
-import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { createConnectAccountWithVerifiedIdentity } from '@/lib/stripe/identity';
 import { currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
-type SupportedCountry = (typeof STRIPE_CONNECT_SUPPORTED_COUNTRIES)[number];
+// List of supported countries for Stripe Connect
+// https://stripe.com/global
+const SUPPORTED_COUNTRIES = [
+  'US', // United States
+  'GB', // United Kingdom
+  'CA', // Canada
+  'AU', // Australia
+  'NZ', // New Zealand
+  'SG', // Singapore
+  // Add more supported countries as needed
+] as const;
 
-// Validate if a string is a supported country code
-function isValidCountry(country: string): country is SupportedCountry {
-  return STRIPE_CONNECT_SUPPORTED_COUNTRIES.includes(country as SupportedCountry);
-}
+// Zod schema for request validation
+const createConnectAccountSchema = z
+  .object({
+    country: z.enum(SUPPORTED_COUNTRIES, {
+      required_error: 'Country is required',
+      invalid_type_error: 'Country must be a valid ISO 3166-1 alpha-2 code',
+    }),
+  })
+  .strict();
+
+type CreateConnectAccountRequest = z.infer<typeof createConnectAccountSchema>;
 
 /**
  * POST /api/stripe/connect/create
@@ -22,7 +39,7 @@ function isValidCountry(country: string): country is SupportedCountry {
  * @returns 200 - Success with onboarding URL
  * @returns 401 - Unauthorized if no user is authenticated
  * @returns 404 - User not found in database
- * @returns 422 - Invalid or unsupported country code
+ * @returns 422 - Invalid request body or unsupported country code
  * @returns 409 - Identity verification incomplete or Connect account already exists
  * @returns 500 - Server error during Connect account creation
  */
@@ -42,26 +59,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get and validate request body for country
-    let body: { country?: string };
+    // Validate request body
+    let body: CreateConnectAccountRequest;
     try {
-      body = await request.json();
+      const rawBody = await request.json();
+      body = createConnectAccountSchema.parse(rawBody);
     } catch (error) {
-      console.error('Error parsing request body:', error);
-      return NextResponse.json(
-        { error: 'Invalid request body', details: 'Request body must be valid JSON' },
-        { status: 422 },
-      );
-    }
+      console.error('Error validating request body:', error);
 
-    const { country = 'US' } = body;
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          {
+            error: 'Invalid request body',
+            details: error.errors.map((e) => ({
+              field: e.path.join('.'),
+              message: e.message,
+            })),
+          },
+          { status: 422 },
+        );
+      }
 
-    // Validate country code early
-    if (!isValidCountry(country)) {
       return NextResponse.json(
         {
-          error: 'Invalid country code',
-          details: `Country must be one of: ${STRIPE_CONNECT_SUPPORTED_COUNTRIES.join(', ')}`,
+          error: 'Invalid request body',
+          details: 'Request body must be valid JSON with required fields',
         },
         { status: 422 },
       );
@@ -73,7 +95,7 @@ export async function POST(request: Request) {
       user.emailAddresses && user.emailAddresses.length > 0
         ? user.emailAddresses[0].emailAddress
         : dbUser.email,
-      country,
+      body.country,
     );
 
     if (!result.success) {

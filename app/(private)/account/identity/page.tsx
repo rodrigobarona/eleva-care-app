@@ -10,52 +10,63 @@ import {
   CardTitle,
 } from '@/components/atoms/card';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
-interface VerificationState {
-  started: boolean;
-  expiresAt: number;
+// Constants for polling configuration
+const INITIAL_POLL_INTERVAL = 5000; // 5 seconds
+const MAX_POLL_INTERVAL = 30000; // 30 seconds
+const BACKOFF_FACTOR = 1.5;
+const MAX_POLL_ATTEMPTS = 30; // Stop polling after ~5 minutes with backoff
+
+type VerificationStatus =
+  | 'not_started'
+  | 'requires_input'
+  | 'processing'
+  | 'verified'
+  | 'canceled'
+  | 'failed';
+
+interface VerificationData {
+  expiresAt: string;
+  startedAt: string;
+}
+
+function getVerificationStarted(): VerificationData | null {
+  const data = localStorage.getItem('verification_started');
+  if (!data) return null;
+
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
 }
 
 function setVerificationStarted() {
-  const expirationTime = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-  const state: VerificationState = {
-    started: true,
-    expiresAt: expirationTime,
+  const expiresAt = new Date();
+  expiresAt.setMinutes(expiresAt.getMinutes() + 30); // 30 minute expiration
+
+  const verificationData: VerificationData = {
+    startedAt: new Date().toISOString(),
+    expiresAt: expiresAt.toISOString(),
   };
-  localStorage.setItem('identityVerificationStarted', JSON.stringify(state));
-}
 
-function getVerificationStarted(): boolean {
-  try {
-    const stored = localStorage.getItem('identityVerificationStarted');
-    if (!stored) return false;
-
-    const state = JSON.parse(stored) as VerificationState;
-    if (Date.now() > state.expiresAt) {
-      // Clear expired state
-      localStorage.removeItem('identityVerificationStarted');
-      return false;
-    }
-    return state.started;
-  } catch {
-    // If there's any error parsing, clear the item and return false
-    localStorage.removeItem('identityVerificationStarted');
-    return false;
-  }
+  localStorage.setItem('verification_started', JSON.stringify(verificationData));
 }
 
 export default function IdentityPage() {
   const router = useRouter();
+  const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('not_started');
   const [loading, setLoading] = useState(false);
-  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
+  const pollAttempts = useRef(0);
+  const currentInterval = useRef(INITIAL_POLL_INTERVAL);
 
   // Check verification status on load
   useEffect(() => {
     const checkVerification = async () => {
       // Only check status if verification was started and hasn't expired
-      if (!getVerificationStarted()) return;
+      if (!getVerificationStarted()) return false;
 
       try {
         const response = await fetch('/api/stripe/identity/verification/status');
@@ -66,22 +77,67 @@ export default function IdentityPage() {
           toast.success('Identity verified', {
             description: 'Your identity has been successfully verified.',
           });
-        } else {
-          setVerificationStatus(data.status);
+          return true; // Signal completion
         }
+
+        setVerificationStatus(data.status);
+        return false; // Continue polling
       } catch (error) {
         console.error('Error checking verification status:', error);
+        return false;
       }
     };
 
-    checkVerification();
-    // Set up polling if verification is in progress
-    const interval = setInterval(checkVerification, 5000);
-    return () => clearInterval(interval);
+    const pollWithBackoff = () => {
+      if (pollAttempts.current >= MAX_POLL_ATTEMPTS) {
+        console.log('Max polling attempts reached, stopping polls');
+        return;
+      }
+
+      pollAttempts.current++;
+      currentInterval.current = Math.min(
+        currentInterval.current * BACKOFF_FACTOR,
+        MAX_POLL_INTERVAL,
+      );
+
+      checkVerification().then((isComplete) => {
+        if (!isComplete) {
+          setTimeout(pollWithBackoff, currentInterval.current);
+        }
+      });
+    };
+
+    // Initial check
+    checkVerification().then((isComplete) => {
+      if (!isComplete) {
+        setTimeout(pollWithBackoff, INITIAL_POLL_INTERVAL);
+      }
+    });
+
+    return () => {
+      pollAttempts.current = MAX_POLL_ATTEMPTS; // Stop polling on unmount
+    };
   }, []);
 
   const startVerification = async () => {
     setLoading(true);
+
+    // Check if there's an ongoing verification
+    const verificationData = getVerificationStarted();
+    if (verificationData) {
+      const now = Date.now();
+      const expiresAt = new Date(verificationData.expiresAt).getTime();
+
+      if (now < expiresAt) {
+        const minutesRemaining = Math.ceil((expiresAt - now) / (1000 * 60));
+        toast.error('Verification in progress', {
+          description: `You have an ongoing verification session. Please wait ${minutesRemaining} minutes before starting a new one.`,
+        });
+        setLoading(false);
+        return;
+      }
+    }
+
     try {
       const response = await fetch('/api/stripe/identity/verification', {
         method: 'POST',
@@ -117,6 +173,10 @@ export default function IdentityPage() {
       const data = await response.json();
 
       if (data.redirectUrl) {
+        // Reset polling state for new verification
+        pollAttempts.current = 0;
+        currentInterval.current = INITIAL_POLL_INTERVAL;
+
         // Track that verification was started with expiration
         setVerificationStarted();
 

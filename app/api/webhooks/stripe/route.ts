@@ -2,6 +2,7 @@ import { STRIPE_CONFIG } from '@/config/stripe';
 import { createVerificationHelpNotification } from '@/config/verification-messages';
 import { db } from '@/drizzle/db';
 import { NotificationTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import { createUserNotification } from '@/lib/notifications';
 import { getServerStripe, syncStripeDataToKV } from '@/lib/stripe';
 import { markStepCompleteForUser } from '@/server/actions/expert-setup';
 import { createMeeting } from '@/server/actions/meetings';
@@ -333,6 +334,15 @@ async function handleVerificationSessionRequiresInput(
   session: Stripe.Identity.VerificationSession,
 ): Promise<void> {
   try {
+    // Validate that userId exists in metadata
+    if (!session.metadata?.userId) {
+      console.error('Missing userId in verification session metadata', {
+        sessionId: session.id,
+        metadata: session.metadata,
+      });
+      return;
+    }
+
     // Get the last error message if any
     const lastError = (session.last_error as { message?: string } | undefined)?.message;
 
@@ -342,15 +352,20 @@ async function handleVerificationSessionRequiresInput(
     // Create notification in database
     await db.insert(NotificationTable).values({
       id: createId(),
-      userId: session.metadata.userId as string,
+      userId: session.metadata.userId,
       ...notification,
       read: false,
       createdAt: new Date(),
       actionUrl: '/account/identity',
     });
   } catch (error) {
-    console.error('Error creating verification help notification:', error);
-    throw error;
+    // Log the error but don't throw to prevent webhook retries
+    console.error('Error creating verification help notification:', error, {
+      sessionId: session.id,
+      userId: session.metadata?.userId,
+    });
+    // Don't throw the error to prevent webhook retries for notification failures
+    // This ensures the webhook is acknowledged even if notification creation fails
   }
 }
 
@@ -374,6 +389,9 @@ async function handleAccountUpdated(account: Stripe.Account) {
     return;
   }
 
+  const previousPayoutsEnabled = user.stripeConnectPayoutsEnabled;
+  const previousChargesEnabled = user.stripeConnectChargesEnabled;
+
   // Update user record
   await db
     .update(UserTable)
@@ -388,5 +406,27 @@ async function handleAccountUpdated(account: Stripe.Account) {
   // If account is fully enabled, mark payment step as complete
   if (account.charges_enabled && account.payouts_enabled) {
     await markStepCompleteForUser('payment', user.clerkUserId);
+
+    // Send notification if this is a new change
+    if (!previousPayoutsEnabled || !previousChargesEnabled) {
+      await createUserNotification({
+        userId: user.id,
+        type: 'ACCOUNT_UPDATE',
+        title: 'Your payment account is now active',
+        message:
+          'Your Stripe Connect account has been fully activated. You can now receive payments for your services.',
+        actionUrl: '/account/payment',
+      });
+    }
+  } else if (account.details_submitted && (!account.charges_enabled || !account.payouts_enabled)) {
+    // Notify user if they've submitted details but account is pending or restricted
+    await createUserNotification({
+      userId: user.id,
+      type: 'ACCOUNT_UPDATE',
+      title: 'Payment account under review',
+      message:
+        "Your account details are being reviewed by Stripe. This usually takes 24-48 hours. We'll notify you once your account is fully activated.",
+      actionUrl: '/account/payment',
+    });
   }
 }

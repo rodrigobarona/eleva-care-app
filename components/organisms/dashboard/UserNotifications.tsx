@@ -57,19 +57,27 @@ export function UserNotifications() {
 
   // Mark notification as read
   async function markAsRead(id: string) {
+    // Store original state for potential rollback
+    const originalNotifications = [...notifications];
+
     try {
+      // Update local state optimistically
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+
       const response = await fetch(`/api/notifications/${id}`, {
         method: 'PATCH',
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'Failed to mark notification as read');
+        throw new Error(
+          data.error || `Failed to mark notification as read (HTTP ${response.status})`,
+        );
       }
-
-      // Update local state
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
     } catch (err) {
+      // Revert state on error
+      setNotifications(originalNotifications);
+
       const errorMessage = err instanceof Error ? err.message : 'Failed to update notification';
       console.error('Error marking notification as read:', err);
       // Show error in UI

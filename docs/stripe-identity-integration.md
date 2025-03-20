@@ -6,7 +6,7 @@ This document outlines our implementation of Stripe Identity verification and Co
 
 Our implementation follows a secure, sequential approach to identity verification and payment account setup:
 
-1. **Identity Verification**: Users complete identity verification through Stripe Identity before creating a Stripe Connect account
+1. **Identity Verification**: Users complete identity verification through Stripe Identity first.
 2. **Connect Account Creation**: Once verified, users move forward with Connect onboarding to receive payments
 3. **Webhook Integration**: Real-time updates via webhooks ensure our system stays in sync with verification status
 
@@ -24,21 +24,21 @@ Our implementation follows a secure, sequential approach to identity verificatio
 
 1. **Start Verification**:
 
-   - User visits `/account/identity` and initiates verification
+   - The user visits `/account/identity` and initiates verification
    - Our backend creates a Stripe Identity verification session
-   - User is redirected to Stripe's hosted verification flow
+   - The user is redirected to Stripe's hosted verification flow
 
 2. **Verification Callback**:
 
    - After completion, Stripe redirects to `/account/identity/callback`
    - The callback page checks verification status
-   - If verified, user is redirected to the success page
+   - If verified, the user is redirected to the success page
 
 3. **Create Connect Account**:
 
-   - From the success page, user initiates Connect account creation
+   - From the success page, the user initiates Connect account creation
    - Our backend creates a Connect account linked to the verified identity
-   - User completes the Connect Express onboarding flow
+   - The user completes the Connect Express onboarding flow
 
 4. **Webhook Updates**:
    - Webhooks keep our database updated with verification and account status
@@ -78,7 +78,7 @@ stripeConnectChargesEnabled BOOLEAN DEFAULT false,
 Our webhook handler at `/api/webhooks/stripe` processes these events:
 
 - `identity.verification_session.verified`: When verification is complete
-- `identity.verification_session.requires_input`: When verification needs more info
+- `identity.verification_session.requires_input`: When verification requires additional information
 - `account.updated`: When Connect account details change
 
 ## Security Considerations
@@ -110,7 +110,7 @@ QA should test these specific edge cases:
 - Expired verification sessions (sessions expire after 24 hours)
 - Network interruptions during verification
 - Multiple verification attempts by the same user
-- Rate limiting behavior for repeated attempts
+- Rate-limiting behavior for repeated attempts
 - Verification timeout handling
 
 ### Environment Setup

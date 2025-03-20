@@ -18,6 +18,13 @@ export default function IdentityCallbackPage() {
 
     try {
       const response = await fetch('/api/stripe/identity/verification/status');
+
+      if (!response.ok) {
+        throw new Error(
+          `Verification status check failed: ${response.status} ${response.statusText}`,
+        );
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -41,8 +48,11 @@ export default function IdentityCallbackPage() {
       }
     } catch (error) {
       console.error('Error checking verification status:', error);
+      // Provide more specific error messages based on the error type
       setMessage(
-        'Failed to check verification status. Please try again or contact support if this continues.',
+        error instanceof Error
+          ? `Error: ${error.message}. Please try again or contact support.`
+          : 'Failed to check verification status. Please try again or contact support if this continues.',
       );
       setShowRetryButton(true);
     } finally {

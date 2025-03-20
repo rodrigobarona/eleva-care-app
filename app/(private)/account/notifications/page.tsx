@@ -97,21 +97,35 @@ export default function NotificationsPage() {
   };
 
   const handleNotificationRead = async (id: string) => {
+    // Store original state for potential rollback
+    const originalState = [...notifications];
+
     try {
-      // Update local state first for better UX
+      // Update local state optimistically
       setNotifications((prev) =>
         prev.map((notification) =>
           notification.id === id ? { ...notification, read: true } : notification,
         ),
       );
 
-      // Then update on server
-      await fetch(`/api/notifications/${id}`, {
+      const response = await fetch(`/api/notifications/${id}`, {
         method: 'PATCH',
       });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(
+          data.error || `Failed to mark notification as read (HTTP ${response.status})`,
+        );
+      }
     } catch (error) {
+      // Revert to original state on error
+      setNotifications(originalState);
+
       console.error('Error marking notification as read:', error);
-      toast.error('Failed to update notification');
+      toast.error('Failed to update notification', {
+        description: error instanceof Error ? error.message : 'Please try again later',
+      });
     }
   };
 

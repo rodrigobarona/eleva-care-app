@@ -7,7 +7,7 @@ import { markNotificationAsRead } from '@/lib/notifications';
 import type { NotificationType } from '@/lib/notifications';
 import { AlertCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { type KeyboardEvent, useRef, useState } from 'react';
+import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 // Type definition for notification with proper type enum
@@ -31,6 +31,23 @@ export function NotificationsList({ notifications, onNotificationRead }: Notific
   const [readNotifications, setReadNotifications] = useState<Record<string, boolean>>({});
   const [selectedIndex, setSelectedIndex] = useState<number>(-1);
   const listRef = useRef<HTMLUListElement>(null);
+
+  // Restore focus on component mount
+  useEffect(() => {
+    const lastFocusedId = localStorage.getItem('lastFocusedNotification');
+    if (lastFocusedId) {
+      const index = notifications.findIndex((n) => n.id === lastFocusedId);
+      if (index >= 0) {
+        setSelectedIndex(index);
+        // Small delay to ensure DOM is ready
+        setTimeout(() => {
+          const item = listRef.current?.children[index] as HTMLElement;
+          item?.focus();
+          localStorage.removeItem('lastFocusedNotification');
+        }, 100);
+      }
+    }
+  }, [notifications]);
 
   // Handle keyboard navigation
   const handleKeyDown = (
@@ -89,6 +106,8 @@ export function NotificationsList({ notifications, onNotificationRead }: Notific
 
       // Navigate if there's an action URL
       if (notification.actionUrl) {
+        // Store last focused notification ID before navigation
+        localStorage.setItem('lastFocusedNotification', notification.id);
         router.push(notification.actionUrl);
       }
     } catch (error) {

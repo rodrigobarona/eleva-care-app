@@ -70,19 +70,37 @@ export function getVerificationMessage(errorMessage?: string): VerificationMessa
     return VERIFICATION_MESSAGES.default;
   }
 
-  // Check for common error types and provide specific guidance
-  if (errorMessage.toLowerCase().includes('document')) {
+  const errorLower = errorMessage.toLowerCase();
+
+  // More specific document errors
+  if (
+    errorLower.includes('document') &&
+    (errorLower.includes('expired') ||
+      errorLower.includes('invalid') ||
+      errorLower.includes('unclear') ||
+      errorLower.includes('unreadable'))
+  ) {
     return VERIFICATION_MESSAGES.document;
   }
 
+  // More specific selfie errors
   if (
-    errorMessage.toLowerCase().includes('selfie') ||
-    errorMessage.toLowerCase().includes('face')
+    (errorLower.includes('selfie') || errorLower.includes('face')) &&
+    (errorLower.includes('quality') ||
+      errorLower.includes('blurry') ||
+      errorLower.includes('lighting') ||
+      errorLower.includes('glare'))
   ) {
     return VERIFICATION_MESSAGES.selfie;
   }
 
-  if (errorMessage.toLowerCase().includes('match')) {
+  // More specific match errors
+  if (
+    errorLower.includes('match') &&
+    (errorLower.includes('different') ||
+      errorLower.includes('mismatch') ||
+      errorLower.includes('inconsistent'))
+  ) {
     return VERIFICATION_MESSAGES.match;
   }
 
