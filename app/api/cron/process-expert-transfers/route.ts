@@ -9,6 +9,12 @@ import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
+// Add route segment config
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const preferredRegion = 'auto';
+export const maxDuration = 60;
+
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
@@ -36,12 +42,15 @@ type TransferResult = SuccessResult | ErrorResult;
 
 /**
  * Processes pending expert transfers
- * This endpoint should be called by a scheduled job every 10-15 minutes
+ * This endpoint is called by QStash every 2 hours
  */
 export async function GET(request: Request) {
-  // Check for authorization
+  // Allow access from QStash or with legacy API key
+  const isQStashRequest = request.headers.get('x-qstash-request') === 'true';
   const apiKey = request.headers.get('x-api-key');
-  if (!apiKey || apiKey !== process.env.CRON_API_KEY) {
+  const isValidApiKey = apiKey && apiKey === process.env.CRON_API_KEY;
+
+  if (!isQStashRequest && !isValidApiKey) {
     console.error('Unauthorized access attempt to process-expert-transfers');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -264,4 +273,13 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
+}
+
+/**
+ * Support for POST requests from QStash
+ * This allows the endpoint to be called via QStash's HTTP POST mechanism
+ */
+export async function POST(request: Request) {
+  // Call the GET handler to process transfers
+  return GET(request);
 }

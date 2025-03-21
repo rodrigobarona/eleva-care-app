@@ -1,0 +1,118 @@
+import { validateQStashConfig } from '@/lib/qstash-config';
+import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
+
+// Add route segment config
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const preferredRegion = 'auto';
+export const maxDuration = 60;
+
+/**
+ * Handle GET requests (not supported)
+ */
+export async function GET() {
+  return NextResponse.json(
+    { error: 'This endpoint only accepts POST requests from QStash' },
+    { status: 405 },
+  );
+}
+
+/**
+ * Handle POST requests from QStash
+ * This is just a verification entry point that will forward the request
+ * to the appropriate endpoint
+ */
+async function handler(req: NextRequest): Promise<NextResponse> {
+  // Validate QStash configuration first
+  const config = validateQStashConfig();
+  if (!config.isValid) {
+    console.error('QStash is not properly configured for signature verification');
+    return NextResponse.json(
+      {
+        error: 'QStash is not properly configured',
+        details: 'Missing environment variables for QStash verification',
+      },
+      { status: 500 },
+    );
+  }
+
+  // Get the target endpoint from the request
+  const targetEndpoint = req.headers.get('x-qstash-target-url');
+  if (!targetEndpoint) {
+    console.error('Missing target endpoint in QStash request');
+    return NextResponse.json({ error: 'Missing target endpoint' }, { status: 400 });
+  }
+
+  try {
+    // Parse the body
+    let body: Record<string, unknown> = {};
+    try {
+      body = await req.json();
+    } catch {
+      // If JSON parsing fails, use an empty object
+      // body is already initialized as an empty object
+    }
+
+    // Log the incoming request
+    console.log(`QStash forwarding request to ${targetEndpoint}`, {
+      body,
+      headers: Object.fromEntries(req.headers.entries()),
+    });
+
+    // Forward the request to the target endpoint
+    const response = await fetch(new URL(targetEndpoint), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-qstash-request': 'true',
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`Error forwarding request to ${targetEndpoint}:`, errorText);
+      return NextResponse.json(
+        { error: `Target endpoint returned ${response.status}: ${errorText}` },
+        { status: response.status },
+      );
+    }
+
+    const responseData = await response.json();
+    return NextResponse.json(responseData);
+  } catch (error: unknown) {
+    console.error('Error processing QStash request:', error);
+    return NextResponse.json(
+      { error: 'Internal server error processing QStash request' },
+      { status: 500 },
+    );
+  }
+}
+
+// Define a type for our handler function
+type QStashHandler = (req: NextRequest) => Promise<NextResponse>;
+
+// Only apply signature verification if configuration is valid
+const config = validateQStashConfig();
+let POST: QStashHandler;
+
+if (config.isValid) {
+  // Export the handler wrapped with signature verification
+  POST = verifySignatureAppRouter(handler) as QStashHandler;
+} else {
+  // Fallback handler that returns an error
+  POST = async () => {
+    return NextResponse.json(
+      {
+        error: 'QStash is not properly configured',
+        details: 'Missing environment variables for QStash verification',
+      },
+      { status: 500 },
+    );
+  };
+}
+
+// Export the POST handler
+export { POST };

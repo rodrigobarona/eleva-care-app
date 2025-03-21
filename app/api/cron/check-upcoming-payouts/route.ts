@@ -7,9 +7,25 @@ import { addDays, differenceInDays } from 'date-fns';
 import { and, eq, isNull } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
+// Add route segment config
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const preferredRegion = 'auto';
+export const maxDuration = 60;
+
 // This CRON job runs daily and checks for payments that will be eligible for payout soon
 // It sends notifications to experts about upcoming payouts
-export async function GET() {
+export async function GET(request: Request) {
+  // Allow access from QStash or with legacy API key
+  const isQStashRequest = request.headers.get('x-qstash-request') === 'true';
+  const apiKey = request.headers.get('x-api-key');
+  const isValidApiKey = apiKey && apiKey === process.env.CRON_API_KEY;
+
+  if (!isQStashRequest && !isValidApiKey) {
+    console.error('Unauthorized access attempt to check-upcoming-payouts');
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   console.log('Starting check for upcoming payouts...');
 
   try {
@@ -95,4 +111,13 @@ export async function GET() {
     console.error('Error in check-upcoming-payouts CRON job:', error);
     return NextResponse.json({ error: 'Failed to process upcoming payouts' }, { status: 500 });
   }
+}
+
+/**
+ * Support for POST requests from QStash
+ * This allows the endpoint to be called via QStash's HTTP POST mechanism
+ */
+export async function POST(request: Request) {
+  // Call the GET handler to process upcoming payouts
+  return GET(request);
 }
