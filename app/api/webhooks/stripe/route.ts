@@ -1,8 +1,9 @@
-import { STRIPE_CONFIG } from '@/config/stripe';
+import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
+import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -46,6 +47,7 @@ interface MeetingMetadata {
 
 interface StripeCheckoutSession extends Stripe.Checkout.Session {
   metadata: {
+    expertClerkUserId?: string;
     meetingData?: string;
     eventId?: string;
     clerkUserId?: string;
@@ -58,6 +60,7 @@ interface StripeCheckoutSession extends Stripe.Checkout.Session {
     scheduledTransferTime?: string;
   };
   application_fee_amount?: number | null;
+  payment_intent: string | null;
 }
 
 // Add GET handler to explain the endpoint
@@ -149,69 +152,96 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     meetingId: result.meeting?.id,
   });
 
-  // Record the payment for expert transfer if payment is successful
-  if (
-    session.payment_status === 'paid' &&
-    typeof session.payment_intent === 'string' &&
-    session.metadata.expertConnectAccountId
-  ) {
-    try {
-      console.log('Recording payment for future expert transfer:', session.payment_intent);
+  // Extract metadata from session
+  const eventId = session.metadata?.eventId || '';
+  const expertConnectAccountId = session.metadata?.expertConnectAccountId || '';
+  const expertClerkUserId = session.metadata?.expertClerkUserId || '';
+  const sessionStartTime = session.metadata?.sessionStartTime
+    ? new Date(session.metadata.sessionStartTime)
+    : new Date();
+  const platformFee = session.metadata?.platformFee
+    ? Number.parseInt(session.metadata.platformFee, 10)
+    : 0;
 
-      // Get the payment intent to verify amount
-      const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+  if (!eventId || !expertConnectAccountId) {
+    console.warn('Missing required metadata in checkout session', session.id);
+    return new Response('Missing metadata', { status: 400 });
+  }
 
-      // Parse metadata values
-      const expertAmount = session.metadata.expertAmount
-        ? Number.parseInt(session.metadata.expertAmount, 10)
-        : Math.round(paymentIntent.amount * 0.85);
+  // Get country for the expert's Connect account
+  let expertCountry = 'PT'; // Default fallback
+  try {
+    const connectAccount = await stripe.accounts.retrieve(expertConnectAccountId);
+    expertCountry = connectAccount.country || 'PT';
+  } catch (error) {
+    console.warn(`Could not retrieve expert country, using default: ${expertCountry}`, error);
+  }
 
-      const platformFee = session.metadata.platformFee
-        ? Number.parseInt(session.metadata.platformFee, 10)
-        : Math.round(paymentIntent.amount * 0.15);
+  // Record payment received date (now)
+  const paymentReceivedDate = new Date();
 
-      const requiresApproval = session.metadata.requiresApproval === 'true';
+  // Get minimum payout delay required by Stripe for this country
+  const requiredPayoutDelay = getMinimumPayoutDelay(expertCountry);
 
-      // Calculate scheduled transfer time (3 hours after session)
-      const sessionStartTime = new Date(meetingData.startTime);
-      const scheduledTransferTime = new Date(sessionStartTime.getTime() + 3 * 60 * 60 * 1000);
+  // Calculate session duration (default to 1 hour if not specified)
+  const sessionDurationMs = 60 * 60 * 1000; // 1 hour in milliseconds
 
-      // Check if we already have a record for this payment intent
-      const existingTransfer = await db.query.PaymentTransferTable.findFirst({
-        where: ({ paymentIntentId }, { eq }) => eq(paymentIntentId, paymentIntent.id),
-      });
+  // Calculate how many days between payment and session
+  const paymentAgingDays = Math.max(
+    0,
+    Math.floor(
+      (sessionStartTime.getTime() - paymentReceivedDate.getTime()) / (24 * 60 * 60 * 1000),
+    ),
+  );
 
-      if (existingTransfer) {
-        console.log('Payment transfer record already exists:', existingTransfer.id);
-      } else {
-        // Insert the payment transfer record
-        await db.insert(PaymentTransferTable).values({
-          paymentIntentId: paymentIntent.id,
-          checkoutSessionId: session.id,
-          eventId: session.metadata.eventId,
-          expertConnectAccountId: session.metadata.expertConnectAccountId,
-          expertClerkUserId: meetingData.expertClerkUserId,
-          amount: expertAmount,
-          platformFee: platformFee,
-          currency: session.currency || 'eur',
-          sessionStartTime: sessionStartTime,
-          scheduledTransferTime: scheduledTransferTime,
-          status: requiresApproval ? 'PENDING_APPROVAL' : 'PENDING',
-          requiresApproval: requiresApproval,
-        });
+  // Calculate the remaining required delay after session
+  // Ensure at least 1 day after session, but respect remaining Stripe requirements
+  const remainingDelayDays = Math.max(1, requiredPayoutDelay - paymentAgingDays);
 
-        console.log('Successfully recorded payment for future transfer to expert', {
-          paymentIntentId: paymentIntent.id,
-          expertConnectAccountId: session.metadata.expertConnectAccountId,
-          amount: expertAmount,
-          scheduledTransferTime: scheduledTransferTime.toISOString(),
-          requiresApproval: requiresApproval,
-        });
-      }
-    } catch (error) {
-      console.error('Error recording payment for expert transfer:', error);
-      // Don't throw, so we don't trigger webhook retry - we'll handle this in monitoring
-    }
+  // Set transfer date based on session date plus remaining delay
+  const scheduledTransferTime = new Date(
+    sessionStartTime.getTime() + sessionDurationMs + remainingDelayDays * 24 * 60 * 60 * 1000,
+  );
+
+  // Set to 4 AM on the scheduled day (matching CRON job time)
+  scheduledTransferTime.setHours(4, 0, 0, 0);
+
+  console.log('Scheduled payout with payment aging consideration:', {
+    paymentReceivedDate: paymentReceivedDate.toISOString(),
+    sessionStartTime: sessionStartTime.toISOString(),
+    expertCountry,
+    requiredPayoutDelay,
+    paymentAgingDays,
+    remainingDelayDays,
+    scheduledTransferTime: scheduledTransferTime.toISOString(),
+  });
+
+  // Check if a payment transfer record already exists for this session
+  const existingTransfer = await db.query.PaymentTransferTable.findFirst({
+    where: eq(PaymentTransferTable.checkoutSessionId, session.id),
+  });
+
+  if (existingTransfer) {
+    console.log(`Transfer record already exists for session ${session.id}`);
+  } else {
+    // Create a payment transfer record with proper null handling
+    await db.insert(PaymentTransferTable).values({
+      paymentIntentId: session.payment_intent || '',
+      checkoutSessionId: session.id,
+      eventId,
+      expertConnectAccountId,
+      expertClerkUserId,
+      amount: (session.amount_total || 0) - platformFee,
+      platformFee,
+      currency: session.currency || 'eur',
+      sessionStartTime,
+      scheduledTransferTime,
+      status: 'PENDING',
+      requiresApproval: session.metadata?.requiresApproval === 'true',
+      created: new Date(),
+      updated: new Date(),
+    });
+    console.log(`Created payment transfer record for session ${session.id}`);
   }
 
   return { success: true, meetingId: result.meeting?.id };

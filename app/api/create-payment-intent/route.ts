@@ -1,4 +1,4 @@
-import { calculateApplicationFee, STRIPE_CONFIG } from '@/config/stripe';
+import { calculateApplicationFee, getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable } from '@/drizzle/schema';
 import { getBaseUrl, getOrCreateStripeCustomer, withRetry } from '@/lib/stripe';
@@ -99,15 +99,45 @@ export async function POST(request: Request) {
       feePercentage: STRIPE_CONFIG.PLATFORM_FEE_PERCENTAGE,
     });
 
-    // Calculate transfer schedule (next day after session)
+    // Get the expert's country code for country-specific payout delay
+    const expertCountry = event.user.country || 'PT';
+    const requiredPayoutDelay = getMinimumPayoutDelay(expertCountry);
+
+    // Calculate transfer schedule
     const sessionStartTime = new Date(meetingData.startTime);
-    // Add session duration (or default to 1 hour) + 24 hours
+    // Add session duration (or default to 1 hour) + configured delay
     const sessionDurationMs = meetingData.duration
       ? meetingData.duration * 60 * 1000
       : 60 * 60 * 1000;
-    const nextDay = new Date(sessionStartTime.getTime() + sessionDurationMs + 24 * 60 * 60 * 1000);
-    // Set to 4 AM the next day (matching CRON job time)
-    const transferDate = new Date(nextDay.setHours(4, 0, 0, 0));
+
+    // Calculate how many days between payment (now) and session
+    const currentDate = new Date();
+    const paymentAgingDays = Math.max(
+      0,
+      Math.floor((sessionStartTime.getTime() - currentDate.getTime()) / (24 * 60 * 60 * 1000)),
+    );
+
+    // Calculate the remaining required delay after session
+    // Ensure at least 1 day after session, but respect remaining Stripe requirements
+    const remainingDelayDays = Math.max(1, requiredPayoutDelay - paymentAgingDays);
+
+    // Set transfer date based on session date plus remaining delay
+    const transferDate = new Date(
+      sessionStartTime.getTime() + sessionDurationMs + remainingDelayDays * 24 * 60 * 60 * 1000,
+    );
+
+    // Set to 4 AM on the scheduled day (matching CRON job time)
+    transferDate.setHours(4, 0, 0, 0);
+
+    console.log('Scheduled transfer with payment aging consideration:', {
+      currentDate: currentDate.toISOString(),
+      sessionStartTime: sessionStartTime.toISOString(),
+      expertCountry,
+      requiredPayoutDelay,
+      paymentAgingDays,
+      remainingDelayDays,
+      transferDate: transferDate.toISOString(),
+    });
 
     // Create checkout session with detailed logging
     console.log('Creating checkout session with params:', {
@@ -168,6 +198,10 @@ export async function POST(request: Request) {
             expertAmount: expertAmount.toString(),
             requiresApproval: requiresApproval ? 'true' : 'false',
             transferStatus: 'PENDING',
+            expertCountry: expertCountry,
+            paymentAgingDays: paymentAgingDays.toString(),
+            requiredPayoutDelay: requiredPayoutDelay.toString(),
+            remainingDelayDays: remainingDelayDays.toString(),
           },
         },
         line_items: [
@@ -176,7 +210,7 @@ export async function POST(request: Request) {
               currency: STRIPE_CONFIG.CURRENCY,
               product_data: {
                 name: 'Consultation Booking',
-                description: `Booking for ${meetingData.guestName} on ${meetingData.startTimeFormatted || sessionStartTime.toLocaleString()} (funds will be released to expert the day after session${requiresApproval ? ' pending approval' : ''})`,
+                description: `Booking for ${meetingData.guestName} on ${meetingData.startTimeFormatted || sessionStartTime.toLocaleString()} (funds will be released to expert ${remainingDelayDays === 1 ? 'the day after' : `in ${remainingDelayDays} days after`} session${requiresApproval ? ' pending approval' : ''})`,
               },
               unit_amount: Math.round(price),
             },
@@ -197,6 +231,10 @@ export async function POST(request: Request) {
           expertAmount: expertAmount.toString(),
           requiresApproval: requiresApproval ? 'true' : 'false',
           transferStatus: 'PENDING',
+          expertCountry: expertCountry,
+          paymentAgingDays: paymentAgingDays.toString(),
+          requiredPayoutDelay: requiredPayoutDelay.toString(),
+          remainingDelayDays: remainingDelayDays.toString(),
         },
         success_url: `${baseUrl}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
           meetingData.startTime,

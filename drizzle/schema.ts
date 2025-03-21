@@ -456,6 +456,7 @@ export const PaymentTransferTable = pgTable('payment_transfers', {
   requiresApproval: boolean('requires_approval').default(false),
   adminUserId: text('admin_user_id'),
   adminNotes: text('admin_notes'),
+  notifiedAt: timestamp('notified_at'),
   created: timestamp('created').notNull().defaultNow(),
   updated: timestamp('updated').notNull().defaultNow(),
 });

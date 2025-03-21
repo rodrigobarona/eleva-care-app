@@ -61,6 +61,24 @@ export const STRIPE_CONFIG = {
       'GR', // Greece
       'CY', // Cyprus
     ] as const,
+
+    // Minimum payout delay in days required by Stripe for new accounts
+    // These values may change - refer to Stripe documentation for the latest requirements
+    // https://stripe.com/docs/connect/setting-payout-schedule
+    PAYOUT_DELAY_DAYS: {
+      DEFAULT: 7, // Default minimum for most countries
+      // Countries with specific requirements
+      PT: 7, // Portugal
+      ES: 7, // Spain
+      IT: 7, // Italy
+      FR: 7, // France
+      DE: 7, // Germany
+      GB: 7, // United Kingdom
+      US: 2, // United States
+      CA: 7, // Canada
+      AU: 7, // Australia
+      // More can be added as needed
+    } as const,
   },
 
   // Webhook Configuration
@@ -80,6 +98,24 @@ export const STRIPE_CONFIG = {
 
 // Export the supported countries list for easy access
 export const STRIPE_CONNECT_SUPPORTED_COUNTRIES = STRIPE_CONFIG.CONNECT.SUPPORTED_COUNTRIES;
+
+// Export the payout delay days for use in payment processing modules
+export const PAYOUT_DELAY_DAYS = STRIPE_CONFIG.CONNECT.PAYOUT_DELAY_DAYS;
+
+// Helper to get the minimum payout delay for a country
+export function getMinimumPayoutDelay(countryCode: string): number {
+  const upperCountry = countryCode.toUpperCase();
+  // Check if we have a specific requirement for this country
+  const specificDelay =
+    STRIPE_CONFIG.CONNECT.PAYOUT_DELAY_DAYS[
+      upperCountry as keyof typeof STRIPE_CONFIG.CONNECT.PAYOUT_DELAY_DAYS
+    ];
+
+  // Return the specific delay if found, otherwise use the default
+  return typeof specificDelay === 'number'
+    ? specificDelay
+    : STRIPE_CONFIG.CONNECT.PAYOUT_DELAY_DAYS.DEFAULT;
+}
 
 // Shared helper functions for fee calculations
 export function calculateApplicationFee(amount: number | null): number {

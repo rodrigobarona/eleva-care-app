@@ -1,4 +1,4 @@
-import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
+import { getMinimumPayoutDelay, STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import {
@@ -9,6 +9,29 @@ import {
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+// Interface for Stripe errors based on Stripe SDK
+interface StripeError {
+  type: string;
+  message?: string;
+  raw?: {
+    code?: string;
+    param?: string;
+    message?: string;
+    type?: string;
+    doc_url?: string;
+    decline_code?: string;
+    statusCode?: number;
+    requestId?: string;
+  };
+  code?: string;
+  statusCode?: number;
+  requestId?: string;
+  doc_url?: string;
+  param?: string;
+  detail?: string;
+  headers?: { [header: string]: string };
+}
 
 export async function POST(request: Request) {
   try {
@@ -121,6 +144,35 @@ export async function POST(request: Request) {
         console.error(`Connect account creation attempt ${attempt} failed:`, error);
         lastError = error;
 
+        // Check for specific error types to provide better feedback
+        if (error && typeof error === 'object' && 'type' in error) {
+          const stripeError = error as StripeError;
+
+          // Specific handling for payout schedule errors
+          if (
+            stripeError.raw?.param?.includes('payouts') ||
+            stripeError.raw?.param?.includes('delay_days')
+          ) {
+            console.warn('Encountered payout schedule error:', stripeError);
+
+            // Get the minimum delay required for this country
+            const minimumDelay = getMinimumPayoutDelay(country);
+
+            // Return a specific error for payout schedule issues
+            return NextResponse.json(
+              {
+                error: 'Payout schedule error',
+                message: `Unable to set the requested payout schedule. Stripe requires a minimum ${minimumDelay}-day delay for new accounts in ${country}.`,
+                details: stripeError.raw?.message || stripeError.message,
+                code: stripeError.raw?.code,
+                minimumDelayDays: minimumDelay,
+                country: country,
+              },
+              { status: 400 },
+            );
+          }
+        }
+
         // If not the last attempt, wait before retrying
         if (attempt < maxRetries) {
           await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
@@ -130,10 +182,16 @@ export async function POST(request: Request) {
 
     // If all attempts failed, return error
     if (!accountId) {
+      const errorObject = lastError as StripeError;
+
+      // Provide a detailed error response based on what went wrong
       return NextResponse.json(
         {
           error: 'Failed to create Connect account after multiple attempts',
-          details: lastError instanceof Error ? lastError.message : 'Unknown error',
+          details: errorObject?.message || 'Unknown error',
+          code: errorObject?.raw?.code || errorObject?.code,
+          param: errorObject?.raw?.param,
+          suggestion: 'Please try again or contact support if the issue persists.',
         },
         { status: 500 },
       );
@@ -158,6 +216,7 @@ export async function POST(request: Request) {
       {
         error: 'Failed to create Connect account',
         details: error instanceof Error ? error.message : 'Unknown error',
+        suggestion: 'Please check your information and try again later.',
       },
       { status: 500 },
     );
