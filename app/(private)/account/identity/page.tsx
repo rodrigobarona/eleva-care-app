@@ -70,12 +70,48 @@ function setVerificationStarted() {
 export default function IdentityPage() {
   const router = useRouter();
   const [verificationStatus, setVerificationStatus] = useState<VerificationStatus>('not_started');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with loading state
   const pollAttempts = useRef(0);
   const currentInterval = useRef(INITIAL_POLL_INTERVAL);
 
-  // Check verification status on load
+  // Check verification status from database on initial load
   useEffect(() => {
+    const checkInitialStatus = async () => {
+      try {
+        const response = await fetch('/api/stripe/identity/verification/status');
+        const data = await response.json();
+
+        if (data.verified) {
+          setVerificationStatus('verified');
+          // Clear any stale local storage data
+          localStorage.removeItem('verification_started');
+          localStorage.removeItem('verification_timestamp');
+        } else if (data.status) {
+          setVerificationStatus(data.status);
+          // If verification is in progress, setup polling
+          if (data.status !== 'canceled' && data.status !== 'failed') {
+            setVerificationStarted();
+          }
+        }
+      } catch (error) {
+        console.error('Error checking initial verification status:', error);
+        // Fall back to local storage check for offline usage
+        if (getVerificationStarted()) {
+          setVerificationStatus('processing');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkInitialStatus();
+  }, []);
+
+  // Check verification status with polling if verification was started
+  useEffect(() => {
+    // Only start polling if verification is in progress
+    if (!getVerificationStarted() || verificationStatus === 'verified') return;
+
     const checkVerification = async () => {
       // Only check status if verification was started and hasn't expired
       if (!getVerificationStarted()) return false;
@@ -147,7 +183,7 @@ export default function IdentityPage() {
     return () => {
       pollAttempts.current = MAX_POLL_ATTEMPTS; // Stop polling on unmount
     };
-  }, []);
+  }, [verificationStatus]);
 
   const startVerification = async () => {
     setLoading(true);
@@ -261,33 +297,44 @@ export default function IdentityPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="mb-4">
-            The verification process takes just a few minutes. You&apos;ll need to provide:
-          </p>
-          <ul className="mb-4 list-disc pl-5">
-            <li>
-              A valid government-issued photo ID (passport, driver&apos;s license, or ID card)
-            </li>
-            <li>A live photo of yourself for facial recognition</li>
-          </ul>
-
-          {verificationStatus === 'verified' ? (
-            <div className="rounded-md bg-green-50 p-4 text-green-800">
-              <p className="font-medium">Your identity has been successfully verified!</p>
-              <p className="mt-2">You can now proceed to set up your payment account.</p>
+          {loading ? (
+            <div className="flex justify-center py-6">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-600 border-t-transparent" />
+              <span className="ml-3">Checking verification status...</span>
             </div>
           ) : (
-            <div className="rounded-md bg-blue-50 p-4 text-blue-800">
-              <p className="font-medium">
-                {verificationStatus === 'requires_input'
-                  ? 'Your verification needs additional information.'
-                  : 'Please complete the identity verification process to continue.'}
+            <>
+              <p className="mb-4">
+                The verification process takes just a few minutes. You&apos;ll need to provide:
               </p>
-            </div>
+              <ul className="mb-4 list-disc pl-5">
+                <li>
+                  A valid government-issued photo ID (passport, driver&apos;s license, or ID card)
+                </li>
+                <li>A live photo of yourself for facial recognition</li>
+              </ul>
+
+              {verificationStatus === 'verified' ? (
+                <div className="rounded-md bg-green-50 p-4 text-green-800">
+                  <p className="font-medium">Your identity has been successfully verified!</p>
+                  <p className="mt-2">You can now proceed to set up your payment account.</p>
+                </div>
+              ) : (
+                <div className="rounded-md bg-blue-50 p-4 text-blue-800">
+                  <p className="font-medium">
+                    {verificationStatus === 'requires_input'
+                      ? 'Your verification needs additional information.'
+                      : 'Please complete the identity verification process to continue.'}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
         <CardFooter>
-          {verificationStatus === 'verified' ? (
+          {loading ? (
+            <Button disabled>Loading...</Button>
+          ) : verificationStatus === 'verified' ? (
             <Button onClick={() => router.push('/account/billing')}>
               Continue to Payment Setup
             </Button>
