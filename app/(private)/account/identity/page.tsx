@@ -86,10 +86,54 @@ export default function IdentityPage() {
           // Clear any stale local storage data
           localStorage.removeItem('verification_started');
           localStorage.removeItem('verification_timestamp');
+
+          // If verified, maybe redirect to connect/billing
+          const searchParams = new URLSearchParams(window.location.search);
+          if (searchParams.has('redirectTo')) {
+            const redirectTo = searchParams.get('redirectTo') || '';
+            // List of recognized redirect targets
+            const validRedirects = ['billing', 'connect', 'setup'];
+
+            if (validRedirects.includes(redirectTo)) {
+              // Handle recognized redirect targets
+              const redirectUrl =
+                redirectTo === 'billing' || redirectTo === 'connect'
+                  ? '/account/billing'
+                  : redirectTo === 'setup'
+                    ? '/setup'
+                    : '/account/billing'; // Fallback if somehow a valid value doesn't match
+
+              toast.success('Identity already verified', {
+                description: 'You are being redirected to continue your setup.',
+              });
+              // Short delay before redirect
+              setTimeout(() => {
+                window.location.href = redirectUrl;
+              }, 1500);
+            } else {
+              // Log warning for unrecognized redirection value
+              console.warn(`Unrecognized redirectTo parameter: ${redirectTo}`);
+
+              // Still show a success message without redirect
+              toast.success('Identity verification complete', {
+                description: 'Your identity has been successfully verified.',
+              });
+
+              // Optional: redirect to a default location after warning
+              // This ensures users aren't stuck even with invalid parameters
+              setTimeout(() => {
+                window.location.href = '/account/billing'; // Default fallback
+              }, 1500);
+            }
+          }
         } else if (data.status) {
           setVerificationStatus(data.status);
           // If verification is in progress, setup polling
-          if (data.status !== 'canceled' && data.status !== 'failed') {
+          if (
+            data.status !== 'canceled' &&
+            data.status !== 'failed' &&
+            data.status !== 'not_started'
+          ) {
             setVerificationStarted();
           }
         }
