@@ -1,82 +1,178 @@
-# Stripe Identity Integration
+# Stripe Identity & Connect Account Integration
 
-This document outlines how Stripe Identity is integrated into the Eleva Care application to provide secure identity verification for experts.
+This document outlines our implementation of Stripe Identity verification and Connect account creation for the Eleva Care platform.
 
-## Overview
+## Architecture Overview
 
-Stripe Identity allows for secure verification of user identities through document verification. In our application, this is used to verify the identity of experts, ensuring a higher level of trust and security for clients.
+Our implementation follows a secure, sequential approach to identity verification and payment account setup:
+
+1. **Identity Verification**: Users complete identity verification through Stripe Identity first.
+2. **Connect Account Creation**: Once verified, users move forward with Connect onboarding to receive payments
+3. **Webhook Integration**: Real-time updates via webhooks ensure our system stays in sync with verification status
 
 ## Implementation Details
 
-### Components
+### Core Components
 
-1. **Identity Page**: Located at `/app/(private)/account/identity`
+**`lib/stripe/identity.ts`**: Core functions for identity verification and Connect account creation
+**`app/api/stripe/identity/`**: API endpoints for verification flows
+**`app/api/stripe/connect/`**: API endpoints for Connect account creation
+**`app/api/webhooks/stripe/`**: Webhook handlers for Stripe events
+**`app/(private)/account/identity/`**: User-facing pages for the verification flow
 
-   - Displays the current verification status
-   - Allows users to initiate the verification process
-   - Shows verification status and results
+### Process Flow
 
-2. **API Routes**:
+1. **Start Verification**:
 
-   - `/api/user/identity`: Fetches the current user's identity verification status
-   - `/api/stripe/identity/start-verification`: Initiates a new verification session
-   - `/api/stripe/identity/check-status`: Manually checks and updates the verification status
-   - `/api/webhooks/stripe-identity`: Webhook handler for Stripe Identity events
+   - The user visits `/account/identity` and initiates verification
+   - Our backend creates a Stripe Identity verification session
+   - The user is redirected to Stripe's hosted verification flow
 
-3. **Helper Functions**: Located in `/lib/stripe/identity.ts`
-   - `createIdentityVerificationSession()`: Creates a new identity verification session
-   - `getIdentityVerificationStatus()`: Retrieves the status of a verification session
-   - `updateVerificationStatus()`: Updates the user's verification status in the database
+2. **Verification Callback**:
 
-### Database Schema
+   - After completion, Stripe redirects to `/account/identity/callback`.
+   - The callback page checks verification status
+   - If verified, the user is redirected to the success page
 
-The following fields were added to the `UserTable`:
+3. **Create Connect Account**:
 
-- `stripeIdentityVerificationId`: The ID of the current verification session
-- `stripeIdentityVerified`: Boolean indicating if the user is verified
-- `stripeIdentityVerificationStatus`: The current status of the verification
-- `stripeIdentityVerificationLastChecked`: Timestamp of the last status check
+   - From the success page, the user initiates Connect account creation
+   - Our backend creates a Connect account linked to the verified identity
+   - The user completes the Connect Express onboarding flow
 
-## Verification Flow
+4. **Webhook Updates**:
+   - Webhooks keep our database updated with verification and account status
+   - The expert setup checklist reflects completion status in real-time
 
-1. User navigates to the Identity page in their account settings
-2. User clicks "Start Verification" to initiate the process
-3. The application creates a verification session with Stripe
-4. User is redirected to Stripe's hosted verification flow
-5. User completes the verification by uploading documents and taking a selfie
-6. User is redirected back to the application
-7. Stripe processes the verification (typically takes a few minutes)
-8. Stripe sends webhook events as the verification status changes
-9. The application updates the user's verification status based on these events
+## Database Schema
 
-## Webhook Events
+The `UserTable` schema includes these verification-related fields:
 
-The following Stripe Identity events are handled by the webhook:
+```sql
+-- Identity Verification Fields
+stripeIdentityVerificationId TEXT,
+stripeIdentityVerificationStatus TEXT,
+stripeIdentityVerificationLastChecked TIMESTAMP,
+stripeIdentityVerified BOOLEAN DEFAULT false,
 
-- `identity.verification_session.created`: A new verification session was created
-- `identity.verification_session.processing`: Stripe is processing the verification
-- `identity.verification_session.verified`: The verification was successful
-- `identity.verification_session.requires_input`: Additional information is needed
+-- Connect Account Fields
+stripeConnectAccountId TEXT,
+stripeConnectDetailsSubmitted BOOLEAN DEFAULT false,
+stripeConnectPayoutsEnabled BOOLEAN DEFAULT false,
+stripeConnectChargesEnabled BOOLEAN DEFAULT false,
+```
 
-## Environment Variables
+## API Endpoints
 
-The following environment variables are required:
+### Identity Verification
 
-- `STRIPE_SECRET_KEY`: Your Stripe secret key
-- `STRIPE_IDENTITY_WEBHOOK_SECRET`: Secret for verifying Stripe Identity webhooks
-- `NEXT_PUBLIC_APP_URL`: The URL of your application (used for return URLs)
+- **POST `/api/stripe/identity/verification`**: Creates a new verification session
+- **GET `/api/stripe/identity/status`**: Gets the status of the current user's verification
+
+### Connect Account
+
+- **POST `/api/stripe/connect/create`**: Creates a Connect account for verified users
+
+### Webhooks
+
+Our webhook handler at `/api/webhooks/stripe` processes these events:
+
+`identity.verification_session.verified`: When verification is complete
+`identity.verification_session.requires_input`: When verification requires additional information
+`account.updated`: When Connect account details change
+
+## Security Considerations
+
+1. **Sequential Verification**: Identity must be verified before Connect account creation
+2. **Metadata Tracking**: All Stripe resources include metadata for audit trails
+3. **Webhook Signatures**: All webhooks are verified using Stripe signatures
+4. **Database Synchronization**: Status is stored in our database for reliable access
+
+## User Experience
+
+The verification flow is designed to be intuitive:
+
+1. Clear instructions before verification begins
+2. Real-time status updates during the process
+3. Helpful error messages for any issues
+4. Seamless transition from identity verification to Connect setup
+
+For detailed UI/UX specifications and visual references:
+
+- [Figma Design System](https://www.figma.com/file/eleva-care/identity-verification)
+- [User Flow Diagrams](https://www.figma.com/file/eleva-care/verification-flow)
+- [Component Library](https://eleva-care.vercel.app/docs/components/identity)
+
+### Edge Cases & Testing
+
+QA should test these specific edge cases:
+
+- Expired verification sessions (sessions expire after 24 hours)
+- Network interruptions during verification
+- Multiple verification attempts by the same user
+- Rate-limiting behavior for repeated attempts
+- Verification timeout handling
+
+### Environment Setup
+
+Required environment variables:
+
+```env
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_test_...
+STRIPE_CONNECT_CLIENT_ID=ca_test_...
+```
+
+### Design Guidelines
+
+The verification UI follows our design system:
+
+- Uses the shadcn/ui component library
+- Maintains consistent branding and color schemes
+- Provides clear visual feedback for each step
+- Implements responsive design for all device sizes
+
+See the [Design Documentation](https://eleva-care.vercel.app/docs/design/identity) for detailed specifications and component usage.
 
 ## Testing
 
 To test the identity verification flow:
 
-1. Use Stripe's test mode
-2. Follow the verification flow as a user
-3. Use Stripe's test documents as described in their documentation
-4. Monitor webhook events in the Stripe dashboard
+1. Use Stripe test mode and test credentials
+2. For identity verification, use [Stripe's test images](https://stripe.com/docs/identity/test-verification)
+3. For Connect, use the test account data provided in Stripe's documentation
+4. Set these environment variables for testing:
+   ```env
+   STRIPE_SECRET_KEY=sk_test_...
+   STRIPE_WEBHOOK_SECRET=whsec_test_...
+   STRIPE_CONNECT_CLIENT_ID=ca_test_...
+   ```
+5. Toggle test mode in the Stripe dashboard to avoid accidental charges
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. **Verification Stuck**: Check the webhook logs and ensure events are being received
+2. **Connect Account Not Created**: Verify identity status before Connect account creation
+3. **Webhook Errors**: Check signature verification and event handling logic
+4. **Missing Events**: Verify server logs for request/response data and check Stripe Dashboard for event delivery status
+5. **Environment Variables**: Ensure all required environment variables are properly set and available to the application
+
+## Future Improvements
+
+Potential enhancements to consider:
+
+1. Enhanced error recovery for interrupted verification flows
+2. Support for additional identity verification methods
+3. Localization of verification instructions
+4. Analytics tracking for verification completion rates
+5. Multi-locale testing suite to ensure proper translation and regional compliance
+6. Automated retry mechanism for failed verification attempts
+7. Custom branding options for the verification flow (when supported by Stripe)
 
 ## References
 
 - [Stripe Identity Documentation](https://stripe.com/docs/identity)
-- [Stripe Identity API Reference](https://stripe.com/docs/api/identity/verification_sessions)
-- [Stripe Identity Webhook Events](https://stripe.com/docs/api/identity/webhook_events)
+- [Stripe Connect Documentation](https://stripe.com/docs/connect)
+- [Stripe Webhooks](https://stripe.com/docs/webhooks)

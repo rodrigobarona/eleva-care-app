@@ -28,6 +28,76 @@ When generating code, the AI should:
 These patterns ensure that whenever a file touches on Stripe functionality, this rule is automatically included.
 
 ## Rule Details & Examples
+
+### Stripe Identity & Connect Integration
+
+- **Sequential Verification Process:**
+  - Always implement Identity verification before Connect account creation
+  - Store verification status in database with proper timestamps
+  - Use webhooks to update verification status in real-time
+  - Typical user flow timeline (per [Stripe docs](mdc:https://stripe.com/docs/identity/verification-sessions)): 
+    1. User initiates verification (1-2 minutes)
+    2. User completes document and selfie verification (3-5 minutes)
+    3. Verification processing by Stripe (typically seconds to minutes)
+    4. Upon success, proceed to Connect account creation (1-2 minutes)
+    5. User completes Connect onboarding (5-10 minutes)
+  - Allow at least 24 hours for full end-to-end process completion in some cases
+
+- **Key Components:**
+  - Core functions in `lib/stripe/identity.ts`
+  - API endpoints in `app/api/stripe/identity/` and `app/api/stripe/connect/`
+  - Webhook handlers in `app/api/webhooks/stripe/`
+  - User-facing pages in `app/(private)/account/identity/`
+
+- **API Architecture:**
+  - `POST /api/stripe/identity/verification`: Creates new verification session
+  - `GET /api/stripe/identity/status`: Gets verification status
+  - `POST /api/stripe/connect/create`: Creates Connect account for verified users
+  - Webhooks for handling `identity.verification_session.verified`, `identity.verification_session.requires_input`, and `account.updated` events
+
+- **Type Safety Guidelines:**
+  - Use `import type Stripe from 'stripe'` for type imports
+  - Create specific type definitions for Stripe properties that may not be in the SDK
+  - Avoid using `any` or `Record<string, any>` in type assertions
+  - Ensure proper error handling with specific error types
+
+- **Example Implementation:**
+  ```typescript
+  // 1. Create Identity verification session
+  const verificationSession = await stripe.identity.verificationSessions.create({
+    type: 'document',
+    metadata: {
+      userId,
+      clerkUserId,
+      email,
+      created_at: new Date().toISOString(),
+    },
+    return_url: `${baseUrl}/account/identity/callback`,
+  });
+
+  // 2. Check verification status
+  const verificationStatus = await getIdentityVerificationStatus(verificationId);
+
+  // 3. Create Connect account only after verification
+  if (verificationStatus.status === 'verified') {
+    const account = await stripe.accounts.create({
+      type: 'express',
+      country: country.toUpperCase(),
+      email,
+      capabilities: {
+        card_payments: { requested: true },
+        transfers: { requested: true },
+      },
+      metadata: {
+        clerkUserId,
+        identity_verified: 'true',
+        identity_verified_at: new Date().toISOString(),
+        identity_verification_id: verificationId,
+      },
+    });
+  }
+  ```
+
 ### Stripe Payments
 - **Guidelines:**  
   - Generate code that creates Payment Intents (or Setup Intents as needed) with the correct currency, amount, and metadata.
@@ -36,25 +106,73 @@ These patterns ensure that whenever a file touches on Stripe functionality, this
 - **Example:**  
   - A function that initializes a Payment Intent, checks for errors, and returns a client secret.
 
-### Stripe Connect
-- **Guidelines:**  
-  - Provide code for onboarding new connected accounts, including OAuth or direct account creation flows.
-  - Handle transfers and payout scheduling with error checking.
-  - Include clear status tracking for connected accounts.
-- **Example:**  
-  - A function that creates a connected account and securely stores the account ID along with proper error handling.
+## Database Schema Requirements
+When implementing Stripe, ensure the database schema includes these fields:
 
-### Stripe Identity
-- **Guidelines:**  
-  - Generate code that initiates identity verification sessions.
-  - Validate API responses and securely process user verification data.
-  - Ensure that the flow complies with privacy and security best practices.
-- **Example:**  
-  - A snippet that triggers a verification session and processes the results, returning a verification status.
+```sql
+-- Identity Verification Fields
+stripeIdentityVerificationId TEXT,
+stripeIdentityVerificationStatus TEXT,
+stripeIdentityVerificationLastChecked TIMESTAMP,
+stripeIdentityVerified BOOLEAN DEFAULT false,
+
+-- Connect Account Fields
+stripeConnectAccountId TEXT,
+stripeConnectDetailsSubmitted BOOLEAN DEFAULT false,
+stripeConnectPayoutsEnabled BOOLEAN DEFAULT false,
+stripeConnectChargesEnabled BOOLEAN DEFAULT false,
+```
+
+## Security Best Practices
+
+- **Webhook Signature Verification:**
+  ```typescript
+  const event = stripe.webhooks.constructEvent(
+    body,
+    signature,
+    process.env.STRIPE_WEBHOOK_SECRET as string
+  );
+  ```
+
+- **Metadata Usage:**
+  - Always include metadata in Stripe resources for audit trails
+  - Use standardized keys like `clerkUserId`, `created_at`
+  - Store verification timestamps
+
+- **Error Handling:**
+  - Use specific error types and messages
+  - Log errors with contextual information
+  - Return user-friendly error messages
+  
+## User Experience Requirements
+
+- Provide clear guidance before verification begins
+- Show real-time status updates during verification process
+- Handle errors gracefully with helpful messages
+- Ensure seamless transition from identity verification to Connect setup
+- Implement fallback options for service disruptions:
+  - Provide a "Try Again Later" option if Stripe verification is unavailable
+  - Include contact support option for verification issues
+  - Implement a status page that checks Stripe's service status
+  - Display estimated wait times during longer verification processes
+  - Use rate limiting with clear cooldown messages for repeated attempts
+
+## Testing & Debugging
+
+- Use Stripe test mode for development
+- Utilize Stripe's test identity verification images
+- Verify webhook endpoints with Stripe CLI
+- Log all verification status updates for debugging
+- Handle stuck test verifications:
+  - Implement timeout handling for verifications that don't progress
+  - Create manual admin override capabilities for test environments
+  - Use Stripe CLI's `trigger` command to simulate webhook events
+  - For tests that get stuck in "processing" state, implement a reset option
+  - Document common test verification failures (e.g., blurry test images, missing documents)
 
 ## Automatic Attachment & References
 - **Automatic Inclusion:**  
-  - When any file references “stripe” or matches the file patterns above, this rule should automatically be attached.
+  - When any file references "stripe", "identity", or matches the file patterns above, this rule should automatically be attached.
 - **References:**  
   - If needed, chain with a global Stripe guideline file using `@file stripe-docs.mdc` to include extra context from official documentation.
 
@@ -66,5 +184,5 @@ These patterns ensure that whenever a file touches on Stripe functionality, this
 - **Documentation:**  
   - Include inline comments that describe the integration logic.
 - **Consistency:**  
-  - Follow the project’s coding style, linting rules, and naming conventions.
+  - Follow the project's coding style, linting rules, and naming conventions.
 

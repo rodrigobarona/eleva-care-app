@@ -264,3 +264,76 @@ export async function updateSetupStepStatus(stepId: string, completed: boolean) 
     };
   }
 }
+
+/**
+ * Update the setup flow to ensure proper sequence of Identity before Connect
+ */
+export async function checkSetupSequence() {
+  try {
+    const user = await currentUser();
+    if (!user) {
+      return {
+        success: false,
+        error: 'User not authenticated',
+      };
+    }
+
+    // Check if user has an expert role
+    const isExpert = hasExpertRole(user);
+    if (!isExpert) {
+      return {
+        success: false,
+        error: 'User is not an expert',
+      };
+    }
+
+    // Get the DB user for more detailed info
+    const dbUser = await db.query.UserTable.findFirst({
+      where: eq(UserTable.clerkUserId, user.id),
+    });
+
+    if (!dbUser) {
+      return {
+        success: false,
+        error: 'User not found in database',
+      };
+    }
+
+    // Get current setup status
+    const setupStatus = (user.unsafeMetadata?.expertSetup as Record<string, boolean>) || {};
+
+    // Check identity verification status
+    const identityVerified = dbUser.stripeIdentityVerified;
+
+    // Check Connect account status
+    const connectAccountId = dbUser.stripeConnectAccountId;
+    const connectDetailsSubmitted = dbUser.stripeConnectDetailsSubmitted;
+
+    return {
+      success: true,
+      setupStatus,
+      identity: {
+        verified: identityVerified,
+        status: dbUser.stripeIdentityVerificationStatus,
+        verificationId: dbUser.stripeIdentityVerificationId,
+      },
+      connect: {
+        accountId: connectAccountId,
+        detailsSubmitted: connectDetailsSubmitted,
+        payoutsEnabled: dbUser.stripeConnectPayoutsEnabled,
+        chargesEnabled: dbUser.stripeConnectChargesEnabled,
+      },
+      nextStep: !identityVerified
+        ? 'identity'
+        : !connectAccountId || !connectDetailsSubmitted
+          ? 'connect'
+          : null,
+    };
+  } catch (error) {
+    console.error('Error checking setup sequence:', error);
+    return {
+      success: false,
+      error: 'Failed to check setup sequence',
+    };
+  }
+}

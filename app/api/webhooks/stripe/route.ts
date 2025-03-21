@@ -1,12 +1,24 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable, UserTable } from '@/drizzle/schema';
-import { syncStripeDataToKV } from '@/lib/stripe';
+import { PaymentTransferTable } from '@/drizzle/schema';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
-import { eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+
+import { handleAccountUpdated } from './handlers/account';
+import {
+  handleExternalAccountCreated,
+  handleExternalAccountDeleted,
+} from './handlers/external-account';
+import { handleIdentityVerificationUpdated } from './handlers/identity';
+import {
+  handleChargeRefunded,
+  handleDisputeCreated,
+  handlePaymentFailed,
+  handlePaymentSucceeded,
+} from './handlers/payment';
 
 // Add route segment config
 export const runtime = 'nodejs';
@@ -92,17 +104,6 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     } catch (error) {
       console.error('Failed to synchronize user data:', error);
       // Continue processing even if synchronization fails
-    }
-  }
-
-  // Also sync Stripe customer data to KV for redundancy
-  if (typeof session.customer === 'string') {
-    try {
-      console.log('Syncing customer data to KV:', session.customer);
-      await syncStripeDataToKV(session.customer);
-    } catch (error) {
-      console.error('Failed to sync customer data to KV:', error);
-      // Continue processing even if KV sync fails
     }
   }
 
@@ -216,189 +217,92 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
   return { success: true, meetingId: result.meeting?.id };
 }
 
+/**
+ * Handles webhook events from Stripe for identity verification and Connect accounts
+ *
+ * @param request The incoming request from Stripe
+ * @returns A JSON response indicating success or failure
+ */
 export async function POST(request: Request) {
+  const body = await request.text();
+  const headersList = await headers();
+  const sig = headersList.get('stripe-signature');
+
+  if (!sig) {
+    console.error('Missing Stripe signature in webhook request');
+    return NextResponse.json({ error: 'Webhook Error: Missing signature' }, { status: 400 });
+  }
+
+  let event: Stripe.Event;
+
   try {
-    // Log the request info (useful for debugging)
-    console.log('Received webhook request to /api/webhooks/stripe');
-
-    if (!process.env.STRIPE_WEBHOOK_SECRET) {
-      throw new Error('Missing STRIPE_WEBHOOK_SECRET environment variable');
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not defined');
     }
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+    console.error(`Webhook Error: ${errorMessage}`);
+    return NextResponse.json({ error: `Webhook Error: ${errorMessage}` }, { status: 400 });
+  }
 
-    // Get the raw body as text
-    const body = await request.text();
-    const signature = request.headers.get('stripe-signature');
-
-    if (!signature) {
-      console.error('Missing Stripe signature header');
-      return NextResponse.json({ error: 'Missing Stripe signature' }, { status: 400 });
-    }
-
-    let event: Stripe.Event;
-    try {
-      event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET);
-    } catch (err) {
-      console.error('Webhook signature verification failed:', err);
-      return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-    }
-
-    console.log('Received Stripe webhook event:', {
-      type: event.type,
-      id: event.id,
-      timestamp: new Date().toISOString(),
-    });
-
-    // Extract customer ID from event data to sync (if applicable)
-    let customerId: string | undefined = undefined;
-    let clerkUserId: string | undefined = undefined;
-
-    // Extract customer ID based on event type
+  try {
     switch (event.type) {
-      case 'checkout.session.completed':
-      case 'checkout.session.async_payment_succeeded':
-      case 'checkout.session.async_payment_failed': {
-        const session = event.data.object as Stripe.Checkout.Session;
-        customerId = typeof session.customer === 'string' ? session.customer : undefined;
-        clerkUserId = session.metadata?.clerkUserId;
+      case 'account.updated':
+        await handleAccountUpdated(event.data.object as Stripe.Account);
+        break;
+      case 'identity.verification_session.verified':
+      case 'identity.verification_session.requires_input': {
+        // Validate that the object has the expected properties of a verification session
+        const obj = event.data.object;
+        if (!obj || typeof obj !== 'object' || !('status' in obj) || !('id' in obj)) {
+          console.error('Invalid verification session object:', obj);
+          break;
+        }
+        const verificationSession = obj as Stripe.Identity.VerificationSession;
+
+        // For identity verification, we need to find the user by the verification status
+        // and extract any related account ID from the metadata
+        await handleIdentityVerificationUpdated(verificationSession);
         break;
       }
-
-      case 'customer.created':
-      case 'customer.updated':
-      case 'customer.deleted': {
-        const customer = event.data.object as Stripe.Customer;
-        customerId = customer.id;
-        clerkUserId = customer.metadata?.userId as string | undefined;
-        console.log(`Handling ${event.type} event:`, {
-          customerId,
-          clerkUserId,
-          name: customer.name,
-          email: customer.email,
-        });
-        break;
-      }
-
-      case 'customer.subscription.created':
-      case 'customer.subscription.updated':
-      case 'customer.subscription.deleted':
-      case 'customer.subscription.trial_will_end': {
-        const subscription = event.data.object as Stripe.Subscription;
-        customerId = typeof subscription.customer === 'string' ? subscription.customer : undefined;
-        break;
-      }
-
-      case 'invoice.paid':
-      case 'invoice.payment_failed':
-      case 'invoice.payment_succeeded': {
-        const invoice = event.data.object as Stripe.Invoice;
-        customerId = typeof invoice.customer === 'string' ? invoice.customer : undefined;
-        break;
-      }
-
-      case 'payment_intent.succeeded':
-      case 'payment_intent.payment_failed': {
-        const paymentIntent = event.data.object as Stripe.PaymentIntent;
-        customerId =
-          typeof paymentIntent.customer === 'string' ? paymentIntent.customer : undefined;
-        clerkUserId = paymentIntent.metadata?.clerkUserId;
-        break;
-      }
-
-      default:
-        // For events not explicitly handled, we don't need to sync customer data
-        break;
-    }
-
-    // If we have a Clerk user ID, prioritize full synchronization
-    if (clerkUserId) {
-      try {
-        console.log('Ensuring full user synchronization:', clerkUserId);
-        await ensureFullUserSynchronization(clerkUserId);
-      } catch (error) {
-        console.error('Error syncing user data:', error);
-        // Continue webhook processing even if sync fails
-      }
-    }
-    // Otherwise fall back to Stripe-only sync
-    else if (customerId) {
-      try {
-        console.log('Syncing customer data to KV:', customerId);
-        await syncStripeDataToKV(customerId).catch((error) => {
-          console.error('Error syncing customer data to KV:', error);
-          // We still want to process the webhook even if KV sync fails
-        });
-      } catch (error) {
-        console.error('Error preparing to sync customer data:', error);
-        // Continue webhook processing even if sync preparation fails
-      }
-    }
-
-    // Handle specific business logic based on event type
-    switch (event.type) {
       case 'checkout.session.completed':
         await handleCheckoutSession(event.data.object as StripeCheckoutSession);
         break;
-      // Handle identity verification events by delegating to the appropriate handler
-      case 'identity.verification_session.verified':
-      case 'identity.verification_session.requires_input':
-      case 'identity.verification_session.processing':
-      case 'identity.verification_session.created':
-        // Import and call the identity handler function
-        try {
-          console.log('Forwarding identity event to identity handler:', event.type);
-          // We can't directly import route handlers, so handle the identity event here
-          // The user should have both webhooks set up in Stripe
-          console.log('Identity verification event received via main webhook.', {
-            type: event.type,
-            sessionId: (event.data.object as Stripe.Identity.VerificationSession).id,
-            metadata: (event.data.object as Stripe.Identity.VerificationSession).metadata,
-          });
-
-          // Update user if we can find them by metadata
-          const verificationSession = event.data.object as Stripe.Identity.VerificationSession;
-          if (verificationSession.metadata?.clerkUserId) {
-            const clerkUserId = verificationSession.metadata.clerkUserId as string;
-            console.log('Found clerk user ID in metadata:', clerkUserId);
-
-            // Update the user's verification status
-            try {
-              const user = await db.query.UserTable.findFirst({
-                where: (user) => eq(user.clerkUserId, clerkUserId),
-              });
-
-              if (user) {
-                console.log('Updating user verification status:', user.id);
-                await db
-                  .update(UserTable)
-                  .set({
-                    stripeIdentityVerificationId: verificationSession.id,
-                    stripeIdentityVerified: verificationSession.status === 'verified',
-                    stripeIdentityVerificationStatus: verificationSession.status,
-                    stripeIdentityVerificationLastChecked: new Date(),
-                    updatedAt: new Date(),
-                  })
-                  .where(eq(UserTable.id, user.id));
-
-                console.log('Successfully updated user verification status');
-              } else {
-                console.log('No user found with clerk ID:', clerkUserId);
-              }
-            } catch (error) {
-              console.error('Error updating user verification status:', error);
-            }
-          }
-        } catch (error) {
-          console.error('Error handling identity event:', error);
-          // Continue processing - we don't want to fail the webhook for this
+      case 'payment_intent.succeeded':
+        await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
+        break;
+      case 'payment_intent.payment_failed':
+        await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
+        break;
+      case 'charge.refunded':
+        await handleChargeRefunded(event.data.object as Stripe.Charge);
+        break;
+      case 'charge.dispute.created':
+        await handleDisputeCreated(event.data.object as Stripe.Dispute);
+        break;
+      case 'account.external_account.created':
+        if ('account' in event.data.object && typeof event.data.object.account === 'string') {
+          await handleExternalAccountCreated(
+            event.data.object as Stripe.BankAccount | Stripe.Card,
+            event.data.object.account,
+          );
         }
         break;
-      // Add other event handlers as needed
+      case 'account.external_account.deleted':
+        if ('account' in event.data.object && typeof event.data.object.account === 'string') {
+          await handleExternalAccountDeleted(
+            event.data.object as Stripe.BankAccount | Stripe.Card,
+            event.data.object.account,
+          );
+        }
+        break;
       default:
-        console.log(`Unhandled event type ${event.type}`);
+        console.log('Unhandled event type:', event.type);
     }
 
-    // Return a 200 success response quickly
-    return NextResponse.json({ received: true, status: 'success' });
+    return NextResponse.json({ received: true });
   } catch (error) {
     console.error('Error processing webhook:', error);
     return NextResponse.json(

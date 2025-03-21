@@ -18,6 +18,7 @@ import {
 } from '@/components/organisms/sidebar/sidebar';
 import { cn } from '@/lib/utils';
 import {
+  BellIcon,
   Calendar,
   CheckSquare,
   ChevronLeft,
@@ -75,6 +76,14 @@ export function NavMainContent({ items }: NavMainContentProps) {
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </RequireRole>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === '/account/notifications'}>
+                <Link href="/account/notifications">
+                  <BellIcon className="size-4" />
+                  <span>Notifications</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarGroup>
         {/* Expert section */}
