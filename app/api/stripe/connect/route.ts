@@ -48,11 +48,26 @@ export async function POST(request: Request) {
     );
 
     if (!isCountrySupported) {
-      console.warn(`Unsupported country provided: ${country}, using PT instead`);
-      country = 'PT'; // Default to Portugal if country not supported
-    } else {
-      country = normalizedCountry;
+      console.warn(`Unsupported country provided: ${country}`, {
+        providedCountry: country,
+        normalizedCountry,
+        supportedCountriesCount: STRIPE_CONNECT_SUPPORTED_COUNTRIES.length,
+      });
+
+      // Instead of silently defaulting to PT, return an informative error
+      return NextResponse.json(
+        {
+          error: 'Country not supported',
+          message: `The country "${country}" is not supported for Stripe Connect accounts. Please select a supported country.`,
+          supportedCountries: STRIPE_CONNECT_SUPPORTED_COUNTRIES,
+          suggestedCountry: 'PT', // Still suggest PT as a fallback
+        },
+        { status: 400 },
+      );
     }
+
+    // At this point we know the country is supported and normalized
+    country = normalizedCountry;
 
     console.log('Creating Connect account with country:', country);
 

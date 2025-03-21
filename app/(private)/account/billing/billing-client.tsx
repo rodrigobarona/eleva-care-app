@@ -214,6 +214,47 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
 
           if (!response.ok) {
             const errorData = await response.json();
+
+            // Special handling for country not supported errors
+            if (errorData.error === 'Country not supported') {
+              console.warn('Country not supported:', errorData);
+
+              // Show a more detailed error message with suggested country
+              toast.error('Country not supported', {
+                description: `${errorData.message} We recommend using ${errorData.suggestedCountry} instead.`,
+              });
+
+              // Ask if they want to try with the suggested country instead
+              if (
+                confirm(
+                  `Your country "${rawCountry}" is not supported by Stripe. Would you like to try with ${errorData.suggestedCountry} instead?`,
+                )
+              ) {
+                console.log(`Retrying with suggested country: ${errorData.suggestedCountry}`);
+
+                // Try again with the suggested country
+                const retryResponse = await fetch('/api/stripe/connect', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ email, country: errorData.suggestedCountry }),
+                });
+
+                if (!retryResponse.ok) {
+                  const retryErrorData = await retryResponse.json();
+                  throw new Error(retryErrorData.error || 'Connect account creation failed');
+                }
+
+                connectData = await retryResponse.json();
+                connectSuccess = true;
+                break;
+              }
+
+              // User declined to use suggested country
+              throw new Error('Connect account creation canceled - country not supported');
+            }
+
             throw new Error(errorData.error || 'Connect account creation failed');
           }
 
