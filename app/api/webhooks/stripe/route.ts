@@ -107,19 +107,6 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     }
   }
 
-  // Also sync Stripe customer data to KV for redundancy
-  if (typeof session.customer === 'string') {
-    try {
-      console.log('Syncing customer data to KV:', session.customer);
-      // KV sync functionality has been moved or is no longer available
-      // Commented out to prevent errors
-      // await syncStripeDataToKV(session.customer);
-    } catch (error) {
-      console.error('Failed to sync customer data to KV:', error);
-      // Continue processing even if KV sync fails
-    }
-  }
-
   const meetingData = JSON.parse(session.metadata.meetingData) as MeetingMetadata;
   console.log('Parsed meeting data:', meetingData);
 
@@ -249,7 +236,11 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET as string);
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not defined');
+    }
+    event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     console.error(`Webhook Error: ${errorMessage}`);
@@ -263,7 +254,13 @@ export async function POST(request: Request) {
         break;
       case 'identity.verification_session.verified':
       case 'identity.verification_session.requires_input': {
-        const verificationSession = event.data.object as Stripe.Identity.VerificationSession;
+        // Validate that the object has the expected properties of a verification session
+        const obj = event.data.object;
+        if (!obj || typeof obj !== 'object' || !('status' in obj) || !('id' in obj)) {
+          console.error('Invalid verification session object:', obj);
+          break;
+        }
+        const verificationSession = obj as Stripe.Identity.VerificationSession;
 
         // For identity verification, we need to find the user by the verification status
         // and extract any related account ID from the metadata

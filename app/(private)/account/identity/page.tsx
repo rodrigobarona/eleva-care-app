@@ -14,10 +14,12 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 // Constants for polling configuration
-const INITIAL_POLL_INTERVAL = 5000; // 5 seconds
-const MAX_POLL_INTERVAL = 30000; // 30 seconds
-const BACKOFF_FACTOR = 1.5;
-const MAX_POLL_ATTEMPTS = 30; // Stop polling after ~5 minutes with backoff
+const INITIAL_POLL_INTERVAL = Number(
+  process.env.NEXT_PUBLIC_VERIFICATION_INITIAL_POLL_INTERVAL || '5000',
+); // 5 seconds
+const MAX_POLL_INTERVAL = Number(process.env.NEXT_PUBLIC_VERIFICATION_MAX_POLL_INTERVAL || '30000'); // 30 seconds
+const BACKOFF_FACTOR = Number(process.env.NEXT_PUBLIC_VERIFICATION_BACKOFF_FACTOR || '1.5');
+const MAX_POLL_ATTEMPTS = Number(process.env.NEXT_PUBLIC_VERIFICATION_MAX_POLL_ATTEMPTS || '30'); // Stop polling after ~5 minutes with backoff
 
 type VerificationStatus =
   | 'not_started'
@@ -37,7 +39,17 @@ function getVerificationStarted(): VerificationData | null {
   if (!data) return null;
 
   try {
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    // Validate that the parsed data has the expected properties
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      'expiresAt' in parsed &&
+      'startedAt' in parsed
+    ) {
+      return parsed as VerificationData;
+    }
+    return null;
   } catch {
     return null;
   }
@@ -176,6 +188,17 @@ export default function IdentityPage() {
           if (response.status === 429 && errorData.cooldownRemaining) {
             errorMessage = `Too many verification attempts. Please try again in ${errorData.cooldownRemaining} seconds.`;
           }
+
+          // Special handling for other common error codes
+          if (response.status === 403) {
+            errorMessage =
+              'You do not have permission to start verification. Please contact support.';
+          } else if (response.status === 500) {
+            errorMessage =
+              'Server error. Please try again later or contact support if the issue persists.';
+          } else if (response.status === 503) {
+            errorMessage = 'Verification service unavailable. Please try again later.';
+          }
         } catch {
           // If not JSON, use the raw text
           if (errorText) errorMessage += ` - ${errorText}`;
@@ -216,7 +239,9 @@ export default function IdentityPage() {
         description:
           error instanceof Error
             ? error.message
-            : 'An error occurred while starting the verification process',
+            : error instanceof TypeError && error.message.includes('fetch')
+              ? 'Network error. Please check your internet connection and try again.'
+              : 'An error occurred while starting the verification process',
       });
     } finally {
       setLoading(false);

@@ -21,12 +21,17 @@ export async function handleExternalAccountCreated(
   }
 
   // Create notification for the user
-  await createUserNotification({
-    userId: user.id,
-    type: 'ACCOUNT_UPDATE',
-    title: 'Bank Account Added',
-    message: 'Your bank account has been successfully added to your Stripe Connect account.',
-    actionUrl: '/account/connect',
+  await db.transaction(async (_tx) => {
+    await createUserNotification({
+      userId: user.id,
+      type: 'ACCOUNT_UPDATE',
+      title: externalAccount.object === 'bank_account' ? 'Bank Account Added' : 'Card Added',
+      message:
+        externalAccount.object === 'bank_account'
+          ? 'Your bank account has been successfully added to your Stripe Connect account.'
+          : 'Your card has been successfully added to your Stripe Connect account.',
+      actionUrl: '/account/connect',
+    });
   });
 }
 
@@ -47,11 +52,16 @@ export async function handleExternalAccountDeleted(
   }
 
   // Create notification for the user
-  await createUserNotification({
-    userId: user.id,
-    type: 'ACCOUNT_UPDATE',
-    title: 'Bank Account Removed',
-    message: 'A bank account has been removed from your Stripe Connect account.',
-    actionUrl: '/account/connect',
+  await db.transaction(async (_tx) => {
+    await createUserNotification({
+      userId: user.id,
+      type: 'ACCOUNT_UPDATE',
+      title: externalAccount.object === 'bank_account' ? 'Bank Account Removed' : 'Card Removed',
+      message:
+        externalAccount.object === 'bank_account'
+          ? 'A bank account has been removed from your Stripe Connect account.'
+          : 'A card has been removed from your Stripe Connect account.',
+      actionUrl: '/account/connect',
+    });
   });
 }

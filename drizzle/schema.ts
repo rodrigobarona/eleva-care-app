@@ -479,6 +479,7 @@ export const NotificationTable = pgTable('notifications', {
   message: text('message').notNull(),
   actionUrl: text('action_url'),
   read: boolean('read').default(false),
+  readAt: timestamp('read_at'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   expiresAt: timestamp('expires_at'),
 });

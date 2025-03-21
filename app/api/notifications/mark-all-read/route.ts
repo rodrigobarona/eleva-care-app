@@ -43,7 +43,10 @@ export async function POST(request: Request) {
     // Update all notifications in a single query
     await db
       .update(NotificationTable)
-      .set({ read: true })
+      .set({
+        read: true,
+        readAt: new Date(),
+      })
       .where(inArray(NotificationTable.id, body.ids) && eq(NotificationTable.userId, user.id));
 
     return NextResponse.json({ success: true });

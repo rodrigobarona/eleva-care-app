@@ -64,6 +64,13 @@
       "when": 1742497329019,
       "tag": "0008_tan_butterfly",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1742533754878,
+      "tag": "0009_flashy_kingpin",
+      "breakpoints": true
     }
   ]
 }

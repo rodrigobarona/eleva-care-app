@@ -19,13 +19,24 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
   // Update transfer status if needed
   if (transfer.status === 'PENDING') {
-    await db
-      .update(PaymentTransferTable)
-      .set({
-        status: 'READY',
-        updated: new Date(),
-      })
-      .where(eq(PaymentTransferTable.id, transfer.id));
+    await db.transaction(async (_tx) => {
+      await db
+        .update(PaymentTransferTable)
+        .set({
+          status: 'READY',
+          updated: new Date(),
+        })
+        .where(eq(PaymentTransferTable.id, transfer.id));
+    });
+
+    // Notify the expert about the successful payment
+    await createUserNotification({
+      userId: transfer.expertClerkUserId,
+      type: 'ACCOUNT_UPDATE',
+      title: 'Payment Received',
+      message: 'A payment for your session has been successfully processed.',
+      actionUrl: '/account/payments',
+    });
   }
 }
 
@@ -43,13 +54,25 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
   }
 
   // Update transfer status
-  await db
-    .update(PaymentTransferTable)
-    .set({
-      status: 'FAILED',
-      updated: new Date(),
-    })
-    .where(eq(PaymentTransferTable.id, transfer.id));
+  await db.transaction(async (_tx) => {
+    await db
+      .update(PaymentTransferTable)
+      .set({
+        status: 'FAILED',
+        updated: new Date(),
+      })
+      .where(eq(PaymentTransferTable.id, transfer.id));
+  });
+
+  // Notify the expert about the failed payment
+  await createUserNotification({
+    userId: transfer.expertClerkUserId,
+    type: 'ACCOUNT_UPDATE',
+    title: 'Payment Failed',
+    message:
+      'A payment for your session has failed to process. The client may need to update their payment method.',
+    actionUrl: '/account/payments',
+  });
 }
 
 export async function handleChargeRefunded(charge: Stripe.Charge) {
@@ -71,13 +94,24 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
   }
 
   // Update transfer status
-  await db
-    .update(PaymentTransferTable)
-    .set({
-      status: 'REFUNDED',
-      updated: new Date(),
-    })
-    .where(eq(PaymentTransferTable.id, transfer.id));
+  await db.transaction(async (_tx) => {
+    await db
+      .update(PaymentTransferTable)
+      .set({
+        status: 'REFUNDED',
+        updated: new Date(),
+      })
+      .where(eq(PaymentTransferTable.id, transfer.id));
+  });
+
+  // Notify the expert about the refund
+  await createUserNotification({
+    userId: transfer.expertClerkUserId,
+    type: 'ACCOUNT_UPDATE',
+    title: 'Payment Refunded',
+    message: 'A payment has been refunded for one of your sessions.',
+    actionUrl: '/account/payments',
+  });
 }
 
 export async function handleDisputeCreated(dispute: Stripe.Dispute) {
@@ -99,13 +133,15 @@ export async function handleDisputeCreated(dispute: Stripe.Dispute) {
   }
 
   // Update transfer status
-  await db
-    .update(PaymentTransferTable)
-    .set({
-      status: 'DISPUTED',
-      updated: new Date(),
-    })
-    .where(eq(PaymentTransferTable.id, transfer.id));
+  await db.transaction(async (_tx) => {
+    await db
+      .update(PaymentTransferTable)
+      .set({
+        status: 'DISPUTED',
+        updated: new Date(),
+      })
+      .where(eq(PaymentTransferTable.id, transfer.id));
+  });
 
   // Create notification for the expert
   await createUserNotification({

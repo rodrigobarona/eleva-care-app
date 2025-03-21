@@ -56,7 +56,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     try {
       // Update notification
-      await db.update(NotificationTable).set({ read: true }).where(eq(NotificationTable.id, id));
+      await db
+        .update(NotificationTable)
+        .set({
+          read: true,
+          readAt: new Date(),
+        })
+        .where(eq(NotificationTable.id, id));
 
       return NextResponse.json({ success: true });
     } catch (updateError) {
