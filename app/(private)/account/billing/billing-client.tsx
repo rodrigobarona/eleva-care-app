@@ -77,17 +77,63 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
       setIsConnecting(true);
 
       // First check if identity verification is required
-      const verificationResponse = await fetch('/api/stripe/identity/status');
-      const verificationData = await verificationResponse.json();
+      try {
+        const verificationResponse = await fetch('/api/stripe/identity/verification/status');
 
-      if (!verificationData.verified) {
-        // User needs to complete identity verification first
-        toast.info('Identity verification required', {
-          description: 'You need to verify your identity before setting up payments.',
+        // Check if the response is OK
+        if (!verificationResponse.ok) {
+          const errorData = await verificationResponse.json();
+          console.error('Identity verification check failed:', errorData);
+
+          // If there's an authentication error, don't try to redirect to identity verification
+          if (verificationResponse.status === 401) {
+            throw new Error('Authentication error. Please try again after signing in.');
+          }
+
+          // For other errors, we can still try to redirect to identity verification
+          toast.warning('Verification status check failed', {
+            description: 'Redirecting to identity verification as a precaution.',
+          });
+          setIsConnecting(false);
+          window.location.href = '/account/identity';
+          return;
+        }
+
+        const verificationData = await verificationResponse.json();
+
+        // Check for explicit error field
+        if (verificationData.error) {
+          throw new Error(verificationData.error);
+        }
+
+        // Check if verification is completed
+        if (!verificationData.verified) {
+          // User needs to complete identity verification first
+          toast.info('Identity verification required', {
+            description: 'You need to verify your identity before setting up payments.',
+          });
+          setIsConnecting(false);
+          window.location.href = '/account/identity';
+          return;
+        }
+      } catch (verificationError) {
+        console.error('Error checking identity verification:', verificationError);
+
+        // For network errors or unexpected issues, show an error but let the user try to continue
+        toast.error('Verification status check failed', {
+          description:
+            'Unable to verify your identity status. You may need to complete verification first.',
         });
-        setIsConnecting(false);
-        window.location.href = '/account/identity';
-        return;
+
+        // Only redirect for certain types of errors
+        if (
+          verificationError instanceof Error &&
+          !verificationError.message.includes('Authentication')
+        ) {
+          setIsConnecting(false);
+          window.location.href = '/account/identity';
+          return;
+        }
       }
 
       // First, fetch the current user's data

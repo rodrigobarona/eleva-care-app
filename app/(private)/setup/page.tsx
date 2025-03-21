@@ -35,6 +35,15 @@ type SetupStep = {
 export default function ExpertSetupPage() {
   const { isLoaded, user } = useUser();
   const [showConfetti, setShowConfetti] = useState(false);
+
+  // Button text mapping by step ID
+  const buttonTextMap: Record<string, string> = {
+    google_account: 'Configure',
+    discount: 'Add Discount',
+    payment: 'Setup Payments',
+    // Default for other steps is 'Complete'
+  };
+
   const [steps, setSteps] = useState<SetupStep[]>([
     {
       id: 'profile',
@@ -140,10 +149,8 @@ export default function ExpertSetupPage() {
       }
     }
 
-    let buttonText = 'Complete';
-    if (step.id === 'google_account') buttonText = 'Configure';
-    else if (step.id === 'discount') buttonText = 'Add Discount';
-    else if (step.id === 'payment') buttonText = 'Setup Payments';
+    // Get button text from mapping, fallback to 'Complete' if not found
+    const buttonText = buttonTextMap[step.id] || 'Complete';
 
     return (
       <Button asChild>
