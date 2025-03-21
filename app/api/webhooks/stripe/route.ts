@@ -249,14 +249,7 @@ export async function POST(request: Request) {
   let event: Stripe.Event;
 
   try {
-try {
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-  if (!webhookSecret) {
-    throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not defined');
-  }
-  event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-} catch (err) {
-  // existing catch block code
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET as string);
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : 'Unknown error';
     console.error(`Webhook Error: ${errorMessage}`);
