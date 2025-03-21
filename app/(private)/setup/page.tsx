@@ -122,6 +122,36 @@ export default function ExpertSetupPage() {
     }
   }, [allStepsCompleted]);
 
+  // Render button with appropriate link and handling for each step
+  const renderStepButton = (step: SetupStep) => {
+    if (step.completed) {
+      return <CheckCircle2 className="h-8 w-8 text-green-500" />;
+    }
+
+    // Special handling for payment step - ensure identity is verified first
+    if (step.id === 'payment') {
+      const identityStep = steps.find((s) => s.id === 'identity');
+      if (identityStep && !identityStep.completed) {
+        return (
+          <Button asChild>
+            <Link href="/account/identity?redirectTo=billing">Complete Identity First</Link>
+          </Button>
+        );
+      }
+    }
+
+    let buttonText = 'Complete';
+    if (step.id === 'google_account') buttonText = 'Configure';
+    else if (step.id === 'discount') buttonText = 'Add Discount';
+    else if (step.id === 'payment') buttonText = 'Setup Payments';
+
+    return (
+      <Button asChild>
+        <Link href={step.href}>{buttonText}</Link>
+      </Button>
+    );
+  };
+
   if (!isLoaded) {
     return <SetupSkeleton />;
   }
@@ -164,21 +194,7 @@ export default function ExpertSetupPage() {
                   <p className="text-sm text-muted-foreground">{step.description}</p>
                 </div>
 
-                {step.completed ? (
-                  <CheckCircle2 className="h-8 w-8 text-green-500" />
-                ) : (
-                  <Button asChild>
-                    <Link href={step.href}>
-                      {step.id === 'google_account'
-                        ? 'Configure'
-                        : step.id === 'discount'
-                          ? 'Add Discount'
-                          : step.id === 'payment'
-                            ? 'Create Product'
-                            : 'Complete'}
-                    </Link>
-                  </Button>
-                )}
+                {renderStepButton(step)}
               </div>
             </div>
           ))}

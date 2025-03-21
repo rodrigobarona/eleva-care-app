@@ -76,6 +76,20 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
     try {
       setIsConnecting(true);
 
+      // First check if identity verification is required
+      const verificationResponse = await fetch('/api/stripe/identity/status');
+      const verificationData = await verificationResponse.json();
+
+      if (!verificationData.verified) {
+        // User needs to complete identity verification first
+        toast.info('Identity verification required', {
+          description: 'You need to verify your identity before setting up payments.',
+        });
+        setIsConnecting(false);
+        window.location.href = '/account/identity';
+        return;
+      }
+
       // First, fetch the current user's data
       const userResponse = await fetch('/api/user/profile');
       if (!userResponse.ok) {

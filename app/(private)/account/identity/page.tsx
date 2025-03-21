@@ -86,10 +86,29 @@ export default function IdentityPage() {
           // Clear any stale local storage data
           localStorage.removeItem('verification_started');
           localStorage.removeItem('verification_timestamp');
+
+          // If verified, maybe redirect to connect/billing
+          const searchParams = new URLSearchParams(window.location.search);
+          if (searchParams.has('redirectTo')) {
+            const redirectTo = searchParams.get('redirectTo');
+            if (redirectTo === 'billing' || redirectTo === 'connect') {
+              toast.success('Identity already verified', {
+                description: 'You are being redirected to payment setup.',
+              });
+              // Short delay before redirect
+              setTimeout(() => {
+                window.location.href = '/account/billing';
+              }, 1500);
+            }
+          }
         } else if (data.status) {
           setVerificationStatus(data.status);
           // If verification is in progress, setup polling
-          if (data.status !== 'canceled' && data.status !== 'failed') {
+          if (
+            data.status !== 'canceled' &&
+            data.status !== 'failed' &&
+            data.status !== 'not_started'
+          ) {
             setVerificationStarted();
           }
         }
