@@ -76,67 +76,113 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
     try {
       setIsConnecting(true);
 
-      // First check if identity verification is required
+      // First ensure KV data is in sync
       try {
-        const verificationResponse = await fetch('/api/stripe/identity/verification/status');
-
-        // Check if the response is OK
-        if (!verificationResponse.ok) {
-          const errorData = await verificationResponse.json();
-          console.error('Identity verification check failed:', errorData);
-
-          // If there's an authentication error, don't try to redirect to identity verification
-          if (verificationResponse.status === 401) {
-            throw new Error('Authentication error. Please try again after signing in.');
-          }
-
-          // For other errors, we can still try to redirect to identity verification
-          toast.warning('Verification status check failed', {
-            description: 'Redirecting to identity verification as a precaution.',
-          });
-          setIsConnecting(false);
-          window.location.href = '/account/identity';
-          return;
-        }
-
-        const verificationData = await verificationResponse.json();
-
-        // Check for explicit error field
-        if (verificationData.error) {
-          throw new Error(verificationData.error);
-        }
-
-        // Check if verification is completed
-        if (!verificationData.verified) {
-          // User needs to complete identity verification first
-          toast.info('Identity verification required', {
-            description: 'You need to verify your identity before setting up payments.',
-          });
-          setIsConnecting(false);
-          window.location.href = '/account/identity';
-          return;
-        }
-      } catch (verificationError) {
-        console.error('Error checking identity verification:', verificationError);
-
-        // For network errors or unexpected issues, show an error but let the user try to continue
-        toast.error('Verification status check failed', {
-          description:
-            'Unable to verify your identity status. You may need to complete verification first.',
+        console.log('Checking KV sync status before Connect setup');
+        const checkResponse = await fetch('/api/user/check-kv-sync', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
         });
 
-        // Only redirect for certain types of errors
-        if (
-          verificationError instanceof Error &&
-          !verificationError.message.includes('Authentication')
-        ) {
-          setIsConnecting(false);
-          window.location.href = '/account/identity';
-          return;
+        const checkData = await checkResponse.json();
+
+        // Rebuild if not in sync
+        if (!checkData.isInSync) {
+          console.log('KV data not in sync, rebuilding before Connect setup...');
+          await fetch('/api/user/rebuild-kv', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          console.log('KV data rebuilt successfully');
+        }
+      } catch (error) {
+        console.error('Error checking KV sync:', error);
+        // Continue with the process even if KV sync fails
+      }
+
+      // Implement a retry mechanism for identity verification check
+      const maxVerificationRetries = 3;
+      let verificationData = null;
+      let verificationError = null;
+
+      for (let attempt = 1; attempt <= maxVerificationRetries; attempt++) {
+        try {
+          console.log(
+            `Checking identity verification (attempt ${attempt}/${maxVerificationRetries})`,
+          );
+          const verificationResponse = await fetch('/api/stripe/identity/verification/status');
+
+          // If response not OK, throw error to retry
+          if (!verificationResponse.ok) {
+            const errorData = await verificationResponse.json();
+            throw new Error(errorData.error || 'Verification status check failed');
+          }
+
+          verificationData = await verificationResponse.json();
+          console.log('Verification status:', verificationData);
+
+          // Break the loop if we got valid data
+          break;
+        } catch (error) {
+          console.error(`Verification check attempt ${attempt} failed:`, error);
+          verificationError = error;
+
+          // If not the last attempt, wait with exponential backoff
+          if (attempt < maxVerificationRetries) {
+            const delayMs = 2 ** attempt * 500; // 1s, 2s, 4s backoff
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+          }
         }
       }
 
-      // First, fetch the current user's data
+      // If all verification checks failed, show error and redirect
+      if (!verificationData) {
+        console.error('All verification check attempts failed:', verificationError);
+        toast.error('Verification status check failed', {
+          description: 'Unable to verify your identity status. Redirecting to verification.',
+        });
+        setIsConnecting(false);
+        window.location.href = '/account/identity';
+        return;
+      }
+
+      // Check verification status from the data we received
+      if (!verificationData.verified) {
+        toast.info('Identity verification required', {
+          description: 'You need to verify your identity before setting up payments.',
+        });
+        setIsConnecting(false);
+        window.location.href = '/account/identity';
+        return;
+      }
+
+      // At this point we know the user is verified
+      // Let's sync the identity verification to the Connect account first
+      try {
+        const syncResult = await syncIdentityToConnect();
+        if (!syncResult.success) {
+          console.warn('Identity sync warning:', syncResult.message);
+          // Don't block the flow, but log the warning
+          toast.info('Preparing your account', {
+            description: 'This may take a moment to sync all your information.',
+          });
+
+          // Add a short delay to give the sync operation time to complete in the background
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        } else {
+          console.log('Identity sync successful:', syncResult.message);
+        }
+      } catch (error) {
+        console.error('Error during identity sync:', error);
+        // Continue with the process even if sync fails
+      }
+
+      // Fetch user data for Connect account creation
+      console.log('Fetching user data for Connect account creation');
       const userResponse = await fetch('/api/user/profile');
       if (!userResponse.ok) {
         throw new Error('Failed to fetch user data');
@@ -145,34 +191,116 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
       const userData = await userResponse.json();
       const email = userData.user?.email;
 
-      // Default to US if country is not available
-      const country = userData.user?.country || 'PT';
+      // Validate country from user data using the supported countries list
+      const rawCountry = userData.user?.country || 'PT';
 
-      if (!email) {
-        throw new Error('User email not found');
+      // Implement Connect account creation with retry mechanism
+      const maxConnectRetries = 3;
+      let connectSuccess = false;
+      let connectData = null;
+      let lastError = null;
+
+      for (let attempt = 1; attempt <= maxConnectRetries; attempt++) {
+        try {
+          console.log(`Creating Connect account (attempt ${attempt}/${maxConnectRetries})`);
+
+          const response = await fetch('/api/stripe/connect', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email, country: rawCountry }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+
+            // Special handling for country not supported errors
+            if (errorData.error === 'Country not supported') {
+              console.warn('Country not supported:', errorData);
+
+              // Show a more detailed error message with suggested country
+              toast.error('Country not supported', {
+                description: `${errorData.message} We recommend using ${errorData.suggestedCountry} instead.`,
+              });
+
+              // Ask if they want to try with the suggested country instead
+              if (
+                confirm(
+                  `Your country "${rawCountry}" is not supported by Stripe. Would you like to try with ${errorData.suggestedCountry} instead?`,
+                )
+              ) {
+                console.log(`Retrying with suggested country: ${errorData.suggestedCountry}`);
+
+                // Try again with the suggested country
+                const retryResponse = await fetch('/api/stripe/connect', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({ email, country: errorData.suggestedCountry }),
+                });
+
+                if (!retryResponse.ok) {
+                  const retryErrorData = await retryResponse.json();
+                  throw new Error(retryErrorData.error || 'Connect account creation failed');
+                }
+
+                connectData = await retryResponse.json();
+                connectSuccess = true;
+                break;
+              }
+
+              // User declined to use suggested country
+              throw new Error('Connect account creation canceled - country not supported');
+            }
+
+            throw new Error(errorData.error || 'Connect account creation failed');
+          }
+
+          connectData = await response.json();
+
+          if (connectData.error) {
+            throw new Error(connectData.error);
+          }
+
+          connectSuccess = true;
+          break;
+        } catch (error) {
+          console.error(`Connect account creation attempt ${attempt} failed:`, error);
+          lastError = error;
+
+          // If not the last attempt, wait with exponential backoff
+          if (attempt < maxConnectRetries) {
+            const delayMs = 2 ** attempt * 1000; // 2s, 4s, 8s backoff
+            toast.info(`Setting up your account (attempt ${attempt})`, {
+              description: 'Please wait a moment...',
+            });
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+          }
+        }
       }
 
-      const response = await fetch('/api/stripe/connect', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, country }),
-      });
-
-      const data = await response.json();
-
-      if (data.error) {
-        throw new Error(data.error);
+      // If all attempts failed, show error
+      if (!connectSuccess) {
+        const errorMessage =
+          lastError instanceof Error
+            ? lastError.message
+            : 'Failed to connect to Stripe after multiple attempts';
+        throw new Error(errorMessage);
       }
 
-      if (data.url) {
-        // For external Stripe URLs, we need to use window.location
-        window.location.href = data.url;
+      // Successful connection, redirect to Stripe
+      if (connectData.url) {
+        window.location.href = connectData.url;
+      } else {
+        throw new Error('No URL returned from Stripe Connect');
       }
     } catch (error) {
       console.error('Failed to connect Stripe:', error);
-      toast.error('Failed to connect to Stripe. Please try again.');
+      toast.error('Failed to connect to Stripe', {
+        description: error instanceof Error ? error.message : 'Please try again later.',
+      });
     } finally {
       setIsConnecting(false);
     }

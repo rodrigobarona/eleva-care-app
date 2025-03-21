@@ -147,6 +147,7 @@ export async function getConnectLoginLink(stripeConnectAccountId: string) {
 /**
  * Synchronizes a user's verified identity with their Stripe Connect account.
  * This helps streamline the verification process by reusing the Stripe Identity verification.
+ * Includes retry logic for improved reliability.
  *
  * @returns An object with success status and a message
  */
@@ -159,19 +160,66 @@ export async function syncIdentityToConnect() {
 
     // Import the sync function
     const { syncIdentityVerificationToConnect } = await import('@/lib/stripe');
-    const result = await syncIdentityVerificationToConnect(userId);
 
-    if (result.success) {
-      return {
-        success: true,
-        message: 'Identity verification successfully synced to Connect account',
-      };
+    // Implement retry logic with exponential backoff
+    const maxRetries = 3;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(
+          `Syncing identity verification attempt ${attempt}/${maxRetries} for user ${userId}`,
+        );
+        const result = await syncIdentityVerificationToConnect(userId);
+
+        if (result.success) {
+          console.log(`Successfully synced identity verification on attempt ${attempt}`, {
+            userId,
+            verificationStatus: result.verificationStatus,
+          });
+          
+          return {
+            success: true,
+            message: 'Identity verification successfully synced to Connect account',
+            attempt,
+          };
+        }
+          
+        // Store the error and retry
+        lastError = new Error(result.message || 'Sync failed with unknown reason');
+        console.warn(`Sync attempt ${attempt} failed: ${result.message}`);
+        
+        // If not the last attempt, wait before retrying (exponential backoff)
+        if (attempt < maxRetries) {
+          const delayMs = 2 ** attempt * 500; // 1s, 2s, 4s backoff
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+        }
+      } catch (error) {
+        lastError = error;
+        console.error(`Error during sync attempt ${attempt}:`, error);
+
+        // If not the last attempt, wait before retrying
+        if (attempt < maxRetries) {
+          const delayMs = 2 ** attempt * 500; // 1s, 2s, 4s backoff
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+        }
+      }
     }
 
-    // If not successful, return the error message
+    // If we get here, all attempts failed
+    console.error(`Failed to sync identity after ${maxRetries} attempts`, {
+      userId,
+      lastError,
+    });
+
+    // Return the most recent error
     return {
       success: false,
-      message: result.message || 'Failed to sync identity verification',
+      message:
+        lastError instanceof Error
+          ? lastError.message
+          : 'Failed to sync identity verification after multiple attempts',
+      attempts: maxRetries,
     };
   } catch (error) {
     console.error('Error in syncIdentityToConnect:', error);
