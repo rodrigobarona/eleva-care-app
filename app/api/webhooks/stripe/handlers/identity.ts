@@ -60,6 +60,7 @@ export async function handleIdentityVerificationUpdated(
             .update(UserTable)
             .set({
               stripeIdentityVerificationStatus: verificationSession.status,
+              stripeIdentityVerified: verificationSession.status === 'verified',
               updatedAt: new Date(),
             })
             .where(eq(UserTable.id, user.id));

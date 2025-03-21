@@ -70,6 +70,7 @@ export async function handleAccountUpdated(account: Stripe.Account) {
               stripeConnectDetailsSubmitted: account.details_submitted,
               stripeConnectPayoutsEnabled: account.payouts_enabled,
               stripeConnectChargesEnabled: account.charges_enabled,
+              stripeConnectOnboardingComplete: account.charges_enabled && account.payouts_enabled,
               updatedAt: new Date(),
             })
             .where(eq(UserTable.id, user.id));

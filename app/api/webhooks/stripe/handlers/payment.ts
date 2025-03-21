@@ -1,6 +1,7 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
 import { createUserNotification } from '@/lib/notifications';
+import { withRetry } from '@/lib/stripe';
 import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';
 
@@ -17,17 +18,28 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
     return;
   }
 
-  // Update transfer status if needed
+  // Update transfer status if needed with retry logic
   if (transfer.status === 'PENDING') {
-    await db.transaction(async (_tx) => {
-      await db
-        .update(PaymentTransferTable)
-        .set({
-          status: 'READY',
-          updated: new Date(),
-        })
-        .where(eq(PaymentTransferTable.id, transfer.id));
-    });
+    try {
+      await withRetry(
+        async () => {
+          await db.transaction(async (_tx) => {
+            await db
+              .update(PaymentTransferTable)
+              .set({
+                status: 'READY',
+                updated: new Date(),
+              })
+              .where(eq(PaymentTransferTable.id, transfer.id));
+          });
+        },
+        3,
+        1000,
+      );
+    } catch (error) {
+      console.error('Error updating payment status after retries:', error);
+      return;
+    }
 
     // Notify the expert about the successful payment
     await createUserNotification({
@@ -53,16 +65,29 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
     return;
   }
 
-  // Update transfer status
-  await db.transaction(async (_tx) => {
-    await db
-      .update(PaymentTransferTable)
-      .set({
-        status: 'FAILED',
-        updated: new Date(),
-      })
-      .where(eq(PaymentTransferTable.id, transfer.id));
-  });
+  // Update transfer status if it's not already in a final state
+  if (transfer.status === 'PENDING' || transfer.status === 'READY') {
+    try {
+      await withRetry(
+        async () => {
+          await db.transaction(async (_tx) => {
+            await db
+              .update(PaymentTransferTable)
+              .set({
+                status: 'FAILED',
+                updated: new Date(),
+              })
+              .where(eq(PaymentTransferTable.id, transfer.id));
+          });
+        },
+        3,
+        1000,
+      );
+    } catch (error) {
+      console.error('Error updating payment status after retries:', error);
+      return;
+    }
+  }
 
   // Notify the expert about the failed payment
   await createUserNotification({

@@ -1,6 +1,7 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { createUserNotification } from '@/lib/notifications';
+import { withRetry } from '@/lib/stripe';
 import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';
 
@@ -20,19 +21,29 @@ export async function handleExternalAccountCreated(
     return;
   }
 
-  // Create notification for the user
-  await db.transaction(async (_tx) => {
-    await createUserNotification({
-      userId: user.id,
-      type: 'ACCOUNT_UPDATE',
-      title: externalAccount.object === 'bank_account' ? 'Bank Account Added' : 'Card Added',
-      message:
-        externalAccount.object === 'bank_account'
-          ? 'Your bank account has been successfully added to your Stripe Connect account.'
-          : 'Your card has been successfully added to your Stripe Connect account.',
-      actionUrl: '/account/connect',
-    });
-  });
+  // Create notification for the user with retry
+  try {
+    await withRetry(
+      async () => {
+        await db.transaction(async (_tx) => {
+          await createUserNotification({
+            userId: user.id,
+            type: 'ACCOUNT_UPDATE',
+            title: externalAccount.object === 'bank_account' ? 'Bank Account Added' : 'Card Added',
+            message:
+              externalAccount.object === 'bank_account'
+                ? 'Your bank account has been successfully added to your Stripe Connect account.'
+                : 'Your card has been successfully added to your Stripe Connect account.',
+            actionUrl: '/account/connect',
+          });
+        });
+      },
+      3,
+      1000,
+    );
+  } catch (error) {
+    console.error('Error creating notification after retries:', error);
+  }
 }
 
 export async function handleExternalAccountDeleted(
