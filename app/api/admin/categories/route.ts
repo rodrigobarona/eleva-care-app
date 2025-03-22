@@ -1,47 +1,38 @@
 import { db } from '@/drizzle/db';
 import { CategoryTable } from '@/drizzle/schema';
-import { hasRole } from '@/lib/auth/roles.server';
-import { auth } from '@clerk/nextjs/server';
+import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
+import type { ApiResponse } from '@/types/api';
 import { NextResponse } from 'next/server';
 
-// Helper function to check if user is admin
-async function isAdmin(_userId: string) {
-  return (await hasRole('admin')) || (await hasRole('superadmin'));
-}
-
 export async function GET() {
+  // Check admin authentication
+  const authResponse = await adminAuthMiddleware();
+  if (authResponse) return authResponse;
+
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!(await isAdmin(userId))) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
     const categories = await db.select().from(CategoryTable);
-    return NextResponse.json(categories);
+    return NextResponse.json({
+      success: true,
+      data: categories,
+    } as ApiResponse<unknown[]>);
   } catch (error) {
     console.error('Error fetching categories:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Internal Server Error' },
+      {
+        success: false,
+        error: 'Error fetching categories',
+      } as ApiResponse<null>,
       { status: 500 },
     );
   }
 }
 
 export async function POST(request: Request) {
+  // Check admin authentication
+  const authResponse = await adminAuthMiddleware();
+  if (authResponse) return authResponse;
+
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (!(await isAdmin(userId))) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
     const formData = await request.formData();
     const name = formData.get('name') as string;
     const description = formData.get('description') as string;

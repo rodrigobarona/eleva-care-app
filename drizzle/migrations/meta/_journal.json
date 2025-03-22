@@ -71,6 +71,13 @@
       "when": 1742533754878,
       "tag": "0009_flashy_kingpin",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1742583314756,
+      "tag": "0010_simple_white_queen",
+      "breakpoints": true
     }
   ]
 }

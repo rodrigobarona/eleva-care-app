@@ -1,4 +1,4 @@
-import { STRIPE_CONFIG } from '@/config/stripe';
+import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable, UserTable } from '@/drizzle/schema';
 import { Redis } from '@upstash/redis';
@@ -452,34 +452,54 @@ export function getBaseUrl() {
 }
 
 export async function createStripeConnectAccount(email: string, country: string) {
-  console.log('Creating Stripe Connect account:', { email, country });
+  console.log('Creating Connect account with country:', country);
 
-  const account = await stripe.accounts.create({
-    type: 'express',
-    country: country.toUpperCase(), // Ensure country code is uppercase
-    email,
-    capabilities: {
-      card_payments: { requested: true },
-      transfers: { requested: true },
+  return withRetry(
+    async () => {
+      try {
+        console.log('Creating Stripe Connect account:', { email, country });
+
+        // Determine the minimum payout delay for this country
+        const minimumDelayDays = getMinimumPayoutDelay(country);
+        console.log(
+          `Using minimum payout delay of ${minimumDelayDays} days for country ${country}`,
+        );
+
+        const account = await stripe.accounts.create({
+          type: 'express',
+          country: country.toUpperCase(), // Ensure country code is uppercase
+          email,
+          capabilities: {
+            card_payments: { requested: true },
+            transfers: { requested: true },
+          },
+          business_type: 'individual',
+          settings: {
+            payouts: {
+              schedule: {
+                interval: 'daily',
+                delay_days: minimumDelayDays, // Use country-specific minimum delay
+              },
+            },
+          },
+        });
+
+        console.log('Stripe Connect account created:', {
+          accountId: account.id,
+          country: account.country,
+          email: account.email,
+          payoutDelay: minimumDelayDays,
+        });
+
+        return { accountId: account.id };
+      } catch (error) {
+        console.error('Connect account creation error:', error);
+        throw error;
+      }
     },
-    business_type: 'individual',
-    settings: {
-      payouts: {
-        schedule: {
-          interval: 'daily',
-          delay_days: 0,
-        },
-      },
-    },
-  });
-
-  console.log('Stripe Connect account created:', {
-    accountId: account.id,
-    country: account.country,
-    email: account.email,
-  });
-
-  return { accountId: account.id };
+    3,
+    1000,
+  ); // 3 retries with 1s initial delay
 }
 
 export async function getConnectAccountBalance(accountId: string) {

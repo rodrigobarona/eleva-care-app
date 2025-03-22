@@ -1,9 +1,20 @@
-import { STRIPE_CONFIG } from '@/config/stripe';
+import { PAYOUT_DELAY_DAYS, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable } from '@/drizzle/schema';
+import { PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import {
+  createPayoutCompletedNotification,
+  createPayoutFailedNotification,
+} from '@/lib/payment-notifications';
+import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
 import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+
+// Add route segment config
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const preferredRegion = 'auto';
+export const maxDuration = 60;
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
@@ -32,21 +43,26 @@ type TransferResult = SuccessResult | ErrorResult;
 
 /**
  * Processes pending expert transfers
- * This endpoint should be called by a scheduled job every 10-15 minutes
+ * This endpoint is called by QStash every 2 hours
  */
 export async function GET(request: Request) {
-  // Check for authorization
+  // Check for verified QStash request or valid API key
+  const verifiedQStash = await isVerifiedQStashRequest(request.headers);
   const apiKey = request.headers.get('x-api-key');
-  if (!apiKey || apiKey !== process.env.CRON_API_KEY) {
+  const isValidApiKey = apiKey && apiKey === process.env.CRON_API_KEY;
+
+  if (!verifiedQStash && !isValidApiKey) {
     console.error('Unauthorized access attempt to process-expert-transfers');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   try {
     // Find all pending transfers that are due (scheduled time ≤ now or manually approved)
+    // AND have met the payment aging requirements
     const now = new Date();
     console.log('Looking for transfers to process at:', now.toISOString());
 
+    // Get user information to determine country-specific payout delay
     const pendingTransfers = await db.query.PaymentTransferTable.findMany({
       where: and(
         or(
@@ -63,11 +79,68 @@ export async function GET(request: Request) {
       ),
     });
 
-    console.log(`Found ${pendingTransfers.length} transfers to process`);
+    console.log(
+      `Found ${pendingTransfers.length} potential transfers to evaluate for payment aging`,
+    );
 
-    // Process each pending transfer
+    // Filter transfers based on payment aging requirements
+    const eligibleTransfers = [];
+    for (const transfer of pendingTransfers) {
+      // For approved transfers, we skip the payment aging check
+      if (transfer.status === 'APPROVED') {
+        eligibleTransfers.push(transfer);
+        continue;
+      }
+
+      try {
+        // Get expert user to determine their country
+        const expertUser = await db.query.UserTable.findFirst({
+          where: eq(UserTable.clerkUserId, transfer.expertClerkUserId),
+        });
+
+        if (!expertUser) {
+          console.error(
+            `Could not find expert user ${transfer.expertClerkUserId} for transfer ${transfer.id}`,
+          );
+          continue;
+        }
+
+        // Get country-specific payout delay with proper type safety
+        const countryCode = (
+          expertUser.country || 'DEFAULT'
+        ).toUpperCase() as keyof typeof PAYOUT_DELAY_DAYS;
+        const requiredAgingDays = PAYOUT_DELAY_DAYS[countryCode] || PAYOUT_DELAY_DAYS.DEFAULT;
+
+        // Calculate days since payment was created
+        const paymentDate = transfer.created;
+        const daysSincePayment = Math.floor(
+          (now.getTime() - paymentDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
+
+        console.log(
+          `Transfer ${transfer.id}: Payment age is ${daysSincePayment} days, required aging: ${requiredAgingDays} days`,
+        );
+
+        // Check if payment has aged enough for payout
+        if (daysSincePayment >= requiredAgingDays) {
+          eligibleTransfers.push(transfer);
+        } else {
+          console.log(
+            `Transfer ${transfer.id} does not meet aging requirement yet (${daysSincePayment}/${requiredAgingDays} days)`,
+          );
+        }
+      } catch (error) {
+        console.error(`Error evaluating payment aging for transfer ${transfer.id}:`, error);
+      }
+    }
+
+    console.log(
+      `Found ${eligibleTransfers.length} transfers eligible for processing after payment aging check`,
+    );
+
+    // Process each eligible transfer
     const results = await Promise.allSettled(
-      pendingTransfers.map(async (transfer) => {
+      eligibleTransfers.map(async (transfer) => {
         console.log(`Processing transfer for payment intent: ${transfer.paymentIntentId}`);
 
         try {
@@ -100,6 +173,24 @@ export async function GET(request: Request) {
           console.log(
             `Successfully transferred ${transfer.amount / 100} ${transfer.currency} to expert ${transfer.expertClerkUserId}`,
           );
+
+          // Send notification to the expert
+          try {
+            await createPayoutCompletedNotification({
+              userId: transfer.expertClerkUserId,
+              amount: transfer.amount,
+              currency: transfer.currency,
+              transferId: stripeTransfer.id,
+              eventId: transfer.eventId,
+            });
+            console.log(
+              `Payment completion notification sent to expert ${transfer.expertClerkUserId}`,
+            );
+          } catch (notificationError) {
+            console.error('Error sending payment notification:', notificationError);
+            // Continue processing even if notification fails
+          }
+
           return {
             success: true,
             transferId: stripeTransfer.id,
@@ -123,6 +214,25 @@ export async function GET(request: Request) {
               updated: new Date(),
             })
             .where(eq(PaymentTransferTable.id, transfer.id));
+
+          // If we've reached the max retry count, send a notification to the expert
+          if (newStatus === 'FAILED') {
+            try {
+              await createPayoutFailedNotification({
+                userId: transfer.expertClerkUserId,
+                amount: transfer.amount,
+                currency: transfer.currency,
+                errorMessage: stripeError.message || 'Unknown payment processing error',
+                eventId: transfer.eventId,
+              });
+              console.log(
+                `Payment failure notification sent to expert ${transfer.expertClerkUserId}`,
+              );
+            } catch (notificationError) {
+              console.error('Error sending payment failure notification:', notificationError);
+              // Continue processing even if notification fails
+            }
+          }
 
           return {
             success: false,
@@ -164,4 +274,13 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
+}
+
+/**
+ * Support for POST requests from QStash
+ * This allows the endpoint to be called via QStash's HTTP POST mechanism
+ */
+export async function POST(request: Request) {
+  // Call the GET handler to process transfers
+  return GET(request);
 }

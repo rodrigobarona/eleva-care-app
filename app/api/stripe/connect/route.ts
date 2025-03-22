@@ -1,4 +1,4 @@
-import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
+import { getMinimumPayoutDelay, STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import {
@@ -6,6 +6,7 @@ import {
   getConnectAccountBalance,
   getStripeConnectSetupOrLoginLink,
 } from '@/lib/stripe';
+import { isStripeError } from '@/types/stripe-errors';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -121,6 +122,36 @@ export async function POST(request: Request) {
         console.error(`Connect account creation attempt ${attempt} failed:`, error);
         lastError = error;
 
+        // Check for specific error types to provide better feedback
+        if (isStripeError(error)) {
+          // Use the type guard to verify this is a StripeError
+          const stripeError = error;
+
+          // Specific handling for payout schedule errors
+          if (
+            stripeError.raw?.param?.includes('payouts') ||
+            stripeError.raw?.param?.includes('delay_days')
+          ) {
+            console.warn('Encountered payout schedule error:', stripeError);
+
+            // Get the minimum delay required for this country
+            const minimumDelay = getMinimumPayoutDelay(country);
+
+            // Return a specific error for payout schedule issues
+            return NextResponse.json(
+              {
+                error: 'Payout schedule error',
+                message: `Unable to set the requested payout schedule. Stripe requires a minimum ${minimumDelay}-day delay for new accounts in ${country}.`,
+                details: stripeError.raw?.message || stripeError.message,
+                code: stripeError.raw?.code,
+                minimumDelayDays: minimumDelay,
+                country: country,
+              },
+              { status: 400 },
+            );
+          }
+        }
+
         // If not the last attempt, wait before retrying
         if (attempt < maxRetries) {
           await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
@@ -130,10 +161,38 @@ export async function POST(request: Request) {
 
     // If all attempts failed, return error
     if (!accountId) {
+      // Safely handle the error object
+      const errorDetails = (() => {
+        if (isStripeError(lastError)) {
+          // It's a valid Stripe error
+          return {
+            details: lastError.message || 'Stripe API error',
+            code: lastError.raw?.code || lastError.code,
+            param: lastError.raw?.param,
+            type: lastError.type,
+          };
+        }
+
+        if (lastError instanceof Error) {
+          // It's a standard Error object
+          return {
+            details: lastError.message,
+            stack: process.env.NODE_ENV === 'development' ? lastError.stack : undefined,
+          };
+        }
+
+        // Unknown error type
+        return {
+          details: 'Unknown error occurred',
+        };
+      })();
+
+      // Provide a detailed error response based on what went wrong
       return NextResponse.json(
         {
           error: 'Failed to create Connect account after multiple attempts',
-          details: lastError instanceof Error ? lastError.message : 'Unknown error',
+          ...errorDetails,
+          suggestion: 'Please try again or contact support if the issue persists.',
         },
         { status: 500 },
       );
@@ -154,10 +213,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ accountId, url });
   } catch (error) {
     console.error('Error in Connect account creation:', error);
+
+    // More robust error handling
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
     return NextResponse.json(
       {
         error: 'Failed to create Connect account',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: errorMessage,
+        suggestion: 'Please check your information and try again later.',
       },
       { status: 500 },
     );

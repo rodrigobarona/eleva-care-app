@@ -8,7 +8,8 @@ Our implementation follows a secure, sequential approach to identity verificatio
 
 1. **Identity Verification**: Users complete identity verification through Stripe Identity first.
 2. **Connect Account Creation**: Once verified, users move forward with Connect onboarding to receive payments
-3. **Webhook Integration**: Real-time updates via webhooks ensure our system stays in sync with verification status
+3. **Payout Scheduling**: Country-specific payout delays are automatically configured based on Stripe requirements
+4. **Webhook Integration**: Real-time updates via webhooks ensure our system stays in sync with verification status
 
 ## Implementation Details
 
@@ -40,7 +41,11 @@ Our implementation follows a secure, sequential approach to identity verificatio
    - Our backend creates a Connect account linked to the verified identity
    - The user completes the Connect Express onboarding flow
 
-4. **Webhook Updates**:
+4. **Payout Scheduling**:
+
+   - Country-specific payout delays are automatically configured based on Stripe requirements
+
+5. **Webhook Updates**:
    - Webhooks keep our database updated with verification and account status
    - The expert setup checklist reflects completion status in real-time
 
@@ -72,6 +77,17 @@ stripeConnectChargesEnabled BOOLEAN DEFAULT false,
 ### Connect Account
 
 - **POST `/api/stripe/connect/create`**: Creates a Connect account for verified users
+- **GET `/api/stripe/connect/balance`**: Gets the Connect account balance for the current user
+
+### Payout Settings
+
+Each country has specific minimum payout delay requirements enforced by Stripe. Our system automatically configures the appropriate delay when creating Connect accounts:
+
+- **United States**: 2-day minimum delay
+- **Most European countries**: 7-day minimum delay
+- **Other countries**: Default 7-day minimum delay
+
+For complete details, see [Stripe Payout Settings Documentation](docs/stripe-payout-settings.md).
 
 ### Webhooks
 
@@ -85,8 +101,9 @@ Our webhook handler at `/api/webhooks/stripe` processes these events:
 
 1. **Sequential Verification**: Identity must be verified before Connect account creation
 2. **Metadata Tracking**: All Stripe resources include metadata for audit trails
-3. **Webhook Signatures**: All webhooks are verified using Stripe signatures
-4. **Database Synchronization**: Status is stored in our database for reliable access
+3. **Payout Controls**: Appropriate country-specific payout settings to comply with regulations
+4. **Webhook Signatures**: All webhooks are verified using Stripe signatures
+5. **Database Synchronization**: Status is stored in our database for reliable access
 
 ## User Experience
 

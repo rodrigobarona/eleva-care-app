@@ -5,6 +5,12 @@ import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
+// Add route segment config
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const preferredRegion = 'auto';
+export const maxDuration = 60;
+
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
@@ -32,12 +38,15 @@ type TransferResult = SuccessResult | ErrorResult;
 
 /**
  * Processes pending expert transfers and keeps the app alive
- * This endpoint should be called by a scheduled job daily at 4 AM
+ * This endpoint is called by QStash daily at 4 AM
  */
 export async function GET(request: Request) {
-  // Check for authorization using Vercel's CRON_SECRET
+  // Allow access from QStash or with legacy Vercel CRON_SECRET
+  const isQStashRequest = request.headers.get('x-qstash-request') === 'true';
   const cronSecret = request.headers.get('x-cron-secret');
-  if (!cronSecret || cronSecret !== process.env.CRON_SECRET) {
+  const isValidCronSecret = cronSecret && cronSecret === process.env.CRON_SECRET;
+
+  if (!isQStashRequest && !isValidCronSecret) {
     console.error('Unauthorized access attempt to process-tasks');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
@@ -172,4 +181,13 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
+}
+
+/**
+ * Support for POST requests from QStash
+ * This allows the endpoint to be called via QStash's HTTP POST mechanism
+ */
+export async function POST(request: Request) {
+  // Call the GET handler to process tasks
+  return GET(request);
 }
