@@ -126,6 +126,25 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
+  // Special case for QStash requests to cron endpoints
+  if (path.startsWith('/api/cron/')) {
+    // Check for QStash request header first
+    const isQStashRequest = req.headers.get('x-qstash-request') === 'true';
+    if (isQStashRequest) {
+      console.log(`Bypassing middleware for QStash cron job: ${path}`);
+      return NextResponse.next();
+    }
+
+    // If not a QStash request, continue with API key check
+    const apiKey = req.headers.get('x-api-key');
+    if (apiKey === process.env.CRON_API_KEY) {
+      return NextResponse.next();
+    }
+
+    // Neither QStash header nor valid API key - unauthorized
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   // 1. Check for public routes - no auth needed
   if (matchesPattern(path, PUBLIC_ROUTES)) {
     console.log(`Public route access allowed: ${path}`);
@@ -136,15 +155,6 @@ export default clerkMiddleware(async (auth, req) => {
 
   // 2. Handle special auth routes (like cron jobs with API keys)
   if (matchesPattern(path, SPECIAL_AUTH_ROUTES)) {
-    // For cron jobs, check API key instead of clerk auth
-    if (path.startsWith('/api/cron')) {
-      const apiKey = req.headers.get('x-api-key');
-      if (apiKey !== process.env.CRON_API_KEY) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
-      return NextResponse.next();
-    }
-
     // Add other special auth checks here if needed
   }
 
