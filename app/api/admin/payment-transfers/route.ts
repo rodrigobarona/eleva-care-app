@@ -1,6 +1,6 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
-import { isAdmin } from '@/lib/auth/roles.server';
+import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import { auth } from '@clerk/nextjs/server';
 import { and, asc, desc, eq, gte, like, lte, sql } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -23,21 +23,11 @@ type FilterParams = {
  * This can only be used by administrators
  */
 export async function GET(request: NextRequest) {
+  // Check admin authentication
+  const authResponse = await adminAuthMiddleware();
+  if (authResponse) return authResponse;
+
   try {
-    // Verify admin access
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify admin role using the centralized isAdmin function
-    const userIsAdmin = await isAdmin();
-
-    if (!userIsAdmin) {
-      console.warn(`Non-admin user ${userId} attempted to access payment transfers`);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
     // Parse query parameters
     const searchParams = request.nextUrl.searchParams;
     const filters: FilterParams = {
@@ -139,20 +129,13 @@ export async function GET(request: NextRequest) {
  * This can only be used by administrators
  */
 export async function PATCH(request: NextRequest) {
+  // Check admin authentication
+  const authResponse = await adminAuthMiddleware();
+  if (authResponse) return authResponse;
+
   try {
-    // Verify admin access
+    // Get userId for audit logging
     const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify admin role using the centralized isAdmin function
-    const userIsAdmin = await isAdmin();
-
-    if (!userIsAdmin) {
-      console.warn(`Non-admin user ${userId} attempted to update payment transfer`);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
 
     // Get transfer ID and update data from request body
     const body = await request.json();

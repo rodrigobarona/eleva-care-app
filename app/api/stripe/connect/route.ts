@@ -6,32 +6,10 @@ import {
   getConnectAccountBalance,
   getStripeConnectSetupOrLoginLink,
 } from '@/lib/stripe';
+import { isStripeError } from '@/types/stripe-errors';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
-
-// Interface for Stripe errors based on Stripe SDK
-interface StripeError {
-  type: string;
-  message?: string;
-  raw?: {
-    code?: string;
-    param?: string;
-    message?: string;
-    type?: string;
-    doc_url?: string;
-    decline_code?: string;
-    statusCode?: number;
-    requestId?: string;
-  };
-  code?: string;
-  statusCode?: number;
-  requestId?: string;
-  doc_url?: string;
-  param?: string;
-  detail?: string;
-  headers?: { [header: string]: string };
-}
 
 export async function POST(request: Request) {
   try {
@@ -145,8 +123,9 @@ export async function POST(request: Request) {
         lastError = error;
 
         // Check for specific error types to provide better feedback
-        if (error && typeof error === 'object' && 'type' in error) {
-          const stripeError = error as StripeError;
+        if (isStripeError(error)) {
+          // Use the type guard to verify this is a StripeError
+          const stripeError = error;
 
           // Specific handling for payout schedule errors
           if (
@@ -182,15 +161,37 @@ export async function POST(request: Request) {
 
     // If all attempts failed, return error
     if (!accountId) {
-      const errorObject = lastError as StripeError;
+      // Safely handle the error object
+      const errorDetails = (() => {
+        if (isStripeError(lastError)) {
+          // It's a valid Stripe error
+          return {
+            details: lastError.message || 'Stripe API error',
+            code: lastError.raw?.code || lastError.code,
+            param: lastError.raw?.param,
+            type: lastError.type,
+          };
+        }
+
+        if (lastError instanceof Error) {
+          // It's a standard Error object
+          return {
+            details: lastError.message,
+            stack: process.env.NODE_ENV === 'development' ? lastError.stack : undefined,
+          };
+        }
+
+        // Unknown error type
+        return {
+          details: 'Unknown error occurred',
+        };
+      })();
 
       // Provide a detailed error response based on what went wrong
       return NextResponse.json(
         {
           error: 'Failed to create Connect account after multiple attempts',
-          details: errorObject?.message || 'Unknown error',
-          code: errorObject?.raw?.code || errorObject?.code,
-          param: errorObject?.raw?.param,
+          ...errorDetails,
           suggestion: 'Please try again or contact support if the issue persists.',
         },
         { status: 500 },
@@ -212,10 +213,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ accountId, url });
   } catch (error) {
     console.error('Error in Connect account creation:', error);
+
+    // More robust error handling
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
     return NextResponse.json(
       {
         error: 'Failed to create Connect account',
-        details: error instanceof Error ? error.message : 'Unknown error',
+        details: errorMessage,
         suggestion: 'Please check your information and try again later.',
       },
       { status: 500 },

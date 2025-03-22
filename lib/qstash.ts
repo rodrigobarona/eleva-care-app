@@ -33,10 +33,35 @@ try {
   console.error('Failed to initialize QStash client:', error);
 }
 
+/**
+ * No-op QStash client that logs warnings instead of throwing errors
+ * This allows the application to continue functioning with degraded QStash functionality
+ */
+const noopClient = {
+  publishJSON: async () => {
+    console.warn('QStash operation skipped: publishJSON (client not initialized)');
+    return { messageId: 'noop-message-id' };
+  },
+  schedules: {
+    create: async () => {
+      console.warn('QStash operation skipped: schedules.create (client not initialized)');
+      return { scheduleId: 'noop-schedule-id' };
+    },
+    delete: async () => {
+      console.warn('QStash operation skipped: schedules.delete (client not initialized)');
+    },
+    list: async () => {
+      console.warn('QStash operation skipped: schedules.list (client not initialized)');
+      return [];
+    },
+  },
+} as unknown as Client;
+
 // Helper to ensure client exists before use
 function getClient(): Client {
   if (!qstashClient) {
-    throw new Error('QStash client is not initialized. Check your environment variables.');
+    console.warn('QStash client is not initialized. Using no-op client as fallback.');
+    return noopClient;
   }
   return qstashClient;
 }

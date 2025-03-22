@@ -22,6 +22,9 @@ export const STRIPE_CONFIG = {
 
   // Connect Account Configuration
   CONNECT: {
+    // Default country for fallbacks
+    DEFAULT_COUNTRY: 'PT', // Portugal
+
     // Countries officially supported by Stripe Connect
     // Source: https://stripe.com/global
     SUPPORTED_COUNTRIES: [
@@ -98,6 +101,9 @@ export const STRIPE_CONFIG = {
 
 // Export the supported countries list for easy access
 export const STRIPE_CONNECT_SUPPORTED_COUNTRIES = STRIPE_CONFIG.CONNECT.SUPPORTED_COUNTRIES;
+
+// Export the default country for fallbacks
+export const DEFAULT_COUNTRY = STRIPE_CONFIG.CONNECT.DEFAULT_COUNTRY;
 
 // Export the payout delay days for use in payment processing modules
 export const PAYOUT_DELAY_DAYS = STRIPE_CONFIG.CONNECT.PAYOUT_DELAY_DAYS;

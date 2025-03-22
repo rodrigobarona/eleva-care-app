@@ -1,4 +1,9 @@
-import { calculateApplicationFee, getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
+import {
+  calculateApplicationFee,
+  DEFAULT_COUNTRY,
+  getMinimumPayoutDelay,
+  STRIPE_CONFIG,
+} from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable } from '@/drizzle/schema';
 import { getBaseUrl, getOrCreateStripeCustomer, withRetry } from '@/lib/stripe';
@@ -100,7 +105,7 @@ export async function POST(request: Request) {
     });
 
     // Get the expert's country code for country-specific payout delay
-    const expertCountry = event.user.country || 'PT';
+    const expertCountry = event.user.country || DEFAULT_COUNTRY;
     const requiredPayoutDelay = getMinimumPayoutDelay(expertCountry);
 
     // Calculate transfer schedule

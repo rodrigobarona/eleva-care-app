@@ -45,49 +45,77 @@ async function handler(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Missing target endpoint' }, { status: 400 });
   }
 
+  // Validate the target endpoint
   try {
-    // Parse the body
-    let body: Record<string, unknown> = {};
-    try {
-      body = await req.json();
-    } catch {
-      // If JSON parsing fails, use an empty object
-      // body is already initialized as an empty object
+    const url = new URL(targetEndpoint);
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+    // Get allowed domains (the app's domain and additional trusted domains if needed)
+    const allowedDomains = [new URL(appUrl || '').hostname, 'localhost'].filter(Boolean);
+
+    // Get allowed paths (only API endpoints with specific prefixes)
+    const allowedPathPrefixes = ['/api/cron/', '/api/admin/', '/api/webhooks/'];
+
+    // Validate domain
+    if (!allowedDomains.includes(url.hostname)) {
+      console.error(`Blocked request to untrusted domain: ${url.hostname}`);
+      return NextResponse.json({ error: 'Target endpoint domain not allowed' }, { status: 403 });
     }
 
-    // Log the incoming request
-    console.log(`QStash forwarding request to ${targetEndpoint}`, {
-      body,
-      headers: Object.fromEntries(req.headers.entries()),
-    });
+    // Validate path
+    const isAllowedPath = allowedPathPrefixes.some((prefix) => url.pathname.startsWith(prefix));
+    if (!isAllowedPath) {
+      console.error(`Blocked request to untrusted path: ${url.pathname}`);
+      return NextResponse.json({ error: 'Target endpoint path not allowed' }, { status: 403 });
+    }
 
-    // Forward the request to the target endpoint
-    const response = await fetch(new URL(targetEndpoint), {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-qstash-request': 'true',
-      },
-      body: JSON.stringify(body),
-    });
+    try {
+      // Parse the body
+      let body: Record<string, unknown> = {};
+      try {
+        body = await req.json();
+      } catch {
+        // If JSON parsing fails, use an empty object
+        // body is already initialized as an empty object
+      }
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`Error forwarding request to ${targetEndpoint}:`, errorText);
+      // Log the incoming request
+      console.log(`QStash forwarding request to ${targetEndpoint}`, {
+        body,
+        headers: Object.fromEntries(req.headers.entries()),
+      });
+
+      // Forward the request to the target endpoint
+      const response = await fetch(new URL(targetEndpoint), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-qstash-request': 'true',
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`Error forwarding request to ${targetEndpoint}:`, errorText);
+        return NextResponse.json(
+          { error: `Target endpoint returned ${response.status}: ${errorText}` },
+          { status: response.status },
+        );
+      }
+
+      const responseData = await response.json();
+      return NextResponse.json(responseData);
+    } catch (error: unknown) {
+      console.error('Error processing QStash request:', error);
       return NextResponse.json(
-        { error: `Target endpoint returned ${response.status}: ${errorText}` },
-        { status: response.status },
+        { error: 'Internal server error processing QStash request' },
+        { status: 500 },
       );
     }
-
-    const responseData = await response.json();
-    return NextResponse.json(responseData);
-  } catch (error: unknown) {
-    console.error('Error processing QStash request:', error);
-    return NextResponse.json(
-      { error: 'Internal server error processing QStash request' },
-      { status: 500 },
-    );
+  } catch (error) {
+    console.error('Invalid target URL:', targetEndpoint, error);
+    return NextResponse.json({ error: 'Invalid target URL' }, { status: 400 });
   }
 }
 

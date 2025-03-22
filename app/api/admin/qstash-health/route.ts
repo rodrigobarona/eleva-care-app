@@ -1,3 +1,4 @@
+import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import { isQStashAvailable, validateQStashConfig } from '@/lib/qstash-config';
 import { NextResponse } from 'next/server';
 
@@ -9,6 +10,10 @@ export const dynamic = 'force-dynamic';
  * Verifies that QStash is properly configured and available
  */
 export async function GET() {
+  // Check admin authentication
+  const authResponse = await adminAuthMiddleware();
+  if (authResponse) return authResponse;
+
   try {
     const config = validateQStashConfig();
 

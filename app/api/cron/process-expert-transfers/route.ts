@@ -5,6 +5,7 @@ import {
   createPayoutCompletedNotification,
   createPayoutFailedNotification,
 } from '@/lib/payment-notifications';
+import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
 import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -45,12 +46,12 @@ type TransferResult = SuccessResult | ErrorResult;
  * This endpoint is called by QStash every 2 hours
  */
 export async function GET(request: Request) {
-  // Allow access from QStash or with legacy API key
-  const isQStashRequest = request.headers.get('x-qstash-request') === 'true';
+  // Check for verified QStash request or valid API key
+  const verifiedQStash = await isVerifiedQStashRequest(request.headers);
   const apiKey = request.headers.get('x-api-key');
   const isValidApiKey = apiKey && apiKey === process.env.CRON_API_KEY;
 
-  if (!isQStashRequest && !isValidApiKey) {
+  if (!verifiedQStash && !isValidApiKey) {
     console.error('Unauthorized access attempt to process-expert-transfers');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

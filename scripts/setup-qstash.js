@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-
 /**
  * This script sets up QStash schedules for the application
  * It should be run once during deployment or when schedules need to be updated
@@ -7,6 +6,12 @@
  * Usage:
  * node scripts/setup-qstash.js
  */
+// Import required packages
+import { Client } from '@upstash/qstash';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
 
 // Base URL for the application
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva-care-app.vercel.app';
@@ -19,8 +24,6 @@ if (!QSTASH_TOKEN) {
   console.log('To set up QStash schedules, run this script manually with proper credentials.');
   process.exit(0); // Exit successfully to not break the build
 }
-
-const { Client } = require('@upstash/qstash');
 
 // Initialize QStash client only if token is available
 const qstashClient = new Client({

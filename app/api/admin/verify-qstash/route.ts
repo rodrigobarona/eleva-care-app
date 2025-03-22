@@ -1,4 +1,5 @@
 import { qstash } from '@/config/qstash';
+import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import { isQStashAvailable, qstashClient } from '@/lib/qstash';
 import { getQStashConfigMessage, validateQStashConfig } from '@/lib/qstash-config';
 import { NextResponse } from 'next/server';
@@ -33,6 +34,10 @@ interface QStashStatus {
  * This endpoint checks if QStash is properly configured
  */
 export async function GET() {
+  // Check admin authentication
+  const authResponse = await adminAuthMiddleware();
+  if (authResponse) return authResponse;
+
   // Use our validation helper to check configuration
   const config = validateQStashConfig();
 
@@ -135,6 +140,10 @@ export async function GET() {
  * Sends a test message to the QStash API to verify functionality
  */
 export async function POST() {
+  // Check admin authentication
+  const authResponse = await adminAuthMiddleware();
+  if (authResponse) return authResponse;
+
   // Check if QStash is available
   if (!isQStashAvailable() || !qstashClient) {
     return NextResponse.json(

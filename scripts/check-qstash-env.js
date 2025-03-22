@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-
 /**
  * This script checks if QStash environment variables are properly loaded
  * Run it with: node scripts/check-qstash-env.js
  */
-
 // Load environment variables
-require('dotenv').config();
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 console.log('🔍 Checking QStash environment variables:');
 console.log('-----------------------------------------');

@@ -1,9 +1,11 @@
 'use client';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/atoms/alert';
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { getMinimumPayoutDelay } from '@/config/stripe';
 import { syncIdentityToConnect } from '@/server/actions/billing';
+import { Info } from 'lucide-react';
 import React, { Suspense, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -25,21 +27,29 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
   const [isLoadingDashboard, setIsLoadingDashboard] = React.useState(false);
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [isSyncingIdentity, setIsSyncingIdentity] = useState(false);
-  const [userCountry, setUserCountry] = useState<string>('PT'); // Default to PT
+  const [userCountry, setUserCountry] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<boolean>(false);
 
   // Fetch user profile data when component mounts
   React.useEffect(() => {
     async function fetchUserProfile() {
       try {
+        setProfileError(false);
         const response = await fetch('/api/user/profile');
         if (response.ok) {
           const data = await response.json();
           if (data.user?.country) {
             setUserCountry(data.user.country);
           }
+        } else {
+          throw new Error('Failed to load profile data');
         }
       } catch (error) {
         console.error('Error fetching user profile:', error);
+        setProfileError(true);
+        toast.error('Failed to load country information', {
+          description: 'Payment timing details may be inaccurate. Please refresh to try again.',
+        });
       }
     }
 
@@ -92,6 +102,12 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
 
     checkAndRebuildKVData();
   }, []);
+
+  // Get country-specific payout delay with safe fallback
+  const getPayoutDelay = (country: string | null) => {
+    if (!country) return getMinimumPayoutDelay('DEFAULT');
+    return getMinimumPayoutDelay(country);
+  };
 
   const handleConnect = async () => {
     try {
@@ -379,6 +395,75 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
     dbUser.stripeConnectAccountId &&
     (!accountStatus?.payoutsEnabled || !accountStatus?.chargesEnabled);
 
+  // Payment aging information component - extracted for future internationalization
+  const PaymentAgingInformation = () => {
+    const payoutDelay = getPayoutDelay(userCountry);
+    const country = userCountry || 'your country';
+
+    return (
+      <>
+        <h4 className="mb-2 font-medium">Payout Schedule</h4>
+        {profileError && (
+          <Alert variant="default" className="mb-3">
+            <Info className="h-4 w-4" />
+            <AlertTitle>Country information unavailable</AlertTitle>
+            <AlertDescription>
+              We couldn&apos;t determine your country. Payout information shown may be using default
+              values.
+            </AlertDescription>
+          </Alert>
+        )}
+        <p>
+          For session payments, you&apos;ll receive your funds typically within 1-2 days after your
+          session is completed, depending on when the booking was made and your location.
+        </p>
+        <div className="my-3 rounded-md bg-blue-50 p-3 text-sm text-blue-800">
+          <h5 className="font-medium">How our payment aging system works:</h5>
+          <ol className="ml-4 mt-1 list-decimal">
+            <li>
+              When a client books and pays for your session, that payment starts &quot;aging&quot;
+              immediately
+            </li>
+            <li>
+              Stripe requires payments to age for {payoutDelay} days in {country} before payout
+            </li>
+            <li>
+              If a session is booked well in advance, the payment will already meet the aging
+              requirement when your session occurs
+            </li>
+            <li>
+              In this case, you&apos;ll receive funds just one day after completing your session
+            </li>
+            <li>
+              For last-minute bookings, you&apos;ll need to wait for the remaining required days
+              after your session
+            </li>
+          </ol>
+        </div>
+        <div className="my-3 bg-gray-50 p-3 text-sm">
+          <h5 className="font-medium">Example:</h5>
+          <p className="mt-1">
+            For a {country} account (requiring {payoutDelay} days), if a client:
+          </p>
+          <ul className="ml-4 mt-1 list-disc">
+            <li>Books and pays 10 days before the session → Get paid 1 day after session</li>
+            <li>
+              Books and pays 3 days before the session → Get paid {Math.max(1, payoutDelay - 3)}{' '}
+              days after session
+            </li>
+            <li>
+              Books and pays the same day as the session → Get paid {payoutDelay} days after session
+            </li>
+          </ul>
+        </div>
+        <p className="mt-2 text-xs text-muted-foreground">
+          Note: You&apos;ll receive notifications about upcoming payouts in your Notifications
+          center. After establishing a history with Stripe, you may be eligible for faster payouts.
+        </p>
+      </>
+    );
+  };
+
   return (
     <div className="container pb-16">
       <h1 className="mb-6 text-3xl font-bold">
@@ -497,62 +582,7 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
                 </ul>
               </div>
               <div className="text-sm">
-                <h4 className="mb-2 font-medium">Payout Schedule</h4>
-                <p>
-                  For session payments, you&apos;ll receive your funds typically within 1-2 days
-                  after your session is completed, depending on when the booking was made and your
-                  location.
-                </p>
-                <div className="my-3 rounded-md bg-blue-50 p-3 text-sm text-blue-800">
-                  <h5 className="font-medium">How our payment aging system works:</h5>
-                  <ol className="ml-4 mt-1 list-decimal">
-                    <li>
-                      When a client books and pays for your session, that payment starts
-                      &quot;aging&quot; immediately
-                    </li>
-                    <li>
-                      Stripe requires payments to age for {getMinimumPayoutDelay(userCountry)} days
-                      in {userCountry} before payout
-                    </li>
-                    <li>
-                      If a session is booked well in advance, the payment will already meet the
-                      aging requirement when your session occurs
-                    </li>
-                    <li>
-                      In this case, you&apos;ll receive funds just one day after completing your
-                      session
-                    </li>
-                    <li>
-                      For last-minute bookings, you&apos;ll need to wait for the remaining required
-                      days after your session
-                    </li>
-                  </ol>
-                </div>
-                <div className="my-3 bg-gray-50 p-3 text-sm">
-                  <h5 className="font-medium">Example:</h5>
-                  <p className="mt-1">
-                    For a {userCountry} account (requiring {getMinimumPayoutDelay(userCountry)}{' '}
-                    days), if a client:
-                  </p>
-                  <ul className="ml-4 mt-1 list-disc">
-                    <li>
-                      Books and pays 10 days before the session → Get paid 1 day after session
-                    </li>
-                    <li>
-                      Books and pays 3 days before the session → Get paid{' '}
-                      {Math.max(1, getMinimumPayoutDelay(userCountry) - 3)} days after session
-                    </li>
-                    <li>
-                      Books and pays the same day as the session → Get paid{' '}
-                      {getMinimumPayoutDelay(userCountry)} days after session
-                    </li>
-                  </ul>
-                </div>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Note: You&apos;ll receive notifications about upcoming payouts in your
-                  Notifications center. After establishing a history with Stripe, you may be
-                  eligible for faster payouts.
-                </p>
+                <PaymentAgingInformation />
               </div>
               <div className="text-sm">
                 <h4 className="mb-2 font-medium">Requirements</h4>

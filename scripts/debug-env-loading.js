@@ -1,9 +1,12 @@
 #!/usr/bin/env node
-
 /**
  * This script debugs environment variable loading issues
  * Run it with: node scripts/debug-env-loading.js
  */
+// Import required packages
+import dotenv from 'dotenv';
+import fs from 'node:fs';
+import path from 'node:path';
 
 console.log('=============================================');
 console.log('ENVIRONMENT VARIABLE LOADING DEBUG TOOL');
@@ -20,7 +23,6 @@ console.log('QSTASH_NEXT_SIGNING_KEY exists:', !!process.env.QSTASH_NEXT_SIGNING
 console.log('\n2. LOADING WITH DOTENV:');
 console.log('-----------------------------------------');
 try {
-  const dotenv = require('dotenv');
   const result = dotenv.config();
 
   if (result.error) {
@@ -29,8 +31,7 @@ try {
   } else {
     console.log('✅ Dotenv loaded successfully');
     console.log(
-      'Loaded from:',
-      result.parsed ? Object.keys(result.parsed).length + ' variables' : 'No variables found',
+      `Loaded from: ${result.parsed ? `${Object.keys(result.parsed).length} variables` : 'No variables found'}`,
     );
 
     // Check again after loading
@@ -51,8 +52,6 @@ try {
 // Try loading with dotenv and specific path
 console.log('\n3. LOADING WITH SPECIFIC ENV FILE PATH:');
 console.log('-----------------------------------------');
-const fs = require('fs');
-const path = require('path');
 
 // Check if .env file exists
 const rootDir = path.resolve(__dirname, '..');
@@ -78,7 +77,6 @@ if (fs.existsSync(envPath)) {
     console.log('QSTASH_NEXT_SIGNING_KEY defined in .env file:', hasNextKey);
 
     // Attempt to load using specific path
-    const dotenv = require('dotenv');
     const result = dotenv.config({ path: envPath });
 
     if (result.error) {

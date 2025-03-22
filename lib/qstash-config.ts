@@ -6,6 +6,8 @@ import * as dotenv from 'dotenv';
 import { qstash } from '@/config/qstash';
 import { Client } from '@upstash/qstash';
 
+import { scheduleRecurringJob as mainScheduleRecurringJob } from './qstash';
+
 // Ensure environment variables are loaded
 dotenv.config();
 
@@ -102,40 +104,31 @@ export async function isQStashAvailable(): Promise<boolean> {
 }
 
 /**
- * Schedule a recurring job with QStash
- * @param endpoint The endpoint to call
- * @param cronExpression The cron expression for scheduling
- * @param payload The payload to send
- * @returns Result of the schedule operation or undefined if not available
+ * @deprecated Use the scheduleRecurringJob function from lib/qstash.ts instead
+ * This is kept for backward compatibility
  */
 export async function scheduleRecurringJob(
   endpoint: string,
   cronExpression: string,
   payload: Record<string, unknown> = {},
 ) {
-  const config = validateQStashConfig();
-  if (!config.isValid) {
-    console.warn(config.message);
-    return undefined;
-  }
-
-  const client = initQStashClient();
-  if (!client) {
-    return undefined;
-  }
+  console.warn(
+    'This scheduleRecurringJob function is deprecated. Use the one from lib/qstash.ts instead.',
+  );
 
   try {
-    const result = await client.schedules.create({
-      destination: `${qstash.baseUrl}/api/qstash`,
-      cron: cronExpression,
-      body: JSON.stringify(payload),
-      headers: {
-        'Content-Type': 'application/json',
-        'x-qstash-target-url': endpoint,
+    // Forward to the main implementation with adapted parameters
+    return await mainScheduleRecurringJob(
+      `${qstash.baseUrl}/api/qstash`,
+      { cron: cronExpression },
+      {
+        ...payload,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-qstash-target-url': endpoint,
+        },
       },
-    });
-
-    return result;
+    );
   } catch (error) {
     console.error(`Failed to schedule recurring job to ${endpoint}:`, error);
     return undefined;

@@ -1,12 +1,14 @@
 #!/usr/bin/env node
-
 /**
  * This script tests the QStash connection by sending a test message
  * Run it with: node scripts/test-qstash-connection.js
  */
-
 // Load environment variables
-require('dotenv').config();
+// Import QStash client
+import { Client } from '@upstash/qstash';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 // Make sure QStash token is available
 if (!process.env.QSTASH_TOKEN) {
@@ -14,9 +16,6 @@ if (!process.env.QSTASH_TOKEN) {
   console.error('Run npm run qstash:env to set up QStash environment variables.');
   process.exit(1);
 }
-
-// Import QStash client
-const { Client } = require('@upstash/qstash');
 
 // Create a QStash client
 const client = new Client({
