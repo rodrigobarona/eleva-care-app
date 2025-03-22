@@ -110,16 +110,31 @@ export async function scheduleRecurringJob(
     schedulingOptions.delay = options.delay;
   }
 
+  // Ensure we have headers object
+  const headers: Record<string, string> = (body.headers as Record<string, string>) || {};
+
+  // Ensure QStash request header is set
+  if (destination.includes('/api/cron/')) {
+    headers['x-qstash-request'] = 'true';
+  }
+
+  // Update body with headers
+  const updatedBody = {
+    ...body,
+    headers,
+  };
+
   // Create the schedule
   const response = await client.publishJSON({
     url: destination,
-    body,
+    body: updatedBody,
     ...schedulingOptions,
   });
 
   console.log(`Scheduled job to ${destination}`, {
     messageId: response.messageId,
     schedulingOptions,
+    headers,
   });
 
   return response.messageId;

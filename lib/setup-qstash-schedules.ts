@@ -73,6 +73,8 @@ export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
       // Construct the full URL for the target endpoint
       const destinationUrl = `${BASE_URL}${config.endpoint}`;
 
+      console.log(`Setting up QStash schedule for ${config.name} at endpoint ${destinationUrl}`);
+
       // Schedule the job with correct parameter order and types
       const scheduleId = await scheduleRecurringJob(
         destinationUrl,
@@ -81,8 +83,13 @@ export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
           ...config.schedule,
           retries: 3,
         },
-        // Body as the third parameter
-        { name: config.name },
+        // Body as the third parameter - include headers to pass through middleware
+        {
+          name: config.name,
+          headers: {
+            'x-qstash-request': 'true',
+          },
+        },
       );
 
       // Record the result

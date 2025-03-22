@@ -128,6 +128,11 @@ export default clerkMiddleware(async (auth, req) => {
 
   // Special case for QStash requests to cron endpoints
   if (path.startsWith('/api/cron/')) {
+    console.log('Middleware processing cron endpoint:', path);
+
+    // Log all headers for debugging
+    console.log('Request headers:', Object.fromEntries(req.headers.entries()));
+
     // Check for QStash request header first
     const isQStashRequest = req.headers.get('x-qstash-request') === 'true';
     if (isQStashRequest) {
@@ -137,11 +142,15 @@ export default clerkMiddleware(async (auth, req) => {
 
     // If not a QStash request, continue with API key check
     const apiKey = req.headers.get('x-api-key');
+    console.log('API key present:', !!apiKey);
+    console.log('API key matches env var:', apiKey === process.env.CRON_API_KEY);
+
     if (apiKey === process.env.CRON_API_KEY) {
       return NextResponse.next();
     }
 
     // Neither QStash header nor valid API key - unauthorized
+    console.log('Unauthorized access attempt to cron endpoint');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
