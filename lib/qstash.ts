@@ -80,11 +80,21 @@ interface ScheduleOptions {
 }
 
 /**
- * Schedule a recurring job with QStash
- * @param destination The API endpoint URL to call
- * @param options Schedule options (interval or cron expression)
- * @param body Optional body to send with the request
- * @returns The schedule ID on success
+ * Schedules a recurring job on QStash.
+ *
+ * This function publishes a JSON request to schedule a recurring job using the provided scheduling options.
+ * The options must include either an interval or a cron expression, with optional delay and retry settings.
+ * If the destination URL contains "/api/cron/", the function automatically adds a "x-qstash-request" header to
+ * the request by merging it with any headers specified in the provided body.
+ *
+ * @param destination - The API endpoint URL to schedule the job.
+ * @param options - An object specifying scheduling parameters. Must include either an interval or a cron expression,
+ *                  and may include a delay and a custom number of retries.
+ * @param body - An optional object representing the message body. If it includes a "headers" property, those headers
+ *               will be merged with QStash-specific headers.
+ * @returns A promise that resolves to the scheduled job's identifier.
+ *
+ * @throws {Error} If neither an interval nor a cron expression is provided in the options.
  */
 export async function scheduleRecurringJob(
   destination: string,
