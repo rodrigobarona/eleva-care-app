@@ -21,9 +21,20 @@ export async function GET() {
 }
 
 /**
- * Handle POST requests from QStash
- * This is just a verification entry point that will forward the request
- * to the appropriate endpoint
+ * Processes and forwards a QStash POST request to a designated internal API endpoint.
+ *
+ * This function validates the QStash configuration and checks that the target endpoint,
+ * provided via the "x-qstash-target-url" header, belongs to an allowed domain and follows one of the approved API paths.
+ * It parses the request body (defaulting to an empty object if JSON parsing fails), logs the incoming request,
+ * and generates a secure verification token using HMAC with the current timestamp and a signing key.
+ * The token, along with appropriate headers (including an optional API key for cron endpoints), is then used to forward
+ * the request via a POST call to the target endpoint. The JSON response from the endpoint is relayed back to the client.
+ *
+ * In cases of misconfiguration, missing or invalid target endpoints, or failed request forwarding,
+ * an error response with the appropriate HTTP status code is returned.
+ *
+ * @remarks
+ * Ensure that the necessary environment variables (e.g., QSTASH_CURRENT_SIGNING_KEY, NEXT_PUBLIC_APP_URL, CRON_API_KEY) are set.
  */
 async function handler(req: NextRequest): Promise<NextResponse> {
   // Validate QStash configuration first

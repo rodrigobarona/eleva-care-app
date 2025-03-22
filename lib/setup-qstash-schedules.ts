@@ -32,8 +32,15 @@ interface ScheduleResult {
 }
 
 /**
- * Setup all QStash schedules
- * This should be run on the server once or during deployment
+ * Sets up all QStash schedules.
+ *
+ * This asynchronous function initializes recurring jobs defined in the schedule configuration by first validating the
+ * QStash setup and checking the availability of the QStash client. If the configuration is invalid or the client is unavailable,
+ * it returns a failure result for each schedule along with an explanatory error message. When both checks pass, it constructs
+ * the full destination URL for each job, logs the scheduling process, and attempts to create the schedule while including
+ * middleware headers.
+ *
+ * @returns A Promise that resolves to an array of ScheduleResult objects indicating the success or failure of each scheduled job.
  */
 export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
   // Validate QStash configuration first
