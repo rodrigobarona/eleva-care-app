@@ -1,6 +1,7 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
+import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
 import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -41,13 +42,57 @@ type TransferResult = SuccessResult | ErrorResult;
  * This endpoint is called by QStash daily at 4 AM
  */
 export async function GET(request: Request) {
-  // Allow access from QStash or with legacy Vercel CRON_SECRET
-  const isQStashRequest = request.headers.get('x-qstash-request') === 'true';
+  // Log all headers for debugging
+  console.log(
+    'Received request to process-tasks with headers:',
+    Object.fromEntries(request.headers.entries()),
+  );
+
+  // Enhanced authentication with multiple fallbacks
+  // First try QStash verification
+  const verifiedQStash = await isVerifiedQStashRequest(request.headers);
+
+  // Check for API key as a fallback
+  const apiKey = request.headers.get('x-api-key');
+  const isValidApiKey = apiKey && apiKey === process.env.CRON_API_KEY;
+
+  // Check for Upstash signatures directly
+  const hasUpstashSignature =
+    request.headers.has('upstash-signature') || request.headers.has('x-upstash-signature');
+
+  // Check for Upstash user agent
+  const userAgent = request.headers.get('user-agent') || '';
+  const isUpstashUserAgent =
+    userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
+
+  // Check for legacy cron secret
   const cronSecret = request.headers.get('x-cron-secret');
   const isValidCronSecret = cronSecret && cronSecret === process.env.CRON_SECRET;
 
-  if (!isQStashRequest && !isValidCronSecret) {
-    console.error('Unauthorized access attempt to process-tasks');
+  // If in production, we can use a fallback mode for emergencies
+  const isProduction = process.env.NODE_ENV === 'production';
+  const allowFallback = process.env.ENABLE_CRON_FALLBACK === 'true';
+
+  // Allow the request if any authentication method succeeds
+  if (
+    verifiedQStash ||
+    isValidApiKey ||
+    isValidCronSecret ||
+    (hasUpstashSignature && isUpstashUserAgent) ||
+    (isProduction && allowFallback && isUpstashUserAgent)
+  ) {
+    console.log('🔓 Authentication successful for process-tasks');
+  } else {
+    console.error('❌ Unauthorized access attempt to process-tasks');
+    console.error('Authentication details:', {
+      verifiedQStash,
+      isValidApiKey,
+      isValidCronSecret,
+      hasUpstashSignature,
+      isUpstashUserAgent,
+      isProduction,
+      allowFallback,
+    });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 

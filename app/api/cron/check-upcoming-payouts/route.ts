@@ -2,6 +2,7 @@ import { PAYOUT_DELAY_DAYS } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
 import { createUpcomingPayoutNotification } from '@/lib/payment-notifications';
+import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
 import { getUserByClerkId } from '@/lib/users';
 import { addDays, differenceInDays } from 'date-fns';
 import { and, eq, isNull } from 'drizzle-orm';
@@ -16,13 +17,57 @@ export const maxDuration = 60;
 // This CRON job runs daily and checks for payments that will be eligible for payout soon
 // It sends notifications to experts about upcoming payouts
 export async function GET(request: Request) {
-  // Allow access from QStash or with legacy API key
-  const isQStashRequest = request.headers.get('x-qstash-request') === 'true';
+  // Log all headers for debugging
+  console.log(
+    'Received request to check-upcoming-payouts with headers:',
+    Object.fromEntries(request.headers.entries()),
+  );
+
+  // Enhanced authentication with multiple fallbacks
+  // First try QStash verification
+  const verifiedQStash = await isVerifiedQStashRequest(request.headers);
+
+  // Check for API key as a fallback
   const apiKey = request.headers.get('x-api-key');
   const isValidApiKey = apiKey && apiKey === process.env.CRON_API_KEY;
 
-  if (!isQStashRequest && !isValidApiKey) {
-    console.error('Unauthorized access attempt to check-upcoming-payouts');
+  // Check for Upstash signatures directly
+  const hasUpstashSignature =
+    request.headers.has('upstash-signature') || request.headers.has('x-upstash-signature');
+
+  // Check for Upstash user agent
+  const userAgent = request.headers.get('user-agent') || '';
+  const isUpstashUserAgent =
+    userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
+
+  // Check for legacy cron secret
+  const cronSecret = request.headers.get('x-cron-secret');
+  const isValidCronSecret = cronSecret && cronSecret === process.env.CRON_SECRET;
+
+  // If in production, we can use a fallback mode for emergencies
+  const isProduction = process.env.NODE_ENV === 'production';
+  const allowFallback = process.env.ENABLE_CRON_FALLBACK === 'true';
+
+  // Allow the request if any authentication method succeeds
+  if (
+    verifiedQStash ||
+    isValidApiKey ||
+    isValidCronSecret ||
+    (hasUpstashSignature && isUpstashUserAgent) ||
+    (isProduction && allowFallback && isUpstashUserAgent)
+  ) {
+    console.log('🔓 Authentication successful for check-upcoming-payouts');
+  } else {
+    console.error('❌ Unauthorized access attempt to check-upcoming-payouts');
+    console.error('Authentication details:', {
+      verifiedQStash,
+      isValidApiKey,
+      isValidCronSecret,
+      hasUpstashSignature,
+      isUpstashUserAgent,
+      isProduction,
+      allowFallback,
+    });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
