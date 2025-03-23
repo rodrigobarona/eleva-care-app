@@ -74,26 +74,23 @@ function matchesPattern(path: string, patterns: readonly string[]): boolean {
     // Handle parameter patterns with wildcards (e.g., /:username/(.*))
     if (pattern.startsWith('/:') && pattern.includes('(.*)')) {
       // Pattern like '/:username/(.*)' should match paths like '/johndoe/event-slug'
-      // This specifically handles two-segment paths where first segment is a username and second is any content
 
-      // Get the path segments and ensure we have at least one segment
+      // Get the path segments
       const pathSegments = path.split('/').filter(Boolean);
 
-      if (pathSegments.length === 0) return false;
+      // Must have at least 2 segments to be a username/something route
+      if (pathSegments.length >= 2) {
+        if (isEventPath) {
+          console.log(`  ✓ Matched username/wildcard pattern: ${pattern}`);
+          console.log(`    Path: ${path}`);
+          console.log(`    Segments: ${pathSegments.join(', ')} (${pathSegments.length})`);
+        }
 
-      // For user profile pages with subpages (e.g., /username/event-slug, /username/event-slug/checkout)
-      // This covers all routes under /[username]/, including:
-      // - /[username]/[eventSlug]
-      // - /[username]/[eventSlug]/checkout
-      // - /[username]/[eventSlug]/payment-processing
-      // - /[username]/[eventSlug]/success
-
-      if (isEventPath) {
-        console.log(`  ✓ Matched username wildcard pattern: ${pattern} for path: ${path}`);
-        console.log(`    Path segments: ${pathSegments.join(', ')}`);
+        // This is the critical fix - always match for patterns like /:username/(.*)
+        return true;
       }
 
-      return true; // If we get here, it's a match
+      return false;
     }
 
     // Handle simple parameter patterns (e.g., /:username)
@@ -119,6 +116,21 @@ function matchesPattern(path: string, patterns: readonly string[]): boolean {
 
 export default clerkMiddleware(async (auth, req) => {
   const path = req.nextUrl.pathname;
+
+  // Enhanced logging for all paths
+  console.log(`🔍 Processing middleware for: ${path}`);
+
+  // Fast path: quickly check if this is a username/something route (always public)
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length >= 2 && !path.startsWith('/api/')) {
+    console.log(`👤 Potential username route detected: ${path}`);
+
+    // Immediately allow username routes - critically important!
+    if (matchesPattern(path, ['/:username/(.*)'])) {
+      console.log(`✅ Confirmed username route - allowing without auth: ${path}`);
+      return NextResponse.next();
+    }
+  }
 
   // Skip middleware processing completely for webhook routes
   if (path.startsWith('/api/webhooks/')) {
