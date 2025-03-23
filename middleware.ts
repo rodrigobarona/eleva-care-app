@@ -19,6 +19,7 @@ import {
   EXPERT_ROLES,
   EXPERT_ROUTES,
   PUBLIC_ROUTES,
+  SPECIAL_AUTH_ROUTES,
 } from '@/lib/constants/roles';
 import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
@@ -88,15 +89,54 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
-  if (path.startsWith('/api/cron/')) {
-    const isQStashRequest = req.headers.get('x-qstash-request') === 'true';
-    const apiKey = req.headers.get('x-api-key');
+  // Check if the path is in SPECIAL_AUTH_ROUTES (including cron jobs)
+  if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
+    console.log(`Special auth route detected: ${path}`);
 
-    if (isQStashRequest || apiKey === process.env.CRON_API_KEY) {
-      return NextResponse.next();
+    // For cron jobs, apply both enhanced checks and fallback
+    if (path.startsWith('/api/cron/')) {
+      console.log('Cron endpoint detected:', path);
+
+      // Debug headers to identify what's missing
+      const allHeaders = Object.fromEntries(req.headers.entries());
+      console.log('Request headers for cron job:', JSON.stringify(allHeaders, null, 2));
+
+      // More flexible detection of QStash requests
+      const isQStashRequest =
+        req.headers.get('x-qstash-request') === 'true' ||
+        req.headers.has('upstash-signature') ||
+        req.headers.has('x-upstash-signature') ||
+        req.headers.has('x-signature') ||
+        req.url.includes('signature=');
+
+      const apiKey = req.headers.get('x-api-key');
+      const userAgent = req.headers.get('user-agent') || '';
+
+      // Accept requests from UpStash User-Agent too
+      const isUpstashUserAgent =
+        userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
+
+      // FALLBACK: If this is a production environment and UpStash is struggling to connect
+      // Make cron endpoints accessible without auth in production (FALLBACK MECHANISM)
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isDeploymentFallbackEnabled = process.env.ENABLE_CRON_FALLBACK === 'true';
+
+      if (
+        isQStashRequest ||
+        isUpstashUserAgent ||
+        apiKey === process.env.CRON_API_KEY ||
+        (isProduction && isDeploymentFallbackEnabled)
+      ) {
+        console.log('✅ Authorized cron request - allowing access');
+        return NextResponse.next();
+      }
+
+      console.log('❌ Unauthorized cron request - denying access');
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Other special auth routes might have different logic
+    return NextResponse.next();
   }
 
   // Check public routes

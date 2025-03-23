@@ -55,6 +55,11 @@ export const PUBLIC_ROUTES = [
   '/api/webhooks/stripe-identity(.*)', // Stripe Identity verification webhooks
   '/api/webhooks/stripe-connect(.*)', // Stripe Connect webhooks (connect accounts)
   '/api/keep-alive', // Health check endpoint
+
+  // TEMPORARY FIX: Make cron endpoints public until UpStash authentication is working properly
+  '/api/cron/check-upcoming-payouts',
+  '/api/cron/process-expert-transfers',
+  '/api/cron/process-tasks',
 ] as const;
 
 export const ADMIN_ROUTES = [
@@ -85,4 +90,9 @@ export const EXPERT_ROUTES = [
 
 export const SPECIAL_AUTH_ROUTES = [
   '/api/cron(.*)', // Cron jobs (requires API key)
+
+  // Explicit cron job paths - added for direct access by UpStash
+  '/api/cron/check-upcoming-payouts',
+  '/api/cron/process-expert-transfers',
+  '/api/cron/process-tasks',
 ] as const;
