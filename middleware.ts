@@ -81,26 +81,9 @@ async function isExpertWithIncompleteSetup(authObject: any): Promise<boolean> {
   const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
   if (!isExpert) return false;
 
-  // Check both metadata locations for expertSetup data
-  const expertSetupUnsafe = authObject?.sessionClaims?.unsafeMetadata?.expertSetup;
-  const expertSetupMeta = authObject?.sessionClaims?.metadata?.expertSetup;
-
-  // Debug logging - REMOVE AFTER FIXING THE ISSUE
-  console.log('[DEBUG] Expert setup check:', {
-    userId: authObject?.userId,
-    role: userRoleData,
-    unsafeMeta: expertSetupUnsafe,
-    meta: expertSetupMeta,
-  });
-
-  // Use either source of expertSetup data
-  const expertSetup = expertSetupUnsafe || expertSetupMeta;
-
-  // If no setup data exists, consider setup incomplete
-  if (!expertSetup) {
-    console.log('[DEBUG] No setup data found, considering setup incomplete');
-    return true;
-  }
+  // Get expert setup data from unsafeMetadata
+  const expertSetup = authObject?.sessionClaims?.unsafeMetadata?.expertSetup;
+  if (!expertSetup) return true; // If no setup data, consider setup incomplete
 
   // Required setup steps that must be present for a complete setup
   const requiredSetupSteps = [
@@ -114,13 +97,6 @@ async function isExpertWithIncompleteSetup(authObject: any): Promise<boolean> {
 
   // Check if all required steps are present AND true
   const setupComplete = requiredSetupSteps.every((step) => expertSetup[step] === true);
-
-  console.log('[DEBUG] Setup steps:', expertSetup);
-  console.log('[DEBUG] All required steps present and complete?', setupComplete);
-  console.log(
-    '[DEBUG] Missing steps:',
-    requiredSetupSteps.filter((step) => expertSetup[step] !== true),
-  );
 
   // Return true if setup is incomplete (any required step is missing or false)
   return !setupComplete;
@@ -212,12 +188,10 @@ export default clerkMiddleware(async (auth, req) => {
     return NextResponse.next();
   }
 
-  // 4. If user is authenticated but trying to access the root path or dashboard redirect check
+  // Expert setup redirect - check if it's an expert with incomplete setup
+  // Only apply this logic for root path or dashboard (where users land after login)
   if (userId && (path === '/' || path === '/dashboard')) {
-    // Get the full auth object
     const authObj = await auth();
-
-    // Check if this is an expert with incomplete setup
     const needsSetup = await isExpertWithIncompleteSetup(authObj);
 
     if (needsSetup) {
@@ -225,7 +199,7 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(new URL('/setup', req.url));
     }
 
-    // If not an expert with incomplete setup or going to setup page, continue to dashboard
+    // Redirect from root to dashboard for normal users
     if (path === '/') {
       return NextResponse.redirect(
         new URL(
