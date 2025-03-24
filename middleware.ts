@@ -81,14 +81,49 @@ async function isExpertWithIncompleteSetup(authObject: any): Promise<boolean> {
   const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
   if (!isExpert) return false;
 
-  // Check if setup is complete using the unsafeMetadata
-  const expertSetup = authObject?.sessionClaims?.unsafeMetadata?.expertSetup as
-    | Record<string, boolean>
-    | undefined;
-  if (!expertSetup) return true; // If no setup data, consider setup incomplete
+  // Check both metadata locations for expertSetup data
+  const expertSetupUnsafe = authObject?.sessionClaims?.unsafeMetadata?.expertSetup;
+  const expertSetupMeta = authObject?.sessionClaims?.metadata?.expertSetup;
 
-  // If any setup step is false, setup is incomplete
-  return !Object.values(expertSetup).every(Boolean);
+  // Debug logging - REMOVE AFTER FIXING THE ISSUE
+  console.log('[DEBUG] Expert setup check:', {
+    userId: authObject?.userId,
+    role: userRoleData,
+    unsafeMeta: expertSetupUnsafe,
+    meta: expertSetupMeta,
+  });
+
+  // Use either source of expertSetup data
+  const expertSetup = expertSetupUnsafe || expertSetupMeta;
+
+  // If no setup data exists, consider setup incomplete
+  if (!expertSetup) {
+    console.log('[DEBUG] No setup data found, considering setup incomplete');
+    return true;
+  }
+
+  // Required setup steps that must be present for a complete setup
+  const requiredSetupSteps = [
+    'events',
+    'payment',
+    'profile',
+    'identity',
+    'availability',
+    'google_account',
+  ];
+
+  // Check if all required steps are present AND true
+  const setupComplete = requiredSetupSteps.every((step) => expertSetup[step] === true);
+
+  console.log('[DEBUG] Setup steps:', expertSetup);
+  console.log('[DEBUG] All required steps present and complete?', setupComplete);
+  console.log(
+    '[DEBUG] Missing steps:',
+    requiredSetupSteps.filter((step) => expertSetup[step] !== true),
+  );
+
+  // Return true if setup is incomplete (any required step is missing or false)
+  return !setupComplete;
 }
 
 export default clerkMiddleware(async (auth, req) => {
