@@ -72,6 +72,25 @@ function matchPatternsArray(path: string, patterns: readonly string[]): boolean 
   return patterns.some((pattern) => isPathMatch(path, pattern));
 }
 
+// Check if a user is an expert with incomplete setup
+async function isExpertWithIncompleteSetup(authObject: any): Promise<boolean> {
+  const userRoleData = authObject?.sessionClaims?.metadata?.role;
+  if (!userRoleData) return false;
+
+  // Check if user has an expert role
+  const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
+  if (!isExpert) return false;
+
+  // Check if setup is complete using the unsafeMetadata
+  const expertSetup = authObject?.sessionClaims?.unsafeMetadata?.expertSetup as
+    | Record<string, boolean>
+    | undefined;
+  if (!expertSetup) return true; // If no setup data, consider setup incomplete
+
+  // If any setup step is false, setup is incomplete
+  return !Object.values(expertSetup).every(Boolean);
+}
+
 export default clerkMiddleware(async (auth, req) => {
   const path = req.nextUrl.pathname;
   console.log(`🔍 Processing route: ${path}`);
@@ -156,6 +175,30 @@ export default clerkMiddleware(async (auth, req) => {
     console.log(`Auth required: ${path}`);
     await auth.protect();
     return NextResponse.next();
+  }
+
+  // 4. If user is authenticated but trying to access the root path or dashboard redirect check
+  if (userId && (path === '/' || path === '/dashboard')) {
+    // Get the full auth object
+    const authObj = await auth();
+
+    // Check if this is an expert with incomplete setup
+    const needsSetup = await isExpertWithIncompleteSetup(authObj);
+
+    if (needsSetup) {
+      console.log('Expert with incomplete setup detected, redirecting to setup page');
+      return NextResponse.redirect(new URL('/setup', req.url));
+    }
+
+    // If not an expert with incomplete setup or going to setup page, continue to dashboard
+    if (path === '/') {
+      return NextResponse.redirect(
+        new URL(
+          process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL || '/dashboard',
+          req.url,
+        ),
+      );
+    }
   }
 
   // Handle role-based access
