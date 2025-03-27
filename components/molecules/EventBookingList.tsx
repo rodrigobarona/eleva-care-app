@@ -7,6 +7,7 @@ import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import NextAvailableTimeClient from '@/lib/NextAvailableTimeClient';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { addMonths } from 'date-fns';
+import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
@@ -155,9 +156,20 @@ function EventCardDetails({
       <h3 className="mb-2 text-2xl font-bold">{name}</h3>
 
       {description ? (
-        <ReactMarkdown className="prose mb-4 text-base text-muted-foreground">
-          {description}
-        </ReactMarkdown>
+        <details className="group mb-4">
+          <summary className="cursor-pointer list-none">
+            <div className="prose text-base text-muted-foreground group-open:line-clamp-none group-[:not([open])]:line-clamp-[6]">
+              <ReactMarkdown>{description}</ReactMarkdown>
+            </div>
+            {description.split('\n').length > 6 && (
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-700">
+                <span className="group-open:hidden">Read more</span>
+                <span className="hidden group-open:inline">Show less</span>
+                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-open:rotate-180" />
+              </div>
+            )}
+          </summary>
+        </details>
       ) : (
         <p className="mb-4 text-base text-muted-foreground">No description available.</p>
       )}
