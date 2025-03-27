@@ -26,6 +26,63 @@ function hasExpertRole(user: { publicMetadata?: Record<string, unknown> }): bool
 }
 
 /**
+ * Checks if all setup steps are completed and updates the setupComplete flag
+ *
+ * @param setupStatus The current setup status object
+ * @returns true if all steps are completed, false otherwise
+ */
+function areAllStepsCompleted(setupStatus: Record<string, boolean>): boolean {
+  const requiredSteps: ExpertSetupStep[] = [
+    'profile',
+    'availability',
+    'events',
+    'identity',
+    'payment',
+    'google_account',
+  ];
+
+  return requiredSteps.every((step) => setupStatus[step] === true);
+}
+
+/**
+ * Updates the setupComplete flag in the user's metadata
+ *
+ * @param userId The Clerk user ID
+ * @param setupStatus The current setup status object
+ * @returns void
+ */
+async function updateSetupCompleteFlag(userId: string, setupStatus: Record<string, boolean>) {
+  try {
+    // Initialize Clerk client
+    const clerk = await clerkClient();
+
+    // Get user by ID
+    const user = await clerk.users.getUser(userId);
+
+    if (!user) {
+      console.error('User not found when updating setup complete flag');
+      return;
+    }
+
+    const isComplete = areAllStepsCompleted(setupStatus);
+
+    // Only update if the setupComplete flag needs to change
+    if (user.unsafeMetadata?.setupComplete !== isComplete) {
+      await clerk.users.updateUser(userId, {
+        unsafeMetadata: {
+          ...user.unsafeMetadata,
+          setupComplete: isComplete,
+        },
+      });
+
+      console.log(`Updated setupComplete flag to ${isComplete} for user ${userId}`);
+    }
+  } catch (error) {
+    console.error('Failed to update setup complete flag:', error);
+  }
+}
+
+/**
  * Safely marks a step as complete in the expert setup process without revalidation
  * This version is safe to call during server component rendering
  *
@@ -100,6 +157,14 @@ export async function markStepComplete(step: ExpertSetupStep) {
 
   // Only revalidate if the operation was successful
   if (result.success) {
+    // Update setupComplete flag if needed
+    if (result.setupStatus) {
+      const user = await currentUser();
+      if (user) {
+        await updateSetupCompleteFlag(user.id, result.setupStatus);
+      }
+    }
+
     // Revalidate the layout path to update the UI
     revalidatePath('/(private)/layout');
   }
@@ -123,9 +188,17 @@ export async function checkExpertSetupStatus() {
       };
     }
 
-    // Return the setup status from metadata
+    // Get the setup status from metadata
     const setupStatus = user.unsafeMetadata?.expertSetup || {};
     const isPublished = user.unsafeMetadata?.profile_published || false;
+
+    // Check if the setupComplete flag is out of sync and update if needed
+    const isSetupComplete = user.unsafeMetadata?.setupComplete === true;
+    const allStepsComplete = areAllStepsCompleted(setupStatus as Record<string, boolean>);
+
+    if (isSetupComplete !== allStepsComplete) {
+      await updateSetupCompleteFlag(user.id, setupStatus as Record<string, boolean>);
+    }
 
     // Fix any inconsistencies in the metadata
     await fixInconsistentMetadata(user.id);
@@ -134,6 +207,7 @@ export async function checkExpertSetupStatus() {
       success: true,
       setupStatus,
       isPublished,
+      isSetupComplete: isSetupComplete || allStepsComplete,
       revalidatePath: '/setup',
     };
   } catch (error) {
@@ -196,6 +270,9 @@ export async function markStepCompleteForUser(step: ExpertSetupStep, userId: str
         expertSetup: updatedSetup,
       },
     });
+
+    // Check if all steps are completed and update the setupComplete flag
+    await updateSetupCompleteFlag(userId, updatedSetup);
 
     // Revalidate the layout path to update the UI when needed
     revalidatePath('/(private)/layout');

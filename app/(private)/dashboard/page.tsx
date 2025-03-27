@@ -31,7 +31,15 @@ export default async function HomePage() {
   const expertSetup = isExpert
     ? (user.unsafeMetadata?.expertSetup as Record<string, boolean> | undefined)
     : undefined;
-  const isSetupCompleted = expertSetup && Object.values(expertSetup).every(Boolean);
+
+  // First check for the dedicated setupComplete flag
+  const setupCompleteFlag = isExpert ? user.unsafeMetadata?.setupComplete === true : false;
+
+  // Fall back to checking all individual steps if the flag isn't set
+  const allStepsCompleted = expertSetup && Object.values(expertSetup).every(Boolean);
+
+  // Use the flag first, fall back to the steps check
+  const isSetupCompleted = setupCompleteFlag || allStepsCompleted;
 
   return (
     <div className="over container max-w-6xl py-6">

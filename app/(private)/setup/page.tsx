@@ -110,6 +110,16 @@ export default function ExpertSetupPage() {
               completed: !!result.setupStatus?.[step.id as keyof typeof result.setupStatus],
             })),
           );
+
+          // Use the direct isSetupComplete flag if available
+          if (result.isSetupComplete !== undefined) {
+            const allCompleted = result.isSetupComplete;
+            if (allCompleted && !showConfetti) {
+              setShowConfetti(true);
+              const timer = setTimeout(() => setShowConfetti(false), 8000);
+              return () => clearTimeout(timer);
+            }
+          }
         }
       } catch (error) {
         console.error('Failed to load setup status:', error);
@@ -117,19 +127,10 @@ export default function ExpertSetupPage() {
     };
 
     loadSetupStatus();
-  }, [isLoaded, user]);
+  }, [isLoaded, user, showConfetti]);
 
   // Check if all steps are completed
   const allStepsCompleted = steps.every((step) => step.completed);
-
-  // Show confetti when all steps are completed
-  useEffect(() => {
-    if (allStepsCompleted) {
-      setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 8000);
-      return () => clearTimeout(timer);
-    }
-  }, [allStepsCompleted]);
 
   // Render button with appropriate link and handling for each step
   const renderStepButton = (step: SetupStep) => {
