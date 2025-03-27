@@ -44,16 +44,18 @@ export function UserNotifications() {
         const data = await response.json();
         setNotifications(data.notifications || []);
       } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? `Failed to load notifications: ${err.message}`
-            : 'Failed to load notifications: Unknown error';
-        setError(errorMessage);
+        // Only log the error to the console, don't show in UI
         console.error('Error fetching notifications:', {
           error: err,
           endpoint: '/api/notifications',
           timestamp: new Date().toISOString(),
         });
+
+        // Set error to a special value to hide the component
+        setError('hidden');
+
+        // Clear any notifications to avoid showing stale data
+        setNotifications([]);
       } finally {
         setLoading(false);
       }
@@ -85,39 +87,15 @@ export function UserNotifications() {
       // Revert state on error
       setNotifications(originalNotifications);
 
+      // Only log the error to console, don't show in UI
       const errorMessage = err instanceof Error ? err.message : 'Failed to update notification';
       console.error('Error marking notification as read:', err);
-      // Show error in UI
-      setError(errorMessage);
     }
   }
 
-  // If there's an error, show it prominently
-  if (error) {
-    return (
-      <Alert variant="destructive" className="mb-6">
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
-
-  // If loading, show skeleton
-  if (loading) {
-    return (
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <BellIcon className="h-5 w-5 text-primary" />
-            <h2 className="text-xl font-semibold">Notifications</h2>
-          </div>
-          <div className="space-y-3">
-            <Skeleton className="h-20 w-full rounded-lg" />
-            <Skeleton className="h-20 w-full rounded-lg" />
-          </div>
-        </CardContent>
-      </Card>
-    );
+  // If there's an error or we're loading, don't render anything
+  if (error === 'hidden' || loading) {
+    return null;
   }
 
   // If no notifications, show a friendly message
