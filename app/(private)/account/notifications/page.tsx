@@ -46,17 +46,18 @@ export default function NotificationsPage() {
 
         const data = await response.json();
         setNotifications(data.notifications || []);
+        setError(null); // Clear any previous errors
       } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? `Failed to load notifications: ${err.message}`
-            : 'Failed to load notifications: Unknown error';
-        setError(errorMessage);
+        // Log the error but don't show it in the UI
         console.error('Error fetching notifications:', {
           error: err,
           endpoint: '/api/notifications',
           timestamp: new Date().toISOString(),
         });
+        // Set error state to hide the section
+        setError('hidden');
+        // Clear notifications to prevent showing stale data
+        setNotifications([]);
       } finally {
         setLoading(false);
       }
@@ -64,6 +65,11 @@ export default function NotificationsPage() {
 
     fetchNotifications();
   }, []);
+
+  // If there's an error or loading, don't show the section
+  if (error === 'hidden' || loading) {
+    return null;
+  }
 
   async function handleNotificationRead(id: string) {
     try {
