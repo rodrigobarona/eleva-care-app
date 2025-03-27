@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Button } from '@/components/atoms/button';
 import { Skeleton } from '@/components/atoms/skeleton';
+import { SetupCompletePublishCard } from '@/components/organisms/SetupCompletePublishCard';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { useUser } from '@clerk/nextjs';
 import { CheckCircle2 } from 'lucide-react';
@@ -35,6 +36,7 @@ type SetupStep = {
 export default function ExpertSetupPage() {
   const { isLoaded, user } = useUser();
   const [showConfetti, setShowConfetti] = useState(false);
+  const [isProfilePublished, setIsProfilePublished] = useState(false);
 
   // Button text mapping by step ID
   const buttonTextMap: Record<string, string> = {
@@ -120,6 +122,11 @@ export default function ExpertSetupPage() {
               return () => clearTimeout(timer);
             }
           }
+
+          // Update the profile published status
+          if (result.isPublished !== undefined) {
+            setIsProfilePublished(Boolean(result.isPublished));
+          }
         }
       } catch (error) {
         console.error('Failed to load setup status:', error);
@@ -183,6 +190,8 @@ export default function ExpertSetupPage() {
             Complete these steps to set up your expert profile and start helping others
           </p>
         </div>
+
+        {allStepsCompleted ? <SetupCompletePublishCard isPublished={isProfilePublished} /> : null}
 
         <div className="space-y-6">
           {steps.map((step) => (

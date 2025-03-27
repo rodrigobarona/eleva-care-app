@@ -5,6 +5,7 @@ import { ROLE_COMMUNITY_EXPERT, ROLE_TOP_EXPERT } from '@/lib/auth/roles';
 import { UserButton } from '@clerk/nextjs';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { CalendarIcon, CompassIcon, UsersIcon } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function HomePage() {
@@ -40,6 +41,9 @@ export default async function HomePage() {
 
   // Use the flag first, fall back to the steps check
   const isSetupCompleted = setupCompleteFlag || allStepsCompleted;
+
+  // Check if profile is published
+  const isProfilePublished = isExpert ? user.unsafeMetadata?.profile_published === true : false;
 
   return (
     <div className="over container max-w-6xl py-6">
@@ -135,6 +139,29 @@ export default async function HomePage() {
               </div>
             </div>
           )}
+
+          {isSetupCompleted && !isProfilePublished && (
+            <div className="mb-6 rounded-xl border border-blue-100 bg-blue-50 p-6 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="rounded-full bg-blue-100 p-2 text-blue-700">
+                  <CheckCircle2 className="h-6 w-6" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="mb-1 text-xl font-semibold text-blue-800">
+                    Setup Complete! Ready to launch?
+                  </h2>
+                  <p className="mb-4 text-blue-700">
+                    Your profile setup is complete! Take the final step and publish your profile to
+                    start accepting clients.
+                  </p>
+                  <Button asChild>
+                    <Link href="/booking/expert">Publish Your Profile</Link>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
