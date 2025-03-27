@@ -24,6 +24,7 @@ const ExpertsSection = async () => {
     with: {
       primaryCategory: true,
     },
+    orderBy: ({ order }) => order,
   });
 
   // Get only the users that have profiles
@@ -84,14 +85,12 @@ const ExpertsSection = async () => {
       (expert): expert is NonNullable<typeof expert> => expert !== null && expert.price !== null,
     )
     .sort((a, b) => {
-      // First sort by order
+      // First sort by order (lower numbers come first)
       if (a.order !== b.order) {
         return a.order - b.order;
       }
-      // If order is the same, sort by price as secondary criteria
-      const priceA = Number.parseInt(a.price?.split('$')[1] || '0');
-      const priceB = Number.parseInt(b.price?.split('$')[1] || '0');
-      return priceA - priceB;
+      // If order is the same, sort by name as secondary criteria
+      return a.name.localeCompare(b.name);
     });
 
   return (
