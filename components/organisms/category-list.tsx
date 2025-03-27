@@ -53,11 +53,20 @@ export function CategoryList() {
       try {
         const response = await fetch('/api/admin/categories');
         if (!response.ok) throw new Error('Failed to load categories');
-        const data = await response.json();
-        setCategories(data);
+        const { success, data, error } = await response.json();
+
+        if (!success) {
+          throw new Error(error || 'Failed to load categories');
+        }
+
+        // Ensure we have an array of categories
+        const categoriesArray = Array.isArray(data) ? data : [];
+        setCategories(categoriesArray);
       } catch (error) {
         console.error('Error loading categories:', error);
         toast.error('Failed to load categories');
+        // Set empty array on error to prevent filter issues
+        setCategories([]);
       } finally {
         setIsLoading(false);
       }
