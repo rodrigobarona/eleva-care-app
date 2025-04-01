@@ -27,7 +27,7 @@ export async function sendEmail({
   subject,
   html,
   text,
-  from = 'Eleva Care <notifications@eleva.care>',
+  from = 'Eleva Care <bookings@notifications.eleva.care>',
   replyTo,
   cc,
   bcc,
