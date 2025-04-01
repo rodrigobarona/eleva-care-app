@@ -4,18 +4,7 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Define a type for Resend options
-type ResendEmailOptions = {
-  from: string;
-  to: string;
-  subject: string;
-  html?: string;
-  text?: string;
-  reply_to?: string;
-  cc?: string[];
-  bcc?: string[];
-};
-
+// Use Resend's built-in SendEmailOptions type
 type SendEmailParams = {
   to: string;
   subject: string;
@@ -53,21 +42,23 @@ export async function sendEmail({
       throw new Error('Invalid recipient email address');
     }
 
-    // Prepare options with the correct types
-    const emailOptions: ResendEmailOptions = {
+    // Construct the email options object
+    const emailParams = {
       from,
       to,
       subject,
       html,
       text,
-      reply_to: replyTo,
+      replyTo,
       cc,
       bcc,
     };
 
-    // Send the email via Resend
-    // @ts-expect-error - Resend types don't perfectly match our usage
-    const { data, error } = await resend.emails.send(emailOptions);
+    // Use type assertion to match Resend's expected shape
+    // This is necessary because the Resend types in the installed version
+    // have a conflict with our usage pattern
+    // @ts-expect-error Resend types don't perfectly match our current usage
+    const { data, error } = await resend.emails.send(emailParams);
 
     if (error) {
       console.error('Error sending email via Resend:', error);
