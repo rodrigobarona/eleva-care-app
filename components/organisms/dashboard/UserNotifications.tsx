@@ -1,9 +1,7 @@
 'use client';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/atoms/alert';
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent } from '@/components/atoms/card';
-import { Skeleton } from '@/components/atoms/skeleton';
 import {
   Tooltip,
   TooltipContent,
@@ -89,7 +87,7 @@ export function UserNotifications() {
 
       // Only log the error to console, don't show in UI
       const errorMessage = err instanceof Error ? err.message : 'Failed to update notification';
-      console.error('Error marking notification as read:', err);
+      console.error('Error marking notification as read:', errorMessage);
     }
   }
 
