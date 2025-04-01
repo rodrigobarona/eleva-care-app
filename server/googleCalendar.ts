@@ -1,4 +1,6 @@
-import { generateAppointmentEmailHtml, sendEmail } from '@/lib/email';
+import { createShortMeetLink } from '@/lib/dub';
+import { generateAppointmentEmailHtml } from '@/lib/email';
+import { sendEmail } from '@/lib/email';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { addMinutes, endOfDay, startOfDay } from 'date-fns';
 import { google } from 'googleapis';
@@ -155,21 +157,8 @@ class GoogleCalendarService {
       minute: '2-digit',
     });
 
-    const endTime = addMinutes(startTime, durationInMinutes);
     const formattedDuration = `${durationInMinutes} minutes`;
 
-    const eventDescription = `
-Appointment Details:
-- Date and Time: ${formattedTime}
-- Duration: ${formattedDuration}
-- Client: ${guestName} (${guestEmail})
-- Expert: ${calendarUser.fullName}
-${guestNotes ? `\nAdditional Notes from Client:\n${guestNotes}` : ''}
-
-This appointment was created through Eleva Care. A Google Meet link will be available for the session.
-`;
-
-    // Create the calendar event with all necessary parameters
     const calendarEvent = await google.calendar('v3').events.insert({
       calendarId: 'primary',
       auth: oAuthClient,
@@ -185,17 +174,16 @@ This appointment was created through Eleva Care. A Google Meet link will be avai
             email: calendarUser.primaryEmailAddress.emailAddress,
             displayName: calendarUser.fullName,
             responseStatus: 'accepted',
-            // Set as optional organizer to ensure they also get notifications
             organizer: true,
             optional: false,
           },
         ],
-        description: eventDescription,
+        description: guestNotes ? `Additional Details: ${guestNotes}` : undefined,
         start: {
           dateTime: startTime.toISOString(),
         },
         end: {
-          dateTime: endTime.toISOString(),
+          dateTime: addMinutes(startTime, durationInMinutes).toISOString(),
         },
         summary: eventSummary,
         conferenceData: {
@@ -204,20 +192,65 @@ This appointment was created through Eleva Care. A Google Meet link will be avai
             conferenceSolutionKey: { type: 'hangoutsMeet' },
           },
         },
+        guestsCanModify: false,
+        guestsCanSeeOtherGuests: true,
         reminders: {
           useDefault: false,
           overrides: [
-            { method: 'email', minutes: 60 },
-            { method: 'email', minutes: 15 },
-            { method: 'popup', minutes: 5 },
+            { method: 'email', minutes: 60 }, // 1 hour before
+            { method: 'email', minutes: 15 }, // 15 minutes before
+            { method: 'popup', minutes: 5 }, // 5 minutes before
           ],
         },
-        // Add additional properties to enhance notification behavior
-        guestsCanModify: false,
-        guestsCanSeeOtherGuests: true,
       },
       conferenceDataVersion: 1,
     });
+
+    // Check if a Google Meet link was created and shorten it with Dub.co
+    let meetLink = '';
+    let shortMeetLink = '';
+
+    if (calendarEvent.data.conferenceData?.conferenceId) {
+      // Extract the Google Meet link
+      meetLink = calendarEvent.data.hangoutLink || '';
+
+      if (meetLink) {
+        try {
+          // Create a shortened URL with tracking parameters
+          shortMeetLink = await createShortMeetLink({
+            url: meetLink,
+            expertName: calendarUser.fullName || undefined,
+            expertUsername: calendarUser.username || undefined,
+          });
+
+          console.log('Generated short meet link:', shortMeetLink);
+
+          // Update the calendar event description to include the shortened link
+          if (shortMeetLink && shortMeetLink !== meetLink) {
+            const updatedDescription = `Join the meeting: ${shortMeetLink}\n\n${
+              calendarEvent.data.description || guestNotes
+                ? `Additional Details: ${guestNotes}`
+                : ''
+            }`;
+
+            await google.calendar('v3').events.patch({
+              calendarId: 'primary',
+              eventId: calendarEvent.data.id || '',
+              auth: oAuthClient,
+              requestBody: {
+                description: updatedDescription,
+              },
+            });
+
+            // Update the local event data
+            calendarEvent.data.description = updatedDescription;
+          }
+        } catch (error) {
+          console.error('Error processing Meet link:', error);
+          // Continue with the original Meet link if shortening fails
+        }
+      }
+    }
 
     try {
       // After creating the event, send an immediate email notification to the expert
@@ -228,24 +261,23 @@ This appointment was created through Eleva Care. A Google Meet link will be avai
         eventSummary: eventSummary,
       });
 
-      // Get the Google Meet link if available
-      const meetLink = calendarEvent?.data?.conferenceData?.entryPoints?.find(
-        (ep) => ep.entryPointType === 'video',
-      )?.uri;
+      // Generate the email content
+      const emailContent = await generateAppointmentEmailHtml({
+        expertName: calendarUser.fullName || 'Expert',
+        clientName: guestName,
+        appointmentDate: formattedTime,
+        appointmentDuration: formattedDuration,
+        eventTitle: eventName,
+        meetLink: shortMeetLink || meetLink || undefined,
+        notes: guestNotes ? guestNotes : undefined,
+      });
 
       // Send the actual email using our Resend utility
       const emailResult = await sendEmail({
         to: calendarUser.primaryEmailAddress.emailAddress,
         subject: `New Booking: ${eventSummary}`,
-        html: await generateAppointmentEmailHtml({
-          expertName: calendarUser.fullName || 'Expert',
-          clientName: guestName,
-          appointmentDate: formattedTime,
-          appointmentDuration: formattedDuration,
-          eventTitle: eventName,
-          meetLink: meetLink || undefined,
-          notes: guestNotes ? guestNotes : undefined,
-        }),
+        html: emailContent.html,
+        text: emailContent.text,
       });
 
       if (!emailResult.success) {
@@ -258,7 +290,12 @@ This appointment was created through Eleva Care. A Google Meet link will be avai
       // Don't fail the whole operation if just the email notification fails
     }
 
-    return calendarEvent.data;
+    // Add the original and shortened Meet links to the returned data
+    return {
+      ...calendarEvent.data,
+      meetLink,
+      shortMeetLink,
+    };
   }
 
   async hasValidTokens(userId: string): Promise<boolean> {

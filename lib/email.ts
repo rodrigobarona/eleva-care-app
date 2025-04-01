@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// Use Resend's built-in SendEmailOptions type
+// Define a type for Resend options
 type SendEmailParams = {
   to: string;
   subject: string;
@@ -27,7 +27,7 @@ export async function sendEmail({
   subject,
   html,
   text,
-  from = 'Eleva Care <bookings@notifications.eleva.care>',
+  from = process.env.RESEND_EMAIL_BOOKINGS_FROM,
   replyTo,
   cc,
   bcc,
@@ -83,10 +83,43 @@ export async function sendEmail({
 }
 
 /**
- * Generates HTML for an appointment confirmation email using React Email
+ * Converts HTML content to plain text
+ *
+ * @param html HTML content to convert
+ * @returns Plain text representation of the HTML
+ */
+function generatePlainTextFromHTML(html: string): string {
+  // Basic conversion of HTML to plain text
+  return (
+    html
+      // Replace common HTML elements with text equivalents
+      .replace(/<h[1-6][^>]*>(.*?)<\/h[1-6]>/gi, '$1\n\n')
+      .replace(/<p[^>]*>(.*?)<\/p>/gi, '$1\n\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<li[^>]*>(.*?)<\/li>/gi, '• $1\n')
+      .replace(/<tr[^>]*>(.*?)<\/tr>/gi, '$1\n')
+      .replace(/<hr[^>]*>/gi, '\n---\n')
+      // Handle links
+      .replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, '$2 ($1)')
+      // Remove all other tags
+      .replace(/<[^>]*>/g, '')
+      // Clean up whitespace
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\n\s*\n/g, '\n\n')
+      // Decode HTML entities
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .trim()
+  );
+}
+
+/**
+ * Generates HTML and plain text for an appointment confirmation email
  *
  * @param params Parameters for the appointment email content
- * @returns Rendered HTML string from React Email components
+ * @returns Object containing HTML and plain text versions of the email
  */
 export async function generateAppointmentEmailHtml(params: {
   expertName: string;
@@ -96,7 +129,7 @@ export async function generateAppointmentEmailHtml(params: {
   eventTitle: string;
   meetLink?: string;
   notes?: string;
-}) {
+}): Promise<{ html: string; text: string }> {
   // Import dynamically to avoid JSX in server component issues
   const { default: AppointmentConfirmation } = await import(
     '@/components/emails/AppointmentConfirmation'
@@ -104,5 +137,13 @@ export async function generateAppointmentEmailHtml(params: {
   const { render } = await import('@react-email/render');
 
   // Render the React Email component to HTML
-  return render(AppointmentConfirmation(params));
+  const renderedHtml = await render(AppointmentConfirmation(params));
+
+  // Generate plain text version
+  const plainText = generatePlainTextFromHTML(renderedHtml);
+
+  return {
+    html: renderedHtml,
+    text: plainText,
+  };
 }
