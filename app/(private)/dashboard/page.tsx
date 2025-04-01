@@ -4,8 +4,7 @@ import { UserNotifications } from '@/components/organisms/dashboard/UserNotifica
 import { ROLE_COMMUNITY_EXPERT, ROLE_TOP_EXPERT } from '@/lib/auth/roles';
 import { UserButton } from '@clerk/nextjs';
 import { auth, currentUser } from '@clerk/nextjs/server';
-import { CalendarIcon, CompassIcon, UsersIcon } from 'lucide-react';
-import { CheckCircle2 } from 'lucide-react';
+import { CalendarIcon, CheckCircle2, CompassIcon, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function HomePage() {

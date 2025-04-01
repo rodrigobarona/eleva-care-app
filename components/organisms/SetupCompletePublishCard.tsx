@@ -3,7 +3,7 @@
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent } from '@/components/atoms/card';
 import { ProfilePublishToggle } from '@/components/organisms/ProfilePublishToggle';
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -20,7 +20,7 @@ export function SetupCompletePublishCard({ isPublished }: SetupCompletePublishCa
       <CheckCircle2 className="mx-auto mb-4 h-16 w-16 text-green-500" />
       <h2 className="mb-2 text-2xl font-bold text-green-800">Setup Complete!</h2>
       <p className="mb-6 text-green-700">
-        Congratulations! You've completed all the required steps to set up your expert profile.
+        Congratulations! You&apos;ve completed all the required steps to set up your expert profile.
       </p>
 
       <Card className="mx-auto max-w-md">

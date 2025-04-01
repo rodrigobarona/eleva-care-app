@@ -1,3 +1,4 @@
+import { generateAppointmentEmailHtml, sendEmail } from '@/lib/email';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { addMinutes, endOfDay, startOfDay } from 'date-fns';
 import { google } from 'googleapis';
@@ -143,6 +144,32 @@ class GoogleCalendarService {
       throw new Error('Clerk user has no email');
     }
 
+    // Generate a descriptive summary and formatted description
+    const eventSummary = `${guestName} + ${calendarUser.fullName}: ${eventName}`;
+    const formattedTime = startTime.toLocaleString('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+
+    const endTime = addMinutes(startTime, durationInMinutes);
+    const formattedDuration = `${durationInMinutes} minutes`;
+
+    const eventDescription = `
+Appointment Details:
+- Date and Time: ${formattedTime}
+- Duration: ${formattedDuration}
+- Client: ${guestName} (${guestEmail})
+- Expert: ${calendarUser.fullName}
+${guestNotes ? `\nAdditional Notes from Client:\n${guestNotes}` : ''}
+
+This appointment was created through Eleva Care. A Google Meet link will be available for the session.
+`;
+
+    // Create the calendar event with all necessary parameters
     const calendarEvent = await google.calendar('v3').events.insert({
       calendarId: 'primary',
       auth: oAuthClient,
@@ -158,16 +185,19 @@ class GoogleCalendarService {
             email: calendarUser.primaryEmailAddress.emailAddress,
             displayName: calendarUser.fullName,
             responseStatus: 'accepted',
+            // Set as optional organizer to ensure they also get notifications
+            organizer: true,
+            optional: false,
           },
         ],
-        description: guestNotes ? `Additional Details: ${guestNotes}` : undefined,
+        description: eventDescription,
         start: {
           dateTime: startTime.toISOString(),
         },
         end: {
-          dateTime: addMinutes(startTime, durationInMinutes).toISOString(),
+          dateTime: endTime.toISOString(),
         },
-        summary: `${guestName} + ${calendarUser.fullName}: ${eventName}`,
+        summary: eventSummary,
         conferenceData: {
           createRequest: {
             requestId: `${Date.now()}-${Math.random().toString(36).substring(7)}`,
@@ -182,9 +212,51 @@ class GoogleCalendarService {
             { method: 'popup', minutes: 5 },
           ],
         },
+        // Add additional properties to enhance notification behavior
+        guestsCanModify: false,
+        guestsCanSeeOtherGuests: true,
       },
       conferenceDataVersion: 1,
     });
+
+    try {
+      // After creating the event, send an immediate email notification to the expert
+      // using Resend email service
+      console.log('Event created, sending email notification to expert: ', {
+        expertEmail: calendarUser.primaryEmailAddress.emailAddress,
+        eventId: calendarEvent?.data?.id,
+        eventSummary: eventSummary,
+      });
+
+      // Get the Google Meet link if available
+      const meetLink = calendarEvent?.data?.conferenceData?.entryPoints?.find(
+        (ep) => ep.entryPointType === 'video',
+      )?.uri;
+
+      // Send the actual email using our Resend utility
+      const emailResult = await sendEmail({
+        to: calendarUser.primaryEmailAddress.emailAddress,
+        subject: `New Booking: ${eventSummary}`,
+        html: await generateAppointmentEmailHtml({
+          expertName: calendarUser.fullName || 'Expert',
+          clientName: guestName,
+          appointmentDate: formattedTime,
+          appointmentDuration: formattedDuration,
+          eventTitle: eventName,
+          meetLink: meetLink || undefined,
+          notes: guestNotes ? guestNotes : undefined,
+        }),
+      });
+
+      if (!emailResult.success) {
+        console.error('Failed to send expert notification email:', emailResult.error);
+      } else {
+        console.log('Expert notification email sent successfully:', emailResult.messageId);
+      }
+    } catch (error) {
+      console.error('Error sending expert notification:', error);
+      // Don't fail the whole operation if just the email notification fails
+    }
 
     return calendarEvent.data;
   }
