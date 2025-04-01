@@ -192,6 +192,9 @@ importers:
       drizzle-orm:
         specifier: ^0.35.3
         version: 0.35.3(@libsql/client-wasm@0.14.0)(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(@types/react@19.0.10)(postgres@3.4.5)(react@19.0.0)
+      dub:
+        specifier: ^0.61.5
+        version: 0.61.5(zod@3.24.2)
       embla-carousel-react:
         specifier: ^8.5.2
         version: 8.5.2(react@19.0.0)
@@ -3313,6 +3316,16 @@ packages:
       sql.js:
         optional: true
       sqlite3:
+        optional: true
+
+  dub@0.61.5:
+    resolution: {integrity: sha512-iyMTk1yyb/3E7TXSXTBMgMSRfGe5Y+CxIOLhmrY390NOR2cQj2LgldYDawqKT2WP4yC/ZGJcLi20HYiaB1NYAQ==}
+    hasBin: true
+    peerDependencies:
+      '@modelcontextprotocol/sdk': ^1.5.0
+      zod: '>= 3'
+    peerDependenciesMeta:
+      '@modelcontextprotocol/sdk':
         optional: true
 
   dunder-proto@1.0.1:
@@ -8874,6 +8887,10 @@ snapshots:
       '@types/react': 19.0.10
       postgres: 3.4.5
       react: 19.0.0
+
+  dub@0.61.5(zod@3.24.2):
+    dependencies:
+      zod: 3.24.2
 
   dunder-proto@1.0.1:
     dependencies:
