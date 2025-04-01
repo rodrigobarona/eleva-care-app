@@ -1,8 +1,3 @@
-/**
- * Dub.co link shortening utilities for Eleva Care
- * Integrates with the go.eleva.care custom domain
- */
-
 'use server';
 
 import { z } from 'zod';
@@ -12,59 +7,25 @@ import { z } from 'zod';
  * Integrates with the go.eleva.care custom domain
  */
 
-/**
- * Dub.co link shortening utilities for Eleva Care
- * Integrates with the go.eleva.care custom domain
- */
-
-/**
- * Dub.co link shortening utilities for Eleva Care
- * Integrates with the go.eleva.care custom domain
- */
-
-/**
- * Dub.co link shortening utilities for Eleva Care
- * Integrates with the go.eleva.care custom domain
- */
-
-/**
- * Dub.co link shortening utilities for Eleva Care
- * Integrates with the go.eleva.care custom domain
- */
-
-/**
- * Dub.co link shortening utilities for Eleva Care
- * Integrates with the go.eleva.care custom domain
- */
-
-/**
- * Dub.co link shortening utilities for Eleva Care
- * Integrates with the go.eleva.care custom domain
- */
-
-/**
- * Dub.co link shortening utilities
- */
-
-/**
- * Dub.co link shortening utilities
- */
-
-/**
- * Dub.co link shortening utilities
- */
-
-/**
- * Dub.co link shortening utilities
- */
-
-/**
- * Dub.co link shortening utilities
- */
-
+// Validate essential environment variables
 const DUB_API_KEY = process.env.DUB_API_KEY;
+if (!DUB_API_KEY && process.env.NODE_ENV === 'production') {
+  console.warn(
+    '⚠️ DUB_API_KEY environment variable is not set. URL shortening will be disabled in production.',
+  );
+}
+
+// API endpoint with validation
 const DUB_API_ENDPOINT = process.env.DUB_API_ENDPOINT || 'https://api.dub.co/links';
+if (!DUB_API_ENDPOINT.startsWith('https://')) {
+  console.warn('⚠️ DUB_API_ENDPOINT should use HTTPS for security.');
+}
+
+// Custom domain with validation
 const DUB_DEFAULT_DOMAIN = process.env.DUB_DEFAULT_DOMAIN || 'go.eleva.care';
+if (!DUB_DEFAULT_DOMAIN.match(/^[a-zA-Z0-9][a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}$/)) {
+  console.warn('⚠️ DUB_DEFAULT_DOMAIN may not be a valid domain name:', DUB_DEFAULT_DOMAIN);
+}
 
 // Schema for Dub.co API response
 const DubResponseSchema = z.object({
@@ -98,8 +59,19 @@ interface CreateShortLinkOptions {
 export async function createShortMeetLink(options: CreateShortLinkOptions): Promise<string> {
   const { url, expertName, expertUsername, customDomain, customSlug } = options;
 
-  if (!url || !url.includes('meet.google.com')) {
-    console.warn('Not a valid Google Meet URL:', url);
+  // Use URL parsing to validate properly formatted Google Meet URLs
+  try {
+    const parsedUrl = new URL(url);
+    if (!parsedUrl.hostname.endsWith('meet.google.com')) {
+      console.warn('Not a valid Google Meet URL:', url);
+      return url;
+    }
+  } catch (error) {
+    console.warn(
+      'Invalid URL format:',
+      url,
+      error instanceof Error ? error.message : 'Unknown error',
+    );
     return url;
   }
 
