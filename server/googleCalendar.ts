@@ -174,6 +174,14 @@ class GoogleCalendarService {
             conferenceSolutionKey: { type: 'hangoutsMeet' },
           },
         },
+        reminders: {
+          useDefault: false,
+          overrides: [
+            { method: 'email', minutes: 60 },
+            { method: 'email', minutes: 15 },
+            { method: 'popup', minutes: 5 },
+          ],
+        },
       },
       conferenceDataVersion: 1,
     });
