@@ -208,8 +208,9 @@ export function MeetingFormContent({
           });
         } else {
           const startTimeISO = values.startTime.toISOString();
+          const userTimezone = form.getValues('timezone');
           router.push(
-            `${window.location.pathname}/success?startTime=${encodeURIComponent(startTimeISO)}`,
+            `${window.location.pathname}/success?startTime=${encodeURIComponent(startTimeISO)}&timezone=${encodeURIComponent(userTimezone)}`,
           );
         }
       } catch (error) {

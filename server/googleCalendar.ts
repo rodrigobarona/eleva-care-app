@@ -1,8 +1,7 @@
 import { createShortMeetLink } from '@/lib/dub';
-import { generateAppointmentEmailHtml } from '@/lib/email';
-import { sendEmail } from '@/lib/email';
+import { generateAppointmentEmail, sendEmail } from '@/lib/email';
 import { createClerkClient } from '@clerk/nextjs/server';
-import { addMinutes, endOfDay, startOfDay } from 'date-fns';
+import { addMinutes, endOfDay, format, startOfDay } from 'date-fns';
 import { google } from 'googleapis';
 import 'use-server';
 
@@ -146,17 +145,22 @@ class GoogleCalendarService {
       throw new Error('Clerk user has no email');
     }
 
-    // Generate a descriptive summary and formatted description
+    // Generate a descriptive summary
     const eventSummary = `${guestName} + ${calendarUser.fullName}: ${eventName}`;
-    const formattedTime = startTime.toLocaleString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
 
+    // Format date and time with timezone information
+    const formatDate = (date: Date) => format(date, 'EEEE, MMMM d, yyyy');
+    const formatTime = (date: Date, duration: number) => {
+      const endTime = addMinutes(date, duration);
+      return `${format(date, 'h:mm a')} - ${format(endTime, 'h:mm a')}`;
+    };
+
+    // Get timezone information
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+    // Format for display
+    const appointmentDate = formatDate(startTime);
+    const appointmentTime = formatTime(startTime, durationInMinutes);
     const formattedDuration = `${durationInMinutes} minutes`;
 
     const calendarEvent = await google.calendar('v3').events.insert({
@@ -192,8 +196,14 @@ class GoogleCalendarService {
             conferenceSolutionKey: { type: 'hangoutsMeet' },
           },
         },
+        // Security and permissions settings
+        guestsCanInviteOthers: false,
         guestsCanModify: false,
         guestsCanSeeOtherGuests: true,
+        // Reminder settings - these apply to the calendar owner (expert)
+        // Guests will receive standard calendar notifications based on their settings
+        // Note: Google Calendar API doesn't allow setting reminders for guests directly
+        // Guests will get notifications based on their Google Calendar preferences
         reminders: {
           useDefault: false,
           overrides: [
@@ -254,7 +264,6 @@ class GoogleCalendarService {
 
     try {
       // After creating the event, send an immediate email notification to the expert
-      // using Resend email service
       console.log('Event created, sending email notification to expert: ', {
         expertEmail: calendarUser.primaryEmailAddress.emailAddress,
         eventId: calendarEvent?.data?.id,
@@ -262,31 +271,66 @@ class GoogleCalendarService {
       });
 
       // Generate the email content
-      const emailContent = await generateAppointmentEmailHtml({
+      const emailContent = await generateAppointmentEmail({
         expertName: calendarUser.fullName || 'Expert',
         clientName: guestName,
-        appointmentDate: formattedTime,
+        appointmentDate,
+        appointmentTime,
+        timezone,
         appointmentDuration: formattedDuration,
         eventTitle: eventName,
         meetLink: shortMeetLink || meetLink || undefined,
         notes: guestNotes ? guestNotes : undefined,
       });
 
-      // Send the actual email using our Resend utility
-      const emailResult = await sendEmail({
+      // Send the expert notification
+      const expertEmailResult = await sendEmail({
         to: calendarUser.primaryEmailAddress.emailAddress,
         subject: `New Booking: ${eventSummary}`,
         html: emailContent.html,
         text: emailContent.text,
       });
 
-      if (!emailResult.success) {
-        console.error('Failed to send expert notification email:', emailResult.error);
+      if (!expertEmailResult.success) {
+        console.error('Failed to send expert notification email:', expertEmailResult.error);
       } else {
-        console.log('Expert notification email sent successfully:', emailResult.messageId);
+        console.log('Expert notification email sent successfully:', expertEmailResult.messageId);
+      }
+
+      // Also send notification to the client
+      console.log('Sending email notification to client:', {
+        clientEmail: guestEmail,
+        eventId: calendarEvent?.data?.id,
+        eventSummary: eventSummary,
+      });
+
+      // Generate client email with same content but different recipient focus
+      const clientEmailContent = await generateAppointmentEmail({
+        expertName: calendarUser.fullName || 'Expert',
+        clientName: guestName,
+        appointmentDate,
+        appointmentTime,
+        timezone,
+        appointmentDuration: formattedDuration,
+        eventTitle: eventName,
+        meetLink: shortMeetLink || meetLink || undefined,
+        notes: guestNotes ? guestNotes : undefined,
+      });
+
+      const clientEmailResult = await sendEmail({
+        to: guestEmail,
+        subject: `Appointment Confirmation: ${eventSummary}`,
+        html: clientEmailContent.html,
+        text: clientEmailContent.text,
+      });
+
+      if (!clientEmailResult.success) {
+        console.error('Failed to send client notification email:', clientEmailResult.error);
+      } else {
+        console.log('Client notification email sent successfully:', clientEmailResult.messageId);
       }
     } catch (error) {
-      console.error('Error sending expert notification:', error);
+      console.error('Error sending notifications:', error);
       // Don't fail the whole operation if just the email notification fails
     }
 

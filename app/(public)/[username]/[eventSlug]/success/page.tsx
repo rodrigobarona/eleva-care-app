@@ -3,6 +3,7 @@ import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { formatDateTime } from '@/lib/formatters';
 import { createClerkClient } from '@clerk/nextjs/server';
+import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import Stripe from 'stripe';
 
@@ -11,11 +12,15 @@ export const dynamic = 'force-dynamic';
 
 export default async function SuccessPage(props: {
   params: Promise<{ username: string; eventSlug: string }>;
-  searchParams: Promise<{ startTime: string; session_id?: string }>;
+  searchParams: Promise<{ startTime: string; session_id?: string; timezone?: string }>;
 }) {
   const searchParams = await props.searchParams;
 
-  const { startTime, session_id } = searchParams;
+  const { startTime, session_id, timezone } = searchParams;
+
+  // Get the user's timezone either from the URL or use the cookie as fallback
+  // This ensures we display the time in the user's local timezone
+  const userTimezone = timezone || (await cookies()).get('user-timezone')?.value || 'UTC';
 
   const params = await props.params;
 
@@ -63,6 +68,9 @@ export default async function SuccessPage(props: {
 
   // If meeting exists, show success page
   if (meeting) {
+    // We prioritize the meeting's stored timezone if available
+    const displayTimezone = meeting.timezone || userTimezone;
+
     return (
       <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center p-4 md:mt-0 md:h-dvh md:p-6">
         <Card className="mx-auto max-w-xl">
@@ -70,7 +78,12 @@ export default async function SuccessPage(props: {
             <CardTitle>
               Successfully Booked {event.name} with {calendarUser.fullName}
             </CardTitle>
-            <CardDescription>{formatDateTime(startTimeDate)}</CardDescription>
+            <CardDescription>
+              {formatDateTime(startTimeDate, displayTimezone)}
+              <span className="ml-1 text-xs text-muted-foreground">
+                ({displayTimezone.replace(/_/g, ' ')})
+              </span>
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <p>You should receive an email confirmation shortly.</p>
