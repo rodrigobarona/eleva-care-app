@@ -18,6 +18,8 @@ interface AppointmentConfirmationProps {
   expertName: string;
   clientName: string;
   appointmentDate: string;
+  appointmentTime: string;
+  timezone: string;
   appointmentDuration: string;
   eventTitle: string;
   meetLink?: string;
@@ -28,6 +30,8 @@ export const AppointmentConfirmation = ({
   expertName,
   clientName,
   appointmentDate,
+  appointmentTime,
+  timezone,
   appointmentDuration,
   eventTitle,
   meetLink,
@@ -51,9 +55,8 @@ export const AppointmentConfirmation = ({
               <Row>
                 <Column>
                   <Text className="m-0 text-[16px] font-bold text-gray-800">{appointmentDate}</Text>
-                  <Text className="m-0 text-[16px] text-gray-600">
-                    Duration: {appointmentDuration}
-                  </Text>
+                  <Text className="m-0 text-[16px] text-gray-600">{appointmentTime}</Text>
+                  <Text className="m-0 text-[14px] text-gray-500">Timezone: {timezone}</Text>
                 </Column>
               </Row>
             </Section>
@@ -77,7 +80,13 @@ export const AppointmentConfirmation = ({
                   <strong>Client:</strong> {clientName}
                 </Text>
                 <Text className="m-0 text-[16px] text-gray-800">
-                  <strong>Date/Time:</strong> {appointmentDate}
+                  <strong>Date:</strong> {appointmentDate}
+                </Text>
+                <Text className="m-0 text-[16px] text-gray-800">
+                  <strong>Time:</strong> {appointmentTime}
+                </Text>
+                <Text className="m-0 text-[16px] text-gray-800">
+                  <strong>Timezone:</strong> {timezone}
                 </Text>
                 <Text className="m-0 text-[16px] text-gray-800">
                   <strong>Duration:</strong> {appointmentDuration}

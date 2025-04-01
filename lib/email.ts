@@ -121,10 +121,12 @@ function generatePlainTextFromHTML(html: string): string {
  * @param params Parameters for the appointment email content
  * @returns Object containing HTML and plain text versions of the email
  */
-export async function generateAppointmentEmailHtml(params: {
+export async function generateAppointmentEmail(params: {
   expertName: string;
   clientName: string;
-  appointmentDate: string;
+  appointmentDate: string; // Date only (e.g., "Monday, April 8, 2025")
+  appointmentTime: string; // Time with timezone (e.g., "10:30 AM - 11:30 AM")
+  timezone: string; // Explicit timezone (e.g., "America/Los_Angeles")
   appointmentDuration: string;
   eventTitle: string;
   meetLink?: string;
