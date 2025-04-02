@@ -1,7 +1,8 @@
 import { createShortMeetLink } from '@/lib/dub';
 import { generateAppointmentEmail, sendEmail } from '@/lib/email';
 import { createClerkClient } from '@clerk/nextjs/server';
-import { addMinutes, endOfDay, format, startOfDay } from 'date-fns';
+import { addMinutes, endOfDay, startOfDay } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { google } from 'googleapis';
 import 'use-server';
 
@@ -166,11 +167,12 @@ class GoogleCalendarService {
     // Generate a descriptive summary
     const eventSummary = `${guestName} + ${calendarUser.fullName}: ${eventName}`;
 
-    // Format date and time
-    const formatDate = (date: Date) => format(date, 'EEEE, MMMM d, yyyy');
-    const formatTime = (date: Date, duration: number) => {
+    // Format date and time with proper timezone support
+    const formatDate = (date: Date, tz: string) => formatInTimeZone(date, tz, 'EEEE, MMMM d, yyyy');
+
+    const formatTime = (date: Date, duration: number, tz: string) => {
       const endTime = addMinutes(date, duration);
-      return `${format(date, 'h:mm a')} - ${format(endTime, 'h:mm a')}`;
+      return `${formatInTimeZone(date, tz, 'h:mm a')} - ${formatInTimeZone(endTime, tz, 'h:mm a')}`;
     };
 
     // Get timezone information
@@ -212,15 +214,15 @@ class GoogleCalendarService {
 
     console.log('Using validated timezone:', timezone);
 
-    // Format for display
-    const appointmentDate = formatDate(startTime);
-    const appointmentTime = formatTime(startTime, durationInMinutes);
+    // Format for display with the validated timezone
+    const appointmentDate = formatDate(startTime, timezone);
+    const appointmentTime = formatTime(startTime, durationInMinutes, timezone);
     const formattedDuration = `${durationInMinutes} minutes`;
 
     console.log('Creating calendar event with timezone:', {
       datetime: startTime.toISOString(),
       timezone,
-      providedTimezone,
+      localizedTime: formatInTimeZone(startTime, timezone, 'PPpp'), // Log the localized time for debugging
       formattedDate: appointmentDate,
       formattedTime: appointmentTime,
     });
