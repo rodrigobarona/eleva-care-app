@@ -5,6 +5,22 @@ import { addMinutes, endOfDay, format, startOfDay } from 'date-fns';
 import { google } from 'googleapis';
 import 'use-server';
 
+/**
+ * Validates if a timezone string is valid by attempting to use it with Intl.DateTimeFormat
+ * @param tz Timezone string to validate
+ * @returns Boolean indicating if the timezone is valid
+ */
+function isValidTimezone(tz: string): boolean {
+  if (!tz) return false;
+
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 class GoogleCalendarService {
   private static instance: GoogleCalendarService | null = null;
 
@@ -158,24 +174,43 @@ class GoogleCalendarService {
     };
 
     // Get timezone information
-    let timezone = providedTimezone || 'UTC';
-    if (!timezone) {
+    let timezone = 'UTC';
+
+    // First try the provided timezone
+    if (providedTimezone && isValidTimezone(providedTimezone)) {
+      timezone = providedTimezone;
+    } else if (providedTimezone) {
+      console.warn(`Invalid timezone provided: ${providedTimezone}, falling back to defaults`);
+    }
+
+    // If no valid timezone provided, try to get from other sources
+    if (timezone === 'UTC') {
       try {
         // Try to get from Intl API first
-        timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (detectedTimezone && isValidTimezone(detectedTimezone)) {
+          timezone = detectedTimezone;
+        }
+
         // Check if user has timezone stored in metadata (would override the default)
         if (
           calendarUser.privateMetadata &&
           typeof calendarUser.privateMetadata === 'object' &&
           calendarUser.privateMetadata.timezone
         ) {
-          timezone = calendarUser.privateMetadata.timezone as string;
+          const metadataTimezone = calendarUser.privateMetadata.timezone as string;
+          if (isValidTimezone(metadataTimezone)) {
+            timezone = metadataTimezone;
+          } else {
+            console.warn(`Invalid timezone in user metadata: ${metadataTimezone}`);
+          }
         }
       } catch (error) {
         console.warn('Error getting timezone, using UTC:', error);
-        timezone = 'UTC';
       }
     }
+
+    console.log('Using validated timezone:', timezone);
 
     // Format for display
     const appointmentDate = formatDate(startTime);
@@ -392,7 +427,7 @@ export async function createCalendarEvent(params: {
   guestNotes?: string | null;
   durationInMinutes: number;
   eventName: string;
-  timezone?: string;
+  timezone?: string; // Will be validated - invalid timezones will fall back to UTC
 }) {
   return GoogleCalendarService.getInstance().createCalendarEvent(params);
 }
