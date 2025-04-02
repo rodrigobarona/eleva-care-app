@@ -93,7 +93,7 @@ export const AppointmentConfirmation = ({
                 </Text>
                 {meetLink && (
                   <Text className="m-0 text-[16px] text-gray-800">
-                    <strong>Video Meeting:</strong> Available in calendar invite
+                    <strong>Video Meeting:</strong> A Google Meet link is provided below
                   </Text>
                 )}
               </Section>
@@ -113,6 +113,9 @@ export const AppointmentConfirmation = ({
                   >
                     Join Google Meet
                   </Button>
+                  <Text className="mt-2 text-xs text-gray-500 text-muted-foreground">
+                    Click the button above to join the meeting at the scheduled time
+                  </Text>
                 </Section>
               )}
 
