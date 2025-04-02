@@ -5,6 +5,22 @@ import { addMinutes, endOfDay, format, startOfDay } from 'date-fns';
 import { google } from 'googleapis';
 import 'use-server';
 
+/**
+ * Validates if a timezone string is valid by attempting to use it with Intl.DateTimeFormat
+ * @param tz Timezone string to validate
+ * @returns Boolean indicating if the timezone is valid
+ */
+function isValidTimezone(tz: string): boolean {
+  if (!tz) return false;
+
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 class GoogleCalendarService {
   private static instance: GoogleCalendarService | null = null;
 
@@ -127,6 +143,7 @@ class GoogleCalendarService {
     guestNotes,
     durationInMinutes,
     eventName,
+    timezone: providedTimezone,
   }: {
     clerkUserId: string;
     guestName: string;
@@ -135,6 +152,7 @@ class GoogleCalendarService {
     guestNotes?: string | null;
     durationInMinutes: number;
     eventName: string;
+    timezone?: string;
   }) {
     const oAuthClient = await this.getOAuthClient(clerkUserId);
     const clerk = createClerkClient({
@@ -148,7 +166,7 @@ class GoogleCalendarService {
     // Generate a descriptive summary
     const eventSummary = `${guestName} + ${calendarUser.fullName}: ${eventName}`;
 
-    // Format date and time with timezone information
+    // Format date and time
     const formatDate = (date: Date) => format(date, 'EEEE, MMMM d, yyyy');
     const formatTime = (date: Date, duration: number) => {
       const endTime = addMinutes(date, duration);
@@ -156,12 +174,56 @@ class GoogleCalendarService {
     };
 
     // Get timezone information
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+    let timezone = 'UTC';
+
+    // First try the provided timezone
+    if (providedTimezone && isValidTimezone(providedTimezone)) {
+      timezone = providedTimezone;
+    } else if (providedTimezone) {
+      console.warn(`Invalid timezone provided: ${providedTimezone}, falling back to defaults`);
+    }
+
+    // If no valid timezone provided, try to get from other sources
+    if (timezone === 'UTC') {
+      try {
+        // Try to get from Intl API first
+        const detectedTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (detectedTimezone && isValidTimezone(detectedTimezone)) {
+          timezone = detectedTimezone;
+        }
+
+        // Check if user has timezone stored in metadata (would override the default)
+        if (
+          calendarUser.privateMetadata &&
+          typeof calendarUser.privateMetadata === 'object' &&
+          calendarUser.privateMetadata.timezone
+        ) {
+          const metadataTimezone = calendarUser.privateMetadata.timezone as string;
+          if (isValidTimezone(metadataTimezone)) {
+            timezone = metadataTimezone;
+          } else {
+            console.warn(`Invalid timezone in user metadata: ${metadataTimezone}`);
+          }
+        }
+      } catch (error) {
+        console.warn('Error getting timezone, using UTC:', error);
+      }
+    }
+
+    console.log('Using validated timezone:', timezone);
 
     // Format for display
     const appointmentDate = formatDate(startTime);
     const appointmentTime = formatTime(startTime, durationInMinutes);
     const formattedDuration = `${durationInMinutes} minutes`;
+
+    console.log('Creating calendar event with timezone:', {
+      datetime: startTime.toISOString(),
+      timezone,
+      providedTimezone,
+      formattedDate: appointmentDate,
+      formattedTime: appointmentTime,
+    });
 
     const calendarEvent = await google.calendar('v3').events.insert({
       calendarId: 'primary',
@@ -270,8 +332,8 @@ class GoogleCalendarService {
         eventSummary: eventSummary,
       });
 
-      // Generate the email content
-      const emailContent = await generateAppointmentEmail({
+      // Generate the email content for the expert
+      const expertEmailContent = await generateAppointmentEmail({
         expertName: calendarUser.fullName || 'Expert',
         clientName: guestName,
         appointmentDate,
@@ -287,8 +349,8 @@ class GoogleCalendarService {
       const expertEmailResult = await sendEmail({
         to: calendarUser.primaryEmailAddress.emailAddress,
         subject: `New Booking: ${eventSummary}`,
-        html: emailContent.html,
-        text: emailContent.text,
+        html: expertEmailContent.html,
+        text: expertEmailContent.text,
       });
 
       if (!expertEmailResult.success) {
@@ -304,7 +366,7 @@ class GoogleCalendarService {
         eventSummary: eventSummary,
       });
 
-      // Generate client email with same content but different recipient focus
+      // Generate client email
       const clientEmailContent = await generateAppointmentEmail({
         expertName: calendarUser.fullName || 'Expert',
         clientName: guestName,
@@ -365,6 +427,7 @@ export async function createCalendarEvent(params: {
   guestNotes?: string | null;
   durationInMinutes: number;
   eventName: string;
+  timezone?: string; // Will be validated - invalid timezones will fall back to UTC
 }) {
   return GoogleCalendarService.getInstance().createCalendarEvent(params);
 }
