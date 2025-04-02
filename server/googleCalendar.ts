@@ -392,6 +392,7 @@ export async function createCalendarEvent(params: {
   guestNotes?: string | null;
   durationInMinutes: number;
   eventName: string;
+  timezone?: string;
 }) {
   return GoogleCalendarService.getInstance().createCalendarEvent(params);
 }
