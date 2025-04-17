@@ -359,6 +359,8 @@ This Data Processing Agreement ("Agreement") is entered into by and between:
 
 **BÚZIOS E TARTARUGAS - LDA**, a limited liability company organized and existing under the laws of Portugal, with NIPC 515001708, having its registered office at Rua Gil Vicente, 2, 2775-198 Parede, Portugal, commercially operating as **Eleva.care** ("Controller"),
 
+_and_
+
 **Data Processors:**
 - Neon Inc., 2261 Market Street STE 22601 San Francisco, CA, 94114, USA
 - Clerk, Inc., 660 King Street Unit 345 San Francisco, CA 94107 United States
