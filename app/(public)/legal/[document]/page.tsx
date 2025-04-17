@@ -353,7 +353,7 @@ This Cookie Policy is managed and maintained by:
     title: 'Data Processing Agreement',
     content: `# Data Processing Agreement (DPA)
 
-_Last Updated:_ March 2, 2025
+_Effective Date:_ April 16, 2025
 
 This Data Processing Agreement ("Agreement") is entered into by and between:
 
