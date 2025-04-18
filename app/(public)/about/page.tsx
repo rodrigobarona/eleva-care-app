@@ -224,7 +224,7 @@ export default function AboutPage() {
                   className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h3 className="font-medium text-eleva-primary">Patricia Mota, PT, PhD</h3>
+                  <h3 className="font-medium text-eleva-primary">Patricia Mota, PT, PhD 🇵🇹 🇪🇸 🇺🇸</h3>
                   <p className="font-mono text-xs text-eleva-neutral-900">
                     Co-Founder / Chief Executive Officer
                   </p>
@@ -239,7 +239,7 @@ export default function AboutPage() {
                   className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h3 className="font-medium text-eleva-primary">Rodrigo Barona</h3>
+                  <h3 className="font-medium text-eleva-primary">Rodrigo Barona 🇪🇸 🇵🇹 🇺🇸</h3>
                   <p className="font-mono text-xs text-eleva-neutral-900">
                     Co-Founder / Chief Technical Officer
                   </p>
@@ -277,7 +277,7 @@ export default function AboutPage() {
                   />
                   <div>
                     <h4 className="font-medium text-eleva-primary">
-                      Cristine Homsi Jorge, PT, PhD
+                      Cristine Homsi Jorge, PT, PhD 🇧🇷
                     </h4>
                     <p className="font-mono text-xs text-eleva-neutral-900">
                       Board Advisor Women&apos;s Health
@@ -299,7 +299,9 @@ export default function AboutPage() {
                     className="size-40 rounded-full object-cover"
                   />
                   <div>
-                    <h4 className="font-medium text-eleva-primary">Alexandre Delgado, PT, PhD</h4>
+                    <h4 className="font-medium text-eleva-primary">
+                      Alexandre Delgado, PT, PhD 🇧🇷
+                    </h4>
                     <p className="font-mono text-xs text-eleva-neutral-900">
                       Board Advisor Obstetric Physical Therapy
                     </p>
@@ -320,7 +322,7 @@ export default function AboutPage() {
                     className="size-40 rounded-full object-cover"
                   />
                   <div>
-                    <h4 className="font-medium text-eleva-primary">Patricia Driusso, PT, PhD</h4>
+                    <h4 className="font-medium text-eleva-primary">Patricia Driusso, PT, PhD 🇧🇷</h4>
                     <p className="font-mono text-xs text-eleva-neutral-900">
                       Board Advisor Women&apos;s Health
                     </p>
@@ -341,7 +343,7 @@ export default function AboutPage() {
                     className="size-40 rounded-full object-cover"
                   />
                   <div>
-                    <h4 className="font-medium text-eleva-primary">Annelie Gutke, PT, PhD</h4>
+                    <h4 className="font-medium text-eleva-primary">Annelie Gutke, PT, PhD 🇸🇪</h4>
                     <p className="font-mono text-xs text-eleva-neutral-900">
                       Board Advisor Women&apos;s Health
                     </p>
@@ -363,7 +365,7 @@ export default function AboutPage() {
                     quality={100}
                   />
                   <div>
-                    <h4 className="font-medium text-eleva-primary">Ruben Barakat, PhD</h4>
+                    <h4 className="font-medium text-eleva-primary">Ruben Barakat, PhD 🇦🇷 🇪🇸</h4>
                     <p className="font-mono text-xs text-eleva-neutral-900">
                       Board Advisor Exercise Science
                     </p>
@@ -385,7 +387,9 @@ export default function AboutPage() {
                     quality={100}
                   />
                   <div>
-                    <h4 className="font-medium text-eleva-primary">Jenny Bagwell, PT, PhD, DPT</h4>
+                    <h4 className="font-medium text-eleva-primary">
+                      Jenny Bagwell, PT, PhD, DPT 🇺🇸
+                    </h4>
                     <p className="font-mono text-xs text-eleva-neutral-900">
                       Board Advisor Biomechanics & Perinatal Health
                     </p>
@@ -412,7 +416,7 @@ export default function AboutPage() {
                   className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h4 className="font-medium text-eleva-primary">Jessica Margarido, PT</h4>
+                  <h4 className="font-medium text-eleva-primary">Jessica Margarido, PT 🇵🇹</h4>
                   <p className="font-mono text-xs text-eleva-neutral-900">
                     Oncology Rehabilitation
                   </p>
@@ -427,7 +431,7 @@ export default function AboutPage() {
                   className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h4 className="font-medium text-eleva-primary">Joana Goulão Barros, MD, PhD </h4>
+                  <h4 className="font-medium text-eleva-primary">Joana Goulão Barros, MD, PhD 🇵🇹</h4>
                   <p className="font-mono text-xs text-eleva-neutral-900">
                     Obstetrics & Gynecology
                   </p>
