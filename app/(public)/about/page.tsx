@@ -214,7 +214,7 @@ export default function AboutPage() {
             </h3>
             <Separator className="mt-6" />
 
-            <ul className="mx-auto mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mx-auto mt-16 grid grid-cols-1 gap-x-8 gap-y-16 md:grid-cols-2">
               <li className="flex items-center gap-4">
                 <Image
                   src="/img/about/team/team-patricia-mota.jpg"
@@ -224,8 +224,10 @@ export default function AboutPage() {
                   className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h3 className="font-medium">Patricia Mota, PT, PhD</h3>
-                  <p className="text-eleva-neutral-900/60">Co-Founder / Chief Executive Officer</p>
+                  <h3 className="font-medium text-eleva-primary">Patricia Mota, PT, PhD</h3>
+                  <p className="font-mono text-xs text-eleva-neutral-900">
+                    Co-Founder / Chief Executive Officer
+                  </p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -237,8 +239,10 @@ export default function AboutPage() {
                   className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h3 className="font-medium">Rodrigo Barona</h3>
-                  <p className="text-eleva-neutral-900/60">Co-Founder / Chief Technical Officer</p>
+                  <h3 className="font-medium text-eleva-primary">Rodrigo Barona</h3>
+                  <p className="font-mono text-xs text-eleva-neutral-900">
+                    Co-Founder / Chief Technical Officer
+                  </p>
                 </div>
               </li>
             </ul>
@@ -261,9 +265,9 @@ export default function AboutPage() {
               Healthcare Innovation
             </h3>
             <Separator className="mt-6" />
-            <ul className="mx-auto mt-10 grid grid-cols-1 gap-8 lg:grid-cols-3">
+            <ul className="mx-auto mt-10 grid grid-cols-1 gap-x-8 gap-y-16 lg:grid-cols-3">
               <li>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center gap-4 text-center">
                   <Image
                     src="/img/about/team/team-cristine-homsi-jorge.jpg"
                     alt="Cristine Homsi Jorge"
@@ -272,17 +276,21 @@ export default function AboutPage() {
                     className="size-40 rounded-full object-cover"
                   />
                   <div>
-                    <h4 className="font-medium">Cristine Homsi Jorge, PT, PhD</h4>
-                    <p className="text-eleva-neutral-900/60">Board Advisor Women&apos;s Health</p>
+                    <h4 className="font-medium text-eleva-primary">
+                      Cristine Homsi Jorge, PT, PhD
+                    </h4>
+                    <p className="font-mono text-xs text-eleva-neutral-900">
+                      Board Advisor Women&apos;s Health
+                    </p>
                   </div>
+                  <blockquote className="max-w-sm font-serif text-sm/6 italic text-eleva-neutral-900/60">
+                    Clinical research and education empower women to make informed decisions about
+                    their healthcare journey
+                  </blockquote>
                 </div>
-                <blockquote className="mt-6 max-w-lg text-sm/6 italic text-eleva-neutral-900/60">
-                  Clinical research and education empower women to make informed decisions about
-                  their healthcare journey
-                </blockquote>
               </li>
               <li>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center gap-4 text-center">
                   <Image
                     src="/img/about/team/team-alexandre-delgado.jpg"
                     alt="Alexandre Delgado"
@@ -291,19 +299,19 @@ export default function AboutPage() {
                     className="size-40 rounded-full object-cover"
                   />
                   <div>
-                    <h4 className="font-medium">Alexandre Delgado, PT, PhD</h4>
-                    <p className="text-eleva-neutral-900/60">
+                    <h4 className="font-medium text-eleva-primary">Alexandre Delgado, PT, PhD</h4>
+                    <p className="font-mono text-xs text-eleva-neutral-900">
                       Board Advisor Obstetric Physical Therapy
                     </p>
                   </div>
+                  <blockquote className="max-w-sm font-serif text-sm/6 italic text-eleva-neutral-900/60">
+                    Evidence-based physical therapy transforms the pregnancy and birth experience,
+                    empowering women through every stage.
+                  </blockquote>
                 </div>
-                <blockquote className="mt-6 max-w-lg text-sm/6 italic text-eleva-neutral-900/60">
-                  Evidence-based physical therapy transforms the pregnancy and birth experience,
-                  empowering women through every stage.
-                </blockquote>
               </li>
               <li>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center gap-4 text-center">
                   <Image
                     src="/img/about/team/team-patricia-driusso.jpg"
                     alt="Patricia Driusso"
@@ -312,17 +320,19 @@ export default function AboutPage() {
                     className="size-40 rounded-full object-cover"
                   />
                   <div>
-                    <h4 className="font-medium">Patricia Driusso, PT, PhD</h4>
-                    <p className="text-eleva-neutral-900/60">Board Advisor Women&apos;s Health</p>
+                    <h4 className="font-medium text-eleva-primary">Patricia Driusso, PT, PhD</h4>
+                    <p className="font-mono text-xs text-eleva-neutral-900">
+                      Board Advisor Women&apos;s Health
+                    </p>
                   </div>
+                  <blockquote className="max-w-sm font-serif text-sm/6 italic text-eleva-neutral-900/60">
+                    Clinical research advances rehabilitation treatments while empowering women
+                    through evidence-based education.
+                  </blockquote>
                 </div>
-                <blockquote className="mt-6 max-w-lg text-sm/6 italic text-eleva-neutral-900/60">
-                  Clinical research advances rehabilitation treatments while empowering women
-                  through evidence-based education.
-                </blockquote>
               </li>
               <li>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center gap-4 text-center">
                   <Image
                     src="/img/about/team/team-annelie-gutke.jpg"
                     alt="Annelie Gutke"
@@ -331,17 +341,19 @@ export default function AboutPage() {
                     className="size-40 rounded-full object-cover"
                   />
                   <div>
-                    <h4 className="font-medium">Annelie Gutke, PT, PhD</h4>
-                    <p className="text-eleva-neutral-900/60">Board Advisor Women&apos;s Health</p>
+                    <h4 className="font-medium text-eleva-primary">Annelie Gutke, PT, PhD</h4>
+                    <p className="font-mono text-xs text-eleva-neutral-900">
+                      Board Advisor Women&apos;s Health
+                    </p>
                   </div>
+                  <blockquote className="max-w-sm font-serif text-sm/6 italic text-eleva-neutral-900/60">
+                    Understanding pain mechanisms transforms how we care for women during pregnancy
+                    and beyond.
+                  </blockquote>
                 </div>
-                <blockquote className="mt-6 max-w-lg text-sm/6 italic text-eleva-neutral-900/60">
-                  Understanding pain mechanisms transforms how we care for women during pregnancy
-                  and beyond.
-                </blockquote>
               </li>
               <li>
-                <div className="flex items-center gap-4">
+                <div className="flex flex-col items-center gap-4 text-center">
                   <Image
                     src="/img/about/team/team-ruben-barakat.jpg"
                     alt="Ruben Barakat"
@@ -351,14 +363,38 @@ export default function AboutPage() {
                     quality={100}
                   />
                   <div>
-                    <h4 className="font-medium">Ruben Barakat, PhD</h4>
-                    <p className="text-eleva-neutral-900/60">Board Advisor Exercise Science</p>
+                    <h4 className="font-medium text-eleva-primary">Ruben Barakat, PhD</h4>
+                    <p className="font-mono text-xs text-eleva-neutral-900">
+                      Board Advisor Exercise Science
+                    </p>
                   </div>
+                  <blockquote className="max-w-sm font-serif text-sm/6 italic text-eleva-neutral-900/60">
+                    Evidence shows that personalized exercise during pregnancy can transform
+                    women&apos;s health outcomes.
+                  </blockquote>
                 </div>
-                <blockquote className="mt-6 max-w-lg text-sm/6 italic text-eleva-neutral-900/60">
-                  Evidence shows that personalized exercise during pregnancy can transform
-                  women&apos;s health outcomes.
-                </blockquote>
+              </li>
+              <li>
+                <div className="flex flex-col items-center gap-4 text-center">
+                  <Image
+                    src="/img/about/team/team-jenny-bagwell-california-usa.jpg"
+                    alt="Jenny Bagwell"
+                    width={200}
+                    height={200}
+                    className="size-40 rounded-full object-cover"
+                    quality={100}
+                  />
+                  <div>
+                    <h4 className="font-medium text-eleva-primary">Jenny Bagwell, PT, PhD, DPT</h4>
+                    <p className="font-mono text-xs text-eleva-neutral-900">
+                      Board Advisor Biomechanics & Perinatal Health
+                    </p>
+                  </div>
+                  <blockquote className="max-w-sm font-serif text-sm/6 italic text-eleva-neutral-900/60">
+                    Understanding movement patterns during and after pregnancy helps optimize care
+                    and improve long-term outcomes for women.
+                  </blockquote>
+                </div>
               </li>
             </ul>
 
@@ -366,7 +402,7 @@ export default function AboutPage() {
               Clinical Excellence
             </h3>
             <Separator className="mt-6" />
-            <ul className="mx-auto mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="mx-auto mt-16 grid grid-cols-1 gap-x-8 gap-y-16 md:grid-cols-2">
               <li className="flex items-center gap-4">
                 <Image
                   src="/img/about/team/team-jessica-margarido.jpg"
@@ -376,8 +412,10 @@ export default function AboutPage() {
                   className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h4 className="font-medium">Jessica Margarido, PT</h4>
-                  <p className="text-eleva-neutral-900/60">Oncology Rehabilitation</p>
+                  <h4 className="font-medium text-eleva-primary">Jessica Margarido, PT</h4>
+                  <p className="font-mono text-xs text-eleva-neutral-900">
+                    Oncology Rehabilitation
+                  </p>
                 </div>
               </li>
               <li className="flex items-center gap-4">
@@ -389,8 +427,10 @@ export default function AboutPage() {
                   className="size-40 rounded-full object-cover"
                 />
                 <div className="text-sm/6">
-                  <h4 className="font-medium">Joana Goulão Barros, MD, PhD </h4>
-                  <p className="text-eleva-neutral-900/60">Obstetrics & Gynecology</p>
+                  <h4 className="font-medium text-eleva-primary">Joana Goulão Barros, MD, PhD </h4>
+                  <p className="font-mono text-xs text-eleva-neutral-900">
+                    Obstetrics & Gynecology
+                  </p>
                 </div>
               </li>
             </ul>
