@@ -1,13 +1,31 @@
 import { type Locale, locales } from '@/i18n/routing';
-import type { Metadata } from 'next';
+import { cn } from '@/lib/utils';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
+import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import type React from 'react';
 
 import '../globals.css';
+import { ThemeProvider } from '../theme-provider';
 
-export const metadata: Metadata = {
+const lora = Lora({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-lora',
+});
+const alexandria = Alexandria({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-alexandria',
+});
+const jetBrains = JetBrains_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-jetbrains',
+});
+
+export const metadata = {
   title: 'Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care',
   description:
     'Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.',
@@ -47,9 +65,23 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
-      {children}
-    </NextIntlClientProvider>
+    <html
+      lang={locale}
+      className={cn(
+        `${alexandria.variable} ${lora.variable} ${jetBrains.variable}`,
+        'scroll-smooth',
+      )}
+      suppressHydrationWarning
+    >
+      <head />
+      <body className="min-h-screen bg-background font-sans antialiased">
+        <ThemeProvider>
+          <NextIntlClientProvider locale={locale} messages={messages}>
+            {children}
+          </NextIntlClientProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }
 

@@ -6,12 +6,10 @@ import type { ReactNode } from 'react';
 
 export default function PublicLayout({ children }: { children: ReactNode }) {
   return (
-    <>
-      <div className="relative overflow-hidden">
-        <Header />
-        {children}
-        <Footer />
-      </div>
-    </>
+    <div className="relative overflow-hidden">
+      <Header />
+      {children}
+      <Footer />
+    </div>
   );
 }
