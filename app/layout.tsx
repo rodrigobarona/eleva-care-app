@@ -1,29 +1,8 @@
-import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
-import { LanguageProvider } from '@/components/molecules/LanguageProvider';
-import { cn } from '@/lib/utils';
 import type { Metadata } from 'next';
-import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
-import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import type React from 'react';
 
 import './globals.css';
-import { ClientProviders, Providers } from './providers';
-
-const lora = Lora({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-lora',
-});
-const alexandria = Alexandria({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-alexandria',
-});
-const jetBrains = JetBrains_Mono({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-jetbrains',
-});
+import { ThemeProvider } from './theme-provider';
 
 export const metadata: Metadata = {
   title: 'Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care',
@@ -53,28 +32,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <Providers>
-      <html
-        lang="en"
-        className={cn(
-          `${alexandria.variable} ${lora.variable} ${jetBrains.variable}`,
-          'scroll-smooth',
-        )}
-        suppressHydrationWarning
-      >
-        <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-        </head>
-        <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
-          <ErrorBoundaryWrapper>
-            <NuqsAdapter>
-              <ClientProviders>
-                <LanguageProvider>{children}</LanguageProvider>
-              </ClientProviders>
-            </NuqsAdapter>
-          </ErrorBoundaryWrapper>
-        </body>
-      </html>
-    </Providers>
+    <html lang="en" suppressHydrationWarning>
+      <head />
+      <body className="min-h-screen bg-background font-sans antialiased">
+        <ThemeProvider>{children}</ThemeProvider>
+      </body>
+    </html>
   );
 }

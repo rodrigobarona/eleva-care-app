@@ -71,29 +71,24 @@ function LocaleLayoutContent({
 }) {
   return (
     <Providers>
-      <html
-        lang={locale}
+      <div
         className={cn(
           `${alexandria.variable} ${lora.variable} ${jetBrains.variable}`,
           'scroll-smooth',
         )}
+        lang={locale}
         suppressHydrationWarning
       >
-        <head>
-          <meta name="viewport" content="width=device-width, initial-scale=1" />
-        </head>
-        <body className="min-h-screen bg-background font-sans antialiased" suppressHydrationWarning>
-          <ErrorBoundaryWrapper>
-            <NuqsAdapter>
-              <ClientProviders>
-                <NextIntlClientProvider locale={locale} messages={messages}>
-                  {children}
-                </NextIntlClientProvider>
-              </ClientProviders>
-            </NuqsAdapter>
-          </ErrorBoundaryWrapper>
-        </body>
-      </html>
+        <ErrorBoundaryWrapper>
+          <NuqsAdapter>
+            <ClientProviders>
+              <NextIntlClientProvider locale={locale} messages={messages}>
+                {children}
+              </NextIntlClientProvider>
+            </ClientProviders>
+          </NuqsAdapter>
+        </ErrorBoundaryWrapper>
+      </div>
     </Providers>
   );
 }
@@ -102,7 +97,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   // Await the params to get the locale
   const { locale } = await params;
 
-  // Validate that the incoming locale is valid
+  // Validate locale and get messages
   const isValidLocale = (loc: string): loc is Locale => {
     return (locales as readonly string[]).includes(loc);
   };
@@ -113,8 +108,6 @@ export default async function LocaleLayout({ children, params }: Props) {
 
   // Enable static rendering
   setRequestLocale(locale);
-
-  // Get messages for server
   const messages = await getMessages();
 
   return (
