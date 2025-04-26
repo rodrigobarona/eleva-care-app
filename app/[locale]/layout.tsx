@@ -1,32 +1,11 @@
-import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
 import { type Locale, locales } from '@/i18n/routing';
-import { cn } from '@/lib/utils';
 import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
-import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
 import { notFound } from 'next/navigation';
-import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import type React from 'react';
 
 import '../globals.css';
-import { ClientProviders, Providers } from '../providers';
-
-const lora = Lora({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-lora',
-});
-const alexandria = Alexandria({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-alexandria',
-});
-const jetBrains = JetBrains_Mono({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-jetbrains',
-});
 
 export const metadata: Metadata = {
   title: 'Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care',
@@ -56,53 +35,10 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
-// Type for messages
-type Messages = Record<string, unknown>;
-
-// Synchronous client component that can use hooks
-function LocaleLayoutContent({
-  locale,
-  messages,
-  children,
-}: {
-  locale: string;
-  messages: Messages;
-  children: React.ReactNode;
-}) {
-  return (
-    <Providers>
-      <div
-        className={cn(
-          `${alexandria.variable} ${lora.variable} ${jetBrains.variable}`,
-          'scroll-smooth',
-        )}
-        lang={locale}
-        suppressHydrationWarning
-      >
-        <ErrorBoundaryWrapper>
-          <NuqsAdapter>
-            <ClientProviders>
-              <NextIntlClientProvider locale={locale} messages={messages}>
-                {children}
-              </NextIntlClientProvider>
-            </ClientProviders>
-          </NuqsAdapter>
-        </ErrorBoundaryWrapper>
-      </div>
-    </Providers>
-  );
-}
-
 export default async function LocaleLayout({ children, params }: Props) {
-  // Await the params to get the locale
   const { locale } = await params;
 
-  // Validate locale and get messages
-  const isValidLocale = (loc: string): loc is Locale => {
-    return (locales as readonly string[]).includes(loc);
-  };
-
-  if (!isValidLocale(locale)) {
+  if (!locales.includes(locale as Locale)) {
     notFound();
   }
 
@@ -111,8 +47,13 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   return (
-    <LocaleLayoutContent locale={locale} messages={messages}>
+    <NextIntlClientProvider locale={locale} messages={messages}>
       {children}
-    </LocaleLayoutContent>
+    </NextIntlClientProvider>
   );
+}
+
+// Generate static parameters for all locales
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
 }

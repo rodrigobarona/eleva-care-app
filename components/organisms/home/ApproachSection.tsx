@@ -1,24 +1,12 @@
 'use client';
 
-import { useLanguage } from '@/components/molecules/LanguageProvider';
-import { translations as br } from '@/public/locales/br';
-import { translations as en } from '@/public/locales/en';
-import { translations as es } from '@/public/locales/es';
-import { translations as pt } from '@/public/locales/pt';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import type React from 'react';
 import ReactMarkdown from 'react-markdown';
 
-const languageMap = {
-  en,
-  br,
-  pt,
-  es,
-};
-
 const ApproachSection: React.FC = () => {
-  const { lang } = useLanguage();
-  const t = languageMap[lang];
+  const t = useTranslations('approach');
 
   return (
     <section
@@ -46,11 +34,11 @@ const ApproachSection: React.FC = () => {
           <div className="col-span-12 pl-6 lg:col-span-7 lg:pl-16">
             <div>
               <h2 className="text-pretty font-serif text-3xl font-light tracking-tighter text-eleva-neutral-100 data-[dark]:text-eleva-neutral-100 lg:text-6xl">
-                {t.approach.title}
+                {t('title')}
               </h2>
             </div>
             <ol className="mx-auto mt-6 list-none text-eleva-neutral-100 marker:text-[#40514e] lg:mt-8">
-              {t.approach.items.map((item, index) => (
+              {t.raw('items').map((item: string, index: number) => (
                 <li
                   key={item}
                   className="flex flex-row items-start pr-4 sm:text-balance lg:items-center lg:pr-0"

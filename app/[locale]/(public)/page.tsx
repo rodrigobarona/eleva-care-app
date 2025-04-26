@@ -1,18 +1,15 @@
-export default async function HomePage() {
-  // Here you can add any logic to decide where to redirect
-  // For example, you might redirect authenticated users to dashboard
-  // and unauthenticated users to landing page
-  // <main>
-  // <Hero />
-  // <ServicesSection />
-  // <ApproachSection />
-  // <ExpertsSection />
-  // </main>
-  // For now, we'll just render the homepage content
+import ApproachSection from '@/components/organisms/home/ApproachSection';
+import ExpertsSection from '@/components/organisms/home/ExpertsSection';
+import Hero from '@/components/organisms/home/Hero';
+import ServicesSection from '@/components/organisms/home/Services';
+
+export default function HomePage() {
   return (
-    <div className="container mx-auto py-12">
-      <h1 className="text-4xl font-bold">Eleva Care</h1>
-      <p className="mt-4 text-xl">Expert care for Pregnancy, Postpartum & Sexual Health</p>
-    </div>
+    <main>
+      <Hero />
+      <ServicesSection />
+      <ApproachSection />
+      <ExpertsSection />
+    </main>
   );
 }

@@ -10,6 +10,10 @@
     "signIn": "Iniciar sesión",
     "signOut": "Cerrar sesión"
   },
+  "About": {
+    "title": "Sobre Eleva Care",
+    "description": "Eleva Care proporciona cuidados especializados para el embarazo, postparto, menopausia y salud sexual."
+  },
   "hero": {
     "title": "Atención de Clase Mundial para Mujeres, *cuando lo necesites.*",
     "subtitle": "Reserva con los Principales Especialistas en Salud de la Mujer - A Tu Ritmo.",

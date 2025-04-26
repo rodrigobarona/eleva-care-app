@@ -1,12 +1,11 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createIntlMiddleware from 'next-intl/middleware';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 import { locales } from './i18n/routing';
 
 // Create the internationalization middleware
 const intlMiddleware = createIntlMiddleware({
-  // Locales from your i18n configuration
   locales,
   defaultLocale: 'en',
   localePrefix: 'as-needed',
@@ -16,6 +15,7 @@ const intlMiddleware = createIntlMiddleware({
 const publicRoutes = [
   '/',
   '/about',
+  '/legal',
   '/legal/privacy',
   '/legal/terms',
   '/sign-in',
@@ -29,11 +29,14 @@ const publicRoutes = [
 // Create a route matcher for public routes
 const isPublicRoute = createRouteMatcher([
   ...publicRoutes,
-  // Include routes with locale prefixes
-  ...locales.flatMap((locale) => publicRoutes.map((route) => `/${locale}${route}`)),
+  // Create patterns for localized routes
+  ...locales.map((locale) => `/${locale}`), // Add explicit locale root paths
+  ...locales.flatMap((locale) =>
+    publicRoutes.map((route) => (route === '/' ? `/${locale}` : `/${locale}${route}`)),
+  ),
 ]);
 
-// Combine Clerk auth and next-intl middleware
+// Use Clerk middleware with next-intl
 export default clerkMiddleware((auth, req) => {
   // Skip static assets
   if (
@@ -44,14 +47,32 @@ export default clerkMiddleware((auth, req) => {
     return;
   }
 
-  // For public routes or API routes, don't require authentication
-  if (isPublicRoute(req) || req.nextUrl.pathname.startsWith('/api')) {
-    return intlMiddleware(req as unknown as NextRequest);
+  // Check if this is a public route or API route
+  const isPublic = isPublicRoute(req) || req.nextUrl.pathname.startsWith('/api');
+
+  // For debugging
+  console.log(`Path: ${req.nextUrl.pathname}, Public: ${isPublic}`);
+
+  if (isPublic) {
+    // Apply internationalization for public routes
+    try {
+      // @ts-expect-error - Type mismatch between Clerk and next-intl
+      return intlMiddleware(req);
+    } catch (error) {
+      console.error('Error in i18n middleware:', error);
+      return NextResponse.next();
+    }
   }
 
   // For protected routes, require authentication
   return auth.protect().then(() => {
-    return intlMiddleware(req as unknown as NextRequest);
+    try {
+      // @ts-expect-error - Type mismatch between Clerk and next-intl
+      return intlMiddleware(req);
+    } catch (error) {
+      console.error('Error in i18n middleware after auth:', error);
+      return NextResponse.next();
+    }
   });
 });
 
