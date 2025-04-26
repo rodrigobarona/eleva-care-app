@@ -2,5 +2,5 @@ import { createNavigation } from 'next-intl/navigation';
 
 import { routing } from './routing';
 
-// Create navigation functions with the routing configuration
+// Create shared navigation functions for consistent client and server navigation
 export const { Link, redirect, usePathname, useRouter } = createNavigation(routing);

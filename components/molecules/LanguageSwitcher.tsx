@@ -1,9 +1,10 @@
 'use client';
 
-import { usePathname, useRouter } from '@/i18n/navigation';
-import { type Locale, locales } from '@/i18n/routing';
+import { useRouter } from '@/i18n/navigation';
+import { usePathname } from '@/i18n/navigation';
+import { locales } from '@/i18n/routing';
 import { useLocale } from 'next-intl';
-import { useState } from 'react';
+import { useTransition } from 'react';
 
 const localeNames = {
   en: 'English',
@@ -13,69 +14,56 @@ const localeNames = {
 };
 
 export function LanguageSwitcher() {
-  const [isOpen, setIsOpen] = useState(false);
-  const pathname = usePathname();
+  const locale = useLocale();
   const router = useRouter();
-  const currentLocale = useLocale();
+  const pathname = usePathname();
+  const [isPending, startTransition] = useTransition();
 
-  // Get translations (optional - for if you want to translate the language names)
-  // const t = useTranslations('language');
+  function onSelectChange(event: React.ChangeEvent<HTMLSelectElement>) {
+    const nextLocale = event.target.value;
 
-  // Extract current locale from URL path
-  const isValidLocale = locales.includes(currentLocale as Locale) ? currentLocale : 'en';
-
-  const switchLocale = (newLocale: string) => {
-    if (newLocale === currentLocale) {
-      setIsOpen(false);
-      return;
-    }
-
-    // Use next-intl router to switch locale without full page reload
-    router.replace(pathname, { locale: newLocale });
-    setIsOpen(false);
-  };
+    startTransition(() => {
+      // Use pathname to keep the user on the same page
+      router.replace(pathname, { locale: nextLocale });
+    });
+  }
 
   return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center space-x-1 text-sm font-medium text-eleva-neutral-900 dark:text-eleva-neutral-100"
+    <label className="relative text-eleva-neutral-900 dark:text-eleva-neutral-100">
+      <p className="sr-only">Select language</p>
+      <select
+        className="appearance-none bg-transparent py-2 pl-2 pr-8"
+        defaultValue={locale}
+        disabled={isPending}
+        onChange={onSelectChange}
       >
-        <span>{localeNames[isValidLocale as keyof typeof localeNames] || 'English'}</span>
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <path d="m6 9 6 6 6-6" />
-        </svg>
-      </button>
-
-      {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-2 overflow-hidden rounded-md bg-white shadow-md dark:bg-eleva-neutral-900">
-          <ul className="py-1">
-            {locales.map((locale) => (
-              <li key={locale}>
-                <button
-                  type="button"
-                  className={`block w-full px-4 py-2 text-left text-sm ${isValidLocale === locale ? 'dark:bg-eleva-neutral-800 bg-gray-100' : ''} dark:hover:bg-eleva-neutral-800 text-eleva-neutral-900 hover:bg-gray-50 dark:text-eleva-neutral-100`}
-                  onClick={() => switchLocale(locale)}
-                >
-                  {localeNames[locale as keyof typeof localeNames]}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </div>
+        {locales.map((loc) => (
+          <option key={loc} value={loc}>
+            {localeNames[loc as keyof typeof localeNames]}
+          </option>
+        ))}
+      </select>
+      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2">
+        {isPending ? (
+          <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-t-transparent" />
+        ) : (
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <title>Dropdown Arrow</title>
+            <path d="m6 9 6 6 6-6" />
+          </svg>
+        )}
+      </span>
+    </label>
   );
 }

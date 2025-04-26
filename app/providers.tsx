@@ -99,7 +99,19 @@ export function ClientProviders({ children, locale, messages }: ClientProvidersP
   }, []);
 
   return (
-    <NextIntlClientProvider locale={locale} messages={messages}>
+    <NextIntlClientProvider
+      locale={locale}
+      messages={messages}
+      onError={(error) => {
+        if (error.code === 'MISSING_MESSAGE') {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Missing translation:', error.message);
+          }
+          return error.message;
+        }
+        throw error;
+      }}
+    >
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         <AuthorizationProvider>
           <CookieManager
