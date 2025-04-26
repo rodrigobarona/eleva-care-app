@@ -2,6 +2,7 @@
 
 import { AuthorizationProvider } from '@/components/molecules/AuthorizationProvider';
 import { ClerkProvider } from '@clerk/nextjs';
+import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { posthog } from 'posthog-js';
@@ -45,9 +46,31 @@ export function Providers({ children }: ProvidersProps) {
  */
 export function ClientProviders({ children }: ProvidersProps) {
   const [posthogLoaded, setPosthogLoaded] = useState(false);
+  type Messages = Record<string, unknown>;
+  const [messages, setMessages] = useState<Messages>({});
+  const [locale, setLocale] = useState<string>('en');
 
   useEffect(() => {
-    // Only run on client
+    // Get the locale from URL parameter
+    const urlParams = new URLSearchParams(window.location.search);
+    const langParam = urlParams.get('lang');
+    const currentLocale = langParam || 'en';
+    setLocale(currentLocale);
+
+    // Load messages based on locale
+    import(`../messages/${currentLocale}.json`)
+      .then((module) => {
+        setMessages(module.default);
+      })
+      .catch((error) => {
+        console.error(`Failed to load messages for locale ${currentLocale}`, error);
+        // Fallback to English if locale not found
+        import('../messages/en.json').then((module) => {
+          setMessages(module.default);
+        });
+      });
+
+    // PostHog setup
     if (typeof window === 'undefined') return;
 
     // Skip PostHog on localhost/development environments
@@ -92,33 +115,35 @@ export function ClientProviders({ children }: ProvidersProps) {
   }, []);
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <AuthorizationProvider>
-        <CookieManager
-          cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
-          showManageButton={true}
-          enableFloatingButton={false}
-          displayType="popup"
-          cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
-          theme="light"
-          privacyPolicyUrl="/legal/cookie"
-          translations={{
-            title: 'Cookie Preferences',
-            message:
-              'We use cookies to enhance your experience, analyze site traffic, and for marketing purposes. By clicking "Accept", you consent to our use of cookies.',
-            buttonText: 'Accept All',
-            declineButtonText: 'Decline All',
-            manageButtonText: 'Manage Preferences',
-            privacyPolicyText: 'Cookie Policy',
-          }}
-        >
-          <PHProvider client={posthog}>
-            {posthogLoaded && <PostHogPageView />}
-            {children}
-          </PHProvider>
-          <Toaster closeButton position="bottom-right" richColors />
-        </CookieManager>
-      </AuthorizationProvider>
-    </ThemeProvider>
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <AuthorizationProvider>
+          <CookieManager
+            cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
+            showManageButton={true}
+            enableFloatingButton={false}
+            displayType="popup"
+            cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
+            theme="light"
+            privacyPolicyUrl="/legal/cookie"
+            translations={{
+              title: 'Cookie Preferences',
+              message:
+                'We use cookies to enhance your experience, analyze site traffic, and for marketing purposes. By clicking "Accept", you consent to our use of cookies.',
+              buttonText: 'Accept All',
+              declineButtonText: 'Decline All',
+              manageButtonText: 'Manage Preferences',
+              privacyPolicyText: 'Cookie Policy',
+            }}
+          >
+            <PHProvider client={posthog}>
+              {posthogLoaded && <PostHogPageView />}
+              {children}
+            </PHProvider>
+            <Toaster closeButton position="bottom-right" richColors />
+          </CookieManager>
+        </AuthorizationProvider>
+      </ThemeProvider>
+    </NextIntlClientProvider>
   );
 }

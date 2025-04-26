@@ -7,26 +7,24 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/molecules/accordion';
-import { useLanguage } from '@/components/molecules/LanguageProvider';
-import { translations as br } from '@/public/locales/br';
-import { translations as en } from '@/public/locales/en';
-import { translations as es } from '@/public/locales/es';
-import { translations as pt } from '@/public/locales/pt';
+import { ServiceIcons } from '@/lib/icons/ServiceIcons';
 import { ChevronRight } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import type React from 'react';
 import ReactMarkdown from 'react-markdown';
 
-const languageMap = {
-  en,
-  br,
-  pt,
-  es,
+type ServiceItem = {
+  icon: string;
+  title: string;
+  description: string;
+  items: string[];
+  image: string;
+  cta: string;
 };
 
 const ServiceSection: React.FC = () => {
-  const { lang } = useLanguage();
-  const t = languageMap[lang];
+  const t = useTranslations('services');
 
   return (
     <section
@@ -36,17 +34,17 @@ const ServiceSection: React.FC = () => {
       <div className="mx-auto max-w-2xl lg:max-w-7xl">
         <div className="mb-12">
           <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70 data-[dark]:text-eleva-neutral-900/60">
-            {t.services.title}
+            {t('title')}
           </h2>
           <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-primary data-[dark]:text-eleva-neutral-100 sm:text-6xl">
-            {t.services.subtitle}
+            {t('subtitle')}
           </h3>
         </div>
         <p className="mt-6 text-balance text-base font-light text-eleva-neutral-900 lg:text-xl">
-          {t.services.description}
+          {t('description')}
         </p>
         <div className="mt-12 grid gap-2 md:grid-cols-2 md:gap-10 lg:grid-cols-2">
-          {t.services.items.map((service) => (
+          {t.raw('items').map((service: ServiceItem) => (
             <Card
               key={service.title}
               className="overflow-hidden border-[#0d6c70]/10 bg-eleva-neutral-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
@@ -66,7 +64,7 @@ const ServiceSection: React.FC = () => {
               <CardContent className="flex flex-col p-6 pt-6">
                 <div className="flex min-h-48 flex-col">
                   <div className="mb-4 flex items-center">
-                    {service.icon}
+                    {ServiceIcons[service.icon as keyof typeof ServiceIcons]?.()}
                     <h3 className="ml-2 font-serif text-2xl font-normal text-eleva-primary">
                       {service.title}
                     </h3>
@@ -79,7 +77,7 @@ const ServiceSection: React.FC = () => {
                         <AccordionTrigger>{service.cta}</AccordionTrigger>
                         <AccordionContent>
                           <ul className="mt-4 list-inside list-disc text-eleva-neutral-900">
-                            {service.items.map((item) => (
+                            {service.items.map((item: string) => (
                               <li key={item} className="flex items-start pb-2 text-base">
                                 <ChevronRight className="mr-2 mt-1 h-4 w-4 shrink-0" />
                                 <div className="flex-1">

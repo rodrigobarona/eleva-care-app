@@ -1,255 +1,163 @@
-/**
- * Role-Based Access Control Middleware
- *
- * This middleware implements a comprehensive authorization strategy:
- * 1. Public routes are explicitly allowed without authentication
- * 2. Authentication is required for all other routes
- * 3. Specific route patterns are restricted to users with appropriate roles
- * 4. Webhook routes completely bypass authentication
- *
- * This is the first layer of defense in our multi-layered approach.
- * Additional role checks are implemented at layout and page levels.
- *
- * @see /docs/role-based-authorization.md for complete documentation
- */
-import { checkRoles } from '@/lib/auth/roles.server';
-import {
-  ADMIN_ROLES,
-  ADMIN_ROUTES,
-  EXPERT_ROLES,
-  EXPERT_ROUTES,
-  PUBLIC_ROUTES,
-  SPECIAL_AUTH_ROUTES,
-} from '@/lib/constants/roles';
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-// Simple and reliable path matcher
-function isPathMatch(path: string, pattern: string): boolean {
-  // Handle exact matches
-  if (pattern === path) return true;
+import { routing } from './i18n/routing';
+import { defaultLocale, locales } from './i18n/routing';
+import type { Locale } from './i18n/routing';
 
-  // Handle wildcard patterns (e.g., /admin*)
-  if (pattern.endsWith('*')) {
-    const basePath = pattern.slice(0, -1);
-    return path.startsWith(basePath);
+// Create the next-intl middleware with our centralized routing configuration
+const intlMiddleware = createMiddleware(routing);
+
+// Define which routes should be public
+const publicRoutes = [
+  // Public static pages
+  '/',
+  '/about',
+  '/legal/privacy',
+  '/legal/terms',
+  // Username routes (public profiles and booking)
+  '/[username]',
+  '/[username]/[eventSlug]',
+  '/[username]/[eventSlug]/success',
+  '/[username]/[eventSlug]/payment-processing',
+];
+
+// Non-default locales that will have a prefix
+// Use explicit type assertions to help TypeScript narrow the types
+const nonDefaultLocales: Array<Exclude<Locale, typeof defaultLocale>> = locales.filter(
+  (locale): locale is Exclude<Locale, typeof defaultLocale> => locale !== defaultLocale,
+);
+
+// Create a route matcher for public routes (with and without locale prefix)
+const isPublicRoute = createRouteMatcher([
+  // Include routes without locale prefix (base routes)
+  ...publicRoutes,
+  // Include routes with locale prefixes from routing config
+  ...routing.locales.flatMap((locale) => publicRoutes.map((route) => `/${locale}${route}`)),
+]);
+
+// Function to check if a pathname matches dynamic routes with real values
+function matchesDynamicRoute(pathname: string, pattern: string): boolean {
+  // Replace dynamic parts with regex patterns
+  const normalizedPattern = pattern
+    .replace(/\[username\]/g, '([\\w-]+)')
+    .replace(/\[eventSlug\]/g, '([\\w-]+)');
+
+  // Create a regex with start/end anchors
+  const regex = new RegExp(`^${normalizedPattern.replace(/\//g, '\\/')}$`);
+  return regex.test(pathname);
+}
+
+// Check if the path is a username route
+function isUsernameRoute(pathname: string): boolean {
+  // Simple check: path with single segment and no special characters
+  const usernamePattern = /^\/[\w-]+\/?$/;
+  return usernamePattern.test(pathname);
+}
+
+// Extract username from the path
+function extractUsername(pathname: string): string {
+  return pathname.replace(/^\//, '').replace(/\/$/, '');
+}
+
+// Middleware for handling locale-specific logic
+function handleLocalizedPaths(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Skip static assets, API routes, etc.
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/img') ||
+    pathname.includes('.')
+  ) {
+    return null;
   }
 
-  // Handle username patterns specifically
-  if (pattern === '/:username') {
-    const segments = path.split('/').filter(Boolean);
-    return segments.length === 1;
+  // Check if this is already a localized path
+  const hasLocalePrefix = nonDefaultLocales.some(
+    (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`,
+  );
+
+  // If it's already localized, let next-intl handle it
+  if (hasLocalePrefix) {
+    return null;
   }
 
-  // Handle username with subpaths pattern
-  if (pattern === '/:username/(.*)') {
-    const segments = path.split('/').filter(Boolean);
-    return segments.length >= 2;
-  }
+  // For non-localized paths, get user's preferred locale from cookie
+  const localeCookie = request.cookies.get('NEXT_LOCALE');
+  const preferredLocale = localeCookie?.value as Locale | undefined;
 
-  // Handle regex-like patterns
-  if (pattern.includes('(') && pattern.includes(')')) {
-    try {
-      const regexPattern = pattern
-        .replace(/\//g, '\\/') // Escape forward slashes
-        .replace(/\(/g, '\\(')
-        .replace(/\)/g, '\\)')
-        .replace(/\*/g, '.*')
-        .replace(/\?/g, '.');
-      const regex = new RegExp(`^${regexPattern}$`);
-      return regex.test(path);
-    } catch {
-      console.error('Invalid regex pattern:', pattern);
-      return false;
+  // Check if preferredLocale is a non-default locale
+  const isNonDefaultLocale = preferredLocale && preferredLocale !== defaultLocale;
+
+  // If user prefers a non-default locale, redirect to that locale version
+  if (isNonDefaultLocale) {
+    // Special handling for the root path
+    if (pathname === '/') {
+      const url = request.nextUrl.clone();
+      url.pathname = `/${preferredLocale}`;
+      return NextResponse.redirect(url);
+    }
+
+    // Check if this is a known route pattern
+    for (const route of publicRoutes) {
+      if (route === '/') continue; // Root already handled
+
+      if (matchesDynamicRoute(pathname, route)) {
+        const url = request.nextUrl.clone();
+        url.pathname = `/${preferredLocale}${pathname}`;
+        return NextResponse.redirect(url);
+      }
     }
   }
 
-  return false;
+  // No redirection needed, continue with the current path
+  return null;
 }
 
-// Check if a path matches any patterns in the array
-function matchPatternsArray(path: string, patterns: readonly string[]): boolean {
-  return patterns.some((pattern) => isPathMatch(path, pattern));
-}
-
-// Check if a user is an expert with incomplete setup
-async function isExpertWithIncompleteSetup(authObject: any): Promise<boolean> {
-  const userRoleData = authObject?.sessionClaims?.metadata?.role;
-  if (!userRoleData) return false;
-
-  // Check if user has an expert role
-  const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
-  if (!isExpert) return false;
-
-  // Get expert setup data from unsafeMetadata
-  const expertSetup = authObject?.sessionClaims?.unsafeMetadata?.expertSetup;
-  if (!expertSetup) return true; // If no setup data, consider setup incomplete
-
-  // Required setup steps that must be present for a complete setup
-  const requiredSetupSteps = [
-    'events',
-    'payment',
-    'profile',
-    'identity',
-    'availability',
-    'google_account',
-  ];
-
-  // Check if all required steps are present AND true
-  const setupComplete = requiredSetupSteps.every((step) => expertSetup[step] === true);
-
-  // Return true if setup is incomplete (any required step is missing or false)
-  return !setupComplete;
-}
-
+/**
+ * Middleware for the application:
+ * 1. Process i18n routing for locale detection and redirects
+ * 2. Allow public routes without authentication
+ * 3. Require authentication for all other routes
+ * 4. Restrict specific route patterns to users with roles
+ * 5. Allow webhook routes to bypass authentication
+ */
 export default clerkMiddleware(async (auth, req) => {
-  const path = req.nextUrl.pathname;
-  console.log(`🔍 Processing route: ${path}`);
+  // First, check if we need to redirect based on user's preferred locale
+  const redirectResponse = handleLocalizedPaths(req);
+  if (redirectResponse) return redirectResponse;
 
-  // Fast path for username routes (critical fix)
-  const segments = path.split('/').filter(Boolean);
-  if (segments.length >= 2 && !path.startsWith('/api/')) {
-    console.log(`👤 Potential username route: ${path}`);
+  // Check if it's a public route that needs to be handled
+  if (isPublicRoute(req)) {
+    // Handle i18n routing for public routes
+    return intlMiddleware(req);
+  }
+
+  // Skip static assets, API routes, etc.
+  if (
+    req.nextUrl.pathname.startsWith('/_next') ||
+    req.nextUrl.pathname.startsWith('/api') ||
+    req.nextUrl.pathname.startsWith('/img') ||
+    req.nextUrl.pathname.includes('.')
+  ) {
     return NextResponse.next();
   }
 
-  // Handle special cases
-  if (path.startsWith('/api/webhooks/')) {
-    console.log(`Webhook route allowed: ${path}`);
-    return NextResponse.next();
-  }
+  // Protect all other routes
+  await auth.protect();
 
-  // Check if the path is in SPECIAL_AUTH_ROUTES (including cron jobs)
-  if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
-    console.log(`Special auth route detected: ${path}`);
-
-    // For cron jobs, apply both enhanced checks and fallback
-    if (path.startsWith('/api/cron/')) {
-      console.log('Cron endpoint detected:', path);
-
-      // Debug headers to identify what's missing
-      const allHeaders = Object.fromEntries(req.headers.entries());
-      console.log('Request headers for cron job:', JSON.stringify(allHeaders, null, 2));
-
-      // More flexible detection of QStash requests
-      const isQStashRequest =
-        req.headers.get('x-qstash-request') === 'true' ||
-        req.headers.has('upstash-signature') ||
-        req.headers.has('x-upstash-signature') ||
-        req.headers.has('x-signature') ||
-        req.url.includes('signature=');
-
-      const apiKey = req.headers.get('x-api-key');
-      const userAgent = req.headers.get('user-agent') || '';
-
-      // Accept requests from UpStash User-Agent too
-      const isUpstashUserAgent =
-        userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
-
-      // FALLBACK: If this is a production environment and UpStash is struggling to connect
-      // Make cron endpoints accessible without auth in production (FALLBACK MECHANISM)
-      const isProduction = process.env.NODE_ENV === 'production';
-      const isDeploymentFallbackEnabled = process.env.ENABLE_CRON_FALLBACK === 'true';
-
-      if (
-        isQStashRequest ||
-        isUpstashUserAgent ||
-        apiKey === process.env.CRON_API_KEY ||
-        (isProduction && isDeploymentFallbackEnabled)
-      ) {
-        console.log('✅ Authorized cron request - allowing access');
-        return NextResponse.next();
-      }
-
-      console.log('❌ Unauthorized cron request - denying access');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Other special auth routes might have different logic
-    return NextResponse.next();
-  }
-
-  // Check public routes
-  if (matchPatternsArray(path, PUBLIC_ROUTES)) {
-    console.log(`Public route allowed: ${path}`);
-    return NextResponse.next();
-  }
-
-  // Beyond this point, authentication is required
-  const { userId } = await auth();
-
-  if (!userId) {
-    if (path.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    console.log(`Auth required: ${path}`);
-    await auth.protect();
-    return NextResponse.next();
-  }
-
-  // Expert setup redirect - check if it's an expert with incomplete setup
-  // Only apply this logic for root path or dashboard (where users land after login)
-  if (userId && (path === '/' || path === '/dashboard')) {
-    const authObj = await auth();
-    const needsSetup = await isExpertWithIncompleteSetup(authObj);
-
-    if (needsSetup) {
-      console.log('Expert with incomplete setup detected, redirecting to setup page');
-      return NextResponse.redirect(new URL('/setup', req.url));
-    }
-
-    // Redirect from root to dashboard for normal users
-    if (path === '/') {
-      return NextResponse.redirect(
-        new URL(
-          process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL || '/dashboard',
-          req.url,
-        ),
-      );
-    }
-  }
-
-  // Handle role-based access
-  if (userId) {
-    const authObj = await auth();
-    const userMetadata = (authObj.sessionClaims?.metadata as { role?: string | string[] }) || {};
-    const userRoleData = userMetadata.role;
-
-    // Admin route check
-    if (matchPatternsArray(path, ADMIN_ROUTES)) {
-      const isAdmin = checkRoles(userRoleData, ADMIN_ROLES);
-      if (!isAdmin) {
-        return path.startsWith('/api/')
-          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-          : NextResponse.redirect(
-              new URL(process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL || '/unauthorized', req.url),
-            );
-      }
-    }
-
-    // Expert route check
-    if (matchPatternsArray(path, EXPERT_ROUTES)) {
-      const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
-      if (!isExpert) {
-        return path.startsWith('/api/')
-          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-          : NextResponse.redirect(
-              new URL(process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL || '/unauthorized', req.url),
-            );
-      }
-    }
-  }
-
-  return NextResponse.next();
+  // After protection, also apply i18n middleware to handle localization for authenticated routes
+  return intlMiddleware(req);
 });
 
-/**
- * Configure which paths the middleware runs on
- * This matches everything except static files and img directory
- */
 export const config = {
+  // Match all request paths except for static files and specific extensions
   matcher: [
-    '/((?!_next/static|_next/image|img|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|webm)).*)',
+    // Match all paths except _next, img, static files and API routes
+    '/((?!_next/static|_next/image|img|favicon.ico|.*\\.).*)',
   ],
 };

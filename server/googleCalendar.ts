@@ -145,6 +145,7 @@ class GoogleCalendarService {
     durationInMinutes,
     eventName,
     timezone: providedTimezone,
+    locale = 'en',
   }: {
     clerkUserId: string;
     guestName: string;
@@ -154,6 +155,7 @@ class GoogleCalendarService {
     durationInMinutes: number;
     eventName: string;
     timezone?: string;
+    locale?: string;
   }) {
     const oAuthClient = await this.getOAuthClient(clerkUserId);
     const clerk = createClerkClient({
@@ -345,6 +347,7 @@ class GoogleCalendarService {
         eventTitle: eventName,
         meetLink: shortMeetLink || meetLink || undefined,
         notes: guestNotes ? guestNotes : undefined,
+        locale,
       });
 
       // Send the expert notification
@@ -379,6 +382,7 @@ class GoogleCalendarService {
         eventTitle: eventName,
         meetLink: shortMeetLink || meetLink || undefined,
         notes: guestNotes ? guestNotes : undefined,
+        locale,
       });
 
       const clientEmailResult = await sendEmail({
@@ -430,6 +434,7 @@ export async function createCalendarEvent(params: {
   durationInMinutes: number;
   eventName: string;
   timezone?: string; // Will be validated - invalid timezones will fall back to UTC
+  locale?: string; // Add locale parameter
 }) {
   return GoogleCalendarService.getInstance().createCalendarEvent(params);
 }

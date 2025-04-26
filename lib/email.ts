@@ -119,6 +119,16 @@ function generatePlainTextFromHTML(html: string): string {
  * Generates HTML and plain text for an appointment confirmation email
  *
  * @param params Parameters for the appointment email content
+ * @param params.expertName The name of the expert for the appointment
+ * @param params.clientName The name of the client booking the appointment
+ * @param params.appointmentDate Date formatted as a string (e.g., "Monday, April 8, 2025")
+ * @param params.appointmentTime Time formatted as a string (e.g., "10:30 AM - 11:30 AM")
+ * @param params.timezone Timezone string (e.g., "America/Los_Angeles")
+ * @param params.appointmentDuration Duration formatted as a string (e.g., "60 minutes")
+ * @param params.eventTitle The title/type of the event or appointment
+ * @param params.meetLink Optional Google Meet link for virtual appointments
+ * @param params.notes Optional notes from the client
+ * @param params.locale Optional locale code for email language (e.g., 'en', 'es', 'pt', 'br')
  * @returns Object containing HTML and plain text versions of the email
  */
 export async function generateAppointmentEmail(params: {
@@ -131,6 +141,7 @@ export async function generateAppointmentEmail(params: {
   eventTitle: string;
   meetLink?: string;
   notes?: string;
+  locale?: string; // Locale code for multilingual emails ('en', 'es', 'pt', 'br')
 }): Promise<{ html: string; text: string }> {
   // Import dynamically to avoid JSX in server component issues
   const { default: AppointmentConfirmation } = await import(
@@ -138,8 +149,13 @@ export async function generateAppointmentEmail(params: {
   );
   const { render } = await import('@react-email/render');
 
-  // Render the React Email component to HTML
-  const renderedHtml = await render(AppointmentConfirmation(params));
+  // Ensure locale is passed to the AppointmentConfirmation component
+  const renderedHtml = await render(
+    AppointmentConfirmation({
+      ...params,
+      locale: params.locale || 'en', // Default to English if not provided
+    }),
+  );
 
   // Generate plain text version
   const plainText = generatePlainTextFromHTML(renderedHtml);

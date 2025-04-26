@@ -1,17 +1,15 @@
-import ApproachSection from '@/components/organisms/home/ApproachSection';
-import ExpertsSection from '@/components/organisms/home/ExpertsSection';
-import Hero from '@/components/organisms/home/Hero';
-import ServicesSection from '@/components/organisms/home/Services';
+'use client';
 
-export default async function HomePage() {
-  // Authentication based redirects are now handled in middleware
+import { defaultLocale } from '@/locales';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-  return (
-    <main>
-      <Hero />
-      <ServicesSection />
-      <ApproachSection />
-      <ExpertsSection />
-    </main>
-  );
+export default function PublicIndexPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace(`/${defaultLocale}`);
+  }, [router]);
+
+  return null;
 }

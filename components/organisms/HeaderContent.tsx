@@ -1,6 +1,7 @@
 'use client';
 
 import { Icons } from '@/components/atoms/icons';
+import { LanguageSwitcher } from '@/components/molecules/LanguageSwitcher';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -80,6 +81,9 @@ export function HeaderContent() {
           <NavLink href="/about" isScrolled={isScrolled} isRootPath={isRootPath}>
             Our Mission
           </NavLink>
+          <div className={isRootPath && !isScrolled ? 'text-white' : 'text-foreground'}>
+            <LanguageSwitcher />
+          </div>
         </nav>
       </div>
     </header>
