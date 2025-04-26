@@ -10,6 +10,15 @@
     "signIn": "Iniciar sesión",
     "signOut": "Cerrar sesión"
   },
+  "metadata": {
+    "title": "Cuidado experto para Embarazo, Posparto y Salud Sexual | Eleva Care",
+    "description": "Eleva Care: Potenciando el crecimiento, brindando cuidado. Atención especializada para embarazo, posparto, menopausia y salud sexual.",
+    "og": {
+      "title": "Cuidado experto para Embarazo, Posparto y Salud Sexual | Eleva Care",
+      "description": "Eleva Care: Potenciando el crecimiento, brindando cuidado. Atención especializada para embarazo, posparto, menopausia y salud sexual.",
+      "siteName": "Eleva Care"
+    }
+  },
   "About": {
     "title": "Sobre Eleva Care",
     "description": "Eleva Care proporciona cuidados especializados para el embarazo, postparto, menopausia y salud sexual."
@@ -206,12 +215,56 @@
     "scholar": "Google Scholar"
   },
   "footer": {
-    "copyright": "© 2025 Eleva Care. Todos los derechos reservados.",
-    "privacy": "Política de privacidad",
-    "terms": "Términos y condiciones"
+    "cta": {
+      "title": "Únete a Nuestra Red",
+      "heading": "Descubre Tu Viaje de Cuidado Personalizado Hoy",
+      "description": "Realiza nuestra evaluación rápida de salud o programa tu consulta.",
+      "quiz": "Hacer el Cuestionario",
+      "book": "Reservar una Sesión"
+    },
+    "tagline": "Empoderando la salud de las mujeres a través de atención experta e innovación.",
+    "nav": {
+      "services": {
+        "title": "Servicios",
+        "pregnancy": "Cuidado del Embarazo",
+        "postpartum": "Apoyo Posparto",
+        "menopause": "Cuidado de la Menopausia"
+      },
+      "company": {
+        "title": "Empresa",
+        "about": "Sobre Nosotros",
+        "join": "Únete a Nosotros",
+        "dashboard": "Panel de Expertos"
+      },
+      "support": {
+        "title": "Soporte",
+        "help": "Centro de Ayuda",
+        "community": "Comunidad",
+        "contact": "Contacto"
+      },
+      "legal": {
+        "title": "Legal",
+        "terms": "Términos de Servicio",
+        "privacy": "Política de Privacidad",
+        "cookie": "Política de Cookies",
+        "preferences": "Preferencias de Cookies",
+        "dpa": "Procesamiento de Datos"
+      }
+    },
+    "copyright": "Todos los derechos reservados.",
+    "social": {
+      "instagram": "Síguenos en Instagram",
+      "twitter": "Síguenos en Twitter",
+      "linkedin": "Síguenos en LinkedIn"
+    }
   },
   "experts": {
     "title": "Expertos Destacados",
-    "subtitle": "El acceso a los mejores nunca ha sido más fácil"
+    "subtitle": "El acceso a los mejores nunca ha sido más fácil",
+    "description": "Conéctate con expertos de primera clase en fisioterapia y salud femenina. Nuestra plataforma ofrece acceso a profesionales líderes listos para apoyar tu viaje único de salud y bienestar.",
+    "topExpertBadge": "Experto Destacado",
+    "sessionLabel": "Sesión",
+    "expertImageAlt": "Foto de perfil de {name}",
+    "verifiedBadgeAlt": "Insignia de Experto Verificado"
   }
 }

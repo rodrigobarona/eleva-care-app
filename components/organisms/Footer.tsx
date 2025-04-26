@@ -1,9 +1,14 @@
 'use client';
 
 import { Button } from '@/components/atoms/button';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
+import { useCookieConsent } from 'react-cookie-manager';
 
 export default function Footer() {
+  const t = useTranslations('footer');
+  const { showConsentBanner } = useCookieConsent() || { showConsentBanner: () => {} };
+
   return (
     <footer>
       <div className="lg:rounded-5xl mx-2 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple">
@@ -17,24 +22,22 @@ export default function Footer() {
               <section className="relative my-32">
                 <div className="relative pb-16 pt-20 text-center sm:py-24">
                   <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
-                    Join Our Network
+                    {t('cta.title')}
                   </h2>
                   <p className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-neutral-900 sm:text-6xl">
-                    Discover Your Personalized
-                    <br />
-                    Care Journey Today
+                    {t('cta.heading')}
                   </p>
                   <p className="mx-auto mt-6 max-w-xs text-sm/6 text-gray-500">
-                    Take our quick health assessment or schedule your consultation.
+                    {t('cta.description')}
                   </p>
                   <div className="mt-6 flex justify-center gap-4">
                     <Button size="lg" className="rounded-full">
                       <Link href="https://patimota.typeform.com/to/XNQHJbgT" target="_blank">
-                        Take the Quiz
+                        {t('cta.quiz')}
                       </Link>
                     </Button>
                     <Button size="lg" variant="outline" className="rounded-full">
-                      <Link href="/#experts">Book a Session</Link>
+                      <Link href="/#experts">{t('cta.book')}</Link>
                     </Button>
                   </div>
                 </div>
@@ -53,9 +56,7 @@ export default function Footer() {
                         >
                           Eleva Care
                         </Link>
-                        <p className="mt-4 text-sm text-eleva-neutral-900/60">
-                          Empowering women&apos;s health through expert care and innovation.
-                        </p>
+                        <p className="mt-4 text-sm text-eleva-neutral-900/60">{t('tagline')}</p>
                       </div>
                     </div>
 
@@ -63,7 +64,7 @@ export default function Footer() {
                     <div className="col-span-2 grid grid-cols-2 gap-x-8 gap-y-12 lg:col-span-4 lg:grid-cols-4 lg:pt-6">
                       <div>
                         <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">
-                          Services
+                          {t('nav.services.title')}
                         </h3>
                         <ul className="mt-6 space-y-4 text-sm/6">
                           <li>
@@ -71,7 +72,7 @@ export default function Footer() {
                               href="/services/pregnancy"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Pregnancy Care
+                              {t('nav.services.pregnancy')}
                             </Link>
                           </li>
                           <li>
@@ -79,7 +80,7 @@ export default function Footer() {
                               href="/services/postpartum"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Postpartum Support
+                              {t('nav.services.postpartum')}
                             </Link>
                           </li>
                           <li>
@@ -87,21 +88,23 @@ export default function Footer() {
                               href="/services/menopause"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Menopause Care
+                              {t('nav.services.menopause')}
                             </Link>
                           </li>
                         </ul>
                       </div>
 
                       <div>
-                        <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">Company</h3>
+                        <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">
+                          {t('nav.company.title')}
+                        </h3>
                         <ul className="mt-6 space-y-4 text-sm/6">
                           <li>
                             <Link
                               href="/about"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              About Us
+                              {t('nav.company.about')}
                             </Link>
                           </li>
                           <li>
@@ -109,7 +112,7 @@ export default function Footer() {
                               href={`${process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}`}
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Join Us
+                              {t('nav.company.join')}
                             </Link>
                           </li>
                           <li>
@@ -117,21 +120,23 @@ export default function Footer() {
                               href={`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}`}
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Expert Dashboard
+                              {t('nav.company.dashboard')}
                             </Link>
                           </li>
                         </ul>
                       </div>
 
                       <div>
-                        <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">Support</h3>
+                        <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">
+                          {t('nav.support.title')}
+                        </h3>
                         <ul className="mt-6 space-y-4 text-sm/6">
                           <li>
                             <Link
                               href="/help"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Help Center
+                              {t('nav.support.help')}
                             </Link>
                           </li>
                           <li>
@@ -139,7 +144,7 @@ export default function Footer() {
                               href="/community"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Community
+                              {t('nav.support.community')}
                             </Link>
                           </li>
                           <li>
@@ -147,21 +152,23 @@ export default function Footer() {
                               href="/contact"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Contact
+                              {t('nav.support.contact')}
                             </Link>
                           </li>
                         </ul>
                       </div>
 
                       <div>
-                        <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">Legal</h3>
+                        <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">
+                          {t('nav.legal.title')}
+                        </h3>
                         <ul className="mt-6 space-y-4 text-sm/6">
                           <li>
                             <Link
                               href="/legal/terms"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Terms of Service
+                              {t('nav.legal.terms')}
                             </Link>
                           </li>
                           <li>
@@ -169,7 +176,7 @@ export default function Footer() {
                               href="/legal/privacy"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Privacy Policy
+                              {t('nav.legal.privacy')}
                             </Link>
                           </li>
                           <li>
@@ -177,7 +184,7 @@ export default function Footer() {
                               href="/legal/cookie"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Cookie Policy
+                              {t('nav.legal.cookie')}
                             </Link>
                           </li>
                           <li>
@@ -186,7 +193,7 @@ export default function Footer() {
                               onClick={() => showConsentBanner?.()}
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Cookies Preferences
+                              {t('nav.legal.preferences')}
                             </button>
                           </li>
                           <li>
@@ -194,7 +201,7 @@ export default function Footer() {
                               href="/legal/dpa"
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
-                              Data Processing
+                              {t('nav.legal.dpa')}
                             </Link>
                           </li>
                         </ul>
@@ -207,7 +214,7 @@ export default function Footer() {
                 <div className="flex justify-between border-t border-gray-200/20 pt-8">
                   <div>
                     <p className="text-sm/6 text-gray-600">
-                      © {new Date().getFullYear()} Eleva Care. All rights reserved.
+                      © {new Date().getFullYear()} Eleva Care. {t('copyright')}
                     </p>
                   </div>
 
@@ -218,9 +225,9 @@ export default function Footer() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-950 hover:text-gray-950/75"
-                      aria-label="Follow us on Instagram"
+                      aria-label={t('social.instagram')}
                     >
-                      <span className="sr-only">Follow us on Instagram</span>
+                      <span className="sr-only">{t('social.instagram')}</span>
                       <svg
                         viewBox="0 0 24 24"
                         fill="currentColor"
@@ -236,9 +243,9 @@ export default function Footer() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-950 hover:text-gray-950/75"
-                      aria-label="Follow us on Twitter"
+                      aria-label={t('social.twitter')}
                     >
-                      <span className="sr-only">Follow us on Twitter</span>
+                      <span className="sr-only">{t('social.twitter')}</span>
                       <svg
                         viewBox="0 0 16 16"
                         fill="currentColor"
@@ -254,9 +261,9 @@ export default function Footer() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-gray-950 hover:text-gray-950/75"
-                      aria-label="Follow us on LinkedIn"
+                      aria-label={t('social.linkedin')}
                     >
-                      <span className="sr-only">Follow us on LinkedIn</span>
+                      <span className="sr-only">{t('social.linkedin')}</span>
                       <svg
                         viewBox="0 0 16 16"
                         fill="currentColor"

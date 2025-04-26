@@ -40,36 +40,20 @@ export function Providers({ children }: ProvidersProps) {
   );
 }
 
+interface ClientProvidersProps {
+  children: React.ReactNode;
+  locale: string;
+  messages: Record<string, unknown>;
+}
+
 /**
  * Client Providers - These components require client-side JavaScript
  * They include theme management, authorization context, and toast notifications
  */
-export function ClientProviders({ children }: ProvidersProps) {
+export function ClientProviders({ children, locale, messages }: ClientProvidersProps) {
   const [posthogLoaded, setPosthogLoaded] = useState(false);
-  type Messages = Record<string, unknown>;
-  const [messages, setMessages] = useState<Messages>({});
-  const [locale, setLocale] = useState<string>('en');
 
   useEffect(() => {
-    // Get the locale from URL parameter
-    const urlParams = new URLSearchParams(window.location.search);
-    const langParam = urlParams.get('lang');
-    const currentLocale = langParam || 'en';
-    setLocale(currentLocale);
-
-    // Load messages based on locale
-    import(`../messages/${currentLocale}.json`)
-      .then((module) => {
-        setMessages(module.default);
-      })
-      .catch((error) => {
-        console.error(`Failed to load messages for locale ${currentLocale}`, error);
-        // Fallback to English if locale not found
-        import('../messages/en.json').then((module) => {
-          setMessages(module.default);
-        });
-      });
-
     // PostHog setup
     if (typeof window === 'undefined') return;
 

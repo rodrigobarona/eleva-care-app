@@ -10,6 +10,15 @@
     "signIn": "Sign In",
     "signOut": "Sign Out"
   },
+  "metadata": {
+    "title": "Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care",
+    "description": "Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.",
+    "og": {
+      "title": "Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care",
+      "description": "Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.",
+      "siteName": "Eleva Care"
+    }
+  },
   "About": {
     "title": "About Eleva Care",
     "description": "Eleva Care provides expert care for pregnancy, postpartum, menopause, and sexual health."
@@ -212,12 +221,56 @@
     "scholar": "Google Scholar"
   },
   "footer": {
-    "copyright": "© 2025 Eleva Care. All rights reserved.",
-    "terms": "Terms of Service",
-    "privacy": "Privacy"
+    "cta": {
+      "title": "Join Our Network",
+      "heading": "Discover Your Personalized Care Journey Today",
+      "description": "Take our quick health assessment or schedule your consultation.",
+      "quiz": "Take the Quiz",
+      "book": "Book a Session"
+    },
+    "tagline": "Empowering women's health through expert care and innovation.",
+    "nav": {
+      "services": {
+        "title": "Services",
+        "pregnancy": "Pregnancy Care",
+        "postpartum": "Postpartum Support",
+        "menopause": "Menopause Care"
+      },
+      "company": {
+        "title": "Company",
+        "about": "About Us",
+        "join": "Join Us",
+        "dashboard": "Expert Dashboard"
+      },
+      "support": {
+        "title": "Support",
+        "help": "Help Center",
+        "community": "Community",
+        "contact": "Contact"
+      },
+      "legal": {
+        "title": "Legal",
+        "terms": "Terms of Service",
+        "privacy": "Privacy Policy",
+        "cookie": "Cookie Policy",
+        "preferences": "Cookies Preferences",
+        "dpa": "Data Processing"
+      }
+    },
+    "copyright": "All rights reserved.",
+    "social": {
+      "instagram": "Follow us on Instagram",
+      "twitter": "Follow us on Twitter",
+      "linkedin": "Follow us on LinkedIn"
+    }
   },
   "experts": {
     "title": "Top Experts",
-    "subtitle": "Access to the best has never been easier"
+    "subtitle": "Access to the best has never been easier",
+    "description": "Connect with top-rated experts in physiotherapy, and women's health. Our platform offers access to leading professionals ready to support your unique health and wellness journey.",
+    "topExpertBadge": "Top Expert",
+    "sessionLabel": "Session",
+    "expertImageAlt": "Profile photo of {name}",
+    "verifiedBadgeAlt": "Verified Expert Badge"
   }
 }

@@ -10,6 +10,15 @@
     "signIn": "Entrar",
     "signOut": "Sair"
   },
+  "metadata": {
+    "title": "Cuidados especializados para Gravidez, Pós-parto e Saúde Sexual | Eleva Care",
+    "description": "Eleva Care: Capacitando o crescimento, abraçando o cuidado. Cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual.",
+    "og": {
+      "title": "Cuidados especializados para Gravidez, Pós-parto e Saúde Sexual | Eleva Care",
+      "description": "Eleva Care: Capacitando o crescimento, abraçando o cuidado. Cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual.",
+      "siteName": "Eleva Care"
+    }
+  },
   "About": {
     "title": "Sobre a Eleva Care",
     "description": "A Eleva Care fornece cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual."
@@ -206,12 +215,56 @@
     "scholar": "Google Scholar"
   },
   "footer": {
-    "copyright": "© 2025 Eleva Care. Todos os direitos reservados.",
-    "privacy": "Política de Privacidade",
-    "terms": "Termos e Condições"
+    "cta": {
+      "title": "Junte-se à Nossa Rede",
+      "heading": "Descubra Sua Jornada de Cuidado Personalizado Hoje",
+      "description": "Faça nossa avaliação rápida de saúde ou agende sua consulta.",
+      "quiz": "Fazer o Questionário",
+      "book": "Agendar uma Sessão"
+    },
+    "tagline": "Capacitando a saúde das mulheres através de cuidados especializados e inovação.",
+    "nav": {
+      "services": {
+        "title": "Serviços",
+        "pregnancy": "Cuidados na Gravidez",
+        "postpartum": "Suporte Pós-parto",
+        "menopause": "Cuidados na Menopausa"
+      },
+      "company": {
+        "title": "Empresa",
+        "about": "Sobre Nós",
+        "join": "Junte-se a Nós",
+        "dashboard": "Painel de Especialistas"
+      },
+      "support": {
+        "title": "Suporte",
+        "help": "Central de Ajuda",
+        "community": "Comunidade",
+        "contact": "Contato"
+      },
+      "legal": {
+        "title": "Legal",
+        "terms": "Termos de Serviço",
+        "privacy": "Política de Privacidade",
+        "cookie": "Política de Cookies",
+        "preferences": "Preferências de Cookies",
+        "dpa": "Processamento de Dados"
+      }
+    },
+    "copyright": "Todos os direitos reservados.",
+    "social": {
+      "instagram": "Siga-nos no Instagram",
+      "twitter": "Siga-nos no Twitter",
+      "linkedin": "Siga-nos no LinkedIn"
+    }
   },
   "experts": {
-    "title": "Especialistas de Topo",
-    "subtitle": "O acesso aos melhores nunca foi tão fácil"
+    "title": "Especialistas Destacados",
+    "subtitle": "Acesso aos melhores nunca foi tão fácil",
+    "description": "Conecte-se com especialistas de primeira linha em fisioterapia e saúde da mulher. Nossa plataforma oferece acesso a profissionais líderes prontos para apoiar sua jornada única de saúde e bem-estar.",
+    "topExpertBadge": "Especialista Destacado",
+    "sessionLabel": "Sessão",
+    "expertImageAlt": "Foto de perfil de {name}",
+    "verifiedBadgeAlt": "Selo de Especialista Verificado"
   }
 }

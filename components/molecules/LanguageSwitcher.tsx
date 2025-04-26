@@ -1,7 +1,8 @@
 'use client';
 
-import { type Locale, locales } from '@/locales';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter } from '@/i18n/navigation';
+import { type Locale, locales } from '@/i18n/routing';
+import { useLocale } from 'next-intl';
 import { useState } from 'react';
 
 const localeNames = {
@@ -15,20 +16,22 @@ export function LanguageSwitcher() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const currentLocale = useLocale();
 
-  // Extract current locale from URL path instead of query parameter
-  const currentLocale = pathname.split('/')[1];
+  // Get translations (optional - for if you want to translate the language names)
+  // const t = useTranslations('language');
+
+  // Extract current locale from URL path
   const isValidLocale = locales.includes(currentLocale as Locale) ? currentLocale : 'en';
 
   const switchLocale = (newLocale: string) => {
-    // Get the path without the locale prefix
-    const pathWithoutLocale = pathname.replace(/^\/(en|es|pt|br)(?:\/|$)/, '/');
+    if (newLocale === currentLocale) {
+      setIsOpen(false);
+      return;
+    }
 
-    // Create new path with the selected locale
-    const newPath = `/${newLocale}${pathWithoutLocale}`;
-
-    // Navigate to the new path
-    router.push(newPath);
+    // Use next-intl router to switch locale without full page reload
+    router.replace(pathname, { locale: newLocale });
     setIsOpen(false);
   };
 
@@ -51,7 +54,6 @@ export function LanguageSwitcher() {
           strokeLinecap="round"
           strokeLinejoin="round"
           aria-hidden="true"
-          title="Select language"
         >
           <path d="m6 9 6 6 6-6" />
         </svg>

@@ -9,6 +9,7 @@ const intlMiddleware = createIntlMiddleware({
   locales,
   defaultLocale: 'en',
   localePrefix: 'as-needed',
+  localeDetection: true,
 });
 
 // Define public routes that don't require authentication
@@ -56,7 +57,6 @@ export default clerkMiddleware((auth, req) => {
   if (isPublic) {
     // Apply internationalization for public routes
     try {
-      // @ts-expect-error - Type mismatch between Clerk and next-intl
       return intlMiddleware(req);
     } catch (error) {
       console.error('Error in i18n middleware:', error);
@@ -67,7 +67,6 @@ export default clerkMiddleware((auth, req) => {
   // For protected routes, require authentication
   return auth.protect().then(() => {
     try {
-      // @ts-expect-error - Type mismatch between Clerk and next-intl
       return intlMiddleware(req);
     } catch (error) {
       console.error('Error in i18n middleware after auth:', error);
