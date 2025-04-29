@@ -33,6 +33,17 @@ type Props = {
   params: Promise<{ locale: string }>;
 };
 
+// Define an interface for the expected metadata structure from messages
+interface MetadataTranslations {
+  title?: string;
+  description?: string;
+  og?: {
+    title?: string;
+    description?: string;
+    siteName?: string;
+  };
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   // Await params before using locale
   const { locale } = await params;
@@ -41,16 +52,8 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   setRequestLocale(locale);
   const messages = await getMessages();
 
-  // Access metadata translations
-  const meta = messages.metadata as {
-    title: string;
-    description: string;
-    og: {
-      title: string;
-      description: string;
-      siteName: string;
-    };
-  };
+  // Access metadata translations (ensure 'metadata' namespace exists in your messages)
+  const meta = messages.metadata as MetadataTranslations | undefined;
 
   // Fallback to English if translations are missing
   const title = meta?.title || 'Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care';
@@ -58,23 +61,37 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
     meta?.description ||
     'Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.';
 
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
   return {
+    metadataBase: new URL(baseUrl),
     title,
     description,
     openGraph: {
       type: 'website',
-      url: 'https://eleva.care',
+      url: baseUrl, // Use base URL or specific page URL
       siteName: meta?.og?.siteName || 'Eleva Care',
       title: meta?.og?.title || title,
       description: meta?.og?.description || description,
       images: [
         {
-          url: 'https://eleva.care/img/eleva-care-share.svg',
+          url: '/img/eleva-care-share.svg', // Relative URL with metadataBase
           width: 1200,
           height: 680,
           alt: 'Eleva Care',
         },
       ],
+    },
+    alternates: {
+      canonical: `/${locale}`, // Use base URL + locale or specific page path
+      languages: locales.reduce(
+        (acc, loc) => {
+          // Adjust path logic if your routes are more complex than just /locale
+          acc[loc] = `${baseUrl}/${loc}`;
+          return acc;
+        },
+        {} as Record<string, string>,
+      ),
     },
   };
 }

@@ -1,15 +1,20 @@
-import { Link } from '@/lib/i18n/navigation';
-import { defaultLocale } from '@/locales';
+'use client';
+
+import { useTranslations } from 'next-intl';
+import Link from 'next/link';
 
 export default function NotFound() {
+  const t = useTranslations('NotFound');
+
   return (
-    <div className="container mx-auto flex min-h-screen flex-col items-center justify-center">
-      <h1 className="text-4xl font-bold">404 - Page Not Found</h1>
-      <p className="mt-4 text-xl">
-        The page you are looking for might have been removed or is temporarily unavailable.
-      </p>
-      <Link href="/" locale={defaultLocale} className="mt-8 text-blue-600 hover:underline">
-        Return to Home Page
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background text-center">
+      <h1 className="mb-4 text-4xl font-bold">{t('title')}</h1>
+      <p className="mb-8 text-lg text-muted-foreground">{t('description')}</p>
+      <Link
+        href="/"
+        className="rounded-md bg-primary px-6 py-2 text-primary-foreground hover:bg-primary/90"
+      >
+        {t('goHome')}
       </Link>
     </div>
   );

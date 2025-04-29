@@ -19,6 +19,16 @@
       "siteName": "Eleva Care"
     }
   },
+  "NotFound": {
+    "title": "Page Not Found",
+    "description": "The page you are looking for does not exist. Please check the URL or try a different page.",
+    "goHome": "Go Home"
+  },
+  "Error": {
+    "title": "An error occurred",
+    "description": "The page you are looking for does not exist. Please check the URL or try a different page.",
+    "retry": "Retry"
+  },
   "About": {
     "title": "About Eleva Care",
     "description": "Eleva Care provides expert care for pregnancy, postpartum, menopause, and sexual health."

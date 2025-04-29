@@ -19,6 +19,16 @@
       "siteName": "Eleva Care"
     }
   },
+  "NotFound": {
+    "title": "Página no encontrada",
+    "description": "La página que estás buscando no existe. Por favor, verifica la URL o intenta con una página diferente.",
+    "goHome": "Volver al inicio"
+  },
+  "Error": {
+    "title": "Ocurrió un error",
+    "description": "La página que estás buscando no existe. Por favor, verifica la URL o intenta con una página diferente.",
+    "retry": "Reintentar"
+  },
   "About": {
     "title": "Sobre Eleva Care",
     "description": "Eleva Care proporciona cuidados especializados para el embarazo, postparto, menopausia y salud sexual."
