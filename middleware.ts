@@ -2,79 +2,58 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createIntlMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 
-import { locales } from './lib/i18n/routing';
+import { routing } from './lib/i18n/routing';
 
-// Create the internationalization middleware
-const intlMiddleware = createIntlMiddleware({
-  locales,
-  defaultLocale: 'en',
-  localePrefix: 'as-needed',
+// Create the internationalization middleware using the routing config
+const handleI18nRouting = createIntlMiddleware({
+  locales: routing.locales,
+  defaultLocale: routing.defaultLocale,
+  localePrefix: routing.localePrefix,
   localeDetection: true,
 });
 
-// Define public routes that don't require authentication
-const publicRoutes = [
-  '/',
-  '/about',
-  '/legal',
-  '/legal/privacy',
-  '/legal/terms',
-  '/sign-in',
-  '/sign-up',
-  '/[username]',
-  '/[username]/[eventSlug]',
-  '/[username]/[eventSlug]/success',
-  '/[username]/[eventSlug]/payment-processing',
-];
-
-// Create a route matcher for public routes
-const isPublicRoute = createRouteMatcher([
-  ...publicRoutes,
-  // Create patterns for localized routes
-  ...locales.map((locale) => `/${locale}`), // Add explicit locale root paths
-  ...locales.flatMap((locale) =>
-    publicRoutes.map((route) => (route === '/' ? `/${locale}` : `/${locale}${route}`)),
-  ),
+// Define routes that REQUIRE authentication
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)',
+  '/account(.*)',
+  '/admin(.*)',
+  '/onboarding(.*)',
+  '/appointments(.*)',
+  '/bookings(.*)',
 ]);
 
-// Use Clerk middleware with next-intl
 export default clerkMiddleware((auth, req) => {
-  // Skip static assets
+  // Skip static assets (important to do this first)
   if (
     req.nextUrl.pathname.startsWith('/_next') ||
     req.nextUrl.pathname.startsWith('/img') ||
-    req.nextUrl.pathname.includes('.')
+    req.nextUrl.pathname.includes('.') ||
+    req.nextUrl.pathname.startsWith('/api')
   ) {
     return;
   }
 
-  // Check if this is a public route or API route
-  const isPublic = isPublicRoute(req) || req.nextUrl.pathname.startsWith('/api');
-
   // For debugging
-  console.log(`Path: ${req.nextUrl.pathname}, Public: ${isPublic}`);
+  console.log(`Processing Path: ${req.nextUrl.pathname}`);
 
-  if (isPublic) {
-    // Apply internationalization for public routes
-    try {
-      return intlMiddleware(req);
-    } catch (error) {
-      console.error('Error in i18n middleware:', error);
-      return NextResponse.next();
-    }
+  // Check if the route requires authentication
+  if (isProtectedRoute(req)) {
+    console.log(`Path ${req.nextUrl.pathname} is PROTECTED, checking auth...`);
+    auth.protect();
+  } else {
+    console.log(`Path ${req.nextUrl.pathname} is PUBLIC.`);
   }
 
-  // For protected routes, require authentication
-  return auth.protect().then(() => {
-    try {
-      return intlMiddleware(req);
-    } catch (error) {
-      console.error('Error in i18n middleware after auth:', error);
-      return NextResponse.next();
-    }
-  });
+  // Apply internationalization handling AFTER potential auth check
+  console.log(`Applying i18n routing for ${req.nextUrl.pathname}`);
+  try {
+    return handleI18nRouting(req);
+  } catch (error) {
+    console.error('Error in i18n middleware:', error);
+    return NextResponse.next();
+  }
 });
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|img|favicon.ico|.*\\.).*)'],
+  matcher: ['/((?!_next/static|_next/image|img|favicon.ico|.*\\..*).*)', '/(api|trpc)(.*)'],
 };
