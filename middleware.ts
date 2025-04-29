@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 
 import { routing } from './lib/i18n/routing';
 
-// Create the internationalization middleware using the routing config
+// Create the internationalization middleware
 const handleI18nRouting = createIntlMiddleware({
   locales: routing.locales,
   defaultLocale: routing.defaultLocale,
@@ -12,40 +12,60 @@ const handleI18nRouting = createIntlMiddleware({
   localeDetection: true,
 });
 
-// Define routes that REQUIRE authentication
+// Define routes that REQUIRE authentication (primarily for PAGE protection)
 const isProtectedRoute = createRouteMatcher([
-  '/dashboard(.*)',
+  '/dashboard(.*)', // Protect dashboard and its sub-routes
   '/account(.*)',
   '/admin(.*)',
   '/onboarding(.*)',
   '/appointments(.*)',
   '/bookings(.*)',
+  // Add specific API routes here IF you want middleware to block them when logged out
+  // e.g., '/api/admin/(.*)'
 ]);
 
 export default clerkMiddleware((auth, req) => {
-  // Skip static assets (important to do this first)
+  const pathname = req.nextUrl.pathname;
+
+  // Skip static assets ONLY
   if (
-    req.nextUrl.pathname.startsWith('/_next') ||
-    req.nextUrl.pathname.startsWith('/img') ||
-    req.nextUrl.pathname.includes('.') ||
-    req.nextUrl.pathname.startsWith('/api')
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/img') ||
+    pathname.includes('.') // Match files with extensions
   ) {
     return;
   }
 
-  // For debugging
-  console.log(`Processing Path: ${req.nextUrl.pathname}`);
+  // --- API Route Handling ---
+  if (pathname.startsWith('/api')) {
+    console.log(`Processing API Path: ${pathname}`);
+    // Optional: Protect specific API routes via middleware if desired
+    // if (isProtectedRoute(req)) { // Check if this API route is in the protected list
+    //   console.log(`API Path ${pathname} is PROTECTED, checking auth...`);
+    //   auth.protect(); // Will redirect or error if unauthenticated
+    // } else {
+    //   console.log(`API Path ${pathname} is treated as PUBLIC by middleware.`);
+    // }
 
-  // Check if the route requires authentication
-  if (isProtectedRoute(req)) {
-    console.log(`Path ${req.nextUrl.pathname} is PROTECTED, checking auth...`);
-    auth.protect();
-  } else {
-    console.log(`Path ${req.nextUrl.pathname} is PUBLIC.`);
+    // Allow request to proceed to the API handler.
+    // Auth checks should happen INSIDE the API handler using auth().userId etc.
+    // Crucially, DO NOT run next-intl middleware for API routes.
+    return NextResponse.next();
   }
 
-  // Apply internationalization handling AFTER potential auth check
-  console.log(`Applying i18n routing for ${req.nextUrl.pathname}`);
+  // --- Web Page Handling ---
+  console.log(`Processing Page Path: ${pathname}`);
+
+  // Check if the PAGE route requires authentication
+  if (isProtectedRoute(req)) {
+    console.log(`Page Path ${pathname} is PROTECTED, checking auth...`);
+    auth.protect(); // Handles redirect to sign-in if needed for pages
+  } else {
+    console.log(`Page Path ${pathname} is PUBLIC.`);
+  }
+
+  // Apply internationalization handling ONLY for web pages
+  console.log(`Applying i18n routing for ${pathname}`);
   try {
     return handleI18nRouting(req);
   } catch (error) {
@@ -54,6 +74,7 @@ export default clerkMiddleware((auth, req) => {
   }
 });
 
+// Matcher needs to include /api routes for the middleware function to run
 export const config = {
   matcher: ['/((?!_next/static|_next/image|img|favicon.ico|.*\\..*).*)', '/(api|trpc)(.*)'],
 };
