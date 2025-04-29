@@ -18,13 +18,16 @@ interface MessageObject {
 }
 
 export default getRequestConfig(async ({ requestLocale }) => {
-  // Get the requested locale from the request
+  // `requestLocale` is the locale resolved by the middleware OR the [locale] param
   const requested = await requestLocale;
+  console.log('[request.ts] Received requestLocale:', requested);
 
   // Validate the locale against our supported locales
   const locale: Locale = hasLocale(routing.locales, requested as string)
     ? (requested as Locale)
     : routing.defaultLocale;
+
+  console.log('[request.ts] Resolved locale:', locale);
 
   // Load messages from JSON files
   let messages: MessageObject;
@@ -32,15 +35,16 @@ export default getRequestConfig(async ({ requestLocale }) => {
     // Dynamic import based on locale
     messages = (await import(`@/messages/${locale}.json`)).default;
   } catch (error) {
-    console.error(`Failed to load messages for locale ${locale}`, error);
+    console.error(`[request.ts] Failed to load messages for locale ${locale}:`, error);
     // Fallback to English if locale not found
     messages = (await import('@/messages/en.json')).default;
+    console.log(`[request.ts] Falling back to 'en' messages.`);
   }
 
   return {
     locale,
     messages,
     // Optional: set time zone if needed
-    timeZone: 'UTC',
+    // timeZone: 'UTC',
   };
 });

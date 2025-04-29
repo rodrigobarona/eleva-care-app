@@ -21,7 +21,9 @@ const isProtectedRoute = createRouteMatcher([
   '/appointments(.*)',
   '/bookings(.*)',
   // Add specific API routes here IF you want middleware to block them when logged out
-  // e.g., '/api/admin/(.*)'
+  '/api/admin/(.*)',
+  '/api/users/(.*)',
+  '/api/settings/(.*)',
 ]);
 
 export default clerkMiddleware((auth, req) => {
