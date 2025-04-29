@@ -10,8 +10,8 @@ import {
 import { Skeleton } from '@/components/atoms/skeleton';
 import { MeetingForm } from '@/components/organisms/forms/MeetingForm';
 import { db } from '@/drizzle/db';
-import { Link } from '@/i18n/navigation';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
+import { Link } from '@/lib/i18n/navigation';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { createClerkClient } from '@clerk/nextjs/server';
 import type { User } from '@clerk/nextjs/server';

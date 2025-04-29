@@ -1,4 +1,4 @@
-import { Link } from '@/i18n/navigation';
+import { Link } from '@/lib/i18n/navigation';
 import { defaultLocale } from '@/locales';
 
 export default function NotFound() {

@@ -1,8 +1,8 @@
 'use client';
 
-import { usePathname, useRouter } from '@/i18n/navigation';
+import { usePathname, useRouter } from '@/lib/i18n/navigation';
 import { useParams } from 'next/navigation';
-import { ChangeEvent, ReactNode, useTransition } from 'react';
+import { type ChangeEvent, type ReactNode, useTransition } from 'react';
 
 type Props = {
   children: ReactNode;

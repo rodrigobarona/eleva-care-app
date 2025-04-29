@@ -1,7 +1,7 @@
 'use client';
 
 import { Icons } from '@/components/atoms/icons';
-import { LanguageSwitcher } from '@/components/molecules/LanguageSwitcher';
+import { LanguageSwitcher } from '@/components/molecules/LocaleSwitcher';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';

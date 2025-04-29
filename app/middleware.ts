@@ -1,4 +1,4 @@
-import { locales } from '@/i18n/routing';
+import { locales } from '@/lib/i18n/routing';
 import createMiddleware from 'next-intl/middleware';
 
 export default createMiddleware({

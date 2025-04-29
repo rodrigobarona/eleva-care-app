@@ -1,5 +1,5 @@
 import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
-import { type Locale, locales } from '@/i18n/routing';
+import { type Locale, locales } from '@/lib/i18n/routing';
 import { cn } from '@/lib/utils';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';

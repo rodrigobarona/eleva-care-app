@@ -30,11 +30,11 @@ export default getRequestConfig(async ({ requestLocale }) => {
   let messages: MessageObject;
   try {
     // Dynamic import based on locale
-    messages = (await import(`../messages/${locale}.json`)).default;
+    messages = (await import(`@/messages/${locale}.json`)).default;
   } catch (error) {
     console.error(`Failed to load messages for locale ${locale}`, error);
     // Fallback to English if locale not found
-    messages = (await import('../messages/en.json')).default;
+    messages = (await import('@/messages/en.json')).default;
   }
 
   return {

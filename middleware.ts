@@ -2,7 +2,7 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createIntlMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 
-import { locales } from './i18n/routing';
+import { locales } from './lib/i18n/routing';
 
 // Create the internationalization middleware
 const intlMiddleware = createIntlMiddleware({
