@@ -9,8 +9,8 @@ const handleI18nRouting = createMiddleware({
   locales: routing.locales,
   defaultLocale: routing.defaultLocale,
   localePrefix: routing.localePrefix,
-  // Enable language detection with best-fit algorithm
-  localeDetection: true,
+  // Turn off automatic detection - prioritize explicit user selection
+  localeDetection: false,
   // Configure the cookie for persistent locale preference
   localeCookie: {
     // One year in seconds for persistent preference across visits
