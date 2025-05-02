@@ -1,5 +1,16 @@
 import { Link } from '@/lib/i18n/navigation';
 import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
+
+export async function generateMetadata({ params }: { params: { locale: string } }) {
+  const locale = params.locale;
+  const t = await getTranslations({ locale, namespace: 'Legal' });
+
+  return {
+    title: t('metaTitle'),
+    description: t('metaDescription'),
+  };
+}
 
 export default function LegalPage() {
   const t = useTranslations('Legal');

@@ -43,12 +43,13 @@ export default clerkMiddleware((auth, req) => {
     pathname.startsWith('/img') ||
     pathname.includes('.') // Match files with extensions
   ) {
+    console.log(`[middleware] Skipping static asset: ${pathname}`);
     return;
   }
 
   // --- API Route Handling ---
   if (pathname.startsWith('/api')) {
-    console.log(`Processing API Path: ${pathname}`);
+    console.log(`[middleware] Processing API Path: ${pathname}`);
     // Optional: Protect specific API routes via middleware if desired
     // if (isProtectedRoute(req)) { // Check if this API route is in the protected list
     //   console.log(`API Path ${pathname} is PROTECTED, checking auth...`);
@@ -64,19 +65,24 @@ export default clerkMiddleware((auth, req) => {
   }
 
   // --- Web Page Handling ---
-  console.log(`Processing Page Path: ${pathname}`);
+  console.log(`[middleware] Processing path: ${pathname}`);
 
   // Check if the PAGE route requires authentication
   if (isProtectedRoute(req)) {
-    console.log(`Page Path ${pathname} is PROTECTED, checking auth...`);
+    console.log(`[middleware] Page Path ${pathname} is PROTECTED, checking auth...`);
     auth.protect(); // Handles redirect to sign-in if needed for pages
   } else {
-    console.log(`Page Path ${pathname} is PUBLIC.`);
+    console.log(`[middleware] Page Path ${pathname} is PUBLIC.`);
   }
 
   // Apply internationalization handling ONLY for web pages
-  console.log(`Applying i18n routing for ${pathname}`);
+  console.log(`[middleware] Applying i18n routing for ${pathname}`);
   try {
+    // Special handling for portuguese about page
+    if (pathname === '/pt/sobre-nos') {
+      console.log('[middleware] Detected Portuguese about page');
+    }
+
     return handleI18nRouting(req);
   } catch (error) {
     console.error('Error in i18n middleware:', error);

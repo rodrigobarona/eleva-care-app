@@ -31,7 +31,138 @@
   },
   "About": {
     "title": "Sobre a Eleva Care",
-    "description": "A Eleva Care fornece cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual."
+    "description": "A Eleva Care oferece cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual.",
+    "metaTitle": "Nossa Missão | Eleva Care",
+    "metaDescription": "Transformando os cuidados de saúde da mulher através da inovação e compaixão. Conheça a missão, visão e compromisso da Eleva Care com a saúde da mulher.",
+    "hero": {
+      "title": "Transformando os cuidados de saúde da mulher através da inovação e compaixão",
+      "description": "Na Eleva Care, dedicamo-nos a capacitar mulheres de todas as idades para que assumam o controlo da sua saúde e bem-estar."
+    },
+    "mission": {
+      "label": "A nossa missão",
+      "description1": "A nossa missão é proporcionar uma plataforma de apoio e inclusiva que ligue os indivíduos a recursos liderados por especialistas, informações baseadas em evidências e uma comunidade colaborativa de profissionais de saúde.",
+      "description2": "Acreditamos em tornar os cuidados de saúde de qualidade acessíveis a todas as mulheres, capacitando-as com conhecimento e fomentando a colaboração para melhores resultados de saúde. A nossa abordagem reconhece que a saúde da mulher é uma jornada contínua e em evolução."
+    },
+    "images": {
+      "pregnantWoman": "Mulher grávida com flores",
+      "womanExercising": "Mulher a fazer exercício",
+      "smilingWomen": "Mulheres sorridentes",
+      "cancerJourney": "Apoio na jornada contra o cancro"
+    },
+    "stats": {
+      "label": "Os Números",
+      "patientSatisfaction": {
+        "label": "Satisfação do Paciente",
+        "value": "95%"
+      },
+      "supportAvailable": {
+        "label": "Suporte Disponível",
+        "value": "24/7"
+      }
+    },
+    "vision": {
+      "label": "A Nossa Visão",
+      "title": "Unindo ciência e cuidados para cada mulher",
+      "description": "Colmatar a lacuna entre a investigação científica e a aplicação prática, oferecendo soluções de cuidados de saúde para mulheres acessíveis e personalizadas em todas as etapas da vida."
+    },
+    "beliefs": {
+      "label": "As Nossas Crenças Fundamentais",
+      "qualityHealthcare": {
+        "title": "Acesso a Cuidados de Saúde de Qualidade",
+        "description": "Todas as mulheres merecem acesso a cuidados de saúde de qualidade, independentemente da localização ou circunstâncias."
+      },
+      "knowledgeIsPower": {
+        "title": "O Conhecimento é Poder",
+        "description": "Capacitar as mulheres com informação baseada em evidências para tomarem decisões informadas sobre a sua saúde."
+      },
+      "collaborativeCare": {
+        "title": "Cuidados Colaborativos",
+        "description": "Melhores resultados de saúde são alcançados através da colaboração entre pacientes e profissionais de saúde."
+      },
+      "lifelongJourney": {
+        "title": "Jornada ao Longo da Vida",
+        "description": "A saúde da mulher é uma jornada contínua que evolui através de diferentes etapas da vida."
+      }
+    },
+    "team": {
+      "label": "Conheça a nossa equipa",
+      "title": "Liderada por inovadores e especialistas em saúde",
+      "description": "A nossa equipa combina experiência em saúde da mulher, tecnologia e cuidados ao paciente para revolucionar a prestação de cuidados de saúde.",
+      "foundedDescription": "Fundada por profissionais de saúde que testemunharam em primeira mão as lacunas nos cuidados de saúde da mulher, a Eleva Care surgiu de uma visão partilhada para tornar os cuidados especializados mais acessíveis, personalizados e abrangentes.",
+      "transformingDescription": "Hoje, a Eleva Care está a transformar a forma como as mulheres acedem e experienciam os cuidados de saúde. A nossa plataforma liga milhares de mulheres a prestadores de cuidados de saúde especializados, oferecendo cuidados baseados em evidências e apoio ao longo de cada etapa da vida.",
+      "photoAlt": "Reunião da equipa da Eleva Care"
+    },
+    "leadership": {
+      "label": "A Nossa Liderança",
+      "patriciaMota": {
+        "role": "Co-Fundadora / Diretora Executiva"
+      },
+      "rodrigoBarona": {
+        "role": "Co-Fundador / Diretor Técnico"
+      }
+    },
+    "advisors": {
+      "label": "Conselho Consultivo",
+      "title": "Guiados por especialistas do setor",
+      "description": "O nosso conselho consultivo reúne vozes líderes em saúde da mulher, inovação em saúde e transformação digital.",
+      "healthcareInnovation": {
+        "label": "Inovação em Saúde"
+      },
+      "cristineHomsi": {
+        "role": "Consultora em Saúde da Mulher",
+        "quote": "A investigação clínica e a educação capacitam as mulheres para tomarem decisões informadas sobre a sua jornada de saúde"
+      },
+      "alexandreDelgado": {
+        "role": "Consultor em Fisioterapia Obstétrica",
+        "quote": "A fisioterapia baseada em evidências transforma a experiência da gravidez e do parto, capacitando as mulheres em cada etapa."
+      },
+      "patriciaDriusso": {
+        "role": "Consultora em Saúde da Mulher",
+        "quote": "A investigação clínica avança nos tratamentos de reabilitação enquanto capacita as mulheres através da educação baseada em evidências."
+      },
+      "annelieGutke": {
+        "role": "Consultora em Saúde da Mulher",
+        "quote": "Compreender os mecanismos da dor transforma a forma como cuidamos das mulheres durante a gravidez e para além dela."
+      },
+      "rubenBarakat": {
+        "role": "Consultor em Ciências do Exercício",
+        "quote": "As evidências mostram que o exercício personalizado durante a gravidez pode transformar os resultados de saúde das mulheres."
+      },
+      "jennyBagwell": {
+        "role": "Consultora em Biomecânica e Saúde Perinatal",
+        "quote": "Compreender os padrões de movimento durante e após a gravidez ajuda a otimizar os cuidados e a melhorar os resultados a longo prazo para as mulheres."
+      }
+    },
+    "clinical": {
+      "label": "Excelência Clínica",
+      "jessicaMargarido": {
+        "role": "Reabilitação Oncológica"
+      },
+      "joanaBarros": {
+        "role": "Obstetrícia e Ginecologia"
+      }
+    },
+    "joinNetwork": {
+      "label": "Junte-se à Nossa Rede",
+      "title": "Transforme os cuidados de saúde da mulher connosco",
+      "description": "Junte-se a uma comunidade de profissionais de saúde dedicados que tornam os cuidados de qualidade acessíveis às mulheres em todo o lado."
+    },
+    "whyJoin": {
+      "label": "Porquê Juntar-se à Eleva",
+      "flexiblePractice": {
+        "title": "Prática Flexível",
+        "description": "Pratique nos seus termos com a nossa plataforma flexível de telesaúde. Defina o seu próprio horário e conecte-se com pacientes de qualquer lugar."
+      },
+      "innovativeTechnology": {
+        "title": "Tecnologia Inovadora",
+        "description": "Aceda a ferramentas de telesaúde de ponta e suporte clínico assistido por IA para melhorar a sua prática."
+      },
+      "collaborativeCommunity": {
+        "title": "Comunidade Colaborativa",
+        "description": "Junte-se a uma rede de profissionais de saúde líderes e participe em discussões de casos e partilha de conhecimentos."
+      },
+      "applyButton": "Candidatar-se"
+    }
   },
   "hero": {
     "title": "Cuidados de Saúde Feminina, *quando precisar.*",
@@ -301,5 +432,17 @@
     "manageCookiesStatusDeclined": "Recusado",
     "manageCancelButtonText": "Cancelar",
     "manageSaveButtonText": "Salvar Preferências"
+  },
+  "Legal": {
+    "title": "Documentação Legal",
+    "privacyPolicy": "Política de Privacidade",
+    "termsOfService": "Termos de Serviço",
+    "metaTitle": "Documentação Legal | Eleva Care",
+    "metaDescription": "Informação importante sobre os termos de serviço, políticas de privacidade e outros documentos legais da Eleva Care."
+  },
+  "Header": {
+    "findExpert": "Encontrar um Especialista",
+    "mission": "Nossa Missão",
+    "getStarted": "Comece Agora"
   }
 }

@@ -31,12 +31,145 @@
   },
   "About": {
     "title": "About Eleva Care",
-    "description": "Eleva Care provides expert care for pregnancy, postpartum, menopause, and sexual health."
+    "description": "Eleva Care provides expert care for pregnancy, postpartum, menopause, and sexual health.",
+    "metaTitle": "Our Mission | Eleva Care",
+    "metaDescription": "Transforming women's health care through innovation and compassion. Learn about Eleva Care's mission, vision, and commitment to women's health.",
+    "hero": {
+      "title": "Transforming women's health care through innovation and compassion",
+      "description": "At Eleva Care, we are dedicated to empowering women of all ages to take control of their health and well-being."
+    },
+    "mission": {
+      "label": "Our mission",
+      "description1": "Our mission is to provide a supportive and inclusive platform that connects individuals with expert-led resources, evidence-based information, and a collaborative community of healthcare professionals.",
+      "description2": "We believe in making quality healthcare accessible to all women, empowering them with knowledge, and fostering collaboration for better health outcomes. Our approach recognizes that women's health is a lifelong, evolving journey."
+    },
+    "images": {
+      "pregnantWoman": "Pregnant woman with flowers",
+      "womanExercising": "Woman exercising",
+      "smilingWomen": "Smiling women",
+      "cancerJourney": "Supporting cancer journey"
+    },
+    "stats": {
+      "label": "The Numbers",
+      "patientSatisfaction": {
+        "label": "Patient Satisfaction",
+        "value": "95%"
+      },
+      "supportAvailable": {
+        "label": "Support Available",
+        "value": "24/7"
+      }
+    },
+    "vision": {
+      "label": "Our Vision",
+      "title": "Bridging science and care for every woman",
+      "description": "To bridge the gap between scientific research and practical application, delivering accessible and personalized women's health care solutions throughout every life stage."
+    },
+    "beliefs": {
+      "label": "Our Core Beliefs",
+      "qualityHealthcare": {
+        "title": "Quality Healthcare Access",
+        "description": "Every woman deserves access to quality healthcare, regardless of location or circumstances."
+      },
+      "knowledgeIsPower": {
+        "title": "Knowledge is Power",
+        "description": "Empowering women with evidence-based information to make informed healthcare decisions."
+      },
+      "collaborativeCare": {
+        "title": "Collaborative Care",
+        "description": "Better health outcomes are achieved through collaboration between patients and healthcare providers."
+      },
+      "lifelongJourney": {
+        "title": "Lifelong Journey",
+        "description": "Women's health is a continuous journey that evolves through different life stages."
+      }
+    },
+    "team": {
+      "label": "Meet our team",
+      "title": "Led by healthcare innovators and experts",
+      "description": "Our team combines expertise in women's health, technology, and patient care to revolutionize healthcare delivery.",
+      "foundedDescription": "Founded by healthcare professionals who witnessed firsthand the gaps in women's healthcare, Eleva Care emerged from a shared vision to make expert care more accessible, personalized, and comprehensive.",
+      "transformingDescription": "Today, Eleva Care is transforming how women access and experience healthcare. Our platform connects thousands of women with specialized healthcare providers, offering evidence-based care and support throughout every life stage.",
+      "photoAlt": "Eleva Care team meeting"
+    },
+    "leadership": {
+      "label": "Our Leadership",
+      "patriciaMota": {
+        "role": "Co-Founder / Chief Executive Officer"
+      },
+      "rodrigoBarona": {
+        "role": "Co-Founder / Chief Technical Officer"
+      }
+    },
+    "advisors": {
+      "label": "Board of Advisors",
+      "title": "Guided by industry experts",
+      "description": "Our advisory board brings together leading voices in women's health, healthcare innovation, and digital transformation.",
+      "healthcareInnovation": {
+        "label": "Healthcare Innovation"
+      },
+      "cristineHomsi": {
+        "role": "Board Advisor Women's Health",
+        "quote": "Clinical research and education empower women to make informed decisions about their healthcare journey"
+      },
+      "alexandreDelgado": {
+        "role": "Board Advisor Obstetric Physical Therapy",
+        "quote": "Evidence-based physical therapy transforms the pregnancy and birth experience, empowering women through every stage."
+      },
+      "patriciaDriusso": {
+        "role": "Board Advisor Women's Health",
+        "quote": "Clinical research advances rehabilitation treatments while empowering women through evidence-based education."
+      },
+      "annelieGutke": {
+        "role": "Board Advisor Women's Health",
+        "quote": "Understanding pain mechanisms transforms how we care for women during pregnancy and beyond."
+      },
+      "rubenBarakat": {
+        "role": "Board Advisor Exercise Science",
+        "quote": "Evidence shows that personalized exercise during pregnancy can transform women's health outcomes."
+      },
+      "jennyBagwell": {
+        "role": "Board Advisor Biomechanics & Perinatal Health",
+        "quote": "Understanding movement patterns during and after pregnancy helps optimize care and improve long-term outcomes for women."
+      }
+    },
+    "clinical": {
+      "label": "Clinical Excellence",
+      "jessicaMargarido": {
+        "role": "Oncology Rehabilitation"
+      },
+      "joanaBarros": {
+        "role": "Obstetrics & Gynecology"
+      }
+    },
+    "joinNetwork": {
+      "label": "Join Our Network",
+      "title": "Transform women's healthcare with us",
+      "description": "Join a community of dedicated healthcare professionals making quality care accessible to women everywhere."
+    },
+    "whyJoin": {
+      "label": "Why Join Eleva",
+      "flexiblePractice": {
+        "title": "Flexible Practice",
+        "description": "Practice on your terms with our flexible telehealth platform. Set your own schedule and connect with patients from anywhere."
+      },
+      "innovativeTechnology": {
+        "title": "Innovative Technology",
+        "description": "Access state-of-the-art telehealth tools and AI-assisted clinical support to enhance your practice."
+      },
+      "collaborativeCommunity": {
+        "title": "Collaborative Community",
+        "description": "Join a network of leading healthcare professionals and participate in case discussions and knowledge sharing."
+      },
+      "applyButton": "Apply to Join"
+    }
   },
   "Legal": {
     "title": "Legal Documentation",
     "privacyPolicy": "Privacy Policy",
-    "termsOfService": "Terms of Service"
+    "termsOfService": "Terms of Service",
+    "metaTitle": "Legal Documentation | Eleva Care",
+    "metaDescription": "Important information about Eleva Care's terms of service, privacy policies, and other legal documents."
   },
   "hero": {
     "title": "World-Class Care for Women, *on-demand.*",
@@ -307,5 +440,10 @@
     "manageCookiesStatusDeclined": "Declined",
     "manageCancelButtonText": "Cancel",
     "manageSaveButtonText": "Save Preferences"
+  },
+  "Header": {
+    "findExpert": "Find an Expert",
+    "mission": "Our Mission",
+    "getStarted": "Get Started"
   }
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from '@/lib/i18n/navigation';
+import { useLocale } from 'next-intl';
 import { useParams } from 'next/navigation';
 import { type ChangeEvent, type ReactNode, useTransition } from 'react';
 
@@ -14,19 +15,25 @@ export default function LocaleSwitcherSelect({ children, defaultValue, label }: 
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const pathname = usePathname();
+  const currentLocale = useLocale();
   const params = useParams();
 
   function onSelectChange(event: ChangeEvent<HTMLSelectElement>) {
     const nextLocale = event.target.value;
     console.log('Switching locale to:', nextLocale); // Debugging log
+
     startTransition(() => {
-      router.replace(
-        // @ts-expect-error -- TypeScript will validate that only known `params`
-        // are used in combination with a given `pathname`. Since the two will
-        // always match for the current route, we can skip runtime checks.
-        { pathname, params },
-        { locale: nextLocale },
-      );
+      try {
+        // Known typing issue with next-intl and dynamic routes
+        // @ts-expect-error - Params typing is handled differently for dynamic routes
+        router.push({ pathname, params }, { locale: nextLocale });
+      } catch (error) {
+        console.error('Navigation error:', error);
+        // Fallback to direct URL manipulation if the router method fails
+        const currentPath = window.location.pathname;
+        const newPath = currentPath.replace(`/${currentLocale}`, `/${nextLocale}`);
+        window.location.href = newPath || `/${nextLocale}`;
+      }
     });
   }
 

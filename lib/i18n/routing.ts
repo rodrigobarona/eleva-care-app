@@ -13,6 +13,12 @@ export const routing = defineRouting({
   localePrefix: 'as-needed',
   pathnames: {
     '/': '/',
+    '/about': {
+      en: '/about',
+      es: '/sobre-nosotros',
+      pt: '/sobre-nos',
+      br: '/sobre-nos',
+    },
     '/dashboard': {
       en: '/dashboard',
       es: '/tablero',

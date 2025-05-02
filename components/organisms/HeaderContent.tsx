@@ -1,8 +1,8 @@
 'use client';
 
 import { Icons } from '@/components/atoms/icons';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, usePathname } from '@/lib/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 interface NavLinkProps {
@@ -27,6 +27,7 @@ export function HeaderContent() {
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
+  const t = useTranslations('Header');
 
   // Check if we're on the homepage, including locale-prefixed routes
   // This handles paths like /, /pt, /es, /br, etc. as homepage equivalents
@@ -78,10 +79,10 @@ export function HeaderContent() {
         </Link>
         <nav className="ml-auto flex items-center gap-4 sm:gap-6">
           <NavLink href="/#experts" isScrolled={isScrolled} isRootPath={isRootPath}>
-            Find an Expert
+            {t('findExpert')}
           </NavLink>
           <NavLink href="/about" isScrolled={isScrolled} isRootPath={isRootPath}>
-            Our Mission
+            {t('mission')}
           </NavLink>
         </nav>
       </div>

@@ -31,7 +31,145 @@
   },
   "About": {
     "title": "Sobre Eleva Care",
-    "description": "Eleva Care proporciona cuidados especializados para el embarazo, postparto, menopausia y salud sexual."
+    "description": "Eleva Care ofrece atención especializada para el embarazo, posparto, menopausia y salud sexual.",
+    "metaTitle": "Nuestra Misión | Eleva Care",
+    "metaDescription": "Transformando la atención sanitaria de la mujer a través de la innovación y la compasión. Conozca la misión, visión y compromiso de Eleva Care con la salud de la mujer.",
+    "hero": {
+      "title": "Transformando la atención sanitaria de la mujer mediante la innovación y la compasión",
+      "description": "En Eleva Care, nos dedicamos a empoderar a las mujeres de todas las edades para que tomen el control de su salud y bienestar."
+    },
+    "mission": {
+      "label": "Nuestra misión",
+      "description1": "Nuestra misión es proporcionar una plataforma de apoyo e inclusiva que conecte a las personas con recursos dirigidos por expertos, información basada en la evidencia y una comunidad colaborativa de profesionales sanitarios.",
+      "description2": "Creemos en hacer que la atención sanitaria de calidad sea accesible para todas las mujeres, empoderándolas con conocimiento y fomentando la colaboración para mejores resultados de salud. Nuestro enfoque reconoce que la salud de la mujer es un viaje continuo y en evolución."
+    },
+    "images": {
+      "pregnantWoman": "Mujer embarazada con flores",
+      "womanExercising": "Mujer haciendo ejercicio",
+      "smilingWomen": "Mujeres sonrientes",
+      "cancerJourney": "Apoyo en el camino contra el cáncer"
+    },
+    "stats": {
+      "label": "Los Números",
+      "patientSatisfaction": {
+        "label": "Satisfacción del Paciente",
+        "value": "95%"
+      },
+      "supportAvailable": {
+        "label": "Soporte Disponible",
+        "value": "24/7"
+      }
+    },
+    "vision": {
+      "label": "Nuestra Visión",
+      "title": "Uniendo ciencia y cuidado para cada mujer",
+      "description": "Cerrar la brecha entre la investigación científica y la aplicación práctica, ofreciendo soluciones de atención sanitaria para la mujer accesibles y personalizadas en todas las etapas de la vida."
+    },
+    "beliefs": {
+      "label": "Nuestras Creencias Fundamentales",
+      "qualityHealthcare": {
+        "title": "Acceso a Atención Sanitaria de Calidad",
+        "description": "Toda mujer merece acceso a atención sanitaria de calidad, independientemente de su ubicación o circunstancias."
+      },
+      "knowledgeIsPower": {
+        "title": "El Conocimiento es Poder",
+        "description": "Empoderar a las mujeres con información basada en evidencia para tomar decisiones informadas sobre su salud."
+      },
+      "collaborativeCare": {
+        "title": "Atención Colaborativa",
+        "description": "Se logran mejores resultados de salud a través de la colaboración entre pacientes y profesionales sanitarios."
+      },
+      "lifelongJourney": {
+        "title": "Viaje de por Vida",
+        "description": "La salud de la mujer es un viaje continuo que evoluciona a través de diferentes etapas de la vida."
+      }
+    },
+    "team": {
+      "label": "Conoce a nuestro equipo",
+      "title": "Liderado por innovadores y expertos en salud",
+      "description": "Nuestro equipo combina experiencia en salud de la mujer, tecnología y atención al paciente para revolucionar la prestación de servicios de salud.",
+      "foundedDescription": "Fundada por profesionales de la salud que presenciaron de primera mano las brechas en la atención sanitaria de la mujer, Eleva Care surgió de una visión compartida para hacer que la atención experta sea más accesible, personalizada e integral.",
+      "transformingDescription": "Hoy, Eleva Care está transformando cómo las mujeres acceden y experimentan la atención sanitaria. Nuestra plataforma conecta a miles de mujeres con proveedores de salud especializados, ofreciendo atención basada en evidencia y apoyo a lo largo de cada etapa de la vida.",
+      "photoAlt": "Reunión del equipo de Eleva Care"
+    },
+    "leadership": {
+      "label": "Nuestro Liderazgo",
+      "patriciaMota": {
+        "role": "Cofundadora / Directora Ejecutiva"
+      },
+      "rodrigoBarona": {
+        "role": "Cofundador / Director Técnico"
+      }
+    },
+    "advisors": {
+      "label": "Consejo Asesor",
+      "title": "Guiados por expertos del sector",
+      "description": "Nuestro consejo asesor reúne a voces líderes en salud de la mujer, innovación sanitaria y transformación digital.",
+      "healthcareInnovation": {
+        "label": "Innovación Sanitaria"
+      },
+      "cristineHomsi": {
+        "role": "Asesora en Salud de la Mujer",
+        "quote": "La investigación clínica y la educación empoderan a las mujeres para tomar decisiones informadas sobre su viaje de salud"
+      },
+      "alexandreDelgado": {
+        "role": "Asesor en Fisioterapia Obstétrica",
+        "quote": "La fisioterapia basada en evidencia transforma la experiencia del embarazo y el parto, empoderando a las mujeres en cada etapa."
+      },
+      "patriciaDriusso": {
+        "role": "Asesora en Salud de la Mujer",
+        "quote": "La investigación clínica avanza en los tratamientos de rehabilitación mientras empodera a las mujeres a través de la educación basada en evidencia."
+      },
+      "annelieGutke": {
+        "role": "Asesora en Salud de la Mujer",
+        "quote": "Entender los mecanismos del dolor transforma cómo cuidamos a las mujeres durante el embarazo y más allá."
+      },
+      "rubenBarakat": {
+        "role": "Asesor en Ciencias del Ejercicio",
+        "quote": "La evidencia muestra que el ejercicio personalizado durante el embarazo puede transformar los resultados de salud de las mujeres."
+      },
+      "jennyBagwell": {
+        "role": "Asesora en Biomecánica y Salud Perinatal",
+        "quote": "Comprender los patrones de movimiento durante y después del embarazo ayuda a optimizar la atención y mejorar los resultados a largo plazo para las mujeres."
+      }
+    },
+    "clinical": {
+      "label": "Excelencia Clínica",
+      "jessicaMargarido": {
+        "role": "Rehabilitación Oncológica"
+      },
+      "joanaBarros": {
+        "role": "Obstetricia y Ginecología"
+      }
+    },
+    "joinNetwork": {
+      "label": "Únete a Nuestra Red",
+      "title": "Transforma la atención sanitaria de la mujer con nosotros",
+      "description": "Únete a una comunidad de profesionales de la salud dedicados que hacen que la atención de calidad sea accesible para las mujeres en todas partes."
+    },
+    "whyJoin": {
+      "label": "Por Qué Unirse a Eleva",
+      "flexiblePractice": {
+        "title": "Práctica Flexible",
+        "description": "Practique en sus términos con nuestra plataforma flexible de telesalud. Establezca su propio horario y conéctese con pacientes desde cualquier lugar."
+      },
+      "innovativeTechnology": {
+        "title": "Tecnología Innovadora",
+        "description": "Acceda a herramientas de telesalud de vanguardia y soporte clínico asistido por IA para mejorar su práctica."
+      },
+      "collaborativeCommunity": {
+        "title": "Comunidad Colaborativa",
+        "description": "Únase a una red de profesionales de la salud líderes y participe en discusiones de casos e intercambio de conocimientos."
+      },
+      "applyButton": "Solicitar Unirse"
+    }
+  },
+  "Legal": {
+    "title": "Documentación Legal",
+    "privacyPolicy": "Política de Privacidad",
+    "termsOfService": "Términos de Servicio",
+    "metaTitle": "Documentación Legal | Eleva Care",
+    "metaDescription": "Información importante sobre los términos de servicio, políticas de privacidad y otros documentos legales de Eleva Care."
   },
   "hero": {
     "title": "Atención de Clase Mundial para Mujeres, *cuando lo necesites.*",
@@ -301,5 +439,10 @@
     "manageCookiesStatusDeclined": "Rechazado",
     "manageCancelButtonText": "Cancelar",
     "manageSaveButtonText": "Guardar Preferencias"
+  },
+  "Header": {
+    "findExpert": "Encontrar un Experto",
+    "mission": "Nuestra Misión",
+    "getStarted": "Comenzar"
   }
 }
