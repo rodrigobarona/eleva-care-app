@@ -25,6 +25,20 @@ const config: NextConfig = {
     staleTimes: {
       dynamic: 0,
     },
+    webpackMemoryOptimizations: true,
+    optimizePackageImports: ['react-icons', '@clerk/nextjs', 'next-intl', 'sonner', 'posthog-js'],
+  },
+  webpack: (config, { dev }) => {
+    if (!dev) {
+      if (config.cache) {
+        config.cache = {
+          type: 'memory',
+          ...config.cache,
+          memoryCacheUnaffected: true,
+        };
+      }
+    }
+    return config;
   },
 };
 

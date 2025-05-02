@@ -11,6 +11,8 @@ import { useEffect, useState } from 'react';
 import 'react-cookie-manager/style.css';
 import { Toaster } from 'sonner';
 
+// Import the createCookieTranslations function
+import { createCookieTranslations } from '../lib/i18n/cookie-translations';
 import PostHogPageView from './PostHogPageView';
 
 // Dynamically import CookieManager to prevent SSR issues
@@ -122,15 +124,7 @@ export function ClientProviders({ children, locale, messages }: ClientProvidersP
             cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
             theme="light"
             privacyPolicyUrl="/legal/cookie"
-            translations={{
-              title: 'Cookie Preferences',
-              message:
-                'We use cookies to enhance your experience, analyze site traffic, and for marketing purposes. By clicking "Accept", you consent to our use of cookies.',
-              buttonText: 'Accept All',
-              declineButtonText: 'Decline All',
-              manageButtonText: 'Manage Preferences',
-              privacyPolicyText: 'Cookie Policy',
-            }}
+            translations={createCookieTranslations(messages)}
           >
             <PHProvider client={posthog}>
               {posthogLoaded && <PostHogPageView />}

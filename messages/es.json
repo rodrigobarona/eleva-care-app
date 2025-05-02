@@ -276,5 +276,30 @@
     "sessionLabel": "Sesión",
     "expertImageAlt": "Foto de perfil de {name}",
     "verifiedBadgeAlt": "Insignia de Experto Verificado"
+  },
+  "cookie": {
+    "title": "Preferencias de Cookies",
+    "message": "Utilizamos cookies para mejorar tu experiencia, analizar el tráfico del sitio y para fines de marketing. Al hacer clic en \"Aceptar\", consientes el uso de cookies.",
+    "buttonText": "Aceptar Todo",
+    "declineButtonText": "Rechazar Todo",
+    "manageButtonText": "Gestionar Preferencias",
+    "privacyPolicyText": "Política de Cookies",
+    "manageTitle": "Preferencias de Cookies",
+    "manageMessage": "Gestiona tus preferencias de cookies a continuación. Las cookies esenciales siempre están habilitadas ya que son necesarias para el funcionamiento del sitio web.",
+    "manageEssentialTitle": "Esenciales",
+    "manageEssentialSubtitle": "Necesarias para el funcionamiento del sitio web",
+    "manageEssentialStatus": "Estado: Siempre activadas",
+    "manageEssentialStatusButtonText": "Siempre Activadas",
+    "manageAnalyticsTitle": "Analíticas",
+    "manageAnalyticsSubtitle": "Nos ayudan a entender cómo los visitantes interactúan con nuestro sitio",
+    "manageSocialTitle": "Sociales",
+    "manageSocialSubtitle": "Habilitan características de redes sociales y compartir",
+    "manageAdvertTitle": "Publicidad",
+    "manageAdvertSubtitle": "Personalizan anuncios y miden su rendimiento",
+    "manageCookiesStatus": "Estado: {status} el {date}",
+    "manageCookiesStatusConsented": "Consentido",
+    "manageCookiesStatusDeclined": "Rechazado",
+    "manageCancelButtonText": "Cancelar",
+    "manageSaveButtonText": "Guardar Preferencias"
   }
 }
