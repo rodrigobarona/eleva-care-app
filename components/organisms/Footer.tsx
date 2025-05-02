@@ -6,6 +6,11 @@ import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useCookieConsent } from 'react-cookie-manager';
 
+/**
+ * Renders the localized, responsive footer for the website, including navigation links, legal information, a call-to-action section, language switching, and social media integration.
+ *
+ * @returns The complete footer component with internationalized content and cookie consent management.
+ */
 export default function Footer() {
   const t = useTranslations('footer');
   const { showConsentBanner } = useCookieConsent() || { showConsentBanner: () => {} };

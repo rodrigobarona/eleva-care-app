@@ -9,8 +9,12 @@
  */
 
 /**
- * Creates cookie translations from next-intl messages
- * Handles any type of messages object structure
+ * Generates a set of cookie-related UI translation strings for use with the react-cookie-manager component.
+ *
+ * Extracts a nested `cookie` object from the provided `messages` and maps its properties to predefined UI text keys, falling back to default English strings when translations are missing.
+ *
+ * @param messages - An object containing translation messages, typically from next-intl.
+ * @returns An object with cookie consent and management UI text strings, using translations if available or defaulting to English.
  */
 export function createCookieTranslations(messages: Record<string, unknown>) {
   // Safely access the cookie object, handling any structure

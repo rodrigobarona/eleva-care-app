@@ -23,6 +23,14 @@ const NavLink = ({ href, isScrolled, isRootPath, children }: NavLinkProps) => (
   </Link>
 );
 
+/**
+ * Renders the website header with navigation links, adapting its appearance based on scroll position and current path.
+ *
+ * The header displays a logo and navigation links, applying transparent or blurred backgrounds and text color changes depending on whether the user is on the homepage (including locale-prefixed root paths) and whether the page has been scrolled.
+ *
+ * @remark
+ * Considers both the root path ("/") and locale-prefixed root paths (e.g., "/pt", "/es", "/br", "/en-us") as the homepage for styling purposes.
+ */
 export function HeaderContent() {
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);

@@ -73,6 +73,16 @@ export async function GET() {
   );
 }
 
+/**
+ * Processes a Stripe checkout session completion by creating a meeting, synchronizing user data, handling double bookings with refunds, and scheduling payment transfers.
+ *
+ * Validates required metadata, parses meeting details, and ensures user synchronization if a Clerk user ID is present. If a meeting already exists for the session, returns its ID. On successful meeting creation, calculates payout scheduling based on Stripe's country-specific delay requirements and records a pending payment transfer. If a double booking is detected and payment was made, initiates a refund. Handles missing or invalid metadata and logs relevant events.
+ *
+ * @param session - The Stripe checkout session containing meeting and payment metadata.
+ * @returns An object indicating success and the meeting ID, or failure with an error.
+ *
+ * @throws {Error} If required metadata is missing or meeting data cannot be parsed.
+ */
 async function handleCheckoutSession(session: StripeCheckoutSession) {
   console.log('Starting checkout session processing:', {
     sessionId: session.id,

@@ -24,6 +24,17 @@ interface PageProps {
   }>;
 }
 
+/**
+ * Renders the booking success page for an event, handling meeting confirmation and payment validation.
+ *
+ * Depending on the booking and payment status, displays a confirmation card, a payment processing message, or redirects to the booking page with an appropriate error.
+ *
+ * @param props - Contains promises for route parameters and search parameters, including event and user identifiers, start time, session ID, and timezone.
+ *
+ * @returns A React element displaying booking or payment status, or triggers a redirect or 404 if the booking is invalid.
+ *
+ * @remark Returns a 404 page if the user, event, or start time is invalid. Redirects to the booking page with an error query if payment or meeting creation fails.
+ */
 export default async function SuccessPage(props: PageProps) {
   // Await both params and searchParams
   const params = await props.params;

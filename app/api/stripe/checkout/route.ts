@@ -9,8 +9,11 @@ interface User {
 }
 
 /**
- * Stripe checkout API route handler
- * Creates a checkout session for booking an appointment with locale support
+ * Handles POST requests to create a Stripe checkout session for booking an appointment.
+ *
+ * Validates the request body, retrieves or creates a Stripe customer, fetches event and expert data, and constructs a localized Stripe checkout session for payment. Returns the checkout session URL on success, or an error response with an appropriate status code on failure.
+ *
+ * @returns A JSON response containing the Stripe checkout session URL, or an error message with the relevant HTTP status code.
  */
 export async function POST(request: NextRequest) {
   try {

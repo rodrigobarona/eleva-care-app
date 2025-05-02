@@ -3,7 +3,14 @@
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
-// Rename Error to avoid shadowing the global Error object
+/****
+ * Displays a localized error screen with a retry option when an error occurs in the client.
+ *
+ * Renders a full-screen message with a title, description, and a button to reset the error state. The error is logged to the console whenever it changes.
+ *
+ * @param error - The error object to display, which may include an optional {@link error.digest} property.
+ * @param reset - Callback function to reset the error state when the retry button is clicked.
+ */
 export default function ErrorBoundary({
   error,
   reset,

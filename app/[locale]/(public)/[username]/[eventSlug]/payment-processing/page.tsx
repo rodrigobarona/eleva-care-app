@@ -8,6 +8,13 @@ import { Suspense, useEffect, useState } from 'react';
 const MAX_ATTEMPTS = 15;
 const CHECK_INTERVAL = 2000;
 
+/**
+ * Displays a payment processing status UI and manages polling for meeting creation after payment.
+ *
+ * Resolves route and search parameters asynchronously, then periodically checks the meeting status via an API. Redirects the user to a success page if the meeting is created, or to the event page with an error if the maximum number of attempts is reached without success.
+ *
+ * @remark Polls the meeting status every 2 seconds, up to 15 attempts, before timing out.
+ */
 function PaymentProcessingContent(props: {
   params: Promise<{ username: string; eventSlug: string; locale: string }>;
   searchParams: Promise<{ startTime: string }>;
@@ -96,6 +103,11 @@ interface PageProps {
   }>;
 }
 
+/**
+ * Displays the payment processing status page, handling asynchronous parameter resolution and UI fallback during loading.
+ *
+ * Wraps the payment processing content in a React Suspense boundary with a loading message until parameters are resolved.
+ */
 export default function PaymentProcessingPage(props: PageProps) {
   return (
     <Suspense fallback={<div>Loading payment status...</div>}>

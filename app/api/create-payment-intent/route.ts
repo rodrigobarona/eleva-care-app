@@ -15,6 +15,15 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
+/**
+ * Handles POST requests to create a Stripe checkout session for booking a consultation event.
+ *
+ * Validates the request body, retrieves event and expert details, calculates fees and payout scheduling, and creates a Stripe checkout session with appropriate metadata and locale-aware URLs. Returns the checkout session URL on success or an error response on failure.
+ *
+ * @returns A JSON response containing the Stripe checkout session URL, or an error message with HTTP status 400 or 500 if validation or processing fails.
+ *
+ * @throws {Error} If the expert's Stripe Connect account is not found.
+ */
 export async function POST(request: Request) {
   console.log('Starting payment intent creation process');
 

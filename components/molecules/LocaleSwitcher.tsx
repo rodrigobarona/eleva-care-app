@@ -11,6 +11,11 @@ const localeNames = {
   br: 'Português (BR)',
 };
 
+/**
+ * Renders a language selection dropdown for switching between available locales.
+ *
+ * Displays the current locale as the default selection and lists all supported locales with their display names.
+ */
 export function LanguageSwitcher() {
   const locale = useLocale();
 

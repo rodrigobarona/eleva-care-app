@@ -49,6 +49,14 @@ interface MeetingFormProps {
   locale?: string;
 }
 
+/**
+ * Renders the multi-step meeting booking form, handling date/time selection, guest information, and optional payment.
+ *
+ * Integrates with Google Calendar for availability, synchronizes form state with URL parameters, and supports locale-aware flows. For paid meetings, initiates a Stripe checkout session and redirects to payment. For free meetings, creates the meeting directly and redirects to a localized success page. Handles calendar sync requirements, error states, and prefetches payment intent for improved user experience.
+ *
+ * @remark
+ * If the user's Google Calendar is not connected, the form prompts for calendar sync and prevents booking until access is granted.
+ */
 export function MeetingFormContent({
   validTimes,
   eventId,

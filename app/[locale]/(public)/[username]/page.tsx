@@ -18,6 +18,11 @@ const SOCIAL_ICONS = {
 
 export const revalidate = 0;
 
+/**
+ * Renders a skeleton placeholder UI for the user profile page during data loading.
+ *
+ * Displays placeholder elements for the profile image, name, username, headline, short bio, and social links to indicate loading state.
+ */
 function ProfileSkeleton() {
   return (
     <div className="space-y-6">
@@ -62,6 +67,13 @@ interface PageProps {
   }>;
 }
 
+/**
+ * Renders the user profile page layout with server-side user validation and data fetching.
+ *
+ * Fetches user data by username using Clerk. If the user does not exist, renders a 404 page. Displays the profile information in the left column (with a skeleton fallback during loading) and the user's event bookings in the right column.
+ *
+ * @returns The complete user profile page layout or a 404 page if the user is not found.
+ */
 export default async function UserLayout(props: PageProps) {
   // Await the params
   const params = await props.params;
@@ -96,7 +108,16 @@ export default async function UserLayout(props: PageProps) {
   );
 }
 
-// Separate component for profile info
+/**
+ * Displays detailed user profile information, including profile picture, name, badges, categories, social links, and bio.
+ *
+ * Fetches user data from Clerk and profile details from the database based on the provided username. Renders profile badges, categories, social icons, and a markdown-formatted bio. If the user does not exist, triggers a 404 page.
+ *
+ * @param username - The username of the user whose profile is displayed.
+ * @param locale - The locale for the profile page.
+ *
+ * @returns A React component rendering the user's profile information.
+ */
 async function ProfileInfo({ username, locale: _locale }: { username: string; locale: string }) {
   // Only delay in development
 

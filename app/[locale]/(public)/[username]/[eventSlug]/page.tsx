@@ -50,6 +50,11 @@ interface EventType {
   updatedAt: Date;
 }
 
+/**
+ * Renders the event booking page for a given user and event slug, handling user and event validation and displaying calendar availability.
+ *
+ * If the specified user or event does not exist or is inactive, returns a 404 page. Otherwise, displays a booking interface with calendar integration, showing available time slots or appropriate loading and error states.
+ */
 export default async function BookEventPage(props: PageProps) {
   const { username, eventSlug, locale } = await props.params;
 
@@ -94,7 +99,22 @@ export default async function BookEventPage(props: PageProps) {
   );
 }
 
-// New component to handle availability data fetching
+/**
+ * Displays a booking form with available meeting times for an event, based on the owner's Google Calendar availability.
+ *
+ * Checks if the calendar owner has valid Google Calendar access; if not, prompts for reconnection. If access is valid, fetches calendar events for the next two months, computes valid 15-minute booking slots, and renders a meeting form or a no-availability message as appropriate.
+ *
+ * @param userId - The calendar owner's user ID.
+ * @param eventId - The unique identifier for the event.
+ * @param username - The calendar owner's username.
+ * @param eventSlug - The event's URL slug.
+ * @param price - The price for booking the event.
+ * @param event - The event details.
+ * @param calendarUser - The calendar owner's user profile.
+ * @param locale - The locale for localization.
+ *
+ * @returns A React component displaying either a booking form, a prompt to reconnect the calendar, or a no-availability message.
+ */
 async function CalendarWithAvailability({
   userId,
   eventId,
@@ -186,7 +206,11 @@ async function CalendarWithAvailability({
   );
 }
 
-// Add a loading skeleton for the calendar
+/**
+ * Renders a skeleton placeholder UI for the calendar booking interface while availability data is loading.
+ *
+ * Displays loading skeletons for the expert profile, calendar grid, and time slots to indicate content is being fetched.
+ */
 function CalendarLoadingSkeleton() {
   // Generate non-index based keys for calendar days
   const generateCalendarDayKeys = () => {
@@ -254,6 +278,11 @@ function CalendarLoadingSkeleton() {
   );
 }
 
+/**
+ * Displays a message indicating that no available time slots exist for the expert within the next two months.
+ *
+ * Provides possible reasons for the lack of availability and includes a link to the expert's profile.
+ */
 function NoTimeSlots({
   calendarUser,
   username,

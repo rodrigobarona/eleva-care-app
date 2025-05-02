@@ -26,8 +26,9 @@ interface ProvidersProps {
 }
 
 /**
- * Server Provider - This component uses ClerkProvider for authentication
- * It should be used at the root level of the application
+ * Wraps children with the Clerk authentication provider for server-side context.
+ *
+ * Intended for use at the root of the application to provide authentication and user session management.
  */
 export function Providers({ children }: ProvidersProps) {
   return (
@@ -49,8 +50,16 @@ interface ClientProvidersProps {
 }
 
 /**
- * Client Providers - These components require client-side JavaScript
- * They include theme management, authorization context, and toast notifications
+ * Provides client-side context providers for theming, authorization, internationalization, analytics, cookie management, and toast notifications.
+ *
+ * Wraps its children with multiple providers, including theme and authorization contexts, internationalization via `NextIntlClientProvider`, PostHog analytics (conditionally initialized in production), cookie consent management, and toast notifications.
+ *
+ * @param children - The React nodes to be wrapped by the providers.
+ * @param locale - The current locale for internationalization.
+ * @param messages - Translation messages for the current locale.
+ *
+ * @remark
+ * PostHog analytics is only initialized in non-localhost environments and when valid API credentials are present. Missing translation messages are logged in development and returned as fallback strings.
  */
 export function ClientProviders({ children, locale, messages }: ClientProvidersProps) {
   const [posthogLoaded, setPosthogLoaded] = useState(false);

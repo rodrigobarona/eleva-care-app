@@ -10,6 +10,17 @@ type Props = {
   label: string;
 };
 
+/**
+ * Renders a locale selection dropdown that updates the application's locale and route without a full page reload.
+ *
+ * Displays a styled select element with a globe icon and an accessible label. When a new locale is selected, the component transitions to the same route with the updated locale, preserving current pathname and parameters.
+ *
+ * @param children - Option elements representing available locales.
+ * @param defaultValue - The initially selected locale.
+ * @param label - Accessible label for the select element.
+ *
+ * @remark The select is disabled and shows a loading indicator while the locale switch is pending.
+ */
 export default function LocaleSwitcherSelect({ children, defaultValue, label }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();

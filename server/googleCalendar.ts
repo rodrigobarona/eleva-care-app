@@ -425,6 +425,14 @@ class GoogleCalendarService {
 
 export { GoogleCalendarService as default };
 
+/**
+ * Creates a Google Calendar event for a user and guest, sends email notifications, and returns event details.
+ *
+ * Delegates event creation and notification logic to {@link GoogleCalendarService}. The event includes Google Meet conferencing and supports localization of email content via the optional {@link locale} parameter.
+ *
+ * @param params - Event details including user and guest information, timing, and optional timezone and locale.
+ * @returns The created calendar event data, including any generated Meet links.
+ */
 export async function createCalendarEvent(params: {
   clerkUserId: string;
   guestName: string;

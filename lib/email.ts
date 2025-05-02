@@ -116,20 +116,12 @@ function generatePlainTextFromHTML(html: string): string {
 }
 
 /**
- * Generates HTML and plain text for an appointment confirmation email
+ * Generates both HTML and plain text versions of an appointment confirmation email.
  *
- * @param params Parameters for the appointment email content
- * @param params.expertName The name of the expert for the appointment
- * @param params.clientName The name of the client booking the appointment
- * @param params.appointmentDate Date formatted as a string (e.g., "Monday, April 8, 2025")
- * @param params.appointmentTime Time formatted as a string (e.g., "10:30 AM - 11:30 AM")
- * @param params.timezone Timezone string (e.g., "America/Los_Angeles")
- * @param params.appointmentDuration Duration formatted as a string (e.g., "60 minutes")
- * @param params.eventTitle The title/type of the event or appointment
- * @param params.meetLink Optional Google Meet link for virtual appointments
- * @param params.notes Optional notes from the client
- * @param params.locale Optional locale code for email language (e.g., 'en', 'es', 'pt', 'br')
- * @returns Object containing HTML and plain text versions of the email
+ * Creates a localized appointment confirmation email using the provided appointment and participant details, returning the content in both HTML and plain text formats.
+ *
+ * @param params - Appointment and participant details, including optional locale for language selection.
+ * @returns An object containing the HTML and plain text representations of the appointment confirmation email.
  */
 export async function generateAppointmentEmail(params: {
   expertName: string;

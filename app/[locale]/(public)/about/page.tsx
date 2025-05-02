@@ -1,5 +1,10 @@
 import { useTranslations } from 'next-intl';
 
+/**
+ * Renders the About page with localized title and description.
+ *
+ * Displays a heading and descriptive text using translations from the "About" namespace.
+ */
 export default function AboutPage() {
   const t = useTranslations('About');
 

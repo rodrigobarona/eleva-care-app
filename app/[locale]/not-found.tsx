@@ -3,6 +3,11 @@
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
+/**
+ * Renders a localized 404 Not Found page with a title, description, and a link to the homepage.
+ *
+ * Displays translated content using the "NotFound" namespace and provides a styled button for navigation back to the home page.
+ */
 export default function NotFound() {
   const t = useTranslations('NotFound');
 

@@ -1,6 +1,11 @@
 import { Link } from '@/lib/i18n/navigation';
 import { useTranslations } from 'next-intl';
 
+/**
+ * Displays a localized legal information page with links to the privacy policy and terms of service.
+ *
+ * Renders a heading and a list of links, using translations from the "Legal" namespace.
+ */
 export default function LegalPage() {
   const t = useTranslations('Legal');
 

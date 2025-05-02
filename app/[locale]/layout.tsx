@@ -44,6 +44,14 @@ interface MetadataTranslations {
   };
 }
 
+/**
+ * Generates localized metadata for a Next.js page based on the provided locale.
+ *
+ * Retrieves translation messages for the specified locale and constructs metadata including title, description, Open Graph tags, and alternate language URLs. Falls back to English defaults if translations are unavailable.
+ *
+ * @param params - A promise resolving to an object containing the locale string.
+ * @returns An object with metadata fields for use in Next.js page rendering.
+ */
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   // Await params before using locale
   const { locale } = await params;
@@ -96,6 +104,17 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
   };
 }
 
+/**
+ * Root layout component for locale-specific routes, providing internationalization, theming, and global context providers.
+ *
+ * Renders the application within an HTML structure configured for the current locale, applying global fonts and styles, and wrapping content with providers for theme, error boundaries, and localization.
+ *
+ * @param children - The React nodes to render within the layout.
+ * @param params - A promise resolving to an object containing the current locale.
+ *
+ * @remark
+ * Triggers a 404 page if the provided locale is not supported.
+ */
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
 
@@ -134,7 +153,11 @@ export default async function LocaleLayout({ children, params }: Props) {
   );
 }
 
-// Generate static parameters for all locales
+/**
+ * Returns an array of locale parameter objects for static generation of localized routes.
+ *
+ * @returns An array where each element contains a supported locale.
+ */
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }

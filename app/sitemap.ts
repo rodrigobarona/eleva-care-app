@@ -13,6 +13,13 @@ const publicRoutes: string[] = [
   // Add other static public pages here
 ];
 
+/**
+ * Generates a sitemap array with localized URLs for all public routes.
+ *
+ * Each entry includes the full URL for every supported locale and route, with the default locale ('en') omitting the locale prefix. The `lastModified` field is set to the current date and time.
+ *
+ * @returns An array of sitemap entries for all locales and public routes.
+ */
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
