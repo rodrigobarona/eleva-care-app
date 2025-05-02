@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/atoms/button';
+import { LanguageSwitcher } from '@/components/molecules/LocaleSwitcher';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useCookieConsent } from 'react-cookie-manager';
@@ -218,8 +219,13 @@ export default function Footer() {
                     </p>
                   </div>
 
-                  {/* Social Links */}
                   <div className="flex items-center gap-6">
+                    {/* Language Switcher */}
+                    <div className="text-gray-950">
+                      <LanguageSwitcher />
+                    </div>
+
+                    {/* Social Links */}
                     <a
                       href="https://instagram.com"
                       target="_blank"

@@ -1,7 +1,6 @@
 'use client';
 
 import { Icons } from '@/components/atoms/icons';
-import { LanguageSwitcher } from '@/components/molecules/LocaleSwitcher';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -28,7 +27,7 @@ export function HeaderContent() {
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
-  
+
   // Check if we're on the homepage, including locale-prefixed routes
   // This handles paths like /, /pt, /es, /br, etc. as homepage equivalents
   const isRootPath = pathname === '/' || /^\/[a-z]{2}(-[a-z]{2})?$/.test(pathname);
@@ -84,9 +83,6 @@ export function HeaderContent() {
           <NavLink href="/about" isScrolled={isScrolled} isRootPath={isRootPath}>
             Our Mission
           </NavLink>
-          <div className={isRootPath && !isScrolled ? 'text-white' : 'text-foreground'}>
-            <LanguageSwitcher />
-          </div>
         </nav>
       </div>
     </header>

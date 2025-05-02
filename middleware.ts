@@ -1,15 +1,23 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
-import createIntlMiddleware from 'next-intl/middleware';
+import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 
 import { routing } from './lib/i18n/routing';
 
 // Create the internationalization middleware
-const handleI18nRouting = createIntlMiddleware({
+const handleI18nRouting = createMiddleware({
   locales: routing.locales,
   defaultLocale: routing.defaultLocale,
   localePrefix: routing.localePrefix,
+  // Enable language detection with best-fit algorithm
   localeDetection: true,
+  // Configure the cookie for persistent locale preference
+  localeCookie: {
+    // One year in seconds for persistent preference across visits
+    maxAge: 31536000,
+    // Name can be customized if needed
+    name: 'ELEVA_LOCALE',
+  },
 });
 
 // Define routes that REQUIRE authentication (primarily for PAGE protection)
