@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from '@/lib/i18n/navigation';
 import { useParams } from 'next/navigation';
 import { type ChangeEvent, type ReactNode, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 
 type Props = {
   children: ReactNode;
@@ -15,6 +16,24 @@ export default function LocaleSwitcherSelect({ children, defaultValue, label }: 
   const [isPending, startTransition] = useTransition();
   const pathname = usePathname();
   const params = useParams();
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  // Handle scroll events to change text color
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY;
+      setIsScrolled(scrollPosition > 20);
+    };
+
+    // Set initial state
+    handleScroll();
+
+    // Add scroll event listener
+    window.addEventListener('scroll', handleScroll);
+
+    // Cleanup
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   function onSelectChange(event: ChangeEvent<HTMLSelectElement>) {
     const nextLocale = event.target.value;
@@ -30,8 +49,12 @@ export default function LocaleSwitcherSelect({ children, defaultValue, label }: 
     });
   }
 
+  const textColorClass = isScrolled
+    ? 'text-eleva-neutral-900 dark:text-eleva-neutral-100'
+    : 'text-white dark:text-eleva-neutral-100';
+
   return (
-    <label className="relative text-eleva-neutral-900 dark:text-eleva-neutral-100">
+    <label className={`relative ${textColorClass} transition-colors duration-300`}>
       <p className="sr-only">{label}</p>
       <select
         className="appearance-none bg-transparent py-2 pl-2 pr-8"
