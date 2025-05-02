@@ -1,8 +1,9 @@
 'use client';
 
-import { usePathname, useRouter } from '@/lib/i18n/navigation';
+import { usePathname } from '@/lib/i18n/navigation';
+import { defaultLocale } from '@/lib/i18n/routing';
+import type { Locale } from '@/lib/i18n/routing';
 import { useLocale } from 'next-intl';
-import { useParams } from 'next/navigation';
 import { type ChangeEvent, type ReactNode, useTransition } from 'react';
 
 type Props = {
@@ -12,28 +13,32 @@ type Props = {
 };
 
 export default function LocaleSwitcherSelect({ children, defaultValue, label }: Props) {
-  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const pathname = usePathname();
   const currentLocale = useLocale();
-  const params = useParams();
 
   function onSelectChange(event: ChangeEvent<HTMLSelectElement>) {
-    const nextLocale = event.target.value;
+    const nextLocale = event.target.value as Locale;
     console.log('Switching locale to:', nextLocale); // Debugging log
 
     startTransition(() => {
-      try {
-        // Known typing issue with next-intl and dynamic routes
-        // @ts-expect-error - Params typing is handled differently for dynamic routes
-        router.push({ pathname, params }, { locale: nextLocale });
-      } catch (error) {
-        console.error('Navigation error:', error);
-        // Fallback to direct URL manipulation if the router method fails
-        const currentPath = window.location.pathname;
-        const newPath = currentPath.replace(`/${currentLocale}`, `/${nextLocale}`);
-        window.location.href = newPath || `/${nextLocale}`;
+      // Get path without locale prefix
+      const currentPathWithoutLocale: string = pathname.startsWith(`/${currentLocale}/`)
+        ? pathname.slice(currentLocale.length + 1) // +1 for the slash
+        : pathname;
+
+      // Construct the new URL based on the locale
+      let newPath: string;
+      if (nextLocale === defaultLocale) {
+        // Default locale may not need prefix depending on your localePrefix setting
+        newPath = currentPathWithoutLocale || '/';
+      } else {
+        // Non-default locale needs prefix
+        newPath = `/${nextLocale}${currentPathWithoutLocale.startsWith('/') ? currentPathWithoutLocale : `/${currentPathWithoutLocale}`}`;
       }
+
+      // Use direct URL manipulation to avoid issues with dynamic routes
+      window.location.href = newPath;
     });
   }
 

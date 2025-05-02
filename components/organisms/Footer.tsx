@@ -2,8 +2,9 @@
 
 import { Button } from '@/components/atoms/button';
 import { LanguageSwitcher } from '@/components/molecules/LocaleSwitcher';
+import { Link } from '@/lib/i18n/navigation';
 import { useTranslations } from 'next-intl';
-import Link from 'next/link';
+import NextLink from 'next/link';
 import { useCookieConsent } from 'react-cookie-manager';
 
 export default function Footer() {
@@ -33,12 +34,12 @@ export default function Footer() {
                   </p>
                   <div className="mt-6 flex justify-center gap-4">
                     <Button size="lg" className="rounded-full">
-                      <Link href="https://patimota.typeform.com/to/XNQHJbgT" target="_blank">
+                      <NextLink href="https://patimota.typeform.com/to/XNQHJbgT" target="_blank">
                         {t('cta.quiz')}
-                      </Link>
+                      </NextLink>
                     </Button>
                     <Button size="lg" variant="outline" className="rounded-full">
-                      <Link href="/#experts">{t('cta.book')}</Link>
+                      <NextLink href="/#experts">{t('cta.book')}</NextLink>
                     </Button>
                   </div>
                 </div>
@@ -109,20 +110,20 @@ export default function Footer() {
                             </Link>
                           </li>
                           <li>
-                            <Link
+                            <NextLink
                               href={`${process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}`}
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
                               {t('nav.company.join')}
-                            </Link>
+                            </NextLink>
                           </li>
                           <li>
-                            <Link
+                            <NextLink
                               href={`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}`}
                               className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                             >
                               {t('nav.company.dashboard')}
-                            </Link>
+                            </NextLink>
                           </li>
                         </ul>
                       </div>

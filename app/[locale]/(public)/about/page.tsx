@@ -1,12 +1,24 @@
+import { isValidLocale } from '@/app/i18n';
 import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
 import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
+import { notFound } from 'next/navigation';
 
-export async function generateMetadata({ params }: { params: { locale: string } }) {
-  console.log('About page - generateMetadata called with locale:', params.locale);
-  const t = await getTranslations({ locale: params.locale, namespace: 'About' });
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  // Await params before using locale
+  const { locale } = await params;
+
+  console.log('About page - generateMetadata called with locale:', locale);
+
+  // Validate locale before proceeding
+  if (!isValidLocale(locale)) {
+    console.error(`Invalid locale in About page metadata: ${locale}`);
+    notFound();
+  }
+
+  const t = await getTranslations({ locale, namespace: 'About' });
 
   return {
     title: t('metaTitle'),
@@ -14,8 +26,8 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   };
 }
 
-export default function AboutPage({ params }: { params: { locale: string } }) {
-  console.log('About page - rendering with locale:', params.locale);
+// Separate component that uses hooks
+function AboutContent() {
   const t = useTranslations('About');
 
   return (
@@ -494,4 +506,20 @@ export default function AboutPage({ params }: { params: { locale: string } }) {
       </div>
     </main>
   );
+}
+
+// Main page component
+export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
+  // Await params before using locale
+  const { locale } = await params;
+
+  console.log('About page - rendering with locale:', locale);
+
+  // Validate locale to prevent errors
+  if (!isValidLocale(locale)) {
+    console.error(`Invalid locale in About page: ${locale}`);
+    notFound();
+  }
+
+  return <AboutContent />;
 }

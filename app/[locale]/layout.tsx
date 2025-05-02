@@ -1,5 +1,6 @@
+import { isValidLocale } from '@/app/i18n';
 import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
-import { type Locale, locales } from '@/lib/i18n/routing';
+import { locales } from '@/lib/i18n/routing';
 import { cn } from '@/lib/utils';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
@@ -47,6 +48,14 @@ interface MetadataTranslations {
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
   // Await params before using locale
   const { locale } = await params;
+
+  console.log('Root layout - generateMetadata called with locale:', locale);
+
+  // Validate locale before proceeding
+  if (!isValidLocale(locale)) {
+    console.error(`Invalid locale in generateMetadata: ${locale}`);
+    notFound();
+  }
 
   // Get messages for the specified locale
   setRequestLocale(locale);
@@ -97,9 +106,14 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
 }
 
 export default async function LocaleLayout({ children, params }: Props) {
+  // Await params before using locale
   const { locale } = await params;
 
-  if (!locales.includes(locale as Locale)) {
+  console.log('Root layout rendering with locale:', locale);
+
+  // Validate locale before proceeding
+  if (!isValidLocale(locale)) {
+    console.error(`Invalid locale in layout: ${locale}`);
     notFound();
   }
 

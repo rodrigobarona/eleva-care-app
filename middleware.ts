@@ -2,7 +2,8 @@ import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 
-import { routing } from './lib/i18n/routing';
+import { defaultLocale, locales, routing } from './lib/i18n/routing';
+import type { Locale } from './lib/i18n/routing';
 
 // Create the internationalization middleware
 const handleI18nRouting = createMiddleware({
@@ -34,6 +35,21 @@ const isProtectedRoute = createRouteMatcher([
   '/api/settings/(.*)',
 ]);
 
+// List of static paths to check against to prioritize over dynamic routes
+const staticPaths = Object.keys(routing.pathnames).filter((path) => !path.includes('['));
+
+/**
+ * Check if the requested path corresponds to a known static route
+ * This helps prioritize static routes over dynamic routes
+ */
+function isStaticRoute(pathname: string): boolean {
+  // Get pathname without locale prefix
+  const pathnameWithoutLocale = getPathnameWithoutLocale(pathname);
+
+  // Check if the path matches any of our static paths
+  return staticPaths.some((path) => path === pathnameWithoutLocale);
+}
+
 export default clerkMiddleware((auth, req) => {
   const pathname = req.nextUrl.pathname;
 
@@ -50,45 +66,58 @@ export default clerkMiddleware((auth, req) => {
   // --- API Route Handling ---
   if (pathname.startsWith('/api')) {
     console.log(`[middleware] Processing API Path: ${pathname}`);
-    // Optional: Protect specific API routes via middleware if desired
-    // if (isProtectedRoute(req)) { // Check if this API route is in the protected list
-    //   console.log(`API Path ${pathname} is PROTECTED, checking auth...`);
-    //   auth.protect(); // Will redirect or error if unauthenticated
-    // } else {
-    //   console.log(`API Path ${pathname} is treated as PUBLIC by middleware.`);
-    // }
-
     // Allow request to proceed to the API handler.
-    // Auth checks should happen INSIDE the API handler using auth().userId etc.
-    // Crucially, DO NOT run next-intl middleware for API routes.
     return NextResponse.next();
   }
 
   // --- Web Page Handling ---
   console.log(`[middleware] Processing path: ${pathname}`);
 
+  // Get the pathname without locale prefix (if any) to help with matching
+  const pathnameWithoutLocale = getPathnameWithoutLocale(pathname);
+  console.log(`[middleware] Pathname without locale: ${pathnameWithoutLocale}`);
+
+  // IMPORTANT: First check if this is a static route to prioritize it over dynamic routes
+  const isKnownStaticRoute = isStaticRoute(pathname);
+  if (isKnownStaticRoute) {
+    console.log(`[middleware] Identified as static path: ${pathname}`);
+  }
+
   // Check if the PAGE route requires authentication
   if (isProtectedRoute(req)) {
-    console.log(`[middleware] Page Path ${pathname} is PROTECTED, checking auth...`);
+    console.log(`[middleware] Path ${pathname} is PROTECTED, checking auth...`);
     auth.protect(); // Handles redirect to sign-in if needed for pages
   } else {
-    console.log(`[middleware] Page Path ${pathname} is PUBLIC.`);
+    console.log(`[middleware] Path ${pathname} is PUBLIC.`);
   }
 
   // Apply internationalization handling ONLY for web pages
   console.log(`[middleware] Applying i18n routing for ${pathname}`);
   try {
-    // Special handling for portuguese about page
-    if (pathname === '/pt/sobre-nos') {
-      console.log('[middleware] Detected Portuguese about page');
+    const response = handleI18nRouting(req);
+
+    // Log information about redirect
+    const location = response.headers.get('location');
+    if (location) {
+      console.log(`[middleware] Redirecting to: ${location}`);
     }
 
-    return handleI18nRouting(req);
+    return response;
   } catch (error) {
-    console.error('Error in i18n middleware:', error);
+    console.error('[middleware] Error in i18n middleware:', error);
     return NextResponse.next();
   }
 });
+
+// Helper function to strip locale prefix from pathname
+function getPathnameWithoutLocale(pathname: string): string {
+  const segments = pathname.split('/');
+  // If the first segment is a locale, remove it
+  if (segments.length > 1 && locales.includes(segments[1] as Locale)) {
+    return `/${segments.slice(2).join('/')}`;
+  }
+  return pathname;
+}
 
 // Matcher needs to include /api routes for the middleware function to run
 export const config = {

@@ -14,6 +14,7 @@ interface NavLinkProps {
 
 const NavLink = ({ href, isScrolled, isRootPath, children }: NavLinkProps) => (
   <Link
+    // @ts-expect-error - Allow hash-based navigation which isn't in the routing configuration
     href={href}
     className={`rounded-full px-4 py-1 text-sm font-medium transition-colors hover:bg-white/10 hover:text-sidebar-accent-foreground ${
       isRootPath && !isScrolled ? 'text-white' : 'text-foreground'

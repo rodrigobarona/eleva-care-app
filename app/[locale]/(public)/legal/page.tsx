@@ -1,9 +1,19 @@
+import { isValidLocale } from '@/app/i18n';
 import { Link } from '@/lib/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
+import { notFound } from 'next/navigation';
 
-export async function generateMetadata({ params }: { params: { locale: string } }) {
-  const locale = params.locale;
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }) {
+  // Await params before using locale
+  const { locale } = await params;
+
+  // Validate locale before proceeding
+  if (!isValidLocale(locale)) {
+    console.error(`Invalid locale in Legal page metadata: ${locale}`);
+    notFound();
+  }
+
   const t = await getTranslations({ locale, namespace: 'Legal' });
 
   return {
@@ -12,7 +22,8 @@ export async function generateMetadata({ params }: { params: { locale: string } 
   };
 }
 
-export default function LegalPage() {
+// Separate component that uses hooks
+function LegalContent() {
   const t = useTranslations('Legal');
 
   return (
@@ -32,4 +43,18 @@ export default function LegalPage() {
       </ul>
     </div>
   );
+}
+
+// Main page component
+export default async function LegalPage({ params }: { params: Promise<{ locale: string }> }) {
+  // Await params before using locale
+  const { locale } = await params;
+
+  // Validate locale to prevent errors
+  if (!isValidLocale(locale)) {
+    console.error(`Invalid locale in Legal page: ${locale}`);
+    notFound();
+  }
+
+  return <LegalContent />;
 }
