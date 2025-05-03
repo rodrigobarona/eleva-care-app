@@ -29,7 +29,7 @@ export default function MDXContentWrapper({
 
       try {
         // Try to load the MDX content for the current locale
-        const contentModule = await import(`./content/${namespace}_${locale}.mdx`);
+        const contentModule = await import(`@/content/${namespace}/${locale}.mdx`);
         setContent(() => contentModule.default);
       } catch (e) {
         console.log(
@@ -39,7 +39,7 @@ export default function MDXContentWrapper({
 
         try {
           // Try fallback locale
-          const fallbackModule = await import(`./content/${namespace}_${fallbackLocale}.mdx`);
+          const fallbackModule = await import(`@/content/${namespace}/${fallbackLocale}.mdx`);
           setContent(() => fallbackModule.default);
         } catch (fallbackError) {
           console.error(

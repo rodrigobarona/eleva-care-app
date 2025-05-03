@@ -3,7 +3,7 @@ import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
-import MDXContentWrapper from './MDXContentWrapper';
+import MDXContentWrapper from '../../../../components/atoms/MDXContentWrapper';
 
 // Define the page props
 interface PageProps {
