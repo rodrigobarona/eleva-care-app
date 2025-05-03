@@ -1,10 +1,11 @@
 import { isValidLocale } from '@/app/i18n';
-import MDXContentWrapper from '@/components/molecules/MDXContentWrapper';
-import type { Metadata } from 'next';
+import { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
-// Define the correct params type based on the error message
+import MDXContentWrapper from './MDXContentWrapper';
+
+// Define the page props
 interface PageProps {
   params: Promise<{ locale: string }>;
 }
@@ -17,9 +18,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   try {
-    // Get translations for metadata
     const t = await getTranslations({ locale, namespace: 'metadata.about' });
-
     return {
       title: t('title'),
       description: t('description'),
@@ -31,7 +30,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     };
   } catch (error) {
     console.error('Error generating metadata:', error);
-    // Fallback metadata
     return {
       title: 'About Eleva Care',
       description: 'Learn about our mission, vision, and team at Eleva Care.',
@@ -50,9 +48,7 @@ export default async function AboutPage({ params }: PageProps) {
     <main className="overflow-hidden">
       <div className="px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
-          {/* The locale is passed explicitly here, but could be omitted as MDXContentWrapper 
-              can now get it automatically via getLocale() */}
-          <MDXContentWrapper namespace="about" locale={locale} />
+          <MDXContentWrapper locale={locale} namespace="about" />
         </div>
       </div>
     </main>

@@ -1,4 +1,3 @@
-import { withContentCollections } from '@content-collections/next';
 import createMDX from '@next/mdx';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
@@ -56,7 +55,5 @@ const config: NextConfig = {
 };
 
 const nextConfig = withMDX(config);
-const intlConfig = withNextIntl(nextConfig);
 
-// withContentCollections must be the outermost plugin
-export default withContentCollections(intlConfig);
+export default withNextIntl(nextConfig);

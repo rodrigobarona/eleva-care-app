@@ -37,7 +37,3 @@ yarn-error.log*
 next-env.d.ts
 /cal.com
 _backup_.env
-
-# content collections
-/.content-collections/
-# Add Content Collections to .gitignore

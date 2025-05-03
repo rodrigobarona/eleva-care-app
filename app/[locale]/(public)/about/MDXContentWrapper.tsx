@@ -5,16 +5,14 @@ import React from 'react';
 
 type MDXContentWrapperProps = {
   locale: string;
-  namespace: string; // e.g., 'about', 'blog', 'services'
-  fallbackLocale?: string; // Optional fallback locale if content not found
-  contentPathPattern?: string; // Optional pattern for content path
+  namespace: string;
+  fallbackLocale?: string;
 };
 
 export default function MDXContentWrapper({
   locale,
   namespace,
   fallbackLocale = 'en',
-  contentPathPattern = '/{namespace}/content/{filename}_{locale}.mdx',
 }: MDXContentWrapperProps) {
   const [Content, setContent] = React.useState<React.ComponentType | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
@@ -30,14 +28,8 @@ export default function MDXContentWrapper({
       setError(null);
 
       try {
-        // Replace pattern placeholders with actual values
-        const path = contentPathPattern
-          .replace('{namespace}', namespace)
-          .replace('{filename}', namespace)
-          .replace('{locale}', locale);
-
-        // Dynamic import based on path
-        const contentModule = await import(`../../app/[locale]/(public)${path}`);
+        // Try to load the MDX content for the current locale
+        const contentModule = await import(`./content/${namespace}_${locale}.mdx`);
         setContent(() => contentModule.default);
       } catch (e) {
         console.log(
@@ -47,12 +39,7 @@ export default function MDXContentWrapper({
 
         try {
           // Try fallback locale
-          const fallbackPath = contentPathPattern
-            .replace('{namespace}', namespace)
-            .replace('{filename}', namespace)
-            .replace('{locale}', fallbackLocale);
-
-          const fallbackModule = await import(`../../app/[locale]/(public)${fallbackPath}`);
+          const fallbackModule = await import(`./content/${namespace}_${fallbackLocale}.mdx`);
           setContent(() => fallbackModule.default);
         } catch (fallbackError) {
           console.error(
@@ -67,7 +54,7 @@ export default function MDXContentWrapper({
     };
 
     loadContent();
-  }, [locale, namespace, fallbackLocale, contentPathPattern]);
+  }, [locale, namespace, fallbackLocale]);
 
   if (isLoading) {
     return <p className="p-8">{t('loading')}</p>;
