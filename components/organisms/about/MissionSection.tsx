@@ -1,9 +1,8 @@
 'use client';
 
 import { Separator } from '@/components/atoms/separator';
+import TextBlock from '@/components/atoms/TextBlock';
 import Image from 'next/image';
-
-import TextBlock from './TextBlock';
 
 type MissionSectionProps = {
   title: string;

@@ -1,10 +1,11 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import React from 'react';
 
 export default function MDXContentWrapper({ locale }: { locale: string }) {
   const [Content, setContent] = React.useState<React.ComponentType | null>(null);
-
+  const t = useTranslations('common');
   React.useEffect(() => {
     const loadContent = async () => {
       try {
@@ -21,7 +22,7 @@ export default function MDXContentWrapper({ locale }: { locale: string }) {
   }, [locale]);
 
   if (!Content) {
-    return <p className="p-8">Loading content...</p>;
+    return <p className="p-8">{t('loading')}</p>;
   }
 
   return <Content />;
