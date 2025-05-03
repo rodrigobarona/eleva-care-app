@@ -30,6 +30,31 @@ const config: NextConfig = {
       },
     ],
   },
+  headers: async () => {
+    return [
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+    ];
+  },
   experimental: {
     staleTimes: {
       dynamic: 0,
@@ -38,6 +63,7 @@ const config: NextConfig = {
     optimizePackageImports: ['react-icons', '@clerk/nextjs', 'next-intl', 'sonner', 'posthog-js'],
   },
   webpack: (config, { dev }) => {
+    // In production, use memory cache to improve build performance and reduce cold start times
     if (!dev) {
       if (config.cache) {
         config.cache = {
