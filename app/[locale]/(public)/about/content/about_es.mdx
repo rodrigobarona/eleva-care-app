@@ -1,0 +1,210 @@
+import { Button } from '@/components/atoms/button';
+import { Separator } from '@/components/atoms/separator';
+import Image from 'next/image';
+
+import AdvisorsSection from '../components/AdvisorsSection';
+import BeliefsSection from '../components/BeliefsSection';
+import ClinicalExpertsSection from '../components/ClinicalExpertsSection';
+import HeadlineSection from '../components/HeadlineSection';
+import JoinNetworkSection from '../components/JoinNetworkSection';
+import MissionSection from '../components/MissionSection';
+import StatsSection from '../components/StatsSection';
+import TeamSection from '../components/TeamSection';
+import TextBlock from '../components/TextBlock';
+
+<HeadlineSection
+  title="Transformando la atención médica para mujeres a través de la innovación y la compasión"
+  description="En Eleva Care, nos dedicamos a empoderar a las mujeres de todas las edades para que tomen el control de su salud y bienestar."
+/>
+
+<MissionSection
+  title="Nuestra Misión"
+  description={[
+    {
+      paragraph:
+        'Nuestra misión es proporcionar una plataforma inclusiva y de apoyo que conecte a las personas con recursos dirigidos por expertos, información basada en evidencia y una comunidad colaborativa de profesionales de la salud.',
+    },
+    {
+      paragraph:
+        'Creemos en hacer que la atención médica de calidad sea accesible para todas las mujeres, empoderándolas con conocimiento y fomentando la colaboración para mejores resultados de salud. Nuestro enfoque reconoce que la salud de la mujer es un viaje evolutivo de toda la vida.',
+    },
+  ]}
+  statsTitle="Los números"
+  stats={[
+    { label: 'Satisfacción del Paciente', value: '95%' },
+    { label: 'Soporte Disponible', value: '24/7' },
+  ]}
+/>
+
+<HeadlineSection
+  label="Nuestra visión"
+  title="Uniendo ciencia y cuidado para cada mujer"
+  description="Para unir el gap entre la investigación científica y la aplicación práctica, entregando soluciones de cuidados de salud de la mujer de forma accesible y personalizadas en todas las etapas de la vida."
+/>
+
+<BeliefsSection
+  title="Nuestras creencias fundamentales"
+  beliefs={[
+    {
+      title: 'Acceso a Cuidados de Salud de Calidad',
+      description:
+        'Cada mujer merece acceso a cuidados de salud de calidad, independientemente de su ubicación o circunstancias.',
+    },
+    {
+      title: 'El conocimiento es poder',
+      description:
+        'Capacitar a las mujeres con información basada en evidencia para tomar decisiones informadas sobre su salud.',
+    },
+    {
+      title: 'Cuidados colaborativos',
+      description:
+        'Mejores resultados de salud se logran a través de la colaboración entre pacientes y profesionales de la salud.',
+    },
+    {
+      title: 'Jornada de Salud',
+      description:
+        'La salud de la mujer es un viaje continuo que evoluciona a través de diferentes etapas de la vida.',
+    },
+  ]}
+/>
+
+<HeadlineSection
+  label="Conoce a nuestro equipo"
+  title="Liderada por inovadores y expertos en salud"
+  description="Nuestro equipo combina expertise en salud de la mujer, tecnología y cuidado con pacientes para revolucionar la entrega de cuidados de salud."
+/>
+
+<TeamSection
+  description={[
+    {
+      paragraph:
+        'Fundada por profesionales de la salud que presenciaron de primera mano las brechas en la atención médica para mujeres, Eleva Care surgió de una visión compartida para hacer que la atención especializada sea más accesible, personalizada e integral.',
+    },
+    {
+      paragraph:
+        'Hoy, Eleva Care está transformando cómo las mujeres acceden y experimentan la atención médica. Nuestra plataforma conecta a miles de mujeres con proveedores de atención médica especializados, ofreciendo atención y apoyo basados en evidencia a lo largo de cada etapa de la vida.',
+    },
+  ]}
+  title="Nuestra lídera"
+  leadership={[
+    {
+      name: 'Patricia Mota, PT, PhD',
+      flags: '🇵🇹 🇪🇸 🇺🇸',
+      role: 'Co-Fundadora / Directora General',
+      image: '/img/about/team/team-patricia-mota.jpg',
+    },
+    {
+      name: 'Rodrigo Barona',
+      flags: '🇪🇸 🇵🇹 🇺🇸',
+      role: 'Co-Fundador / Director Técnico',
+      image: '/img/about/team/team-rodrigo-barona.jpg',
+    },
+  ]}
+/>
+
+<HeadlineSection
+  label="Guiada por expertos en salud"
+  title="Consejo Consultivo"
+  description="Nuestro consejo consultivo reúne voces líderes en salud de la mujer, innovación en salud y transformación digital."
+/>
+
+<AdvisorsSection
+  title="Innovación en Salud"
+  healthcareAdvisors={[
+    {
+      name: 'Cristine Homsi Jorge, PT, PhD',
+      flags: '🇧🇷',
+      role: 'Asesora de Salud Femenina',
+      quote:
+        'La investigación clínica y la educación empoderan a las mujeres para tomar decisiones informadas sobre su viaje de salud',
+      image: '/img/about/team/team-cristine-homsi-jorge.jpg',
+    },
+    {
+      name: 'Alexandre Delgado, PT, PhD',
+      flags: '🇧🇷',
+      role: 'Asesor de Fisioterapia Obstétrica',
+      quote:
+        'La fisioterapia basada en evidencia transforma la experiencia del embarazo y el parto, empoderando a las mujeres en cada etapa.',
+      image: '/img/about/team/team-alexandre-delgado.jpg',
+    },
+    {
+      name: 'Patricia Driusso, PT, PhD',
+      flags: '🇧🇷',
+      role: 'Asesora de Salud Femenina',
+      quote:
+        'La investigación clínica avanza en los tratamientos de rehabilitación mientras empodera a las mujeres a través de la educación basada en evidencia.',
+      image: '/img/about/team/team-patricia-driusso.jpg',
+    },
+    {
+      name: 'Annelie Gutke, PT, PhD',
+      flags: '🇸🇪',
+      role: 'Asesora de Salud Femenina',
+      quote:
+        'Entender los mecanismos del dolor transforma cómo cuidamos a las mujeres durante el embarazo y más allá.',
+      image: '/img/about/team/team-annelie-gutke.jpg',
+    },
+    {
+      name: 'Ruben Barakat, PhD',
+      flags: '🇦🇷 🇪🇸',
+      role: 'Asesor de Ciencias del Ejercicio',
+      quote:
+        'La evidencia muestra que el ejercicio personalizado durante el embarazo puede transformar los resultados de salud de las mujeres.',
+      image: '/img/about/team/team-ruben-barakat.jpg',
+    },
+    {
+      name: 'Jenny Bagwell, PT, PhD, DPT',
+      flags: '🇺🇸',
+      role: 'Asesora de Biomecánica y Salud Perinatal',
+      quote:
+        'Entender los patrones de movimiento durante y después del embarazo ayuda a optimizar la atención y mejorar los resultados a largo plazo para las mujeres.',
+      image: '/img/about/team/team-jenny-bagwell-california-usa.jpg',
+    },
+  ]}
+/>
+
+<ClinicalExpertsSection
+  title="Especialistas Clínicos"
+  clinicalExperts={[
+    {
+      name: 'Jessica Margarido, PT',
+      flags: '🇵🇹',
+      role: 'Rehabilitación Oncológica',
+      image: '/img/about/team/team-jessica-margarido.jpg',
+    },
+    {
+      name: 'Joana Goulão Barros, MD, PhD',
+      flags: '🇵🇹',
+      role: 'Obstetricia y Ginecología',
+      image: '/img/about/team/team-joana-barros.jpg',
+    },
+  ]}
+/>
+
+<HeadlineSection
+  label="Únete a nuestra red"
+  title="Transforma la atención médica femenina con nosotros"
+  description="Únete a una comunidad de profesionales dedicados que hacen que la atención de calidad sea accesible para mujeres en todas partes."
+/>
+
+<JoinNetworkSection
+  title="Por qué unirse a nuestra red"
+  benefits={[
+    {
+      title: 'Práctica Flexible',
+      description:
+        'Ejerce en tus propios términos con nuestra plataforma flexible de telesalud. Establece tu propio horario y conéctate con pacientes desde cualquier lugar.',
+    },
+    {
+      title: 'Tecnología Innovadora',
+      description:
+        'Accede a herramientas de telesalud de vanguardia y soporte clínico asistido por IA para mejorar tu práctica.',
+    },
+    {
+      title: 'Comunidad Colaborativa',
+      description:
+        'Únete a una red de profesionales de la salud líderes y participa en discusiones de casos e intercambio de conocimientos.',
+    },
+  ]}
+  applyUrl="https://accounts.eleva.care/waitlist"
+  applyButtonText="Solicitar Unirse"
+/>
