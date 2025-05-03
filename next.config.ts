@@ -1,3 +1,4 @@
+import { withContentCollections } from '@content-collections/next';
 import createMDX from '@next/mdx';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
@@ -30,31 +31,6 @@ const config: NextConfig = {
       },
     ],
   },
-  headers: async () => {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'X-Content-Type-Options',
-            value: 'nosniff',
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
-          {
-            key: 'X-XSS-Protection',
-            value: '1; mode=block',
-          },
-          {
-            key: 'Referrer-Policy',
-            value: 'strict-origin-when-cross-origin',
-          },
-        ],
-      },
-    ];
-  },
   experimental: {
     staleTimes: {
       dynamic: 0,
@@ -80,5 +56,7 @@ const config: NextConfig = {
 };
 
 const nextConfig = withMDX(config);
+const intlConfig = withNextIntl(nextConfig);
 
-export default withNextIntl(nextConfig);
+// withContentCollections must be the outermost plugin
+export default withContentCollections(intlConfig);

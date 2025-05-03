@@ -14,6 +14,15 @@
       "title": "Cuidados especializados para Gravidez, Pós-parto e Saúde Sexual | Eleva Care",
       "description": "Eleva Care: Capacitando o crescimento, abraçando o cuidado. Cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual.",
       "siteName": "Eleva Care"
+    },
+    "about": {
+      "title": "Sobre a Eleva Care | A Nossa Missão, Visão e Equipa",
+      "description": "Conheça a missão da Eleva Care de transformar a saúde da mulher através da inovação e compaixão. Conheça a nossa equipa de especialistas em saúde dedicados a capacitar as mulheres.",
+      "og": {
+        "title": "Sobre a Eleva Care | A Nossa Missão, Visão e Equipa",
+        "description": "Conheça a missão da Eleva Care de transformar a saúde da mulher através da inovação e compaixão. Conheça a nossa equipa de especialistas.",
+        "siteName": "Eleva Care"
+      }
     }
   },
   "NotFound": {

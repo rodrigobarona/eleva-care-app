@@ -14,6 +14,15 @@
       "title": "Cuidado experto para Embarazo, Posparto y Salud Sexual | Eleva Care",
       "description": "Eleva Care: Potenciando el crecimiento, brindando cuidado. Atención especializada para embarazo, posparto, menopausia y salud sexual.",
       "siteName": "Eleva Care"
+    },
+    "about": {
+      "title": "Sobre Eleva Care | Nuestra Misión, Visión y Equipo",
+      "description": "Conozca la misión de Eleva Care de transformar la salud de la mujer a través de la innovación y la compasión. Conozca a nuestro equipo de expertos en salud dedicados a empoderar a las mujeres.",
+      "og": {
+        "title": "Sobre Eleva Care | Nuestra Misión, Visión y Equipo",
+        "description": "Conozca la misión de Eleva Care de transformar la salud de la mujer a través de la innovación y la compasión. Conozca a nuestro equipo de expertos.",
+        "siteName": "Eleva Care"
+      }
     }
   },
   "NotFound": {
