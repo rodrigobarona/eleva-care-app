@@ -7,9 +7,8 @@ import {
   CarouselPrevious,
 } from '@/components/molecules/carousel';
 import { db } from '@/drizzle/db';
-import { EventTable } from '@/drizzle/schema';
 import { createClerkClient } from '@clerk/nextjs/server';
-import { and, eq, gt, min } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -42,33 +41,6 @@ const ExpertsSection = async () => {
 
       if (!profile) return null; // This shouldn't happen due to our filtered users list
 
-      // Fetch minimum price
-      const minPricing = await db
-        .select({
-          price: min(EventTable.price),
-          currency: EventTable.currency,
-        })
-        .from(EventTable)
-        .where(and(eq(EventTable.clerkUserId, user.id), gt(EventTable.price, 0)))
-        .groupBy(EventTable.currency)
-        .limit(1);
-
-      const currencySymbols: Record<string, string> = {
-        EUR: '€',
-        USD: '$',
-        GBP: '£',
-      };
-
-      const price = minPricing?.[0]?.price ? Number(minPricing[0].price) : null;
-      const currency = minPricing?.[0]?.currency
-        ? String(minPricing[0].currency).toUpperCase()
-        : null;
-
-      const formattedPrice =
-        price && currency
-          ? `${currencySymbols[currency as keyof typeof currencySymbols] || '€'}${(price / 100).toFixed(0)} • ${t('sessionLabel')}`
-          : null;
-
       return {
         id: user.id,
         name: `${profile.firstName} ${profile.lastName}`,
@@ -76,7 +48,6 @@ const ExpertsSection = async () => {
         image: profile.profilePicture || user.imageUrl,
         headline: profile.headline || '',
         shortBio: profile.shortBio || '',
-        price: formattedPrice,
         order: profile.order || 0,
         rating: '5.0',
         isTopExpert: profile.isTopExpert,
@@ -178,20 +149,19 @@ const ExpertsSection = async () => {
                         </div>
                       </div>
 
-                      {/* Price */}
-                      <div className="flex items-center gap-2 text-eleva-neutral-900">
-                        <span className="text-sm font-light">{expert.price}</span>
-                      </div>
+                      {/* Category */}
+                      {expert.category && (
+                        <div className="flex items-center gap-2 pb-3 text-sm text-eleva-neutral-900/80">
+                          <span className="text-sm font-light text-eleva-highlight-purple">
+                            {expert.category}
+                          </span>
+                        </div>
+                      )}
 
                       {/* Short Bio */}
                       <p className="text-balance text-base font-light text-eleva-neutral-900/80">
                         {expert.shortBio}
                       </p>
-
-                      {/* Category */}
-                      {expert.category && (
-                        <p className="text-sm text-eleva-neutral-900/80">{expert.category}</p>
-                      )}
                     </CardContent>
                   </Card>
                 </Link>
