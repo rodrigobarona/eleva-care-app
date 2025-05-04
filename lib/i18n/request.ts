@@ -77,6 +77,6 @@ export default getRequestConfig(async ({ requestLocale }) => {
     locale,
     messages,
     // Optional: set time zone if needed based on locale
-    timeZone: locale === 'pt-BR' ? 'America/Sao_Paulo' : locale === 'es' ? 'Europe/Madrid' : 'UTC',
+    // timeZone: 'UTC',
   };
 });

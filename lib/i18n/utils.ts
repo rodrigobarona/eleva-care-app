@@ -87,7 +87,7 @@ function parseAcceptLanguage(acceptLanguage?: string): Locale | null {
     }
 
     // Special case: if it's "pt-BR" or any Portuguese variant from Brazil
-    if (code.startsWith('pt-br') || code === 'pt-br') {
+    if (code.startsWith('pt-br')) {
       return 'pt-BR';
     }
   }
