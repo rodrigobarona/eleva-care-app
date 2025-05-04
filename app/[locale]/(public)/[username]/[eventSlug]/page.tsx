@@ -159,7 +159,7 @@ async function CalendarWithAvailability({
   );
 
   if (validTimes.length === 0) {
-    return <NoTimeSlots calendarUser={calendarUser} username={username} />;
+    return <NoTimeSlots calendarUser={calendarUser} username={username} locale={locale} />;
   }
 
   // Enhanced MeetingForm with better metadata
@@ -257,9 +257,11 @@ function CalendarLoadingSkeleton() {
 function NoTimeSlots({
   calendarUser,
   username,
+  locale,
 }: {
   calendarUser: { id: string; fullName: string | null };
   username: string;
+  locale: string;
 }) {
   return (
     <Card className="mx-auto max-w-lg">
@@ -279,12 +281,7 @@ function NoTimeSlots({
         </ul>
       </CardContent>
       <CardFooter>
-        <Link
-          href={{
-            pathname: '/[username]',
-            params: { username },
-          }}
-        >
+        <Link href={`/${locale}/${username}`}>
           <Button variant="secondary">View Profile</Button>
         </Link>
       </CardFooter>
