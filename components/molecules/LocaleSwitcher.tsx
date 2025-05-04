@@ -3,12 +3,12 @@ import { useLocale } from 'next-intl';
 
 import LocaleSwitcherSelect from './LocaleSwitcherSelect';
 
-// Define fallback translations for language names
+// Define fallback translations for language names - using ISO locale codes
 const localeNames = {
   en: 'English',
   es: 'Español',
-  pt: 'Português (PT)',
-  br: 'Português (BR)',
+  pt: 'Português',
+  'pt-BR': 'Português (Brasil)',
 };
 
 export function LanguageSwitcher() {

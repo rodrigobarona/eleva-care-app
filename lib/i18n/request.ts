@@ -17,6 +17,17 @@ interface MessageObject {
   [key: string]: MessageValue;
 }
 
+// Helper function to get the file locale from ISO locale codes
+function getFileLocale(locale: string): string {
+  // If locale contains a hyphen (like pt-BR), extract the country code
+  if (locale.includes('-')) {
+    // Get the part after the hyphen (BR) and lowercase it (br)
+    return locale.split('-')[1].toLowerCase();
+  }
+  // Otherwise just return the original locale
+  return locale;
+}
+
 export default getRequestConfig(async ({ requestLocale }) => {
   // `requestLocale` is the locale resolved by the middleware OR the [locale] param
   const requested = await requestLocale;
@@ -29,11 +40,15 @@ export default getRequestConfig(async ({ requestLocale }) => {
 
   console.log('[request.ts] Resolved locale:', locale);
 
+  // Transform locale to file locale (e.g., pt-BR -> br, es-MX -> mx)
+  const fileLocale = getFileLocale(locale);
+  console.log(`[request.ts] Using file locale: ${fileLocale}`);
+
   // Load messages from JSON files
   let messages: MessageObject;
   try {
-    // Dynamic import based on locale
-    messages = (await import(`@/messages/${locale}.json`)).default;
+    // Use the file locale for import
+    messages = (await import(`@/messages/${fileLocale}.json`)).default;
   } catch (error) {
     console.error(`[request.ts] Failed to load messages for locale ${locale}:`, error);
     // Fallback to English if locale not found
