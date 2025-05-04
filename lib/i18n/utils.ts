@@ -42,7 +42,7 @@ const COUNTRY_LOCALE_MAP: Record<string, Locale> = {
   GQ: 'es', // Equatorial Guinea
 
   // Portuguese-speaking countries
-  PT: 'pt', // Portugal
+  PT: 'pt', // Portugal - Always use pt for Portugal
   BR: 'pt-BR', // Brazil - Always use pt-BR for Brazil
   AO: 'pt', // Angola
   MZ: 'pt', // Mozambique
@@ -75,34 +75,39 @@ function parseAcceptLanguage(acceptLanguage?: string): Locale | null {
   for (const lang of languages) {
     const code = lang.value.toLowerCase();
 
-    // Special case for Brazilian Portuguese
-    // Check for pt-BR directly or pt with BR country
-    if (code === 'pt-br' || code.startsWith('pt-br')) {
-      return 'pt-BR';
-    }
-
-    // Try direct match first
+    // Try direct match first (highest priority)
     if (locales.includes(code as Locale)) {
       return code as Locale;
     }
 
-    // Special check for language + region
-    const [language, region] = code.split('-');
-
-    // If it's Portuguese from Brazil specifically
-    if (language === 'pt' && region && region.toLowerCase() === 'br') {
+    // Special case for Brazilian Portuguese (explicit pt-BR)
+    // Only match exact pt-BR patterns
+    if (code === 'pt-br') {
       return 'pt-BR';
     }
 
-    // Try language part only for other cases (e.g., "en-US" -> "en")
-    if (locales.includes(language as Locale)) {
-      // For Portuguese, check if we should return pt or pt-BR based on region
-      if (language === 'pt' && region) {
-        // If region is BR, return pt-BR
-        if (region.toUpperCase() === 'BR') {
-          return 'pt-BR';
-        }
+    // For all other cases, parse language and region
+    const [language, region] = code.split('-');
+
+    // Handle language with region cases
+    if (language && region) {
+      // Portuguese with Brazil region (pt-BR)
+      if (language === 'pt' && region.toLowerCase() === 'br') {
+        return 'pt-BR';
       }
+
+      // Portuguese with Portugal region (pt-PT) should be regular 'pt'
+      if (language === 'pt' && region.toLowerCase() === 'pt') {
+        return 'pt';
+      }
+
+      // For all other languages, just return the base language if it's supported
+      if (locales.includes(language as Locale)) {
+        return language as Locale;
+      }
+    }
+    // Handle base language without region
+    else if (language && locales.includes(language as Locale)) {
       return language as Locale;
     }
   }
