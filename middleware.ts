@@ -1,255 +1,177 @@
-/**
- * Role-Based Access Control Middleware
- *
- * This middleware implements a comprehensive authorization strategy:
- * 1. Public routes are explicitly allowed without authentication
- * 2. Authentication is required for all other routes
- * 3. Specific route patterns are restricted to users with appropriate roles
- * 4. Webhook routes completely bypass authentication
- *
- * This is the first layer of defense in our multi-layered approach.
- * Additional role checks are implemented at layout and page levels.
- *
- * @see /docs/role-based-authorization.md for complete documentation
- */
-import { checkRoles } from '@/lib/auth/roles.server';
-import {
-  ADMIN_ROLES,
-  ADMIN_ROUTES,
-  EXPERT_ROLES,
-  EXPERT_ROUTES,
-  PUBLIC_ROUTES,
-  SPECIAL_AUTH_ROUTES,
-} from '@/lib/constants/roles';
-import { clerkMiddleware } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 
-// Simple and reliable path matcher
-function isPathMatch(path: string, pattern: string): boolean {
-  // Handle exact matches
-  if (pattern === path) return true;
+import { defaultLocale, locales, routing } from './lib/i18n/routing';
+import type { Locale } from './lib/i18n/routing';
 
-  // Handle wildcard patterns (e.g., /admin*)
-  if (pattern.endsWith('*')) {
-    const basePath = pattern.slice(0, -1);
-    return path.startsWith(basePath);
-  }
-
-  // Handle username patterns specifically
-  if (pattern === '/:username') {
-    const segments = path.split('/').filter(Boolean);
-    return segments.length === 1;
-  }
-
-  // Handle username with subpaths pattern
-  if (pattern === '/:username/(.*)') {
-    const segments = path.split('/').filter(Boolean);
-    return segments.length >= 2;
-  }
-
-  // Handle regex-like patterns
-  if (pattern.includes('(') && pattern.includes(')')) {
-    try {
-      const regexPattern = pattern
-        .replace(/\//g, '\\/') // Escape forward slashes
-        .replace(/\(/g, '\\(')
-        .replace(/\)/g, '\\)')
-        .replace(/\*/g, '.*')
-        .replace(/\?/g, '.');
-      const regex = new RegExp(`^${regexPattern}$`);
-      return regex.test(path);
-    } catch {
-      console.error('Invalid regex pattern:', pattern);
-      return false;
-    }
-  }
-
-  return false;
-}
-
-// Check if a path matches any patterns in the array
-function matchPatternsArray(path: string, patterns: readonly string[]): boolean {
-  return patterns.some((pattern) => isPathMatch(path, pattern));
-}
-
-// Check if a user is an expert with incomplete setup
-async function isExpertWithIncompleteSetup(authObject: any): Promise<boolean> {
-  const userRoleData = authObject?.sessionClaims?.metadata?.role;
-  if (!userRoleData) return false;
-
-  // Check if user has an expert role
-  const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
-  if (!isExpert) return false;
-
-  // Get expert setup data from unsafeMetadata
-  const expertSetup = authObject?.sessionClaims?.unsafeMetadata?.expertSetup;
-  if (!expertSetup) return true; // If no setup data, consider setup incomplete
-
-  // Required setup steps that must be present for a complete setup
-  const requiredSetupSteps = [
-    'events',
-    'payment',
-    'profile',
-    'identity',
-    'availability',
-    'google_account',
-  ];
-
-  // Check if all required steps are present AND true
-  const setupComplete = requiredSetupSteps.every((step) => expertSetup[step] === true);
-
-  // Return true if setup is incomplete (any required step is missing or false)
-  return !setupComplete;
-}
-
-export default clerkMiddleware(async (auth, req) => {
-  const path = req.nextUrl.pathname;
-  console.log(`🔍 Processing route: ${path}`);
-
-  // Fast path for username routes (critical fix)
-  const segments = path.split('/').filter(Boolean);
-  if (segments.length >= 2 && !path.startsWith('/api/')) {
-    console.log(`👤 Potential username route: ${path}`);
-    return NextResponse.next();
-  }
-
-  // Handle special cases
-  if (path.startsWith('/api/webhooks/')) {
-    console.log(`Webhook route allowed: ${path}`);
-    return NextResponse.next();
-  }
-
-  // Check if the path is in SPECIAL_AUTH_ROUTES (including cron jobs)
-  if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
-    console.log(`Special auth route detected: ${path}`);
-
-    // For cron jobs, apply both enhanced checks and fallback
-    if (path.startsWith('/api/cron/')) {
-      console.log('Cron endpoint detected:', path);
-
-      // Debug headers to identify what's missing
-      const allHeaders = Object.fromEntries(req.headers.entries());
-      console.log('Request headers for cron job:', JSON.stringify(allHeaders, null, 2));
-
-      // More flexible detection of QStash requests
-      const isQStashRequest =
-        req.headers.get('x-qstash-request') === 'true' ||
-        req.headers.has('upstash-signature') ||
-        req.headers.has('x-upstash-signature') ||
-        req.headers.has('x-signature') ||
-        req.url.includes('signature=');
-
-      const apiKey = req.headers.get('x-api-key');
-      const userAgent = req.headers.get('user-agent') || '';
-
-      // Accept requests from UpStash User-Agent too
-      const isUpstashUserAgent =
-        userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
-
-      // FALLBACK: If this is a production environment and UpStash is struggling to connect
-      // Make cron endpoints accessible without auth in production (FALLBACK MECHANISM)
-      const isProduction = process.env.NODE_ENV === 'production';
-      const isDeploymentFallbackEnabled = process.env.ENABLE_CRON_FALLBACK === 'true';
-
-      if (
-        isQStashRequest ||
-        isUpstashUserAgent ||
-        apiKey === process.env.CRON_API_KEY ||
-        (isProduction && isDeploymentFallbackEnabled)
-      ) {
-        console.log('✅ Authorized cron request - allowing access');
-        return NextResponse.next();
-      }
-
-      console.log('❌ Unauthorized cron request - denying access');
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Other special auth routes might have different logic
-    return NextResponse.next();
-  }
-
-  // Check public routes
-  if (matchPatternsArray(path, PUBLIC_ROUTES)) {
-    console.log(`Public route allowed: ${path}`);
-    return NextResponse.next();
-  }
-
-  // Beyond this point, authentication is required
-  const { userId } = await auth();
-
-  if (!userId) {
-    if (path.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    console.log(`Auth required: ${path}`);
-    await auth.protect();
-    return NextResponse.next();
-  }
-
-  // Expert setup redirect - check if it's an expert with incomplete setup
-  // Only apply this logic for root path or dashboard (where users land after login)
-  if (userId && (path === '/' || path === '/dashboard')) {
-    const authObj = await auth();
-    const needsSetup = await isExpertWithIncompleteSetup(authObj);
-
-    if (needsSetup) {
-      console.log('Expert with incomplete setup detected, redirecting to setup page');
-      return NextResponse.redirect(new URL('/setup', req.url));
-    }
-
-    // Redirect from root to dashboard for normal users
-    if (path === '/') {
-      return NextResponse.redirect(
-        new URL(
-          process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL || '/dashboard',
-          req.url,
-        ),
-      );
-    }
-  }
-
-  // Handle role-based access
-  if (userId) {
-    const authObj = await auth();
-    const userMetadata = (authObj.sessionClaims?.metadata as { role?: string | string[] }) || {};
-    const userRoleData = userMetadata.role;
-
-    // Admin route check
-    if (matchPatternsArray(path, ADMIN_ROUTES)) {
-      const isAdmin = checkRoles(userRoleData, ADMIN_ROLES);
-      if (!isAdmin) {
-        return path.startsWith('/api/')
-          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-          : NextResponse.redirect(
-              new URL(process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL || '/unauthorized', req.url),
-            );
-      }
-    }
-
-    // Expert route check
-    if (matchPatternsArray(path, EXPERT_ROUTES)) {
-      const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
-      if (!isExpert) {
-        return path.startsWith('/api/')
-          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-          : NextResponse.redirect(
-              new URL(process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL || '/unauthorized', req.url),
-            );
-      }
-    }
-  }
-
-  return NextResponse.next();
+// Create the internationalization middleware
+const handleI18nRouting = createMiddleware({
+  locales: routing.locales,
+  defaultLocale: routing.defaultLocale,
+  localePrefix: routing.localePrefix,
+  // Turn off automatic detection - prioritize explicit user selection
+  localeDetection: false,
+  // Configure the cookie for persistent locale preference
+  localeCookie: {
+    // One year in seconds for persistent preference across visits
+    maxAge: 31536000,
+    // Name can be customized if needed
+    name: 'ELEVA_LOCALE',
+  },
 });
 
+// Define routes that REQUIRE authentication (primarily for PAGE protection)
+const isProtectedRoute = createRouteMatcher([
+  '/dashboard(.*)', // Protect dashboard and its sub-routes
+  '/account(.*)',
+  '/admin(.*)',
+  '/onboarding(.*)',
+  '/appointments(.*)',
+  '/bookings(.*)',
+  // Add specific API routes here IF you want middleware to block them when logged out
+  '/api/admin/(.*)',
+  '/api/users/(.*)',
+  '/api/settings/(.*)',
+]);
+
+// List of static paths to check against to prioritize over dynamic routes
+const staticPaths = Object.keys(routing.pathnames).filter((path) => !path.includes('['));
+
+// Legal document types supported by the application
+const legalDocuments = ['terms', 'privacy', 'cookie', 'dpa'];
+
 /**
- * Configure which paths the middleware runs on
- * This matches everything except static files and img directory
+ * Check if the requested path corresponds to a known static route
+ * This helps prioritize static routes over dynamic routes
  */
+function isStaticRoute(pathname: string): boolean {
+  // Get pathname without locale prefix
+  const pathnameWithoutLocale = getPathnameWithoutLocale(pathname);
+
+  // Check if the path matches any of our static paths
+  return staticPaths.some((path) => path === pathnameWithoutLocale);
+}
+
+/**
+ * Handle /legal routes with or without a specific document
+ * @param pathname The pathname without locale prefix
+ * @returns The pathname to redirect to or null if no redirection needed
+ */
+function handleLegalRoutes(pathname: string, url: URL): NextResponse | null {
+  // If it's exactly /legal, redirect to /legal/terms as the default
+  if (pathname === '/legal') {
+    const locale = url.pathname.split('/')[1];
+    const isValidLocale = locales.includes(locale as Locale);
+
+    // Preserve locale in the redirect if it exists
+    const basePath = isValidLocale ? `/${locale}` : '';
+    const redirectUrl = new URL(`${basePath}/legal/terms`, url.origin);
+    console.log(`[middleware] Redirecting /legal to default document: ${redirectUrl.pathname}`);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // Check if it's a legal path with a document (e.g., /legal/terms)
+  if (pathname.startsWith('/legal/')) {
+    const document = pathname.split('/')[2];
+
+    // If the document is not valid, redirect to the default
+    if (!document || !legalDocuments.includes(document)) {
+      const locale = url.pathname.split('/')[1];
+      const isValidLocale = locales.includes(locale as Locale);
+
+      // Preserve locale in the redirect if it exists
+      const basePath = isValidLocale ? `/${locale}` : '';
+      const redirectUrl = new URL(`${basePath}/legal/terms`, url.origin);
+      console.log(
+        `[middleware] Redirecting invalid legal document to default: ${redirectUrl.pathname}`,
+      );
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  return null;
+}
+
+export default clerkMiddleware((auth, req) => {
+  const pathname = req.nextUrl.pathname;
+
+  // Skip static assets ONLY
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/img') ||
+    pathname.includes('.') // Match files with extensions
+  ) {
+    console.log(`[middleware] Skipping static asset: ${pathname}`);
+    return;
+  }
+
+  // --- API Route Handling ---
+  if (pathname.startsWith('/api')) {
+    console.log(`[middleware] Processing API Path: ${pathname}`);
+    // Allow request to proceed to the API handler.
+    return NextResponse.next();
+  }
+
+  // --- Web Page Handling ---
+  console.log(`[middleware] Processing path: ${pathname}`);
+
+  // Get the pathname without locale prefix (if any) to help with matching
+  const pathnameWithoutLocale = getPathnameWithoutLocale(pathname);
+  console.log(`[middleware] Pathname without locale: ${pathnameWithoutLocale}`);
+
+  // Handle legal routes specially
+  if (pathnameWithoutLocale === '/legal' || pathnameWithoutLocale.startsWith('/legal/')) {
+    const legalRouteResponse = handleLegalRoutes(pathnameWithoutLocale, req.nextUrl);
+    if (legalRouteResponse) {
+      return legalRouteResponse;
+    }
+  }
+
+  // IMPORTANT: First check if this is a static route to prioritize it over dynamic routes
+  const isKnownStaticRoute = isStaticRoute(pathname);
+  if (isKnownStaticRoute) {
+    console.log(`[middleware] Identified as static path: ${pathname}`);
+  }
+
+  // Check if the PAGE route requires authentication
+  if (isProtectedRoute(req)) {
+    console.log(`[middleware] Path ${pathname} is PROTECTED, checking auth...`);
+    auth.protect(); // Handles redirect to sign-in if needed for pages
+  } else {
+    console.log(`[middleware] Path ${pathname} is PUBLIC.`);
+  }
+
+  // Apply internationalization handling ONLY for web pages
+  console.log(`[middleware] Applying i18n routing for ${pathname}`);
+  try {
+    const response = handleI18nRouting(req);
+
+    // Log information about redirect
+    const location = response.headers.get('location');
+    if (location) {
+      console.log(`[middleware] Redirecting to: ${location}`);
+    }
+
+    return response;
+  } catch (error) {
+    console.error('[middleware] Error in i18n middleware:', error);
+    return NextResponse.next();
+  }
+});
+
+// Helper function to strip locale prefix from pathname
+function getPathnameWithoutLocale(pathname: string): string {
+  const segments = pathname.split('/');
+  // If the first segment is a locale, remove it
+  if (segments.length > 1 && locales.includes(segments[1] as Locale)) {
+    return `/${segments.slice(2).join('/')}`;
+  }
+  return pathname;
+}
+
+// Matcher needs to include /api routes for the middleware function to run
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|img|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|webm)).*)',
-  ],
+  // Skip all static assets and explicitly include API/TRPC routes
+  matcher: ['/((?!_next/static|_next/image|img|favicon.ico|.*\\..*).*)', '/(api|trpc)(.*)'],
 };

@@ -46,6 +46,7 @@ interface MeetingFormProps {
   eventDescription?: string;
   eventDuration?: number;
   eventLocation?: string;
+  locale?: string;
 }
 
 export function MeetingFormContent({
@@ -62,6 +63,7 @@ export function MeetingFormContent({
   eventDescription = 'Book a consultation session',
   eventDuration = 45,
   eventLocation = 'Google Meet',
+  locale,
 }: MeetingFormProps) {
   const router = useRouter();
 
@@ -71,6 +73,7 @@ export function MeetingFormContent({
   const [isCalendarSynced, setIsCalendarSynced] = React.useState(true);
   const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
   const [isPrefetching, setIsPrefetching] = React.useState(false);
+  const [isCreatingCheckout, setIsCreatingCheckout] = React.useState(false);
 
   // Simple refs for input elements - no complex focus management needed
   const nameInputRef = React.useRef<HTMLInputElement>(null);
@@ -189,6 +192,62 @@ export function MeetingFormContent({
     [setQueryStates, form, queryStates.date, queryStates.time],
   );
 
+  // Function to create or get payment intent
+  const createPaymentIntent = React.useCallback(async () => {
+    // Don't recreate if already fetched
+    if (checkoutUrl) return checkoutUrl;
+
+    setIsCreatingCheckout(true);
+
+    try {
+      const formValues = form.getValues();
+
+      // Get the locale for multilingual emails
+      const userLocale = locale || 'en';
+
+      // Create payment intent
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          eventId,
+          clerkUserId,
+          price,
+          guestName: formValues.guestName,
+          guestEmail: formValues.guestEmail,
+          guestNotes: formValues.guestNotes,
+          startTime: formValues.date && formValues.startTime ? new Date(formValues.startTime) : null,
+          timezone: formValues.timezone || 'UTC',
+          locale: userLocale, // Pass locale for multilingual emails
+          successUrl: `${window.location.origin}/${userLocale}/${username}/${eventSlug}/payment-processing?startTime=${encodeURIComponent(
+            formValues.startTime?.toISOString() || '',
+          )}`,
+          cancelUrl: `${window.location.origin}/${userLocale}/${username}/${eventSlug}?step=2&email=${encodeURIComponent(
+            formValues.guestEmail || '',
+          )}&name=${encodeURIComponent(formValues.guestName || '')}`,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment intent');
+      }
+
+      const { url } = await response.json();
+      setCheckoutUrl(url);
+      return url;
+    } catch (error) {
+      console.error('Payment creation error:', error);
+      form.setError('root', {
+        message: 'There was an error creating your payment.',
+      });
+      return null;
+    } finally {
+      setIsCreatingCheckout(false);
+    }
+  }, [checkoutUrl, clerkUserId, eventId, eventSlug, form, locale, price, username]);
+
   const onSubmit = React.useCallback(
     async (values: z.infer<typeof meetingFormSchema>) => {
       if (currentStep === '3' && price > 0) {
@@ -196,23 +255,41 @@ export function MeetingFormContent({
       }
 
       try {
-        const data = await createMeeting({
-          ...values,
-          eventId,
-          clerkUserId,
-        });
-
-        if (data?.error) {
-          form.setError('root', {
-            message: 'There was an error saving your event',
+        // For free meetings, create the meeting directly
+        if (price === 0) {
+          const data = await createMeeting({
+            ...values,
+            eventId,
+            clerkUserId,
+            locale: locale || 'en',
           });
-        } else {
-          const startTimeISO = values.startTime.toISOString();
-          const userTimezone = form.getValues('timezone');
-          router.push(
-            `${window.location.pathname}/success?startTime=${encodeURIComponent(startTimeISO)}&timezone=${encodeURIComponent(userTimezone)}`,
-          );
+
+          if (data?.error) {
+            form.setError('root', {
+              message: 'There was an error saving your event',
+            });
+          } else {
+            // Redirect to success page with locale path
+            router.push(
+              `/${locale || 'en'}/${username}/${eventSlug}/success?startTime=${encodeURIComponent(
+                values.startTime.toISOString(),
+              )}&timezone=${encodeURIComponent(values.timezone)}`,
+            );
+          }
+          return;
         }
+
+        // For paid meetings, generate checkout URL first
+        const checkoutUrl = await createPaymentIntent();
+        if (checkoutUrl) {
+          setCheckoutUrl(checkoutUrl);
+          transitionToStep('3');
+          return;
+        }
+
+        form.setError('root', {
+          message: 'Could not create payment checkout',
+        });
       } catch (error) {
         console.error('Error creating meeting:', error);
         form.setError('root', {
@@ -220,61 +297,20 @@ export function MeetingFormContent({
         });
       }
     },
-    [currentStep, price, eventId, clerkUserId, form, router],
+    [
+      createPaymentIntent,
+      currentStep,
+      clerkUserId,
+      eventId,
+      form,
+      locale,
+      price,
+      router,
+      transitionToStep,
+      username,
+      eventSlug,
+    ],
   );
-
-  // Function to create or get payment intent
-  const createPaymentIntent = React.useCallback(async (): Promise<string | null> => {
-    try {
-      // If we already have a checkout URL, return it
-      if (checkoutUrl) return checkoutUrl;
-
-      // Get the current timezone from form
-      const currentTimezone = form.getValues('timezone');
-
-      // Format the start time in the selected timezone for display
-      const startTimeFormatted = form.getValues('startTime')
-        ? formatInTimeZone(
-            form.getValues('startTime'),
-            currentTimezone,
-            'PPpp', // Format: "Apr 29, 2023, 9:30 AM GMT+2"
-          )
-        : '';
-
-      const response = await fetch('/api/create-payment-intent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          eventId,
-          price,
-          username,
-          eventSlug,
-          meetingData: {
-            ...form.getValues(),
-            clerkUserId,
-            startTime: form.getValues('startTime')?.toISOString(),
-            // Add these explicitly to make timezone handling clearer
-            timezone: currentTimezone,
-            startTimeFormatted, // Pre-formatted time string in user's timezone
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create checkout session');
-      }
-
-      const { url } = await response.json();
-      if (url) {
-        setCheckoutUrl(url);
-        return url;
-      }
-      return null;
-    } catch (error) {
-      console.error('Error creating payment intent:', error);
-      return null;
-    }
-  }, [checkoutUrl, eventId, price, username, eventSlug, form, clerkUserId]);
 
   // Prefetch checkout URL when step 2 is filled out
   React.useEffect(() => {
@@ -671,7 +707,11 @@ export function MeetingFormContent({
       <div className="text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
         <p className="mt-4 text-lg font-medium">
-          {checkoutUrl ? 'Redirecting to payment...' : 'Preparing checkout...'}
+          {isCreatingCheckout
+            ? 'Creating checkout...'
+            : checkoutUrl
+              ? 'Redirecting to payment...'
+              : 'Preparing checkout...'}
         </p>
       </div>
     </div>

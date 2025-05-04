@@ -2,6 +2,7 @@
 
 import { AuthorizationProvider } from '@/components/molecules/AuthorizationProvider';
 import { ClerkProvider } from '@clerk/nextjs';
+import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { posthog } from 'posthog-js';
@@ -10,6 +11,8 @@ import { useEffect, useState } from 'react';
 import 'react-cookie-manager/style.css';
 import { Toaster } from 'sonner';
 
+// Import the createCookieTranslations function
+import { createCookieTranslations } from '../lib/i18n/cookie-translations';
 import PostHogPageView from './PostHogPageView';
 
 // Dynamically import CookieManager to prevent SSR issues
@@ -39,15 +42,21 @@ export function Providers({ children }: ProvidersProps) {
   );
 }
 
+interface ClientProvidersProps {
+  children: React.ReactNode;
+  locale: string;
+  messages: Record<string, unknown>;
+}
+
 /**
  * Client Providers - These components require client-side JavaScript
  * They include theme management, authorization context, and toast notifications
  */
-export function ClientProviders({ children }: ProvidersProps) {
+export function ClientProviders({ children, locale, messages }: ClientProvidersProps) {
   const [posthogLoaded, setPosthogLoaded] = useState(false);
 
   useEffect(() => {
-    // Only run on client
+    // PostHog setup
     if (typeof window === 'undefined') return;
 
     // Skip PostHog on localhost/development environments
@@ -92,33 +101,39 @@ export function ClientProviders({ children }: ProvidersProps) {
   }, []);
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <AuthorizationProvider>
-        <CookieManager
-          cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
-          showManageButton={true}
-          enableFloatingButton={false}
-          displayType="popup"
-          cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
-          theme="light"
-          privacyPolicyUrl="/legal/cookie"
-          translations={{
-            title: 'Cookie Preferences',
-            message:
-              'We use cookies to enhance your experience, analyze site traffic, and for marketing purposes. By clicking "Accept", you consent to our use of cookies.',
-            buttonText: 'Accept All',
-            declineButtonText: 'Decline All',
-            manageButtonText: 'Manage Preferences',
-            privacyPolicyText: 'Cookie Policy',
-          }}
-        >
-          <PHProvider client={posthog}>
-            {posthogLoaded && <PostHogPageView />}
-            {children}
-          </PHProvider>
-          <Toaster closeButton position="bottom-right" richColors />
-        </CookieManager>
-      </AuthorizationProvider>
-    </ThemeProvider>
+    <NextIntlClientProvider
+      locale={locale}
+      messages={messages}
+      onError={(error) => {
+        if (error.code === 'MISSING_MESSAGE') {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Missing translation:', error.message);
+          }
+          return error.message;
+        }
+        throw error;
+      }}
+    >
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <AuthorizationProvider>
+          <CookieManager
+            cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
+            showManageButton={true}
+            enableFloatingButton={false}
+            displayType="popup"
+            cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
+            theme="light"
+            privacyPolicyUrl="/legal/cookie"
+            translations={createCookieTranslations(messages)}
+          >
+            <PHProvider client={posthog}>
+              {posthogLoaded && <PostHogPageView />}
+              {children}
+            </PHProvider>
+            <Toaster closeButton position="bottom-right" richColors />
+          </CookieManager>
+        </AuthorizationProvider>
+      </ThemeProvider>
+    </NextIntlClientProvider>
   );
 }

@@ -1,0 +1,174 @@
+# Data Processing Agreement (DPA)
+
+_Effective Date:_ April 16, 2025
+
+This Data Processing Agreement ("Agreement") is entered into by and between:
+
+**BÚZIOS E TARTARUGAS - LDA**, a limited liability company organized and existing under the laws of Portugal, with NIPC 515001708, having its registered office at Rua Gil Vicente, 2, 2775-198 Parede, Portugal, commercially operating as **Eleva.care** ("Controller"),
+
+_and_
+
+**Data Processors:**
+
+- Neon Inc., 2261 Market Street STE 22601 San Francisco, CA, 94114, USA
+- Clerk, Inc., 660 King Street Unit 345 San Francisco, CA 94107 United States
+- Stripe, Inc., 510 Townsend St., San Francisco, CA United States
+- PostHog Inc., 2261 Market St STE 22301, San Francisco, CA 94114, United States
+- Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 United States
+- Beehiiv Inc., 228 Park Avenue # 2329976 New York, New York 10003, United States
+- Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, United States
+- Upstash, Inc., 120 9th St, San Francisco, CA 94103, United States
+
+## 1. Definitions
+
+For the purposes of this Agreement:
+
+- **Data Protection Laws** refer to all applicable laws governing the processing of personal data, including the General Data Protection Regulation (EU) 2016/679 ("GDPR"), UK GDPR, and other relevant data protection laws.
+- **Personal Data** refers to any information relating to an identified or identifiable natural person, as defined by the GDPR.
+- **Special Categories of Personal Data** include sensitive data such as health information, biometric data, or information related to an individual's racial or ethnic origin, political opinions, religious beliefs, etc.
+- **Processing** means any operation performed on personal data, such as collection, storage, modification, or transfer.
+- **Data Subject** refers to the individual to whom the personal data relates.
+- **Personal Data Breach** means a breach of security leading to accidental or unlawful destruction, loss, alteration, unauthorized disclosure of, or access to personal data.
+- **Subprocessor** means any processor engaged by a Data Processor to process personal data on behalf of the Data Controller.
+- **Healthcare Data** refers to personal data related to the health of an individual, including any healthcare service provision.
+
+## 2. Subject Matter and Purpose of Processing
+
+This DPA governs the processing of personal data by the Data Processors on behalf of the Data Controller in connection with the services provided to Eleva.care, which include:
+
+- **Neon:** Database services for storing appointment data synchronized with Clerk.
+- **Clerk:** User management services.
+- **Stripe:** Payment processing and storage of payment method data.
+- **PostHog:** Analytics and user behavior tracking services.
+- **Google:** Single Sign-On services.
+- **Beehiiv:** Newsletter services and communications.
+- **Vercel:** Hosting and edge computing services.
+- **Upstash:**
+  - **Redis KV Storage:** Managed Redis services for session storage, caching, and key-value storage to persist user sessions and other application state data.
+  - **Qstash:** Event-driven serverless cron job processing services for handling background tasks such as scheduling tasks for Eleva.care's platform.
+
+The personal data processing is necessary for facilitating the operation of Eleva.care's platform and services, including user authentication, appointment management, payment processing, analytics, healthcare-related services, session management, and task automation.
+
+## 3. Types of Personal Data and Categories of Data Subjects
+
+### Types of Personal Data processed:
+
+- **Identity Data:** Names, email addresses, phone numbers, user IDs.
+- **Profile Data:** Professional information, credentials, specialties, profile pictures.
+- **Account Data:** Username, password (hashed), account preferences.
+- **Communication Data:** Messages, emails, communication preferences.
+- **Technical Data:** IP addresses, cookies, device information, access logs.
+- **Usage Data:** Platform interaction, feature usage, analytics data.
+- **Payment Data:** Payment method details, transaction records, billing addresses.
+- **Healthcare-Related Data:** Appointment types, scheduling information, clinical notes (encrypted).
+- **Session Data:** Session identifiers, authentication tokens, and activity logs for user sessions managed.
+- **Webhook Processing Data:** Data processed through asynchronous webhooks (event-driven tasks), including logs, task identifiers, and metadata.
+
+### Categories of Data Subjects:
+
+- Healthcare professionals using the platform
+- Clients/patients seeking healthcare services
+- Eleva.care staff and administrators
+- Business partners and service providers
+
+## 4. Data Controller's Responsibilities
+
+As the Data Controller, Eleva.care shall:
+
+- Comply with all applicable data protection laws, including the GDPR.
+- Provide clear and accurate instructions to Data Processors regarding the processing of personal data.
+- Obtain and maintain necessary consents from data subjects for processing their personal data.
+- Implement appropriate technical and organizational measures to ensure the security of personal data.
+- Respond to requests from data subjects regarding their rights under applicable data protection laws.
+- Conduct Data Protection Impact Assessments (DPIAs) where required.
+- Maintain records of processing activities.
+- Ensure that Data Processors provide sufficient guarantees regarding the security and confidentiality of personal data.
+
+## 5. Data Processor's Responsibilities
+
+Each Data Processor shall:
+
+- Process personal data only on documented instructions from Eleva.care.
+- Ensure that persons authorized to process personal data are bound by confidentiality obligations.
+- Implement appropriate technical and organizational security measures, including encryption of personal data, ongoing confidentiality, integrity, and availability of processing systems, and the ability to restore data availability in case of incidents.
+- Not engage any subprocessors without prior written authorization from Eleva.care.
+- Assist Eleva.care in responding to data subject requests, ensuring compliance with security obligations, and notifying data breaches.
+- Delete or return all personal data to Eleva.care upon termination of services, unless storage is required by applicable law.
+
+## 6. Security Measures
+
+The Data Processors shall implement appropriate security measures, including:
+
+- Access control systems with strong authentication
+- Encryption of personal data in transit (using TLS/SSL)
+- Role-based access controls
+- Employee training on data protection
+- Incident response procedures
+- Regular backup procedures
+- For healthcare-related data, encryption at rest using AES-256-GCM and strict access control mechanisms.
+- Session storage with data encryption, including persistent data storage and session key management.
+- Secure processing of webhooks, task logs, and metadata with encrypted payloads and strict access controls.
+
+## 7. Personal Data Breach Notification
+
+In the event of a personal data breach, the Data Processor shall:
+
+- Notify Eleva.care without undue delay, and no later than 24 hours after becoming aware of the breach.
+- Provide necessary information to enable Eleva.care to comply with its notification obligations to supervisory authorities or affected data subjects.
+- Cooperate with Eleva.care in investigating and mitigating the breach.
+
+## 8. Data Subject Rights
+
+The Data Processor shall assist Eleva.care in responding to data subject requests, including requests for:
+
+- Access to personal data
+- Rectification of inaccurate data
+- Erasure (right to be forgotten)
+- Restriction of processing
+- Data portability
+- Objection to processing
+
+## 9. Compliance with Healthcare Regulations
+
+While Eleva.care and its Data Processors are not currently HIPAA-certified, they are taking steps to achieve higher compliance standards, including those required by HIPAA where applicable.
+
+## 10. International Transfers
+
+Where data is transferred outside the EEA, Data Processors shall ensure that adequate safeguards are in place, including the use of Standard Contractual Clauses (SCCs) or certifications such as the EU-US Data Privacy Framework.
+
+## 11. Audits and Inspections
+
+Eleva.care shall have the right to audit and inspect the Data Processors' compliance with the terms of this DPA. Audits may be conducted by Eleva.care or a third-party auditor with prior notice.
+
+## 12. Termination and Data Deletion
+
+Upon termination of services, each Data Processor shall:
+
+- Delete or return all personal data to Eleva.care and destroy existing copies, unless required by law to store the data.
+- Anonymize personal data such that it can no longer be associated with any individual.
+
+## 13. Liability
+
+Each Data Processor shall be liable for damages caused by processing that violates data protection laws or this DPA. Where multiple Data Processors are involved, each shall be liable for the entire damage caused.
+
+## 14. Subprocessing
+
+Data Processors may engage subprocessors only with Eleva.care's prior written consent. The Data Processor shall ensure subprocessors are bound by the same data protection obligations.
+
+## 15. Amendments
+
+Any amendment to this DPA must be in writing and signed by both parties. Eleva.care may update security measures and compliance requirements, with prior notification to the Data Processors.
+
+## 16. Severability
+
+If any provision of this DPA is found to be invalid or unenforceable, the remainder of the agreement shall remain in effect.
+
+---
+
+## Contact Information
+
+For questions regarding this Data Processing Agreement, please contact:
+
+- **Email:** [support@eleva.care](mailto:support@eleva.care)
+- **Phone:** +351 931897950
+- **Postal Address:** Rua Gil Vicente, 2 - 2775-198 Parede, Portugal

@@ -10,10 +10,13 @@ import { db } from '@/drizzle/db';
 import { EventTable } from '@/drizzle/schema';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { and, eq, gt, min } from 'drizzle-orm';
+import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 import Link from 'next/link';
 
 const ExpertsSection = async () => {
+  const t = await getTranslations('experts');
+
   const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
   });
@@ -56,11 +59,15 @@ const ExpertsSection = async () => {
         GBP: '£',
       };
 
-      const formattedPrice = minPricing?.[0]?.price
-        ? `${
-            currencySymbols[minPricing[0].currency?.toUpperCase() || 'EUR'] || '€'
-          }${(minPricing[0].price / 100).toFixed(0)} • Session`
+      const price = minPricing?.[0]?.price ? Number(minPricing[0].price) : null;
+      const currency = minPricing?.[0]?.currency
+        ? String(minPricing[0].currency).toUpperCase()
         : null;
+
+      const formattedPrice =
+        price && currency
+          ? `${currencySymbols[currency as keyof typeof currencySymbols] || '€'}${(price / 100).toFixed(0)} • ${t('sessionLabel')}`
+          : null;
 
       return {
         id: user.id,
@@ -98,16 +105,14 @@ const ExpertsSection = async () => {
       <div className="mx-auto max-w-2xl lg:max-w-7xl">
         <div className="mb-12">
           <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70 data-[dark]:text-eleva-neutral-900/60">
-            Top Experts
+            {t('title')}
           </h2>
           <h3 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-primary data-[dark]:text-eleva-neutral-100 sm:text-6xl">
-            Access to the best has never been easier
+            {t('subtitle')}
           </h3>
         </div>
         <p className="mt-6 text-balance text-base font-light text-eleva-neutral-900 lg:text-xl">
-          Connect with top-rated experts in physiotherapy, and women&apos;s health. Our platform
-          offers access to leading professionals ready to support your unique health and wellness
-          journey.
+          {t('description')}
         </p>
         <Carousel
           className="-ml-2 mt-10"
@@ -129,7 +134,7 @@ const ExpertsSection = async () => {
                     <div className="relative aspect-[28/38] rounded-xl transition-all duration-300 ease-out hover:scale-[1.02] hover:shadow-xl">
                       <Image
                         src={expert.image}
-                        alt={`Profile photo of ${expert.name}`}
+                        alt={t('expertImageAlt', { name: expert.name })}
                         width={1200}
                         height={1200}
                         className="absolute inset-0 h-full w-full overflow-hidden rounded-xl object-cover"
@@ -138,7 +143,7 @@ const ExpertsSection = async () => {
                       {expert.isTopExpert && (
                         <div className="absolute bottom-4 left-4">
                           <span className="rounded-sm bg-white px-3 py-2 text-base font-medium text-eleva-neutral-900">
-                            <span>Top Expert</span>
+                            <span>{t('topExpertBadge')}</span>
                           </span>
                         </div>
                       )}
@@ -154,7 +159,7 @@ const ExpertsSection = async () => {
                             {expert.isVerified && (
                               <Image
                                 src="/img/expert-verified-icon.svg"
-                                alt=""
+                                alt={t('verifiedBadgeAlt')}
                                 className="h-4 w-4"
                                 aria-hidden="true"
                                 width={16}

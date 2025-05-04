@@ -43,6 +43,7 @@ interface MeetingMetadata {
   duration: number;
   timezone: string;
   price?: number;
+  locale?: string;
 }
 
 interface StripeCheckoutSession extends Stripe.Checkout.Session {
@@ -58,6 +59,7 @@ interface StripeCheckoutSession extends Stripe.Checkout.Session {
     transferStatus?: string;
     sessionStartTime?: string;
     scheduledTransferTime?: string;
+    locale?: string;
   };
   application_fee_amount?: number | null;
   payment_intent: string | null;
@@ -110,8 +112,18 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     }
   }
 
-  const meetingData = JSON.parse(session.metadata.meetingData) as MeetingMetadata;
-  console.log('Parsed meeting data:', meetingData);
+  // Parse meeting data and get locale
+  let meetingData: MeetingMetadata;
+  try {
+    meetingData = JSON.parse(session.metadata.meetingData) as MeetingMetadata;
+  } catch (error) {
+    console.error('Failed to parse meeting data:', error);
+    throw new Error('Invalid meeting data format');
+  }
+
+  // Get locale from metadata or the default
+  const locale = session.metadata.locale || meetingData.locale || 'en';
+  console.log('Using locale for email:', locale);
 
   const result = await createMeeting({
     eventId: session.metadata.eventId,
@@ -125,6 +137,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     stripePaymentStatus: session.payment_status,
     stripeAmount: session.amount_total ?? undefined,
     stripeApplicationFeeAmount: session.application_fee_amount ?? undefined,
+    locale: locale,
   });
 
   // Handle possible errors

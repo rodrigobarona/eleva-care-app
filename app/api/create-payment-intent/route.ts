@@ -76,15 +76,16 @@ export async function POST(request: Request) {
 
     // Prepare meeting metadata
     const meetingMetadata = {
-      ...meetingData,
-      clerkUserId: event.clerkUserId,
       expertClerkUserId: event.clerkUserId,
-      isGuest: 'true',
+      expertName: `${event.user.firstName || ''} ${event.user.lastName || ''}`.trim() || 'Expert',
+      guestName: meetingData.guestName,
       guestEmail: meetingData.guestEmail,
-      timezone: meetingData.timezone,
+      guestNotes: meetingData.guestNotes,
       startTime: meetingData.startTime,
-      isEuropeanCustomer: meetingData.timezone?.includes('Europe') ? 'true' : 'false',
-      preferredTaxHandling: 'vat_only',
+      duration: event.durationInMinutes,
+      timezone: meetingData.timezone,
+      price: price,
+      locale: meetingData.locale || 'en', // Add locale parameter with fallback
     };
 
     console.log('Prepared meeting metadata');
@@ -179,7 +180,7 @@ export async function POST(request: Request) {
           },
         },
         customer_creation: customerId ? undefined : 'always',
-        locale: 'auto',
+        locale: meetingData.locale || 'auto',
         customer_update: {
           address: 'auto',
           name: 'auto',
@@ -241,10 +242,10 @@ export async function POST(request: Request) {
           requiredPayoutDelay: requiredPayoutDelay.toString(),
           remainingDelayDays: remainingDelayDays.toString(),
         },
-        success_url: `${baseUrl}/${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
+        success_url: `${baseUrl}/${meetingData.locale ? `${meetingData.locale}/` : ''}${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
           meetingData.startTime,
         )}`,
-        cancel_url: `${baseUrl}/${username}/${eventSlug}?s=2&d=${encodeURIComponent(
+        cancel_url: `${baseUrl}/${meetingData.locale ? `${meetingData.locale}/` : ''}${username}/${eventSlug}?s=2&d=${encodeURIComponent(
           meetingData.date,
         )}&t=${encodeURIComponent(meetingData.startTime)}&n=${encodeURIComponent(
           meetingData.guestName,

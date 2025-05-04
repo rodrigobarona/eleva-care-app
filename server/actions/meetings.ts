@@ -153,6 +153,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         durationInMinutes: event.durationInMinutes,
         eventName: event.name,
         timezone: data.timezone,
+        locale: data.locale || 'en',
       });
 
       // Step 8: Create the meeting record in the database

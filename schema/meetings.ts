@@ -71,4 +71,5 @@ export const meetingActionSchema = z.object({
   stripePaymentStatus: z.string().optional(),
   stripeAmount: z.number().optional(),
   stripeApplicationFeeAmount: z.number().optional(),
+  locale: z.string().optional().default('en'),
 });

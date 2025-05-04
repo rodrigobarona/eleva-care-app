@@ -1,0 +1,208 @@
+import { Button } from '@/components/atoms/button';
+import { Separator } from '@/components/atoms/separator';
+import Image from 'next/image';
+
+import HeadlineSection from '@/components/molecules/HeadlineSection';
+import AdvisorsSection from '@/components/organisms/about/AdvisorsSection';
+import BeliefsSection from '@/components/organisms/about/BeliefsSection';
+import ClinicalExpertsSection from '@/components/organisms/about/ClinicalExpertsSection';
+import JoinNetworkSection from '@/components/organisms/about/JoinNetworkSection';
+import MissionSection from '@/components/organisms/about/MissionSection';
+import TeamSection from '@/components/organisms/about/TeamSection';
+
+<HeadlineSection
+  title="Transformando os cuidados de saúde da mulher através da inovação e compaixão"
+  description="Na Eleva Care, dedicamo-nos a capacitar mulheres de todas as idades para que assumam o controlo da sua saúde e bem-estar."
+/>
+
+<MissionSection
+  title="A nossa missão"
+  description={[
+    {
+      paragraph:
+        'A nossa missão é proporcionar uma plataforma de apoio e inclusiva que ligue os indivíduos a recursos liderados por especialistas, informações baseadas em evidências e uma comunidade colaborativa de profissionais de saúde.',
+    },
+    {
+      paragraph:
+        'Acreditamos em tornar os cuidados de saúde de qualidade acessíveis a todas as mulheres, capacitando-as com conhecimento e fomentando a colaboração para melhores resultados de saúde. A nossa abordagem reconhece que a saúde da mulher é uma jornada contínua e em evolução.',
+    },
+  ]}
+  statsTitle="Os números"
+  stats={[
+    { label: 'Satisfação do Paciente', value: '95%' },
+    { label: 'Suporte Disponível', value: '24/7' },
+  ]}
+/>
+
+<HeadlineSection
+  label="Nossa visão"
+  title="Unindo ciência e cuidado para cada mulher"
+  description="Para unir o gap entre a pesquisa científica e a aplicação prática, entregando soluções de cuidados de saúde da mulher de forma acessível e personalizadas em todas as etapas da vida."
+/>
+
+<BeliefsSection
+  title="Nossas crenças fundamentais"
+  beliefs={[
+    {
+      title: 'Acesso a Cuidados de Saúde de Qualidade',
+      description:
+        'Cada mulher merece acesso a cuidados de saúde de qualidade, independentemente da localização ou circunstâncias.',
+    },
+    {
+      title: 'O conhecimento é poder',
+      description:
+        'Capacitar as mulheres com informações baseadas em evidências para tomar decisões informadas sobre a sua jornada de saúde.',
+    },
+    {
+      title: 'Cuidados colaborativos',
+      description:
+        'Melhores resultados de saúde são alcançados através da colaboração entre pacientes e profissionais de saúde.',
+    },
+    {
+      title: 'Jornada de Saúde',
+      description:
+        'A saúde da mulher é uma jornada contínua que evolui através de diferentes etapas da vida.',
+    },
+  ]}
+/>
+
+<HeadlineSection
+  label="Conheça o nosso equipa"
+  title="Liderada por inovadores e especialistas em saúde"
+  description="O nosso equipa combina expertise em saúde da mulher, tecnologia e cuidado com pacientes para revolucionar a entrega de cuidados de saúde."
+/>
+
+<TeamSection
+  description={[
+    {
+      paragraph:
+        'Fundada por profissionais de saúde que testemunharam em primeira mão as lacunas nos cuidados de saúde da mulher, a Eleva Care surgiu de uma visão compartilhada para tornar os cuidados especializados mais acessíveis, personalizados e abrangentes.',
+    },
+    {
+      paragraph:
+        'Hoje, a Eleva Care está a transformar a forma como as mulheres acedem e experimentam os cuidados de saúde. A nossa plataforma liga milhares de mulheres a prestadores de cuidados de saúde especializados, oferecendo cuidados baseados em evidências e apoio ao longo de cada etapa da vida.',
+    },
+  ]}
+  title="Nossa liderança"
+  leadership={[
+    {
+      name: 'Patricia Mota, PT, PhD',
+      flags: '🇵🇹 🇪🇸 🇺🇸',
+      role: 'Co-Fundadora / Diretora Executiva',
+      image: '/img/about/team/team-patricia-mota.jpg',
+    },
+    {
+      name: 'Rodrigo Barona',
+      flags: '🇪🇸 🇵🇹 🇺🇸',
+      role: 'Co-Fundador / Diretor Técnico',
+      image: '/img/about/team/team-rodrigo-barona.jpg',
+    },
+  ]}
+/>
+
+<HeadlineSection
+  label="Guiada por especialistas do setor"
+  title="Conselho Consultivo"
+  description="Nossa consultoria de especialistas do setor traz consigo liderança e inovação para o nosso trabalho."
+/>
+
+<AdvisorsSection
+  title="Inovação em Saúde"
+  healthcareAdvisors={[
+    {
+      name: 'Cristine Homsi Jorge, PT, PhD',
+      flags: '🇧🇷',
+      role: 'Consultora em Saúde da Mulher',
+      quote:
+        'A investigação clínica e a educação capacitam as mulheres para tomarem decisões informadas sobre a sua jornada de saúde',
+      image: '/img/about/team/team-cristine-homsi-jorge.jpg',
+    },
+    {
+      name: 'Alexandre Delgado, PT, PhD',
+      flags: '🇧🇷',
+      role: 'Consultor em Fisioterapia Obstétrica',
+      quote:
+        'A fisioterapia baseada em evidências transforma a experiência da gravidez e do parto, capacitando as mulheres em cada etapa.',
+      image: '/img/about/team/team-alexandre-delgado.jpg',
+    },
+    {
+      name: 'Patricia Driusso, PT, PhD',
+      flags: '🇧🇷',
+      role: 'Consultora em Saúde da Mulher',
+      quote:
+        'A investigação clínica avança nos tratamentos de reabilitação enquanto capacita as mulheres através da educação baseada em evidências.',
+      image: '/img/about/team/team-patricia-driusso.jpg',
+    },
+    {
+      name: 'Annelie Gutke, PT, PhD',
+      flags: '🇸🇪',
+      role: 'Consultora em Saúde da Mulher',
+      quote:
+        'Compreender os mecanismos da dor transforma a forma como cuidamos das mulheres durante a gravidez e para além dela.',
+      image: '/img/about/team/team-annelie-gutke.jpg',
+    },
+    {
+      name: 'Ruben Barakat, PhD',
+      flags: '🇦🇷 🇪🇸',
+      role: 'Consultor em Ciências do Exercício',
+      quote:
+        'As evidências mostram que o exercício personalizado durante a gravidez pode transformar os resultados de saúde das mulheres.',
+      image: '/img/about/team/team-ruben-barakat.jpg',
+    },
+    {
+      name: 'Jenny Bagwell, PT, PhD, DPT',
+      flags: '🇺🇸',
+      role: 'Consultora em Biomecânica e Saúde Perinatal',
+      quote:
+        'Compreender os padrões de movimento durante e após a gravidez ajuda a otimizar os cuidados e a melhorar os resultados a longo prazo para as mulheres.',
+      image: '/img/about/team/team-jenny-bagwell-california-usa.jpg',
+    },
+  ]}
+/>
+
+<ClinicalExpertsSection
+  title="Especialistas Clínicos"
+  clinicalExperts={[
+    {
+      name: 'Jessica Margarido, PT',
+      flags: '🇵🇹',
+      role: 'Reabilitação Oncológica',
+      image: '/img/about/team/team-jessica-margarido.jpg',
+    },
+    {
+      name: 'Joana Goulão Barros, MD, PhD',
+      flags: '🇵🇹',
+      role: 'Obstetrícia e Ginecologia',
+      image: '/img/about/team/team-joana-barros.jpg',
+    },
+  ]}
+/>
+
+<HeadlineSection
+  label="Join our network"
+  title="Transform women's healthcare with us"
+  description="Join a community of dedicated healthcare professionals making quality care accessible to women everywhere."
+/>
+
+<JoinNetworkSection
+  title="Por que se juntar à nossa rede?"
+  benefits={[
+    {
+      title: 'Prática Flexível',
+      description:
+        'Pratique nos seus termos com a nossa plataforma flexível de telesaúde. Defina o seu próprio horário e conecte-se com pacientes de qualquer lugar.',
+    },
+    {
+      title: 'Tecnologia Inovadora',
+      description:
+        'Aceda a ferramentas de telesaúde de ponta e suporte clínico assistido por IA para melhorar a sua prática.',
+    },
+    {
+      title: 'Comunidade Colaborativa',
+      description:
+        'Junte-se a uma rede de profissionais de saúde líderes e participe em discussões de casos e partilha de conhecimentos.',
+    },
+  ]}
+  applyUrl="https://accounts.eleva.care/waitlist"
+  applyButtonText="Candidatar-se"
+/>

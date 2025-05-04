@@ -1,8 +1,8 @@
 'use client';
 
 import { Icons } from '@/components/atoms/icons';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link, usePathname } from '@/lib/i18n/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
 interface NavLinkProps {
@@ -14,6 +14,7 @@ interface NavLinkProps {
 
 const NavLink = ({ href, isScrolled, isRootPath, children }: NavLinkProps) => (
   <Link
+    // @ts-expect-error - Allow hash-based navigation which isn't in the routing configuration
     href={href}
     className={`rounded-full px-4 py-1 text-sm font-medium transition-colors hover:bg-white/10 hover:text-sidebar-accent-foreground ${
       isRootPath && !isScrolled ? 'text-white' : 'text-foreground'
@@ -27,7 +28,11 @@ export function HeaderContent() {
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
-  const isRootPath = pathname === '/';
+  const t = useTranslations('Header');
+
+  // Check if we're on the homepage, including locale-prefixed routes
+  // This handles paths like /, /pt, /es, /br, etc. as homepage equivalents
+  const isRootPath = pathname === '/' || /^\/[a-z]{2}(-[a-z]{2})?$/.test(pathname);
 
   useEffect(() => {
     setMounted(true);
@@ -75,10 +80,10 @@ export function HeaderContent() {
         </Link>
         <nav className="ml-auto flex items-center gap-4 sm:gap-6">
           <NavLink href="/#experts" isScrolled={isScrolled} isRootPath={isRootPath}>
-            Find an Expert
+            {t('findExpert')}
           </NavLink>
           <NavLink href="/about" isScrolled={isScrolled} isRootPath={isRootPath}>
-            Our Mission
+            {t('mission')}
           </NavLink>
         </nav>
       </div>
