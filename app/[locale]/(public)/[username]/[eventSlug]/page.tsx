@@ -24,12 +24,12 @@ export const revalidate = 0;
 
 // Updated PageProps type with proper next params - both params and searchParams as Promises
 interface PageProps {
-  params: Promise<{
+  params: {
     username: string;
     eventSlug: string;
     locale: string;
-  }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
+  };
+  searchParams: Record<string, string | string[] | undefined>;
 }
 
 // Define EventType to avoid conflict with DOM Event
@@ -159,7 +159,7 @@ async function CalendarWithAvailability({
   );
 
   if (validTimes.length === 0) {
-    return <NoTimeSlots calendarUser={calendarUser} username={username} locale={locale} />;
+    return <NoTimeSlots calendarUser={calendarUser} username={username} _locale={locale} />;
   }
 
   // Enhanced MeetingForm with better metadata
@@ -257,11 +257,11 @@ function CalendarLoadingSkeleton() {
 function NoTimeSlots({
   calendarUser,
   username,
-  locale,
+  _locale,
 }: {
   calendarUser: { id: string; fullName: string | null };
   username: string;
-  locale: string;
+  _locale: string;
 }) {
   return (
     <Card className="mx-auto max-w-lg">
@@ -281,7 +281,12 @@ function NoTimeSlots({
         </ul>
       </CardContent>
       <CardFooter>
-        <Link href={`/${locale}/${username}`}>
+        <Link
+          href={{
+            pathname: '/[username]',
+            params: { username },
+          }}
+        >
           <Button variant="secondary">View Profile</Button>
         </Link>
       </CardFooter>
