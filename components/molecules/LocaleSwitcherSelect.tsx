@@ -1,9 +1,7 @@
 'use client';
 
-import { usePathname } from '@/lib/i18n/navigation';
-import { defaultLocale } from '@/lib/i18n/routing';
+import { usePathname, useRouter } from '@/lib/i18n/navigation';
 import type { Locale } from '@/lib/i18n/routing';
-import { useLocale } from 'next-intl';
 import { type ChangeEvent, type ReactNode, useTransition } from 'react';
 
 type Props = {
@@ -15,30 +13,17 @@ type Props = {
 export default function LocaleSwitcherSelect({ children, defaultValue, label }: Props) {
   const [isPending, startTransition] = useTransition();
   const pathname = usePathname();
-  const currentLocale = useLocale();
+  const router = useRouter();
 
   function onSelectChange(event: ChangeEvent<HTMLSelectElement>) {
     const nextLocale = event.target.value as Locale;
     console.log('Switching locale to:', nextLocale); // Debugging log
 
     startTransition(() => {
-      // Get path without locale prefix
-      const currentPathWithoutLocale: string = pathname.startsWith(`/${currentLocale}/`)
-        ? pathname.slice(currentLocale.length + 1) // +1 for the slash
-        : pathname;
-
-      // Construct the new URL based on the locale
-      let newPath: string;
-      if (nextLocale === defaultLocale) {
-        // Default locale may not need prefix depending on your localePrefix setting
-        newPath = currentPathWithoutLocale || '/';
-      } else {
-        // Non-default locale needs prefix
-        newPath = `/${nextLocale}${currentPathWithoutLocale.startsWith('/') ? currentPathWithoutLocale : `/${currentPathWithoutLocale}`}`;
-      }
-
-      // Use direct URL manipulation to avoid issues with dynamic routes
-      window.location.href = newPath;
+      // Use next-intl router to handle locale switching
+      // This preserves the current route and any dynamic params
+      // @ts-expect-error - Type mismatch is expected with dynamic routes but works correctly at runtime
+      router.push(pathname, { locale: nextLocale });
     });
   }
 

@@ -194,10 +194,13 @@ export function MeetingFormContent({
 
   // Function to create or get payment intent
   const createPaymentIntent = React.useCallback(async () => {
-    // Don't recreate if already fetched
-    if (checkoutUrl) return checkoutUrl;
-
     setIsCreatingCheckout(true);
+
+    // Don't recreate if already fetched
+    if (checkoutUrl) {
+      setIsCreatingCheckout(false); // Ensure flag is reset on cached returns too
+      return checkoutUrl;
+    }
 
     try {
       const formValues = form.getValues();
@@ -218,7 +221,10 @@ export function MeetingFormContent({
           guestName: formValues.guestName,
           guestEmail: formValues.guestEmail,
           guestNotes: formValues.guestNotes,
-          startTime: formValues.date && formValues.startTime ? new Date(formValues.startTime) : null,
+          startTime:
+            formValues.date && formValues.startTime
+              ? formValues.startTime.toISOString() // ✅ always UTC
+              : null,
           timezone: formValues.timezone || 'UTC',
           locale: userLocale, // Pass locale for multilingual emails
           successUrl: `${window.location.origin}/${userLocale}/${username}/${eventSlug}/payment-processing?startTime=${encodeURIComponent(

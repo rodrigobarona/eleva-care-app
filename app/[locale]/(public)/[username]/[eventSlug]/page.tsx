@@ -11,18 +11,18 @@ import { Skeleton } from '@/components/atoms/skeleton';
 import { MeetingForm } from '@/components/organisms/forms/MeetingForm';
 import { db } from '@/drizzle/db';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
-import { Link } from '@/lib/i18n/navigation';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { createClerkClient } from '@clerk/nextjs/server';
 import type { User } from '@clerk/nextjs/server';
 import { addMonths, eachMinuteOfInterval, endOfDay, roundToNearestMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
 export const revalidate = 0;
 
-// Updated PageProps type with proper next params - both params and searchParams as Promises
+// Updated PageProps type with params and searchParams as Promises to match Next.js expectations
 interface PageProps {
   params: Promise<{
     username: string;
@@ -159,7 +159,7 @@ async function CalendarWithAvailability({
   );
 
   if (validTimes.length === 0) {
-    return <NoTimeSlots calendarUser={calendarUser} username={username} />;
+    return <NoTimeSlots calendarUser={calendarUser} username={username} locale={locale} />;
   }
 
   // Enhanced MeetingForm with better metadata
@@ -189,18 +189,10 @@ async function CalendarWithAvailability({
 // Add a loading skeleton for the calendar
 function CalendarLoadingSkeleton() {
   // Generate non-index based keys for calendar days
-  const generateCalendarDayKeys = () => {
-    return Array.from({ length: 35 }).map(
-      (_, i) => `cal-day-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 7)}`,
-    );
-  };
+  const generateCalendarDayKeys = () => Array.from({ length: 35 }, (_, i) => `cal-day-${i}`);
 
   // Generate non-index based keys for time slots
-  const generateTimeSlotKeys = () => {
-    return Array.from({ length: 6 }).map(
-      (_, i) => `time-slot-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 7)}`,
-    );
-  };
+  const generateTimeSlotKeys = () => Array.from({ length: 6 }, (_, i) => `time-slot-${i}`);
 
   const calendarDayKeys = generateCalendarDayKeys();
   const timeSlotKeys = generateTimeSlotKeys();
@@ -257,9 +249,11 @@ function CalendarLoadingSkeleton() {
 function NoTimeSlots({
   calendarUser,
   username,
+  locale,
 }: {
   calendarUser: { id: string; fullName: string | null };
   username: string;
+  locale: string;
 }) {
   return (
     <Card className="mx-auto max-w-lg">
@@ -279,12 +273,7 @@ function NoTimeSlots({
         </ul>
       </CardContent>
       <CardFooter>
-        <Link
-          href={{
-            pathname: '/[username]',
-            params: { username },
-          }}
-        >
+        <Link href={`/${locale}/${username}`}>
           <Button variant="secondary">View Profile</Button>
         </Link>
       </CardFooter>

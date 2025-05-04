@@ -2,6 +2,7 @@ import { Skeleton } from '@/components/atoms/skeleton';
 import { EventBookingList } from '@/components/molecules/EventBookingList';
 import { db } from '@/drizzle/db';
 import { createClerkClient } from '@clerk/nextjs/server';
+import type { User } from '@clerk/nextjs/server';
 import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
@@ -65,7 +66,7 @@ interface PageProps {
 export default async function UserLayout(props: PageProps) {
   // Await the params
   const params = await props.params;
-  const { username, locale } = params;
+  const { username } = params;
 
   // Get user data early
   const clerk = createClerkClient({
@@ -84,7 +85,7 @@ export default async function UserLayout(props: PageProps) {
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
         {/* Left Column - Profile Info with Suspense */}
         <React.Suspense fallback={<ProfileSkeleton />}>
-          <ProfileInfo username={username} locale={locale} />
+          <ProfileInfo user={user} />
         </React.Suspense>
 
         {/* Right Column - Content */}
@@ -97,18 +98,8 @@ export default async function UserLayout(props: PageProps) {
 }
 
 // Separate component for profile info
-async function ProfileInfo({ username, locale: _locale }: { username: string; locale: string }) {
-  // Only delay in development
-
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-  const users = await clerk.users.getUserList({
-    username: [username],
-  });
-
-  const user = users.data[0];
-  if (!user) return notFound();
+async function ProfileInfo({ user }: { user: User }) {
+  // No need to fetch user data again - we now receive it as a prop
 
   const profile = await db.query.ProfileTable.findFirst({
     where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
