@@ -2,6 +2,7 @@ import { isValidLocale } from '@/app/i18n';
 import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
 import { locales } from '@/lib/i18n/routing';
 import { cn } from '@/lib/utils';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
 import { notFound } from 'next/navigation';
@@ -138,6 +139,7 @@ export default async function LocaleLayout({ children, params }: Props) {
               <NuqsAdapter>
                 <ClientProviders locale={locale} messages={messages}>
                   {children}
+                  <SpeedInsights />
                 </ClientProviders>
               </NuqsAdapter>
             </Providers>

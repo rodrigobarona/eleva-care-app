@@ -8,6 +8,7 @@ import {
   SidebarTrigger,
 } from '@/components/organisms/sidebar/sidebar';
 import { auth } from '@clerk/nextjs/server';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
@@ -36,6 +37,7 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
           </header>
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto rounded-xl bg-white p-4 pt-0">
             {children}
+            <SpeedInsights />
           </div>
         </SidebarInset>
       </SidebarProvider>

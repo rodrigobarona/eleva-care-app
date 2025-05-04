@@ -1,4 +1,5 @@
 import { auth } from '@clerk/nextjs/server';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
@@ -12,5 +13,10 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
     redirect(`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
   }
 
-  return <div className="flex min-h-screen flex-col items-center justify-center">{children}</div>;
+  return (
+    <div className="flex min-h-screen flex-col items-center justify-center">
+      {children}
+      <SpeedInsights />
+    </div>
+  );
 }
