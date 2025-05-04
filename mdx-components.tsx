@@ -12,7 +12,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       </h1>
     ),
     h2: ({ children }) => (
-      <h2 className="mb-4 mt-6 text-balance font-serif text-2xl font-light tracking-tight text-eleva-primary md:text-3xl">
+      <h2 className="mb-4 mt-6 text-balance font-serif text-3xl font-light tracking-tight text-eleva-primary md:text-3xl">
         {children}
       </h2>
     ),
@@ -22,7 +22,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
       </h3>
     ),
     h4: ({ children }) => (
-      <h4 className="mb-2 mt-4 font-sans text-lg font-medium tracking-tight text-eleva-neutral-900/80">
+      <h4 className="mb-2 mt-4 font-mono text-lg font-medium tracking-tight text-eleva-neutral-900/80">
         {children}
       </h4>
     ),
