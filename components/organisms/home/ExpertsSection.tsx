@@ -123,7 +123,7 @@ const ExpertsSection = async () => {
                       {/* Name and Rating */}
                       <div className="flex items-start justify-between">
                         <div className="flex w-full items-center justify-between">
-                          <h3 className="flex items-center gap-1 text-base font-semibold text-eleva-neutral-900">
+                          <h3 className="flex items-center gap-1 text-lg font-semibold text-eleva-neutral-900">
                             {expert.name}
                             {expert.isVerified && (
                               <Image
@@ -149,10 +149,8 @@ const ExpertsSection = async () => {
 
                       {/* Category */}
                       {expert.category && (
-                        <div className="flex items-center gap-2 pb-3 text-sm text-eleva-neutral-900/80">
-                          <span className="text-sm font-light text-eleva-highlight-purple">
-                            {expert.category}
-                          </span>
+                        <div className="flex items-center gap-2 pb-3 text-sm font-light text-eleva-neutral-900/80">
+                          {expert.category}
                         </div>
                       )}
 
