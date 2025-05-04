@@ -1,7 +1,6 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import dynamic from 'next/dynamic';
 import React from 'react';
 
 type MDXContentWrapperProps = {
@@ -63,15 +62,15 @@ export default function MDXContentWrapper({
       setError(null);
 
       try {
-        // Use dynamic import with explicit chunks for better code splitting
-        const contentModule = await dynamic(() => import(`@/content/${namespace}/${locale}.mdx`), {
-          loading: () => <p>{t('loading')}</p>,
-          ssr: false, // Disable SSR for MDX content to improve build performance
-        });
+        // Use direct import() for proper error handling with try/catch
+        const { default: ContentComponent } = await import(
+          /* webpackChunkName: "mdx-[request]" */
+          `@/content/${namespace}/${locale}.mdx`
+        );
 
         // Cache the content
-        contentCache[contentKey] = contentModule;
-        setContent(() => contentModule);
+        contentCache[contentKey] = ContentComponent;
+        setContent(() => ContentComponent);
       } catch (e) {
         // Use a logger that can be conditionally disabled in production
         if (process.env.NODE_ENV !== 'production') {
@@ -88,18 +87,15 @@ export default function MDXContentWrapper({
             return;
           }
 
-          // Try fallback locale with the same dynamic import optimization
-          const fallbackModule = await dynamic(
-            () => import(`@/content/${namespace}/${fallbackLocale}.mdx`),
-            {
-              loading: () => <p>{t('loading')}</p>,
-              ssr: false, // Disable SSR for MDX content to improve build performance
-            },
+          // Try fallback locale with direct import
+          const { default: FallbackComponent } = await import(
+            /* webpackChunkName: "mdx-fallback-[request]" */
+            `@/content/${namespace}/${fallbackLocale}.mdx`
           );
 
           // Cache the fallback content
-          contentCache[fallbackKey] = fallbackModule;
-          setContent(() => fallbackModule);
+          contentCache[fallbackKey] = FallbackComponent;
+          setContent(() => FallbackComponent);
         } catch (fallbackError) {
           if (process.env.NODE_ENV !== 'production') {
             console.error(
@@ -115,7 +111,7 @@ export default function MDXContentWrapper({
     };
 
     loadContent();
-  }, [contentKey, fallbackKey, locale, namespace, fallbackLocale, t]);
+  }, [contentKey, fallbackKey, locale, namespace, fallbackLocale]);
 
   if (isLoading) {
     return (

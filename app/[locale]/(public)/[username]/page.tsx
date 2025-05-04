@@ -17,6 +17,10 @@ const SOCIAL_ICONS = {
   tiktok: Music, // Using Music icon for TikTok since there's no TikTok icon in Lucide
 } as const;
 
+// A minimal 1x1 pixel transparent placeholder as base64
+const DEFAULT_BLUR_IMAGE =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
+
 export const revalidate = 0;
 
 function ProfileSkeleton() {
@@ -120,7 +124,7 @@ async function ProfileInfo({ user }: { user: User }) {
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
           placeholder="blur"
-          blurDataURL={profile?.profilePicture || user.imageUrl}
+          blurDataURL={DEFAULT_BLUR_IMAGE}
         />
         {/* Top Expert Badge */}
         {profile?.isTopExpert && (
