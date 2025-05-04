@@ -23,6 +23,15 @@
         "description": "Conozca la misión de Eleva Care de transformar la salud de la mujer a través de la innovación y la compasión. Conozca a nuestro equipo de expertos.",
         "siteName": "Eleva Care"
       }
+    },
+    "legal": {
+      "title": "Documentación Legal | Eleva Care",
+      "description": "Información importante sobre los términos de servicio, políticas de privacidad y otros documentos legales de Eleva Care.",
+      "og": {
+        "title": "Documentación Legal | Eleva Care",
+        "description": "Información importante sobre los términos de servicio, políticas de privacidad y otros documentos legales de Eleva Care.",
+        "siteName": "Eleva Care"
+      }
     }
   },
   "NotFound": {

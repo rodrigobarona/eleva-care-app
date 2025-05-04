@@ -38,6 +38,9 @@ const isProtectedRoute = createRouteMatcher([
 // List of static paths to check against to prioritize over dynamic routes
 const staticPaths = Object.keys(routing.pathnames).filter((path) => !path.includes('['));
 
+// Legal document types supported by the application
+const legalDocuments = ['terms', 'privacy', 'cookie', 'dpa'];
+
 /**
  * Check if the requested path corresponds to a known static route
  * This helps prioritize static routes over dynamic routes
@@ -48,6 +51,46 @@ function isStaticRoute(pathname: string): boolean {
 
   // Check if the path matches any of our static paths
   return staticPaths.some((path) => path === pathnameWithoutLocale);
+}
+
+/**
+ * Handle /legal routes with or without a specific document
+ * @param pathname The pathname without locale prefix
+ * @returns The pathname to redirect to or null if no redirection needed
+ */
+function handleLegalRoutes(pathname: string, url: URL): NextResponse | null {
+  // If it's exactly /legal, redirect to /legal/terms as the default
+  if (pathname === '/legal') {
+    const locale = url.pathname.split('/')[1];
+    const isValidLocale = locales.includes(locale as Locale);
+
+    // Preserve locale in the redirect if it exists
+    const basePath = isValidLocale ? `/${locale}` : '';
+    const redirectUrl = new URL(`${basePath}/legal/terms`, url.origin);
+    console.log(`[middleware] Redirecting /legal to default document: ${redirectUrl.pathname}`);
+    return NextResponse.redirect(redirectUrl);
+  }
+
+  // Check if it's a legal path with a document (e.g., /legal/terms)
+  if (pathname.startsWith('/legal/')) {
+    const document = pathname.split('/')[2];
+
+    // If the document is not valid, redirect to the default
+    if (!document || !legalDocuments.includes(document)) {
+      const locale = url.pathname.split('/')[1];
+      const isValidLocale = locales.includes(locale as Locale);
+
+      // Preserve locale in the redirect if it exists
+      const basePath = isValidLocale ? `/${locale}` : '';
+      const redirectUrl = new URL(`${basePath}/legal/terms`, url.origin);
+      console.log(
+        `[middleware] Redirecting invalid legal document to default: ${redirectUrl.pathname}`,
+      );
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  return null;
 }
 
 export default clerkMiddleware((auth, req) => {
@@ -76,6 +119,14 @@ export default clerkMiddleware((auth, req) => {
   // Get the pathname without locale prefix (if any) to help with matching
   const pathnameWithoutLocale = getPathnameWithoutLocale(pathname);
   console.log(`[middleware] Pathname without locale: ${pathnameWithoutLocale}`);
+
+  // Handle legal routes specially
+  if (pathnameWithoutLocale === '/legal' || pathnameWithoutLocale.startsWith('/legal/')) {
+    const legalRouteResponse = handleLegalRoutes(pathnameWithoutLocale, req.nextUrl);
+    if (legalRouteResponse) {
+      return legalRouteResponse;
+    }
+  }
 
   // IMPORTANT: First check if this is a static route to prioritize it over dynamic routes
   const isKnownStaticRoute = isStaticRoute(pathname);
