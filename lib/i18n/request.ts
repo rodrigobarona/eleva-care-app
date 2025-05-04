@@ -1,5 +1,5 @@
 import { hasLocale } from 'next-intl';
-import { getRequestConfig, getTimeZone } from 'next-intl/server';
+import { getRequestConfig } from 'next-intl/server';
 
 import { routing } from './routing';
 import type { Locale } from './routing';
@@ -44,6 +44,7 @@ export default getRequestConfig(async ({ requestLocale }) => {
   return {
     locale,
     messages,
-    timeZone: await getTimeZone(),
+    // Optional: set time zone if needed
+    // timeZone: 'UTC',
   };
 });

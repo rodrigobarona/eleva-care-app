@@ -1,16 +1,16 @@
-import { defaultLocale, locales } from '@/lib/i18n/routing';
+import { locales } from '@/lib/i18n/routing';
 // Adjust path if needed
-import type { MetadataRoute } from 'next';
+import { MetadataRoute } from 'next';
 
 // Add any public routes that should be included in the sitemap
 // Dynamic routes might need separate logic to fetch slugs
 const publicRoutes: string[] = [
   '/',
   '/about',
+  '/legal',
   '/legal/privacy',
   '/legal/terms',
-  '/legal/cookies',
-  '/legal/dpa',
+  // Add other static public pages here
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -18,10 +18,10 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const sitemapEntries: MetadataRoute.Sitemap = [];
 
-  for (const locale of locales) {
-    for (const route of publicRoutes) {
+  locales.forEach((locale) => {
+    publicRoutes.forEach((route) => {
       // Handle the root path separately for the default locale if using 'as-needed' prefix
-      const isDefaultLocale = locale === defaultLocale;
+      const isDefaultLocale = locale === 'en'; // Assuming 'en' is default
       const pathPrefix = isDefaultLocale ? '' : `/${locale}`;
       const finalPath = route === '/' ? pathPrefix || '/' : `${pathPrefix}${route}`;
 
@@ -32,8 +32,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
         // changeFrequency: 'weekly',
         // priority: route === '/' ? 1 : 0.8,
       });
-    }
-  }
+    });
+  });
 
   return sitemapEntries;
 }

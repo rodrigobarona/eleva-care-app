@@ -1,10 +1,8 @@
-import { LEGAL_DOCUMENTS } from '@/lib/constants/legal';
-import type { LegalDocumentType } from '@/lib/constants/legal';
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 
-import { locales, routing } from './lib/i18n/routing';
+import { defaultLocale, locales, routing } from './lib/i18n/routing';
 import type { Locale } from './lib/i18n/routing';
 
 // Create the internationalization middleware
@@ -39,6 +37,9 @@ const isProtectedRoute = createRouteMatcher([
 
 // List of static paths to check against to prioritize over dynamic routes
 const staticPaths = Object.keys(routing.pathnames).filter((path) => !path.includes('['));
+
+// Legal document types supported by the application
+const legalDocuments = ['terms', 'privacy', 'cookie', 'dpa'];
 
 /**
  * Check if the requested path corresponds to a known static route
@@ -75,7 +76,7 @@ function handleLegalRoutes(pathname: string, url: URL): NextResponse | null {
     const document = pathname.split('/')[2];
 
     // If the document is not valid, redirect to the default
-    if (!document || !LEGAL_DOCUMENTS.includes(document as LegalDocumentType)) {
+    if (!document || !legalDocuments.includes(document)) {
       const locale = url.pathname.split('/')[1];
       const isValidLocale = locales.includes(locale as Locale);
 
