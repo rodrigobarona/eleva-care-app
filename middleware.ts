@@ -172,5 +172,6 @@ function getPathnameWithoutLocale(pathname: string): string {
 
 // Matcher needs to include /api routes for the middleware function to run
 export const config = {
+  // Skip all static assets and explicitly include API/TRPC routes
   matcher: ['/((?!_next/static|_next/image|img|favicon.ico|.*\\..*).*)', '/(api|trpc)(.*)'],
 };
