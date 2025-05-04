@@ -3,10 +3,10 @@
 import { Button } from '@/components/atoms/button';
 import { VideoPlayer } from '@/components/molecules/videoPlayer';
 import { ClipboardList } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { Suspense } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { useTranslations } from 'next-intl';
 
 const Hero = () => {
   const t = useTranslations('hero');

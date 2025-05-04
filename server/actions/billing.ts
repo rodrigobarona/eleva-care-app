@@ -177,22 +177,22 @@ export async function syncIdentityToConnect() {
             userId,
             verificationStatus: result.verificationStatus,
           });
-          
+
           return {
             success: true,
             message: 'Identity verification successfully synced to Connect account',
             attempt,
           };
         }
-          
+
         // Store the error and retry
         lastError = new Error(result.message || 'Sync failed with unknown reason');
         console.warn(`Sync attempt ${attempt} failed: ${result.message}`);
-        
+
         // If not the last attempt, wait before retrying (exponential backoff)
         if (attempt < maxRetries) {
           const delayMs = 2 ** attempt * 500; // 1s, 2s, 4s backoff
-          await new Promise(resolve => setTimeout(resolve, delayMs));
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
         }
       } catch (error) {
         lastError = error;

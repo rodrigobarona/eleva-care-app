@@ -218,7 +218,8 @@ export function MeetingFormContent({
           guestName: formValues.guestName,
           guestEmail: formValues.guestEmail,
           guestNotes: formValues.guestNotes,
-          startTime: formValues.date && formValues.startTime ? new Date(formValues.startTime) : null,
+          startTime:
+            formValues.date && formValues.startTime ? new Date(formValues.startTime) : null,
           timezone: formValues.timezone || 'UTC',
           locale: userLocale, // Pass locale for multilingual emails
           successUrl: `${window.location.origin}/${userLocale}/${username}/${eventSlug}/payment-processing?startTime=${encodeURIComponent(

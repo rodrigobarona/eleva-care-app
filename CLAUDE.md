@@ -3,6 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Commands
+
 - Build: `pnpm build` (production), `pnpm dev` (development with turbopack)
 - Lint: `pnpm lint`
 - Format: `pnpm format`
@@ -10,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Test with watch: `pnpm test:watch -- tests/path/to/file.test.ts`
 
 ## Code Style
+
 - Use TypeScript for all code with proper typing
 - Prefer interfaces over types for object shapes
 - Use Zod for runtime schema validation
@@ -21,11 +23,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - Limit `use client` to components requiring client-side functionality
 
 ## Error Handling
+
 - Validate all inputs with Zod schemas
 - Use try/catch blocks for error handling with proper error messages
 - Always secure API routes with validation and authentication
 
 ## Testing
+
 - Place all tests in the `tests/` directory
 - Mirror folder structure of source code in tests
 - Use Jest as the test runner with React Testing Library for components

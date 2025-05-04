@@ -51,8 +51,8 @@ export function formatDuration(minutes: number, locale = 'en') {
   const remainingMinutes = minutes % 60;
 
   if (remainingMinutes === 0) {
-    return locale === 'en' 
-      ? `${hours} hour${hours !== 1 ? 's' : ''}` 
+    return locale === 'en'
+      ? `${hours} hour${hours !== 1 ? 's' : ''}`
       : `${hours} hora${hours !== 1 ? 's' : ''}`;
   }
 
