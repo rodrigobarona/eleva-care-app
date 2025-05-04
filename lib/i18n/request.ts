@@ -31,7 +31,11 @@ export default getRequestConfig(async ({ requestLocale }) => {
     : routing.defaultLocale;
 
   if (process.env.NODE_ENV !== 'production') {
-    console.log('[request.ts] Resolved locale:', locale);
+    if (locale !== requested) {
+      console.log(`[request.ts] Locale ${requested} not supported, falling back to ${locale}`);
+    } else {
+      console.log('[request.ts] Resolved locale:', locale);
+    }
   }
 
   // Transform locale to file locale (e.g., pt-BR -> br, es-MX -> mx)
@@ -45,19 +49,34 @@ export default getRequestConfig(async ({ requestLocale }) => {
   try {
     // Use the file locale for import
     messages = (await import(`@/messages/${fileLocale}.json`)).default;
-  } catch (error) {
-    console.error(`[request.ts] Failed to load messages for locale ${locale}:`, error);
-    // Fallback to English if locale not found
-    messages = (await import('@/messages/en.json')).default;
+
     if (process.env.NODE_ENV !== 'production') {
-      console.log(`[request.ts] Falling back to 'en' messages.`);
+      console.log(
+        `[request.ts] Successfully loaded ${Object.keys(messages).length} messages for locale ${locale}`,
+      );
+    }
+  } catch (error) {
+    console.error(
+      `[request.ts] Failed to load messages for locale ${locale} (file: ${fileLocale}.json):`,
+      error,
+    );
+    // Fallback to English if locale not found
+    try {
+      messages = (await import('@/messages/en.json')).default;
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[request.ts] Falling back to 'en' messages.`);
+      }
+    } catch (fallbackError) {
+      console.error('[request.ts] Even fallback to en.json failed:', fallbackError);
+      // Last resort - empty messages object to prevent complete failure
+      messages = {};
     }
   }
 
   return {
     locale,
     messages,
-    // Optional: set time zone if needed
-    // timeZone: 'UTC',
+    // Optional: set time zone if needed based on locale
+    timeZone: locale === 'pt-BR' ? 'America/Sao_Paulo' : locale === 'es' ? 'Europe/Madrid' : 'UTC',
   };
 });
