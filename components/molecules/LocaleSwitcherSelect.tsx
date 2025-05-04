@@ -22,6 +22,9 @@ export default function LocaleSwitcherSelect({ children, defaultValue, label }: 
     console.log('Switching locale to:', nextLocale); // Debugging log
 
     startTransition(() => {
+      // Set cookie to remember this locale
+      document.cookie = `ELEVA_LOCALE=${nextLocale};max-age=31536000;path=/`;
+
       // Get path without locale prefix
       const currentPathWithoutLocale: string = pathname.startsWith(`/${currentLocale}/`)
         ? pathname.slice(currentLocale.length + 1) // +1 for the slash
