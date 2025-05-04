@@ -24,12 +24,12 @@ export const revalidate = 0;
 
 // Updated PageProps type with proper next params - both params and searchParams as Promises
 interface PageProps {
-  params: {
+  params: Promise<{
     username: string;
     eventSlug: string;
     locale: string;
-  };
-  searchParams: Record<string, string | string[] | undefined>;
+  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
 // Define EventType to avoid conflict with DOM Event
