@@ -43,7 +43,7 @@ const COUNTRY_LOCALE_MAP: Record<string, Locale> = {
 
   // Portuguese-speaking countries
   PT: 'pt', // Portugal
-  BR: 'pt-BR', // Brazil
+  BR: 'pt-BR', // Brazil - Always use pt-BR for Brazil
   AO: 'pt', // Angola
   MZ: 'pt', // Mozambique
   GW: 'pt', // Guinea-Bissau
@@ -75,20 +75,35 @@ function parseAcceptLanguage(acceptLanguage?: string): Locale | null {
   for (const lang of languages) {
     const code = lang.value.toLowerCase();
 
+    // Special case for Brazilian Portuguese
+    // Check for pt-BR directly or pt with BR country
+    if (code === 'pt-br' || code.startsWith('pt-br')) {
+      return 'pt-BR';
+    }
+
     // Try direct match first
     if (locales.includes(code as Locale)) {
       return code as Locale;
     }
 
-    // Try language part only (e.g., "en-US" -> "en")
-    const langPart = code.split('-')[0];
-    if (locales.includes(langPart as Locale)) {
-      return langPart as Locale;
+    // Special check for language + region
+    const [language, region] = code.split('-');
+
+    // If it's Portuguese from Brazil specifically
+    if (language === 'pt' && region && region.toLowerCase() === 'br') {
+      return 'pt-BR';
     }
 
-    // Special case: if it's "pt-BR" or any Portuguese variant from Brazil
-    if (code.startsWith('pt-br')) {
-      return 'pt-BR';
+    // Try language part only for other cases (e.g., "en-US" -> "en")
+    if (locales.includes(language as Locale)) {
+      // For Portuguese, check if we should return pt or pt-BR based on region
+      if (language === 'pt' && region) {
+        // If region is BR, return pt-BR
+        if (region.toUpperCase() === 'BR') {
+          return 'pt-BR';
+        }
+      }
+      return language as Locale;
     }
   }
 

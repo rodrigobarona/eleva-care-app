@@ -154,10 +154,21 @@ export default clerkMiddleware((auth, req) => {
   // Apply internationalization handling ONLY for web pages
   console.log(`[middleware] Applying i18n routing for ${pathname}`);
   try {
+    // Debug Accept-Language header to help with troubleshooting
+    const acceptLanguage = req.headers.get('accept-language');
+    console.log(`[middleware] Accept-Language header: ${acceptLanguage || 'none'}`);
+
+    // Debug IP country from headers
+    const ipCountry = req.headers.get('x-vercel-ip-country');
+    console.log(`[middleware] IP Country: ${ipCountry || 'unknown'}`);
+
     // Check if the URL already contains a valid locale in the path
     // If it does, respect this choice and don't try to auto-detect
     if (hasValidLocaleInPath(pathname)) {
-      console.log(`[middleware] Valid locale found in URL path, respecting user's choice`);
+      const pathLocale = pathname.split('/')[1];
+      console.log(
+        `[middleware] Valid locale '${pathLocale}' found in URL path, respecting user's choice`,
+      );
       return handleI18nRouting(req);
     }
 
@@ -173,22 +184,29 @@ export default clerkMiddleware((auth, req) => {
     // Get locale from Accept-Language header and Vercel geolocation headers
     const detectedLocale = detectLocaleFromHeaders(req.headers);
 
-    if (detectedLocale && detectedLocale !== defaultLocale) {
-      // If we detected a supported non-default locale, add it to the URL
-      // This will be picked up by next-intl middleware
-      const url = req.nextUrl.clone();
-      url.pathname = `/${detectedLocale}${pathnameWithoutLocale === '/' ? '' : pathnameWithoutLocale}`;
-      console.log(
-        `[middleware] Detected locale ${detectedLocale}, redirecting to: ${url.pathname}`,
-      );
+    if (detectedLocale) {
+      console.log(`[middleware] Detected locale from headers: ${detectedLocale}`);
 
-      // Set the cookie to remember this locale
-      const response = NextResponse.redirect(url);
-      response.cookies.set('ELEVA_LOCALE', detectedLocale, {
-        maxAge: 31536000, // 1 year
-        path: '/',
-      });
-      return response;
+      if (detectedLocale !== defaultLocale) {
+        // If we detected a supported non-default locale, add it to the URL
+        // This will be picked up by next-intl middleware
+        const url = req.nextUrl.clone();
+        url.pathname = `/${detectedLocale}${pathnameWithoutLocale === '/' ? '' : pathnameWithoutLocale}`;
+        console.log(
+          `[middleware] Detected non-default locale ${detectedLocale}, redirecting to: ${url.pathname}`,
+        );
+
+        // Set the cookie to remember this locale
+        const response = NextResponse.redirect(url);
+        response.cookies.set('ELEVA_LOCALE', detectedLocale, {
+          maxAge: 31536000, // 1 year
+          path: '/',
+        });
+        return response;
+      }
+      console.log(`[middleware] Detected default locale ${detectedLocale}, no redirect needed`);
+    } else {
+      console.log('[middleware] Could not detect locale from headers, falling back to default');
     }
 
     const response = handleI18nRouting(req);
