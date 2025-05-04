@@ -1,5 +1,6 @@
 'use client';
 
+import { getFileLocale } from '@/lib/i18n/utils';
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
@@ -8,17 +9,6 @@ type MDXContentWrapperProps = {
   namespace: string;
   fallbackLocale?: string;
 };
-
-// Helper function to get the file locale from ISO locale codes
-function getFileLocale(locale: string): string {
-  // If locale contains a hyphen (like pt-BR), extract the country code
-  if (locale.includes('-')) {
-    // Get the part after the hyphen (BR) and lowercase it (br)
-    return locale.split('-')[1].toLowerCase();
-  }
-  // Otherwise just return the original locale
-  return locale;
-}
 
 export default function MDXContentWrapper({
   locale,
@@ -40,9 +30,9 @@ export default function MDXContentWrapper({
 
       // Convert ISO locale to file locale (e.g., pt-BR -> br)
       const fileLocale = getFileLocale(locale);
-      console.log(
-        `[MDXContentWrapper] Loading content for ${namespace}, locale: ${locale}, file locale: ${fileLocale}`,
-      );
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[MDXContentWrapper] Loading content for ${namespace}, locale: ${fileLocale}`);
+      }
 
       try {
         // Try to load the MDX content for the current locale

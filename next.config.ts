@@ -39,6 +39,14 @@ const config: NextConfig = {
     ],
   },
 
+  // Turbopack configuration
+  turbopack: {
+    resolveExtensions: ['.js', '.jsx', '.ts', '.tsx', '.md', '.mdx', '.json'],
+    resolveAlias: {
+      // Add any alias mappings if needed
+    },
+  },
+
   experimental: {
     // On-demand cache invalidation for dynamic routes (staleTimes = 0)
     // This helps ensure dynamic content is always fresh
