@@ -4,14 +4,15 @@ import { NextResponse } from 'next/server';
 
 import { defaultLocale, locales, routing } from './lib/i18n/routing';
 import type { Locale } from './lib/i18n/routing';
+import { detectLocaleFromHeaders } from './lib/i18n/utils';
 
 // Create the internationalization middleware
 const handleI18nRouting = createMiddleware({
   locales: routing.locales,
   defaultLocale: routing.defaultLocale,
   localePrefix: routing.localePrefix,
-  // Turn off automatic detection - prioritize explicit user selection
-  localeDetection: false,
+  // Enable automatic locale detection
+  localeDetection: true,
   // Configure the cookie for persistent locale preference
   localeCookie: {
     // One year in seconds for persistent preference across visits
@@ -145,6 +146,33 @@ export default clerkMiddleware((auth, req) => {
   // Apply internationalization handling ONLY for web pages
   console.log(`[middleware] Applying i18n routing for ${pathname}`);
   try {
+    // Check for a cookie-based locale preference first
+    const cookieLocale = req.cookies.get('ELEVA_LOCALE')?.value;
+
+    // If no cookie exists, try to detect locale from headers
+    if (!cookieLocale) {
+      // Get locale from Accept-Language header and Vercel geolocation headers
+      const detectedLocale = detectLocaleFromHeaders(req.headers);
+
+      if (detectedLocale && detectedLocale !== defaultLocale) {
+        // If we detected a supported non-default locale, add it to the URL
+        // This will be picked up by next-intl middleware
+        const url = req.nextUrl.clone();
+        url.pathname = `/${detectedLocale}${pathnameWithoutLocale === '/' ? '' : pathnameWithoutLocale}`;
+        console.log(
+          `[middleware] Detected locale ${detectedLocale}, redirecting to: ${url.pathname}`,
+        );
+
+        // Set the cookie to remember this locale
+        const response = NextResponse.redirect(url);
+        response.cookies.set('ELEVA_LOCALE', detectedLocale, {
+          maxAge: 31536000, // 1 year
+          path: '/',
+        });
+        return response;
+      }
+    }
+
     const response = handleI18nRouting(req);
 
     // Log information about redirect
