@@ -59,9 +59,7 @@ const ExpertsSection = async () => {
 
   // Filter out any null values (shouldn't happen) and profiles without prices
   const expertsWithPricing = expertsData
-    .filter(
-      (expert): expert is NonNullable<typeof expert> => expert !== null && expert.price !== null,
-    )
+    .filter((expert): expert is NonNullable<typeof expert> => expert !== null)
     .sort((a, b) => {
       // First sort by order (lower numbers come first)
       if (a.order !== b.order) {
