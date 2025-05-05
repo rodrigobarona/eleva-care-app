@@ -3,8 +3,18 @@
 import { z } from 'zod';
 
 /**
- * Dub.co link shortening utilities for Eleva Care
- * Integrates with the go.eleva.care custom domain
+ * Dub.co URL Shortening Service Integration
+ *
+ * This module provides functionality to create shortened URLs via the Dub.co API.
+ * It's specifically configured for Eleva Care's go.eleva.care custom domain and
+ * optimized for shortening Google Meet links with UTM tracking parameters.
+ *
+ * The shortening service enhances user experience by:
+ * 1. Providing memorable, branded links for virtual appointments
+ * 2. Adding tracking parameters for analytics
+ * 3. Ensuring consistent URL structure across the application
+ *
+ * @module dub
  */
 
 // Validate essential environment variables
@@ -27,7 +37,10 @@ if (!DUB_DEFAULT_DOMAIN.match(/^[a-zA-Z0-9][a-zA-Z0-9-_.]+\.[a-zA-Z]{2,}$/)) {
   console.warn('⚠️ DUB_DEFAULT_DOMAIN may not be a valid domain name:', DUB_DEFAULT_DOMAIN);
 }
 
-// Schema for Dub.co API response
+/**
+ * Schema for validating Dub.co API responses
+ * This ensures type safety and handles potential API changes
+ */
 const DubResponseSchema = z.object({
   id: z.string(),
   domain: z.string(),
@@ -40,8 +53,16 @@ const DubResponseSchema = z.object({
   shortLink: z.string(),
 });
 
-// Type is inferred in the parse method directly
-
+/**
+ * Options for creating a shortened URL
+ *
+ * @interface CreateShortLinkOptions
+ * @property {string} url - The original URL to shorten (must be a valid Google Meet URL)
+ * @property {string} [expertName] - The expert's name for UTM campaign tracking
+ * @property {string} [expertUsername] - The expert's username for UTM content tracking
+ * @property {string} [customDomain] - Optional custom domain (defaults to go.eleva.care)
+ * @property {string} [customSlug] - Optional custom slug for the short URL
+ */
 interface CreateShortLinkOptions {
   url: string;
   expertName?: string;
@@ -53,8 +74,28 @@ interface CreateShortLinkOptions {
 /**
  * Creates a shortened URL for Google Meet links with tracking parameters
  *
- * @param options Options for creating the short link
- * @returns The shortened URL or the original URL if shortening fails
+ * This function takes a Google Meet URL and:
+ * 1. Validates it's a proper Google Meet URL
+ * 2. Adds UTM tracking parameters for analytics
+ * 3. Shortens the URL using the Dub.co API
+ * 4. Falls back to the original URL with UTM parameters if shortening fails
+ *
+ * @param {CreateShortLinkOptions} options - Options for creating the short link
+ * @returns {Promise<string>} The shortened URL or the original URL with UTM parameters if shortening fails
+ *
+ * @example
+ * // Basic usage
+ * const shortUrl = await createShortMeetLink({
+ *   url: 'https://meet.google.com/abc-defg-hij'
+ * });
+ *
+ * @example
+ * // With expert information for tracking
+ * const shortUrl = await createShortMeetLink({
+ *   url: 'https://meet.google.com/abc-defg-hij',
+ *   expertName: 'Jane Smith',
+ *   expertUsername: 'jane.smith'
+ * });
  */
 export async function createShortMeetLink(options: CreateShortLinkOptions): Promise<string> {
   const { url, expertName, expertUsername, customDomain, customSlug } = options;
@@ -75,6 +116,7 @@ export async function createShortMeetLink(options: CreateShortLinkOptions): Prom
     return url;
   }
 
+  // Early return if API key is not configured
   if (!DUB_API_KEY) {
     console.warn('DUB_API_KEY not configured, returning original URL');
     return url;
@@ -85,7 +127,7 @@ export async function createShortMeetLink(options: CreateShortLinkOptions): Prom
     ? expertName.toLowerCase().replace(/[^a-z0-9]/g, '_')
     : 'expert_appointment';
 
-  // Add UTM parameters to the URL
+  // Add UTM parameters to the URL for analytics tracking
   const urlWithUtm = new URL(url);
   urlWithUtm.searchParams.append('utm_source', 'eleva_care');
   urlWithUtm.searchParams.append('utm_medium', 'calendar_invite');
@@ -99,6 +141,7 @@ export async function createShortMeetLink(options: CreateShortLinkOptions): Prom
   try {
     console.log('Creating short link for Google Meet URL:', urlWithUtm.toString());
 
+    // Make API request to Dub.co service
     const response = await fetch(DUB_API_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -113,11 +156,13 @@ export async function createShortMeetLink(options: CreateShortLinkOptions): Prom
       }),
     });
 
+    // Handle API errors
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`Dub.co API error (${response.status}): ${errorText}`);
     }
 
+    // Parse and validate response
     const data = await response.json();
     const parsedData = DubResponseSchema.parse(data);
 
