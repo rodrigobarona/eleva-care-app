@@ -1,6 +1,7 @@
 'use client';
 
 import { AuthorizationProvider } from '@/components/molecules/AuthorizationProvider';
+import { ClerkProvider } from '@clerk/nextjs';
 import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
@@ -27,7 +28,7 @@ interface ClientProvidersProps {
 
 /**
  * Client Providers - These components provide client-side features
- * ThemeProvider, AuthorizationProvider, CookieManager, PostHog, and Toaster
+ * ClerkProvider, ThemeProvider, AuthorizationProvider, CookieManager, PostHog, and Toaster
  * This does NOT include internationalization (use IntlProvider for that)
  */
 export function ClientProviders({ children, messages }: ClientProvidersProps) {
@@ -79,26 +80,33 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
   }, []);
 
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <AuthorizationProvider>
-        <CookieManager
-          cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
-          showManageButton={true}
-          enableFloatingButton={false}
-          displayType="popup"
-          cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
-          theme="light"
-          privacyPolicyUrl="/legal/cookie"
-          translations={createCookieTranslations(messages)}
-        >
-          <PHProvider client={posthog}>
-            {posthogLoaded && <PostHogPageView />}
-            {children}
-          </PHProvider>
-          <Toaster closeButton position="bottom-right" richColors />
-        </CookieManager>
-      </AuthorizationProvider>
-    </ThemeProvider>
+    <ClerkProvider
+      signInFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}
+      signUpFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL}
+      signInUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}
+      signUpUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}
+    >
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <AuthorizationProvider>
+          <CookieManager
+            cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
+            showManageButton={true}
+            enableFloatingButton={false}
+            displayType="popup"
+            cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
+            theme="light"
+            privacyPolicyUrl="/legal/cookie"
+            translations={createCookieTranslations(messages)}
+          >
+            <PHProvider client={posthog}>
+              {posthogLoaded && <PostHogPageView />}
+              {children}
+            </PHProvider>
+            <Toaster closeButton position="bottom-right" richColors />
+          </CookieManager>
+        </AuthorizationProvider>
+      </ThemeProvider>
+    </ClerkProvider>
   );
 }
 
