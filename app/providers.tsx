@@ -1,7 +1,6 @@
 'use client';
 
 import { AuthorizationProvider } from '@/components/molecules/AuthorizationProvider';
-import { ClerkProvider } from '@clerk/nextjs';
 import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
@@ -20,27 +19,6 @@ const CookieManager = dynamic(
   () => import('react-cookie-manager').then((mod) => mod.CookieManager),
   { ssr: false, loading: () => null },
 );
-
-interface ProvidersProps {
-  children: React.ReactNode;
-}
-
-/**
- * Server Provider - This component uses ClerkProvider for authentication
- * It should be used at the root level of the application
- */
-export function Providers({ children }: ProvidersProps) {
-  return (
-    <ClerkProvider
-      signInFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}
-      signUpFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL}
-      signInUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}
-      signUpUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}
-    >
-      {children}
-    </ClerkProvider>
-  );
-}
 
 interface ClientProvidersProps {
   children: React.ReactNode;

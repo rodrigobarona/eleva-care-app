@@ -1,6 +1,5 @@
 'use client';
 
-import { usePathname } from '@/lib/i18n/navigation';
 import { defaultLocale } from '@/lib/i18n/routing';
 import type { Locale } from '@/lib/i18n/routing';
 import { useLocale } from 'next-intl';
@@ -14,7 +13,6 @@ type Props = {
 
 export default function LocaleSwitcherSelect({ children, defaultValue, label }: Props) {
   const [isPending, startTransition] = useTransition();
-  const pathname = usePathname();
   const currentLocale = useLocale();
 
   function onSelectChange(event: ChangeEvent<HTMLSelectElement>) {
@@ -25,23 +23,30 @@ export default function LocaleSwitcherSelect({ children, defaultValue, label }: 
       // Set cookie to remember this locale
       document.cookie = `ELEVA_LOCALE=${nextLocale};max-age=31536000;path=/`;
 
-      // Get path without locale prefix
-      const currentPathWithoutLocale: string = pathname.startsWith(`/${currentLocale}/`)
-        ? pathname.slice(currentLocale.length + 1) // +1 for the slash
-        : pathname;
+      // Use direct URL manipulation which handles dynamic routes better in this case
+      // Get current URL and parse it
+      const url = new URL(window.location.href);
+      const pathParts = url.pathname.split('/');
 
-      // Construct the new URL based on the locale
-      let newPath: string;
-      if (nextLocale === defaultLocale) {
-        // Default locale may not need prefix depending on your localePrefix setting
-        newPath = currentPathWithoutLocale || '/';
+      // Check if the first segment is a locale
+      if (pathParts[1] === currentLocale) {
+        // Replace the locale segment
+        pathParts[1] = nextLocale;
       } else {
-        // Non-default locale needs prefix
-        newPath = `/${nextLocale}${currentPathWithoutLocale.startsWith('/') ? currentPathWithoutLocale : `/${currentPathWithoutLocale}`}`;
+        // Insert the locale after the first slash
+        pathParts.splice(1, 0, nextLocale);
       }
 
-      // Use direct URL manipulation to avoid issues with dynamic routes
-      window.location.href = newPath;
+      // Construct new path, handling case where nextLocale is default locale
+      let newPath = pathParts.join('/');
+      if (nextLocale === defaultLocale && pathParts.length > 2) {
+        // For default locale, we might want to remove the locale prefix
+        // (depending on your localePrefix setting)
+        newPath = `/${pathParts.slice(2).join('/')}`;
+      }
+
+      // Navigate to new URL, preserving query parameters
+      window.location.href = `${url.origin}${newPath}${url.search}`;
     });
   }
 

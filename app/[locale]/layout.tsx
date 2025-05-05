@@ -2,7 +2,6 @@ import { isValidLocale } from '@/app/i18n';
 import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
 import { locales } from '@/lib/i18n/routing';
 import { cn } from '@/lib/utils';
-import { SpeedInsights } from '@vercel/speed-insights/next';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
 import { notFound } from 'next/navigation';
@@ -10,7 +9,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import type React from 'react';
 
 import '../globals.css';
-import { ClientProviders, Providers } from '../providers';
+import { ClientProviders } from '../providers';
 import { ThemeProvider } from '../theme-provider';
 
 const lora = Lora({
@@ -135,14 +134,11 @@ export default async function LocaleLayout({ children, params }: Props) {
       <body className="min-h-screen bg-background font-sans antialiased">
         <ThemeProvider>
           <ErrorBoundaryWrapper>
-            <Providers>
-              <NuqsAdapter>
-                <ClientProviders locale={locale} messages={messages}>
-                  {children}
-                  <SpeedInsights />
-                </ClientProviders>
-              </NuqsAdapter>
-            </Providers>
+            <NuqsAdapter>
+              <ClientProviders locale={locale} messages={messages}>
+                {children}
+              </ClientProviders>
+            </NuqsAdapter>
           </ErrorBoundaryWrapper>
         </ThemeProvider>
       </body>
