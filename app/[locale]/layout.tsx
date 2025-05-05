@@ -1,32 +1,13 @@
 import { isValidLocale } from '@/app/i18n';
 import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
 import { locales } from '@/lib/i18n/routing';
-import { cn } from '@/lib/utils';
 import { getMessages, setRequestLocale } from 'next-intl/server';
-import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
 import { notFound } from 'next/navigation';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import type React from 'react';
 
-import '../globals.css';
 import { ClientProviders } from '../providers';
 import { ThemeProvider } from '../theme-provider';
-
-const lora = Lora({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-lora',
-});
-const alexandria = Alexandria({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-alexandria',
-});
-const jetBrains = JetBrains_Mono({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-jetbrains',
-});
 
 // Updated Props type with params as Promise for Next.js 15.3 internationalization
 type Props = {
@@ -122,27 +103,17 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   return (
-    <html
-      lang={locale}
-      className={cn(
-        `${alexandria.variable} ${lora.variable} ${jetBrains.variable}`,
-        'scroll-smooth',
-      )}
-      suppressHydrationWarning
-    >
-      <head />
-      <body className="min-h-screen bg-background font-sans antialiased">
-        <ThemeProvider>
-          <ErrorBoundaryWrapper>
-            <NuqsAdapter>
-              <ClientProviders locale={locale} messages={messages}>
-                {children}
-              </ClientProviders>
-            </NuqsAdapter>
-          </ErrorBoundaryWrapper>
-        </ThemeProvider>
-      </body>
-    </html>
+    <>
+      <ThemeProvider>
+        <ErrorBoundaryWrapper>
+          <NuqsAdapter>
+            <ClientProviders locale={locale} messages={messages}>
+              {children}
+            </ClientProviders>
+          </NuqsAdapter>
+        </ErrorBoundaryWrapper>
+      </ThemeProvider>
+    </>
   );
 }
 
