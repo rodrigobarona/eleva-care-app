@@ -1,13 +1,9 @@
 import { isValidLocale } from '@/app/i18n';
-import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
+import { IntlProvider } from '@/app/providers';
 import { locales } from '@/lib/i18n/routing';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import type React from 'react';
-
-import { ClientProviders } from '../providers';
-import { ThemeProvider } from '../theme-provider';
 
 // Updated Props type with params as Promise for Next.js 15.3 internationalization
 type Props = {
@@ -102,18 +98,11 @@ export default async function LocaleLayout({ children, params }: Props) {
   setRequestLocale(locale);
   const messages = await getMessages();
 
+  // Use the dedicated IntlProvider component for localized routes
   return (
-    <>
-      <ThemeProvider>
-        <ErrorBoundaryWrapper>
-          <NuqsAdapter>
-            <ClientProviders locale={locale} messages={messages}>
-              {children}
-            </ClientProviders>
-          </NuqsAdapter>
-        </ErrorBoundaryWrapper>
-      </ThemeProvider>
-    </>
+    <IntlProvider locale={locale} messages={messages}>
+      {children}
+    </IntlProvider>
   );
 }
 

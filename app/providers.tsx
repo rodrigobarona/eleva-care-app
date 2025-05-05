@@ -22,15 +22,15 @@ const CookieManager = dynamic(
 
 interface ClientProvidersProps {
   children: React.ReactNode;
-  locale: string;
   messages: Record<string, unknown>;
 }
 
 /**
- * Client Providers - These components require client-side JavaScript
- * They include theme management, authorization context, and toast notifications
+ * Client Providers - These components provide client-side features
+ * ThemeProvider, AuthorizationProvider, CookieManager, PostHog, and Toaster
+ * This does NOT include internationalization (use IntlProvider for that)
  */
-export function ClientProviders({ children, locale, messages }: ClientProvidersProps) {
+export function ClientProviders({ children, messages }: ClientProvidersProps) {
   const [posthogLoaded, setPosthogLoaded] = useState(false);
 
   useEffect(() => {
@@ -79,6 +79,43 @@ export function ClientProviders({ children, locale, messages }: ClientProvidersP
   }, []);
 
   return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <AuthorizationProvider>
+        <CookieManager
+          cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
+          showManageButton={true}
+          enableFloatingButton={false}
+          displayType="popup"
+          cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
+          theme="light"
+          privacyPolicyUrl="/legal/cookie"
+          translations={createCookieTranslations(messages)}
+        >
+          <PHProvider client={posthog}>
+            {posthogLoaded && <PostHogPageView />}
+            {children}
+          </PHProvider>
+          <Toaster closeButton position="bottom-right" richColors />
+        </CookieManager>
+      </AuthorizationProvider>
+    </ThemeProvider>
+  );
+}
+
+/**
+ * Internationalization Provider - For locale-specific routes
+ * This wraps content with NextIntlClientProvider for translations
+ */
+export function IntlProvider({
+  children,
+  locale,
+  messages,
+}: {
+  children: React.ReactNode;
+  locale: string;
+  messages: Record<string, unknown>;
+}) {
+  return (
     <NextIntlClientProvider
       locale={locale}
       messages={messages}
@@ -92,26 +129,7 @@ export function ClientProviders({ children, locale, messages }: ClientProvidersP
         throw error;
       }}
     >
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-        <AuthorizationProvider>
-          <CookieManager
-            cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
-            showManageButton={true}
-            enableFloatingButton={false}
-            displayType="popup"
-            cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
-            theme="light"
-            privacyPolicyUrl="/legal/cookie"
-            translations={createCookieTranslations(messages)}
-          >
-            <PHProvider client={posthog}>
-              {posthogLoaded && <PostHogPageView />}
-              {children}
-            </PHProvider>
-            <Toaster closeButton position="bottom-right" richColors />
-          </CookieManager>
-        </AuthorizationProvider>
-      </ThemeProvider>
+      {children}
     </NextIntlClientProvider>
   );
 }
