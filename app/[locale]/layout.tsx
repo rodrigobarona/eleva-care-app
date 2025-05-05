@@ -99,6 +99,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   const messages = await getMessages();
 
   // Use the dedicated IntlProvider component for localized routes
+  // The IntlProvider now automatically updates the HTML lang attribute
   return (
     <IntlProvider locale={locale} messages={messages}>
       {children}

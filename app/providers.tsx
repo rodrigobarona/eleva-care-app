@@ -113,6 +113,7 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
 /**
  * Internationalization Provider - For locale-specific routes
  * This wraps content with NextIntlClientProvider for translations
+ * and also updates the HTML lang attribute to match the current locale
  */
 export function IntlProvider({
   children,
@@ -123,6 +124,24 @@ export function IntlProvider({
   locale: string;
   messages: Record<string, unknown>;
 }) {
+  // Update HTML lang attribute when the locale changes
+  useEffect(() => {
+    if (locale) {
+      // Find all HTML elements with data-dynamic-lang attribute
+      const htmlElement = document.documentElement;
+
+      // Update HTML lang attribute if it has the dynamic lang data attribute
+      // This ensures we're not fighting with the server-rendered attribute in non-locale routes
+      if (htmlElement.getAttribute('data-dynamic-lang') === 'true') {
+        htmlElement.lang = locale;
+        console.log(`IntlProvider: Updated HTML lang attribute to ${locale}`);
+      }
+
+      // Set cookie to remember locale for future server-rendered pages
+      document.cookie = `ELEVA_LOCALE=${locale};max-age=31536000;path=/`;
+    }
+  }, [locale]);
+
   return (
     <NextIntlClientProvider
       locale={locale}

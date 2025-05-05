@@ -32,7 +32,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html
+      // Default language for SEO - also add data-dynamic-lang="true" to signal
+      // to our IntlProvider that it should update the lang attribute
       lang={defaultLocale}
+      data-dynamic-lang="true"
       className={cn(
         `${alexandria.variable} ${lora.variable} ${jetBrains.variable}`,
         'scroll-smooth',
