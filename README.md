@@ -2,6 +2,8 @@
 
 Welcome to Eleva, a modern scheduling and appointment management platform designed exclusively for women's health professionals and their clients. Eleva streamlines the booking process and payment handling, ensuring that experts and clients share a seamless experience—from appointment scheduling to secure payouts. Hosted at [https://eleva.care](https://eleva.care), Eleva is transforming women's healthcare with state‑of‑the‑art technology and compassionate service.
 
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/rodrigobarona/eleva-care-app)
+
 ## Overview
 
 Eleva combines a robust tech stack with an intuitive user interface:
