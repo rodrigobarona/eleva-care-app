@@ -49,8 +49,16 @@ const isPrivateRoute = createRouteMatcher([
 export default clerkMiddleware(async (auth, request: NextRequest) => {
   const { pathname } = request.nextUrl;
 
-  // Skip middleware for public files and Next.js internals
-  if (/\.(.*)$/.test(pathname) || pathname.startsWith('/_next') || pathname.includes('/api/')) {
+  // Skip middleware for public files, Next.js internals, and webhook routes
+  if (
+    /\.(.*)$/.test(pathname) ||
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api/webhooks/') ||
+    pathname.startsWith('/api/cron/') ||
+    pathname.startsWith('/api/qstash/') ||
+    pathname.startsWith('/api/internal/') ||
+    pathname.startsWith('/api/healthcheck/')
+  ) {
     return NextResponse.next();
   }
 
@@ -79,10 +87,15 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
 
 export const config = {
   matcher: [
-    // Run middleware only for "real" app/ pages – skip any path that:
-    // 1. starts with _next          → framework internals
-    // 2. contains a dot "."         → static assets (robots.txt, *.svg, etc.)
-    // 3. starts with api/           → API routes (incl. webhooks)
-    '/((?!_next/|api/|.*\\..*).*)',
+    // Match all request paths except for the ones starting with:
+    // - _next/static    (Next.js static files)
+    // - _next/image     (Next.js image optimization files)
+    // - favicon.ico, robots.txt, etc. (static files)
+    // - api/webhooks/   (webhook endpoints)
+    // - api/cron/       (scheduled jobs endpoints)
+    // - api/qstash/     (qstash verification endpoint)
+    // - api/internal/   (internal services communication)
+    // - api/healthcheck/ (health monitoring endpoints)
+    '/((?!_next/static|_next/image|favicon.ico|.*\\..*|api/webhooks/|api/cron/|api/qstash/|api/internal/|api/healthcheck/).*)',
   ],
 };
