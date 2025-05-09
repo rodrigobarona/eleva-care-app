@@ -205,8 +205,8 @@ export function MeetingFormContent({
       // Get the locale for multilingual emails
       const userLocale = locale || 'en';
 
-      // Create payment intent
-      const response = await fetch('/api/stripe/checkout', {
+      // Create payment intent using the new enhanced endpoint
+      const response = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -215,19 +215,25 @@ export function MeetingFormContent({
           eventId,
           clerkUserId,
           price,
-          guestName: formValues.guestName,
-          guestEmail: formValues.guestEmail,
-          guestNotes: formValues.guestNotes,
-          startTime:
-            formValues.date && formValues.startTime ? new Date(formValues.startTime) : null,
-          timezone: formValues.timezone || 'UTC',
-          locale: userLocale, // Pass locale for multilingual emails
-          successUrl: `${window.location.origin}/${userLocale}/${username}/${eventSlug}/payment-processing?startTime=${encodeURIComponent(
-            formValues.startTime?.toISOString() || '',
-          )}`,
-          cancelUrl: `${window.location.origin}/${userLocale}/${username}/${eventSlug}?step=2&email=${encodeURIComponent(
-            formValues.guestEmail || '',
-          )}&name=${encodeURIComponent(formValues.guestName || '')}`,
+          meetingData: {
+            guestName: formValues.guestName,
+            guestEmail: formValues.guestEmail,
+            guestNotes: formValues.guestNotes,
+            startTime:
+              formValues.date && formValues.startTime ? formValues.startTime.toISOString() : null,
+            startTimeFormatted:
+              formValues.date && formValues.startTime
+                ? formValues.startTime.toLocaleString(userLocale, {
+                    dateStyle: 'full',
+                    timeStyle: 'short',
+                  })
+                : '',
+            timezone: formValues.timezone || 'UTC',
+            locale: userLocale,
+            date: formValues.date?.toISOString() || '',
+          },
+          username,
+          eventSlug,
         }),
       });
 

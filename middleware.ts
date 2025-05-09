@@ -57,7 +57,8 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     pathname.startsWith('/api/cron/') ||
     pathname.startsWith('/api/qstash/') ||
     pathname.startsWith('/api/internal/') ||
-    pathname.startsWith('/api/healthcheck/')
+    pathname.startsWith('/api/healthcheck/') ||
+    pathname.startsWith('/api/create-payment-intent')
   ) {
     return NextResponse.next();
   }
@@ -96,6 +97,7 @@ export const config = {
     // - api/qstash/     (qstash verification endpoint)
     // - api/internal/   (internal services communication)
     // - api/healthcheck/ (health monitoring endpoints)
-    '/((?!_next/static|_next/image|favicon.ico|.*\\..*|api/webhooks/|api/cron/|api/qstash/|api/internal/|api/healthcheck/).*)',
+    // - api/create-payment-intent (payment processing endpoint)
+    '/((?!_next/static|_next/image|favicon.ico|.*\\..*|api/webhooks/|api/cron/|api/qstash/|api/internal/|api/healthcheck/|api/create-payment-intent).*)',
   ],
 };
