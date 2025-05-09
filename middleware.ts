@@ -109,8 +109,21 @@ function matchPatternsArray(path: string, patterns: readonly string[]): boolean 
  * @param authObject - The Clerk auth object
  * @returns Promise<boolean> indicating if the user is an expert with incomplete setup
  */
-// @ts-expect-error - We need to access Clerk auth object properties
-async function isExpertWithIncompleteSetup(authObject): Promise<boolean> {
+import type { AuthObject } from '@clerk/nextjs/server';
+
+/**
+ * Check if a user is an expert with incomplete setup
+ * @param authObject - The Clerk auth object containing session claims
+ * @returns Promise<boolean> indicating if the user is an expert with incomplete setup
+ */
+async function isExpertWithIncompleteSetup(
+  authObject: AuthObject & {
+    sessionClaims?: {
+      metadata?: { role?: string | string[] };
+      unsafeMetadata?: { expertSetup?: Record<string, boolean> };
+    };
+  }
+): Promise<boolean> {
   const userRoleData = authObject?.sessionClaims?.metadata?.role;
   if (!userRoleData) return false;
 
