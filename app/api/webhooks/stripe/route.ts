@@ -110,7 +110,8 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     }
 
     // Extract necessary data, with more flexible handling
-    let meetingData: MeetingMetadata;
+    // Initialise to satisfy TS and guard against unexpected control-flow
+    let meetingData!: MeetingMetadata;
     let clerkUserId: string | undefined;
 
     // Handle both formats - direct metadata fields or JSON string
@@ -189,11 +190,20 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
         session.payment_status === 'paid' &&
         typeof session.payment_intent === 'string'
       ) {
-        console.log('Initiating refund for double booking:', session.payment_intent);
-        await stripe.refunds.create({
+        // Check if a refund already exists for this payment_intent
+        const existing = await stripe.refunds.list({
           payment_intent: session.payment_intent,
-          reason: 'duplicate',
+          limit: 1,
         });
+        if (existing.data.length === 0) {
+          console.log('Initiating refund for double booking:', session.payment_intent);
+          await stripe.refunds.create({
+            payment_intent: session.payment_intent,
+            reason: 'duplicate',
+          });
+        } else {
+          console.log('Refund already exists for payment intent:', session.payment_intent);
+        }
       }
 
       return { success: false, error: result.error };
@@ -316,6 +326,8 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 export async function POST(request: Request) {
   try {
     // Get the raw request body as text for Stripe signature verification
+    // IMPORTANT: This consumes the request body stream. Any subsequent calls to request.text()
+    // or request.json() will return empty results. The body must be read only once.
     const body = await request.text();
 
     // Get the Stripe signature from request headers directly
