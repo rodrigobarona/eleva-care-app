@@ -196,45 +196,27 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next();
   }
 
-  // Check if the path is in SPECIAL_AUTH_ROUTES (including cron jobs)
-  if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
-    // For cron jobs, apply both enhanced checks and fallback
-    if (path.startsWith('/api/cron/')) {
-      // More flexible detection of QStash requests
-      const isQStashRequest =
-        req.headers.get('x-qstash-request') === 'true' ||
-        req.headers.has('upstash-signature') ||
-        req.headers.has('x-upstash-signature') ||
-        req.headers.has('x-signature') ||
-        req.url.includes('signature=');
-
-      const apiKey = req.headers.get('x-api-key');
-      const userAgent = req.headers.get('user-agent') || '';
-
-      // Accept requests from UpStash User-Agent too
-      const isUpstashUserAgent =
-        userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
-
       // FALLBACK: If this is a production environment and UpStash is struggling to connect
       // Make cron endpoints accessible without auth in production (FALLBACK MECHANISM)
       const isProduction = process.env.NODE_ENV === 'production';
       const isDeploymentFallbackEnabled = process.env.ENABLE_CRON_FALLBACK === 'true';
 
+      // SECURITY NOTE: This fallback bypasses authentication when enabled.
+      // Only use in emergencies when QStash is down and cron jobs must run.
+      // Disable as soon as QStash connectivity is restored.
       if (
         isQStashRequest ||
         isUpstashUserAgent ||
         apiKey === process.env.CRON_API_KEY ||
         (isProduction && isDeploymentFallbackEnabled)
       ) {
+        if (isProduction && isDeploymentFallbackEnabled) {
+          console.warn('WARNING: Cron job fallback is enabled, bypassing authentication checks');
+        }
         return NextResponse.next();
       }
 
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Other special auth routes might have different logic
-    return NextResponse.next();
-  }
 
   // Check public routes
   if (matchPatternsArray(path, PUBLIC_ROUTES)) {
