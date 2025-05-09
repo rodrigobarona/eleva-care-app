@@ -79,13 +79,11 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api/webhooks (to allow Stripe webhook processing)
-     * - _next (Next.js internals)
-     * - public (static files)
-     * - static files like favicon.ico, robots.txt, etc.
-     */
-    '/((?!api/webhooks|_next/static|_next/image|favicon.ico|.*\\..*).+)',
+  matcher: [
+    // Run middleware only for “real” app/ pages – skip any path that:
+    // 1. starts with _next          → framework internals
+    // 2. contains a dot “.”         → static assets (robots.txt, *.svg, etc.)
+    // 3. starts with api/           → API routes (incl. webhooks)
+    '/((?!_next/|api/|.*\\..*).*)',
   ],
 };
