@@ -239,8 +239,8 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     // Get minimum payout delay required by Stripe for this country
     const requiredPayoutDelay = getMinimumPayoutDelay(expertCountry);
 
-    // Calculate session duration (default to 1 hour if not specified)
-    const sessionDurationMs = 60 * 60 * 1000; // 1 hour in milliseconds
+    // Calculate session duration (use meeting duration if available, default to 60 mins otherwise)
+    const sessionDurationMs = (meetingData.duration ?? 60) * 60 * 1000; // convert to milliseconds
 
     // Calculate how many days between payment and session
     const paymentAgingDays = Math.max(
@@ -261,6 +261,16 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
     // Set to 4 AM on the scheduled day (matching CRON job time)
     scheduledTransferTime.setHours(4, 0, 0, 0);
+
+    console.log('Scheduled payout with payment aging consideration:', {
+      paymentReceivedDate: paymentReceivedDate.toISOString(),
+      sessionStartTime: sessionStartTime.toISOString(),
+      expertCountry,
+      requiredPayoutDelay,
+      paymentAgingDays,
+      remainingDelayDays,
+      scheduledTransferTime: scheduledTransferTime.toISOString(),
+    });
 
     // Check if a payment transfer record already exists for this session
     const existingTransfer = await db.query.PaymentTransferTable.findFirst({
