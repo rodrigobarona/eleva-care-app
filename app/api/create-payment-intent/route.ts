@@ -90,9 +90,13 @@ export async function POST(request: Request) {
 
     console.log('Prepared meeting metadata');
 
-    // Get or create customer
-    console.log('Attempting to get/create Stripe customer');
-    const customerId = await getOrCreateStripeCustomer(undefined, meetingData.guestEmail);
+    // Get or create customer with guest name for prefilled checkout
+    console.log('Attempting to get/create Stripe customer with name:', meetingData.guestName);
+    const customerId = await getOrCreateStripeCustomer(
+      undefined,
+      meetingData.guestEmail,
+      meetingData.guestName, // Pass the guest name to prefill in checkout
+    );
     console.log('Customer retrieved/created:', { customerId });
 
     // Calculate application fee
@@ -185,6 +189,7 @@ export async function POST(request: Request) {
           address: 'auto',
           name: 'auto',
         },
+        customer_email: customerId ? undefined : meetingData.guestEmail,
         submit_type: 'book',
         payment_intent_data: {
           application_fee_amount: applicationFeeAmount,
