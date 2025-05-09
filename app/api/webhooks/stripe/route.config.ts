@@ -7,5 +7,4 @@ export const dynamic = 'force-dynamic';
 // Allow longer processing time for webhook handling
 export const maxDuration = 60;
 
-// Critical: Disable body parsing so we get the raw request body for signature verification
-export const bodyParser = false;
+// Body parsing is already disabled in app-router routes – no extra config needed
