@@ -92,31 +92,7 @@ export async function hasRole(role: UserRole): Promise<boolean> {
  * Convenience function to check if user is an admin or superadmin
  */
 export async function isAdmin(): Promise<boolean> {
-  try {
-    const { userId } = await auth();
-    if (!userId) return false;
-
-    const clerk = await clerkClient();
-    const user = await clerk.users.getUser(userId);
-    const userRoles = user.publicMetadata.role as UserRoles;
-
-    // Debug log to help troubleshoot
-    console.log('User roles from metadata:', JSON.stringify(userRoles));
-
-    // Handle both array and string role formats
-    if (Array.isArray(userRoles)) {
-      return userRoles.some((role) => ADMIN_ROLES.includes(role as (typeof ADMIN_ROLES)[number]));
-    }
-
-    if (typeof userRoles === 'string') {
-      return ADMIN_ROLES.includes(userRoles as (typeof ADMIN_ROLES)[number]);
-    }
-
-    return false;
-  } catch (error) {
-    console.error('Error checking admin status:', error);
-    return false;
-  }
+  return hasAnyRole([...ADMIN_ROLES] as UserRole[]);
 }
 
 /**

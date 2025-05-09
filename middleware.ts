@@ -1,6 +1,5 @@
-import { ADMIN_ROLES } from '@/lib/constants/roles';
 import { defaultLocale, locales } from '@/lib/i18n';
-import { clerkClient, clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import createMiddleware from 'next-intl/middleware';
 import { type NextRequest, NextResponse } from 'next/server';
 
@@ -37,12 +36,6 @@ const isPublicRoute = createRouteMatcher([
   '/([^/]+)/([^/]+)/(.*)', // Username/eventSlug/subpages
 ]);
 
-// Define admin routes that require admin role
-const isAdminRoute = createRouteMatcher([
-  '/admin(.*)', // Admin dashboard and subpages
-  '/api/admin(.*)', // Admin API routes
-]);
-
 // Define routes that should not use i18n (private routes)
 const isPrivateRoute = createRouteMatcher([
   '/dashboard(.*)', // Dashboard
@@ -67,46 +60,6 @@ export default clerkMiddleware(async (auth, request: NextRequest) => {
     pathname.startsWith('/api/healthcheck/') ||
     pathname.startsWith('/api/create-payment-intent')
   ) {
-    return NextResponse.next();
-  }
-
-  // Special handling for admin routes
-  if (isAdminRoute(request)) {
-    console.log('Admin route detected:', pathname);
-
-    // Protect admin routes
-    const { userId } = await auth();
-    if (!userId) {
-      console.warn('Admin route access attempt without authentication');
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
-    }
-
-    try {
-      // Get user metadata directly using clerkClient
-      const clerk = await clerkClient();
-      const user = await clerk.users.getUser(userId);
-      const userRoles = user.publicMetadata.role;
-
-      console.log('User roles for admin route:', JSON.stringify(userRoles));
-
-      let isUserAdmin = false;
-      if (Array.isArray(userRoles)) {
-        isUserAdmin = userRoles.some((role) =>
-          ADMIN_ROLES.includes(role as (typeof ADMIN_ROLES)[number]),
-        );
-      } else if (typeof userRoles === 'string') {
-        isUserAdmin = ADMIN_ROLES.includes(userRoles as (typeof ADMIN_ROLES)[number]);
-      }
-
-      if (!isUserAdmin) {
-        console.warn(`Non-admin user ${userId} attempted to access admin route ${pathname}`);
-        return NextResponse.redirect(new URL('/unauthorized', request.url));
-      }
-    } catch (error) {
-      console.error('Error checking admin role:', error);
-      return NextResponse.redirect(new URL('/unauthorized', request.url));
-    }
-
     return NextResponse.next();
   }
 
