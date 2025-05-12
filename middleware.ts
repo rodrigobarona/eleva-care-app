@@ -170,12 +170,26 @@ function isPrivateRoute(request: NextRequest): boolean {
  * This ensures all auth pages are accessible without login
  */
 function isAuthRoute(path: string): boolean {
-  return (
-    path.startsWith('/sign-in') ||
-    path.startsWith('/sign-up') ||
-    path.startsWith('/unauthorized') ||
-    path.startsWith('/onboarding')
-  );
+  const segments = path.split('/').filter(Boolean);
+
+  // List of paths that should be public under auth
+  const authPaths = ['sign-in', 'sign-up', 'unauthorized', 'onboarding'];
+
+  // Direct auth routes (e.g., /sign-in)
+  if (segments.length >= 1 && authPaths.includes(segments[0])) {
+    return true;
+  }
+
+  // Locale-prefixed auth routes (e.g., /en/sign-in)
+  if (
+    segments.length >= 2 &&
+    locales.includes(segments[0] as (typeof locales)[number]) &&
+    authPaths.includes(segments[1])
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 /**
