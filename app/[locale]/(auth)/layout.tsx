@@ -12,5 +12,10 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
     redirect(`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
   }
 
-  return <div className="flex min-h-screen flex-col items-center justify-center">{children}</div>;
+  // Render children directly with the styling that was previously in the wrapper
+  return (
+    <div className="relative flex min-h-screen flex-col items-center justify-center">
+      {children}
+    </div>
+  );
 }

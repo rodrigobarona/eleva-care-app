@@ -1,10 +1,12 @@
 'use client';
 
 import { AuthorizationProvider } from '@/components/molecules/AuthorizationProvider';
+import { enUS, esES, ptBR, ptPT } from '@clerk/localizations';
 import { ClerkProvider } from '@clerk/nextjs';
 import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
+import { useParams } from 'next/navigation';
 import { posthog } from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { useEffect, useState } from 'react';
@@ -33,6 +35,30 @@ interface ClientProvidersProps {
  */
 export function ClientProviders({ children, messages }: ClientProvidersProps) {
   const [posthogLoaded, setPosthogLoaded] = useState(false);
+  const params = useParams();
+
+  // Get the current locale from the URL params
+  const currentLocale = (params?.locale as string) || 'en';
+
+  // Map the locale to the correct localization based on the imported localizations
+  const getLocalization = (locale: string) => {
+    // Direct mapping from URL locales to imported localizations
+    const localizationMap: Record<string, typeof enUS> = {
+      en: enUS,
+      pt: ptPT,
+      es: esES,
+      'pt-BR': ptBR,
+    };
+
+    // Only access properties we know exist
+    const localization = localizationMap[locale];
+
+    if (!localization && process.env.NODE_ENV === 'development') {
+      console.warn(`[Clerk] No localization found for locale: ${locale}`);
+    }
+
+    return localization;
+  };
 
   useEffect(() => {
     // PostHog setup
@@ -81,6 +107,7 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
 
   return (
     <ClerkProvider
+      localization={getLocalization(currentLocale)}
       signInFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}
       signUpFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL}
       signInUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}
