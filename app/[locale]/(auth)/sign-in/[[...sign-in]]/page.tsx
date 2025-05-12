@@ -9,7 +9,9 @@ export default function Page() {
           rootBox: 'mx-auto',
           card: 'shadow-none rounded-none',
           cardBox: 'shadow-none rounded-none',
-          footer: 'bg-transparent',
+          footer: 'flex [&>div:nth-child(2)]:hidden',
+          footerAction: 'flex-col items-center bg-white w-full',
+          background: 'bg-transparent',
         },
       }}
     />
