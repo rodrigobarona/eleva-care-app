@@ -196,6 +196,99 @@ function isHomePage(path: string): boolean {
   return false;
 }
 
+/**
+ * Check if path is a username route
+ * This allows public access to username profile pages
+ */
+function isUsernameRoute(path: string): boolean {
+  // Get path segments
+  const segments = path.split('/').filter(Boolean);
+
+  // Username routes have exactly 1 segment that isn't a reserved path
+  if (segments.length === 1) {
+    const segment = segments[0];
+    const isReserved = [
+      'dashboard',
+      'setup',
+      'account',
+      'appointments',
+      'booking',
+      'admin',
+      'api',
+      'sign-in',
+      'sign-up',
+      'unauthorized',
+      'onboarding',
+      ...locales,
+    ].includes(segment);
+
+    return !isReserved;
+  }
+
+  // Username routes can also have subpaths (username/something)
+  if (segments.length > 1) {
+    // Skip routes with reserved first segments
+    const isReservedFirstSegment = [
+      'dashboard',
+      'setup',
+      'account',
+      'appointments',
+      'booking',
+      'admin',
+      'api',
+      'sign-in',
+      'sign-up',
+      'unauthorized',
+      'onboarding',
+    ].includes(segments[0]);
+
+    // Skip locale-prefixed reserved paths like /en/dashboard
+    const isLocalePrefix = locales.includes(segments[0] as (typeof locales)[number]);
+    const isReservedSecondSegment =
+      isLocalePrefix &&
+      segments.length > 1 &&
+      [
+        'dashboard',
+        'setup',
+        'account',
+        'appointments',
+        'booking',
+        'admin',
+        'sign-in',
+        'sign-up',
+        'unauthorized',
+        'onboarding',
+      ].includes(segments[1]);
+
+    return !isReservedFirstSegment && !isReservedSecondSegment;
+  }
+
+  return false;
+}
+
+/**
+ * Check if path is under a locale directory and should be public
+ */
+function isLocalePublicRoute(path: string): boolean {
+  const segments = path.split('/').filter(Boolean);
+
+  // Check if first segment is a valid locale
+  if (segments.length >= 1) {
+    const isLocale = locales.includes(segments[0] as (typeof locales)[number]);
+    if (isLocale) {
+      // Check if second segment exists and is not a reserved path that requires auth
+      if (
+        segments.length === 1 ||
+        !['dashboard', 'setup', 'account', 'appointments', 'booking', 'admin'].includes(segments[1])
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   const path = req.nextUrl.pathname;
   console.log(`🔍 Processing route: ${path}`);
@@ -212,13 +305,6 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     path.startsWith('/api/create-payment-intent')
   ) {
     console.log(`📁 Static/internal route, skipping: ${path}`);
-    return NextResponse.next();
-  }
-
-  // Fast path for username routes (critical fix)
-  const segments = path.split('/').filter(Boolean);
-  if (segments.length >= 2 && !path.startsWith('/api/')) {
-    console.log(`👤 Username route, skipping: ${path}`);
     return NextResponse.next();
   }
 
@@ -276,6 +362,18 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     }
     // Other special auth routes might have different logic
     return NextResponse.next();
+  }
+
+  // Check if this is a username route (public access)
+  if (isUsernameRoute(path)) {
+    console.log(`👤 Username route detected, allowing public access: ${path}`);
+    return intlMiddleware(req);
+  }
+
+  // Check if route is under a locale and should be public
+  if (isLocalePublicRoute(path)) {
+    console.log(`🌍 Locale public route detected, allowing access: ${path}`);
+    return intlMiddleware(req);
   }
 
   // Check homepage (with or without locale prefix)
