@@ -165,6 +165,37 @@ function isPrivateRoute(request: NextRequest): boolean {
   );
 }
 
+/**
+ * Check if a path is in the auth directory and should be publicly accessible
+ * This ensures all auth pages are accessible without login
+ */
+function isAuthRoute(path: string): boolean {
+  return (
+    path.startsWith('/sign-in') ||
+    path.startsWith('/sign-up') ||
+    path.startsWith('/unauthorized') ||
+    path.startsWith('/onboarding')
+  );
+}
+
+/**
+ * Check if a path is the homepage (with or without locale prefix)
+ * This ensures the homepage is accessible in all languages without login
+ */
+function isHomePage(path: string): boolean {
+  // Check for root path
+  if (path === '/') return true;
+
+  // Check for localized root paths (e.g., /es, /pt)
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length === 1) {
+    // Type-safe check if the segment is a valid locale
+    return locales.includes(segments[0] as (typeof locales)[number]);
+  }
+
+  return false;
+}
+
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   const path = req.nextUrl.pathname;
   console.log(`🔍 Processing route: ${path}`);
@@ -245,6 +276,19 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     }
     // Other special auth routes might have different logic
     return NextResponse.next();
+  }
+
+  // Check homepage (with or without locale prefix)
+  if (isHomePage(path)) {
+    console.log(`🏠 Homepage detected, allowing access: ${path}`);
+    return intlMiddleware(req);
+  }
+
+  // Check auth routes - explicitly allow without authentication
+  if (isAuthRoute(path)) {
+    console.log(`🔓 Auth route allowed without login: ${path}`);
+    // Apply i18n middleware to auth routes
+    return intlMiddleware(req);
   }
 
   // Check public routes
