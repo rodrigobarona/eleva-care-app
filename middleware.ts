@@ -106,24 +106,11 @@ function matchPatternsArray(path: string, patterns: readonly string[]): boolean 
 
 /**
  * Check if a user is an expert with incomplete setup
- * @param authObject - The Clerk auth object
- * @returns Promise<boolean> indicating if the user is an expert with incomplete setup
- */
-import type { AuthObject } from '@clerk/nextjs/server';
-
-/**
- * Check if a user is an expert with incomplete setup
  * @param authObject - The Clerk auth object containing session claims
  * @returns Promise<boolean> indicating if the user is an expert with incomplete setup
  */
-async function isExpertWithIncompleteSetup(
-  authObject: AuthObject & {
-    sessionClaims?: {
-      metadata?: { role?: string | string[] };
-      unsafeMetadata?: { expertSetup?: Record<string, boolean> };
-    };
-  }
-): Promise<boolean> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function isExpertWithIncompleteSetup(authObject: any): Promise<boolean> {
   const userRoleData = authObject?.sessionClaims?.metadata?.role;
   if (!userRoleData) return false;
 
@@ -196,8 +183,21 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next();
   }
 
-      // FALLBACK: If this is a production environment and UpStash is struggling to connect
-      // Make cron endpoints accessible without auth in production (FALLBACK MECHANISM)
+  // Handle special auth routes (cron jobs, etc.)
+  if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
+    if (path.startsWith('/api/cron/')) {
+      const isQStashRequest =
+        req.headers.get('x-qstash-request') === 'true' ||
+        req.headers.has('upstash-signature') ||
+        req.headers.has('x-upstash-signature') ||
+        req.headers.has('x-signature') ||
+        req.url.includes('signature=');
+
+      const apiKey = req.headers.get('x-api-key');
+      const userAgent = req.headers.get('user-agent') || '';
+      const isUpstashUserAgent =
+        userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
+
       const isProduction = process.env.NODE_ENV === 'production';
       const isDeploymentFallbackEnabled = process.env.ENABLE_CRON_FALLBACK === 'true';
 
@@ -215,8 +215,11 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
         }
         return NextResponse.next();
       }
-
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // Other special auth routes might have different logic
+    return NextResponse.next();
+  }
 
   // Check public routes
   if (matchPatternsArray(path, PUBLIC_ROUTES)) {
