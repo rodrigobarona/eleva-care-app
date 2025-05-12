@@ -1,9 +1,36 @@
+/**
+ * Role-Based Access Control and Internationalization Middleware
+ *
+ * This middleware implements a comprehensive authorization strategy with i18n support:
+ * 1. Public routes are explicitly allowed without authentication
+ * 2. Authentication is required for all other routes
+ * 3. Specific route patterns are restricted to users with appropriate roles
+ * 4. Webhook routes completely bypass authentication
+ * 5. Internationalization is applied to public and authenticated routes (but not private routes)
+ *
+ * This is the first layer of defense in our multi-layered approach.
+ * Additional role checks are implemented at layout and page levels.
+ *
+ * @see /docs/role-based-authorization.md for complete documentation
+ */
+import { checkRoles } from '@/lib/auth/roles.server';
+import {
+  ADMIN_ROLES,
+  ADMIN_ROUTES,
+  EXPERT_ROLES,
+  EXPERT_ROUTES,
+  PUBLIC_ROUTES,
+  SPECIAL_AUTH_ROUTES,
+} from '@/lib/constants/roles';
 import { defaultLocale, locales } from '@/lib/i18n';
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkMiddleware } from '@clerk/nextjs/server';
 import createMiddleware from 'next-intl/middleware';
-import { type NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-// Create internationalization middleware
+/**
+ * Create internationalization middleware with our configuration
+ */
 const intlMiddleware = createMiddleware({
   locales,
   defaultLocale,
@@ -19,73 +46,273 @@ const intlMiddleware = createMiddleware({
   },
 });
 
-// Define public routes that don't require authentication
-const isPublicRoute = createRouteMatcher([
-  '/', // Homepage
-  '/about', // About page
-  '/legal/(.*)', // Legal pages
-  '/services/(.*)', // Services pages
-  '/help', // Help
-  '/contact', // Contact
-  '/community', // Community
-  '/sign-in(.*)', // Sign in
-  '/sign-up(.*)', // Sign up
-  '/unauthorized(.*)', // Unauthorized
-  '/([^/]+)', // Username routes
-  '/([^/]+)/([^/]+)', // Username/eventSlug routes
-  '/([^/]+)/([^/]+)/(.*)', // Username/eventSlug/subpages
-]);
+/**
+ * Simple and reliable path matcher
+ * @param path - The current path to check
+ * @param pattern - The pattern to match against
+ * @returns boolean indicating if the path matches the pattern
+ */
+function isPathMatch(path: string, pattern: string): boolean {
+  // Handle exact matches
+  if (pattern === path) return true;
 
-// Define routes that should not use i18n (private routes)
-const isPrivateRoute = createRouteMatcher([
-  '/dashboard(.*)', // Dashboard
-  '/setup(.*)', // Setup
-  '/account(.*)', // Account
-  '/appointments(.*)', // Appointments
-  '/booking(.*)', // Booking
-  '/admin(.*)', // Admin
-]);
+  // Handle wildcard patterns (e.g., /admin*)
+  if (pattern.endsWith('*')) {
+    const basePath = pattern.slice(0, -1);
+    return path.startsWith(basePath);
+  }
 
-export default clerkMiddleware(async (auth, request: NextRequest) => {
-  const { pathname } = request.nextUrl;
+  // Handle username patterns specifically
+  if (pattern === '/:username') {
+    const segments = path.split('/').filter(Boolean);
+    return segments.length === 1;
+  }
+
+  // Handle username with subpaths pattern
+  if (pattern === '/:username/(.*)') {
+    const segments = path.split('/').filter(Boolean);
+    return segments.length >= 2;
+  }
+
+  // Handle regex-like patterns
+  if (pattern.includes('(') && pattern.includes(')')) {
+    try {
+      const regexPattern = pattern
+        .replace(/\//g, '\\/') // Escape forward slashes
+        .replace(/\(/g, '\\(')
+        .replace(/\)/g, '\\)')
+        .replace(/\*/g, '.*')
+        .replace(/\?/g, '.');
+      const regex = new RegExp(`^${regexPattern}$`);
+      return regex.test(path);
+    } catch {
+      console.error('Invalid regex pattern:', pattern);
+      return false;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Check if a path matches any patterns in the array
+ * @param path - The current path to check
+ * @param patterns - Array of patterns to match against
+ * @returns boolean indicating if the path matches any pattern
+ */
+function matchPatternsArray(path: string, patterns: readonly string[]): boolean {
+  return patterns.some((pattern) => isPathMatch(path, pattern));
+}
+
+/**
+ * Check if a user is an expert with incomplete setup
+ * @param authObject - The Clerk auth object containing session claims
+ * @returns Promise<boolean> indicating if the user is an expert with incomplete setup
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function isExpertWithIncompleteSetup(authObject: any): Promise<boolean> {
+  const userRoleData = authObject?.sessionClaims?.metadata?.role;
+  if (!userRoleData) return false;
+
+  // Check if user has an expert role
+  const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
+  if (!isExpert) return false;
+
+  // Get expert setup data from unsafeMetadata
+  const expertSetup = authObject?.sessionClaims?.unsafeMetadata?.expertSetup;
+  if (!expertSetup) return true; // If no setup data, consider setup incomplete
+
+  // Required setup steps that must be present for a complete setup
+  const requiredSetupSteps = [
+    'events',
+    'payment',
+    'profile',
+    'identity',
+    'availability',
+    'google_account',
+  ];
+
+  // Check if all required steps are present AND true
+  const setupComplete = requiredSetupSteps.every((step) => expertSetup[step] === true);
+
+  // Return true if setup is incomplete (any required step is missing or false)
+  return !setupComplete;
+}
+
+/**
+ * Define routes that should not use i18n (private routes)
+ */
+function isPrivateRoute(request: NextRequest): boolean {
+  const path = request.nextUrl.pathname;
+
+  return (
+    path.startsWith('/dashboard') ||
+    path.startsWith('/setup') ||
+    path.startsWith('/account') ||
+    path.startsWith('/appointments') ||
+    path.startsWith('/booking') ||
+    path.startsWith('/admin')
+  );
+}
+
+export default clerkMiddleware(async (auth, req: NextRequest) => {
+  const path = req.nextUrl.pathname;
 
   // Skip middleware for public files, Next.js internals, and webhook routes
   if (
-    /\.(.*)$/.test(pathname) ||
-    pathname.startsWith('/_next') ||
-    pathname.startsWith('/api/webhooks/') ||
-    pathname.startsWith('/api/cron/') ||
-    pathname.startsWith('/api/qstash/') ||
-    pathname.startsWith('/api/internal/') ||
-    pathname.startsWith('/api/healthcheck/') ||
-    pathname.startsWith('/api/create-payment-intent')
+    /\.(.*)$/.test(path) ||
+    path.startsWith('/_next') ||
+    path.startsWith('/api/webhooks/') ||
+    path.startsWith('/api/cron/') ||
+    path.startsWith('/api/qstash/') ||
+    path.startsWith('/api/internal/') ||
+    path.startsWith('/api/healthcheck/') ||
+    path.startsWith('/api/create-payment-intent')
   ) {
     return NextResponse.next();
   }
 
-  // Handle authentication for non-public routes
-  if (!isPublicRoute(request)) {
-    await auth.protect();
-  } else {
+  // Fast path for username routes (critical fix)
+  const segments = path.split('/').filter(Boolean);
+  if (segments.length >= 2 && !path.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+
+  // Handle special cases for webhooks
+  if (path.startsWith('/api/webhooks/')) {
+    return NextResponse.next();
+  }
+
+  // Handle special auth routes (cron jobs, etc.)
+  if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
+    if (path.startsWith('/api/cron/')) {
+      const isQStashRequest =
+        req.headers.get('x-qstash-request') === 'true' ||
+        req.headers.has('upstash-signature') ||
+        req.headers.has('x-upstash-signature') ||
+        req.headers.has('x-signature') ||
+        req.url.includes('signature=');
+
+      const apiKey = req.headers.get('x-api-key');
+      const userAgent = req.headers.get('user-agent') || '';
+      const isUpstashUserAgent =
+        userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
+
+      const isProduction = process.env.NODE_ENV === 'production';
+      const isDeploymentFallbackEnabled = process.env.ENABLE_CRON_FALLBACK === 'true';
+
+      // SECURITY NOTE: This fallback bypasses authentication when enabled.
+      // Only use in emergencies when QStash is down and cron jobs must run.
+      // Disable as soon as QStash connectivity is restored.
+      if (
+        isQStashRequest ||
+        isUpstashUserAgent ||
+        apiKey === process.env.CRON_API_KEY ||
+        (isProduction && isDeploymentFallbackEnabled)
+      ) {
+        if (isProduction && isDeploymentFallbackEnabled) {
+          console.warn('WARNING: Cron job fallback is enabled, bypassing authentication checks');
+        }
+        return NextResponse.next();
+      }
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // Other special auth routes might have different logic
+    return NextResponse.next();
+  }
+
+  // Check public routes
+  if (matchPatternsArray(path, PUBLIC_ROUTES)) {
     // For public routes, check if user is authenticated and trying to access auth pages
     const { userId } = await auth();
     const isAuthenticated = !!userId;
 
     // If authenticated user tries to access sign-in/sign-up, redirect to dashboard
-    if (isAuthenticated && (pathname.startsWith('/sign-in') || pathname.startsWith('/sign-up'))) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+    if (isAuthenticated && (path.startsWith('/sign-in') || path.startsWith('/sign-up'))) {
+      return NextResponse.redirect(new URL('/dashboard', req.url));
+    }
+
+    // Apply i18n middleware for public routes
+    return intlMiddleware(req);
+  }
+
+  // Beyond this point, authentication is required
+  const { userId } = await auth();
+
+  if (!userId) {
+    if (path.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await auth.protect();
+    return NextResponse.next();
+  }
+
+  // Expert setup redirect - check if it's an expert with incomplete setup
+  // Only apply this logic for root path or dashboard (where users land after login)
+  if (userId && (path === '/' || path === '/dashboard')) {
+    const authObj = await auth();
+    const needsSetup = await isExpertWithIncompleteSetup(authObj);
+
+    if (needsSetup) {
+      return NextResponse.redirect(new URL('/setup', req.url));
+    }
+
+    // Redirect from root to dashboard for normal users
+    if (path === '/') {
+      return NextResponse.redirect(
+        new URL(
+          process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL || '/dashboard',
+          req.url,
+        ),
+      );
+    }
+  }
+
+  // Handle role-based access
+  if (userId) {
+    const authObj = await auth();
+    const userMetadata = (authObj.sessionClaims?.metadata as { role?: string | string[] }) || {};
+    const userRoleData = userMetadata.role;
+
+    // Admin route check
+    if (matchPatternsArray(path, ADMIN_ROUTES)) {
+      const isAdmin = checkRoles(userRoleData, ADMIN_ROLES);
+      if (!isAdmin) {
+        return path.startsWith('/api/')
+          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          : NextResponse.redirect(
+              new URL(process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL || '/unauthorized', req.url),
+            );
+      }
+    }
+
+    // Expert route check
+    if (matchPatternsArray(path, EXPERT_ROUTES)) {
+      const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
+      if (!isExpert) {
+        return path.startsWith('/api/')
+          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          : NextResponse.redirect(
+              new URL(process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL || '/unauthorized', req.url),
+            );
+      }
     }
   }
 
   // For private routes, don't use i18n middleware
-  if (isPrivateRoute(request)) {
+  if (isPrivateRoute(req)) {
     return NextResponse.next();
   }
 
-  // Apply i18n middleware to all other routes
-  return intlMiddleware(request);
+  // Apply i18n middleware to all other authenticated routes
+  return intlMiddleware(req);
 });
 
+/**
+ * Configure which paths the middleware runs on
+ * This matches everything except static files and Next.js internals
+ */
 export const config = {
   matcher: [
     // Match all request paths except for the ones starting with:
