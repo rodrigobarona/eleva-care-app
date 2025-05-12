@@ -135,6 +135,14 @@ async function isExpertWithIncompleteSetup(authObject: any): Promise<boolean> {
   // Check if all required steps are present AND true
   const setupComplete = requiredSetupSteps.every((step) => expertSetup[step] === true);
 
+  // Debug logging for expert setup check
+  console.log('[DEBUG] Expert setup check:', {
+    role: userRoleData,
+    setupData: expertSetup,
+    complete: setupComplete,
+    missingSteps: requiredSetupSteps.filter((step) => expertSetup[step] !== true),
+  });
+
   // Return true if setup is incomplete (any required step is missing or false)
   return !setupComplete;
 }
@@ -151,12 +159,15 @@ function isPrivateRoute(request: NextRequest): boolean {
     path.startsWith('/account') ||
     path.startsWith('/appointments') ||
     path.startsWith('/booking') ||
-    path.startsWith('/admin')
+    path.startsWith('/admin') ||
+    // Add all API routes to skip i18n middleware
+    path.startsWith('/api/')
   );
 }
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   const path = req.nextUrl.pathname;
+  console.log(`🔍 Processing route: ${path}`);
 
   // Skip middleware for public files, Next.js internals, and webhook routes
   if (
@@ -169,22 +180,26 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     path.startsWith('/api/healthcheck/') ||
     path.startsWith('/api/create-payment-intent')
   ) {
+    console.log(`📁 Static/internal route, skipping: ${path}`);
     return NextResponse.next();
   }
 
   // Fast path for username routes (critical fix)
   const segments = path.split('/').filter(Boolean);
   if (segments.length >= 2 && !path.startsWith('/api/')) {
+    console.log(`👤 Username route, skipping: ${path}`);
     return NextResponse.next();
   }
 
   // Handle special cases for webhooks
   if (path.startsWith('/api/webhooks/')) {
+    console.log(`🪝 Webhook route allowed: ${path}`);
     return NextResponse.next();
   }
 
   // Handle special auth routes (cron jobs, etc.)
   if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
+    console.log(`🔑 Special auth route detected: ${path}`);
     if (path.startsWith('/api/cron/')) {
       const isQStashRequest =
         req.headers.get('x-qstash-request') === 'true' ||
@@ -197,6 +212,9 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
       const userAgent = req.headers.get('user-agent') || '';
       const isUpstashUserAgent =
         userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
+
+      // Log headers for debugging
+      console.log('📋 Request headers:', Object.fromEntries(req.headers.entries()));
 
       const isProduction = process.env.NODE_ENV === 'production';
       const isDeploymentFallbackEnabled = process.env.ENABLE_CRON_FALLBACK === 'true';
@@ -211,11 +229,19 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
         (isProduction && isDeploymentFallbackEnabled)
       ) {
         if (isProduction && isDeploymentFallbackEnabled) {
-          console.warn('WARNING: Cron job fallback is enabled, bypassing authentication checks');
+          console.warn('⚠️ WARNING: Cron job fallback is enabled, bypassing authentication checks');
         }
+        console.log('✅ Authorized cron request - allowing access');
         return NextResponse.next();
       }
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      console.log('❌ Unauthorized cron request - denying access');
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
     }
     // Other special auth routes might have different logic
     return NextResponse.next();
@@ -223,12 +249,14 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
 
   // Check public routes
   if (matchPatternsArray(path, PUBLIC_ROUTES)) {
+    console.log(`🌐 Public route allowed: ${path}`);
     // For public routes, check if user is authenticated and trying to access auth pages
     const { userId } = await auth();
     const isAuthenticated = !!userId;
 
     // If authenticated user tries to access sign-in/sign-up, redirect to dashboard
     if (isAuthenticated && (path.startsWith('/sign-in') || path.startsWith('/sign-up'))) {
+      console.log('👤 Authenticated user trying to access auth page, redirecting to dashboard');
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
 
@@ -236,14 +264,69 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return intlMiddleware(req);
   }
 
+  // Special handling for API routes to ensure consistent responses
+  if (path.startsWith('/api/')) {
+    console.log(`🔌 API route processing: ${path}`);
+
+    // Check authentication first
+    const { userId } = await auth();
+    if (!userId) {
+      console.log('❌ Unauthenticated API request - denying access');
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        {
+          status: 401,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
+    // Get user role data for permission checks
+    const authObj = await auth();
+    const userMetadata = (authObj.sessionClaims?.metadata as { role?: string | string[] }) || {};
+    const userRoleData = userMetadata.role;
+
+    console.log(`👤 User role for API request: ${JSON.stringify(userRoleData)}`);
+
+    // Admin route check for API paths
+    if (matchPatternsArray(path, ADMIN_ROUTES)) {
+      const isAdmin = checkRoles(userRoleData, ADMIN_ROLES);
+      console.log(`🔒 Admin route check: ${path}, isAdmin: ${isAdmin}`);
+      if (!isAdmin) {
+        return NextResponse.json(
+          { error: 'Forbidden', details: 'Admin access required' },
+          {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+    }
+
+    // Expert route check for API paths
+    if (matchPatternsArray(path, EXPERT_ROUTES)) {
+      const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
+      console.log(`🔒 Expert route check: ${path}, isExpert: ${isExpert}`);
+      if (!isExpert) {
+        return NextResponse.json(
+          { error: 'Forbidden', details: 'Expert access required' },
+          {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+    }
+
+    // If all checks pass, allow the API request
+    return NextResponse.next();
+  }
+
   // Beyond this point, authentication is required
   const { userId } = await auth();
 
   if (!userId) {
-    if (path.startsWith('/api/')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    console.log('❌ Authentication required for route:', path);
     await auth.protect();
     return NextResponse.next();
   }
@@ -255,11 +338,13 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     const needsSetup = await isExpertWithIncompleteSetup(authObj);
 
     if (needsSetup) {
+      console.log('🔄 Expert with incomplete setup detected, redirecting to setup page');
       return NextResponse.redirect(new URL('/setup', req.url));
     }
 
     // Redirect from root to dashboard for normal users
     if (path === '/') {
+      console.log('🔄 Redirecting authenticated user from root to dashboard');
       return NextResponse.redirect(
         new URL(
           process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL || '/dashboard',
@@ -278,9 +363,18 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     // Admin route check
     if (matchPatternsArray(path, ADMIN_ROUTES)) {
       const isAdmin = checkRoles(userRoleData, ADMIN_ROLES);
+      console.log(
+        `🔒 Admin route check: ${path}, user roles: ${JSON.stringify(userRoleData)}, isAdmin: ${isAdmin}`,
+      );
       if (!isAdmin) {
         return path.startsWith('/api/')
-          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          ? NextResponse.json(
+              { error: 'Forbidden' },
+              {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            )
           : NextResponse.redirect(
               new URL(process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL || '/unauthorized', req.url),
             );
@@ -290,9 +384,18 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     // Expert route check
     if (matchPatternsArray(path, EXPERT_ROUTES)) {
       const isExpert = checkRoles(userRoleData, EXPERT_ROLES);
+      console.log(
+        `🔒 Expert route check: ${path}, user roles: ${JSON.stringify(userRoleData)}, isExpert: ${isExpert}`,
+      );
       if (!isExpert) {
         return path.startsWith('/api/')
-          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          ? NextResponse.json(
+              { error: 'Forbidden' },
+              {
+                status: 403,
+                headers: { 'Content-Type': 'application/json' },
+              },
+            )
           : NextResponse.redirect(
               new URL(process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL || '/unauthorized', req.url),
             );
@@ -302,10 +405,12 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
 
   // For private routes, don't use i18n middleware
   if (isPrivateRoute(req)) {
+    console.log(`🔒 Private route detected, skipping i18n: ${path}`);
     return NextResponse.next();
   }
 
   // Apply i18n middleware to all other authenticated routes
+  console.log(`🌐 Applying i18n to authenticated route: ${path}`);
   return intlMiddleware(req);
 });
 
