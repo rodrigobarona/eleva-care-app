@@ -17,23 +17,23 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
 
   // Render children directly with the styling that was previously in the wrapper
   return (
-    <div className="grid min-h-svh bg-white lg:grid-cols-5">
-      <div className="flex flex-col gap-4 p-6 md:p-10 lg:col-span-3">
+    <div className="grid min-h-screen bg-white lg:grid-cols-2">
+      <div className="flex flex-col py-10 md:p-6 lg:col-span-1">
         <div className="flex justify-center gap-2 md:justify-start">
           <Link href="/" className="flex items-center gap-2 font-medium">
-            <Icons.elevaCareLogo className="h-6 w-auto lg:h-8" />
+            <Icons.elevaCareLogo className="h-7 w-auto text-primary" />
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center">
-          <div className="w-full max-w-xs">{children}</div>
+          <div className="w-full">{children}</div>
         </div>
       </div>
-      <div className="relative hidden bg-muted lg:col-span-2 lg:block">
+      <div className="relative hidden bg-muted lg:col-span-1 lg:block">
         <Image
           src="/img/Pregnant-Woman-Flowers.jpg"
           alt="Image"
-          width={1000}
-          height={1000}
+          width={1280}
+          height={854}
           className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
         />
       </div>

@@ -6,6 +6,7 @@ export default function Page() {
     <SignUp
       appearance={{
         elements: {
+          logoBox: 'hidden',
           rootBox: 'mx-auto',
           card: 'shadow-none rounded-none',
           cardBox: 'shadow-none rounded-none',
