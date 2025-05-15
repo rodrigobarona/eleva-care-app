@@ -30,12 +30,13 @@ import type { NextRequest } from 'next/server';
 
 /**
  * Create internationalization middleware with our configuration
+ * This uses formatjs intl-localematcher for smart locale detection
  */
-const intlMiddleware = createMiddleware({
+const handleI18nRouting = createMiddleware({
   locales,
   defaultLocale,
   localePrefix: 'as-needed',
-  // Enable automatic locale detection
+  // Enable automatic locale detection (uses formatjs best-fit algorithm)
   localeDetection: true,
   // Configure the cookie for persistent locale preference
   localeCookie: {
@@ -321,6 +322,10 @@ function isLocalePublicRoute(path: string): boolean {
   return false;
 }
 
+/**
+ * Clerk middleware with next-intl integration for i18n
+ * This follows the pattern from the next-intl documentation for Clerk integration
+ */
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   const path = req.nextUrl.pathname;
   console.log(`🔍 Processing route: ${path}`);
@@ -399,26 +404,37 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   // Check if this is a username route (public access)
   if (isUsernameRoute(path)) {
     console.log(`👤 Username route detected, allowing public access: ${path}`);
-    return intlMiddleware(req);
+    return handleI18nRouting(req);
   }
 
   // Check if route is under a locale and should be public
   if (isLocalePublicRoute(path)) {
     console.log(`🌍 Locale public route detected, allowing access: ${path}`);
-    return intlMiddleware(req);
+    return handleI18nRouting(req);
   }
 
   // Check homepage (with or without locale prefix)
   if (isHomePage(path)) {
     console.log(`🏠 Homepage detected, allowing access: ${path}`);
-    return intlMiddleware(req);
+
+    // Debug the Accept-Language header and other locale detection inputs
+    const acceptLanguage = req.headers.get('accept-language');
+    console.log(`🌐 [DEBUG] Accept-Language header: ${acceptLanguage || 'none'}`);
+    console.log(
+      `🌐 [DEBUG] Browser languages:`,
+      acceptLanguage?.split(',').map((l) => l.trim()),
+    );
+    console.log(`🌐 [DEBUG] Cookie locale:`, req.cookies.get('ELEVA_LOCALE')?.value || 'none');
+    console.log(`🌐 [DEBUG] Supported locales:`, locales);
+
+    return handleI18nRouting(req);
   }
 
   // Check auth routes - explicitly allow without authentication
   if (isAuthRoute(path)) {
     console.log(`🔓 Auth route allowed without login: ${path}`);
     // Apply i18n middleware to auth routes
-    return intlMiddleware(req);
+    return handleI18nRouting(req);
   }
 
   // Check public routes
@@ -435,7 +451,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     }
 
     // Apply i18n middleware for public routes
-    return intlMiddleware(req);
+    return handleI18nRouting(req);
   }
 
   // Special handling for API routes to ensure consistent responses
@@ -602,7 +618,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
 
   // Apply i18n middleware to all other authenticated routes
   console.log(`🌐 Applying i18n to authenticated route: ${path}`);
-  return intlMiddleware(req);
+  return handleI18nRouting(req);
 });
 
 /**
