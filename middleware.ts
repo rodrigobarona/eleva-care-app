@@ -109,8 +109,22 @@ function matchPatternsArray(path: string, patterns: readonly string[]): boolean 
  * @param authObject - The Clerk auth object containing session claims
  * @returns Promise<boolean> indicating if the user is an expert with incomplete setup
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function isExpertWithIncompleteSetup(authObject: any): Promise<boolean> {
+async function isExpertWithIncompleteSetup(authObject: {
+  sessionClaims?: {
+    metadata?: { role?: string | string[] };
+    unsafeMetadata?: {
+      expertSetup?: {
+        events?: boolean;
+        payment?: boolean;
+        profile?: boolean;
+        identity?: boolean;
+        availability?: boolean;
+        google_account?: boolean;
+      };
+      setupComplete?: boolean;
+    };
+  };
+}): Promise<boolean> {
   const userRoleData = authObject?.sessionClaims?.metadata?.role;
   if (!userRoleData) return false;
 
@@ -133,14 +147,18 @@ async function isExpertWithIncompleteSetup(authObject: any): Promise<boolean> {
   ];
 
   // Check if all required steps are present AND true
-  const setupComplete = requiredSetupSteps.every((step) => expertSetup[step] === true);
+  const setupComplete = requiredSetupSteps.every(
+    (step) => expertSetup[step as keyof typeof expertSetup] === true,
+  );
 
   // Debug logging for expert setup check
   console.log('[DEBUG] Expert setup check:', {
     role: userRoleData,
     setupData: expertSetup,
     complete: setupComplete,
-    missingSteps: requiredSetupSteps.filter((step) => expertSetup[step] !== true),
+    missingSteps: requiredSetupSteps.filter(
+      (step) => expertSetup[step as keyof typeof expertSetup] !== true,
+    ),
   });
 
   // Return true if setup is incomplete (any required step is missing or false)
@@ -491,7 +509,24 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   // Only apply this logic for root path or dashboard (where users land after login)
   if (userId && (path === '/' || path === '/dashboard')) {
     const authObj = await auth();
-    const needsSetup = await isExpertWithIncompleteSetup(authObj);
+    const needsSetup = await isExpertWithIncompleteSetup(
+      authObj as unknown as {
+        sessionClaims?: {
+          metadata?: { role?: string | string[] };
+          unsafeMetadata?: {
+            expertSetup?: {
+              events?: boolean;
+              payment?: boolean;
+              profile?: boolean;
+              identity?: boolean;
+              availability?: boolean;
+              google_account?: boolean;
+            };
+            setupComplete?: boolean;
+          };
+        };
+      },
+    );
 
     if (needsSetup) {
       console.log('🔄 Expert with incomplete setup detected, redirecting to setup page');
