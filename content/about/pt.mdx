@@ -67,9 +67,9 @@ import TeamSection from '@/components/organisms/about/TeamSection';
 />
 
 <HeadlineSection
-  label="Conheça o nosso equipa"
-  title="Liderada por inovadores e especialistas em saúde"
-  description="O nosso equipa combina expertise em saúde da mulher, tecnologia e cuidado com pacientes para revolucionar a entrega de cuidados de saúde."
+  label="Conheça a nossa equipa"
+  title="Liderada por especialistas em saúde"
+  description="A nossa equipa combina expertise em saúde da mulher, tecnologia e cuidado com pacientes para revolucionar a entrega de cuidados de saúde."
 />
 
 <TeamSection
@@ -110,6 +110,30 @@ import TeamSection from '@/components/organisms/about/TeamSection';
   title="Inovação em Saúde"
   healthcareAdvisors={[
     {
+      name: 'Kari Bø, PT, PhD',
+      flags: '🇳🇴',
+      role: 'Consultora em Saúde Pélvica',
+      quote:
+        'O treino dos músculos do pavimento pélvico baseado em evidências não só previne e trata a disfunção, como também permite que as mulheres vivam com confiança e em pleno em todas as fases da vida.',
+      image: '/img/about/team/team-kari-bo.jpg',
+    },
+    {
+      name: 'Ruben Barakat, PhD',
+      flags: '🇦🇷 🇪🇸',
+      role: 'Consultor em Ciências do Exercício',
+      quote:
+        'As evidências mostram que o exercício personalizado durante a gravidez pode transformar os resultados de saúde das mulheres.',
+      image: '/img/about/team/team-ruben-barakat.jpg',
+    },
+     {
+      name: 'Alexandre Delgado, PT, PhD',
+      flags: '🇧🇷',
+      role: 'Consultor em Fisioterapia Obstétrica',
+      quote:
+        'A fisioterapia baseada em evidências transforma a experiência da gravidez e do parto, capacitando as mulheres em cada etapa.',
+      image: '/img/about/team/team-alexandre-delgado.jpg',
+    },
+    {
       name: 'Cristine Homsi Jorge, PT, PhD',
       flags: '🇧🇷',
       role: 'Consultora em Saúde da Mulher',
@@ -117,13 +141,21 @@ import TeamSection from '@/components/organisms/about/TeamSection';
         'A investigação clínica e a educação capacitam as mulheres para tomarem decisões informadas sobre a sua jornada de saúde',
       image: '/img/about/team/team-cristine-homsi-jorge.jpg',
     },
-    {
-      name: 'Alexandre Delgado, PT, PhD',
-      flags: '🇧🇷',
-      role: 'Consultor em Fisioterapia Obstétrica',
+       {
+      name: 'Annelie Gutke, PT, PhD',
+      flags: '🇸🇪',
+      role: 'Consultora em Saúde da Mulher',
       quote:
-        'A fisioterapia baseada em evidências transforma a experiência da gravidez e do parto, capacitando as mulheres em cada etapa.',
-      image: '/img/about/team/team-alexandre-delgado.jpg',
+        'Compreender os mecanismos da dor transforma a forma como cuidamos das mulheres durante a gravidez e para além dela.',
+      image: '/img/about/team/team-annelie-gutke.jpg',
+    },
+       {
+      name: 'Joana Goulão Barros, MD, PhD',
+      flags: '🇵🇹',
+      role: 'Consultora em Cuidados para Mulheres',
+      quote:
+        'Cuidados contínuos e em equipa em todas as fases da vida - desde a adolescência até à gravidez, parto e menopausa - garantem que as mulheres recebem o apoio personalizado que necessitam.',
+      image: '/img/about/team/team-joana-barros.jpg',
     },
     {
       name: 'Patricia Driusso, PT, PhD',
@@ -134,22 +166,6 @@ import TeamSection from '@/components/organisms/about/TeamSection';
       image: '/img/about/team/team-patricia-driusso.jpg',
     },
     {
-      name: 'Annelie Gutke, PT, PhD',
-      flags: '🇸🇪',
-      role: 'Consultora em Saúde da Mulher',
-      quote:
-        'Compreender os mecanismos da dor transforma a forma como cuidamos das mulheres durante a gravidez e para além dela.',
-      image: '/img/about/team/team-annelie-gutke.jpg',
-    },
-    {
-      name: 'Ruben Barakat, PhD',
-      flags: '🇦🇷 🇪🇸',
-      role: 'Consultor em Ciências do Exercício',
-      quote:
-        'As evidências mostram que o exercício personalizado durante a gravidez pode transformar os resultados de saúde das mulheres.',
-      image: '/img/about/team/team-ruben-barakat.jpg',
-    },
-    {
       name: 'Jenny Bagwell, PT, PhD, DPT',
       flags: '🇺🇸',
       role: 'Consultora em Biomecânica e Saúde Perinatal',
@@ -157,31 +173,14 @@ import TeamSection from '@/components/organisms/about/TeamSection';
         'Compreender os padrões de movimento durante e após a gravidez ajuda a otimizar os cuidados e a melhorar os resultados a longo prazo para as mulheres.',
       image: '/img/about/team/team-jenny-bagwell-california-usa.jpg',
     },
-  ]}
-/>
 
-<ClinicalExpertsSection
-  title="Especialistas Clínicos"
-  clinicalExperts={[
-    {
-      name: 'Jessica Margarido, PT',
-      flags: '🇵🇹',
-      role: 'Reabilitação Oncológica',
-      image: '/img/about/team/team-jessica-margarido.jpg',
-    },
-    {
-      name: 'Joana Goulão Barros, MD, PhD',
-      flags: '🇵🇹',
-      role: 'Obstetrícia e Ginecologia',
-      image: '/img/about/team/team-joana-barros.jpg',
-    },
-  ]}
+]}
 />
 
 <HeadlineSection
-  label="Join our network"
-  title="Transform women's healthcare with us"
-  description="Join a community of dedicated healthcare professionals making quality care accessible to women everywhere."
+  label="Junte-se à nossa rede"
+  title="Transforme os cuidados de saúde das mulheres connosco"
+  description="Junte-se a uma comunidade de profissionais de saúde dedicados que tornam os cuidados de qualidade acessíveis às mulheres em todo o lado."
 />
 
 <JoinNetworkSection

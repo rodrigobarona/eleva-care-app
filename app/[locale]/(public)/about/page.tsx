@@ -1,9 +1,8 @@
 import { isValidLocale } from '@/app/i18n';
-import { Metadata } from 'next';
+import MDXContentWrapper from '@/components/atoms/MDXContentWrapper';
+import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
-
-import MDXContentWrapper from '../../../../components/atoms/MDXContentWrapper';
 
 // Define the page props
 interface PageProps {
