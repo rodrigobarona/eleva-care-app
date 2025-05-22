@@ -28,6 +28,9 @@ export function UserNotifications() {
 
   // Fetch notifications
   useEffect(() => {
+    // Only run in the browser
+    if (typeof window === 'undefined') return;
+
     async function fetchNotifications() {
       try {
         setLoading(true);
@@ -35,19 +38,36 @@ export function UserNotifications() {
         const response = await fetch('/api/notifications');
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error || 'Failed to fetch notifications');
+          let errorMessage = `Failed to fetch notifications (HTTP ${response.status})`;
+
+          try {
+            const data = await response.json();
+            if (data?.error) {
+              errorMessage = data.error;
+            }
+          } catch (parseError) {
+            // JSON parsing failed, use the default error message
+            console.error(
+              'Failed to parse error response:',
+              parseError instanceof Error ? parseError.message : 'Unknown parsing error',
+            );
+          }
+
+          throw new Error(errorMessage);
         }
 
         const data = await response.json();
         setNotifications(data.notifications || []);
       } catch (err) {
         // Only log the error to the console, don't show in UI
-        console.error('Error fetching notifications:', {
-          error: err,
-          endpoint: '/api/notifications',
-          timestamp: new Date().toISOString(),
-        });
+        console.error(
+          'Error fetching notifications:',
+          err instanceof Error ? err.message : 'Unknown error',
+          {
+            endpoint: '/api/notifications',
+            timestamp: new Date().toISOString(),
+          },
+        );
 
         // Set error to a special value to hide the component
         setError('hidden');
@@ -76,18 +96,33 @@ export function UserNotifications() {
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        throw new Error(
-          data.error || `Failed to mark notification as read (HTTP ${response.status})`,
-        );
+        let errorMessage = `Failed to mark notification as read (HTTP ${response.status})`;
+
+        try {
+          const data = await response.json();
+          if (data?.error) {
+            errorMessage = data.error;
+          }
+        } catch (parseError) {
+          // JSON parsing failed, use the default error message
+          console.error(
+            'Failed to parse error response:',
+            parseError instanceof Error ? parseError.message : 'Unknown parsing error',
+          );
+        }
+
+        throw new Error(errorMessage);
       }
     } catch (err) {
       // Revert state on error
       setNotifications(originalNotifications);
 
       // Only log the error to console, don't show in UI
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update notification';
-      console.error('Error marking notification as read:', errorMessage);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      console.error('Error marking notification as read:', errorMessage, {
+        notificationId: id,
+        timestamp: new Date().toISOString(),
+      });
     }
   }
 

@@ -78,6 +78,13 @@
       "when": 1742583314756,
       "tag": "0010_simple_white_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1747893978445,
+      "tag": "0011_cuddly_mimic",
+      "breakpoints": true
     }
   ]
 }

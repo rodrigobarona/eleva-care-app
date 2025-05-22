@@ -7,6 +7,7 @@ const config: Config = {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './node_modules/@tremor/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     container: {
@@ -132,6 +133,6 @@ const config: Config = {
     },
   },
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  plugins: [require('@tailwindcss/typography')],
+  plugins: [require('@tailwindcss/typography'), require('@tailwindcss/forms')],
 };
 export default config;
