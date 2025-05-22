@@ -15,7 +15,7 @@ import { Link } from '@/lib/i18n/navigation';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { createClerkClient } from '@clerk/nextjs/server';
 import type { User } from '@clerk/nextjs/server';
-import { addMonths, eachMinuteOfInterval, endOfDay, roundToNearestMinutes } from 'date-fns';
+import { addMonths, endOfDay, type NearestMinutes, roundToNearestMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
@@ -131,16 +131,57 @@ async function CalendarWithAvailability({
     );
   }
 
-  const startDate = new Date(
-    formatInTimeZone(
-      roundToNearestMinutes(new Date(), {
-        nearestTo: 15,
-        roundingMethod: 'ceil',
-      }),
-      'UTC',
-      "yyyy-MM-dd'T'HH:mm:ssX",
-    ),
-  );
+  // Fetch scheduling settings for the user
+  let timeSlotInterval = 15; // Default fallback value
+  try {
+    const settings = await db.query.schedulingSettings.findFirst({
+      where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, userId),
+    });
+
+    if (settings?.timeSlotInterval) {
+      timeSlotInterval = settings.timeSlotInterval;
+    }
+  } catch (error) {
+    console.error('[CalendarWithAvailability] Error fetching scheduling settings:', error);
+    // Continue with the default value
+  }
+
+  // Handle the rounding for time slots
+  // date-fns roundToNearestMinutes only accepts values between 1-30
+  const roundingInterval = timeSlotInterval <= 30 ? timeSlotInterval : 30;
+
+  const now = new Date();
+  let startDate: Date;
+
+  if (timeSlotInterval <= 30) {
+    // For intervals up to 30 minutes, we can use roundToNearestMinutes directly
+    startDate = new Date(
+      formatInTimeZone(
+        roundToNearestMinutes(now, {
+          nearestTo: roundingInterval as NearestMinutes,
+          roundingMethod: 'ceil',
+        }),
+        'UTC',
+        "yyyy-MM-dd'T'HH:mm:ssX",
+      ),
+    );
+  } else {
+    // For larger intervals (like 60 minutes), we need to round to 30 first, then adjust
+    const roundedTo30 = roundToNearestMinutes(now, {
+      nearestTo: 30 as NearestMinutes,
+      roundingMethod: 'ceil',
+    });
+
+    // Then adjust to the larger interval if needed
+    const minutes = roundedTo30.getMinutes();
+    const extraMinutes = minutes % timeSlotInterval;
+
+    if (extraMinutes > 0) {
+      roundedTo30.setMinutes(minutes + (timeSlotInterval - extraMinutes));
+    }
+
+    startDate = new Date(formatInTimeZone(roundedTo30, 'UTC', "yyyy-MM-dd'T'HH:mm:ssX"));
+  }
 
   const endDate = new Date(
     formatInTimeZone(endOfDay(addMonths(startDate, 2)), 'UTC', "yyyy-MM-dd'T'HH:mm:ssX"),
@@ -152,11 +193,15 @@ async function CalendarWithAvailability({
     end: endDate,
   });
 
-  const validTimes = await getValidTimesFromSchedule(
-    eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-    event,
-    calendarEvents,
-  );
+  // Generate time slots based on the configured interval
+  const timeSlots = [];
+  let currentTime = new Date(startDate);
+  while (currentTime < endDate) {
+    timeSlots.push(new Date(currentTime));
+    currentTime = new Date(currentTime.getTime() + timeSlotInterval * 60000);
+  }
+
+  const validTimes = await getValidTimesFromSchedule(timeSlots, event, calendarEvents);
 
   if (validTimes.length === 0) {
     return <NoTimeSlots calendarUser={calendarUser} username={username} _locale={locale} />;
