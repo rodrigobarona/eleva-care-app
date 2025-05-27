@@ -9,13 +9,19 @@ export function formatEventDescription(durationInMinutes: number) {
   return `${hoursString} ${minutesString}`;
 }
 
-export function formatTimezoneOffset(timezone: string) {
-  return new Intl.DateTimeFormat(undefined, {
-    timeZone: timezone,
-    timeZoneName: 'shortOffset',
-  })
-    .formatToParts(new Date())
-    .find((part) => part.type === 'timeZoneName')?.value;
+export function formatTimezoneOffset(timezone: string): string {
+  try {
+    const offset = new Intl.DateTimeFormat(undefined, {
+      timeZone: timezone,
+      timeZoneName: 'shortOffset',
+    })
+      .formatToParts(new Date())
+      .find((part) => part.type === 'timeZoneName')?.value;
+
+    return offset || 'UTC+00:00';
+  } catch {
+    return 'UTC+00:00';
+  }
 }
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {

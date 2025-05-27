@@ -4,6 +4,7 @@ import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
 import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
 import { Switch } from '@/components/atoms/switch';
+import { BlockedDates } from '@/components/molecules/blocked-dates';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/molecules/form';
 import {
   Select,
@@ -15,10 +16,15 @@ import {
 import { TimezoneSelect } from '@/components/molecules/timezone-select';
 import { timeToInt } from '@/lib/utils';
 import { scheduleFormSchema } from '@/schema/schedule';
+import {
+  addBlockedDates,
+  getBlockedDates,
+  removeBlockedDate,
+} from '@/server/actions/blocked-dates';
 import { saveSchedule } from '@/server/actions/schedule';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 import type { z } from 'zod';
@@ -43,18 +49,29 @@ type Availability = {
   dayOfWeek: (typeof DAYS_OF_WEEK_IN_ORDER)[number];
 };
 
+interface BlockedDate {
+  id: number;
+  date: Date;
+  reason?: string;
+  timezone: string;
+}
+
 export function ScheduleForm({
   schedule,
+  blockedDates: initialBlockedDates = [],
 }: {
   schedule?: {
     timezone: string;
     availabilities: Availability[];
   };
+  blockedDates?: BlockedDate[];
 }) {
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>(initialBlockedDates);
+
   const form = useForm<z.infer<typeof scheduleFormSchema>>({
     resolver: zodResolver(scheduleFormSchema),
     defaultValues: {
-      timezone: schedule?.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: schedule?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
       availabilities: schedule?.availabilities.toSorted((a, b) => {
         return timeToInt(a.startTime) - timeToInt(b.startTime);
       }),
@@ -84,6 +101,53 @@ export function ScheduleForm({
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [form.formState.isDirty]);
+
+  // Add handlers for blocked dates
+  const handleAddBlockedDates = useCallback(async (dates: { date: Date; reason?: string }[]) => {
+    try {
+      await addBlockedDates(
+        dates.map((date) => ({
+          date: date.date,
+          reason: date.reason,
+        })),
+      );
+      // Refresh blocked dates after adding
+      const updatedBlockedDates = await getBlockedDates();
+      setBlockedDates(updatedBlockedDates);
+      toast.success('Dates blocked successfully');
+    } catch (error) {
+      console.error('Error adding blocked dates:', error);
+      toast.error('Failed to add blocked dates');
+    }
+  }, []);
+
+  const handleRemoveBlockedDate = useCallback(async (id: number) => {
+    try {
+      await removeBlockedDate(id);
+      // Refresh blocked dates after removing
+      const updatedBlockedDates = await getBlockedDates();
+      setBlockedDates(updatedBlockedDates);
+      toast.success('Date unblocked successfully');
+    } catch (error) {
+      console.error('Error removing blocked date:', error);
+      toast.error('Failed to remove blocked date');
+    }
+  }, []);
+
+  // Load blocked dates on component mount
+  useEffect(() => {
+    const loadBlockedDates = async () => {
+      try {
+        const dates = await getBlockedDates();
+        setBlockedDates(dates);
+      } catch (error) {
+        console.error('Error loading blocked dates:', error);
+        toast.error('Failed to load blocked dates');
+      }
+    };
+
+    loadBlockedDates();
+  }, []);
 
   async function onSubmit(values: z.infer<typeof scheduleFormSchema>) {
     try {
@@ -122,7 +186,7 @@ export function ScheduleForm({
               </div>
 
               <div className="lg:col-span-2">
-                <div className="divide-y divide-eleva-neutral-200 rounded-lg border border-eleva-neutral-200 bg-gradient-to-br from-white to-eleva-accent/20">
+                <div className="divide-y divide-eleva-neutral-200 rounded-lg border border-eleva-neutral-200">
                   {DAYS_OF_WEEK_IN_ORDER.map((dayOfWeek) => {
                     const dayFields = groupedAvailabilityFields[dayOfWeek] ?? [];
                     const hasAvailability = dayFields.length > 0;
@@ -282,6 +346,18 @@ export function ScheduleForm({
                 <div className="rounded-lg">
                   <TimezoneSelect control={form.control} name="timezone" />
                 </div>
+              </div>
+            </div>
+
+            <Separator className="my-8 bg-eleva-neutral-200" />
+
+            <div className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+              <div className="lg:col-span-3">
+                <BlockedDates
+                  blockedDates={blockedDates}
+                  onAddBlockedDates={handleAddBlockedDates}
+                  onRemoveBlockedDate={handleRemoveBlockedDate}
+                />
               </div>
             </div>
           </div>

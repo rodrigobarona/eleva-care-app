@@ -3,6 +3,7 @@ import type { SocialMediaPlatform } from '@/lib/constants/social-media';
 import { relations } from 'drizzle-orm';
 import {
   boolean,
+  date,
   index,
   integer,
   json,
@@ -518,4 +519,22 @@ export type NewSchedulingSettings = typeof schedulingSettings.$inferInsert;
 // Export the relation
 export const schedulingSettingsRelations = relations(schedulingSettings, ({ one }) => ({
   // Add relations if needed
+}));
+
+export const BlockedDatesTable = pgTable('blocked_dates', {
+  id: serial('id').primaryKey(),
+  clerkUserId: text('clerk_user_id').notNull(),
+  date: date('date').notNull(),
+  timezone: text('timezone').notNull().default('UTC'),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Relations
+export const blockedDatesRelations = relations(BlockedDatesTable, ({ one }) => ({
+  schedule: one(ScheduleTable, {
+    fields: [BlockedDatesTable.clerkUserId],
+    references: [ScheduleTable.clerkUserId],
+  }),
 }));
