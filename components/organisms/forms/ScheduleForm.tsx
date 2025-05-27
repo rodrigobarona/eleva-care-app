@@ -153,12 +153,16 @@ export function ScheduleForm({
                                     <FormItem>
                                       <FormControl>
                                         <Select value={field.value} onValueChange={field.onChange}>
-                                          <SelectTrigger className="w-32 border-eleva-neutral-200">
+                                          <SelectTrigger className="w-32 border-eleva-neutral-200 font-mono">
                                             <SelectValue placeholder="Start time" />
                                           </SelectTrigger>
                                           <SelectContent>
                                             {TIME_OPTIONS.map((option) => (
-                                              <SelectItem key={option.value} value={option.value}>
+                                              <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                                className="font-mono"
+                                              >
                                                 {option.label}
                                               </SelectItem>
                                             ))}
@@ -177,12 +181,16 @@ export function ScheduleForm({
                                     <FormItem>
                                       <FormControl>
                                         <Select value={field.value} onValueChange={field.onChange}>
-                                          <SelectTrigger className="w-32 border-eleva-neutral-200">
+                                          <SelectTrigger className="w-32 border-eleva-neutral-200 font-mono">
                                             <SelectValue placeholder="End time" />
                                           </SelectTrigger>
                                           <SelectContent>
                                             {TIME_OPTIONS.map((option) => (
-                                              <SelectItem key={option.value} value={option.value}>
+                                              <SelectItem
+                                                key={option.value}
+                                                value={option.value}
+                                                className="font-mono"
+                                              >
                                                 {option.label}
                                               </SelectItem>
                                             ))}
@@ -263,8 +271,8 @@ export function ScheduleForm({
                         <SelectContent>
                           {Intl.supportedValuesOf('timeZone').map((timezone) => (
                             <SelectItem key={timezone} value={timezone}>
-                              {timezone}
-                              {` (${formatTimezoneOffset(timezone)})`}
+                              <span className="font-sans">{timezone}</span>
+                              <span className="font-mono text-eleva-neutral-900/60">{` (${formatTimezoneOffset(timezone)})`}</span>
                             </SelectItem>
                           ))}
                         </SelectContent>

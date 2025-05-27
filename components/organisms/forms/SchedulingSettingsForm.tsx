@@ -239,7 +239,7 @@ export function SchedulingSettingsForm() {
                             value={option.value.toString()}
                             className="cursor-pointer"
                           >
-                            {option.label}
+                            <span className="font-mono">{option.label}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -290,7 +290,7 @@ export function SchedulingSettingsForm() {
                             value={option.value.toString()}
                             className="cursor-pointer"
                           >
-                            {option.label}
+                            <span className="font-mono">{option.label}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -356,7 +356,7 @@ export function SchedulingSettingsForm() {
                             value={option.value.toString()}
                             className="cursor-pointer"
                           >
-                            {option.label}
+                            <span className="font-mono">{option.label}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -408,7 +408,7 @@ export function SchedulingSettingsForm() {
                             value={interval.value.toString()}
                             className="cursor-pointer"
                           >
-                            {interval.label}
+                            <span className="font-mono">{interval.label}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -474,7 +474,7 @@ export function SchedulingSettingsForm() {
                             value={option.value.toString()}
                             className="cursor-pointer"
                           >
-                            {option.label}
+                            <span className="font-mono">{option.label}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
