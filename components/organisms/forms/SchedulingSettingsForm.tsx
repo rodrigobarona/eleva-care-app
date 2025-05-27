@@ -193,8 +193,10 @@ export function SchedulingSettingsForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
           <div>
-            <h3 className="text-sm font-medium">Buffer Times</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary">
+              Buffer Times
+            </h3>
+            <p className="mt-1 text-sm text-eleva-neutral-900/60">
               Add padding before and after events to prepare or wrap up.
             </p>
           </div>
@@ -206,15 +208,17 @@ export function SchedulingSettingsForm() {
               render={({ field }) => (
                 <FormItem className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium">Buffer before events</div>
+                    <div className="text-sm font-medium text-eleva-neutral-900">
+                      Buffer before events
+                    </div>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="size-4" />
+                            <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
                           Add padding time before events to prepare and avoid back-to-back meetings
                         </TooltipContent>
                       </Tooltip>
@@ -225,7 +229,7 @@ export function SchedulingSettingsForm() {
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
                       value={field.value.toString()}
                     >
-                      <SelectTrigger className="w-[240px]">
+                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
                         <SelectValue placeholder="Select buffer time" />
                       </SelectTrigger>
                       <SelectContent>
@@ -241,8 +245,10 @@ export function SchedulingSettingsForm() {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription>Time blocked before each event starts</FormDescription>
-                  <FormMessage />
+                  <FormDescription className="text-sm text-eleva-neutral-900/60">
+                    Time blocked before each event starts
+                  </FormDescription>
+                  <FormMessage className="text-eleva-highlight-red" />
                 </FormItem>
               )}
             />
@@ -253,15 +259,17 @@ export function SchedulingSettingsForm() {
               render={({ field }) => (
                 <FormItem className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium">Buffer after events</div>
+                    <div className="text-sm font-medium text-eleva-neutral-900">
+                      Buffer after events
+                    </div>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="size-4" />
+                            <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
                           Add padding time after events for notes and wrap-up tasks
                         </TooltipContent>
                       </Tooltip>
@@ -272,7 +280,7 @@ export function SchedulingSettingsForm() {
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
                       value={field.value.toString()}
                     >
-                      <SelectTrigger className="w-[240px]">
+                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
                         <SelectValue placeholder="Select buffer time" />
                       </SelectTrigger>
                       <SelectContent>
@@ -288,20 +296,24 @@ export function SchedulingSettingsForm() {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription>Time blocked after each event ends</FormDescription>
-                  <FormMessage />
+                  <FormDescription className="text-sm text-eleva-neutral-900/60">
+                    Time blocked after each event ends
+                  </FormDescription>
+                  <FormMessage className="text-eleva-highlight-red" />
                 </FormItem>
               )}
             />
           </div>
         </div>
 
-        <Separator />
+        <Separator className="bg-eleva-neutral-200" />
 
         <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
           <div>
-            <h3 className="text-sm font-medium">Booking Rules</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-secondary">
+              Booking Rules
+            </h3>
+            <p className="mt-1 text-sm text-eleva-neutral-900/60">
               Configure advance notice requirements and scheduling intervals.
             </p>
           </div>
@@ -313,15 +325,17 @@ export function SchedulingSettingsForm() {
               render={({ field }) => (
                 <FormItem className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium">Minimum notice period</div>
+                    <div className="text-sm font-medium text-eleva-neutral-900">
+                      Minimum notice period
+                    </div>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="size-4" />
+                            <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
                           The minimum time required before someone can book an appointment
                         </TooltipContent>
                       </Tooltip>
@@ -332,7 +346,7 @@ export function SchedulingSettingsForm() {
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
                       value={field.value.toString()}
                     >
-                      <SelectTrigger className="w-[240px]">
+                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
                         <SelectValue placeholder="Select notice period" />
                       </SelectTrigger>
                       <SelectContent>
@@ -348,8 +362,10 @@ export function SchedulingSettingsForm() {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription>Required advance notice for new bookings</FormDescription>
-                  <FormMessage />
+                  <FormDescription className="text-sm text-eleva-neutral-900/60">
+                    Required advance notice for new bookings
+                  </FormDescription>
+                  <FormMessage className="text-eleva-highlight-red" />
                 </FormItem>
               )}
             />
@@ -360,15 +376,17 @@ export function SchedulingSettingsForm() {
               render={({ field }) => (
                 <FormItem className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium">Time slot duration</div>
+                    <div className="text-sm font-medium text-eleva-neutral-900">
+                      Time slot duration
+                    </div>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="size-4" />
+                            <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
                           Determines how finely you can schedule appointments (e.g., every 15
                           minutes or 30 minutes)
                         </TooltipContent>
@@ -380,7 +398,7 @@ export function SchedulingSettingsForm() {
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
                       value={field.value.toString()}
                     >
-                      <SelectTrigger className="w-[240px]">
+                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
                         <SelectValue placeholder="Select time slot length" />
                       </SelectTrigger>
                       <SelectContent>
@@ -396,20 +414,24 @@ export function SchedulingSettingsForm() {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription>Length of each bookable time slot</FormDescription>
-                  <FormMessage />
+                  <FormDescription className="text-sm text-eleva-neutral-900/60">
+                    Length of each bookable time slot
+                  </FormDescription>
+                  <FormMessage className="text-eleva-highlight-red" />
                 </FormItem>
               )}
             />
           </div>
         </div>
 
-        <Separator />
+        <Separator className="bg-eleva-neutral-200" />
 
         <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
           <div>
-            <h3 className="text-sm font-medium">Booking Window</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary-light">
+              Booking Window
+            </h3>
+            <p className="mt-1 text-sm text-eleva-neutral-900/60">
               Control how far in advance people can schedule appointments.
             </p>
           </div>
@@ -421,15 +443,17 @@ export function SchedulingSettingsForm() {
               render={({ field }) => (
                 <FormItem className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium">Maximum booking period</div>
+                    <div className="text-sm font-medium text-eleva-neutral-900">
+                      Maximum booking period
+                    </div>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="size-4" />
+                            <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>
+                        <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
                           The furthest in the future that appointments can be scheduled
                         </TooltipContent>
                       </Tooltip>
@@ -440,7 +464,7 @@ export function SchedulingSettingsForm() {
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
                       value={field.value.toString()}
                     >
-                      <SelectTrigger className="w-[240px]">
+                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
                         <SelectValue placeholder="Select booking period" />
                       </SelectTrigger>
                       <SelectContent>
@@ -456,8 +480,10 @@ export function SchedulingSettingsForm() {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription>How far ahead appointments can be booked</FormDescription>
-                  <FormMessage />
+                  <FormDescription className="text-sm text-eleva-neutral-900/60">
+                    How far ahead appointments can be booked
+                  </FormDescription>
+                  <FormMessage className="text-eleva-highlight-red" />
                 </FormItem>
               )}
             />

@@ -41,7 +41,7 @@ const mainItems: SidebarItem[] = [
     ],
   },
   {
-    title: 'Manage Calendar ',
+    title: 'Calendar ',
     url: '/booking/schedule',
     icon: Clock,
     items: [

@@ -99,19 +99,24 @@ export function ScheduleForm({
         <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8">
           <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
             <div>
-              <h3 className="text-sm font-medium">Weekly hours</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary">
+                Weekly hours
+              </h3>
+              <p className="mt-1 text-sm text-eleva-neutral-900/60">
                 Configure times when you are available for bookings.
               </p>
             </div>
 
             <div className="lg:col-span-2">
-              <div className="divide-y rounded-lg border">
+              <div className="divide-y divide-eleva-neutral-200 rounded-lg border border-eleva-neutral-200">
                 {DAYS_OF_WEEK_IN_ORDER.map((dayOfWeek) => {
                   const dayFields = groupedAvailabilityFields[dayOfWeek] ?? [];
                   const hasAvailability = dayFields.length > 0;
                   return (
-                    <div key={dayOfWeek} className="flex items-start gap-4 p-4">
+                    <div
+                      key={dayOfWeek}
+                      className="flex items-start gap-4 px-4 py-4 first:pt-4 last:pb-4"
+                    >
                       <div className="w-40">
                         <div className="flex items-center gap-3">
                           <Switch
@@ -130,7 +135,9 @@ export function ScheduleForm({
                               }
                             }}
                           />
-                          <span className="font-medium capitalize">{dayOfWeek}</span>
+                          <span className="font-medium capitalize text-eleva-neutral-900">
+                            {dayOfWeek}
+                          </span>
                         </div>
                       </div>
 
@@ -146,7 +153,7 @@ export function ScheduleForm({
                                     <FormItem>
                                       <FormControl>
                                         <Select value={field.value} onValueChange={field.onChange}>
-                                          <SelectTrigger className="w-32">
+                                          <SelectTrigger className="w-32 border-eleva-neutral-200">
                                             <SelectValue placeholder="Start time" />
                                           </SelectTrigger>
                                           <SelectContent>
@@ -158,11 +165,11 @@ export function ScheduleForm({
                                           </SelectContent>
                                         </Select>
                                       </FormControl>
-                                      <FormMessage />
+                                      <FormMessage className="text-eleva-highlight-red" />
                                     </FormItem>
                                   )}
                                 />
-                                <span className="text-muted-foreground">to</span>
+                                <span className="text-eleva-neutral-900/60">to</span>
                                 <FormField
                                   control={form.control}
                                   name={`availabilities.${field.index}.endTime`}
@@ -170,7 +177,7 @@ export function ScheduleForm({
                                     <FormItem>
                                       <FormControl>
                                         <Select value={field.value} onValueChange={field.onChange}>
-                                          <SelectTrigger className="w-32">
+                                          <SelectTrigger className="w-32 border-eleva-neutral-200">
                                             <SelectValue placeholder="End time" />
                                           </SelectTrigger>
                                           <SelectContent>
@@ -182,7 +189,7 @@ export function ScheduleForm({
                                           </SelectContent>
                                         </Select>
                                       </FormControl>
-                                      <FormMessage />
+                                      <FormMessage className="text-eleva-highlight-red" />
                                     </FormItem>
                                   )}
                                 />
@@ -194,7 +201,7 @@ export function ScheduleForm({
                                     className="opacity-0 transition-opacity group-hover:opacity-100"
                                     onClick={() => removeAvailability(field.index)}
                                   >
-                                    <Trash2 className="size-4 text-muted-foreground hover:text-destructive" />
+                                    <Trash2 className="size-4 text-eleva-neutral-900/60 hover:text-eleva-highlight-red" />
                                   </Button>
                                   {labelIndex === dayFields.length - 1 && (
                                     <Button
@@ -210,7 +217,7 @@ export function ScheduleForm({
                                         });
                                       }}
                                     >
-                                      <Plus className="size-4 text-muted-foreground hover:text-foreground" />
+                                      <Plus className="size-4 text-eleva-neutral-900/60 hover:text-eleva-neutral-900" />
                                     </Button>
                                   )}
                                 </div>
@@ -218,7 +225,7 @@ export function ScheduleForm({
                             ))}
                           </div>
                         ) : (
-                          <p className="text-sm text-muted-foreground">Unavailable</p>
+                          <p className="text-sm text-eleva-neutral-900/60">Unavailable</p>
                         )}
                       </div>
                     </div>
@@ -228,12 +235,14 @@ export function ScheduleForm({
             </div>
           </div>
 
-          <Separator className="my-8" />
+          <Separator className="my-8 bg-eleva-neutral-200" />
 
           <div className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
             <div>
-              <h3 className="text-sm font-medium">Time zone</h3>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-secondary">
+                Time zone
+              </h3>
+              <p className="mt-1 text-sm text-eleva-neutral-900/60">
                 Select your timezone to ensure accurate scheduling.
               </p>
             </div>
@@ -247,7 +256,7 @@ export function ScheduleForm({
                     <div className="flex items-center gap-2">
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
-                          <SelectTrigger className="w-[360px]">
+                          <SelectTrigger className="w-[360px] border-eleva-neutral-200">
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
@@ -264,14 +273,16 @@ export function ScheduleForm({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button variant="ghost" size="icon" className="size-6">
-                              <Info className="size-4" />
+                              <Info className="size-4 text-eleva-neutral-900/60" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent>Your timezone was automatically detected</TooltipContent>
+                          <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
+                            Your timezone was automatically detected
+                          </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    <FormMessage />
+                    <FormMessage className="text-eleva-highlight-red" />
                   </FormItem>
                 )}
               />
