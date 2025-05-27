@@ -21,6 +21,9 @@ import {
   endOfDay,
   type NearestMinutes,
   roundToNearestMinutes,
+  setHours,
+  setMinutes,
+  startOfDay,
 } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { notFound } from 'next/navigation';
@@ -160,45 +163,50 @@ async function CalendarWithAvailability({
     // Continue with the default values
   }
 
-  // Handle the rounding for time slots
-  // date-fns roundToNearestMinutes only accepts values between 1-30
-  const roundingInterval = timeSlotInterval <= 30 ? timeSlotInterval : 30;
-
   const now = new Date();
+  const useDayGranularity = minimumNotice >= 1440; // 24 hours or more
 
-  // Add minimum notice period to the current time
+  // Calculate the earliest possible time based on minimum notice
   const earliestPossibleTime = addMinutes(now, minimumNotice);
 
+  // For day-level granularity (>= 24 hours notice), start from the beginning of each day
+  // after the minimum notice period
   let startDate: Date;
 
-  if (timeSlotInterval <= 30) {
-    // For intervals up to 30 minutes, we can use roundToNearestMinutes directly
-    startDate = new Date(
-      formatInTimeZone(
-        roundToNearestMinutes(earliestPossibleTime, {
-          nearestTo: roundingInterval as NearestMinutes,
-          roundingMethod: 'ceil',
-        }),
-        'UTC',
-        "yyyy-MM-dd'T'HH:mm:ssX",
-      ),
-    );
+  if (useDayGranularity) {
+    // For notice periods >= 24 hours, use the start of the next day
+    const earliestDay = startOfDay(earliestPossibleTime);
+    startDate = setMinutes(setHours(earliestDay, 0), 0);
   } else {
-    // For larger intervals (like 60 minutes), we need to round to 30 first, then adjust
-    const roundedTo30 = roundToNearestMinutes(earliestPossibleTime, {
-      nearestTo: 30 as NearestMinutes,
-      roundingMethod: 'ceil',
-    });
+    // For shorter notice periods, use exact time with rounding
+    const roundingInterval = timeSlotInterval <= 30 ? timeSlotInterval : 30;
 
-    // Then adjust to the larger interval if needed
-    const minutes = roundedTo30.getMinutes();
-    const extraMinutes = minutes % timeSlotInterval;
+    if (timeSlotInterval <= 30) {
+      startDate = new Date(
+        formatInTimeZone(
+          roundToNearestMinutes(earliestPossibleTime, {
+            nearestTo: roundingInterval as NearestMinutes,
+            roundingMethod: 'ceil',
+          }),
+          'UTC',
+          "yyyy-MM-dd'T'HH:mm:ssX",
+        ),
+      );
+    } else {
+      const roundedTo30 = roundToNearestMinutes(earliestPossibleTime, {
+        nearestTo: 30 as NearestMinutes,
+        roundingMethod: 'ceil',
+      });
 
-    if (extraMinutes > 0) {
-      roundedTo30.setMinutes(minutes + (timeSlotInterval - extraMinutes));
+      const minutes = roundedTo30.getMinutes();
+      const extraMinutes = minutes % timeSlotInterval;
+
+      if (extraMinutes > 0) {
+        roundedTo30.setMinutes(minutes + (timeSlotInterval - extraMinutes));
+      }
+
+      startDate = new Date(formatInTimeZone(roundedTo30, 'UTC', "yyyy-MM-dd'T'HH:mm:ssX"));
     }
-
-    startDate = new Date(formatInTimeZone(roundedTo30, 'UTC', "yyyy-MM-dd'T'HH:mm:ssX"));
   }
 
   const endDate = new Date(
@@ -218,6 +226,12 @@ async function CalendarWithAvailability({
   // Generate time slots based on the configured interval
   const timeSlots = [];
   let currentTime = new Date(startDate);
+
+  // For day-level granularity, ensure we start from the beginning of the day
+  if (useDayGranularity) {
+    currentTime = setMinutes(setHours(startOfDay(currentTime), 0), 0);
+  }
+
   while (currentTime < endDate) {
     timeSlots.push(new Date(currentTime));
     currentTime = new Date(currentTime.getTime() + timeSlotInterval * 60000);

@@ -6,6 +6,7 @@ import {
   addMinutes,
   isFriday,
   isMonday,
+  isSameDay,
   isSaturday,
   isSunday,
   isThursday,
@@ -14,6 +15,7 @@ import {
   isWithinInterval,
   setHours,
   setMinutes,
+  startOfDay,
 } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
 
@@ -43,10 +45,33 @@ export async function getValidTimesFromSchedule(
   const now = new Date();
   const earliestPossibleTime = addMinutes(now, minimumNotice);
 
+  // Calculate if we should use day-level granularity
+  // If minimum notice is 24 hours or more, we'll use day-level granularity
+  const useDayGranularity = minimumNotice >= 1440;
+
+  // For day-level granularity, calculate the earliest possible day
+  const earliestStartOfDay = startOfDay(earliestPossibleTime);
+
   const validTimes = [];
   for (const time of times) {
-    // Skip times that don't meet the minimum notice requirement
-    if (time < earliestPossibleTime) continue;
+    // For short notice periods (< 24 hours), use exact time comparison
+    if (!useDayGranularity) {
+      if (time < earliestPossibleTime) continue;
+    } else {
+      // For longer notice periods (>= 24 hours)
+      const timeStartOfDay = startOfDay(time);
+
+      // If the day is before the earliest possible day, skip it
+      if (timeStartOfDay < earliestStartOfDay) continue;
+
+      // If it's the transition day (the day when minimum notice ends),
+      // only show times after the minimum notice period
+      if (isSameDay(timeStartOfDay, earliestStartOfDay)) {
+        if (time < earliestPossibleTime) continue;
+      }
+      // For all subsequent days, show all available times
+      // No additional time filtering needed here
+    }
 
     // Check if time conflicts with any calendar event
     const hasCalendarConflict = calendarEvents.some((calendarEvent) => {
