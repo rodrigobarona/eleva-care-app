@@ -10,6 +10,12 @@ import * as z from 'zod';
 import { Button } from '@/components/atoms/button';
 import { Card } from '@/components/atoms/card';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/atoms/tooltip';
+import {
   Form,
   FormControl,
   FormDescription,
@@ -26,6 +32,7 @@ import {
   SelectValue,
 } from '@/components/molecules/select';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -198,7 +205,21 @@ export function SchedulingSettingsForm() {
               name="beforeEventBuffer"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="font-medium">Buffer Time Before Event</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormLabel>Buffer Time Before Event</FormLabel>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-6">
+                            <Info className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Adds padding before events to prevent back-to-back meetings
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <FormControl>
                     <Select
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
@@ -234,7 +255,21 @@ export function SchedulingSettingsForm() {
               name="afterEventBuffer"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="font-medium">Buffer Time After Event</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormLabel>Buffer Time After Event</FormLabel>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-6">
+                            <Info className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Minutes to block after each event for notes and recap
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <FormControl>
                     <Select
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
@@ -270,7 +305,21 @@ export function SchedulingSettingsForm() {
               name="minimumNotice"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="font-medium">Minimum Notice</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormLabel>Minimum Notice</FormLabel>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-6">
+                            <Info className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Prevents last-minute bookings by requiring advance notice
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <FormControl>
                     <Select
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
@@ -306,7 +355,21 @@ export function SchedulingSettingsForm() {
               name="timeSlotInterval"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="font-medium">Time Slot Interval</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormLabel>Time Slot Interval</FormLabel>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-6">
+                            <Info className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Controls how frequently booking slots appear
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <FormControl>
                     <Select
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
@@ -340,7 +403,21 @@ export function SchedulingSettingsForm() {
               name="bookingWindowDays"
               render={({ field }) => (
                 <FormItem className="col-span-2">
-                  <FormLabel className="font-medium">Booking Window</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormLabel>Booking Window</FormLabel>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-6">
+                            <Info className="size-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          Controls how far in advance users can schedule appointments
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <FormControl>
                     <Select
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
@@ -367,41 +444,6 @@ export function SchedulingSettingsForm() {
                 </FormItem>
               )}
             />
-
-            {/* About these settings section */}
-            <div className="col-span-2 rounded-lg border border-border bg-card p-4">
-              <h3 className="font-serif text-base font-medium">About these settings</h3>
-              <ul className="mt-2 space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-eleva-primary">•</span>
-                  <span>
-                    <strong>Buffer Time:</strong> Adds padding before and after events to prevent
-                    back-to-back meetings
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-eleva-primary">•</span>
-                  <span>
-                    <strong>Minimum Notice:</strong> Prevents last-minute bookings by requiring
-                    advance notice
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-eleva-primary">•</span>
-                  <span>
-                    <strong>Time Slot Interval:</strong> Controls how frequently booking slots
-                    appear (e.g., every 15 minutes)
-                  </span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="font-bold text-eleva-primary">•</span>
-                  <span>
-                    <strong>Booking Window:</strong> Controls how far in advance users can schedule
-                    appointments
-                  </span>
-                </li>
-              </ul>
-            </div>
 
             <div className="col-span-2 flex justify-end">
               <Button

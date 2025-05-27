@@ -3,8 +3,13 @@
 import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
 import { Button } from '@/components/atoms/button';
 import { Card } from '@/components/atoms/card';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
 import { Switch } from '@/components/atoms/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/atoms/tooltip';
 import {
   Form,
   FormControl,
@@ -102,17 +107,18 @@ export function ScheduleForm({
           <div>
             <div className="mb-6 flex items-center gap-2">
               <h2 className="font-serif text-xl font-semibold">Weekly hours</h2>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="size-6">
-                    <Info className="size-4" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent>
-                  Set your weekly hours when you&apos;re typically available for meetings. Times are
-                  shown in your local timezone.
-                </PopoverContent>
-              </Popover>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="size-6">
+                      <Info className="size-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    Set your weekly hours when you&apos;re typically available for meetings
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
 
             <div className="divide-y rounded-lg border bg-card/50">
@@ -260,17 +266,16 @@ export function ScheduleForm({
                           ))}
                         </SelectContent>
                       </Select>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="size-4" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent>
-                          Your timezone was automatically detected. All times will be displayed in
-                          your local timezone.
-                        </PopoverContent>
-                      </Popover>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-6">
+                              <Info className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Your timezone was automatically detected</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                     <FormMessage />
                   </FormItem>
