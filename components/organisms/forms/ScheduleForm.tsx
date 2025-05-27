@@ -4,6 +4,12 @@ import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
 import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
 import { Switch } from '@/components/atoms/switch';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/atoms/tooltip';
 import { BlockedDates } from '@/components/molecules/blocked-dates';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/molecules/form';
 import {
@@ -268,7 +274,7 @@ export function ScheduleForm({
                                             value={field.value}
                                             onValueChange={field.onChange}
                                           >
-                                            <SelectTrigger className="w-32 border-eleva-neutral-200 font-mono text-sm">
+                                            <SelectTrigger className="w-32 rounded border-eleva-neutral-200 font-mono text-sm">
                                               <SelectValue placeholder="Start time" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -299,7 +305,7 @@ export function ScheduleForm({
                                             value={field.value}
                                             onValueChange={field.onChange}
                                           >
-                                            <SelectTrigger className="w-32 border-eleva-neutral-200 font-mono text-sm">
+                                            <SelectTrigger className="w-32 rounded border-eleva-neutral-200 font-mono text-sm">
                                               <SelectValue placeholder="End time" />
                                             </SelectTrigger>
                                             <SelectContent>
@@ -320,31 +326,49 @@ export function ScheduleForm({
                                     )}
                                   />
                                   <div className="flex items-center gap-2">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      className="opacity-0 transition-opacity group-hover:opacity-100"
-                                      onClick={() => removeAvailability(field.index)}
-                                    >
-                                      <Trash2 className="size-4 text-eleva-neutral-900/60 hover:text-eleva-highlight-red" />
-                                    </Button>
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="rounded-full text-eleva-neutral-900/60 opacity-0 transition-opacity hover:bg-eleva-highlight-red/10 hover:text-eleva-highlight-red group-hover:opacity-100"
+                                            onClick={() => removeAvailability(field.index)}
+                                          >
+                                            <Trash2 className="size-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Remove time slot</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
                                     {labelIndex === dayFields.length - 1 && (
-                                      <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        className="opacity-0 transition-opacity group-hover:opacity-100"
-                                        onClick={() => {
-                                          addAvailability({
-                                            dayOfWeek,
-                                            startTime: '09:00',
-                                            endTime: '17:00',
-                                          });
-                                        }}
-                                      >
-                                        <Plus className="size-4 text-eleva-neutral-900/60 hover:text-eleva-neutral-900" />
-                                      </Button>
+                                      <TooltipProvider>
+                                        <Tooltip>
+                                          <TooltipTrigger asChild>
+                                            <Button
+                                              type="button"
+                                              variant="ghost"
+                                              size="icon"
+                                              className="rounded-full text-eleva-neutral-900/60 opacity-0 transition-opacity hover:bg-eleva-primary/10 hover:text-eleva-primary group-hover:opacity-100"
+                                              onClick={() => {
+                                                addAvailability({
+                                                  dayOfWeek,
+                                                  startTime: '09:00',
+                                                  endTime: '17:00',
+                                                });
+                                              }}
+                                            >
+                                              <Plus className="size-4" />
+                                            </Button>
+                                          </TooltipTrigger>
+                                          <TooltipContent>
+                                            <p>Add time slot</p>
+                                          </TooltipContent>
+                                        </Tooltip>
+                                      </TooltipProvider>
                                     )}
                                   </div>
                                 </div>

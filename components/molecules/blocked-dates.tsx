@@ -2,6 +2,12 @@ import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
 import { Label } from '@/components/atoms/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/atoms/tooltip';
 import { Calendar } from '@/components/molecules/calendar';
 import {
   Dialog,
@@ -144,31 +150,49 @@ export function BlockedDates({
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => handleEdit(blocked, e)}
-                        className="rounded-full text-eleva-neutral-900/60 opacity-0 transition-opacity hover:bg-eleva-primary/10 hover:text-eleva-primary group-hover:opacity-100"
-                      >
-                        <Pencil className="size-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDelete(blocked.id)}
-                        disabled={deletingIds.includes(blocked.id)}
-                        className={cn(
-                          'rounded-full opacity-0 transition-opacity group-hover:opacity-100',
-                          'text-eleva-neutral-900/60 hover:bg-eleva-highlight-red/10 hover:text-eleva-highlight-red',
-                          deletingIds.includes(blocked.id) && 'cursor-not-allowed opacity-50',
-                        )}
-                      >
-                        {deletingIds.includes(blocked.id) ? (
-                          <Loader2 className="size-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="size-4" />
-                        )}
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => handleEdit(blocked, e)}
+                              className="rounded-full text-eleva-neutral-900/60 opacity-0 transition-opacity hover:bg-eleva-primary/10 hover:text-eleva-primary group-hover:opacity-100"
+                            >
+                              <Pencil className="size-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit blocked date</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDelete(blocked.id)}
+                              disabled={deletingIds.includes(blocked.id)}
+                              className={cn(
+                                'rounded-full opacity-0 transition-opacity group-hover:opacity-100',
+                                'text-eleva-neutral-900/60 hover:bg-eleva-highlight-red/10 hover:text-eleva-highlight-red',
+                                deletingIds.includes(blocked.id) && 'cursor-not-allowed opacity-50',
+                              )}
+                            >
+                              {deletingIds.includes(blocked.id) ? (
+                                <Loader2 className="size-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="size-4" />
+                              )}
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Delete blocked date</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </div>
                 ))}
@@ -222,6 +246,16 @@ export function BlockedDates({
                         mode="single"
                         selected={selectedDate}
                         onSelect={handleDateSelect}
+                        classNames={{
+                          months: 'sm:space-x-0',
+                          month_caption: 'flex justify-between items-center pt-1 pb-2 relative',
+                          caption_label: 'text-sm font-medium pl-2',
+                          nav: 'space-x-1 flex items-center absolute right-4 z-10',
+                          button_previous:
+                            'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 rounded border border-eleva-neutral-200',
+                          button_next:
+                            'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 rounded border border-eleva-neutral-200',
+                        }}
                         disabled={(date) =>
                           blockedDates.some((blocked) => {
                             if (editingDate && editingDate.id === blocked.id) return false;
