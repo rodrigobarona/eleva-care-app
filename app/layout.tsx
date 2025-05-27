@@ -3,7 +3,7 @@ import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrappe
 import { defaultLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { SpeedInsights } from '@vercel/speed-insights/next';
-import { Alexandria, JetBrains_Mono, Lora } from 'next/font/google';
+import { DM_Sans, IBM_Plex_Mono, Lora } from 'next/font/google';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 
 // Import global CSS
@@ -13,17 +13,21 @@ import './globals.css';
 const lora = Lora({
   subsets: ['latin'],
   display: 'swap',
+  weight: ['400', '700'], // 400: regular, 700: bold
   variable: '--font-lora',
 });
-const alexandria = Alexandria({
+
+const dmSans = DM_Sans({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-alexandria',
+  weight: ['400', '500', '700'], // 400: regular, 500: medium, 700: bold
+  variable: '--font-dm-sans',
 });
-const jetBrains = JetBrains_Mono({
+const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-jetbrains',
+  weight: ['400', '500'], // 400: regular, 500: medium
+  variable: '--font-ibm-plex-mono',
 });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -36,10 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       // to our IntlProvider that it should update the lang attribute
       lang={defaultLocale}
       data-dynamic-lang="true"
-      className={cn(
-        `${alexandria.variable} ${lora.variable} ${jetBrains.variable}`,
-        'scroll-smooth',
-      )}
+      className={cn(`${dmSans.variable} ${lora.variable} ${ibmPlexMono.variable}`, 'scroll-smooth')}
       suppressHydrationWarning
     >
       <head />

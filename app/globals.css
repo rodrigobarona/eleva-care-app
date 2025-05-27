@@ -68,9 +68,9 @@ body {
     --sidebar-accent-foreground: 0 0% 20.39%;
     --sidebar-border: 0 0% 92.16%;
     --sidebar-ring: 0 0% 70.98%;
-    --font-sans: Alexandria, sans-serif;
+    --font-sans: DM Sans, sans-serif;
     --font-serif: Lora, serif;
-    --font-mono: JetBrains Mono, monospace;
+    --font-mono: IBM Plex Mono, monospace;
     --radius: 0.5rem;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
@@ -114,9 +114,9 @@ body {
     --sidebar-accent-foreground: 46.15 9.77% 73.92%;
     --sidebar-border: 0 0% 92.16%;
     --sidebar-ring: 0 0% 70.98%;
-    --font-sans: Alexandria, sans-serif;
+    --font-sans: DM Sans, sans-serif;
     --font-serif: Lora, serif;
-    --font-mono: JetBrains Mono, monospace;
+    --font-mono: IBM Plex Mono, monospace;
     --radius: 0.5rem;
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);

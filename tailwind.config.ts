@@ -19,8 +19,8 @@ const config: Config = {
     extend: {
       fontFamily: {
         serif: ['var(--font-lora)', ...fontFamily.serif],
-        sans: ['var(--font-alexandria)', ...fontFamily.sans],
-        mono: ['var(--font-jetbrains)', ...fontFamily.mono],
+        sans: ['var(--font-dm-sans)', ...fontFamily.sans],
+        mono: ['var(--font-ibm-plex-mono)', ...fontFamily.mono],
       },
       keyframes: {
         'caret-blink': {

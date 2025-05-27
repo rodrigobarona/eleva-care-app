@@ -9,12 +9,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/molecules/dialog';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-import { CalendarIcon, Loader2, Plus, Trash2 } from 'lucide-react';
+import { CalendarIcon, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface BlockedDate {
@@ -28,12 +27,14 @@ interface BlockedDatesProps {
   blockedDates: BlockedDate[];
   onAddBlockedDates: (dates: { date: Date; reason?: string }[]) => Promise<void>;
   onRemoveBlockedDate: (id: number) => Promise<void>;
+  onEditBlockedDate?: (id: number, updates: { date: Date; reason?: string }) => Promise<void>;
 }
 
 export function BlockedDates({
   blockedDates,
   onAddBlockedDates,
   onRemoveBlockedDate,
+  onEditBlockedDate,
 }: BlockedDatesProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -41,6 +42,7 @@ export function BlockedDates({
   const [note, setNote] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [deletingIds, setDeletingIds] = useState<number[]>([]);
+  const [editingDate, setEditingDate] = useState<BlockedDate | null>(null);
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
@@ -48,16 +50,21 @@ export function BlockedDates({
   };
 
   const handleSave = async () => {
-    if (selectedDate) {
-      try {
-        setIsAdding(true);
+    if (!selectedDate) return;
+
+    try {
+      setIsAdding(true);
+      if (editingDate && onEditBlockedDate) {
+        await onEditBlockedDate(editingDate.id, {
+          date: selectedDate,
+          reason: note,
+        });
+      } else {
         await onAddBlockedDates([{ date: selectedDate, reason: note }]);
-        setSelectedDate(undefined);
-        setNote('');
-        setIsOpen(false);
-      } finally {
-        setIsAdding(false);
       }
+      handleCloseDialog();
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -67,6 +74,39 @@ export function BlockedDates({
       await onRemoveBlockedDate(id);
     } finally {
       setDeletingIds((prev) => prev.filter((deleteId) => deleteId !== id));
+    }
+  };
+
+  const handleAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingDate(null);
+    setSelectedDate(undefined);
+    setNote('');
+    setIsOpen(true);
+  };
+
+  const handleEdit = (blocked: BlockedDate, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEditingDate(blocked);
+    setSelectedDate(blocked.date);
+    setNote(blocked.reason || '');
+    setIsOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsOpen(false);
+    setEditingDate(null);
+    setSelectedDate(undefined);
+    setNote('');
+  };
+
+  const handleDialogChange = (open: boolean) => {
+    if (!open) {
+      handleCloseDialog();
+    } else {
+      setIsOpen(true);
     }
   };
 
@@ -93,7 +133,7 @@ export function BlockedDates({
                 .map((blocked) => (
                   <div
                     key={blocked.id}
-                    className="hover:bg-eleva-neutral-50 flex items-center justify-between px-4 py-3"
+                    className="hover:bg-eleva-neutral-50 group flex items-center justify-between px-4 py-3"
                   >
                     <div className="flex items-center gap-4">
                       <span className="font-mono text-sm">
@@ -103,22 +143,33 @@ export function BlockedDates({
                         <span className="text-sm text-eleva-neutral-900/60">{blocked.reason}</span>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(blocked.id)}
-                      disabled={deletingIds.includes(blocked.id)}
-                      className={cn(
-                        'text-eleva-neutral-900/60 hover:text-eleva-highlight-red',
-                        deletingIds.includes(blocked.id) && 'cursor-not-allowed opacity-50',
-                      )}
-                    >
-                      {deletingIds.includes(blocked.id) ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <Trash2 className="size-4" />
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => handleEdit(blocked, e)}
+                        className="opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <Pencil className="size-4 text-eleva-neutral-900/60 hover:text-eleva-neutral-900" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(blocked.id)}
+                        disabled={deletingIds.includes(blocked.id)}
+                        className={cn(
+                          'opacity-0 transition-opacity group-hover:opacity-100',
+                          'text-eleva-neutral-900/60 hover:text-eleva-highlight-red',
+                          deletingIds.includes(blocked.id) && 'cursor-not-allowed opacity-50',
+                        )}
+                      >
+                        {deletingIds.includes(blocked.id) ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-4" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
                 ))}
             </div>
@@ -126,18 +177,20 @@ export function BlockedDates({
             <p className="text-sm text-eleva-neutral-900/60">No blocked dates added yet.</p>
           )}
 
-          <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="w-fit gap-2">
-                <Plus className="size-4" />
-                Add blockout date
-              </Button>
-            </DialogTrigger>
+          <Dialog open={isOpen} onOpenChange={handleDialogChange}>
+            <Button variant="outline" onClick={(e) => handleAdd(e)} className="w-fit gap-2">
+              <Plus className="size-4" />
+              Add blockout date
+            </Button>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Select blockout date</DialogTitle>
+                <DialogTitle>
+                  {editingDate ? 'Edit blockout date' : 'Select blockout date'}
+                </DialogTitle>
                 <DialogDescription>
-                  Choose a date and add an optional note to block it out from your schedule
+                  {editingDate
+                    ? 'Update the date or note for this blocked time'
+                    : 'Choose a date and add an optional note to block it out from your schedule'}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -167,6 +220,7 @@ export function BlockedDates({
                         onSelect={handleDateSelect}
                         disabled={(date) =>
                           blockedDates.some((blocked) => {
+                            if (editingDate && editingDate.id === blocked.id) return false;
                             const calendarDateInTz = toDate(date, { timeZone: blocked.timezone });
                             const blockedDateInTz = toDate(blocked.date, {
                               timeZone: blocked.timezone,
@@ -178,7 +232,6 @@ export function BlockedDates({
                             );
                           })
                         }
-                        initialFocus
                       />
                     </PopoverContent>
                   </Popover>
@@ -193,7 +246,7 @@ export function BlockedDates({
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isAdding}>
+                <Button variant="outline" onClick={handleCloseDialog} disabled={isAdding}>
                   Cancel
                 </Button>
                 <Button
@@ -204,8 +257,10 @@ export function BlockedDates({
                   {isAdding ? (
                     <>
                       <Loader2 className="mr-2 size-4 animate-spin" />
-                      Adding...
+                      {editingDate ? 'Updating...' : 'Adding...'}
                     </>
+                  ) : editingDate ? (
+                    'Update date'
                   ) : (
                     'Add date'
                   )}

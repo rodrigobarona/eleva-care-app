@@ -139,6 +139,34 @@ export function ScheduleForm({
     }
   }, []);
 
+  // Add handlers for blocked dates
+  const handleEditBlockedDate = useCallback(
+    async (id: number, updates: { date: Date; reason?: string }) => {
+      try {
+        const timezone = form.getValues('timezone');
+        // First remove the old date
+        await removeBlockedDate(id);
+        // Then add the new date
+        await addBlockedDates([{ ...updates, timezone }]);
+        // Refresh blocked dates after editing
+        const updatedBlockedDates = await getBlockedDates();
+        setBlockedDates(updatedBlockedDates);
+        toast.success('Date updated successfully');
+      } catch (error) {
+        console.error('Error updating blocked date:', error);
+        toast.error('Failed to update blocked date');
+        // Refresh the list to ensure we're in sync
+        try {
+          const updatedBlockedDates = await getBlockedDates();
+          setBlockedDates(updatedBlockedDates);
+        } catch (refreshError) {
+          console.error('Error refreshing blocked dates:', refreshError);
+        }
+      }
+    },
+    [form],
+  );
+
   // Load blocked dates on component mount
   useEffect(() => {
     const loadBlockedDates = async () => {
@@ -362,6 +390,7 @@ export function ScheduleForm({
                   blockedDates={blockedDates}
                   onAddBlockedDates={handleAddBlockedDates}
                   onRemoveBlockedDate={handleRemoveBlockedDate}
+                  onEditBlockedDate={handleEditBlockedDate}
                 />
               </div>
             </div>
