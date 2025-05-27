@@ -2,7 +2,7 @@
 
 import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
 import { Button } from '@/components/atoms/button';
-import { Card } from '@/components/atoms/card';
+import { Separator } from '@/components/atoms/separator';
 import { Switch } from '@/components/atoms/switch';
 import {
   Tooltip,
@@ -10,14 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/atoms/tooltip';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/molecules/form';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/molecules/form';
 import {
   Select,
   SelectContent,
@@ -101,155 +94,156 @@ export function ScheduleForm({
   }
 
   return (
-    <Card className="bg-background p-6">
+    <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-          <div>
-            <div className="mb-6 flex items-center gap-2">
-              <h2 className="font-serif text-xl font-semibold">Weekly hours</h2>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" className="size-6">
-                      <Info className="size-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Set your weekly hours when you&apos;re typically available for meetings
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8">
+          <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+            <div>
+              <h3 className="text-sm font-medium">Weekly hours</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Configure times when you are available for bookings.
+              </p>
             </div>
 
-            <div className="divide-y rounded-lg border bg-card/50">
-              {DAYS_OF_WEEK_IN_ORDER.map((dayOfWeek) => {
-                const dayFields = groupedAvailabilityFields[dayOfWeek] ?? [];
-                const hasAvailability = dayFields.length > 0;
-                return (
-                  <div key={dayOfWeek} className="flex items-start gap-4 p-4">
-                    <div className="w-40">
-                      <div className="flex items-center gap-3">
-                        <Switch
-                          checked={hasAvailability}
-                          onCheckedChange={(checked) => {
-                            if (checked) {
-                              addAvailability({
-                                dayOfWeek,
-                                startTime: '09:00',
-                                endTime: '17:00',
-                              });
-                            } else {
-                              for (const field of dayFields) {
-                                removeAvailability(field.index);
+            <div className="lg:col-span-2">
+              <div className="divide-y rounded-lg border">
+                {DAYS_OF_WEEK_IN_ORDER.map((dayOfWeek) => {
+                  const dayFields = groupedAvailabilityFields[dayOfWeek] ?? [];
+                  const hasAvailability = dayFields.length > 0;
+                  return (
+                    <div key={dayOfWeek} className="flex items-start gap-4 p-4">
+                      <div className="w-40">
+                        <div className="flex items-center gap-3">
+                          <Switch
+                            checked={hasAvailability}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                addAvailability({
+                                  dayOfWeek,
+                                  startTime: '09:00',
+                                  endTime: '17:00',
+                                });
+                              } else {
+                                for (const field of dayFields) {
+                                  removeAvailability(field.index);
+                                }
                               }
-                            }
-                          }}
-                        />
-                        <span className="font-medium">{dayOfWeek}</span>
+                            }}
+                          />
+                          <span className="font-medium capitalize">{dayOfWeek}</span>
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex-1">
-                      {hasAvailability ? (
-                        <div className="space-y-3">
-                          {dayFields.map((field, labelIndex) => (
-                            <div key={field.id} className="group flex items-center gap-3">
-                              <FormField
-                                control={form.control}
-                                name={`availabilities.${field.index}.startTime`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormControl>
-                                      <Select value={field.value} onValueChange={field.onChange}>
-                                        <SelectTrigger className="w-32">
-                                          <SelectValue placeholder="Start time" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {TIME_OPTIONS.map((option) => (
-                                            <SelectItem key={option.value} value={option.value}>
-                                              {option.label}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <span className="text-muted-foreground">to</span>
-                              <FormField
-                                control={form.control}
-                                name={`availabilities.${field.index}.endTime`}
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormControl>
-                                      <Select value={field.value} onValueChange={field.onChange}>
-                                        <SelectTrigger className="w-32">
-                                          <SelectValue placeholder="End time" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                          {TIME_OPTIONS.map((option) => (
-                                            <SelectItem key={option.value} value={option.value}>
-                                              {option.label}
-                                            </SelectItem>
-                                          ))}
-                                        </SelectContent>
-                                      </Select>
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="opacity-0 transition-opacity group-hover:opacity-100"
-                                  onClick={() => removeAvailability(field.index)}
-                                >
-                                  <Trash2 className="size-4 text-muted-foreground hover:text-destructive" />
-                                </Button>
-                                {labelIndex === dayFields.length - 1 && (
+                      <div className="flex-1">
+                        {hasAvailability ? (
+                          <div className="space-y-3">
+                            {dayFields.map((field, labelIndex) => (
+                              <div key={field.id} className="group flex items-center gap-3">
+                                <FormField
+                                  control={form.control}
+                                  name={`availabilities.${field.index}.startTime`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                          <SelectTrigger className="w-32">
+                                            <SelectValue placeholder="Start time" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {TIME_OPTIONS.map((option) => (
+                                              <SelectItem key={option.value} value={option.value}>
+                                                {option.label}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <span className="text-muted-foreground">to</span>
+                                <FormField
+                                  control={form.control}
+                                  name={`availabilities.${field.index}.endTime`}
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormControl>
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                          <SelectTrigger className="w-32">
+                                            <SelectValue placeholder="End time" />
+                                          </SelectTrigger>
+                                          <SelectContent>
+                                            {TIME_OPTIONS.map((option) => (
+                                              <SelectItem key={option.value} value={option.value}>
+                                                {option.label}
+                                              </SelectItem>
+                                            ))}
+                                          </SelectContent>
+                                        </Select>
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <div className="flex items-center gap-2">
                                   <Button
                                     type="button"
                                     variant="ghost"
                                     size="icon"
                                     className="opacity-0 transition-opacity group-hover:opacity-100"
-                                    onClick={() => {
-                                      addAvailability({
-                                        dayOfWeek,
-                                        startTime: '09:00',
-                                        endTime: '17:00',
-                                      });
-                                    }}
+                                    onClick={() => removeAvailability(field.index)}
                                   >
-                                    <Plus className="size-4 text-muted-foreground hover:text-foreground" />
+                                    <Trash2 className="size-4 text-muted-foreground hover:text-destructive" />
                                   </Button>
-                                )}
+                                  {labelIndex === dayFields.length - 1 && (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="icon"
+                                      className="opacity-0 transition-opacity group-hover:opacity-100"
+                                      onClick={() => {
+                                        addAvailability({
+                                          dayOfWeek,
+                                          startTime: '09:00',
+                                          endTime: '17:00',
+                                        });
+                                      }}
+                                    >
+                                      <Plus className="size-4 text-muted-foreground hover:text-foreground" />
+                                    </Button>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">Unavailable</p>
-                      )}
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">Unavailable</p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="max-w-[400px] flex-1">
+          <Separator className="my-8" />
+
+          <div className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+            <div>
+              <h3 className="text-sm font-medium">Time zone</h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Select your timezone to ensure accurate scheduling.
+              </p>
+            </div>
+
+            <div className="space-y-8 lg:col-span-2">
               <FormField
                 control={form.control}
                 name="timezone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm font-medium">Time zone</FormLabel>
                     <div className="flex items-center gap-2">
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
@@ -281,18 +275,20 @@ export function ScheduleForm({
                   </FormItem>
                 )}
               />
-            </div>
 
-            <Button
-              disabled={form.formState.isSubmitting}
-              type="submit"
-              className="bg-eleva-primary font-medium text-white transition-colors hover:bg-eleva-primary-light focus:ring-2 focus:ring-eleva-primary/50"
-            >
-              {form.formState.isSubmitting ? 'Saving...' : 'Save Schedule'}
-            </Button>
+              <div className="flex justify-end">
+                <Button
+                  disabled={form.formState.isSubmitting}
+                  type="submit"
+                  className="bg-eleva-primary font-medium text-white transition-colors hover:bg-eleva-primary-light focus:ring-2 focus:ring-eleva-primary/50"
+                >
+                  {form.formState.isSubmitting ? 'Saving...' : 'Save Schedule'}
+                </Button>
+              </div>
+            </div>
           </div>
         </form>
       </Form>
-    </Card>
+    </>
   );
 }
