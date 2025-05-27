@@ -31,8 +31,9 @@ import {
   SelectValue,
 } from '@/components/molecules/select';
 import { DEFAULT_SCHEDULING_SETTINGS } from '@/lib/constants/scheduling';
+import { cn } from '@/lib/utils';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Info } from 'lucide-react';
+import { Info, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -512,15 +513,28 @@ export function SchedulingSettingsForm() {
               />
             </div>
 
-            {/* Save Button - Make it more playful with gradient */}
+            {/* Save Button - Clean primary style */}
             {form.formState.isDirty && (
               <div className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-6 right-6 z-10">
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="rounded-full bg-gradient-to-r from-eleva-primary via-eleva-primary to-eleva-highlight-purple px-6 font-medium text-white shadow-lg transition-all hover:from-eleva-primary-light hover:to-eleva-highlight-purple/90 hover:shadow-md focus:ring-2 focus:ring-eleva-primary/50"
+                  className={cn(
+                    'px-6 py-2.5 font-medium shadow-lg transition-all',
+                    'bg-eleva-primary text-white hover:bg-eleva-primary/90',
+                    'focus:ring-2 focus:ring-eleva-primary/50 focus:ring-offset-2',
+                    'disabled:cursor-not-allowed disabled:opacity-50',
+                    'rounded-full',
+                  )}
                 >
-                  {isLoading ? 'Saving...' : 'Save changes'}
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save changes'
+                  )}
                 </Button>
               </div>
             )}
