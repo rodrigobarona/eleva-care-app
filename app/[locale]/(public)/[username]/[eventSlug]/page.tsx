@@ -15,7 +15,13 @@ import { Link } from '@/lib/i18n/navigation';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { createClerkClient } from '@clerk/nextjs/server';
 import type { User } from '@clerk/nextjs/server';
-import { addDays, endOfDay, type NearestMinutes, roundToNearestMinutes } from 'date-fns';
+import {
+  addDays,
+  addMinutes,
+  endOfDay,
+  type NearestMinutes,
+  roundToNearestMinutes,
+} from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
@@ -134,6 +140,7 @@ async function CalendarWithAvailability({
   // Fetch scheduling settings for the user
   let timeSlotInterval = 15; // Default fallback value
   let bookingWindowDays = 60; // Default fallback value (2 months)
+  let minimumNotice = 1440; // Default fallback value (24 hours in minutes)
   try {
     const settings = await db.query.schedulingSettings.findFirst({
       where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, userId),
@@ -145,6 +152,9 @@ async function CalendarWithAvailability({
     if (settings?.bookingWindowDays) {
       bookingWindowDays = settings.bookingWindowDays;
     }
+    if (settings?.minimumNotice) {
+      minimumNotice = settings.minimumNotice;
+    }
   } catch (error) {
     console.error('[CalendarWithAvailability] Error fetching scheduling settings:', error);
     // Continue with the default values
@@ -155,13 +165,17 @@ async function CalendarWithAvailability({
   const roundingInterval = timeSlotInterval <= 30 ? timeSlotInterval : 30;
 
   const now = new Date();
+
+  // Add minimum notice period to the current time
+  const earliestPossibleTime = addMinutes(now, minimumNotice);
+
   let startDate: Date;
 
   if (timeSlotInterval <= 30) {
     // For intervals up to 30 minutes, we can use roundToNearestMinutes directly
     startDate = new Date(
       formatInTimeZone(
-        roundToNearestMinutes(now, {
+        roundToNearestMinutes(earliestPossibleTime, {
           nearestTo: roundingInterval as NearestMinutes,
           roundingMethod: 'ceil',
         }),
@@ -171,7 +185,7 @@ async function CalendarWithAvailability({
     );
   } else {
     // For larger intervals (like 60 minutes), we need to round to 30 first, then adjust
-    const roundedTo30 = roundToNearestMinutes(now, {
+    const roundedTo30 = roundToNearestMinutes(earliestPossibleTime, {
       nearestTo: 30 as NearestMinutes,
       roundingMethod: 'ceil',
     });

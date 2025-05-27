@@ -34,8 +34,20 @@ export async function getValidTimesFromSchedule(
 
   if (schedule == null) return [];
 
+  // Get scheduling settings for minimum notice period
+  const settings = await db.query.schedulingSettings.findFirst({
+    where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, event.clerkUserId),
+  });
+
+  const minimumNotice = settings?.minimumNotice ?? 1440; // Default to 24 hours if not set
+  const now = new Date();
+  const earliestPossibleTime = addMinutes(now, minimumNotice);
+
   const validTimes = [];
   for (const time of times) {
+    // Skip times that don't meet the minimum notice requirement
+    if (time < earliestPossibleTime) continue;
+
     // Check if time conflicts with any calendar event
     const hasCalendarConflict = calendarEvents.some((calendarEvent) => {
       const meetingEnd = addMinutes(time, event.durationInMinutes);
