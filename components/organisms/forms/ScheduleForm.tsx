@@ -4,12 +4,6 @@ import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
 import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
 import { Switch } from '@/components/atoms/switch';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/atoms/tooltip';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/molecules/form';
 import {
   Select,
@@ -18,13 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/molecules/select';
-import { formatTimezoneOffset } from '@/lib/formatters';
+import { TimezoneSelect } from '@/components/molecules/timezone-select';
 import { timeToInt } from '@/lib/utils';
-import { cn } from '@/lib/utils';
 import { scheduleFormSchema } from '@/schema/schedule';
 import { saveSchedule } from '@/server/actions/schedule';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Info, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useEffect } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -48,63 +41,6 @@ type Availability = {
   startTime: string;
   endTime: string;
   dayOfWeek: (typeof DAYS_OF_WEEK_IN_ORDER)[number];
-};
-
-// Add these helper functions before the ScheduleForm component
-const CONTINENT_LABELS: Record<string, string> = {
-  America: '🌎 Americas',
-  Europe: '🌍 Europe',
-  Asia: '🌏 Asia',
-  Africa: '🌍 Africa',
-  Pacific: '🌏 Pacific',
-  Atlantic: '🌍 Atlantic',
-  Indian: '🌏 Indian',
-  Antarctica: '❄️ Antarctica',
-  Australia: '🌏 Australia',
-};
-
-const getDisplayLabel = (continent: string): string => {
-  return CONTINENT_LABELS[continent] ?? `�� ${continent}`;
-};
-
-interface GroupedTimezone {
-  continent: string;
-  timezones: { value: string; label: string; offset: string }[];
-}
-
-const groupTimezones = () => {
-  const timezones = Intl.supportedValuesOf('timeZone');
-  const grouped: Record<string, { value: string; label: string; offset: string }[]> = {};
-
-  for (const timezone of timezones) {
-    const [continent = 'Other'] = timezone.split('/');
-    if (!grouped[continent]) {
-      grouped[continent] = [];
-    }
-
-    const parts = timezone.split('/');
-    const city = parts[parts.length - 1]?.replace(/_/g, ' ') || timezone;
-    const offset = formatTimezoneOffset(timezone);
-
-    grouped[continent].push({
-      value: timezone,
-      label: city,
-      offset: offset,
-    });
-  }
-
-  // Convert to array and sort continents
-  return Object.entries(grouped)
-    .map(
-      ([continent, timezones]): GroupedTimezone => ({
-        continent,
-        timezones: timezones.sort((a, b) => {
-          const offsetCompare = a.offset.localeCompare(b.offset);
-          return offsetCompare !== 0 ? offsetCompare : a.label.localeCompare(b.label);
-        }),
-      }),
-    )
-    .sort((a, b) => a.continent.localeCompare(b.continent));
 };
 
 export function ScheduleForm({
@@ -337,64 +273,7 @@ export function ScheduleForm({
               </div>
 
               <div className="space-y-8 lg:col-span-2">
-                <FormField
-                  control={form.control}
-                  name="timezone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center gap-2">
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger className="w-[360px] border-eleva-neutral-200">
-                              <SelectValue />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="max-h-[320px] overflow-hidden">
-                            {groupTimezones().map((group) => (
-                              <div key={group.continent} className="relative">
-                                <div className="sticky -top-1 z-10 border-b border-eleva-neutral-200 bg-white px-2 py-1">
-                                  <div className="font-serif text-sm font-medium tracking-tight text-eleva-primary">
-                                    {getDisplayLabel(group.continent)}
-                                  </div>
-                                </div>
-                                {group.timezones.map((timezone) => (
-                                  <SelectItem
-                                    key={timezone.value}
-                                    value={timezone.value}
-                                    className={cn(
-                                      'cursor-pointer pl-4 pr-2',
-                                      field.value === timezone.value && 'bg-eleva-primary/5',
-                                    )}
-                                  >
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span className="text-sm">{timezone.label}</span>
-                                      <span className="font-mono text-xs text-eleva-neutral-900/60">
-                                        {timezone.offset}
-                                      </span>
-                                    </div>
-                                  </SelectItem>
-                                ))}
-                              </div>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="ghost" size="icon" className="size-6">
-                                <Info className="size-4 text-eleva-neutral-900/60" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
-                              Your timezone was automatically detected
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <FormMessage className="text-xs text-eleva-highlight-red" />
-                    </FormItem>
-                  )}
-                />
+                <TimezoneSelect control={form.control} name="timezone" />
               </div>
             </div>
           </div>
