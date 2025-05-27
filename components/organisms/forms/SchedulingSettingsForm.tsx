@@ -30,6 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/molecules/select';
+import { DEFAULT_SCHEDULING_SETTINGS } from '@/lib/constants/scheduling';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Info } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -117,14 +118,8 @@ const BUFFER_TIME_OPTIONS = [
   { value: 120, label: '2 hours' },
 ];
 
-// Update DEFAULT_VALUES
-const DEFAULT_VALUES: FormValues = {
-  beforeEventBuffer: 10,
-  afterEventBuffer: 0,
-  minimumNotice: 1440, // 24 hours in minutes
-  timeSlotInterval: 15,
-  bookingWindowDays: 60,
-};
+// Default values imported from shared constants
+const DEFAULT_VALUES: FormValues = DEFAULT_SCHEDULING_SETTINGS;
 
 export function SchedulingSettingsForm() {
   const [isLoading, setIsLoading] = useState(true);

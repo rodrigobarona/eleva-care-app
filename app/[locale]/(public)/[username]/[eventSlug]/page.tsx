@@ -10,6 +10,13 @@ import {
 import { Skeleton } from '@/components/atoms/skeleton';
 import { MeetingForm } from '@/components/organisms/forms/MeetingForm';
 import { db } from '@/drizzle/db';
+import {
+  DEFAULT_AFTER_EVENT_BUFFER,
+  DEFAULT_BEFORE_EVENT_BUFFER,
+  DEFAULT_BOOKING_WINDOW_DAYS,
+  DEFAULT_MINIMUM_NOTICE,
+  DEFAULT_TIME_SLOT_INTERVAL,
+} from '@/lib/constants/scheduling';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { Link } from '@/lib/i18n/navigation';
 import GoogleCalendarService from '@/server/googleCalendar';
@@ -141,11 +148,11 @@ async function CalendarWithAvailability({
   }
 
   // Fetch scheduling settings for the user
-  let timeSlotInterval = 15; // Default fallback value
-  let bookingWindowDays = 60; // Default fallback value (2 months)
-  let minimumNotice = 1440; // Default fallback value (24 hours in minutes)
-  let beforeEventBuffer = 10; // Default fallback value (10 minutes)
-  let afterEventBuffer = 0; // Default fallback value (no buffer)
+  let timeSlotInterval = DEFAULT_TIME_SLOT_INTERVAL;
+  let bookingWindowDays = DEFAULT_BOOKING_WINDOW_DAYS;
+  let minimumNotice = DEFAULT_MINIMUM_NOTICE;
+  let beforeEventBuffer = DEFAULT_BEFORE_EVENT_BUFFER;
+  let afterEventBuffer = DEFAULT_AFTER_EVENT_BUFFER;
   try {
     const settings = await db.query.schedulingSettings.findFirst({
       where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, userId),
