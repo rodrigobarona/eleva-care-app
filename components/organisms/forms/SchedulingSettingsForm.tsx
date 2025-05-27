@@ -205,11 +205,11 @@ export function SchedulingSettingsForm() {
           <div className="space-y-1">
             <h3
               id="buffer-times"
-              className="font-serif text-xl font-medium tracking-tight text-eleva-primary"
+              className="font-regular font-serif text-xl tracking-tight text-eleva-primary"
             >
               Buffer Times
             </h3>
-            <p className="text-sm leading-6 text-eleva-neutral-900/60">
+            <p className="text-sm leading-6 text-eleva-neutral-900/70">
               Add padding before and after events to prepare or wrap up.
             </p>
           </div>
@@ -328,11 +328,11 @@ export function SchedulingSettingsForm() {
           <div className="space-y-1">
             <h3
               id="booking-rules"
-              className="font-serif text-xl font-medium tracking-tight text-eleva-primary"
+              className="font-regular font-serif text-xl tracking-tight text-eleva-primary"
             >
               Booking Rules
             </h3>
-            <p className="text-sm leading-6 text-eleva-neutral-900/60">
+            <p className="text-sm leading-6 text-eleva-neutral-900/70">
               Configure advance notice requirements and scheduling intervals.
             </p>
           </div>
@@ -450,11 +450,11 @@ export function SchedulingSettingsForm() {
           <div className="space-y-1">
             <h3
               id="booking-window"
-              className="font-serif text-xl font-medium tracking-tight text-eleva-primary"
+              className="font-regular font-serif text-xl tracking-tight text-eleva-primary"
             >
               Booking Window
             </h3>
-            <p className="text-sm leading-6 text-eleva-neutral-900/60">
+            <p className="text-sm leading-6 text-eleva-neutral-900/70">
               Control how far in advance people can schedule appointments.
             </p>
           </div>

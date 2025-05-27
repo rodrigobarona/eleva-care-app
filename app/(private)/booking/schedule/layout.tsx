@@ -15,24 +15,27 @@ export default function ScheduleLayout({ children }: { children: React.ReactNode
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="font-serif text-3xl font-semibold tracking-tight text-eleva-primary">
+        <h1 className="font-regular font-serif text-3xl tracking-tight text-eleva-primary">
           Schedule Configuration
         </h1>
-        <p className="mt-2 text-eleva-neutral-900/60">
+        <p className="mt-2 text-sm leading-6 text-eleva-neutral-900/70">
           Manage your availability schedule and booking preferences for client appointments.
         </p>
       </div>
 
       <div className="space-y-6">
         <nav className="border-b border-eleva-neutral-200">
-          <div className="-mb-px flex space-x-8" aria-label="Tabs">
+          <div className="-mb-px flex space-x-0" aria-label="Tabs">
             {navigation.map((item) => (
               <Button
                 key={item.name}
-                variant="link"
+                variant="ghost"
                 asChild
-                className="relative px-1 py-4 text-sm font-medium text-eleva-neutral-900/60 transition-colors hover:text-eleva-neutral-900 data-[current=true]:text-eleva-neutral-900 data-[current=true]:after:absolute data-[current=true]:after:bottom-0 data-[current=true]:after:left-0 data-[current=true]:after:h-0.5 data-[current=true]:after:w-full data-[current=true]:after:bg-eleva-primary"
-                data-current={item.href === pathname}
+                className={`relative rounded-none border-b-2 px-4 py-3 text-sm font-medium transition-all duration-200 hover:border-eleva-neutral-900/25 hover:text-eleva-neutral-900 ${
+                  item.href === pathname
+                    ? 'border-eleva-primary text-eleva-primary hover:bg-transparent'
+                    : 'border-transparent text-eleva-neutral-900/50 hover:bg-transparent'
+                }`}
               >
                 <Link href={item.href}>{item.name}</Link>
               </Button>

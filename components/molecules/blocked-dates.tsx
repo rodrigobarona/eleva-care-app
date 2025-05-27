@@ -117,208 +117,192 @@ export function BlockedDates({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-      <div>
-        <h3
-          id="blocked-dates"
-          className="font-serif text-xl font-medium tracking-tight text-eleva-primary"
+    <div className="flex flex-col gap-4">
+      {blockedDates.length > 0 ? (
+        <div className="divide-y divide-eleva-neutral-200 rounded-lg border border-eleva-neutral-200">
+          {blockedDates
+            .sort((a, b) => a.date.getTime() - b.date.getTime())
+            .map((blocked) => (
+              <div
+                key={blocked.id}
+                className="hover:bg-eleva-neutral-50 group flex items-center justify-between px-4 py-3"
+              >
+                <div className="flex items-center gap-4">
+                  <span className="font-mono text-sm font-medium text-eleva-neutral-900">
+                    {formatInTimeZone(blocked.date, blocked.timezone, 'MMM dd, yyyy')}
+                  </span>
+                  {blocked.reason && (
+                    <span className="text-sm text-eleva-neutral-900/70">{blocked.reason}</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={(e) => handleEdit(blocked, e)}
+                          className="rounded-full text-eleva-neutral-900/60 opacity-0 transition-opacity hover:bg-eleva-primary/10 hover:text-eleva-primary group-hover:opacity-100"
+                        >
+                          <Pencil className="size-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Edit blocked date</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDelete(blocked.id)}
+                          disabled={deletingIds.includes(blocked.id)}
+                          className={cn(
+                            'rounded-full opacity-0 transition-opacity group-hover:opacity-100',
+                            'text-eleva-neutral-900/60 hover:bg-eleva-highlight-red/10 hover:text-eleva-highlight-red',
+                            deletingIds.includes(blocked.id) && 'cursor-not-allowed opacity-50',
+                          )}
+                        >
+                          {deletingIds.includes(blocked.id) ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="size-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Delete blocked date</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
+            ))}
+        </div>
+      ) : (
+        <p className="text-sm text-eleva-neutral-900/60">No blocked dates added yet.</p>
+      )}
+
+      <Dialog open={isOpen} onOpenChange={handleDialogChange}>
+        <Button
+          variant="outline"
+          onClick={(e) => handleAdd(e)}
+          className="w-fit gap-2 rounded-md border-eleva-primary-light text-eleva-primary transition-colors hover:bg-eleva-primary-light hover:text-white"
         >
-          Block out dates
-        </h3>
-        <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
-          Add days when you do not want to get bookings.
-        </p>
-      </div>
-
-      <div className="lg:col-span-2">
-        <div className="flex flex-col gap-4">
-          {blockedDates.length > 0 ? (
-            <div className="divide-y divide-eleva-neutral-200 rounded-lg border border-eleva-neutral-200">
-              {blockedDates
-                .sort((a, b) => a.date.getTime() - b.date.getTime())
-                .map((blocked) => (
-                  <div
-                    key={blocked.id}
-                    className="hover:bg-eleva-neutral-50 group flex items-center justify-between px-4 py-3"
+          <Plus className="size-4" />
+          Add blockout date
+        </Button>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>{editingDate ? 'Edit blockout date' : 'Select blockout date'}</DialogTitle>
+            <DialogDescription>
+              {editingDate
+                ? 'Update the date or note for this blocked time'
+                : 'Choose a date and add an optional note to block it out from your schedule'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label className="text-sm font-medium text-eleva-neutral-900">Date</Label>
+              <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      'h-10 w-full justify-start rounded border-eleva-neutral-200 text-left font-normal',
+                      !selectedDate && 'text-muted-foreground',
+                    )}
                   >
-                    <div className="flex items-center gap-4">
+                    <CalendarIcon className="mr-2 size-4" />
+                    {selectedDate ? (
                       <span className="font-mono text-sm">
-                        {formatInTimeZone(blocked.date, blocked.timezone, 'MMM dd, yyyy')}
+                        {format(selectedDate, 'MMM dd, yyyy')}
                       </span>
-                      {blocked.reason && (
-                        <span className="text-sm text-eleva-neutral-900/60">{blocked.reason}</span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => handleEdit(blocked, e)}
-                              className="rounded-full text-eleva-neutral-900/60 opacity-0 transition-opacity hover:bg-eleva-primary/10 hover:text-eleva-primary group-hover:opacity-100"
-                            >
-                              <Pencil className="size-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Edit blocked date</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDelete(blocked.id)}
-                              disabled={deletingIds.includes(blocked.id)}
-                              className={cn(
-                                'rounded-full opacity-0 transition-opacity group-hover:opacity-100',
-                                'text-eleva-neutral-900/60 hover:bg-eleva-highlight-red/10 hover:text-eleva-highlight-red',
-                                deletingIds.includes(blocked.id) && 'cursor-not-allowed opacity-50',
-                              )}
-                            >
-                              {deletingIds.includes(blocked.id) ? (
-                                <Loader2 className="size-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="size-4" />
-                              )}
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Delete blocked date</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    </div>
-                  </div>
-                ))}
-            </div>
-          ) : (
-            <p className="text-sm text-eleva-neutral-900/60">No blocked dates added yet.</p>
-          )}
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateSelect}
+                    classNames={{
+                      months: 'sm:space-x-0',
+                      month_caption: 'flex justify-between items-center pt-1 pb-2 relative',
+                      caption_label: 'text-sm font-medium pl-2',
+                      nav: 'space-x-1 flex items-center absolute right-4 z-10',
+                      button_previous:
+                        'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 rounded border border-eleva-neutral-200',
+                      button_next:
+                        'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 rounded border border-eleva-neutral-200',
+                    }}
+                    disabled={(date) =>
+                      blockedDates.some((blocked) => {
+                        if (editingDate && editingDate.id === blocked.id) return false;
+                        const calendarDateInTz = toDate(date, { timeZone: blocked.timezone });
+                        const blockedDateInTz = toDate(blocked.date, {
+                          timeZone: blocked.timezone,
+                        });
 
-          <Dialog open={isOpen} onOpenChange={handleDialogChange}>
+                        return (
+                          formatInTimeZone(calendarDateInTz, blocked.timezone, 'yyyy-MM-dd') ===
+                          formatInTimeZone(blockedDateInTz, blocked.timezone, 'yyyy-MM-dd')
+                        );
+                      })
+                    }
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-sm font-medium text-eleva-neutral-900">Note (optional)</Label>
+              <Input
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                placeholder="Add a note for this blocked date..."
+                className="h-10 rounded border-eleva-neutral-200 focus:border-eleva-primary focus:ring-eleva-primary/20"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-3">
             <Button
               variant="outline"
-              onClick={(e) => handleAdd(e)}
-              className="w-fit gap-2 rounded-md border-eleva-primary-light text-eleva-primary transition-colors hover:bg-eleva-primary-light hover:text-white"
+              onClick={handleCloseDialog}
+              disabled={isAdding}
+              className="rounded border-eleva-neutral-200 text-eleva-neutral-900 transition-colors hover:bg-eleva-neutral-100"
             >
-              <Plus className="size-4" />
-              Add blockout date
+              Cancel
             </Button>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>
-                  {editingDate ? 'Edit blockout date' : 'Select blockout date'}
-                </DialogTitle>
-                <DialogDescription>
-                  {editingDate
-                    ? 'Update the date or note for this blocked time'
-                    : 'Choose a date and add an optional note to block it out from your schedule'}
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label>Date</Label>
-                  <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          'w-full justify-start rounded border-eleva-neutral-200 text-left font-normal',
-                          !selectedDate && 'text-muted-foreground',
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 size-4" />
-                        {selectedDate ? (
-                          <span className="font-mono">{format(selectedDate, 'MMM dd, yyyy')}</span>
-                        ) : (
-                          <span>Pick a date</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={selectedDate}
-                        onSelect={handleDateSelect}
-                        classNames={{
-                          months: 'sm:space-x-0',
-                          month_caption: 'flex justify-between items-center pt-1 pb-2 relative',
-                          caption_label: 'text-sm font-medium pl-2',
-                          nav: 'space-x-1 flex items-center absolute right-4 z-10',
-                          button_previous:
-                            'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 rounded border border-eleva-neutral-200',
-                          button_next:
-                            'h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 rounded border border-eleva-neutral-200',
-                        }}
-                        disabled={(date) =>
-                          blockedDates.some((blocked) => {
-                            if (editingDate && editingDate.id === blocked.id) return false;
-                            const calendarDateInTz = toDate(date, { timeZone: blocked.timezone });
-                            const blockedDateInTz = toDate(blocked.date, {
-                              timeZone: blocked.timezone,
-                            });
-
-                            return (
-                              formatInTimeZone(calendarDateInTz, blocked.timezone, 'yyyy-MM-dd') ===
-                              formatInTimeZone(blockedDateInTz, blocked.timezone, 'yyyy-MM-dd')
-                            );
-                          })
-                        }
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="grid gap-2">
-                  <Label>Note (optional)</Label>
-                  <Input
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="Add a note for this blocked date..."
-                    className="rounded border-eleva-neutral-200 focus:border-eleva-primary focus:ring-eleva-primary/20"
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleCloseDialog}
-                  disabled={isAdding}
-                  className="rounded border-eleva-neutral-200 text-eleva-neutral-900 transition-colors hover:bg-eleva-neutral-100"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSave}
-                  disabled={!selectedDate || isAdding}
-                  className={cn(
-                    'min-w-[100px] rounded-lg font-medium transition-all',
-                    'bg-eleva-primary text-white hover:bg-eleva-primary/90',
-                    'focus:ring-2 focus:ring-eleva-primary/50 focus:ring-offset-2',
-                    'disabled:cursor-not-allowed disabled:opacity-50',
-                  )}
-                >
-                  {isAdding ? (
-                    <>
-                      <Loader2 className="mr-2 size-4 animate-spin" />
-                      {editingDate ? 'Updating...' : 'Adding...'}
-                    </>
-                  ) : editingDate ? (
-                    'Update date'
-                  ) : (
-                    'Add date'
-                  )}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+            <Button
+              onClick={handleSave}
+              disabled={!selectedDate || isAdding}
+              className={cn(
+                'min-w-[100px] rounded-lg font-medium transition-all',
+                'bg-eleva-primary text-white hover:bg-eleva-primary/90',
+                'focus:ring-2 focus:ring-eleva-primary/50 focus:ring-offset-2',
+                'disabled:cursor-not-allowed disabled:opacity-50',
+              )}
+            >
+              {isAdding ? (
+                <>
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  {editingDate ? 'Updating...' : 'Adding...'}
+                </>
+              ) : editingDate ? (
+                'Update date'
+              ) : (
+                'Add date'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

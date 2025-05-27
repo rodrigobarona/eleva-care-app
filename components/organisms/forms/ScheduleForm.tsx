@@ -20,8 +20,7 @@ import {
   SelectValue,
 } from '@/components/molecules/select';
 import { TimezoneSelect } from '@/components/molecules/timezone-select';
-import { timeToInt } from '@/lib/utils';
-import { cn } from '@/lib/utils';
+import { cn, timeToInt } from '@/lib/utils';
 import { scheduleFormSchema } from '@/schema/schedule';
 import {
   addBlockedDates,
@@ -216,11 +215,11 @@ export function ScheduleForm({
               <div>
                 <h3
                   id="weekly-hours"
-                  className="font-serif text-xl font-medium tracking-tight text-eleva-primary"
+                  className="font-regular font-serif text-xl tracking-tight text-eleva-primary"
                 >
                   Weekly hours
                 </h3>
-                <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
+                <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/70">
                   Configure times when you are available for bookings.
                 </p>
               </div>
@@ -391,11 +390,11 @@ export function ScheduleForm({
               <div>
                 <h3
                   id="timezone"
-                  className="font-serif text-xl font-medium tracking-tight text-eleva-primary"
+                  className="font-regular font-serif text-xl tracking-tight text-eleva-primary"
                 >
                   Time zone
                 </h3>
-                <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
+                <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/70">
                   Select your timezone to ensure accurate scheduling.
                 </p>
               </div>
@@ -410,7 +409,19 @@ export function ScheduleForm({
             <Separator className="my-8 bg-eleva-neutral-200" />
 
             <div className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-              <div className="lg:col-span-3">
+              <div>
+                <h3
+                  id="blocked-dates"
+                  className="font-regular font-serif text-xl tracking-tight text-eleva-primary"
+                >
+                  Block out dates
+                </h3>
+                <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/70">
+                  Add days when you do not want to get bookings.
+                </p>
+              </div>
+
+              <div className="lg:col-span-2">
                 <BlockedDates
                   blockedDates={blockedDates}
                   onAddBlockedDates={handleAddBlockedDates}
