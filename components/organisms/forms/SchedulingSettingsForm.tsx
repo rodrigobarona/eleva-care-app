@@ -187,10 +187,8 @@ export function SchedulingSettingsForm() {
       }
 
       toast.success('Scheduling settings updated successfully.');
-      // Instead of resetting with new values, just mark current values as pristine
-      form.reset(undefined, {
-        keepValues: true,
-      });
+      // Mark form as pristine with current values
+      form.reset(values);
     } catch (error) {
       console.error('Error updating scheduling settings:', error);
       toast.error('Failed to update scheduling settings.');
@@ -498,17 +496,16 @@ export function SchedulingSettingsForm() {
               )}
             />
 
+            {/* Save Button */}
             {form.formState.isDirty && (
               <div className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-6 right-6 z-10">
-                <div className="flex items-center gap-3 rounded-full border border-eleva-neutral-200 bg-white px-4 py-2 shadow-lg">
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="rounded-full bg-eleva-primary px-4 font-medium text-white transition-colors hover:bg-eleva-primary-light focus:ring-2 focus:ring-eleva-primary/50"
-                  >
-                    {isLoading ? 'Saving...' : 'Save changes'}
-                  </Button>
-                </div>
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="rounded-full bg-eleva-primary px-6 font-medium text-white shadow-lg transition-all hover:bg-eleva-primary-light hover:shadow-md focus:ring-2 focus:ring-eleva-primary/50"
+                >
+                  {isLoading ? 'Saving...' : 'Save changes'}
+                </Button>
               </div>
             )}
           </div>
