@@ -130,6 +130,19 @@ export function SchedulingSettingsForm() {
     defaultValues: DEFAULT_VALUES,
   });
 
+  // Add protection against unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (form.formState.isDirty) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [form.formState.isDirty]);
+
   // Fetch current settings on component mount
   useEffect(() => {
     const fetchSettings = async () => {
@@ -144,13 +157,7 @@ export function SchedulingSettingsForm() {
         const settings = await response.json();
 
         // Update form with fetched settings
-        form.reset({
-          beforeEventBuffer: settings.beforeEventBuffer,
-          afterEventBuffer: settings.afterEventBuffer,
-          minimumNotice: settings.minimumNotice,
-          timeSlotInterval: settings.timeSlotInterval,
-          bookingWindowDays: settings.bookingWindowDays,
-        });
+        form.reset(settings);
       } catch (error) {
         console.error('Error fetching scheduling settings:', error);
         toast.error('Failed to load scheduling settings. Using default values.');
@@ -180,6 +187,10 @@ export function SchedulingSettingsForm() {
       }
 
       toast.success('Scheduling settings updated successfully.');
+      // Instead of resetting with new values, just mark current values as pristine
+      form.reset(undefined, {
+        keepValues: true,
+      });
     } catch (error) {
       console.error('Error updating scheduling settings:', error);
       toast.error('Failed to update scheduling settings.');
@@ -487,15 +498,19 @@ export function SchedulingSettingsForm() {
               )}
             />
 
-            <div className="flex justify-end">
-              <Button
-                type="submit"
-                disabled={isLoading}
-                className="bg-eleva-primary font-medium text-white transition-colors hover:bg-eleva-primary-light focus:ring-2 focus:ring-eleva-primary/50"
-              >
-                {isLoading ? 'Saving...' : 'Save Settings'}
-              </Button>
-            </div>
+            {form.formState.isDirty && (
+              <div className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-6 right-6 z-10">
+                <div className="flex items-center gap-3 rounded-full border border-eleva-neutral-200 bg-white px-4 py-2 shadow-lg">
+                  <Button
+                    type="submit"
+                    disabled={isLoading}
+                    className="rounded-full bg-eleva-primary px-4 font-medium text-white transition-colors hover:bg-eleva-primary-light focus:ring-2 focus:ring-eleva-primary/50"
+                  >
+                    {isLoading ? 'Saving...' : 'Save changes'}
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </form>
