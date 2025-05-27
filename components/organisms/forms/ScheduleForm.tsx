@@ -15,6 +15,7 @@ import {
 } from '@/components/molecules/select';
 import { TimezoneSelect } from '@/components/molecules/timezone-select';
 import { timeToInt } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { scheduleFormSchema } from '@/schema/schedule';
 import {
   addBlockedDates,
@@ -23,7 +24,7 @@ import {
 } from '@/server/actions/blocked-dates';
 import { saveSchedule } from '@/server/actions/schedule';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, Trash2 } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -396,15 +397,28 @@ export function ScheduleForm({
             </div>
           </div>
 
-          {/* Save Button - Make it more playful with gradient */}
+          {/* Save Button - Clean primary style */}
           {form.formState.isDirty && (
             <div className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-6 right-6 z-10">
               <Button
                 type="submit"
                 disabled={form.formState.isSubmitting}
-                className="rounded-full bg-gradient-to-r from-eleva-primary via-eleva-primary to-eleva-highlight-purple px-6 font-medium text-white shadow-lg transition-all hover:from-eleva-primary-light hover:to-eleva-highlight-purple/90 hover:shadow-md focus:ring-2 focus:ring-eleva-primary/50"
+                className={cn(
+                  'px-6 py-2.5 font-medium shadow-lg transition-all',
+                  'bg-eleva-primary text-white hover:bg-eleva-primary/90',
+                  'focus:ring-2 focus:ring-eleva-primary/50 focus:ring-offset-2',
+                  'disabled:cursor-not-allowed disabled:opacity-50',
+                  'rounded-full',
+                )}
               >
-                {form.formState.isSubmitting ? 'Saving...' : 'Save changes'}
+                {form.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save changes'
+                )}
               </Button>
             </div>
           )}

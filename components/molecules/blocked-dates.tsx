@@ -148,9 +148,9 @@ export function BlockedDates({
                         variant="ghost"
                         size="icon"
                         onClick={(e) => handleEdit(blocked, e)}
-                        className="opacity-0 transition-opacity group-hover:opacity-100"
+                        className="rounded-full text-eleva-neutral-900/60 opacity-0 transition-opacity hover:bg-eleva-primary/10 hover:text-eleva-primary group-hover:opacity-100"
                       >
-                        <Pencil className="size-4 text-eleva-neutral-900/60 hover:text-eleva-neutral-900" />
+                        <Pencil className="size-4" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -158,8 +158,8 @@ export function BlockedDates({
                         onClick={() => handleDelete(blocked.id)}
                         disabled={deletingIds.includes(blocked.id)}
                         className={cn(
-                          'opacity-0 transition-opacity group-hover:opacity-100',
-                          'text-eleva-neutral-900/60 hover:text-eleva-highlight-red',
+                          'rounded-full opacity-0 transition-opacity group-hover:opacity-100',
+                          'text-eleva-neutral-900/60 hover:bg-eleva-highlight-red/10 hover:text-eleva-highlight-red',
                           deletingIds.includes(blocked.id) && 'cursor-not-allowed opacity-50',
                         )}
                       >
@@ -178,7 +178,11 @@ export function BlockedDates({
           )}
 
           <Dialog open={isOpen} onOpenChange={handleDialogChange}>
-            <Button variant="outline" onClick={(e) => handleAdd(e)} className="w-fit gap-2">
+            <Button
+              variant="outline"
+              onClick={(e) => handleAdd(e)}
+              className="w-fit gap-2 rounded-md border-eleva-primary-light text-eleva-primary transition-colors hover:bg-eleva-primary-light hover:text-white"
+            >
               <Plus className="size-4" />
               Add blockout date
             </Button>
@@ -201,7 +205,7 @@ export function BlockedDates({
                       <Button
                         variant="outline"
                         className={cn(
-                          'w-full justify-start text-left font-normal',
+                          'w-full justify-start rounded border-eleva-neutral-200 text-left font-normal',
                           !selectedDate && 'text-muted-foreground',
                         )}
                       >
@@ -242,17 +246,28 @@ export function BlockedDates({
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Add a note for this blocked date..."
+                    className="rounded border-eleva-neutral-200 focus:border-eleva-primary focus:ring-eleva-primary/20"
                   />
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={handleCloseDialog} disabled={isAdding}>
+              <div className="flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={handleCloseDialog}
+                  disabled={isAdding}
+                  className="rounded border-eleva-neutral-200 text-eleva-neutral-900 transition-colors hover:bg-eleva-neutral-100"
+                >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSave}
                   disabled={!selectedDate || isAdding}
-                  className="min-w-[100px]"
+                  className={cn(
+                    'min-w-[100px] rounded-lg font-medium transition-all',
+                    'bg-eleva-primary text-white hover:bg-eleva-primary/90',
+                    'focus:ring-2 focus:ring-eleva-primary/50 focus:ring-offset-2',
+                    'disabled:cursor-not-allowed disabled:opacity-50',
+                  )}
                 >
                   {isAdding ? (
                     <>
