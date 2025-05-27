@@ -8,18 +8,13 @@
 import { db } from '@/drizzle/db';
 import { schedulingSettings } from '@/drizzle/schema';
 import type { NewSchedulingSettings, SchedulingSettings } from '@/drizzle/schema';
+import { DEFAULT_SCHEDULING_SETTINGS } from '@/lib/constants/scheduling';
 import { eq } from 'drizzle-orm';
 
 /**
  * Default scheduling settings values
  */
-const DEFAULT_SETTINGS: Omit<NewSchedulingSettings, 'userId'> = {
-  beforeEventBuffer: 15, // 15 minutes before event
-  afterEventBuffer: 15, // 15 minutes after event
-  minimumNotice: 60, // 1 hour minimum notice
-  timeSlotInterval: 15, // 15 minute intervals for booking slots
-  bookingWindowDays: 60, // 2 months (60 days) booking window by default
-};
+const DEFAULT_SETTINGS: Omit<NewSchedulingSettings, 'userId'> = DEFAULT_SCHEDULING_SETTINGS;
 
 /**
  * Get scheduling settings for a user

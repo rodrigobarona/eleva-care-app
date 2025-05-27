@@ -13,6 +13,10 @@ import {
   FormMessage,
 } from '@/components/molecules/form';
 import { BookingLayout } from '@/components/organisms/BookingLayout';
+import {
+  DEFAULT_AFTER_EVENT_BUFFER,
+  DEFAULT_BEFORE_EVENT_BUFFER,
+} from '@/lib/constants/scheduling';
 import { hasValidTokens } from '@/lib/googleCalendarClient';
 import { meetingFormSchema } from '@/schema/meetings';
 import { createMeeting } from '@/server/actions/meetings';
@@ -66,8 +70,8 @@ export function MeetingFormContent({
   eventDuration = 45,
   eventLocation = 'Google Meet',
   locale,
-  beforeEventBuffer = 15,
-  afterEventBuffer = 15,
+  beforeEventBuffer = DEFAULT_BEFORE_EVENT_BUFFER,
+  afterEventBuffer = DEFAULT_AFTER_EVENT_BUFFER,
 }: MeetingFormProps) {
   const router = useRouter();
 
