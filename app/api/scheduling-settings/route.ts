@@ -81,6 +81,15 @@ export async function PATCH(request: Request) {
       validUpdates.timeSlotInterval = updates.timeSlotInterval;
     }
 
+    // Process booking window days
+    if (
+      typeof updates.bookingWindowDays === 'number' &&
+      updates.bookingWindowDays >= 7 && // Minimum 1 week
+      updates.bookingWindowDays <= 365 // Maximum 1 year
+    ) {
+      validUpdates.bookingWindowDays = updates.bookingWindowDays;
+    }
+
     // Update settings in the database
     const updatedSettings = await updateSchedulingSettings(userId, validUpdates);
 
