@@ -199,19 +199,22 @@ export function SchedulingSettingsForm() {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 pb-10">
         <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-          <div>
-            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-highlight-purple">
+          <div className="space-y-1">
+            <h3
+              id="buffer-times"
+              className="font-serif text-xl font-medium tracking-tight text-eleva-primary"
+            >
               Buffer Times
             </h3>
-            <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
+            <p className="text-sm leading-6 text-eleva-neutral-900/60">
               Add padding before and after events to prepare or wrap up.
             </p>
           </div>
 
-          <div className="space-y-6 lg:col-span-2">
-            <div className="rounded-lg bg-gradient-to-br from-white to-eleva-accent/20 p-6">
+          <div className="lg:col-span-2">
+            <div className="">
               <FormField
                 control={form.control}
                 name="beforeEventBuffer"
@@ -268,7 +271,7 @@ export function SchedulingSettingsForm() {
                 control={form.control}
                 name="afterEventBuffer"
                 render={({ field }) => (
-                  <FormItem className="space-y-2">
+                  <FormItem className="space-y-2 pt-6">
                     <div className="flex items-center gap-2">
                       <div className="text-sm font-medium text-eleva-neutral-900">
                         Buffer after events
@@ -321,17 +324,20 @@ export function SchedulingSettingsForm() {
         <Separator className="bg-eleva-neutral-200" />
 
         <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-          <div>
-            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary">
+          <div className="space-y-1">
+            <h3
+              id="booking-rules"
+              className="font-serif text-xl font-medium tracking-tight text-eleva-primary"
+            >
               Booking Rules
             </h3>
-            <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
+            <p className="text-sm leading-6 text-eleva-neutral-900/60">
               Configure advance notice requirements and scheduling intervals.
             </p>
           </div>
 
-          <div className="space-y-6 lg:col-span-2">
-            <div className="rounded-lg bg-gradient-to-br from-white to-eleva-accent/10 p-6">
+          <div className="lg:col-span-2">
+            <div className="">
               <FormField
                 control={form.control}
                 name="minimumNotice"
@@ -387,7 +393,7 @@ export function SchedulingSettingsForm() {
                 control={form.control}
                 name="timeSlotInterval"
                 render={({ field }) => (
-                  <FormItem className="space-y-2">
+                  <FormItem className="space-y-2 pt-6">
                     <div className="flex items-center gap-2">
                       <div className="text-sm font-medium text-eleva-neutral-900">
                         Time slot duration
@@ -440,17 +446,20 @@ export function SchedulingSettingsForm() {
         <Separator className="bg-eleva-neutral-200" />
 
         <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-          <div>
-            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-secondary">
+          <div className="space-y-1">
+            <h3
+              id="booking-window"
+              className="font-serif text-xl font-medium tracking-tight text-eleva-primary"
+            >
               Booking Window
             </h3>
-            <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
+            <p className="text-sm leading-6 text-eleva-neutral-900/60">
               Control how far in advance people can schedule appointments.
             </p>
           </div>
 
-          <div className="space-y-6 lg:col-span-2">
-            <div className="rounded-lg bg-gradient-to-br from-white to-eleva-accent/20 p-6">
+          <div className="lg:col-span-2">
+            <div className="">
               <FormField
                 control={form.control}
                 name="bookingWindowDays"

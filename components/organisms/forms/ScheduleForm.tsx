@@ -106,11 +106,14 @@ export function ScheduleForm({
   return (
     <>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="relative">
-          <div className="space-y-8 pb-28">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="relative pb-10">
+          <div className="space-y-8">
             <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
               <div>
-                <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-highlight-purple">
+                <h3
+                  id="weekly-hours"
+                  className="font-serif text-xl font-medium tracking-tight text-eleva-primary"
+                >
                   Weekly hours
                 </h3>
                 <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
@@ -264,7 +267,10 @@ export function ScheduleForm({
 
             <div className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
               <div>
-                <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary">
+                <h3
+                  id="timezone"
+                  className="font-serif text-xl font-medium tracking-tight text-eleva-primary"
+                >
                   Time zone
                 </h3>
                 <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
@@ -272,8 +278,8 @@ export function ScheduleForm({
                 </p>
               </div>
 
-              <div className="space-y-8 lg:col-span-2">
-                <div className="rounded-lg bg-gradient-to-br from-white to-eleva-accent/10 p-4">
+              <div className="lg:col-span-2">
+                <div className="rounded-lg">
                   <TimezoneSelect control={form.control} name="timezone" />
                 </div>
               </div>
