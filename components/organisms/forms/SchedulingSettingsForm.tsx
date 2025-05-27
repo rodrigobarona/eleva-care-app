@@ -202,7 +202,7 @@ export function SchedulingSettingsForm() {
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
           <div>
-            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary">
+            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-highlight-purple">
               Buffer Times
             </h3>
             <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
@@ -211,107 +211,110 @@ export function SchedulingSettingsForm() {
           </div>
 
           <div className="space-y-6 lg:col-span-2">
-            <FormField
-              control={form.control}
-              name="beforeEventBuffer"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium text-eleva-neutral-900">
-                      Buffer before events
+            <div className="rounded-lg bg-gradient-to-br from-white to-eleva-accent/20 p-6">
+              <FormField
+                control={form.control}
+                name="beforeEventBuffer"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-medium text-eleva-neutral-900">
+                        Buffer before events
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-6">
+                              <Info className="size-4 text-eleva-neutral-900/60" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
+                            Add padding time before events to prepare and avoid back-to-back
+                            meetings
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="size-4 text-eleva-neutral-900/60" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
-                          Add padding time before events to prepare and avoid back-to-back meetings
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <FormControl>
-                    <Select
-                      onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
-                      value={field.value.toString()}
-                    >
-                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
-                        <SelectValue placeholder="Select buffer time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BUFFER_TIME_OPTIONS.map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={option.value.toString()}
-                            className="cursor-pointer"
-                          >
-                            <span className="font-mono text-sm">{option.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormDescription className="text-xs text-eleva-neutral-900/60">
-                    Time blocked before each event starts
-                  </FormDescription>
-                  <FormMessage className="text-xs text-eleva-highlight-red" />
-                </FormItem>
-              )}
-            />
+                    <FormControl>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
+                        value={field.value.toString()}
+                      >
+                        <SelectTrigger className="w-[240px] border-eleva-neutral-200">
+                          <SelectValue placeholder="Select buffer time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {BUFFER_TIME_OPTIONS.map((option) => (
+                            <SelectItem
+                              key={option.value}
+                              value={option.value.toString()}
+                              className="cursor-pointer"
+                            >
+                              <span className="font-mono text-sm">{option.label}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormDescription className="text-xs text-eleva-neutral-900/60">
+                      Time blocked before each event starts
+                    </FormDescription>
+                    <FormMessage className="text-xs text-eleva-highlight-red" />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="afterEventBuffer"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium text-eleva-neutral-900">
-                      Buffer after events
+              <FormField
+                control={form.control}
+                name="afterEventBuffer"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-medium text-eleva-neutral-900">
+                        Buffer after events
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-6">
+                              <Info className="size-4 text-eleva-neutral-900/60" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
+                            Add padding time after events for notes and wrap-up tasks
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="size-4 text-eleva-neutral-900/60" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
-                          Add padding time after events for notes and wrap-up tasks
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <FormControl>
-                    <Select
-                      onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
-                      value={field.value.toString()}
-                    >
-                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
-                        <SelectValue placeholder="Select buffer time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BUFFER_TIME_OPTIONS.map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={option.value.toString()}
-                            className="cursor-pointer"
-                          >
-                            <span className="font-mono text-sm">{option.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormDescription className="text-xs text-eleva-neutral-900/60">
-                    Time blocked after each event ends
-                  </FormDescription>
-                  <FormMessage className="text-xs text-eleva-highlight-red" />
-                </FormItem>
-              )}
-            />
+                    <FormControl>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
+                        value={field.value.toString()}
+                      >
+                        <SelectTrigger className="w-[240px] border-eleva-neutral-200">
+                          <SelectValue placeholder="Select buffer time" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {BUFFER_TIME_OPTIONS.map((option) => (
+                            <SelectItem
+                              key={option.value}
+                              value={option.value.toString()}
+                              className="cursor-pointer"
+                            >
+                              <span className="font-mono text-sm">{option.label}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormDescription className="text-xs text-eleva-neutral-900/60">
+                      Time blocked after each event ends
+                    </FormDescription>
+                    <FormMessage className="text-xs text-eleva-highlight-red" />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
         </div>
 
@@ -319,7 +322,7 @@ export function SchedulingSettingsForm() {
 
         <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
           <div>
-            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-secondary">
+            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary">
               Booking Rules
             </h3>
             <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
@@ -328,107 +331,109 @@ export function SchedulingSettingsForm() {
           </div>
 
           <div className="space-y-6 lg:col-span-2">
-            <FormField
-              control={form.control}
-              name="minimumNotice"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium text-eleva-neutral-900">
-                      Minimum notice period
+            <div className="rounded-lg bg-gradient-to-br from-white to-eleva-accent/10 p-6">
+              <FormField
+                control={form.control}
+                name="minimumNotice"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-medium text-eleva-neutral-900">
+                        Minimum notice period
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-6">
+                              <Info className="size-4 text-eleva-neutral-900/60" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
+                            The minimum time required before someone can book an appointment
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="size-4 text-eleva-neutral-900/60" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
-                          The minimum time required before someone can book an appointment
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <FormControl>
-                    <Select
-                      onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
-                      value={field.value.toString()}
-                    >
-                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
-                        <SelectValue placeholder="Select notice period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {MINIMUM_NOTICE_OPTIONS.map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={option.value.toString()}
-                            className="cursor-pointer"
-                          >
-                            <span className="font-mono text-sm">{option.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormDescription className="text-xs text-eleva-neutral-900/60">
-                    Required advance notice for new bookings
-                  </FormDescription>
-                  <FormMessage className="text-xs text-eleva-highlight-red" />
-                </FormItem>
-              )}
-            />
+                    <FormControl>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
+                        value={field.value.toString()}
+                      >
+                        <SelectTrigger className="w-[240px] border-eleva-neutral-200">
+                          <SelectValue placeholder="Select notice period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {MINIMUM_NOTICE_OPTIONS.map((option) => (
+                            <SelectItem
+                              key={option.value}
+                              value={option.value.toString()}
+                              className="cursor-pointer"
+                            >
+                              <span className="font-mono text-sm">{option.label}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormDescription className="text-xs text-eleva-neutral-900/60">
+                      Required advance notice for new bookings
+                    </FormDescription>
+                    <FormMessage className="text-xs text-eleva-highlight-red" />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="timeSlotInterval"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium text-eleva-neutral-900">
-                      Time slot duration
+              <FormField
+                control={form.control}
+                name="timeSlotInterval"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-medium text-eleva-neutral-900">
+                        Time slot duration
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-6">
+                              <Info className="size-4 text-eleva-neutral-900/60" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
+                            Determines how finely you can schedule appointments
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="size-4 text-eleva-neutral-900/60" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
-                          Determines how finely you can schedule appointments
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <FormControl>
-                    <Select
-                      onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
-                      value={field.value.toString()}
-                    >
-                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
-                        <SelectValue placeholder="Select time slot length" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TIME_SLOT_INTERVALS.map((interval) => (
-                          <SelectItem
-                            key={interval.value}
-                            value={interval.value.toString()}
-                            className="cursor-pointer"
-                          >
-                            <span className="font-mono text-sm">{interval.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormDescription className="text-xs text-eleva-neutral-900/60">
-                    Length of each bookable time slot
-                  </FormDescription>
-                  <FormMessage className="text-xs text-eleva-highlight-red" />
-                </FormItem>
-              )}
-            />
+                    <FormControl>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
+                        value={field.value.toString()}
+                      >
+                        <SelectTrigger className="w-[240px] border-eleva-neutral-200">
+                          <SelectValue placeholder="Select time slot length" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {TIME_SLOT_INTERVALS.map((interval) => (
+                            <SelectItem
+                              key={interval.value}
+                              value={interval.value.toString()}
+                              className="cursor-pointer"
+                            >
+                              <span className="font-mono text-sm">{interval.label}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormDescription className="text-xs text-eleva-neutral-900/60">
+                      Length of each bookable time slot
+                    </FormDescription>
+                    <FormMessage className="text-xs text-eleva-highlight-red" />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
         </div>
 
@@ -436,7 +441,7 @@ export function SchedulingSettingsForm() {
 
         <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
           <div>
-            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary-light">
+            <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-secondary">
               Booking Window
             </h3>
             <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
@@ -445,64 +450,66 @@ export function SchedulingSettingsForm() {
           </div>
 
           <div className="space-y-6 lg:col-span-2">
-            <FormField
-              control={form.control}
-              name="bookingWindowDays"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <div className="text-sm font-medium text-eleva-neutral-900">
-                      Maximum booking period
+            <div className="rounded-lg bg-gradient-to-br from-white to-eleva-accent/20 p-6">
+              <FormField
+                control={form.control}
+                name="bookingWindowDays"
+                render={({ field }) => (
+                  <FormItem className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm font-medium text-eleva-neutral-900">
+                        Maximum booking period
+                      </div>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="ghost" size="icon" className="size-6">
+                              <Info className="size-4 text-eleva-neutral-900/60" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
+                            The furthest in the future that appointments can be scheduled
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="size-4 text-eleva-neutral-900/60" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
-                          The furthest in the future that appointments can be scheduled
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                  <FormControl>
-                    <Select
-                      onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
-                      value={field.value.toString()}
-                    >
-                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
-                        <SelectValue placeholder="Select booking period" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {BOOKING_WINDOW_OPTIONS.map((option) => (
-                          <SelectItem
-                            key={option.value}
-                            value={option.value.toString()}
-                            className="cursor-pointer"
-                          >
-                            <span className="font-mono text-sm">{option.label}</span>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </FormControl>
-                  <FormDescription className="text-xs text-eleva-neutral-900/60">
-                    How far ahead appointments can be booked
-                  </FormDescription>
-                  <FormMessage className="text-xs text-eleva-highlight-red" />
-                </FormItem>
-              )}
-            />
+                    <FormControl>
+                      <Select
+                        onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
+                        value={field.value.toString()}
+                      >
+                        <SelectTrigger className="w-[240px] border-eleva-neutral-200">
+                          <SelectValue placeholder="Select booking period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {BOOKING_WINDOW_OPTIONS.map((option) => (
+                            <SelectItem
+                              key={option.value}
+                              value={option.value.toString()}
+                              className="cursor-pointer"
+                            >
+                              <span className="font-mono text-sm">{option.label}</span>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormDescription className="text-xs text-eleva-neutral-900/60">
+                      How far ahead appointments can be booked
+                    </FormDescription>
+                    <FormMessage className="text-xs text-eleva-highlight-red" />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-            {/* Save Button */}
+            {/* Save Button - Make it more playful with gradient */}
             {form.formState.isDirty && (
               <div className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-6 right-6 z-10">
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  className="rounded-full bg-eleva-primary px-6 font-medium text-white shadow-lg transition-all hover:bg-eleva-primary-light hover:shadow-md focus:ring-2 focus:ring-eleva-primary/50"
+                  className="rounded-full bg-gradient-to-r from-eleva-primary via-eleva-primary to-eleva-highlight-purple px-6 font-medium text-white shadow-lg transition-all hover:from-eleva-primary-light hover:to-eleva-highlight-purple/90 hover:shadow-md focus:ring-2 focus:ring-eleva-primary/50"
                 >
                   {isLoading ? 'Saving...' : 'Save changes'}
                 </Button>

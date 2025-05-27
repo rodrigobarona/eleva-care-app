@@ -110,7 +110,7 @@ export function ScheduleForm({
           <div className="space-y-8 pb-28">
             <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
               <div>
-                <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary">
+                <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-highlight-purple">
                   Weekly hours
                 </h3>
                 <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
@@ -119,7 +119,7 @@ export function ScheduleForm({
               </div>
 
               <div className="lg:col-span-2">
-                <div className="divide-y divide-eleva-neutral-200 rounded-lg border border-eleva-neutral-200">
+                <div className="divide-y divide-eleva-neutral-200 rounded-lg border border-eleva-neutral-200 bg-gradient-to-br from-white to-eleva-accent/20">
                   {DAYS_OF_WEEK_IN_ORDER.map((dayOfWeek) => {
                     const dayFields = groupedAvailabilityFields[dayOfWeek] ?? [];
                     const hasAvailability = dayFields.length > 0;
@@ -264,7 +264,7 @@ export function ScheduleForm({
 
             <div className="mt-8 grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
               <div>
-                <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-secondary">
+                <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary">
                   Time zone
                 </h3>
                 <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
@@ -273,18 +273,20 @@ export function ScheduleForm({
               </div>
 
               <div className="space-y-8 lg:col-span-2">
-                <TimezoneSelect control={form.control} name="timezone" />
+                <div className="rounded-lg bg-gradient-to-br from-white to-eleva-accent/10 p-4">
+                  <TimezoneSelect control={form.control} name="timezone" />
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Save Button */}
+          {/* Save Button - Make it more playful with gradient */}
           {form.formState.isDirty && (
             <div className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-6 right-6 z-10">
               <Button
                 type="submit"
                 disabled={form.formState.isSubmitting}
-                className="rounded-full bg-eleva-primary px-6 font-medium text-white shadow-lg transition-all hover:bg-eleva-primary-light hover:shadow-md focus:ring-2 focus:ring-eleva-primary/50"
+                className="rounded-full bg-gradient-to-r from-eleva-primary via-eleva-primary to-eleva-highlight-purple px-6 font-medium text-white shadow-lg transition-all hover:from-eleva-primary-light hover:to-eleva-highlight-purple/90 hover:shadow-md focus:ring-2 focus:ring-eleva-primary/50"
               >
                 {form.formState.isSubmitting ? 'Saving...' : 'Save changes'}
               </Button>
