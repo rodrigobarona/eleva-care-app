@@ -14,7 +14,7 @@ import {
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
+import { CalendarIcon, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
 interface BlockedDate {
@@ -26,8 +26,8 @@ interface BlockedDate {
 
 interface BlockedDatesProps {
   blockedDates: BlockedDate[];
-  onAddBlockedDates: (dates: { date: Date; reason?: string }[]) => void;
-  onRemoveBlockedDate: (id: number) => void;
+  onAddBlockedDates: (dates: { date: Date; reason?: string }[]) => Promise<void>;
+  onRemoveBlockedDate: (id: number) => Promise<void>;
 }
 
 export function BlockedDates({
@@ -39,18 +39,34 @@ export function BlockedDates({
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [note, setNote] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<number[]>([]);
 
   const handleDateSelect = (date: Date | undefined) => {
     setSelectedDate(date);
     setIsCalendarOpen(false);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (selectedDate) {
-      onAddBlockedDates([{ date: selectedDate, reason: note }]);
-      setSelectedDate(undefined);
-      setNote('');
-      setIsOpen(false);
+      try {
+        setIsAdding(true);
+        await onAddBlockedDates([{ date: selectedDate, reason: note }]);
+        setSelectedDate(undefined);
+        setNote('');
+        setIsOpen(false);
+      } finally {
+        setIsAdding(false);
+      }
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    try {
+      setDeletingIds((prev) => [...prev, id]);
+      await onRemoveBlockedDate(id);
+    } finally {
+      setDeletingIds((prev) => prev.filter((deleteId) => deleteId !== id));
     }
   };
 
@@ -90,10 +106,18 @@ export function BlockedDates({
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => onRemoveBlockedDate(blocked.id)}
-                      className="text-eleva-neutral-900/60 hover:text-eleva-highlight-red"
+                      onClick={() => handleDelete(blocked.id)}
+                      disabled={deletingIds.includes(blocked.id)}
+                      className={cn(
+                        'text-eleva-neutral-900/60 hover:text-eleva-highlight-red',
+                        deletingIds.includes(blocked.id) && 'cursor-not-allowed opacity-50',
+                      )}
                     >
-                      <Trash2 className="size-4" />
+                      {deletingIds.includes(blocked.id) ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="size-4" />
+                      )}
                     </Button>
                   </div>
                 ))}
@@ -143,7 +167,6 @@ export function BlockedDates({
                         onSelect={handleDateSelect}
                         disabled={(date) =>
                           blockedDates.some((blocked) => {
-                            // Convert the calendar date to the blocked date's timezone
                             const calendarDateInTz = toDate(date, { timeZone: blocked.timezone });
                             const blockedDateInTz = toDate(blocked.date, {
                               timeZone: blocked.timezone,
@@ -170,11 +193,22 @@ export function BlockedDates({
                 </div>
               </div>
               <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setIsOpen(false)}>
+                <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isAdding}>
                   Cancel
                 </Button>
-                <Button onClick={handleSave} disabled={!selectedDate}>
-                  Add date
+                <Button
+                  onClick={handleSave}
+                  disabled={!selectedDate || isAdding}
+                  className="min-w-[100px]"
+                >
+                  {isAdding ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Adding...
+                    </>
+                  ) : (
+                    'Add date'
+                  )}
                 </Button>
               </div>
             </DialogContent>
