@@ -133,6 +133,7 @@ async function CalendarWithAvailability({
 
   // Fetch scheduling settings for the user
   let timeSlotInterval = 15; // Default fallback value
+  let bookingWindowMonths = 2; // Default fallback value
   try {
     const settings = await db.query.schedulingSettings.findFirst({
       where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, userId),
@@ -141,9 +142,12 @@ async function CalendarWithAvailability({
     if (settings?.timeSlotInterval) {
       timeSlotInterval = settings.timeSlotInterval;
     }
+    if (settings?.bookingWindowMonths) {
+      bookingWindowMonths = settings.bookingWindowMonths;
+    }
   } catch (error) {
     console.error('[CalendarWithAvailability] Error fetching scheduling settings:', error);
-    // Continue with the default value
+    // Continue with the default values
   }
 
   // Handle the rounding for time slots
@@ -184,7 +188,11 @@ async function CalendarWithAvailability({
   }
 
   const endDate = new Date(
-    formatInTimeZone(endOfDay(addMonths(startDate, 2)), 'UTC', "yyyy-MM-dd'T'HH:mm:ssX"),
+    formatInTimeZone(
+      endOfDay(addMonths(startDate, bookingWindowMonths)),
+      'UTC',
+      "yyyy-MM-dd'T'HH:mm:ssX",
+    ),
   );
 
   // Get calendar events and calculate valid times

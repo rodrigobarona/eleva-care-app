@@ -506,6 +506,7 @@ export const schedulingSettings = pgTable('scheduling_settings', {
   afterEventBuffer: integer('after_event_buffer').notNull().default(0), // in minutes
   minimumNotice: integer('minimum_notice').notNull().default(0), // in minutes
   timeSlotInterval: integer('time_slot_interval').notNull().default(15), // in minutes
+  bookingWindowMonths: integer('booking_window_months').notNull().default(2), // number of months in advance that can be booked
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });

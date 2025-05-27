@@ -18,6 +18,7 @@ const DEFAULT_SETTINGS: Omit<NewSchedulingSettings, 'userId'> = {
   afterEventBuffer: 15, // 15 minutes after event
   minimumNotice: 60, // 1 hour minimum notice
   timeSlotInterval: 15, // 15 minute intervals for booking slots
+  bookingWindowMonths: 2, // 2 months booking window by default
 };
 
 /**
@@ -55,6 +56,7 @@ export async function getUserSchedulingSettings(userId: string): Promise<Schedul
       afterEventBuffer: 15, // Default 15 min buffer after
       minimumNotice: 60, // Default 1 hour minimum notice
       timeSlotInterval: 15, // Default 15 min intervals
+      bookingWindowMonths: 2, // Default 2 months booking window
       createdAt: new Date(),
       updatedAt: new Date(),
     };

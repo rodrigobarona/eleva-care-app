@@ -93,6 +93,20 @@ import { toast } from 'sonner';
  * Similar to Cal.com's approach to managing availability and scheduling.
  */
 
+/**
+ * SchedulingSettingsForm Component
+ *
+ * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
+ * Similar to Cal.com's approach to managing availability and scheduling.
+ */
+
+/**
+ * SchedulingSettingsForm Component
+ *
+ * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
+ * Similar to Cal.com's approach to managing availability and scheduling.
+ */
+
 // Define schema for scheduling settings form
 const formSchema = z.object({
   beforeEventBuffer: z.coerce
@@ -112,6 +126,10 @@ const formSchema = z.object({
     .refine((val) => val % 5 === 0, 'Time slot interval must be in 5-minute increments')
     .refine((val) => val >= 5, 'Time slot interval must be at least 5 minutes')
     .refine((val) => val <= 60, 'Time slot interval cannot exceed 60 minutes'),
+  bookingWindowMonths: z.coerce
+    .number()
+    .min(1, 'Booking window must be at least 1 month')
+    .max(12, 'Booking window cannot exceed 12 months'),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -132,6 +150,7 @@ const DEFAULT_VALUES: FormValues = {
   afterEventBuffer: 15,
   minimumNotice: 60,
   timeSlotInterval: 15,
+  bookingWindowMonths: 2,
 };
 
 export function SchedulingSettingsForm() {
@@ -162,6 +181,7 @@ export function SchedulingSettingsForm() {
           afterEventBuffer: settings.afterEventBuffer,
           minimumNotice: settings.minimumNotice,
           timeSlotInterval: settings.timeSlotInterval,
+          bookingWindowMonths: settings.bookingWindowMonths,
         });
       } catch (error) {
         console.error('Error fetching scheduling settings:', error);
@@ -328,6 +348,34 @@ export function SchedulingSettingsForm() {
                 </FormItem>
               )}
             />
+
+            {/* Booking Window Months */}
+            <FormField
+              control={form.control}
+              name="bookingWindowMonths"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-tremor-default text-tremor-content-strong dark:text-dark-tremor-content-strong font-medium">
+                    Booking Window
+                  </FormLabel>
+                  <FormControl>
+                    <TextInput
+                      type="number"
+                      placeholder="2"
+                      min={1}
+                      max={12}
+                      value={field.value.toString()}
+                      onValueChange={(value) => field.onChange(Number(value))}
+                      className="[&>*]:rounded-tremor-small border-tremor-border"
+                    />
+                  </FormControl>
+                  <FormDescription className="text-tremor-label text-tremor-content dark:text-dark-tremor-content">
+                    How many months in advance can users book appointments
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
 
           <Divider className="my-6" />
@@ -356,6 +404,13 @@ export function SchedulingSettingsForm() {
                 <span>
                   <strong>Time Slot Interval:</strong> Controls how frequently booking slots appear
                   (e.g., every 15 minutes)
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="font-bold text-eleva-primary">•</span>
+                <span>
+                  <strong>Booking Window:</strong> Controls how far in advance users can schedule
+                  appointments
                 </span>
               </li>
             </ul>
