@@ -67,7 +67,12 @@ export async function PATCH(request: Request) {
     }
 
     // Process minimum notice period
-    if (typeof updates.minimumNotice === 'number' && updates.minimumNotice >= 0) {
+    if (
+      typeof updates.minimumNotice === 'number' &&
+      updates.minimumNotice >= 60 && // Minimum 1 hour
+      updates.minimumNotice <= 20160 && // Maximum 2 weeks
+      [60, 180, 360, 720, 1440, 2880, 4320, 7200, 10080, 20160].includes(updates.minimumNotice)
+    ) {
       validUpdates.minimumNotice = updates.minimumNotice;
     }
 

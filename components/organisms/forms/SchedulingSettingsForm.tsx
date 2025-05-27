@@ -1,11 +1,11 @@
+'use client';
+
 /**
  * SchedulingSettingsForm Component
  *
  * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
  * Similar to Cal.com's approach to managing availability and scheduling.
  */
-'use client';
-
 import * as z from 'zod';
 import { Button } from '@/components/atoms/button';
 import {
@@ -23,118 +23,6 @@ import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
-/**
- * SchedulingSettingsForm Component
- *
- * A form for managing scheduling settings like buffer times, minimum notice, and time slot intervals.
- * Similar to Cal.com's approach to managing availability and scheduling.
- */
-
 // Define schema for scheduling settings form
 const formSchema = z.object({
   beforeEventBuffer: z.coerce
@@ -147,8 +35,12 @@ const formSchema = z.object({
     .max(120, 'Buffer time cannot exceed 2 hours'),
   minimumNotice: z.coerce
     .number()
-    .min(0, 'Minimum notice cannot be negative')
-    .max(7200, 'Minimum notice cannot exceed 5 days (7200 minutes)'),
+    .min(60, 'Minimum notice must be at least 1 hour')
+    .max(20160, 'Minimum notice cannot exceed 2 weeks')
+    .refine(
+      (val) => MINIMUM_NOTICE_OPTIONS.some((option) => option.value === val),
+      'Please select a valid minimum notice period',
+    ),
   timeSlotInterval: z.coerce
     .number()
     .refine((val) => val % 5 === 0, 'Time slot interval must be in 5-minute increments')
@@ -183,13 +75,27 @@ const BOOKING_WINDOW_OPTIONS = [
   { value: 365, label: '1 year' },
 ];
 
-// Default values if the API fetch fails
+// Add this constant near the other options constants
+const MINIMUM_NOTICE_OPTIONS = [
+  { value: 60, label: '1 hour' },
+  { value: 180, label: '3 hours' },
+  { value: 360, label: '6 hours' },
+  { value: 720, label: '12 hours' },
+  { value: 1440, label: '24 hours' }, // 1 day (default)
+  { value: 2880, label: '2 days' },
+  { value: 4320, label: '3 days' },
+  { value: 7200, label: '5 days' },
+  { value: 10080, label: '1 week' },
+  { value: 20160, label: '2 weeks' },
+];
+
+// Update DEFAULT_VALUES
 const DEFAULT_VALUES: FormValues = {
   beforeEventBuffer: 15,
   afterEventBuffer: 15,
-  minimumNotice: 60,
+  minimumNotice: 1440, // 24 hours in minutes
   timeSlotInterval: 15,
-  bookingWindowDays: 60, // Default 2 months (60 days)
+  bookingWindowDays: 60,
 };
 
 export function SchedulingSettingsForm() {
@@ -339,17 +245,26 @@ export function SchedulingSettingsForm() {
                     Minimum Notice
                   </FormLabel>
                   <FormControl>
-                    <TextInput
-                      type="number"
-                      placeholder="60"
-                      min={0}
+                    <Select
+                      onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
+                      defaultValue={field.value.toString()}
                       value={field.value.toString()}
-                      onValueChange={(value) => field.onChange(Number(value))}
-                      className="[&>*]:rounded-tremor-small border-tremor-border"
-                    />
+                      enableClear={false}
+                      className="[&>button]:border-input [&>button]:bg-background [&>button]:ring-offset-background [&>button]:hover:bg-accent [&>button]:focus:ring-2 [&>button]:focus:ring-ring [&>button]:focus:ring-offset-2"
+                    >
+                      {MINIMUM_NOTICE_OPTIONS.map((option) => (
+                        <SelectItem
+                          key={option.value}
+                          value={option.value.toString()}
+                          className="cursor-pointer hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                        >
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </Select>
                   </FormControl>
                   <FormDescription className="text-tremor-label text-tremor-content dark:text-dark-tremor-content">
-                    Minimum minutes required before booking
+                    How much advance notice is required for bookings
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
