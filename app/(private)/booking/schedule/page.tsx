@@ -25,7 +25,10 @@ export default async function SchedulePage() {
   }
 
   return (
-    <div className="max-w-md">
+    <div className="w-full">
+      <p className="mt-2 text-muted-foreground">
+        Configure times when you are available for bookings.
+      </p>
       <ScheduleForm schedule={schedule} />
     </div>
   );

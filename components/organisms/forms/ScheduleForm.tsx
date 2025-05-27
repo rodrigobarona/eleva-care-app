@@ -3,6 +3,7 @@
 import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
+import { Separator } from '@/components/atoms/separator';
 import {
   Form,
   FormControl,
@@ -108,7 +109,7 @@ export function ScheduleForm({
             </FormItem>
           )}
         />
-
+        <Separator />
         <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-6">
           {DAYS_OF_WEEK_IN_ORDER.map((dayOfWeek) => (
             <Fragment key={dayOfWeek}>
