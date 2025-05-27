@@ -40,7 +40,7 @@ export default async function SchedulePage() {
       <TabGroup className="mt-6">
         <TabList>
           <Tab>Schedule</Tab>
-          <Tab>Settings</Tab>
+          <Tab>Limits</Tab>
         </TabList>
         <TabPanels>
           <TabPanel>
