@@ -196,7 +196,7 @@ export function SchedulingSettingsForm() {
             <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary">
               Buffer Times
             </h3>
-            <p className="mt-1 text-sm text-eleva-neutral-900/60">
+            <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
               Add padding before and after events to prepare or wrap up.
             </p>
           </div>
@@ -218,7 +218,7 @@ export function SchedulingSettingsForm() {
                             <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
+                        <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
                           Add padding time before events to prepare and avoid back-to-back meetings
                         </TooltipContent>
                       </Tooltip>
@@ -239,16 +239,16 @@ export function SchedulingSettingsForm() {
                             value={option.value.toString()}
                             className="cursor-pointer"
                           >
-                            <span className="font-mono">{option.label}</span>
+                            <span className="font-mono text-sm">{option.label}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription className="text-sm text-eleva-neutral-900/60">
+                  <FormDescription className="text-xs text-eleva-neutral-900/60">
                     Time blocked before each event starts
                   </FormDescription>
-                  <FormMessage className="text-eleva-highlight-red" />
+                  <FormMessage className="text-xs text-eleva-highlight-red" />
                 </FormItem>
               )}
             />
@@ -269,7 +269,7 @@ export function SchedulingSettingsForm() {
                             <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
+                        <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
                           Add padding time after events for notes and wrap-up tasks
                         </TooltipContent>
                       </Tooltip>
@@ -290,16 +290,16 @@ export function SchedulingSettingsForm() {
                             value={option.value.toString()}
                             className="cursor-pointer"
                           >
-                            <span className="font-mono">{option.label}</span>
+                            <span className="font-mono text-sm">{option.label}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription className="text-sm text-eleva-neutral-900/60">
+                  <FormDescription className="text-xs text-eleva-neutral-900/60">
                     Time blocked after each event ends
                   </FormDescription>
-                  <FormMessage className="text-eleva-highlight-red" />
+                  <FormMessage className="text-xs text-eleva-highlight-red" />
                 </FormItem>
               )}
             />
@@ -313,7 +313,7 @@ export function SchedulingSettingsForm() {
             <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-secondary">
               Booking Rules
             </h3>
-            <p className="mt-1 text-sm text-eleva-neutral-900/60">
+            <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
               Configure advance notice requirements and scheduling intervals.
             </p>
           </div>
@@ -335,7 +335,7 @@ export function SchedulingSettingsForm() {
                             <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
+                        <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
                           The minimum time required before someone can book an appointment
                         </TooltipContent>
                       </Tooltip>
@@ -356,16 +356,16 @@ export function SchedulingSettingsForm() {
                             value={option.value.toString()}
                             className="cursor-pointer"
                           >
-                            <span className="font-mono">{option.label}</span>
+                            <span className="font-mono text-sm">{option.label}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription className="text-sm text-eleva-neutral-900/60">
+                  <FormDescription className="text-xs text-eleva-neutral-900/60">
                     Required advance notice for new bookings
                   </FormDescription>
-                  <FormMessage className="text-eleva-highlight-red" />
+                  <FormMessage className="text-xs text-eleva-highlight-red" />
                 </FormItem>
               )}
             />
@@ -386,9 +386,8 @@ export function SchedulingSettingsForm() {
                             <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
-                          Determines how finely you can schedule appointments (e.g., every 15
-                          minutes or 30 minutes)
+                        <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
+                          Determines how finely you can schedule appointments
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -408,16 +407,16 @@ export function SchedulingSettingsForm() {
                             value={interval.value.toString()}
                             className="cursor-pointer"
                           >
-                            <span className="font-mono">{interval.label}</span>
+                            <span className="font-mono text-sm">{interval.label}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription className="text-sm text-eleva-neutral-900/60">
+                  <FormDescription className="text-xs text-eleva-neutral-900/60">
                     Length of each bookable time slot
                   </FormDescription>
-                  <FormMessage className="text-eleva-highlight-red" />
+                  <FormMessage className="text-xs text-eleva-highlight-red" />
                 </FormItem>
               )}
             />
@@ -431,7 +430,7 @@ export function SchedulingSettingsForm() {
             <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary-light">
               Booking Window
             </h3>
-            <p className="mt-1 text-sm text-eleva-neutral-900/60">
+            <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
               Control how far in advance people can schedule appointments.
             </p>
           </div>
@@ -453,7 +452,7 @@ export function SchedulingSettingsForm() {
                             <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
+                        <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
                           The furthest in the future that appointments can be scheduled
                         </TooltipContent>
                       </Tooltip>
@@ -474,16 +473,16 @@ export function SchedulingSettingsForm() {
                             value={option.value.toString()}
                             className="cursor-pointer"
                           >
-                            <span className="font-mono">{option.label}</span>
+                            <span className="font-mono text-sm">{option.label}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription className="text-sm text-eleva-neutral-900/60">
+                  <FormDescription className="text-xs text-eleva-neutral-900/60">
                     How far ahead appointments can be booked
                   </FormDescription>
-                  <FormMessage className="text-eleva-highlight-red" />
+                  <FormMessage className="text-xs text-eleva-highlight-red" />
                 </FormItem>
               )}
             />

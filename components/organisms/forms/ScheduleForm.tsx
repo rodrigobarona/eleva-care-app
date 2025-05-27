@@ -102,7 +102,7 @@ export function ScheduleForm({
               <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-primary">
                 Weekly hours
               </h3>
-              <p className="mt-1 text-sm text-eleva-neutral-900/60">
+              <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
                 Configure times when you are available for bookings.
               </p>
             </div>
@@ -135,7 +135,7 @@ export function ScheduleForm({
                               }
                             }}
                           />
-                          <span className="font-medium capitalize text-eleva-neutral-900">
+                          <span className="text-sm font-medium capitalize text-eleva-neutral-900">
                             {dayOfWeek}
                           </span>
                         </div>
@@ -153,7 +153,7 @@ export function ScheduleForm({
                                     <FormItem>
                                       <FormControl>
                                         <Select value={field.value} onValueChange={field.onChange}>
-                                          <SelectTrigger className="w-32 border-eleva-neutral-200 font-mono">
+                                          <SelectTrigger className="w-32 border-eleva-neutral-200 font-mono text-sm">
                                             <SelectValue placeholder="Start time" />
                                           </SelectTrigger>
                                           <SelectContent>
@@ -161,7 +161,7 @@ export function ScheduleForm({
                                               <SelectItem
                                                 key={option.value}
                                                 value={option.value}
-                                                className="font-mono"
+                                                className="font-mono text-sm"
                                               >
                                                 {option.label}
                                               </SelectItem>
@@ -169,11 +169,11 @@ export function ScheduleForm({
                                           </SelectContent>
                                         </Select>
                                       </FormControl>
-                                      <FormMessage className="text-eleva-highlight-red" />
+                                      <FormMessage className="text-xs text-eleva-highlight-red" />
                                     </FormItem>
                                   )}
                                 />
-                                <span className="text-eleva-neutral-900/60">to</span>
+                                <span className="text-xs text-eleva-neutral-900/60">to</span>
                                 <FormField
                                   control={form.control}
                                   name={`availabilities.${field.index}.endTime`}
@@ -181,7 +181,7 @@ export function ScheduleForm({
                                     <FormItem>
                                       <FormControl>
                                         <Select value={field.value} onValueChange={field.onChange}>
-                                          <SelectTrigger className="w-32 border-eleva-neutral-200 font-mono">
+                                          <SelectTrigger className="w-32 border-eleva-neutral-200 font-mono text-sm">
                                             <SelectValue placeholder="End time" />
                                           </SelectTrigger>
                                           <SelectContent>
@@ -189,7 +189,7 @@ export function ScheduleForm({
                                               <SelectItem
                                                 key={option.value}
                                                 value={option.value}
-                                                className="font-mono"
+                                                className="font-mono text-sm"
                                               >
                                                 {option.label}
                                               </SelectItem>
@@ -197,7 +197,7 @@ export function ScheduleForm({
                                           </SelectContent>
                                         </Select>
                                       </FormControl>
-                                      <FormMessage className="text-eleva-highlight-red" />
+                                      <FormMessage className="text-xs text-eleva-highlight-red" />
                                     </FormItem>
                                   )}
                                 />
@@ -250,7 +250,7 @@ export function ScheduleForm({
               <h3 className="font-serif text-xl font-medium tracking-tight text-eleva-secondary">
                 Time zone
               </h3>
-              <p className="mt-1 text-sm text-eleva-neutral-900/60">
+              <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/60">
                 Select your timezone to ensure accurate scheduling.
               </p>
             </div>
@@ -271,8 +271,8 @@ export function ScheduleForm({
                         <SelectContent>
                           {Intl.supportedValuesOf('timeZone').map((timezone) => (
                             <SelectItem key={timezone} value={timezone}>
-                              <span className="font-sans">{timezone}</span>
-                              <span className="font-mono text-eleva-neutral-900/60">{` (${formatTimezoneOffset(timezone)})`}</span>
+                              <span className="text-sm">{timezone}</span>
+                              <span className="font-mono text-xs text-eleva-neutral-900/60">{` (${formatTimezoneOffset(timezone)})`}</span>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -284,13 +284,13 @@ export function ScheduleForm({
                               <Info className="size-4 text-eleva-neutral-900/60" />
                             </Button>
                           </TooltipTrigger>
-                          <TooltipContent className="bg-eleva-neutral-100 text-eleva-neutral-900">
+                          <TooltipContent className="bg-eleva-primary px-3 py-1.5 text-xs text-white">
                             Your timezone was automatically detected
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
                     </div>
-                    <FormMessage className="text-eleva-highlight-red" />
+                    <FormMessage className="text-xs text-eleva-highlight-red" />
                   </FormItem>
                 )}
               />
