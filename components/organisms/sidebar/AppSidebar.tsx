@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
 } from '@/components/organisms/sidebar/sidebar';
 import { useUser } from '@clerk/nextjs';
-import { Clock, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
+import { Calendar, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
 import { Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
@@ -43,10 +43,14 @@ const mainItems: SidebarItem[] = [
   {
     title: 'Calendar ',
     url: '/booking/schedule',
-    icon: Clock,
+    icon: Calendar,
     items: [
-      { title: 'Availability', url: '/booking/schedule' },
-      { title: 'Limits', url: '/booking/limits' },
+      { title: 'Weekly hours', url: '/booking/schedule#weekly-hours' },
+      { title: 'Time zone', url: '/booking/schedule#time-zone' },
+      { title: 'Blocked dates', url: '/booking/schedule#blocked-dates' },
+      { title: 'Buffer Times', url: '/booking/schedule/limits#buffer-times' },
+      { title: 'Booking Rules', url: '/booking/schedule/limits#booking-rules' },
+      { title: 'Booking Window', url: '/booking/schedule/limits#booking-window' },
     ],
   },
 
