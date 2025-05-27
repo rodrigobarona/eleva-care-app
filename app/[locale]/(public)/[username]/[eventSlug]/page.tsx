@@ -144,6 +144,8 @@ async function CalendarWithAvailability({
   let timeSlotInterval = 15; // Default fallback value
   let bookingWindowDays = 60; // Default fallback value (2 months)
   let minimumNotice = 1440; // Default fallback value (24 hours in minutes)
+  let beforeEventBuffer = 10; // Default fallback value (10 minutes)
+  let afterEventBuffer = 0; // Default fallback value (no buffer)
   try {
     const settings = await db.query.schedulingSettings.findFirst({
       where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, userId),
@@ -157,6 +159,12 @@ async function CalendarWithAvailability({
     }
     if (settings?.minimumNotice) {
       minimumNotice = settings.minimumNotice;
+    }
+    if (settings?.beforeEventBuffer) {
+      beforeEventBuffer = settings.beforeEventBuffer;
+    }
+    if (settings?.afterEventBuffer) {
+      afterEventBuffer = settings.afterEventBuffer;
     }
   } catch (error) {
     console.error('[CalendarWithAvailability] Error fetching scheduling settings:', error);
@@ -243,7 +251,7 @@ async function CalendarWithAvailability({
     return <NoTimeSlots calendarUser={calendarUser} username={username} _locale={locale} />;
   }
 
-  // Enhanced MeetingForm with better metadata
+  // Enhanced MeetingForm with better metadata and buffer times
   return (
     <MeetingForm
       validTimes={validTimes}
@@ -263,6 +271,8 @@ async function CalendarWithAvailability({
       eventDuration={event.durationInMinutes}
       eventLocation="Google Meet"
       locale={locale}
+      beforeEventBuffer={beforeEventBuffer}
+      afterEventBuffer={afterEventBuffer}
     />
   );
 }

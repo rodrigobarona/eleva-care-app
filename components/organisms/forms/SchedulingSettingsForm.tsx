@@ -17,8 +17,16 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/molecules/form';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/molecules/select';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Card, Divider, Select, SelectItem, TextInput } from '@tremor/react';
+import { Card } from '@tremor/react';
+import { Divider } from '@tremor/react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
@@ -45,7 +53,7 @@ const formSchema = z.object({
     .number()
     .refine((val) => val % 5 === 0, 'Time slot interval must be in 5-minute increments')
     .refine((val) => val >= 5, 'Time slot interval must be at least 5 minutes')
-    .refine((val) => val <= 60, 'Time slot interval cannot exceed 60 minutes'),
+    .refine((val) => val <= 120, 'Time slot interval cannot exceed 2 hours'),
   bookingWindowDays: z.coerce
     .number()
     .min(7, 'Booking window must be at least 1 week')
@@ -62,6 +70,7 @@ const TIME_SLOT_INTERVALS = [
   { value: 20, label: '20 minutes' },
   { value: 30, label: '30 minutes' },
   { value: 60, label: '1 hour' },
+  { value: 120, label: '2 hours' },
 ];
 
 // Replace BOOKING_WINDOW_OPTIONS with the new options including weeks
@@ -89,10 +98,24 @@ const MINIMUM_NOTICE_OPTIONS = [
   { value: 20160, label: '2 weeks' },
 ];
 
+// Buffer time options in minutes
+const BUFFER_TIME_OPTIONS = [
+  { value: 0, label: 'No buffer' },
+  { value: 5, label: '5 minutes' },
+  { value: 10, label: '10 minutes' },
+  { value: 15, label: '15 minutes' },
+  { value: 20, label: '20 minutes' },
+  { value: 30, label: '30 minutes' },
+  { value: 45, label: '45 minutes' },
+  { value: 60, label: '1 hour' },
+  { value: 90, label: '1.5 hours' },
+  { value: 120, label: '2 hours' },
+];
+
 // Update DEFAULT_VALUES
 const DEFAULT_VALUES: FormValues = {
-  beforeEventBuffer: 15,
-  afterEventBuffer: 15,
+  beforeEventBuffer: 10,
+  afterEventBuffer: 0,
   minimumNotice: 1440, // 24 hours in minutes
   timeSlotInterval: 15,
   bookingWindowDays: 60,
@@ -189,18 +212,28 @@ export function SchedulingSettingsForm() {
                     Buffer Time Before Event
                   </FormLabel>
                   <FormControl>
-                    <TextInput
-                      type="number"
-                      placeholder="15"
-                      min={0}
-                      max={120}
+                    <Select
+                      onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
                       value={field.value.toString()}
-                      onValueChange={(value) => field.onChange(Number(value))}
-                      className="[&>*]:rounded-tremor-small border-tremor-border"
-                    />
+                    >
+                      <SelectTrigger className="border-input bg-background ring-offset-background hover:bg-accent focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                        <SelectValue placeholder="Select buffer time before event" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BUFFER_TIME_OPTIONS.map((option) => (
+                          <SelectItem
+                            key={option.value}
+                            value={option.value.toString()}
+                            className="cursor-pointer hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormDescription className="text-tremor-label text-tremor-content dark:text-dark-tremor-content">
-                    Minutes to block before each event
+                    Add buffer time before each event for preparation and setup
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -217,18 +250,28 @@ export function SchedulingSettingsForm() {
                     Buffer Time After Event
                   </FormLabel>
                   <FormControl>
-                    <TextInput
-                      type="number"
-                      placeholder="15"
-                      min={0}
-                      max={120}
+                    <Select
+                      onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
                       value={field.value.toString()}
-                      onValueChange={(value) => field.onChange(Number(value))}
-                      className="[&>*]:rounded-tremor-small border-tremor-border"
-                    />
+                    >
+                      <SelectTrigger className="border-input bg-background ring-offset-background hover:bg-accent focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                        <SelectValue placeholder="Select buffer time after event" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BUFFER_TIME_OPTIONS.map((option) => (
+                          <SelectItem
+                            key={option.value}
+                            value={option.value.toString()}
+                            className="cursor-pointer hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </FormControl>
                   <FormDescription className="text-tremor-label text-tremor-content dark:text-dark-tremor-content">
-                    Minutes to block after each event
+                    Add buffer time after each event for notes and session recap
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -247,20 +290,22 @@ export function SchedulingSettingsForm() {
                   <FormControl>
                     <Select
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
-                      defaultValue={field.value.toString()}
                       value={field.value.toString()}
-                      enableClear={false}
-                      className="[&>button]:border-input [&>button]:bg-background [&>button]:ring-offset-background [&>button]:hover:bg-accent [&>button]:focus:ring-2 [&>button]:focus:ring-ring [&>button]:focus:ring-offset-2"
                     >
-                      {MINIMUM_NOTICE_OPTIONS.map((option) => (
-                        <SelectItem
-                          key={option.value}
-                          value={option.value.toString()}
-                          className="cursor-pointer hover:bg-accent focus:bg-accent focus:text-accent-foreground"
-                        >
-                          {option.label}
-                        </SelectItem>
-                      ))}
+                      <SelectTrigger className="border-input bg-background ring-offset-background hover:bg-accent focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                        <SelectValue placeholder="Select minimum notice" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {MINIMUM_NOTICE_OPTIONS.map((option) => (
+                          <SelectItem
+                            key={option.value}
+                            value={option.value.toString()}
+                            className="cursor-pointer hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </FormControl>
                   <FormDescription className="text-tremor-label text-tremor-content dark:text-dark-tremor-content">
@@ -283,16 +328,22 @@ export function SchedulingSettingsForm() {
                   <FormControl>
                     <Select
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
-                      defaultValue={field.value.toString()}
                       value={field.value.toString()}
-                      enableClear={false}
-                      className="[&>*]:rounded-tremor-small border-tremor-border"
                     >
-                      {TIME_SLOT_INTERVALS.map((interval) => (
-                        <SelectItem key={interval.value} value={interval.value.toString()}>
-                          {interval.label}
-                        </SelectItem>
-                      ))}
+                      <SelectTrigger className="border-input bg-background ring-offset-background hover:bg-accent focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                        <SelectValue placeholder="Select time slot interval" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TIME_SLOT_INTERVALS.map((interval) => (
+                          <SelectItem
+                            key={interval.value}
+                            value={interval.value.toString()}
+                            className="cursor-pointer hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {interval.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </FormControl>
                   <FormDescription className="text-tremor-label text-tremor-content dark:text-dark-tremor-content">
@@ -315,20 +366,22 @@ export function SchedulingSettingsForm() {
                   <FormControl>
                     <Select
                       onValueChange={(value) => field.onChange(Number.parseInt(value, 10))}
-                      defaultValue={field.value.toString()}
                       value={field.value.toString()}
-                      enableClear={false}
-                      className="[&>button]:border-input [&>button]:bg-background [&>button]:ring-offset-background [&>button]:hover:bg-accent [&>button]:focus:ring-2 [&>button]:focus:ring-ring [&>button]:focus:ring-offset-2"
                     >
-                      {BOOKING_WINDOW_OPTIONS.map((option) => (
-                        <SelectItem
-                          key={option.value}
-                          value={option.value.toString()}
-                          className="cursor-pointer hover:bg-accent focus:bg-accent focus:text-accent-foreground"
-                        >
-                          {option.label}
-                        </SelectItem>
-                      ))}
+                      <SelectTrigger className="border-input bg-background ring-offset-background hover:bg-accent focus:ring-2 focus:ring-ring focus:ring-offset-2">
+                        <SelectValue placeholder="Select booking window" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BOOKING_WINDOW_OPTIONS.map((option) => (
+                          <SelectItem
+                            key={option.value}
+                            value={option.value.toString()}
+                            className="cursor-pointer hover:bg-accent focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </FormControl>
                   <FormDescription className="text-tremor-label text-tremor-content dark:text-dark-tremor-content">

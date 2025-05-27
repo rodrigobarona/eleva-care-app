@@ -47,6 +47,8 @@ interface MeetingFormProps {
   eventDuration?: number;
   eventLocation?: string;
   locale?: string;
+  beforeEventBuffer?: number;
+  afterEventBuffer?: number;
 }
 
 export function MeetingFormContent({
@@ -64,6 +66,8 @@ export function MeetingFormContent({
   eventDuration = 45,
   eventLocation = 'Google Meet',
   locale,
+  beforeEventBuffer = 15,
+  afterEventBuffer = 15,
 }: MeetingFormProps) {
   const router = useRouter();
 
@@ -593,6 +597,10 @@ export function MeetingFormContent({
     const displayDate = currentDate || queryStates.date;
     const displayTime = currentTime || queryStates.time;
 
+    // Calculate total duration including buffer times
+    const totalDuration = eventDuration + beforeEventBuffer + afterEventBuffer;
+    const hasBufferTime = beforeEventBuffer > 0 || afterEventBuffer > 0;
+
     return (
       <div className="rounded-lg border p-6">
         <div className="mb-6">
@@ -626,6 +634,17 @@ export function MeetingFormContent({
               <Globe className="h-4 w-4" />
               <span>{(currentTimezone || timezone).replace('_', ' ')}</span>
             </div>
+            {hasBufferTime && (
+              <div className="mt-2 text-sm">
+                <p>Total time blocked: {totalDuration} minutes</p>
+                {beforeEventBuffer > 0 && (
+                  <p className="text-xs">({beforeEventBuffer} min buffer before)</p>
+                )}
+                {afterEventBuffer > 0 && (
+                  <p className="text-xs">({afterEventBuffer} min buffer after)</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
