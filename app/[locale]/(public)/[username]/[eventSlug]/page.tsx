@@ -19,6 +19,7 @@ import {
 } from '@/lib/constants/scheduling';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { Link } from '@/lib/i18n/navigation';
+import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { createClerkClient } from '@clerk/nextjs/server';
 import type { User } from '@clerk/nextjs/server';
@@ -258,6 +259,9 @@ async function CalendarWithAvailability({
     return <NoTimeSlots calendarUser={calendarUser} username={username} _locale={locale} />;
   }
 
+  // Fetch blocked dates for this user
+  const blockedDates = await getBlockedDatesForUser(userId);
+
   // Enhanced MeetingForm with better metadata and buffer times
   return (
     <MeetingForm
@@ -280,6 +284,7 @@ async function CalendarWithAvailability({
       locale={locale}
       beforeEventBuffer={beforeEventBuffer}
       afterEventBuffer={afterEventBuffer}
+      blockedDates={blockedDates}
     />
   );
 }

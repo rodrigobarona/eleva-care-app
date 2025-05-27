@@ -9,20 +9,39 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 // Import global CSS
 import './globals.css';
 
-// Font definitions
+// ## Font definitions
+// Here’s a system that balances warmth, trust, and clarity across digital and print:
+
+// ### Lora (Serif)
+// For: Article body, quotes, hero headlines
+// - Elegant but readable
+// - Slightly feminine curves
+// - Works beautifully in print and digital
+// - Makes your content feel reliable, caring, editorial
 const lora = Lora({
   subsets: ['latin'],
   display: 'swap',
-  weight: ['400', '700'], // 400: regular, 700: bold
+  weight: ['400', '600'], // 400: regular, 600: semibold
   variable: '--font-lora',
 });
 
+// ### DM Sans (Sans-Serif)
+// For: UI text, buttons, forms, dashboards, navigation
+// - Friendly, rounded, very readable
+// - Pairs well with a soft serif like Lora
+// - Great for mobile + dashboard UI
 const dmSans = DM_Sans({
   subsets: ['latin'],
   display: 'swap',
   weight: ['400', '500', '700'], // 400: regular, 500: medium, 700: bold
   variable: '--font-dm-sans',
 });
+
+// ### IBM Plex Mono (Mono)
+// For: Code, structured data, or secure transaction IDs
+// - Modern and clean
+// - Has a humanist touch (not too tech-heavy)
+// - Good for confidence in secure processes, logs, etc.
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   display: 'swap',

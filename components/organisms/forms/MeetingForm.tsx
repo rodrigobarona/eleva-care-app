@@ -36,6 +36,13 @@ import { Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import type { z } from 'zod';
 
+interface BlockedDate {
+  id: number;
+  date: Date;
+  reason?: string;
+  timezone: string;
+}
+
 interface MeetingFormProps {
   validTimes: Date[];
   eventId: string;
@@ -53,6 +60,7 @@ interface MeetingFormProps {
   locale?: string;
   beforeEventBuffer?: number;
   afterEventBuffer?: number;
+  blockedDates?: BlockedDate[];
 }
 
 export function MeetingFormContent({
@@ -72,6 +80,7 @@ export function MeetingFormContent({
   locale,
   beforeEventBuffer = DEFAULT_BEFORE_EVENT_BUFFER,
   afterEventBuffer = DEFAULT_AFTER_EVENT_BUFFER,
+  blockedDates,
 }: MeetingFormProps) {
   const router = useRouter();
 
@@ -132,6 +141,31 @@ export function MeetingFormContent({
 
   // Extract values we'll use for various purposes
   const timezone = form.watch('timezone');
+
+  // Function to check if a date is blocked
+  const isDateBlocked = React.useCallback(
+    (date: Date) => {
+      if (!blockedDates || blockedDates.length === 0) return false;
+
+      return blockedDates.some((blocked) => {
+        const calendarDateInTz = toZonedTime(date, blocked.timezone);
+        const blockedDateInTz = toZonedTime(blocked.date, blocked.timezone);
+
+        return (
+          formatInTimeZone(calendarDateInTz, blocked.timezone, 'yyyy-MM-dd') ===
+          formatInTimeZone(blockedDateInTz, blocked.timezone, 'yyyy-MM-dd')
+        );
+      });
+    },
+    [blockedDates],
+  );
+
+  // Filter valid times to exclude blocked dates
+  const filteredValidTimes = React.useMemo(() => {
+    if (!blockedDates || blockedDates.length === 0) return validTimes;
+
+    return validTimes.filter((time) => !isDateBlocked(time));
+  }, [validTimes, isDateBlocked, blockedDates]);
 
   // Watch form values for reactive UI updates while also ensuring we get the latest
   // values from either the form or URL parameters for the BookingLayout
@@ -811,7 +845,7 @@ export function MeetingFormContent({
             price: price,
             location: eventLocation,
           }}
-          validTimes={validTimes}
+          validTimes={filteredValidTimes}
           onDateSelect={handleDateSelect}
           onTimeSlotSelect={handleTimeSelect}
           selectedDate={selectedDateValue}
@@ -819,6 +853,7 @@ export function MeetingFormContent({
           timezone={timezone}
           onTimezoneChange={handleTimezoneChange}
           showCalendar={currentStep === '1'}
+          blockedDates={blockedDates}
         >
           {currentStep !== '1' && (
             <div>

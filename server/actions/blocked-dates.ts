@@ -73,3 +73,24 @@ export async function getBlockedDates() {
     };
   });
 }
+
+// New function to get blocked dates for a specific user (for public booking pages)
+export async function getBlockedDatesForUser(clerkUserId: string) {
+  const blockedDates = await db.query.BlockedDatesTable.findMany({
+    where: (table, { eq }) => eq(table.clerkUserId, clerkUserId),
+    orderBy: (table) => [table.date],
+  });
+
+  return blockedDates.map((blocked) => {
+    // Create a date object at midnight in the blocked timezone
+    const dateStr = `${blocked.date}T00:00:00`;
+    const date = toDate(dateStr, { timeZone: blocked.timezone });
+
+    return {
+      id: blocked.id,
+      date,
+      reason: blocked.reason || undefined,
+      timezone: blocked.timezone,
+    };
+  });
+}
