@@ -83,7 +83,6 @@
     "@tiptap/pm": "^2.11.7",
     "@tiptap/react": "^2.11.7",
     "@tiptap/starter-kit": "^2.11.7",
-    "@tremor/react": "^3.18.7",
     "@types/lodash": "^4.17.16",
     "@types/mdx": "^2.0.13",
     "@types/node-cron": "^3.0.11",
