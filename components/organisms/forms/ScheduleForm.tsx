@@ -103,23 +103,28 @@ export function ScheduleForm({
   }, [form.formState.isDirty]);
 
   // Add handlers for blocked dates
-  const handleAddBlockedDates = useCallback(async (dates: { date: Date; reason?: string }[]) => {
-    try {
-      await addBlockedDates(
-        dates.map((date) => ({
-          date: date.date,
-          reason: date.reason,
-        })),
-      );
-      // Refresh blocked dates after adding
-      const updatedBlockedDates = await getBlockedDates();
-      setBlockedDates(updatedBlockedDates);
-      toast.success('Dates blocked successfully');
-    } catch (error) {
-      console.error('Error adding blocked dates:', error);
-      toast.error('Failed to add blocked dates');
-    }
-  }, []);
+  const handleAddBlockedDates = useCallback(
+    async (dates: { date: Date; reason?: string }[]) => {
+      try {
+        const timezone = form.getValues('timezone');
+        await addBlockedDates(
+          dates.map((date) => ({
+            date: date.date,
+            reason: date.reason,
+            timezone,
+          })),
+        );
+        // Refresh blocked dates after adding
+        const updatedBlockedDates = await getBlockedDates();
+        setBlockedDates(updatedBlockedDates);
+        toast.success('Dates blocked successfully');
+      } catch (error) {
+        console.error('Error adding blocked dates:', error);
+        toast.error('Failed to add blocked dates');
+      }
+    },
+    [form],
+  );
 
   const handleRemoveBlockedDate = useCallback(async (id: number) => {
     try {

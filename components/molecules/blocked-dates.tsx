@@ -13,6 +13,7 @@ import {
 } from '@/components/molecules/dialog';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { CalendarIcon, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -80,7 +81,7 @@ export function BlockedDates({
                   >
                     <div className="flex items-center gap-4">
                       <span className="font-mono text-sm">
-                        {format(blocked.date, 'MMM dd, yyyy')}
+                        {formatInTimeZone(blocked.date, blocked.timezone, 'MMM dd, yyyy')}
                       </span>
                       {blocked.reason && (
                         <span className="text-sm text-eleva-neutral-900/60">{blocked.reason}</span>
@@ -141,11 +142,18 @@ export function BlockedDates({
                         selected={selectedDate}
                         onSelect={handleDateSelect}
                         disabled={(date) =>
-                          blockedDates.some(
-                            (blocked) =>
-                              blocked.date.toISOString().split('T')[0] ===
-                              date.toISOString().split('T')[0],
-                          )
+                          blockedDates.some((blocked) => {
+                            // Convert the calendar date to the blocked date's timezone
+                            const calendarDateInTz = toDate(date, { timeZone: blocked.timezone });
+                            const blockedDateInTz = toDate(blocked.date, {
+                              timeZone: blocked.timezone,
+                            });
+
+                            return (
+                              formatInTimeZone(calendarDateInTz, blocked.timezone, 'yyyy-MM-dd') ===
+                              formatInTimeZone(blockedDateInTz, blocked.timezone, 'yyyy-MM-dd')
+                            );
+                          })
                         }
                         initialFocus
                       />

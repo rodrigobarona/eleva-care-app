@@ -3,33 +3,38 @@
 import { db } from '@/drizzle/db';
 import { BlockedDatesTable, ScheduleTable } from '@/drizzle/schema';
 import { auth } from '@clerk/nextjs/server';
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 interface BlockedDateInput {
   date: Date;
   reason?: string;
+  timezone?: string;
 }
 
 export async function addBlockedDates(dates: BlockedDateInput[]) {
   const { userId } = await auth();
   if (!userId) throw new Error('Unauthorized');
 
-  // Get user's timezone from their schedule
+  // Get user's timezone from their schedule as fallback
   const schedule = await db.query.ScheduleTable.findFirst({
     where: ({ clerkUserId }, { eq }) => eq(clerkUserId, userId),
   });
 
-  const timezone = schedule?.timezone || 'UTC';
+  const defaultTimezone = schedule?.timezone || 'UTC';
 
-  const values = dates.map((date) => ({
-    clerkUserId: userId,
-    // Convert the date to YYYY-MM-DD format in the user's timezone
-    date: formatInTimeZone(date.date, timezone, 'yyyy-MM-dd'),
-    timezone, // Store the timezone
-    reason: date.reason,
-  }));
+  const values = dates.map((date) => {
+    const timezone = date.timezone || defaultTimezone;
+    // Convert the input date to the target timezone first
+    const dateInTimezone = toDate(date.date, { timeZone: timezone });
+    return {
+      clerkUserId: userId,
+      date: formatInTimeZone(dateInTimezone, timezone, 'yyyy-MM-dd'),
+      timezone,
+      reason: date.reason,
+    };
+  });
 
   await db.insert(BlockedDatesTable).values(values);
   revalidatePath('/booking/schedule');
@@ -55,11 +60,16 @@ export async function getBlockedDates() {
     orderBy: (table) => [table.date],
   });
 
-  return blockedDates.map((blocked) => ({
-    id: blocked.id,
-    // Use the stored timezone for each blocked date
-    date: new Date(formatInTimeZone(blocked.date, blocked.timezone, 'yyyy-MM-dd')),
-    reason: blocked.reason || undefined,
-    timezone: blocked.timezone,
-  }));
+  return blockedDates.map((blocked) => {
+    // Create a date object at midnight in the blocked timezone
+    const dateStr = `${blocked.date}T00:00:00`;
+    const date = toDate(dateStr, { timeZone: blocked.timezone });
+
+    return {
+      id: blocked.id,
+      date,
+      reason: blocked.reason || undefined,
+      timezone: blocked.timezone,
+    };
+  });
 }
