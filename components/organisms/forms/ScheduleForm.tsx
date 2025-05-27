@@ -2,8 +2,9 @@
 
 import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
 import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
-import { Separator } from '@/components/atoms/separator';
+import { Card } from '@/components/atoms/card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
+import { Switch } from '@/components/atoms/switch';
 import {
   Form,
   FormControl,
@@ -24,10 +25,24 @@ import { timeToInt } from '@/lib/utils';
 import { scheduleFormSchema } from '@/schema/schedule';
 import { saveSchedule } from '@/server/actions/schedule';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Plus, X } from 'lucide-react';
-import { Fragment, useState } from 'react';
+import { Info, Plus, Trash2 } from 'lucide-react';
 import { useFieldArray, useForm } from 'react-hook-form';
+import { toast } from 'sonner';
 import type { z } from 'zod';
+
+// Generate time options in 15-minute intervals
+const generateTimeOptions = () => {
+  const options = [];
+  for (let hour = 0; hour < 24; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) {
+      const time = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+      options.push({ value: time, label: time });
+    }
+  }
+  return options;
+};
+
+const TIME_OPTIONS = generateTimeOptions();
 
 type Availability = {
   startTime: string;
@@ -43,7 +58,6 @@ export function ScheduleForm({
     availabilities: Availability[];
   };
 }) {
-  const [successMessage, setSuccessMessage] = useState<string>();
   const form = useForm<z.infer<typeof scheduleFormSchema>>({
     resolver: zodResolver(scheduleFormSchema),
     defaultValues: {
@@ -66,134 +80,214 @@ export function ScheduleForm({
   );
 
   async function onSubmit(values: z.infer<typeof scheduleFormSchema>) {
-    const data = await saveSchedule(values);
-
-    if (data?.error) {
-      form.setError('root', {
-        message: 'There was an error saving your schedule',
-      });
-    } else {
-      setSuccessMessage('Schedule saved!');
+    try {
+      const data = await saveSchedule(values);
+      if (data?.error) {
+        toast.error('Failed to save schedule');
+        form.setError('root', {
+          message: 'There was an error saving your schedule',
+        });
+      } else {
+        toast.success('Schedule saved successfully!');
+      }
+    } catch {
+      toast.error('An unexpected error occurred');
     }
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-6">
-        {form.formState.errors.root && (
-          <div className="text-sm text-destructive">{form.formState.errors.root.message}</div>
-        )}
-        {successMessage && <div className="text-sm text-green-500">{successMessage}</div>}
-        <FormField
-          control={form.control}
-          name="timezone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Timezone</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {Intl.supportedValuesOf('timeZone').map((timezone) => (
-                    <SelectItem key={timezone} value={timezone}>
-                      {timezone}
-                      {` (${formatTimezoneOffset(timezone)})`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <Separator />
-        <div className="grid grid-cols-[auto,1fr] gap-x-4 gap-y-6">
-          {DAYS_OF_WEEK_IN_ORDER.map((dayOfWeek) => (
-            <Fragment key={dayOfWeek}>
-              <div className="text-sm font-semibold capitalize">{dayOfWeek.substring(0, 3)}</div>
-              <div className="flex flex-col gap-2">
-                <Button
-                  type="button"
-                  className="size-6 p-1"
-                  variant="outline"
-                  onClick={() => {
-                    addAvailability({
-                      dayOfWeek,
-                      startTime: '9:00',
-                      endTime: '17:00',
-                    });
-                  }}
-                >
-                  <Plus className="size-full" />
-                </Button>
-                {groupedAvailabilityFields[dayOfWeek]?.map((field, labelIndex) => (
-                  <div className="flex flex-col gap-1" key={field.id}>
-                    <div className="flex items-center gap-2">
-                      <FormField
-                        control={form.control}
-                        name={`availabilities.${field.index}.startTime`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                className="w-24"
-                                aria-label={`${dayOfWeek} Start Time ${labelIndex + 1}`}
-                                {...field}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      -
-                      <FormField
-                        control={form.control}
-                        name={`availabilities.${field.index}.endTime`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormControl>
-                              <Input
-                                className="w-24"
-                                aria-label={`${dayOfWeek} End Time ${labelIndex + 1}`}
-                                {...field}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                      <Button
-                        type="button"
-                        className="size-6 p-1"
-                        variant="destructiveGhost"
-                        onClick={() => removeAvailability(field.index)}
-                      >
-                        <X />
-                      </Button>
-                    </div>
-                    <FormMessage>
-                      {form.formState.errors.availabilities?.at?.(field.index)?.root?.message}
-                    </FormMessage>
-                    <FormMessage>
-                      {form.formState.errors.availabilities?.at?.(field.index)?.startTime?.message}
-                    </FormMessage>
-                    <FormMessage>
-                      {form.formState.errors.availabilities?.at?.(field.index)?.endTime?.message}
-                    </FormMessage>
-                  </div>
-                ))}
-              </div>
-            </Fragment>
-          ))}
-        </div>
+    <Card className="bg-background p-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+          <div>
+            <div className="mb-6 flex items-center gap-2">
+              <h2 className="font-serif text-xl font-semibold">Weekly hours</h2>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-6">
+                    <Info className="size-4" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  Set your weekly hours when you&apos;re typically available for meetings. Times are
+                  shown in your local timezone.
+                </PopoverContent>
+              </Popover>
+            </div>
 
-        <div className="flex justify-end gap-2">
-          <Button disabled={form.formState.isSubmitting} type="submit">
-            Save
-          </Button>
-        </div>
-      </form>
-    </Form>
+            <div className="divide-y rounded-lg border bg-card/50">
+              {DAYS_OF_WEEK_IN_ORDER.map((dayOfWeek) => {
+                const dayFields = groupedAvailabilityFields[dayOfWeek] ?? [];
+                const hasAvailability = dayFields.length > 0;
+                return (
+                  <div key={dayOfWeek} className="flex items-start gap-4 p-4">
+                    <div className="w-40">
+                      <div className="flex items-center gap-3">
+                        <Switch
+                          checked={hasAvailability}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              addAvailability({
+                                dayOfWeek,
+                                startTime: '09:00',
+                                endTime: '17:00',
+                              });
+                            } else {
+                              for (const field of dayFields) {
+                                removeAvailability(field.index);
+                              }
+                            }
+                          }}
+                        />
+                        <span className="font-medium">{dayOfWeek}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex-1">
+                      {hasAvailability ? (
+                        <div className="space-y-3">
+                          {dayFields.map((field, labelIndex) => (
+                            <div key={field.id} className="group flex items-center gap-3">
+                              <FormField
+                                control={form.control}
+                                name={`availabilities.${field.index}.startTime`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Select value={field.value} onValueChange={field.onChange}>
+                                        <SelectTrigger className="w-32">
+                                          <SelectValue placeholder="Start time" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {TIME_OPTIONS.map((option) => (
+                                            <SelectItem key={option.value} value={option.value}>
+                                              {option.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <span className="text-muted-foreground">to</span>
+                              <FormField
+                                control={form.control}
+                                name={`availabilities.${field.index}.endTime`}
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormControl>
+                                      <Select value={field.value} onValueChange={field.onChange}>
+                                        <SelectTrigger className="w-32">
+                                          <SelectValue placeholder="End time" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                          {TIME_OPTIONS.map((option) => (
+                                            <SelectItem key={option.value} value={option.value}>
+                                              {option.label}
+                                            </SelectItem>
+                                          ))}
+                                        </SelectContent>
+                                      </Select>
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  className="opacity-0 transition-opacity group-hover:opacity-100"
+                                  onClick={() => removeAvailability(field.index)}
+                                >
+                                  <Trash2 className="size-4 text-muted-foreground hover:text-destructive" />
+                                </Button>
+                                {labelIndex === dayFields.length - 1 && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="opacity-0 transition-opacity group-hover:opacity-100"
+                                    onClick={() => {
+                                      addAvailability({
+                                        dayOfWeek,
+                                        startTime: '09:00',
+                                        endTime: '17:00',
+                                      });
+                                    }}
+                                  >
+                                    <Plus className="size-4 text-muted-foreground hover:text-foreground" />
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Unavailable</p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="max-w-[400px] flex-1">
+              <FormField
+                control={form.control}
+                name="timezone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-medium">Time zone</FormLabel>
+                    <div className="flex items-center gap-2">
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="w-[360px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {Intl.supportedValuesOf('timeZone').map((timezone) => (
+                            <SelectItem key={timezone} value={timezone}>
+                              {timezone}
+                              {` (${formatTimezoneOffset(timezone)})`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon" className="size-6">
+                            <Info className="size-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent>
+                          Your timezone was automatically detected. All times will be displayed in
+                          your local timezone.
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <Button
+              disabled={form.formState.isSubmitting}
+              type="submit"
+              className="bg-eleva-primary font-medium text-white transition-colors hover:bg-eleva-primary-light focus:ring-2 focus:ring-eleva-primary/50"
+            >
+              {form.formState.isSubmitting ? 'Saving...' : 'Save Schedule'}
+            </Button>
+          </div>
+        </form>
+      </Form>
+    </Card>
   );
 }
