@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented critical audit logging for medical record CRUD and read operations
   - Added structured audit trails for sensitive data access and modifications
   - Enhanced logging for payment operations and status changes
+  - **Security-sensitive error logging**: Automatic detection and auditing of unauthorized access attempts, permission errors, and encryption failures
+  - **Multibanco voucher expiry tracking**: Audit logging for payment timing edge cases where vouchers expire after meeting start time
 
 - **Enhanced Payment Processing & Notifications**:
 
@@ -23,11 +25,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented comprehensive payment failure handling with audit logs
   - Added logging for Multibanco voucher expiry detection when after meeting start time
   - Enhanced guest and expert notifications for payment failures
+  - **Payment intent requires_action handling**: New webhook handler for async payment methods with comprehensive logging
+  - **Timezone-aware email formatting**: Proper date/time formatting in notification emails using user's locale
 
 - **Database Schema Improvements**:
+
   - Updated PaymentTransferTable.status to use PostgreSQL enum for type safety
   - Implemented `payment_transfer_status_enum` with values: 'PENDING', 'APPROVED', 'READY', 'COMPLETED', 'FAILED', 'REFUNDED', 'DISPUTED'
   - Added proper default value ('PENDING') for payment transfer status
+  - **Complete schema reset**: Removed all legacy migration files and snapshots for fresh schema foundation
+
+- **API Design & Metadata Standardization**:
+  - **Unified meeting metadata structure**: Consolidated all meeting data into single `meetingData` object for consistency
+  - **Enhanced Stripe metadata strategy**: Streamlined payment intent and checkout session metadata with clear separation of concerns
+  - **Improved date formatting**: Consistent locale-aware date formatting with ISO fallback for reliability
 
 ### Fixed
 
@@ -37,12 +48,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Resolved payment status synchronization issues between Stripe and database
   - Fixed payment failure handling to properly update meeting status
   - Corrected async payment flow for delayed payment methods
+  - **Optional chaining implementation**: Cleaner null safety handling in payment processors
 
 - **Database Migration Issues**:
+
   - Fixed faulty auto-generated migration for payment transfer status enum
   - Properly implemented enum conversion with correct `USING` clause
-  - Restored payment transfer data after migration fixes
+  - Restored payment transfer data after migration fixes (7 records successfully restored)
   - Resolved PostgreSQL casting errors during schema updates
+
+- **Code Quality & Maintainability**:
+  - **Reduced metadata duplication**: Eliminated redundant data between payment intent and checkout session metadata
+  - **Consistent data sources**: Unified URL construction to use single metadata source
+  - **Security-sensitive error handling**: Comprehensive error logging with proper classification and audit trails
 
 ### Changed
 
@@ -52,12 +70,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced error handling and logging throughout payment processing
   - Improved payment flow consistency across different payment methods
   - Better separation of concerns in payment status management
+  - **Webhook reliability**: Enhanced retry logic and error recovery mechanisms
 
 - **System Reliability & Monitoring**:
+
   - Enhanced audit trail coverage for sensitive operations
   - Improved error reporting and debugging capabilities
   - Better handling of edge cases in payment processing
   - More robust async payment status tracking
+  - **Proactive issue detection**: Automated monitoring for payment timing conflicts and system anomalies
+
+- **API Response & Error Handling**:
+  - **Graceful degradation**: Audit logging failures don't break main operations
+  - **Enhanced error context**: Detailed error information with IP tracking and user agent logging
+  - **Fallback mechanisms**: Robust handling when optional services (email, notifications) fail
 
 ### Technical
 
@@ -71,24 +97,72 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     ALTER TABLE "payment_transfers" ALTER COLUMN "status" SET DEFAULT 'PENDING';
     ```
   - Successfully restored 7 payment transfer records with correct enum status values
+  - **Schema foundation reset**: Complete removal of legacy migration scripts for clean slate approach
 
 - **Audit System Implementation**:
 
   - Enhanced audit logging for medical record operations (create, read, update, delete)
   - Improved audit trail structure and data retention
   - Added comprehensive logging for payment and meeting status changes
+  - **Multi-level audit actions**: Differentiated security-sensitive vs. general error logging
+  - **Context-rich logging**: IP address, user agent, and request metadata capture
 
 - **Payment Processing Enhancements**:
+
   - Improved Stripe webhook handling for async payment methods
   - Enhanced payment failure detection and recovery mechanisms
   - Better integration between Stripe events and application state
+  - **Edge case detection**: Multibanco voucher expiry validation with risk assessment
+  - **Metadata parsing**: Robust JSON metadata handling with validation and error recovery
+
+- **API Architecture Improvements**:
+  - **Single source of truth**: Unified meeting metadata structure across all payment flows
+  - **Consistent data formatting**: Standardized date/time handling with locale awareness
+  - **Error classification**: Intelligent categorization of security-sensitive vs. operational errors
+  - **Request lifecycle tracking**: End-to-end logging from API request to webhook completion
 
 ### Security
 
 - **Audit Trail Implementation**:
+
   - Added comprehensive logging for sensitive medical record operations
   - Enhanced tracking of data access patterns
   - Improved security monitoring capabilities
+  - **Unauthorized access detection**: Automatic flagging and logging of permission violations
+  - **Encryption operation monitoring**: Tracking of encryption/decryption failures for security analysis
+  - **Risk-based logging**: High-risk payment scenarios flagged for manual review
+
+- **Data Protection Enhancements**:
+  - **Request source tracking**: IP address and user agent logging for all sensitive operations
+  - **Error context preservation**: Detailed error information while maintaining security boundaries
+  - **Audit event categorization**: Clear distinction between security incidents and operational issues
+
+### Workflow Integration
+
+**Complete Payment & Audit Flow**:
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API
+    participant DB
+    participant AuditLog
+    participant Stripe
+    participant Email
+
+    %% Medical Record CRUD with Audit Logging
+    Client->>API: POST/GET/PUT /appointments/[meetingId]/records
+    API->>DB: Create/Read/Update record
+    API->>AuditLog: logAuditEvent(operation, details, metadata)
+    API-->>Client: Response
+
+    %% Stripe Webhook Handling with Enhanced Monitoring
+    Stripe->>API: webhook: payment_intent.succeeded/failed/requires_action
+    API->>DB: Update meeting/payment_transfer status
+    API->>AuditLog: logAuditEvent(payment_status, risk_assessment)
+    API->>Email: Send contextual notifications
+    API-->>Stripe: 200 OK
+```
 
 ### Outstanding High-Priority Recommendations
 
