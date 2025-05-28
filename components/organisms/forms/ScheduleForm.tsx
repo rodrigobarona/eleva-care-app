@@ -26,6 +26,7 @@ import {
   addBlockedDates,
   getBlockedDates,
   removeBlockedDate,
+  updateBlockedDate,
 } from '@/server/actions/blocked-dates';
 import { saveSchedule } from '@/server/actions/schedule';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -163,15 +164,12 @@ export function ScheduleForm({
           prev.map((d) => (d.id === id ? { ...d, ...updates, timezone } : d)),
         );
 
-        // Perform the backend operations
-        // Note: This is still a remove+add pattern, but with better error handling
-        // TODO: Implement a dedicated updateBlockedDate API for atomic updates
-        await removeBlockedDate(id);
-        await addBlockedDates([{ ...updates, timezone }]);
+        // Perform atomic update operation
+        const updatedDate = await updateBlockedDate(id, { ...updates, timezone });
 
-        // Refresh blocked dates after successful edit
-        const updatedBlockedDates = await getBlockedDates();
-        setBlockedDates(updatedBlockedDates);
+        // Update state with the returned data from server
+        setBlockedDates((prev) => prev.map((d) => (d.id === id ? updatedDate : d)));
+
         toast.success('Date updated successfully');
       } catch (error) {
         console.error('Error updating blocked date:', error);
