@@ -68,7 +68,9 @@ export const meetingActionSchema = z.object({
   startTime: z.date(),
   stripePaymentIntentId: z.string().optional(),
   stripeSessionId: z.string().optional(),
-  stripePaymentStatus: z.string().optional(),
+  stripePaymentStatus: z
+    .enum(['pending', 'processing', 'succeeded', 'failed', 'refunded', 'unpaid', 'paid'])
+    .optional(), // Aligned with potential Stripe statuses and internal DB enum
   stripeAmount: z.number().optional(),
   stripeApplicationFeeAmount: z.number().optional(),
   locale: z.string().optional().default('en'),

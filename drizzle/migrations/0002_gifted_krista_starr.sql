@@ -1,1 +1,0 @@
-ALTER TABLE "profiles" ADD COLUMN "order" integer DEFAULT 0 NOT NULL;

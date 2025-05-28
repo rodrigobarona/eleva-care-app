@@ -9,6 +9,7 @@ import {
   json,
   pgEnum,
   pgTable,
+  pgEnum,
   serial,
   text,
   timestamp,
@@ -437,6 +438,17 @@ export const recordsRelations = relations(RecordTable, ({ one }) => ({
  * Stripe Connect account. The transfer can be scheduled automatically (after
  * a delay from the session time) or require manual approval.
  */
+// Define the enum for payment transfer status
+export const paymentTransferStatusEnum = pgEnum('payment_transfer_status_enum', [
+  'PENDING', // Default state, awaiting processing or scheduled time
+  'APPROVED', // Manually approved for payout
+  'READY', // Conditions met, ready for cron job to pick up (internal state after checks)
+  'COMPLETED', // Successfully transferred to expert's Stripe account
+  'FAILED', // Transfer attempt failed
+  'REFUNDED', // Associated payment was refunded, so transfer is effectively void
+  'DISPUTED', // Associated payment is under dispute
+]);
+
 export const PaymentTransferTable = pgTable('payment_transfers', {
   id: serial('id').primaryKey(),
   paymentIntentId: text('payment_intent_id').notNull(),
@@ -449,7 +461,7 @@ export const PaymentTransferTable = pgTable('payment_transfers', {
   platformFee: integer('platform_fee').notNull(),
   sessionStartTime: timestamp('session_start_time').notNull(),
   scheduledTransferTime: timestamp('scheduled_transfer_time').notNull(),
-  status: text('status').notNull().default('PENDING'),
+  status: paymentTransferStatusEnum('status').notNull().default('PENDING'),
   transferId: text('transfer_id'),
   stripeErrorCode: text('stripe_error_code'),
   stripeErrorMessage: text('stripe_error_message'),

@@ -1,1 +1,0 @@
-ALTER TABLE "scheduling_settings" ADD COLUMN "booking_window_months" integer DEFAULT 2 NOT NULL;

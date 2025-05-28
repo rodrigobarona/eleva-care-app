@@ -1,13 +1,14 @@
 import { auditDb } from '@/drizzle/auditDb';
 import { auditLogs } from '@/drizzle/auditSchema';
+import type { AuditEventMetadata, AuditEventType, AuditResourceType } from '@/types/audit';
 
 export async function logAuditEvent(
   clerkUserId: string,
-  action: string,
-  resourceType: string,
+  action: AuditEventType,
+  resourceType: AuditResourceType,
   resourceId: string,
   oldValues: Record<string, unknown> | null,
-  newValues: Record<string, unknown> | string,
+  newValues: AuditEventMetadata,
   ipAddress: string,
   userAgent: string,
 ) {

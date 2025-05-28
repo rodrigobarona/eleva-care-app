@@ -1,1 +1,0 @@
-ALTER TABLE "payment_transfers" ADD COLUMN "notified_at" timestamp;
