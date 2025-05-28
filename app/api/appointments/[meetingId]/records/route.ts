@@ -1,15 +1,17 @@
 import { db } from '@/drizzle/db';
 import { RecordTable } from '@/drizzle/schema';
 import { decryptRecord, encryptRecord } from '@/lib/encryption';
+import { logAuditEvent } from '@/lib/logAuditEvent';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request, props: { params: Promise<{ meetingId: string }> }) {
   const params = await props.params;
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -17,8 +19,8 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
 
     // Verify the meeting belongs to this expert
     const meeting = await db.query.MeetingTable.findFirst({
-      where: ({ id, clerkUserId }, { eq, and }) =>
-        and(eq(id, params.meetingId), eq(clerkUserId, userId)),
+      where: ({ id, clerkUserId: expertUserId }, { eq, and }) =>
+        and(eq(id, params.meetingId), eq(expertUserId, clerkUserId)),
     });
 
     if (!meeting) {
@@ -34,16 +36,42 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
       .insert(RecordTable)
       .values({
         meetingId: params.meetingId,
-        expertId: userId,
+        expertId: clerkUserId,
         guestEmail: meeting.guestEmail,
         encryptedContent,
         encryptedMetadata: encryptedMetadata || undefined,
       })
       .returning();
 
+    // Log audit event
+    const headersList = headers();
+    try {
+      await logAuditEvent(
+        clerkUserId,
+        'CREATE_MEDICAL_RECORD',
+        'medical_record',
+        record.id,
+        null,
+        {
+          recordId: record.id,
+          meetingId: params.meetingId,
+          expertId: clerkUserId,
+          guestEmail: meeting.guestEmail,
+          contentProvided: !!content,
+          metadataProvided: !!metadata,
+        },
+        headersList.get('x-forwarded-for') ?? 'Unknown',
+        headersList.get('user-agent') ?? 'Unknown',
+      );
+    } catch (auditError) {
+      console.error('Error logging audit event for CREATE_MEDICAL_RECORD:', auditError);
+      // Do not fail the request if audit logging fails
+    }
+
     return NextResponse.json({ success: true, recordId: record.id });
   } catch (error) {
     console.error('Error creating record:', error);
+    // Consider logging the error to the audit log as well if it's a security-sensitive failure
     return NextResponse.json({ error: 'Failed to create record' }, { status: 500 });
   }
 }
@@ -51,15 +79,15 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
 export async function GET(request: Request, props: { params: Promise<{ meetingId: string }> }) {
   const params = await props.params;
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Verify the meeting belongs to this expert
     const meeting = await db.query.MeetingTable.findFirst({
-      where: ({ id, clerkUserId }, { eq, and }) =>
-        and(eq(id, params.meetingId), eq(clerkUserId, userId)),
+      where: ({ id, clerkUserId: expertUserId }, { eq, and }) =>
+        and(eq(id, params.meetingId), eq(expertUserId, clerkUserId)),
     });
 
     if (!meeting) {
@@ -81,6 +109,28 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
         : null,
     }));
 
+    // Log audit event
+    const headersList = headers();
+    try {
+      await logAuditEvent(
+        clerkUserId,
+        'READ_MEDICAL_RECORDS_FOR_MEETING',
+        'medical_record', // resourceType could also be 'meeting_records'
+        params.meetingId, // Using meetingId as the primary resource identifier for this action
+        null,
+        {
+          meetingId: params.meetingId,
+          expertId: clerkUserId,
+          recordsFetched: decryptedRecords.length,
+          recordIds: decryptedRecords.map(r => r.id), // Log IDs of records accessed
+        },
+        headersList.get('x-forwarded-for') ?? 'Unknown',
+        headersList.get('user-agent') ?? 'Unknown',
+      );
+    } catch (auditError) {
+      console.error('Error logging audit event for READ_MEDICAL_RECORDS_FOR_MEETING:', auditError);
+    }
+
     return NextResponse.json({ records: decryptedRecords });
   } catch (error) {
     console.error('Error fetching records:', error);
@@ -91,38 +141,69 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
 export async function PUT(request: Request, props: { params: Promise<{ meetingId: string }> }) {
   const params = await props.params;
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { userId: clerkUserId } = await auth();
+    if (!clerkUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { recordId, content, metadata } = await request.json();
 
-    // Verify the record belongs to this expert
-    const record = await db.query.RecordTable.findFirst({
+    // Verify the record belongs to this expert and retrieve its current state for audit logging
+    const oldRecord = await db.query.RecordTable.findFirst({
       where: ({ id, expertId, meetingId }, { eq, and }) =>
-        and(eq(id, recordId), eq(expertId, userId), eq(meetingId, params.meetingId)),
+        and(eq(id, recordId), eq(expertId, clerkUserId), eq(meetingId, params.meetingId)),
     });
 
-    if (!record) {
+    if (!oldRecord) {
       return NextResponse.json({ error: 'Record not found or unauthorized' }, { status: 404 });
     }
 
     // Encrypt the updated content and metadata
-    const encryptedContent = encryptRecord(content);
-    const encryptedMetadata = metadata ? encryptRecord(JSON.stringify(metadata)) : null;
+    const newEncryptedContent = encryptRecord(content);
+    const newEncryptedMetadata = metadata ? encryptRecord(JSON.stringify(metadata)) : null;
 
     // Update the record
     const [updatedRecord] = await db
       .update(RecordTable)
       .set({
-        encryptedContent,
-        encryptedMetadata: encryptedMetadata || undefined,
+        encryptedContent: newEncryptedContent,
+        encryptedMetadata: newEncryptedMetadata || undefined,
         lastModifiedAt: new Date(),
-        version: record.version + 1,
+        version: oldRecord.version + 1,
       })
       .where(eq(RecordTable.id, recordId))
       .returning();
+
+    // Log audit event
+    const headersList = headers();
+    try {
+      await logAuditEvent(
+        clerkUserId,
+        'UPDATE_MEDICAL_RECORD',
+        'medical_record',
+        recordId,
+        {
+          oldVersion: oldRecord.version,
+          // To avoid logging actual old encrypted content in audit,
+          // we indicate if it changed by comparing new encrypted values with old ones.
+          // This assumes that if the encrypted string is the same, the content is the same.
+          contentChanged: oldRecord.encryptedContent !== newEncryptedContent,
+          metadataChanged: oldRecord.encryptedMetadata !== newEncryptedMetadata,
+        },
+        {
+          newVersion: updatedRecord.version,
+          recordId: updatedRecord.id,
+          meetingId: params.meetingId,
+          expertId: clerkUserId,
+          contentProvided: !!content, // Indicates if new content was part of the update payload
+          metadataProvided: !!metadata, // Indicates if new metadata was part of the update payload
+        },
+        headersList.get('x-forwarded-for') ?? 'Unknown',
+        headersList.get('user-agent') ?? 'Unknown',
+      );
+    } catch (auditError) {
+      console.error('Error logging audit event for UPDATE_MEDICAL_RECORD:', auditError);
+    }
 
     return NextResponse.json({ success: true, recordId: updatedRecord.id });
   } catch (error) {

@@ -76,19 +76,21 @@ export async function POST(request: Request) {
 
     // Prepare meeting metadata
     const meetingMetadata = {
+      eventId: eventId, // Added eventId here
       expertClerkUserId: event.clerkUserId,
       expertName: `${event.user.firstName || ''} ${event.user.lastName || ''}`.trim() || 'Expert',
       guestName: meetingData.guestName,
       guestEmail: meetingData.guestEmail,
       guestNotes: meetingData.guestNotes,
-      startTime: meetingData.startTime,
+      startTime: meetingData.startTime, // This is the original startTime from the client
+      startTimeFormatted: meetingData.startTimeFormatted || new Date(meetingData.startTime).toLocaleString(), // Store formatted version
       duration: event.durationInMinutes,
       timezone: meetingData.timezone,
       price: price,
-      locale: meetingData.locale || 'en', // Add locale parameter with fallback
+      locale: meetingData.locale || 'en',
     };
 
-    console.log('Prepared meeting metadata');
+    console.log('Prepared meeting metadata for Stripe:', meetingMetadata);
 
     // Get or create customer with guest name for prefilled checkout
     console.log('Attempting to get/create Stripe customer with name:', meetingData.guestName);
@@ -197,13 +199,10 @@ export async function POST(request: Request) {
             destination: event.user.stripeConnectAccountId,
           },
           metadata: {
-            eventId,
+            // Primary source of truth for meeting context
             meetingData: JSON.stringify(meetingMetadata),
+            // Payment/transfer specific metadata
             expertConnectAccountId: event.user.stripeConnectAccountId,
-            expertClerkUserId: event.clerkUserId,
-            sessionStartTime: sessionStartTime.toISOString(),
-            sessionStartTimeFormatted:
-              meetingData.startTimeFormatted || sessionStartTime.toLocaleString(),
             scheduledTransferTime: transferDate.toISOString(),
             platformFee: applicationFeeAmount.toString(),
             expertAmount: expertAmount.toString(),
@@ -221,7 +220,7 @@ export async function POST(request: Request) {
               currency: STRIPE_CONFIG.CURRENCY,
               product_data: {
                 name: 'Consultation Booking',
-                description: `Booking for ${meetingData.guestName} on ${meetingData.startTimeFormatted || sessionStartTime.toLocaleString()} (funds will be released to expert ${remainingDelayDays === 1 ? 'the day after' : `in ${remainingDelayDays} days after`} session${requiresApproval ? ' pending approval' : ''})`,
+                description: `Booking for ${meetingMetadata.guestName} on ${meetingMetadata.startTimeFormatted} (funds will be released to expert ${remainingDelayDays === 1 ? 'the day after' : `in ${remainingDelayDays} days after`} session${requiresApproval ? ' pending approval' : ''})`,
               },
               unit_amount: Math.round(price),
             },
@@ -229,26 +228,16 @@ export async function POST(request: Request) {
           },
         ],
         metadata: {
-          eventId,
-          meetingData: JSON.stringify(meetingMetadata),
-          expertConnectAccountId: event.user.stripeConnectAccountId,
-          expertClerkUserId: event.clerkUserId,
-          clerkUserId: event.clerkUserId,
-          sessionStartTime: sessionStartTime.toISOString(),
-          sessionStartTimeFormatted:
-            meetingData.startTimeFormatted || sessionStartTime.toLocaleString(),
-          scheduledTransferTime: transferDate.toISOString(),
-          platformFee: applicationFeeAmount.toString(),
-          expertAmount: expertAmount.toString(),
-          requiresApproval: requiresApproval ? 'true' : 'false',
-          transferStatus: 'PENDING',
-          expertCountry: expertCountry,
-          paymentAgingDays: paymentAgingDays.toString(),
-          requiredPayoutDelay: requiredPayoutDelay.toString(),
-          remainingDelayDays: remainingDelayDays.toString(),
+            // Primary source of truth for meeting context
+            meetingData: JSON.stringify(meetingMetadata),
+            // Payment/transfer specific metadata (can be reduced if not directly needed by Checkout Session page)
+            expertConnectAccountId: event.user.stripeConnectAccountId, // Potentially useful for display or rules
+            // clerkUserId is now within meetingData as expertClerkUserId
+            scheduledTransferTime: transferDate.toISOString(), // Potentially useful
+            requiresApproval: requiresApproval ? 'true' : 'false', // Potentially useful
         },
-        success_url: `${baseUrl}/${meetingData.locale ? `${meetingData.locale}/` : ''}${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
-          meetingData.startTime,
+        success_url: `${baseUrl}/${meetingMetadata.locale ? `${meetingMetadata.locale}/` : ''}${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
+          meetingMetadata.startTime, // Use startTime from unified meetingMetadata
         )}`,
         cancel_url: `${baseUrl}/${meetingData.locale ? `${meetingData.locale}/` : ''}${username}/${eventSlug}?s=2&d=${encodeURIComponent(
           meetingData.date,
