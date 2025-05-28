@@ -7,6 +7,101 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-01-31
+
+### Added
+
+- **Comprehensive Audit Logging System**:
+
+  - Implemented critical audit logging for medical record CRUD and read operations
+  - Added structured audit trails for sensitive data access and modifications
+  - Enhanced logging for payment operations and status changes
+
+- **Enhanced Payment Processing & Notifications**:
+
+  - Added email notifications to guests upon successful async payment completion
+  - Implemented comprehensive payment failure handling with audit logs
+  - Added logging for Multibanco voucher expiry detection when after meeting start time
+  - Enhanced guest and expert notifications for payment failures
+
+- **Database Schema Improvements**:
+  - Updated PaymentTransferTable.status to use PostgreSQL enum for type safety
+  - Implemented `payment_transfer_status_enum` with values: 'PENDING', 'APPROVED', 'READY', 'COMPLETED', 'FAILED', 'REFUNDED', 'DISPUTED'
+  - Added proper default value ('PENDING') for payment transfer status
+
+### Fixed
+
+- **Critical Stripe Integration Issues**:
+
+  - Fixed bug in meeting status updates for async payments (e.g., Multibanco)
+  - Resolved payment status synchronization issues between Stripe and database
+  - Fixed payment failure handling to properly update meeting status
+  - Corrected async payment flow for delayed payment methods
+
+- **Database Migration Issues**:
+  - Fixed faulty auto-generated migration for payment transfer status enum
+  - Properly implemented enum conversion with correct `USING` clause
+  - Restored payment transfer data after migration fixes
+  - Resolved PostgreSQL casting errors during schema updates
+
+### Changed
+
+- **Stripe Integration Architecture**:
+
+  - Standardized Stripe metadata strategy for improved clarity and robustness
+  - Enhanced error handling and logging throughout payment processing
+  - Improved payment flow consistency across different payment methods
+  - Better separation of concerns in payment status management
+
+- **System Reliability & Monitoring**:
+  - Enhanced audit trail coverage for sensitive operations
+  - Improved error reporting and debugging capabilities
+  - Better handling of edge cases in payment processing
+  - More robust async payment status tracking
+
+### Technical
+
+- **Database Schema & Migrations**:
+
+  - Created `payment_transfer_status_enum` PostgreSQL enum type
+  - Applied manual migration fix for enum conversion with proper `USING` clause:
+    ```sql
+    CREATE TYPE "public"."payment_transfer_status_enum" AS ENUM('PENDING', 'APPROVED', 'READY', 'COMPLETED', 'FAILED', 'REFUNDED', 'DISPUTED');
+    ALTER TABLE "payment_transfers" ALTER COLUMN "status" SET DATA TYPE payment_transfer_status_enum USING "status"::text::payment_transfer_status_enum;
+    ALTER TABLE "payment_transfers" ALTER COLUMN "status" SET DEFAULT 'PENDING';
+    ```
+  - Successfully restored 7 payment transfer records with correct enum status values
+
+- **Audit System Implementation**:
+
+  - Enhanced audit logging for medical record operations (create, read, update, delete)
+  - Improved audit trail structure and data retention
+  - Added comprehensive logging for payment and meeting status changes
+
+- **Payment Processing Enhancements**:
+  - Improved Stripe webhook handling for async payment methods
+  - Enhanced payment failure detection and recovery mechanisms
+  - Better integration between Stripe events and application state
+
+### Security
+
+- **Audit Trail Implementation**:
+  - Added comprehensive logging for sensitive medical record operations
+  - Enhanced tracking of data access patterns
+  - Improved security monitoring capabilities
+
+### Outstanding High-Priority Recommendations
+
+**Identified during audit but not yet implemented:**
+
+- **Complete Audit Logging**: Extend to profile updates, role changes, admin actions, user sync, file uploads, event order changes, cron job database changes
+- **Patient/Guest Access to Medical Records**: Implement secure API for patient data access
+- **File Upload Security**: Review 'public' access permissions, add server-side validation
+- **Encryption Key Management**: Document key management policy and ensure strong encryption
+- **Security Headers**: Add explicit security headers to middleware/Next.js configuration
+- **Stripe Connect Payout Delay**: Correct initialization discrepancy in payout delay logic
+- **Additional Improvements**: Data minimization, cron job simplification, console log management, Google Calendar event cancellation
+
 ## [0.2.0] - 2025-05-27
 
 ### Added
@@ -227,6 +322,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- Version comparison links -->
 
-[Unreleased]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/rodrigo-barona/eleva-care-app/releases/tag/v0.1.0
