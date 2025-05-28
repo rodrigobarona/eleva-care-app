@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned Features
+
+- **PIX Payment Method Integration (Brazilian Market)**:
+  - Add PIX to Stripe payment configuration for Brazilian customers
+  - Implement PIX-specific error handling and edge case monitoring
+  - PIX payment flow integration with existing audit logging
+  - Support for BRL currency and Brazilian payment regulations
+  - PIX voucher/QR code expiry monitoring similar to Multibanco
+
+### Technical Improvements & Roadmap
+
+- **Extended Proactive Payment Monitoring**:
+
+  - SEPA Direct Debit: mandate expiration vs meeting time detection
+  - Klarna: payment deadline vs meeting time validation
+  - Bank transfers: processing time vs meeting urgency assessment
+  - Regional payment methods: time-sensitive voucher monitoring
+  - Unified framework for payment method edge case detection
+
+- **Comprehensive Audit Logging Expansion**:
+
+  - Profile updates and role changes tracking
+  - Admin actions and system modifications logging
+  - User synchronization events with detailed metadata
+  - File upload operations with security validation
+  - Event order changes and chronological tracking
+  - Cron job database modifications monitoring
+
+- **Enhanced Security & Compliance**:
+
+  - Patient/Guest secure API for medical records access
+  - File upload security review with server-side validation
+  - Encryption key management policy documentation
+  - Security headers implementation in middleware/Next.js
+  - Data minimization strategies across all endpoints
+
+- **Platform & Integration Improvements**:
+  - Stripe Connect payout delay initialization corrections
+  - Google Calendar event cancellation automation
+  - Console log management and structured logging
+  - Cron job simplification and reliability improvements
+
 ## [0.3.0] - 2025-01-31
 
 ### Added

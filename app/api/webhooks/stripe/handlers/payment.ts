@@ -570,13 +570,6 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
     `Payment intent ${paymentIntent.id} requires action. Status: ${paymentIntent.status}`,
   );
 
-  // TODO: Extend proactive monitoring to other payment methods
-  // Consider implementing similar edge case detection for:
-  // - SEPA Direct Debit (mandate expiration vs meeting time)
-  // - Klarna (payment deadline vs meeting time)
-  // - Bank transfers (processing time vs meeting urgency)
-  // - Regional payment methods with time-sensitive vouchers
-
   if (
     paymentIntent.next_action?.type === 'multibanco_display_details' &&
     ((typeof paymentIntent.payment_method === 'object' &&
