@@ -41,6 +41,81 @@ function extractLocaleFromPaymentIntent(paymentIntent: Stripe.PaymentIntent): st
   }
 }
 
+/**
+ * Notify expert about successful payment
+ * @param transfer - Payment transfer record
+ */
+async function notifyExpertOfPaymentSuccess(transfer: { expertClerkUserId: string }) {
+  await createUserNotification({
+    userId: transfer.expertClerkUserId,
+    type: 'ACCOUNT_UPDATE',
+    title: 'Payment Received',
+    message: 'A payment for your session has been successfully processed.',
+    actionUrl: '/account/payments',
+  });
+}
+
+/**
+ * Notify expert about failed payment
+ * @param transfer - Payment transfer record
+ * @param paymentIntentId - Stripe payment intent ID
+ * @param lastPaymentError - Payment failure reason
+ * @param meetingDetails - Optional meeting details for enhanced message
+ */
+async function notifyExpertOfPaymentFailure(
+  transfer: { expertClerkUserId: string },
+  paymentIntentId: string,
+  lastPaymentError: string,
+  meetingDetails?: {
+    guestName: string | null;
+    eventId: string;
+    startTime: Date;
+  },
+) {
+  let message = `A payment for one of your sessions (PI: ${paymentIntentId}) has failed. Reason: ${lastPaymentError}. The client may need to update their payment method or rebook.`;
+
+  if (meetingDetails) {
+    message = `Payment for your session with ${meetingDetails.guestName || 'guest'} for event ID ${meetingDetails.eventId} scheduled at ${meetingDetails.startTime.toISOString()} has failed. Reason: ${lastPaymentError}. The meeting has been canceled and the guest notified. They may attempt to rebook.`;
+  }
+
+  await createUserNotification({
+    userId: transfer.expertClerkUserId,
+    type: 'ACCOUNT_UPDATE',
+    title: 'Important: Session Payment Failed & Canceled',
+    message,
+    actionUrl: '/account/payments',
+  });
+}
+
+/**
+ * Notify expert about payment refund
+ * @param transfer - Payment transfer record
+ */
+async function notifyExpertOfPaymentRefund(transfer: { expertClerkUserId: string }) {
+  await createUserNotification({
+    userId: transfer.expertClerkUserId,
+    type: 'ACCOUNT_UPDATE',
+    title: 'Payment Refunded',
+    message: 'A payment has been refunded for one of your sessions.',
+    actionUrl: '/account/payments',
+  });
+}
+
+/**
+ * Notify expert about payment dispute
+ * @param transfer - Payment transfer record
+ */
+async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: string }) {
+  await createUserNotification({
+    userId: transfer.expertClerkUserId,
+    type: 'SECURITY_ALERT',
+    title: 'Payment Dispute Opened',
+    message:
+      'A payment dispute has been opened for one of your sessions. We will contact you with more information.',
+    actionUrl: '/account/payments',
+  });
+}
+
 export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   console.log('Payment succeeded:', paymentIntent.id);
 
@@ -101,13 +176,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       console.log(`Transfer record ${transfer.id} status updated to READY.`);
 
       // Notify the expert about the successful payment
-      await createUserNotification({
-        userId: transfer.expertClerkUserId,
-        type: 'ACCOUNT_UPDATE',
-        title: 'Payment Received',
-        message: 'A payment for your session has been successfully processed.',
-        actionUrl: '/account/payments',
-      });
+      await notifyExpertOfPaymentSuccess(transfer);
     } else if (transfer) {
       console.log(
         `Transfer record ${transfer.id} already in status ${transfer.status}, not updating to READY.`,
@@ -274,12 +343,6 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
       where: eq(PaymentTransferTable.paymentIntentId, paymentIntent.id),
     });
 
-    let expertNotificationMessage = `A payment for one of your sessions (PI: ${paymentIntent.id}) has failed. Reason: ${lastPaymentError}. The client may need to update their payment method or rebook.`;
-
-    if (meetingDetails) {
-      expertNotificationMessage = `Payment for your session with ${meetingDetails.guestName || 'guest'} for event ID ${meetingDetails.eventId} scheduled at ${meetingDetails.startTime.toISOString()} has failed. Reason: ${lastPaymentError}. The meeting has been canceled and the guest notified. They may attempt to rebook.`;
-    }
-
     if (!transfer) {
       console.error(
         'No transfer record found for failed payment:',
@@ -305,13 +368,12 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
       console.log(`Transfer record ${transfer.id} status updated to FAILED.`);
 
       // Notify the expert about the failed payment
-      await createUserNotification({
-        userId: transfer.expertClerkUserId, // Use expertClerkUserId from transfer record
-        type: 'ACCOUNT_UPDATE',
-        title: 'Important: Session Payment Failed & Canceled',
-        message: expertNotificationMessage,
-        actionUrl: '/account/payments', // Or link to appointments page
-      });
+      await notifyExpertOfPaymentFailure(
+        transfer,
+        paymentIntent.id,
+        lastPaymentError,
+        meetingDetails || undefined,
+      );
     } else if (transfer) {
       console.log(
         `Transfer record ${transfer.id} already in status ${transfer.status}, not updating to FAILED.`,
@@ -449,13 +511,7 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
     console.log(`Transfer record ${transfer.id} status updated to REFUNDED.`);
 
     // Notify the expert about the refund
-    await createUserNotification({
-      userId: transfer.expertClerkUserId,
-      type: 'ACCOUNT_UPDATE',
-      title: 'Payment Refunded',
-      message: 'A payment has been refunded for one of your sessions.',
-      actionUrl: '/account/payments',
-    });
+    await notifyExpertOfPaymentRefund(transfer);
   } catch (error) {
     console.error(
       `Error in handleChargeRefunded for charge ${charge.id} (PI: ${paymentIntentId}):`,
@@ -500,14 +556,7 @@ export async function handleDisputeCreated(dispute: Stripe.Dispute) {
     console.log(`Transfer record ${transfer.id} status updated to DISPUTED.`);
 
     // Create notification for the expert
-    await createUserNotification({
-      userId: transfer.expertClerkUserId,
-      type: 'SECURITY_ALERT',
-      title: 'Payment Dispute Opened',
-      message:
-        'A payment dispute has been opened for one of your sessions. We will contact you with more information.',
-      actionUrl: '/account/payments',
-    });
+    await notifyExpertOfPaymentDispute(transfer);
   } catch (error) {
     console.error(
       `Error in handleDisputeCreated for dispute ${dispute.id} (PI: ${paymentIntentId}):`,
@@ -520,6 +569,13 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
   console.log(
     `Payment intent ${paymentIntent.id} requires action. Status: ${paymentIntent.status}`,
   );
+
+  // TODO: Extend proactive monitoring to other payment methods
+  // Consider implementing similar edge case detection for:
+  // - SEPA Direct Debit (mandate expiration vs meeting time)
+  // - Klarna (payment deadline vs meeting time)
+  // - Bank transfers (processing time vs meeting urgency)
+  // - Regional payment methods with time-sensitive vouchers
 
   if (
     paymentIntent.next_action?.type === 'multibanco_display_details' &&
