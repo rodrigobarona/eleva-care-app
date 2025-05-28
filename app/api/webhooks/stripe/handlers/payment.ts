@@ -1,6 +1,7 @@
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
 import { generateAppointmentEmail, sendEmail } from '@/lib/email';
+import { logAuditEvent } from '@/lib/logAuditEvent';
 import { createUserNotification } from '@/lib/notifications';
 import { withRetry } from '@/lib/stripe';
 import { format, utcToZonedTime } from 'date-fns-tz';
@@ -48,7 +49,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       // If no transfer record, and meeting was updated, the main goal of confirming meeting payment is achieved.
       // If there should always be a transfer record for a succeeded payment, this is a separate issue.
       // We should still attempt to send guest notification if meeting was found and updated.
-    } else if (transfer?.status === 'PENDING') { // Ensure transfer exists before checking status
+    } else if (transfer?.status === 'PENDING') {
+      // Ensure transfer exists before checking status
       // Update transfer status if needed with retry logic only if a transfer record exists
       await withRetry(
         async () => {
@@ -90,7 +92,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               durationInMinutes: true,
             },
           },
-          user: { // Assuming relation name is 'user' for expert on MeetingTable
+          user: {
+            // Assuming relation name is 'user' for expert on MeetingTable
             columns: {
               firstName: true,
               lastName: true,
@@ -99,24 +102,28 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         },
       });
 
-      if (meetingDetails && meetingDetails.event && meetingDetails.user) {
+      if (meetingDetails?.event && meetingDetails?.user) {
         const guestEmail = meetingDetails.guestEmail;
         const guestName = meetingDetails.guestName ?? 'Guest';
-        const expertName = `${meetingDetails.user.firstName ?? ''} ${meetingDetails.user.lastName ?? ''}`.trim() || 'Our Expert';
+        const expertName =
+          `${meetingDetails.user.firstName ?? ''} ${meetingDetails.user.lastName ?? ''}`.trim() ||
+          'Our Expert';
         const eventName = meetingDetails.event.name;
         const meetingStartTime = meetingDetails.startTime; // Date object
         const meetingTimezone = meetingDetails.timezone || 'UTC'; // Default to UTC if not set
         const durationMinutes = meetingDetails.event.durationInMinutes;
-        
+
         // Format date and time for the email
         const zonedStartTime = utcToZonedTime(meetingStartTime, meetingTimezone);
-        const appointmentDate = format(zonedStartTime, 'EEEE, MMMM d, yyyy', { timeZone: meetingTimezone });
+        const appointmentDate = format(zonedStartTime, 'EEEE, MMMM d, yyyy', {
+          timeZone: meetingTimezone,
+        });
         const startTimeFormatted = format(zonedStartTime, 'h:mm a', { timeZone: meetingTimezone });
-        
+
         const endTime = new Date(meetingStartTime.getTime() + durationMinutes * 60000);
         const zonedEndTime = utcToZonedTime(endTime, meetingTimezone);
         const endTimeFormatted = format(zonedEndTime, 'h:mm a', { timeZone: meetingTimezone });
-        
+
         const appointmentTime = `${startTimeFormatted} - ${endTimeFormatted} (${meetingTimezone})`;
         const appointmentDuration = `${durationMinutes} minutes`;
 
@@ -141,7 +148,9 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             html,
             text,
           });
-          console.log(`Payment confirmation email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`);
+          console.log(
+            `Payment confirmation email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`,
+          );
         } catch (emailError) {
           console.error(
             `Failed to send payment confirmation email to ${guestEmail} for PI ${paymentIntent.id}:`,
@@ -155,7 +164,6 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         );
       }
     }
-
   } catch (error) {
     console.error(`Error in handlePaymentSucceeded for paymentIntent ${paymentIntent.id}:`, error);
     // Consider re-throwing if this error should halt further webhook processing or be retried by Stripe
@@ -237,7 +245,6 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
       expertNotificationMessage = `Payment for your session with ${meetingDetails.guestName || 'guest'} for event ID ${meetingDetails.eventId} scheduled at ${meetingDetails.startTime.toISOString()} has failed. Reason: ${lastPaymentError}. The meeting has been canceled and the guest notified. They may attempt to rebook.`;
     }
 
-
     if (!transfer) {
       console.error(
         'No transfer record found for failed payment:',
@@ -276,7 +283,6 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
       );
     }
 
-
     // Send email notification to the guest about cancellation
     if (meetingDetails) {
       const eventInfo = await db.query.EventTable.findFirst({
@@ -292,14 +298,17 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
       if (eventInfo && expertInfo) {
         const guestEmail = meetingDetails.guestEmail;
         const guestName = meetingDetails.guestName ?? 'Guest';
-        const expertName = `${expertInfo.firstName ?? ''} ${expertInfo.lastName ?? ''}`.trim() || 'Our Expert';
+        const expertName =
+          `${expertInfo.firstName ?? ''} ${expertInfo.lastName ?? ''}`.trim() || 'Our Expert';
         const eventName = eventInfo.name;
         const meetingStartTime = meetingDetails.startTime;
         const meetingTimezone = meetingDetails.timezone || 'UTC';
         const durationMinutes = eventInfo.durationInMinutes;
 
         const zonedStartTime = utcToZonedTime(meetingStartTime, meetingTimezone);
-        const appointmentDate = format(zonedStartTime, 'EEEE, MMMM d, yyyy', { timeZone: meetingTimezone });
+        const appointmentDate = format(zonedStartTime, 'EEEE, MMMM d, yyyy', {
+          timeZone: meetingTimezone,
+        });
         const startTimeFormatted = format(zonedStartTime, 'h:mm a', { timeZone: meetingTimezone });
         const endTime = new Date(meetingStartTime.getTime() + durationMinutes * 60000);
         const zonedEndTime = utcToZonedTime(endTime, meetingTimezone);
@@ -328,7 +337,9 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
             html,
             text,
           });
-          console.log(`Payment failed/cancellation email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`);
+          console.log(
+            `Payment failed/cancellation email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`,
+          );
         } catch (emailError) {
           console.error(
             `Failed to send payment failed/cancellation email to ${guestEmail} for PI ${paymentIntent.id}:`,
@@ -336,12 +347,11 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
           );
         }
       } else {
-         console.warn(
+        console.warn(
           `Could not retrieve full event/expert details for meeting ${meetingDetails.id} to send guest cancellation email. Event: ${!!eventInfo}, Expert: ${!!expertInfo}`,
         );
       }
     }
-
   } catch (error) {
     console.error(`Error in handlePaymentFailed for paymentIntent ${paymentIntent.id}:`, error);
   }
@@ -412,7 +422,10 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
       actionUrl: '/account/payments',
     });
   } catch (error) {
-    console.error(`Error in handleChargeRefunded for charge ${charge.id} (PI: ${paymentIntentId}):`, error);
+    console.error(
+      `Error in handleChargeRefunded for charge ${charge.id} (PI: ${paymentIntentId}):`,
+      error,
+    );
   }
 }
 
@@ -461,7 +474,10 @@ export async function handleDisputeCreated(dispute: Stripe.Dispute) {
       actionUrl: '/account/payments',
     });
   } catch (error) {
-    console.error(`Error in handleDisputeCreated for dispute ${dispute.id} (PI: ${paymentIntentId}):`, error);
+    console.error(
+      `Error in handleDisputeCreated for dispute ${dispute.id} (PI: ${paymentIntentId}):`,
+      error,
+    );
   }
 }
 
@@ -496,26 +512,34 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
             const logMessage = `Potential Issue: Multibanco voucher for PI ${paymentIntent.id} (Meeting ID: ${meeting.id}) expires at ${voucherExpiresAtDate.toISOString()}, which is AFTER the meeting start time ${meetingStartTime.toISOString()}.`;
             console.warn(logMessage);
 
-            // Optional: Log as a specific audit event
-            // Consider who the clerkUserId should be. If not tied to a specific user action, could be 'SYSTEM'
-            // or extract from paymentIntent metadata if available (e.g., expertClerkUserId)
-            // For now, focusing on console.warn as per primary instruction.
-            // const expertClerkUserId = paymentIntent.metadata?.expertClerkUserId || 'SYSTEM_UNKNOWN_EXPERT';
-            // await logAuditEvent(
-            //   expertClerkUserId,
-            //   'MULTIBANCO_EXPIRY_RISK',
-            //   'payment_intent',
-            //   paymentIntent.id,
-            //   null,
-            //   {
-            //     meetingId: meeting.id,
-            //     paymentIntentId: paymentIntent.id,
-            //     multibancoVoucherExpiresAt: voucherExpiresAtDate.toISOString(),
-            //     meetingStartTime: meetingStartTime.toISOString(),
-            //     message: logMessage,
-            //   }
-            //   // IP and UserAgent might not be relevant here as it's a Stripe webhook
-            // );
+            // Log as a specific audit event for tracking and analysis
+            try {
+              const expertClerkUserId =
+                paymentIntent.metadata?.expertClerkUserId || 'SYSTEM_UNKNOWN_EXPERT';
+              await logAuditEvent(
+                expertClerkUserId,
+                'MULTIBANCO_EXPIRY_RISK',
+                'payment_intent',
+                paymentIntent.id,
+                null,
+                {
+                  meetingId: meeting.id,
+                  paymentIntentId: paymentIntent.id,
+                  multibancoVoucherExpiresAt: voucherExpiresAtDate.toISOString(),
+                  meetingStartTime: meetingStartTime.toISOString(),
+                  message: logMessage,
+                  riskLevel: 'HIGH',
+                  requiresManualReview: true,
+                },
+                'SYSTEM_WEBHOOK', // IP Address
+                'Stripe Webhook', // User Agent
+              );
+            } catch (auditError) {
+              console.error(
+                `Error logging MULTIBANCO_EXPIRY_RISK audit event for PI ${paymentIntent.id}:`,
+                auditError,
+              );
+            }
           } else {
             console.log(
               `Multibanco voucher for PI ${paymentIntent.id} (Meeting ID: ${meeting.id}) expires at ${voucherExpiresAtDate.toISOString()}, which is BEFORE the meeting start time ${meetingStartTime.toISOString()}. This is OK.`,
@@ -527,10 +551,7 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
           );
         }
       } catch (error) {
-        console.error(
-          `Error during Multibanco expiry check for PI ${paymentIntent.id}:`,
-          error,
-        );
+        console.error(`Error during Multibanco expiry check for PI ${paymentIntent.id}:`, error);
       }
     } else {
       console.log(
