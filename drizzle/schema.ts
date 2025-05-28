@@ -3,6 +3,7 @@ import type { SocialMediaPlatform } from '@/lib/constants/social-media';
 import { relations } from 'drizzle-orm';
 import {
   boolean,
+  date,
   index,
   integer,
   json,
@@ -495,5 +496,45 @@ export const notificationRelations = relations(NotificationTable, ({ one }) => (
   user: one(UserTable, {
     fields: [NotificationTable.userId],
     references: [UserTable.id],
+  }),
+}));
+
+// Add the scheduling settings table
+export const schedulingSettings = pgTable('scheduling_settings', {
+  id: serial('id').primaryKey(),
+  userId: text('user_id').notNull(), // Clerk user ID
+  beforeEventBuffer: integer('before_event_buffer').notNull().default(0), // in minutes
+  afterEventBuffer: integer('after_event_buffer').notNull().default(0), // in minutes
+  minimumNotice: integer('minimum_notice').notNull().default(0), // in minutes
+  timeSlotInterval: integer('time_slot_interval').notNull().default(15), // in minutes
+  bookingWindowDays: integer('booking_window_days').notNull().default(60), // number of days in advance that can be booked
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// Relations and types
+export type SchedulingSettings = typeof schedulingSettings.$inferSelect;
+export type NewSchedulingSettings = typeof schedulingSettings.$inferInsert;
+
+// Export the relation
+export const schedulingSettingsRelations = relations(schedulingSettings, () => ({
+  // Add relations if needed
+}));
+
+export const BlockedDatesTable = pgTable('blocked_dates', {
+  id: serial('id').primaryKey(),
+  clerkUserId: text('clerk_user_id').notNull(),
+  date: date('date').notNull(),
+  timezone: text('timezone').notNull().default('UTC'),
+  reason: text('reason'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Relations
+export const blockedDatesRelations = relations(BlockedDatesTable, ({ one }) => ({
+  schedule: one(ScheduleTable, {
+    fields: [BlockedDatesTable.clerkUserId],
+    references: [ScheduleTable.clerkUserId],
   }),
 }));

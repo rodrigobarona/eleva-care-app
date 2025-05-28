@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { ScheduleForm } from '@/components/organisms/forms/ScheduleForm';
 import { db } from '@/drizzle/db';
+import { getBlockedDates } from '@/server/actions/blocked-dates';
 import { markStepCompleteNoRevalidate } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 
@@ -10,10 +10,13 @@ export default async function SchedulePage() {
   const { userId, redirectToSignIn } = await auth();
   if (userId == null) return redirectToSignIn();
 
-  const schedule = await db.query.ScheduleTable.findFirst({
-    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, userId),
-    with: { availabilities: true },
-  });
+  const [schedule, blockedDates] = await Promise.all([
+    db.query.ScheduleTable.findFirst({
+      where: ({ clerkUserId }, { eq }) => eq(clerkUserId, userId),
+      with: { availabilities: true },
+    }),
+    getBlockedDates(),
+  ]);
 
   // If the schedule exists and has at least one day with availability, mark step as complete
   if (schedule && schedule.availabilities.length > 0) {
@@ -26,13 +29,8 @@ export default async function SchedulePage() {
   }
 
   return (
-    <Card className="max-auto max-w-md">
-      <CardHeader>
-        <CardTitle>Schedule</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ScheduleForm schedule={schedule} />
-      </CardContent>
-    </Card>
+    <div className="w-full">
+      <ScheduleForm schedule={schedule} blockedDates={blockedDates} />
+    </div>
   );
 }

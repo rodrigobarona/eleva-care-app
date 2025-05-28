@@ -10,12 +10,29 @@ import {
 import { Skeleton } from '@/components/atoms/skeleton';
 import { MeetingForm } from '@/components/organisms/forms/MeetingForm';
 import { db } from '@/drizzle/db';
+import {
+  DEFAULT_AFTER_EVENT_BUFFER,
+  DEFAULT_BEFORE_EVENT_BUFFER,
+  DEFAULT_BOOKING_WINDOW_DAYS,
+  DEFAULT_MINIMUM_NOTICE,
+  DEFAULT_TIME_SLOT_INTERVAL,
+} from '@/lib/constants/scheduling';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { Link } from '@/lib/i18n/navigation';
+import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { createClerkClient } from '@clerk/nextjs/server';
 import type { User } from '@clerk/nextjs/server';
-import { addMonths, eachMinuteOfInterval, endOfDay, roundToNearestMinutes } from 'date-fns';
+import {
+  addDays,
+  addMinutes,
+  endOfDay,
+  type NearestMinutes,
+  roundToNearestMinutes,
+  setHours,
+  setMinutes,
+  startOfDay,
+} from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
@@ -131,19 +148,89 @@ async function CalendarWithAvailability({
     );
   }
 
-  const startDate = new Date(
-    formatInTimeZone(
-      roundToNearestMinutes(new Date(), {
-        nearestTo: 15,
+  // Fetch scheduling settings for the user
+  let timeSlotInterval = DEFAULT_TIME_SLOT_INTERVAL;
+  let bookingWindowDays = DEFAULT_BOOKING_WINDOW_DAYS;
+  let minimumNotice = DEFAULT_MINIMUM_NOTICE;
+  let beforeEventBuffer = DEFAULT_BEFORE_EVENT_BUFFER;
+  let afterEventBuffer = DEFAULT_AFTER_EVENT_BUFFER;
+  try {
+    const settings = await db.query.schedulingSettings.findFirst({
+      where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, userId),
+    });
+
+    if (settings?.timeSlotInterval) {
+      timeSlotInterval = settings.timeSlotInterval;
+    }
+    if (settings?.bookingWindowDays) {
+      bookingWindowDays = settings.bookingWindowDays;
+    }
+    if (settings?.minimumNotice) {
+      minimumNotice = settings.minimumNotice;
+    }
+    if (settings?.beforeEventBuffer) {
+      beforeEventBuffer = settings.beforeEventBuffer;
+    }
+    if (settings?.afterEventBuffer) {
+      afterEventBuffer = settings.afterEventBuffer;
+    }
+  } catch (error) {
+    console.error('[CalendarWithAvailability] Error fetching scheduling settings:', error);
+    // Continue with the default values
+  }
+
+  const now = new Date();
+  const useDayGranularity = minimumNotice >= 1440; // 24 hours or more
+
+  // Calculate the earliest possible time based on minimum notice
+  const earliestPossibleTime = addMinutes(now, minimumNotice);
+
+  // For day-level granularity (>= 24 hours notice), start from the beginning of each day
+  // after the minimum notice period
+  let startDate: Date;
+
+  if (useDayGranularity) {
+    // For notice periods >= 24 hours, use the start of the next day
+    const earliestDay = startOfDay(earliestPossibleTime);
+    startDate = setMinutes(setHours(earliestDay, 0), 0);
+  } else {
+    // For shorter notice periods, use exact time with rounding
+    const roundingInterval = timeSlotInterval <= 30 ? timeSlotInterval : 30;
+
+    if (timeSlotInterval <= 30) {
+      startDate = new Date(
+        formatInTimeZone(
+          roundToNearestMinutes(earliestPossibleTime, {
+            nearestTo: roundingInterval as NearestMinutes,
+            roundingMethod: 'ceil',
+          }),
+          'UTC',
+          "yyyy-MM-dd'T'HH:mm:ssX",
+        ),
+      );
+    } else {
+      const roundedTo30 = roundToNearestMinutes(earliestPossibleTime, {
+        nearestTo: 30 as NearestMinutes,
         roundingMethod: 'ceil',
-      }),
+      });
+
+      const minutes = roundedTo30.getMinutes();
+      const extraMinutes = minutes % timeSlotInterval;
+
+      if (extraMinutes > 0) {
+        roundedTo30.setMinutes(minutes + (timeSlotInterval - extraMinutes));
+      }
+
+      startDate = new Date(formatInTimeZone(roundedTo30, 'UTC', "yyyy-MM-dd'T'HH:mm:ssX"));
+    }
+  }
+
+  const endDate = new Date(
+    formatInTimeZone(
+      endOfDay(addDays(startDate, bookingWindowDays)),
       'UTC',
       "yyyy-MM-dd'T'HH:mm:ssX",
     ),
-  );
-
-  const endDate = new Date(
-    formatInTimeZone(endOfDay(addMonths(startDate, 2)), 'UTC', "yyyy-MM-dd'T'HH:mm:ssX"),
   );
 
   // Get calendar events and calculate valid times
@@ -152,17 +239,30 @@ async function CalendarWithAvailability({
     end: endDate,
   });
 
-  const validTimes = await getValidTimesFromSchedule(
-    eachMinuteOfInterval({ start: startDate, end: endDate }, { step: 15 }),
-    event,
-    calendarEvents,
-  );
+  // Generate time slots based on the configured interval
+  const timeSlots = [];
+  let currentTime = new Date(startDate);
+
+  // For day-level granularity, ensure we start from the beginning of the day
+  if (useDayGranularity) {
+    currentTime = setMinutes(setHours(startOfDay(currentTime), 0), 0);
+  }
+
+  while (currentTime < endDate) {
+    timeSlots.push(new Date(currentTime));
+    currentTime = new Date(currentTime.getTime() + timeSlotInterval * 60000);
+  }
+
+  const validTimes = await getValidTimesFromSchedule(timeSlots, event, calendarEvents);
 
   if (validTimes.length === 0) {
     return <NoTimeSlots calendarUser={calendarUser} username={username} _locale={locale} />;
   }
 
-  // Enhanced MeetingForm with better metadata
+  // Fetch blocked dates for this user
+  const blockedDates = await getBlockedDatesForUser(userId);
+
+  // Enhanced MeetingForm with better metadata and buffer times
   return (
     <MeetingForm
       validTimes={validTimes}
@@ -182,6 +282,9 @@ async function CalendarWithAvailability({
       eventDuration={event.durationInMinutes}
       eventLocation="Google Meet"
       locale={locale}
+      beforeEventBuffer={beforeEventBuffer}
+      afterEventBuffer={afterEventBuffer}
+      blockedDates={blockedDates}
     />
   );
 }

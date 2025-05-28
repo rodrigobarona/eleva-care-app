@@ -1,0 +1,306 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Dashboard Forms Design Rule
+
+This rule establishes consistent design patterns for all dashboard forms in the Eleva Care app, based on the refined design system implemented in the schedule management forms.
+
+## Typography Hierarchy
+
+### Section Headers
+- Use `font-serif text-xl tracking-tight text-eleva-primary` for main section headers
+- Add descriptive text below headers using `text-sm leading-6 text-eleva-neutral-900/70`
+- Structure: `<h3>` for section titles, `<p>` for descriptions
+
+```tsx
+<div>
+  <h3 className="font-serif text-xl tracking-tight text-eleva-primary">
+    Section Title
+  </h3>
+  <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/70">
+    Clear description of what this section does.
+  </p>
+</div>
+```
+
+### Form Labels
+- Use `text-sm font-medium text-eleva-neutral-900` for form field labels
+- Ensure proper spacing with `space-y-2` on FormItem containers
+
+### Helper Text
+- Use `text-xs text-eleva-neutral-900/60` for form descriptions
+- Use `text-xs text-eleva-highlight-red` for error messages
+
+## Button Hierarchy
+
+### Primary Actions (Save, Update, Submit)
+- Style: `rounded-lg` with deep teal background
+- Classes: `bg-eleva-primary text-white hover:bg-eleva-primary/90`
+- Use floating save button pattern for forms with `fixed bottom-6 right-6 z-10`
+- Only show when form is dirty: `{form.formState.isDirty && (...)}`
+
+```tsx
+{form.formState.isDirty && (
+  <div className="animate-in fade-in slide-in-from-bottom-4 fixed bottom-6 right-6 z-10">
+    <Button
+      type="submit"
+      disabled={isLoading}
+      className={cn(
+        'px-6 py-2.5 font-medium shadow-lg transition-all',
+        'bg-eleva-primary text-white hover:bg-eleva-primary/90',
+        'focus:ring-2 focus:ring-eleva-primary/50 focus:ring-offset-2',
+        'disabled:cursor-not-allowed disabled:opacity-50',
+        'rounded-full',
+      )}
+    >
+      {isLoading ? (
+        <>
+          <Loader2 className="mr-2 size-4 animate-spin" />
+          Saving...
+        </>
+      ) : (
+        'Save changes'
+      )}
+    </Button>
+  </div>
+)}
+```
+
+### Secondary Actions (Add, Create)
+- Style: `rounded-md` with sage green border
+- Classes: `border-eleva-primary-light text-eleva-primary hover:bg-eleva-primary-light hover:text-white`
+
+```tsx
+<Button
+  variant="outline"
+  className="gap-2 rounded-md border-eleva-primary-light text-eleva-primary transition-colors hover:bg-eleva-primary-light hover:text-white"
+>
+  <Plus className="size-4" />
+  Add Item
+</Button>
+```
+
+### Tertiary Actions (Cancel, Reset)
+- Style: `rounded` with gray border
+- Classes: `border-eleva-neutral-200 text-eleva-neutral-900 hover:bg-eleva-neutral-100`
+
+### Icon Actions (Edit, Delete)
+- Style: `rounded-full` ghost buttons
+- Show only on hover: `opacity-0 group-hover:opacity-100`
+- Color-coded: Edit (primary), Delete (red)
+
+```tsx
+<TooltipProvider>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      <Button
+        variant="ghost"
+        size="icon"
+        className="rounded-full text-eleva-neutral-900/60 opacity-0 transition-opacity hover:bg-eleva-primary/10 hover:text-eleva-primary group-hover:opacity-100"
+      >
+        <Pencil className="size-4" />
+      </Button>
+    </TooltipTrigger>
+    <TooltipContent>
+      <p>Edit item</p>
+    </TooltipContent>
+  </Tooltip>
+</TooltipProvider>
+```
+
+## Layout Patterns
+
+### Three-Column Grid Layout
+Use for complex forms with multiple sections:
+
+```tsx
+<div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+  <div>
+    {/* Section header and description */}
+  </div>
+  <div className="lg:col-span-2">
+    {/* Form content */}
+  </div>
+</div>
+```
+
+### Section Separators
+Use between major form sections:
+```tsx
+<Separator className="my-8 bg-eleva-neutral-200" />
+```
+
+### Form Spacing
+- Use `space-y-8` for major form sections
+- Use `space-y-6` for form groups
+- Use `space-y-2` for individual form items
+
+## Form Controls
+
+### Select Dropdowns
+- Border: `border-eleva-neutral-200`
+- Focus: `focus:border-eleva-primary focus:ring-eleva-primary/20`
+- Monospace font for time/technical values: `font-mono text-sm`
+
+```tsx
+<Select>
+  <SelectTrigger className="w-[240px] border-eleva-neutral-200">
+    <SelectValue placeholder="Select option" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="option1" className="cursor-pointer">
+      <span className="font-mono text-sm">Option 1</span>
+    </SelectItem>
+  </SelectContent>
+</Select>
+```
+
+### Input Fields
+- Standard height: `h-10`
+- Border and focus states: `border-eleva-neutral-200 focus:border-eleva-primary focus:ring-eleva-primary/20`
+
+### Switches and Toggles
+- Use for enable/disable functionality
+- Proper spacing with labels: `gap-3`
+
+## Interactive States
+
+### Loading States
+- Use `Loader2` icon with `animate-spin`
+- Disable buttons during loading
+- Show contextual loading text ("Saving...", "Adding...", "Updating...")
+
+### Hover Effects
+- Smooth transitions: `transition-all duration-200`
+- Subtle background changes: `hover:bg-eleva-neutral-50`
+- Icon opacity changes: `opacity-0 group-hover:opacity-100`
+
+### Error States
+- Use `text-eleva-highlight-red` for error text
+- Maintain consistent spacing with `text-xs`
+
+## Accessibility
+
+### Tooltips
+- Always provide tooltips for icon-only buttons
+- Use descriptive text: "Edit item", "Delete item", "Add new item"
+- Proper tooltip structure with `TooltipProvider`, `Tooltip`, `TooltipTrigger`, `TooltipContent`
+
+### Form Validation
+- Clear error messages
+- Proper ARIA labels
+- Focus management for form navigation
+
+## Color System
+
+### Primary Colors
+- `--eleva-primary`: Deep Teal (primary actions, selected states)
+- `--eleva-primary-light`: Sage Green (secondary actions, borders)
+
+### Neutral Colors
+- `--eleva-neutral-900`: Primary text
+- `--eleva-neutral-900/70`: Secondary text
+- `--eleva-neutral-900/60`: Helper text
+- `--eleva-neutral-200`: Borders, separators
+
+### Accent Colors
+- `--eleva-highlight-red`: Error states, destructive actions
+
+## Animation Guidelines
+
+### Entry Animations
+- Use `animate-in fade-in slide-in-from-bottom-4` for floating elements
+- Smooth transitions for state changes: `transition-all duration-200`
+
+### Micro-interactions
+- Button hover states
+- Icon opacity changes
+- Form field focus states
+
+## Form State Management
+
+### Unsaved Changes Protection
+```tsx
+useEffect(() => {
+  const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (form.formState.isDirty) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  };
+
+  window.addEventListener('beforeunload', handleBeforeUnload);
+  return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+}, [form.formState.isDirty]);
+```
+
+### Toast Notifications
+- Success: `toast.success('Action completed successfully')`
+- Error: `toast.error('Failed to complete action')`
+- Contextual messages for different operations
+
+## Examples
+
+### Complete Form Section
+```tsx
+<div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+  <div>
+    <h3 className="font-serif text-xl tracking-tight text-eleva-primary">
+      Section Title
+    </h3>
+    <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/70">
+      Description of what this section configures.
+    </p>
+  </div>
+
+  <div className="lg:col-span-2">
+    <FormField
+      control={form.control}
+      name="fieldName"
+      render={({ field }) => (
+        <FormItem className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="text-sm font-medium text-eleva-neutral-900">
+              Field Label
+            </div>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" className="size-6">
+                    <Info className="size-4 text-eleva-neutral-900/60" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Helpful explanation</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+          <FormControl>
+            <Select onValueChange={field.onChange} value={field.value}>
+              <SelectTrigger className="w-[240px] border-eleva-neutral-200">
+                <SelectValue placeholder="Select option" />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    <span className="font-mono text-sm">{option.label}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </FormControl>
+          <FormDescription className="text-xs text-eleva-neutral-900/60">
+            Additional context about this field
+          </FormDescription>
+          <FormMessage className="text-xs text-eleva-highlight-red" />
+        </FormItem>
+      )}
+    />
+  </div>
+</div>
+```
+
+This rule ensures consistency across all dashboard forms while maintaining the refined design system we've established.

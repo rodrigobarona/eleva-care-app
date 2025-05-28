@@ -6,6 +6,7 @@ import {
   addMinutes,
   isFriday,
   isMonday,
+  isSameDay,
   isSaturday,
   isSunday,
   isThursday,
@@ -14,6 +15,8 @@ import {
   isWithinInterval,
   setHours,
   setMinutes,
+  startOfDay,
+  subMinutes,
 } from 'date-fns';
 import { fromZonedTime } from 'date-fns-tz';
 
@@ -34,15 +37,60 @@ export async function getValidTimesFromSchedule(
 
   if (schedule == null) return [];
 
+  // Get scheduling settings for minimum notice period and buffer times
+  const settings = await db.query.schedulingSettings.findFirst({
+    where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, event.clerkUserId),
+  });
+
+  const minimumNotice = settings?.minimumNotice ?? 1440; // Default to 24 hours if not set
+  const beforeEventBuffer = settings?.beforeEventBuffer ?? 15; // Default to 15 minutes if not set
+  const afterEventBuffer = settings?.afterEventBuffer ?? 15; // Default to 15 minutes if not set
+
+  const now = new Date();
+  const earliestPossibleTime = addMinutes(now, minimumNotice);
+
+  // Calculate if we should use day-level granularity
+  // If minimum notice is 24 hours or more, we'll use day-level granularity
+  const useDayGranularity = minimumNotice >= 1440;
+
+  // For day-level granularity, calculate the earliest possible day
+  const earliestStartOfDay = startOfDay(earliestPossibleTime);
+
   const validTimes = [];
   for (const time of times) {
-    // Check if time conflicts with any calendar event
+    // For short notice periods (< 24 hours), use exact time comparison
+    if (!useDayGranularity) {
+      if (time < earliestPossibleTime) continue;
+    } else {
+      // For longer notice periods (>= 24 hours)
+      const timeStartOfDay = startOfDay(time);
+
+      // If the day is before the earliest possible day, skip it
+      if (timeStartOfDay < earliestStartOfDay) continue;
+
+      // If it's the transition day (the day when minimum notice ends),
+      // only show times after the minimum notice period
+      if (isSameDay(timeStartOfDay, earliestStartOfDay)) {
+        if (time < earliestPossibleTime) continue;
+      }
+      // For all subsequent days, show all available times
+      // No additional time filtering needed here
+    }
+
+    // Check if time conflicts with any calendar event, including buffer times
     const hasCalendarConflict = calendarEvents.some((calendarEvent) => {
-      const meetingEnd = addMinutes(time, event.durationInMinutes);
+      const meetingStartWithBuffer = subMinutes(time, beforeEventBuffer);
+      const meetingEndWithBuffer = addMinutes(
+        addMinutes(time, event.durationInMinutes),
+        afterEventBuffer,
+      );
+
+      // Check if the meeting time (including buffers) overlaps with any calendar event
       return (
-        (time >= calendarEvent.start && time < calendarEvent.end) ||
-        (meetingEnd > calendarEvent.start && meetingEnd <= calendarEvent.end) ||
-        (time <= calendarEvent.start && meetingEnd >= calendarEvent.end)
+        (meetingStartWithBuffer >= calendarEvent.start &&
+          meetingStartWithBuffer < calendarEvent.end) ||
+        (meetingEndWithBuffer > calendarEvent.start && meetingEndWithBuffer <= calendarEvent.end) ||
+        (meetingStartWithBuffer <= calendarEvent.start && meetingEndWithBuffer >= calendarEvent.end)
       );
     });
 
@@ -52,8 +100,8 @@ export async function getValidTimesFromSchedule(
 
     const availabilities = getAvailabilities(groupedAvailabilities, time, schedule.timezone);
     const eventInterval = {
-      start: time,
-      end: addMinutes(time, event.durationInMinutes),
+      start: subMinutes(time, beforeEventBuffer), // Include buffer before event
+      end: addMinutes(addMinutes(time, event.durationInMinutes), afterEventBuffer), // Include buffer after event
     };
 
     const isTimeValid = availabilities.some(

@@ -1,6 +1,6 @@
 {
   "name": "eleva-care-app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "NODE_NO_WARNINGS=1 next dev",
@@ -57,6 +57,7 @@
     "@radix-ui/react-label": "^2.1.4",
     "@radix-ui/react-popover": "^1.1.11",
     "@radix-ui/react-progress": "^1.1.4",
+    "@radix-ui/react-scroll-area": "^1.2.9",
     "@radix-ui/react-select": "^2.2.2",
     "@radix-ui/react-separator": "^1.1.4",
     "@radix-ui/react-slot": "^1.2.0",
@@ -136,6 +137,7 @@
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.25.1",
     "@jest/globals": "^29.7.0",
+    "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",

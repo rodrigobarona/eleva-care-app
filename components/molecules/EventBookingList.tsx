@@ -61,20 +61,45 @@ async function getValidTimesForEvent(eventId: string) {
     if (!event) return [];
 
     const now = new Date();
-    const startDate = new Date(Math.ceil(now.getTime() / (15 * 60000)) * (15 * 60000));
-    const endDate = addMonths(startDate, 2);
+
+    // Fetch scheduling settings for the user
+    let timeSlotInterval = 15; // Default fallback value
+    try {
+      const settings = await db.query.schedulingSettings.findFirst({
+        where: ({ userId }, { eq }) => eq(userId, event.clerkUserId),
+      });
+
+      if (settings?.timeSlotInterval) {
+        timeSlotInterval = settings.timeSlotInterval;
+      }
+    } catch (error) {
+      console.error('[getValidTimesForEvent] Error fetching scheduling settings:', error);
+      // Continue with the default value
+    }
+
+    // Calculate start time that's properly aligned with the time slot interval
+    const startTime: Date = (() => {
+      // Get minutes since the epoch
+      const nowMinutes = Math.floor(now.getTime() / 60000);
+      // Round up to the next interval
+      const roundedMinutes = Math.ceil(nowMinutes / timeSlotInterval) * timeSlotInterval;
+      // Convert back to milliseconds for a Date object
+      return new Date(roundedMinutes * 60000);
+    })();
+
+    const endDate = addMonths(startTime, 2);
 
     const calendarService = GoogleCalendarService.getInstance();
     const calendarEvents = await calendarService.getCalendarEventTimes(event.clerkUserId, {
-      start: startDate,
+      start: startTime,
       end: endDate,
     });
 
     const timeSlots = [];
-    let currentTime = startDate;
+    let currentTime = startTime;
     while (currentTime < endDate) {
       timeSlots.push(new Date(currentTime));
-      currentTime = new Date(currentTime.getTime() + 15 * 60000);
+      currentTime = new Date(currentTime.getTime() + timeSlotInterval * 60000);
     }
 
     const validTimes = await getValidTimesFromSchedule(timeSlots, event, calendarEvents);

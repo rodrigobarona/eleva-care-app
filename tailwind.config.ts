@@ -19,8 +19,8 @@ const config: Config = {
     extend: {
       fontFamily: {
         serif: ['var(--font-lora)', ...fontFamily.serif],
-        sans: ['var(--font-alexandria)', ...fontFamily.sans],
-        mono: ['var(--font-jetbrains)', ...fontFamily.mono],
+        sans: ['var(--font-dm-sans)', ...fontFamily.sans],
+        mono: ['var(--font-ibm-plex-mono)', ...fontFamily.mono],
       },
       keyframes: {
         'caret-blink': {
@@ -132,6 +132,6 @@ const config: Config = {
     },
   },
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  plugins: [require('@tailwindcss/typography')],
+  plugins: [require('@tailwindcss/typography'), require('@tailwindcss/forms')],
 };
 export default config;

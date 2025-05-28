@@ -1,0 +1,2 @@
+ALTER TABLE "scheduling_settings" RENAME COLUMN "booking_window_months" TO "booking_window_days";--> statement-breakpoint
+ALTER TABLE "scheduling_settings" ALTER COLUMN "booking_window_days" SET DEFAULT 60;

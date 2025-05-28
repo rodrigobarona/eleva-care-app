@@ -27,6 +27,13 @@ import { Clock, CreditCard, Globe, Info, Video } from 'lucide-react';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 
+interface BlockedDate {
+  id: number;
+  date: Date;
+  reason?: string;
+  timezone: string;
+}
+
 interface ExpertInfo {
   id: string;
   name: string;
@@ -63,6 +70,7 @@ interface BookingLayoutProps {
   onTimezoneChange?: (timezone: string) => void;
   showCalendar?: boolean;
   children?: React.ReactNode;
+  blockedDates?: BlockedDate[];
 }
 
 export function BookingLayout({
@@ -77,6 +85,7 @@ export function BookingLayout({
   onTimezoneChange,
   showCalendar = true,
   children,
+  blockedDates,
 }: BookingLayoutProps) {
   const [use24Hour, setUse24Hour] = React.useState(false);
 
@@ -135,6 +144,24 @@ export function BookingLayout({
       onTimeSlotSelect(time.utcDate);
     }
   };
+
+  // Function to check if a date is blocked
+  const isDateBlocked = React.useCallback(
+    (date: Date) => {
+      if (!blockedDates || blockedDates.length === 0) return false;
+
+      return blockedDates.some((blocked) => {
+        const calendarDateInTz = toZonedTime(date, blocked.timezone);
+        const blockedDateInTz = toZonedTime(blocked.date, blocked.timezone);
+
+        return (
+          formatInTimeZone(calendarDateInTz, blocked.timezone, 'yyyy-MM-dd') ===
+          formatInTimeZone(blockedDateInTz, blocked.timezone, 'yyyy-MM-dd')
+        );
+      });
+    },
+    [blockedDates],
+  );
 
   // Format price for display
   const formattedPrice = new Intl.NumberFormat('pt-PT', {
@@ -265,7 +292,7 @@ export function BookingLayout({
                   disabled={(date) => {
                     if (!date) return true;
                     const dateKey = startOfDay(date).toISOString();
-                    return !timesByDate[dateKey];
+                    return !timesByDate[dateKey] || isDateBlocked(date);
                   }}
                   showOutsideDays={false}
                   fixedWeeks
@@ -380,7 +407,7 @@ export function BookingLayout({
                 disabled={(date) => {
                   if (!date) return true;
                   const dateKey = startOfDay(date).toISOString();
-                  return !timesByDate[dateKey];
+                  return !timesByDate[dateKey] || isDateBlocked(date);
                 }}
                 showOutsideDays={false}
                 fixedWeeks
