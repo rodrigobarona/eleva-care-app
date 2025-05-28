@@ -60,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Layout & Spacing Enhancements**:
 
-  - Cleaner schedule layout with better visual separation using three-column grid
+  - Cleaner schedule layout with better visual separation using a three-column grid
   - Improved spacing and alignment in form sections with consistent padding
   - Enhanced mobile responsiveness for all components
   - Better grid layouts for complex forms with proper breakpoints
@@ -91,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Calendar Integration & Navigation**:
 
   - Fixed navigation arrows positioning in blocked dates calendar
-  - Resolved layout issues when calendar was used in different contexts
+  - Resolved layout issues when the calendar was used in different contexts
   - Proper disabled state handling for blocked and unavailable dates
   - Calendar navigation and disabled state inconsistencies resolved
 
@@ -160,7 +160,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Legacy Components & Pages**:
   - Removed `temp_backup/[username]/*` legacy profile and booking pages
   - Cleaned up outdated payment processing and success page implementations
-  - Replaced legacy booking flow with new comprehensive scheduling system
+  - Replaced legacy booking flow with a new comprehensive scheduling system
 
 ### Database Migrations
 
