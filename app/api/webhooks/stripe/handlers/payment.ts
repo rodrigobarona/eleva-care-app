@@ -551,10 +551,15 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
 
             // Log as a specific audit event for tracking and analysis
             try {
-              const expertClerkUserId =
-                paymentIntent.metadata?.expertClerkUserId || 'SYSTEM_UNKNOWN_EXPERT';
+              const expertClerkUserId = paymentIntent.metadata?.expertClerkUserId;
+              if (!expertClerkUserId) {
+                console.warn(
+                  `⚠️ Expert Clerk User ID not found in metadata for PI ${paymentIntent.id}. Using fallback: SYSTEM_UNKNOWN_EXPERT`,
+                );
+              }
+
               await logAuditEvent(
-                expertClerkUserId,
+                expertClerkUserId || 'SYSTEM_UNKNOWN_EXPERT',
                 'MULTIBANCO_EXPIRY_RISK',
                 'payment_intent',
                 paymentIntent.id,
