@@ -71,7 +71,43 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
     return NextResponse.json({ success: true, recordId: record.id });
   } catch (error) {
     console.error('Error creating record:', error);
-    // Consider logging the error to the audit log as well if it's a security-sensitive failure
+
+    // Log security-sensitive failures and errors
+    const headersList = headers();
+    try {
+      const { userId: clerkUserId } = await auth();
+      const isSecuritySensitive =
+        error instanceof Error &&
+        (error.message.includes('unauthorized') ||
+          error.message.includes('Unauthorized') ||
+          error.message.includes('permission') ||
+          error.message.includes('access denied') ||
+          error.message.includes('forbidden'));
+
+      const auditAction = isSecuritySensitive
+        ? 'FAILED_CREATE_MEDICAL_RECORD_UNAUTHORIZED'
+        : 'FAILED_CREATE_MEDICAL_RECORD';
+
+      await logAuditEvent(
+        clerkUserId || 'unknown',
+        auditAction,
+        'medical_record',
+        params.meetingId,
+        null,
+        {
+          meetingId: params.meetingId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+          isSecuritySensitive,
+          timestamp: new Date().toISOString(),
+        },
+        headersList.get('x-forwarded-for') ?? 'Unknown',
+        headersList.get('user-agent') ?? 'Unknown',
+      );
+    } catch (auditError) {
+      console.error('Error logging audit event for failed record creation:', auditError);
+    }
+
     return NextResponse.json({ error: 'Failed to create record' }, { status: 500 });
   }
 }
@@ -122,7 +158,7 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
           meetingId: params.meetingId,
           expertId: clerkUserId,
           recordsFetched: decryptedRecords.length,
-          recordIds: decryptedRecords.map(r => r.id), // Log IDs of records accessed
+          recordIds: decryptedRecords.map((r) => r.id), // Log IDs of records accessed
         },
         headersList.get('x-forwarded-for') ?? 'Unknown',
         headersList.get('user-agent') ?? 'Unknown',
@@ -134,6 +170,44 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
     return NextResponse.json({ records: decryptedRecords });
   } catch (error) {
     console.error('Error fetching records:', error);
+
+    // Log security-sensitive failures and errors
+    const headersList = headers();
+    try {
+      const { userId: clerkUserId } = await auth();
+      const isSecuritySensitive =
+        error instanceof Error &&
+        (error.message.includes('unauthorized') ||
+          error.message.includes('Unauthorized') ||
+          error.message.includes('permission') ||
+          error.message.includes('access denied') ||
+          error.message.includes('forbidden') ||
+          error.message.includes('decrypt'));
+
+      const auditAction = isSecuritySensitive
+        ? 'FAILED_READ_MEDICAL_RECORDS_UNAUTHORIZED'
+        : 'FAILED_READ_MEDICAL_RECORDS';
+
+      await logAuditEvent(
+        clerkUserId || 'unknown',
+        auditAction,
+        'medical_record',
+        params.meetingId,
+        null,
+        {
+          meetingId: params.meetingId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+          isSecuritySensitive,
+          timestamp: new Date().toISOString(),
+        },
+        headersList.get('x-forwarded-for') ?? 'Unknown',
+        headersList.get('user-agent') ?? 'Unknown',
+      );
+    } catch (auditError) {
+      console.error('Error logging audit event for failed records fetch:', auditError);
+    }
+
     return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
   }
 }
@@ -208,6 +282,45 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
     return NextResponse.json({ success: true, recordId: updatedRecord.id });
   } catch (error) {
     console.error('Error updating record:', error);
+
+    // Log security-sensitive failures and errors
+    const headersList = headers();
+    try {
+      const { userId: clerkUserId } = await auth();
+      const isSecuritySensitive =
+        error instanceof Error &&
+        (error.message.includes('unauthorized') ||
+          error.message.includes('Unauthorized') ||
+          error.message.includes('permission') ||
+          error.message.includes('access denied') ||
+          error.message.includes('forbidden') ||
+          error.message.includes('encrypt') ||
+          error.message.includes('decrypt'));
+
+      const auditAction = isSecuritySensitive
+        ? 'FAILED_UPDATE_MEDICAL_RECORD_UNAUTHORIZED'
+        : 'FAILED_UPDATE_MEDICAL_RECORD';
+
+      await logAuditEvent(
+        clerkUserId || 'unknown',
+        auditAction,
+        'medical_record',
+        params.meetingId,
+        null,
+        {
+          meetingId: params.meetingId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
+          isSecuritySensitive,
+          timestamp: new Date().toISOString(),
+        },
+        headersList.get('x-forwarded-for') ?? 'Unknown',
+        headersList.get('user-agent') ?? 'Unknown',
+      );
+    } catch (auditError) {
+      console.error('Error logging audit event for failed record update:', auditError);
+    }
+
     return NextResponse.json({ error: 'Failed to update record' }, { status: 500 });
   }
 }

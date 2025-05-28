@@ -239,24 +239,22 @@ export async function POST(request: Request) {
           },
         ],
         metadata: {
-          // Primary source of truth for meeting context
-          meetingData: JSON.stringify(meetingMetadata),
-          // Payment/transfer specific metadata (can be reduced if not directly needed by Checkout Session page)
-          expertConnectAccountId: event.user.stripeConnectAccountId, // Potentially useful for display or rules
-          // clerkUserId is now within meetingData as expertClerkUserId
-          scheduledTransferTime: transferDate.toISOString(), // Potentially useful
-          requiresApproval: requiresApproval ? 'true' : 'false', // Potentially useful
+          // Minimal checkout session metadata - only what's needed for checkout UI
+          eventId: eventId,
+          expertName: meetingMetadata.expertName,
+          guestEmail: meetingMetadata.guestEmail,
+          startTime: meetingMetadata.startTime,
         },
         success_url: `${baseUrl}/${meetingMetadata.locale ? `${meetingMetadata.locale}/` : ''}${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
-          meetingMetadata.startTime, // Use startTime from unified meetingMetadata
+          meetingMetadata.startTime,
         )}`,
-        cancel_url: `${baseUrl}/${meetingData.locale ? `${meetingData.locale}/` : ''}${username}/${eventSlug}?s=2&d=${encodeURIComponent(
+        cancel_url: `${baseUrl}/${meetingMetadata.locale ? `${meetingMetadata.locale}/` : ''}${username}/${eventSlug}?s=2&d=${encodeURIComponent(
           meetingData.date,
-        )}&t=${encodeURIComponent(meetingData.startTime)}&n=${encodeURIComponent(
-          meetingData.guestName,
+        )}&t=${encodeURIComponent(meetingMetadata.startTime)}&n=${encodeURIComponent(
+          meetingMetadata.guestName,
         )}&e=${encodeURIComponent(
-          meetingData.guestEmail,
-        )}&tz=${encodeURIComponent(meetingData.timezone)}`,
+          meetingMetadata.guestEmail,
+        )}&tz=${encodeURIComponent(meetingMetadata.timezone)}`,
       } as Stripe.Checkout.SessionCreateParams),
     );
 
