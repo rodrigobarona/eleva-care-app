@@ -83,7 +83,18 @@ export async function POST(request: Request) {
       guestEmail: meetingData.guestEmail,
       guestNotes: meetingData.guestNotes,
       startTime: meetingData.startTime, // This is the original startTime from the client
-      startTimeFormatted: meetingData.startTimeFormatted || new Date(meetingData.startTime).toLocaleString(), // Store formatted version
+      startTimeFormatted:
+        meetingData.startTimeFormatted ||
+        (meetingData.locale
+          ? new Date(meetingData.startTime).toLocaleString(meetingData.locale, {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZoneName: 'short',
+            })
+          : new Date(meetingData.startTime).toISOString()),
       duration: event.durationInMinutes,
       timezone: meetingData.timezone,
       price: price,
@@ -228,13 +239,13 @@ export async function POST(request: Request) {
           },
         ],
         metadata: {
-            // Primary source of truth for meeting context
-            meetingData: JSON.stringify(meetingMetadata),
-            // Payment/transfer specific metadata (can be reduced if not directly needed by Checkout Session page)
-            expertConnectAccountId: event.user.stripeConnectAccountId, // Potentially useful for display or rules
-            // clerkUserId is now within meetingData as expertClerkUserId
-            scheduledTransferTime: transferDate.toISOString(), // Potentially useful
-            requiresApproval: requiresApproval ? 'true' : 'false', // Potentially useful
+          // Primary source of truth for meeting context
+          meetingData: JSON.stringify(meetingMetadata),
+          // Payment/transfer specific metadata (can be reduced if not directly needed by Checkout Session page)
+          expertConnectAccountId: event.user.stripeConnectAccountId, // Potentially useful for display or rules
+          // clerkUserId is now within meetingData as expertClerkUserId
+          scheduledTransferTime: transferDate.toISOString(), // Potentially useful
+          requiresApproval: requiresApproval ? 'true' : 'false', // Potentially useful
         },
         success_url: `${baseUrl}/${meetingMetadata.locale ? `${meetingMetadata.locale}/` : ''}${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
           meetingMetadata.startTime, // Use startTime from unified meetingMetadata
