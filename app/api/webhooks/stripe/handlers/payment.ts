@@ -4,9 +4,42 @@ import { generateAppointmentEmail, sendEmail } from '@/lib/email';
 import { logAuditEvent } from '@/lib/logAuditEvent';
 import { createUserNotification } from '@/lib/notifications';
 import { withRetry } from '@/lib/stripe';
-import { format, utcToZonedTime } from 'date-fns-tz';
+import { format, toZonedTime } from 'date-fns-tz';
 import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';
+
+/**
+ * Extract locale from payment intent metadata and fallback sources
+ * @param paymentIntent - Stripe payment intent with metadata
+ * @returns The best available locale or 'en' as fallback
+ */
+function extractLocaleFromPaymentIntent(paymentIntent: Stripe.PaymentIntent): string {
+  try {
+    // First, try to get locale from payment intent metadata
+    if (paymentIntent.metadata?.meetingData) {
+      const meetingData = JSON.parse(paymentIntent.metadata.meetingData);
+      if (meetingData.locale && typeof meetingData.locale === 'string') {
+        console.log(`📍 Using locale from payment intent metadata: ${meetingData.locale}`);
+        return meetingData.locale;
+      }
+    }
+
+    // Fallback: Check if there's a locale in the payment intent metadata directly
+    if (paymentIntent.metadata?.locale) {
+      console.log(
+        `📍 Using locale from payment intent direct metadata: ${paymentIntent.metadata.locale}`,
+      );
+      return paymentIntent.metadata.locale;
+    }
+
+    // Final fallback
+    console.log('📍 No locale found in payment intent metadata, using default: en');
+    return 'en';
+  } catch (error) {
+    console.error('Error extracting locale from payment intent metadata:', error);
+    return 'en';
+  }
+}
 
 export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   console.log('Payment succeeded:', paymentIntent.id);
@@ -92,36 +125,39 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               durationInMinutes: true,
             },
           },
-          user: {
-            // Assuming relation name is 'user' for expert on MeetingTable
+        },
+      });
+
+      // Fetch user details separately since there's no user relation on MeetingTable
+      const userDetails = meetingDetails
+        ? await db.query.UserTable.findFirst({
+            where: eq(UserTable.clerkUserId, meetingDetails.clerkUserId),
             columns: {
               firstName: true,
               lastName: true,
             },
-          },
-        },
-      });
+          })
+        : null;
 
-      if (meetingDetails?.event && meetingDetails?.user) {
+      if (meetingDetails?.event && userDetails) {
         const guestEmail = meetingDetails.guestEmail;
         const guestName = meetingDetails.guestName ?? 'Guest';
         const expertName =
-          `${meetingDetails.user.firstName ?? ''} ${meetingDetails.user.lastName ?? ''}`.trim() ||
-          'Our Expert';
+          `${userDetails.firstName ?? ''} ${userDetails.lastName ?? ''}`.trim() || 'Our Expert';
         const eventName = meetingDetails.event.name;
         const meetingStartTime = meetingDetails.startTime; // Date object
         const meetingTimezone = meetingDetails.timezone || 'UTC'; // Default to UTC if not set
         const durationMinutes = meetingDetails.event.durationInMinutes;
 
         // Format date and time for the email
-        const zonedStartTime = utcToZonedTime(meetingStartTime, meetingTimezone);
+        const zonedStartTime = toZonedTime(meetingStartTime, meetingTimezone);
         const appointmentDate = format(zonedStartTime, 'EEEE, MMMM d, yyyy', {
           timeZone: meetingTimezone,
         });
         const startTimeFormatted = format(zonedStartTime, 'h:mm a', { timeZone: meetingTimezone });
 
         const endTime = new Date(meetingStartTime.getTime() + durationMinutes * 60000);
-        const zonedEndTime = utcToZonedTime(endTime, meetingTimezone);
+        const zonedEndTime = toZonedTime(endTime, meetingTimezone);
         const endTimeFormatted = format(zonedEndTime, 'h:mm a', { timeZone: meetingTimezone });
 
         const appointmentTime = `${startTimeFormatted} - ${endTimeFormatted} (${meetingTimezone})`;
@@ -139,7 +175,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             eventTitle: eventName,
             meetLink: meetingDetails.meetingUrl ?? undefined,
             notes: meetingDetails.guestNotes ?? undefined,
-            locale: meetingDetails.locale ?? 'en',
+            locale: extractLocaleFromPaymentIntent(paymentIntent),
           });
 
           await sendEmail({
@@ -160,7 +196,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         }
       } else {
         console.warn(
-          `Could not retrieve all necessary details for PI ${paymentIntent.id} to send guest confirmation email. Meeting Details: ${!!meetingDetails}, Event: ${!!meetingDetails?.event}, User: ${!!meetingDetails?.user}`,
+          `Could not retrieve all necessary details for PI ${paymentIntent.id} to send guest confirmation email. Meeting Details: ${!!meetingDetails}, Event: ${!!meetingDetails?.event}, User: ${!!userDetails}`,
         );
       }
     }
@@ -192,7 +228,6 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
         timezone: MeetingTable.timezone,
         meetingUrl: MeetingTable.meetingUrl,
         guestNotes: MeetingTable.guestNotes,
-        locale: MeetingTable.locale,
         eventId: MeetingTable.eventId,
       });
 
@@ -305,13 +340,13 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
         const meetingTimezone = meetingDetails.timezone || 'UTC';
         const durationMinutes = eventInfo.durationInMinutes;
 
-        const zonedStartTime = utcToZonedTime(meetingStartTime, meetingTimezone);
+        const zonedStartTime = toZonedTime(meetingStartTime, meetingTimezone);
         const appointmentDate = format(zonedStartTime, 'EEEE, MMMM d, yyyy', {
           timeZone: meetingTimezone,
         });
         const startTimeFormatted = format(zonedStartTime, 'h:mm a', { timeZone: meetingTimezone });
         const endTime = new Date(meetingStartTime.getTime() + durationMinutes * 60000);
-        const zonedEndTime = utcToZonedTime(endTime, meetingTimezone);
+        const zonedEndTime = toZonedTime(endTime, meetingTimezone);
         const endTimeFormatted = format(zonedEndTime, 'h:mm a', { timeZone: meetingTimezone });
         const appointmentTime = `${startTimeFormatted} - ${endTimeFormatted} (${meetingTimezone})`;
         const appointmentDuration = `${durationMinutes} minutes`;
@@ -328,7 +363,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
             eventTitle: eventName,
             meetLink: meetingDetails.meetingUrl ?? undefined, // May not be relevant if cancelled
             notes: `We regret to inform you that the payment for this scheduled meeting failed. Reason: ${lastPaymentError}. As a result, this meeting has been canceled. Please update your payment information and try booking again, or contact support if you believe this is an error.`,
-            locale: meetingDetails.locale ?? 'en',
+            locale: extractLocaleFromPaymentIntent(paymentIntent),
           });
 
           await sendEmail({
@@ -488,7 +523,9 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
 
   if (
     paymentIntent.next_action?.type === 'multibanco_display_details' &&
-    paymentIntent.payment_method?.type === 'multibanco'
+    ((typeof paymentIntent.payment_method === 'object' &&
+      paymentIntent.payment_method?.type === 'multibanco') ||
+      typeof paymentIntent.payment_method === 'string')
   ) {
     const multibancoDetails = paymentIntent.next_action.multibanco_display_details;
     const voucherExpiresAtTimestamp = multibancoDetails?.expires_at; // This is a Unix timestamp (seconds)
