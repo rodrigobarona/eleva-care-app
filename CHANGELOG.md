@@ -224,3 +224,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Payment processing with Stripe
 - Email notifications with Resend
 - Database integration with Neon and Drizzle ORM
+
+<!-- Version comparison links -->
+
+[Unreleased]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/rodrigo-barona/eleva-care-app/releases/tag/v0.1.0
