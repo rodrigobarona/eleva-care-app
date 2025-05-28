@@ -1,1 +1,0 @@
-ALTER TABLE "blocked_dates" ADD COLUMN "timezone" text DEFAULT 'UTC' NOT NULL;
