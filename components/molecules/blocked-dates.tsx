@@ -18,7 +18,7 @@ import {
 } from '@/components/molecules/dialog';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { formatInTimeZone, toDate } from 'date-fns-tz';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { CalendarIcon, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 
@@ -245,10 +245,8 @@ export function BlockedDates({
                     disabled={(date) =>
                       blockedDates.some((blocked) => {
                         if (editingDate && editingDate.id === blocked.id) return false;
-                        const calendarDateInTz = toDate(date, { timeZone: blocked.timezone });
-                        const blockedDateInTz = toDate(blocked.date, {
-                          timeZone: blocked.timezone,
-                        });
+                        const calendarDateInTz = toZonedTime(date, blocked.timezone);
+                        const blockedDateInTz = toZonedTime(blocked.date, blocked.timezone);
 
                         return (
                           formatInTimeZone(calendarDateInTz, blocked.timezone, 'yyyy-MM-dd') ===
