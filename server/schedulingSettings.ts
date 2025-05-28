@@ -8,7 +8,14 @@
 import { db } from '@/drizzle/db';
 import { schedulingSettings } from '@/drizzle/schema';
 import type { NewSchedulingSettings, SchedulingSettings } from '@/drizzle/schema';
-import { DEFAULT_SCHEDULING_SETTINGS } from '@/lib/constants/scheduling';
+import {
+  DEFAULT_AFTER_EVENT_BUFFER,
+  DEFAULT_BEFORE_EVENT_BUFFER,
+  DEFAULT_BOOKING_WINDOW_DAYS,
+  DEFAULT_MINIMUM_NOTICE,
+  DEFAULT_SCHEDULING_SETTINGS,
+  DEFAULT_TIME_SLOT_INTERVAL,
+} from '@/lib/constants/scheduling';
 import { eq } from 'drizzle-orm';
 
 /**
@@ -47,11 +54,11 @@ export async function getUserSchedulingSettings(userId: string): Promise<Schedul
     const fallbackSettings: SchedulingSettings = {
       id: 0,
       userId,
-      beforeEventBuffer: 15, // Default 15 min buffer before
-      afterEventBuffer: 15, // Default 15 min buffer after
-      minimumNotice: 60, // Default 1 hour minimum notice
-      timeSlotInterval: 15, // Default 15 min intervals
-      bookingWindowDays: 60, // Default 2 months (60 days) booking window
+      beforeEventBuffer: DEFAULT_BEFORE_EVENT_BUFFER,
+      afterEventBuffer: DEFAULT_AFTER_EVENT_BUFFER,
+      minimumNotice: DEFAULT_MINIMUM_NOTICE,
+      timeSlotInterval: DEFAULT_TIME_SLOT_INTERVAL,
+      bookingWindowDays: DEFAULT_BOOKING_WINDOW_DAYS,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

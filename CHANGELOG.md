@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Comprehensive Blocked Dates Management System**:
+
   - Full blocked dates functionality allowing users to add, edit, and remove unavailable dates
   - Optional notes support for blocked dates with timezone awareness
   - Hover-based edit/delete actions with smooth animations and tooltips
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Proper timezone conversion preventing date display issues
 
 - **Advanced Scheduling Settings & Configuration**:
+
   - Customizable buffer times for before and after events (0-120 minutes)
   - Minimum notice period settings (1 hour to 2 weeks)
   - Time slot interval configuration (5 minutes to 2 hours in 5-minute increments)
@@ -28,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive tooltips and contextual help text for all settings
 
 - **Enhanced Form Experience & User Interface**:
+
   - Floating save buttons that appear only when forms are dirty
   - Loading states with spinners for all async operations
   - Success/error toast notifications for comprehensive user feedback
@@ -36,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dedicated timezone selector component with improved UX
 
 - **Unified Design System & Typography**:
+
   - Consistent button hierarchy across all dashboard forms:
     - Primary actions: `rounded-full` (Save, Update, Submit) - Deep Teal
     - Secondary actions: `rounded-md` (Add, Create) - Sage Green border
@@ -55,12 +59,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Layout & Spacing Enhancements**:
+
   - Cleaner schedule layout with better visual separation using three-column grid
   - Improved spacing and alignment in form sections with consistent padding
   - Enhanced mobile responsiveness for all components
   - Better grid layouts for complex forms with proper breakpoints
 
 - **User Experience Improvements**:
+
   - Smoother transitions and animations throughout the application
   - More intuitive hover states and interactive elements
   - Better error handling and user feedback mechanisms
@@ -76,12 +82,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Timezone & Date Handling Issues**:
+
   - Resolved date display problems caused by timezone conversion
   - Fixed blocked dates showing incorrect dates (e.g., "Jun 01" instead of "Jun 02")
   - Proper timezone handling in both server actions and client components
   - Consistent date formatting across all components and contexts
 
 - **Calendar Integration & Navigation**:
+
   - Fixed navigation arrows positioning in blocked dates calendar
   - Resolved layout issues when calendar was used in different contexts
   - Proper disabled state handling for blocked and unavailable dates
@@ -95,29 +103,89 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical
 
-- **Server Actions & Database**:
-  - Enhanced `getBlockedDates` and `getBlockedDatesForUser` functions
-  - Improved error handling and timezone parameter passing
-  - Better database integration with proper type safety
-  - Database migrations to support new scheduling and blocked dates features
+- **Database Schema & Migrations**:
+
+  - Added `scheduling_settings` table with columns for buffer times, notice periods, intervals, and booking windows
+  - Added `blocked_dates` table with timezone support and optional notes
+  - Applied database migrations for new booking window, timezone, and scheduling columns
+  - Updated schema snapshots and migration metadata
+
+- **Server Actions & API Routes**:
+
+  - Enhanced `getBlockedDates` and `getBlockedDatesForUser` functions with timezone handling
+  - New `server/schedulingSettings.ts` service for user scheduling settings management
+  - New `server/actions/blocked-dates.ts` module for blocked dates CRUD operations
+  - New `app/api/scheduling-settings/route.ts` API endpoint for GET/PATCH operations
+  - Improved error handling and timezone parameter passing throughout server actions
 
 - **Component Architecture & Performance**:
+
+  - **New Components**:
+    - `components/molecules/blocked-dates.tsx`: Complete blocked dates management with calendar integration
+    - `components/molecules/timezone-select/index.tsx`: Grouped, searchable timezone selector with tooltips
+    - `components/atoms/scroll-area.tsx`: Custom scroll area wrapping Radix UI primitives
+    - `components/organisms/forms/SchedulingSettingsForm.tsx`: Comprehensive scheduling settings form
+  - **Enhanced Components**:
+    - `components/organisms/forms/ScheduleForm.tsx`: Major upgrade with blocked dates, improved availability UI, and floating save button
+    - `components/organisms/forms/MeetingForm.tsx`: Added buffer time and blocked dates support with duration display
+    - `components/organisms/BookingLayout.tsx`: Integrated blocked dates logic and calendar disable functionality
+    - `components/organisms/sidebar/AppSidebar.tsx`: Enhanced with hierarchical calendar sub-items
   - Extracted reusable components for better maintainability
   - Improved prop interfaces and TypeScript definitions
   - Better separation of concerns between UI and business logic
   - Optimized re-renders with proper memoization
-  - Improved loading states and async operation handling
-  - Better caching strategies for frequently accessed data
 
-- **Dependencies & Configuration**:
+- **Business Logic & Scheduling Engine**:
+
+  - Enhanced `lib/getValidTimesFromSchedule.ts` with dynamic scheduling settings integration
+  - Improved conflict detection and availability logic with buffer time consideration
+  - Dynamic time slot interval calculation based on user preferences
+  - Advanced booking window and minimum notice period enforcement
+
+- **Configuration & Constants**:
+
+  - New `lib/constants/scheduling.ts` with default scheduling settings and exported constants
+  - Updated `tailwind.config.ts` with new font families and forms plugin
+  - Enhanced `lib/formatters.ts` with improved timezone offset handling and error fallbacks
+
+- **Dependencies & Build System**:
   - Updated Tailwind configuration for enhanced styling and form support
+  - Added Tailwind forms plugin for better form styling
   - Enhanced date handling libraries integration
   - Improved form validation and state management libraries
   - Updated various UI components for better consistency
 
+### Removed
+
+- **Legacy Components & Pages**:
+  - Removed `temp_backup/[username]/*` legacy profile and booking pages
+  - Cleaned up outdated payment processing and success page implementations
+  - Replaced legacy booking flow with new comprehensive scheduling system
+
+### Database Migrations
+
+- **0001_scheduling_settings**: Added scheduling_settings table with user preferences
+- **0002_blocked_dates**: Added blocked_dates table with timezone and notes support
+- **0003_booking_window_updates**: Enhanced booking window calculations and constraints
+- **0004_timezone_columns**: Added timezone support across scheduling tables
+
+### API Changes
+
+- **New Endpoints**:
+
+  - `GET /api/scheduling-settings`: Retrieve user scheduling preferences
+  - `PATCH /api/scheduling-settings`: Update user scheduling settings with validation
+
+- **Enhanced Server Actions**:
+  - `addBlockedDates`: Create blocked dates with timezone awareness
+  - `removeBlockedDate`: Delete specific blocked dates
+  - `getBlockedDates`: Retrieve user's blocked dates
+  - `getBlockedDatesForUser`: Public endpoint for booking calendar integration
+
 ### Documentation
 
 - **Comprehensive Design Guidelines**:
+
   - Added dashboard forms design guide with complete implementation examples
   - Created design system rules for consistent form development
   - Documented button hierarchy, typography system, and layout patterns
@@ -133,6 +201,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Chores
 
 - **Build & Development**:
+
   - Updated dependencies for enhanced functionality
   - Improved build processes and type checking
   - Enhanced development tooling and linting rules

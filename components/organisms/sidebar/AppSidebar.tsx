@@ -46,7 +46,7 @@ const mainItems: SidebarItem[] = [
     icon: Calendar,
     items: [
       { title: 'Weekly hours', url: '/booking/schedule#weekly-hours' },
-      { title: 'Time zone', url: '/booking/schedule#time-zone' },
+      { title: 'Time zone', url: '/booking/schedule#timezone' },
       { title: 'Blocked dates', url: '/booking/schedule#blocked-dates' },
       { title: 'Buffer Times', url: '/booking/schedule/limits#buffer-times' },
       { title: 'Booking Rules', url: '/booking/schedule/limits#booking-rules' },
