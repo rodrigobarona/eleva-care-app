@@ -517,7 +517,7 @@ export type SchedulingSettings = typeof schedulingSettings.$inferSelect;
 export type NewSchedulingSettings = typeof schedulingSettings.$inferInsert;
 
 // Export the relation
-export const schedulingSettingsRelations = relations(schedulingSettings, ({ one }) => ({
+export const schedulingSettingsRelations = relations(schedulingSettings, () => ({
   // Add relations if needed
 }));
 
