@@ -148,29 +148,50 @@ export function ScheduleForm({
   // Add handlers for blocked dates
   const handleEditBlockedDate = useCallback(
     async (id: number, updates: { date: Date; reason?: string }) => {
+      const timezone = form.getValues('timezone');
+
+      // Store the original for rollback
+      const originalDate = blockedDates.find((d) => d.id === id);
+      if (!originalDate) {
+        toast.error('Original date not found');
+        return;
+      }
+
       try {
-        const timezone = form.getValues('timezone');
-        // First remove the old date
+        // Optimistically update UI first
+        setBlockedDates((prev) =>
+          prev.map((d) => (d.id === id ? { ...d, ...updates, timezone } : d)),
+        );
+
+        // Perform the backend operations
+        // Note: This is still a remove+add pattern, but with better error handling
+        // TODO: Implement a dedicated updateBlockedDate API for atomic updates
         await removeBlockedDate(id);
-        // Then add the new date
         await addBlockedDates([{ ...updates, timezone }]);
-        // Refresh blocked dates after editing
+
+        // Refresh blocked dates after successful edit
         const updatedBlockedDates = await getBlockedDates();
         setBlockedDates(updatedBlockedDates);
         toast.success('Date updated successfully');
       } catch (error) {
         console.error('Error updating blocked date:', error);
+
+        // Rollback optimistic update on failure
+        setBlockedDates((prev) => prev.map((d) => (d.id === id ? originalDate : d)));
+
         toast.error('Failed to update blocked date');
-        // Refresh the list to ensure we're in sync
+
+        // Refresh the list to ensure we're in sync with the server
         try {
           const updatedBlockedDates = await getBlockedDates();
           setBlockedDates(updatedBlockedDates);
         } catch (refreshError) {
           console.error('Error refreshing blocked dates:', refreshError);
+          toast.error('Failed to refresh blocked dates. Please reload the page.');
         }
       }
     },
-    [form],
+    [form, blockedDates],
   );
 
   // Load blocked dates on component mount
