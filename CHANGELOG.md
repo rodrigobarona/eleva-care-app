@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2025-05-29
+
+- **Automated Cleanup System**:
+  - Added new QStash cron job for cleaning up expired blocked dates
+  - Implemented timezone-aware cleanup to respect each blocked date's local timezone
+  - Added detailed logging for cleanup operations with timezone context
+  - Integrated with existing QStash schedule management system
+
 ### Technical Improvements & Roadmap
 
 - **Extended Proactive Payment Monitoring**:
@@ -40,7 +48,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Console log management and structured logging
   - Cron job simplification and reliability improvements
 
-## [0.3.0] - 2025-01-31
+### Technical
+
+- **Automated Database Maintenance**:
+  - Created new `cleanup-blocked-dates` endpoint with timezone-aware date comparison
+  - Enhanced QStash configuration to include new cleanup schedule
+  - Implemented efficient batch deletion for expired blocked dates
+  - Added comprehensive error handling and logging
+  - Integrated with existing QStash postbuild automation
+
+### Changed
+
+- **Cron Job Management**:
+  - Centralized QStash schedule configuration in `setup-qstash-schedules.ts`
+  - Enhanced schedule creation with proper error handling
+  - Improved logging for schedule creation and updates
+  - Added timezone context to cleanup operations
+
+### Fixed
+
+- **Timezone Handling**:
+  - Fixed potential timezone-related issues in blocked dates cleanup
+  - Ensured dates are only deleted when expired in their local timezone
+  - Improved date comparison logic to handle timezone edge cases
+  - Enhanced logging to include timezone context for better debugging
+
+## [0.3.0] - 2025-05-27
 
 ### Added
 
