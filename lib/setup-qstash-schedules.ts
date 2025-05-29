@@ -12,6 +12,8 @@ if (!qstashClient) {
 
 /**
  * Delete all existing QStash schedules
+ * @throws {Error} If QStash client is not initialized
+ * @returns {Promise<void>}
  */
 async function cleanupExistingSchedules() {
   if (!qstashClient) {
@@ -74,6 +76,14 @@ interface ScheduleResult {
 /**
  * Setup all QStash schedules
  * This should be run on the server once or during deployment
+ *
+ * The function will:
+ * 1. Validate QStash configuration
+ * 2. Attempt to cleanup existing schedules (non-blocking)
+ * 3. Create new schedules based on SCHEDULE_CONFIGS
+ *
+ * Note: Schedule creation will proceed even if cleanup fails,
+ * as QStash handles duplicate schedules gracefully.
  */
 export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
   // Validate QStash configuration first
@@ -107,8 +117,18 @@ export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
     }));
   }
 
-  // First, cleanup existing schedules
-  await cleanupExistingSchedules();
+  // First, attempt to cleanup existing schedules
+  // This is non-blocking - we'll proceed with schedule creation even if cleanup fails
+  try {
+    await cleanupExistingSchedules();
+  } catch (error) {
+    console.error('Failed to cleanup existing schedules:', error);
+    console.log('Proceeding with schedule creation despite cleanup failure...');
+    // We continue with schedule creation because:
+    // 1. QStash handles duplicate schedules gracefully
+    // 2. Better to have duplicate schedules than no schedules
+    // 3. Failed cleanup likely indicates temporary API issues
+  }
 
   // Proceed with schedule creation
   for (const config of SCHEDULE_CONFIGS) {
