@@ -167,7 +167,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           });
 
           if (event) {
-            // Import here to avoid circular dependency issues
+            // Dynamic import to avoid circular dependency with calendar service
+            // The calendar service depends on meeting types which depend on payment types
             const { createCalendarEvent } = await import('@/server/googleCalendar');
 
             const calendarEvent = await createCalendarEvent({
@@ -223,18 +224,19 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         where: eq(PaymentTransferTable.paymentIntentId, paymentIntent.id),
       });
 
+      // Handle transfer status update
       if (!transfer) {
-        console.error(
+        console.log(
           'No transfer record found for payment:',
           paymentIntent.id,
-          'This might be normal if the meeting was free or if transfer record creation failed earlier.',
+          '(This is normal for free meetings or if transfer record creation failed earlier)',
         );
-        // If no transfer record, and meeting was updated, the main goal of confirming meeting payment is achieved.
-        // If there should always be a transfer record for a succeeded payment, this is a separate issue.
-        // We should still attempt to send guest notification if meeting was found and updated.
-      } else if (transfer?.status === PAYMENT_TRANSFER_STATUS_PENDING) {
-        // Ensure transfer exists before checking status
-        // Update transfer status if needed with retry logic only if a transfer record exists
+        return; // Early return since there's no transfer to process
+      }
+
+      // Process existing transfer based on its status
+      if (transfer.status === PAYMENT_TRANSFER_STATUS_PENDING) {
+        // Update transfer status to READY with retry logic
         await withRetry(
           async () => {
             await db
@@ -252,7 +254,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
         // Notify the expert about the successful payment
         await notifyExpertOfPaymentSuccess(transfer);
-      } else if (transfer) {
+      } else {
         console.log(
           `Transfer record ${transfer.id} already in status ${transfer.status}, not updating to READY.`,
         );
