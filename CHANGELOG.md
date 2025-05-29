@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.2] - 2025-05-29
 
+### Added
+
+- **Core Web Vitals Optimizations**:
+  - **Core Layout Rendering (FCP/LCP)**:
+    - Converted `app/[locale]/(public)/layout.tsx` to a Server Component
+    - Removed `useEffect`/`setMounted` delay in `HeaderContent.tsx` for faster header rendering
+    - Implemented deferred rendering for footer content using IntersectionObserver
+    - Created new `FooterContentWrapper.tsx` component for optimized loading
+  - **Homepage Content Optimization**:
+    - Enhanced video loading in `Hero.tsx` with `preload="metadata"` and `poster` attributes
+    - Optimized `next/image` usage with proper `loading="lazy"` and `sizes` attributes
+    - Implemented dynamic imports for `ServicesSection` and `ApproachSection`
+  - **SVG Optimization**:
+    - Inlined and optimized SVG logo in `HeaderContent.tsx` and auth layout
+    - Added color variant support for better theme integration
+    - Reduced SVG path coordinate precision for smaller bundle size (~1KB reduction)
+
 ### Changed
 
 - **Stripe Webhook Handlers**:
@@ -21,6 +38,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added validation for numeric parsing in payment amounts
   - Improved guest name and timezone handling
   - Enhanced payment transfer record creation with proper validation
+- **Performance Improvements**:
+  - Removed `backdrop-blur` from `Footer.tsx` for better rendering performance
+  - Enhanced `VideoPlayer.tsx` with optimized preload settings and container sizing
+  - Changed page revalidation from `0` to `60` seconds for better ISR performance
+  - Improved TTFB on dynamic routes by eliminating redundant data fetches
+  - Removed ineffective `blurDataURL` from `next/image` components
+  - Optimized font loading by removing redundant `font-family` declarations
 
 ### Fixed
 
@@ -34,6 +58,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced guest name derivation from email with proper formatting
   - Added proper validation for payment amounts and transfer data
   - Improved timezone handling with explicit IANA timezone identifiers
+- **Core Web Vitals**:
+  - Fixed First Contentful Paint (FCP) issues in layout components
+  - Improved Largest Contentful Paint (LCP) through optimized image and video loading
+  - Enhanced Time to First Byte (TTFB) on dynamic routes
+  - Resolved layout shift issues in video containers
+  - Fixed font loading optimization (FOUT) through proper next/font integration
 
 ### Added
 
