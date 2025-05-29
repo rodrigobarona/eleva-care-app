@@ -252,23 +252,71 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           expert: '0',
         });
 
-        if (transferData && paymentData) {
+        // Validate critical fields before creating transfer record
+        if (transferData && paymentData && meeting) {
+          // Validate transfer data
+          if (!transferData.account) {
+            console.error(
+              `Missing expert connect account ID in transfer metadata for PI ${paymentIntent.id}`,
+            );
+            return;
+          }
+
+          if (!transferData.scheduled) {
+            console.error(
+              `Missing scheduled transfer time in transfer metadata for PI ${paymentIntent.id}`,
+            );
+            return;
+          }
+
+          // Validate payment amounts
+          const amount = Number.parseInt(paymentData.expert, 10);
+          const fee = Number.parseInt(paymentData.fee, 10);
+
+          if (Number.isNaN(amount) || amount <= 0) {
+            console.error(
+              `Invalid expert payment amount in metadata for PI ${paymentIntent.id}: ${paymentData.expert}`,
+            );
+            return;
+          }
+
+          if (Number.isNaN(fee) || fee < 0) {
+            console.error(
+              `Invalid platform fee in metadata for PI ${paymentIntent.id}: ${paymentData.fee}`,
+            );
+            return;
+          }
+
+          // Validate scheduled transfer time
+          const scheduledTime = new Date(transferData.scheduled);
+          if (Number.isNaN(scheduledTime.getTime())) {
+            console.error(
+              `Invalid scheduled transfer time in metadata for PI ${paymentIntent.id}: ${transferData.scheduled}`,
+            );
+            return;
+          }
+
+          // All validations passed, create transfer record
           await db.insert(PaymentTransferTable).values({
             paymentIntentId: paymentIntent.id,
             checkoutSessionId: paymentIntent.metadata?.sessionId || 'LEGACY',
             eventId: meeting.eventId,
             expertConnectAccountId: transferData.account,
             expertClerkUserId: meeting.clerkUserId,
-            amount: Number.parseInt(paymentData.expert, 10),
-            platformFee: Number.parseInt(paymentData.fee, 10),
+            amount: amount,
+            platformFee: fee,
             currency: 'eur',
             sessionStartTime: meeting.startTime,
-            scheduledTransferTime: new Date(transferData.scheduled),
+            scheduledTransferTime: scheduledTime,
             status: PAYMENT_TRANSFER_STATUS_READY,
             created: new Date(),
             updated: new Date(),
           });
           console.log(`Created new transfer record for payment ${paymentIntent.id}`);
+        } else {
+          console.error(
+            `Missing required metadata for creating transfer record for PI ${paymentIntent.id}. Transfer Data: ${!!transferData}, Payment Data: ${!!paymentData}, Meeting: ${!!meeting}`,
+          );
         }
       } else if (transfer.status === PAYMENT_TRANSFER_STATUS_PENDING) {
         // Update transfer status to READY with retry logic
