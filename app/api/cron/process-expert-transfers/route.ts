@@ -16,6 +16,14 @@ import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
+// Process Expert Transfers - Automated fund transfers to expert accounts
+// Handles payment aging, country delays, and Stripe Connect integration
+// This cron job processes pending transfers based on:
+// - Payment aging requirements per country
+// - Stripe Connect account verification
+// - Transfer status tracking and notifications
+// - Detailed audit logging for compliance
+
 // Add route segment config
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

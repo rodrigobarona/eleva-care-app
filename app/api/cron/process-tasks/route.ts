@@ -6,6 +6,14 @@ import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
+// Process Tasks - Main daily task processor for expert transfers and system maintenance
+// Performs the following tasks:
+// - Processes pending expert transfers
+// - Verifies payment statuses
+// - Updates transfer records
+// - Handles retry logic for failed transfers
+// - Maintains system audit logs
+
 // Add route segment config
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

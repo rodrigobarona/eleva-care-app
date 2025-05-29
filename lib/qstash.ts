@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 import { Client } from '@upstash/qstash';
+import { isValidCron } from 'cron-validator';
 
 import { validateQStashConfig } from './qstash-config';
 
@@ -67,22 +68,54 @@ function getClient(): Client {
 }
 
 // Schedule types
-type ScheduleInterval = '1h' | '2h' | '6h' | '12h' | '24h';
 type CronExpression = string;
 
 interface ScheduleOptions {
-  // Either interval or cron must be provided
-  interval?: ScheduleInterval;
-  cron?: CronExpression;
+  cron: CronExpression;
   // Optional parameters
   delay?: number; // Delay in seconds before first execution
   retries?: number; // Number of retries (default: 3)
 }
 
+interface ScheduleConfig {
+  destination: string;
+  retries?: number;
+  headers?: Record<string, string>;
+  body?: string;
+  cron: string;
+}
+
+/**
+ * Validate a cron expression with detailed error messages
+ * @param cronExpression The cron expression to validate
+ * @throws Error if the cron expression is invalid
+ */
+function validateCronExpression(cronExpression: string): void {
+  // First check if we have exactly 5 fields
+  const cronFields = cronExpression.trim().split(/\s+/);
+  if (cronFields.length !== 5) {
+    throw new Error(
+      `Invalid cron expression. Expected 5 fields, got ${cronFields.length}. Format: "minute hour day month weekday"`,
+    );
+  }
+
+  // Then use cron-validator for thorough validation
+  if (!isValidCron(cronExpression)) {
+    throw new Error(
+      'Invalid cron expression. Please ensure each field is valid:\n' +
+        '- Minutes: 0-59\n' +
+        '- Hours: 0-23\n' +
+        '- Day of month: 1-31\n' +
+        '- Month: 1-12 or JAN-DEC\n' +
+        '- Day of week: 0-7 (0 or 7 is Sunday) or SUN-SAT',
+    );
+  }
+}
+
 /**
  * Schedule a recurring job with QStash
  * @param destination The API endpoint URL to call
- * @param options Schedule options (interval or cron expression)
+ * @param options Schedule options (cron expression)
  * @param body Optional body to send with the request
  * @returns The schedule ID on success
  */
@@ -92,23 +125,6 @@ export async function scheduleRecurringJob(
   body: Record<string, unknown> = {},
 ): Promise<string> {
   const client = getClient();
-  const schedulingOptions: Record<string, unknown> = {
-    retries: options.retries !== undefined ? options.retries : 3,
-  };
-
-  // Set either interval or cron
-  if (options.interval) {
-    schedulingOptions.interval = options.interval;
-  } else if (options.cron) {
-    schedulingOptions.cron = options.cron;
-  } else {
-    throw new Error('Either interval or cron must be provided');
-  }
-
-  // Add delay if specified
-  if (options.delay !== undefined) {
-    schedulingOptions.delay = options.delay;
-  }
 
   // Ensure we have headers object
   const headers: Record<string, string> = (body.headers as Record<string, string>) || {};
@@ -118,26 +134,28 @@ export async function scheduleRecurringJob(
     headers['x-qstash-request'] = 'true';
   }
 
-  // Update body with headers
-  const updatedBody = {
-    ...body,
+  // Validate the cron expression
+  validateCronExpression(options.cron);
+
+  // Create schedule configuration
+  const scheduleConfig: ScheduleConfig = {
+    destination,
+    retries: options.retries !== undefined ? options.retries : 3,
     headers,
+    body: JSON.stringify(body),
+    cron: options.cron,
   };
 
-  // Create the schedule
-  const response = await client.publishJSON({
-    url: destination,
-    body: updatedBody,
-    ...schedulingOptions,
-  });
+  // Create the schedule using schedules.create
+  const response = await client.schedules.create(scheduleConfig);
 
-  console.log(`Scheduled job to ${destination}`, {
-    messageId: response.messageId,
-    schedulingOptions,
+  console.log(`Created schedule for ${destination}`, {
+    scheduleId: response.scheduleId,
+    options,
     headers,
   });
 
-  return response.messageId;
+  return response.scheduleId;
 }
 
 /**

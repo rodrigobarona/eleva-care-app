@@ -31,5 +31,13 @@ export const qstash = {
       endpoint: '/api/cron/check-upcoming-payouts',
       cron: '0 12 * * *', // Daily at noon
     },
+    cleanupExpiredReservations: {
+      endpoint: '/api/cron/cleanup-expired-reservations',
+      cron: '*/15 * * * *', // Every 15 minutes
+    },
+    cleanupBlockedDates: {
+      endpoint: '/api/cron/cleanup-blocked-dates',
+      cron: '0 0 * * *', // Daily at midnight UTC
+    },
   },
 };

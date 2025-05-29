@@ -1,6 +1,6 @@
 import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable } from '@/drizzle/schema';
+import { PaymentTransferTable, SlotReservationTable } from '@/drizzle/schema';
 import {
   isValidPaymentStatus,
   PAYMENT_STATUS_PENDING,
@@ -436,6 +436,29 @@ export async function POST(request: Request) {
             );
           }
           break;
+        case 'payment_intent.created': {
+          console.log('Payment intent created:', event.data.object.id);
+
+          // Update slot reservation with payment intent ID
+          try {
+            const paymentIntent = event.data.object as Stripe.PaymentIntent;
+            const sessionId = paymentIntent.metadata?.sessionId;
+
+            if (sessionId) {
+              await db
+                .update(SlotReservationTable)
+                .set({
+                  stripePaymentIntentId: paymentIntent.id,
+                })
+                .where(eq(SlotReservationTable.stripeSessionId, sessionId));
+              console.log(`🔗 Linked slot reservation to payment intent ${paymentIntent.id}`);
+            }
+          } catch (error) {
+            console.error('Failed to update slot reservation with payment intent ID:', error);
+            // Continue execution - this is not critical
+          }
+          break;
+        }
         default:
           console.log(`Unhandled event type: ${event.type}`);
       }

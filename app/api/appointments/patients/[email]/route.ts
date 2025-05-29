@@ -20,7 +20,7 @@ export async function GET(request: Request, props: { params: Promise<{ email: st
 
     return NextResponse.json({ appointments });
   } catch (error) {
-    console.error('Error fetching customer appointments:', error);
-    return NextResponse.json({ error: 'Failed to fetch customer appointments' }, { status: 500 });
+    console.error('Error fetching patient appointments:', error);
+    return NextResponse.json({ error: 'Failed to fetch patient appointments' }, { status: 500 });
   }
 }

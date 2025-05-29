@@ -550,3 +550,54 @@ export const blockedDatesRelations = relations(BlockedDatesTable, ({ one }) => (
     references: [ScheduleTable.clerkUserId],
   }),
 }));
+
+/**
+ * Slot Reservations table - temporary holds for appointment slots
+ *
+ * Each record represents a temporary hold on an appointment slot while a guest
+ * completes the booking process. This prevents double-bookings during checkout.
+ * Records are automatically cleaned up after expiration.
+ */
+export const SlotReservationTable = pgTable(
+  'slot_reservations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => EventTable.id, { onDelete: 'cascade' }),
+    clerkUserId: text('clerk_user_id').notNull(),
+    guestEmail: text('guest_email').notNull(),
+    startTime: timestamp('start_time').notNull(),
+    endTime: timestamp('end_time').notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    stripePaymentIntentId: text('stripe_payment_intent_id').unique(),
+    stripeSessionId: text('stripe_session_id').unique(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => ({
+    clerkUserIdIndex: index('slot_reservations_clerk_user_id_idx').on(table.clerkUserId),
+    eventIdIndex: index('slot_reservations_event_id_idx').on(table.eventId),
+    expiresAtIndex: index('slot_reservations_expires_at_idx').on(table.expiresAt),
+    paymentIntentIdIndex: index('slot_reservations_payment_intent_id_idx').on(
+      table.stripePaymentIntentId,
+    ),
+    sessionIdIndex: index('slot_reservations_session_id_idx').on(table.stripeSessionId),
+  }),
+);
+
+/**
+ * Relationship definition for SlotReservationTable
+ *
+ * Establishes a many-to-one relationship with EventTable.
+ * Each slot reservation is for a specific event type.
+ */
+export const slotReservationRelations = relations(SlotReservationTable, ({ one }) => ({
+  event: one(EventTable, {
+    fields: [SlotReservationTable.eventId],
+    references: [EventTable.id],
+  }),
+}));
