@@ -45,6 +45,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved TTFB on dynamic routes by eliminating redundant data fetches
   - Removed ineffective `blurDataURL` from `next/image` components
   - Optimized font loading by removing redundant `font-family` declarations
+  - Refactored user data flow in profile pages for better efficiency
+  - Improved scroll event handling in header components
 
 ### Fixed
 
@@ -64,6 +66,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced Time to First Byte (TTFB) on dynamic routes
   - Resolved layout shift issues in video containers
   - Fixed font loading optimization (FOUT) through proper next/font integration
+
+### Removed
+
+- **Component Cleanup**:
+  - Removed `components/atoms/Logo.tsx` component in favor of inlined SVG implementation
+  - Removed `Icons.elevaCareLogo` from `components/atoms/icons.tsx`
+  - Eliminated redundant font declarations from `globals.css`
+  - Removed unnecessary state management in header components
+  - Removed `'use client'` directive from public layout for server component optimization
 
 ### Added
 
