@@ -7,7 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.1] - 2025-05-29
+### Changed
+
+- **Stripe Webhook Handlers**:
+  - Updated webhook handlers to support new metadata structure
+  - Split metadata into logical chunks (meeting, payment, transfer)
+  - Improved error handling and validation
+  - Enhanced type safety with proper interfaces
+  - Added helper functions for metadata parsing
+  - Refactored checkout session processing for better maintainability
+
+### Fixed
+
+- **Stripe Metadata Optimization**:
+  - Fixed metadata size limit issue in payment intent creation
+  - Optimized meeting metadata structure to stay under 500 characters
+  - Split metadata into logical chunks (meeting, payment, transfer)
+  - Shortened field names and removed redundant information
+  - Improved error handling for metadata validation
 
 ### Added
 

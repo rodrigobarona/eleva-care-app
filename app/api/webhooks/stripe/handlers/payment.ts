@@ -28,11 +28,11 @@ import type { Stripe } from 'stripe';
  */
 function extractLocaleFromPaymentIntent(paymentIntent: Stripe.PaymentIntent): string {
   try {
-    // First, try to get locale from payment intent metadata
-    if (paymentIntent.metadata?.meetingData) {
-      const meetingData = JSON.parse(paymentIntent.metadata.meetingData);
+    // First, try to get locale from meeting metadata
+    if (paymentIntent.metadata?.meeting) {
+      const meetingData = JSON.parse(paymentIntent.metadata.meeting);
       if (meetingData.locale && typeof meetingData.locale === 'string') {
-        console.log(`📍 Using locale from payment intent metadata: ${meetingData.locale}`);
+        console.log(`📍 Using locale from payment intent meeting metadata: ${meetingData.locale}`);
         return meetingData.locale;
       }
     }
@@ -51,6 +51,17 @@ function extractLocaleFromPaymentIntent(paymentIntent: Stripe.PaymentIntent): st
   } catch (error) {
     console.error('Error extracting locale from payment intent metadata:', error);
     return 'en';
+  }
+}
+
+// Helper function to parse metadata safely
+function parseMetadata<T>(json: string | undefined, fallback: T): T {
+  if (!json) return fallback;
+  try {
+    return JSON.parse(json) as T;
+  } catch (error) {
+    console.error('Failed to parse metadata:', error);
+    return fallback;
   }
 }
 
@@ -133,6 +144,23 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
   console.log('Payment succeeded:', paymentIntent.id);
 
   try {
+    // Parse metadata
+    const meetingData = parseMetadata(paymentIntent.metadata?.meeting, {
+      id: '',
+      expert: '',
+      guest: '',
+      start: '',
+      dur: 0,
+    });
+
+    const transferData = parseMetadata(paymentIntent.metadata?.transfer, {
+      status: PAYMENT_TRANSFER_STATUS_PENDING,
+      account: '',
+      country: '',
+      delay: { aging: 0, remaining: 0, required: 0 },
+      scheduled: '',
+    });
+
     // Update Meeting status
     const updatedMeeting = await db
       .update(MeetingTable)
