@@ -169,6 +169,40 @@ export async function POST(request: Request) {
       transferDate: transferDate.toISOString(),
     });
 
+    // Calculate payment expiration - maximum 24h to pay, but if meeting is soon, only 30 minutes
+    const meetingDate = new Date(meetingData.startTime);
+    const currentTime = new Date();
+    const hoursUntilMeeting = (meetingDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+
+    // Ensure minimum 30 minutes from now (Stripe requirement)
+    const minimumExpirationTime = new Date(currentTime.getTime() + 30 * 60 * 1000);
+
+    // Maximum 24 hours from now to complete payment
+    const maximumExpirationTime = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000);
+
+    let paymentExpiresAt: Date;
+
+    if (hoursUntilMeeting <= 24) {
+      // Meeting is within 24 hours - customer must pay within 30 minutes
+      paymentExpiresAt = minimumExpirationTime;
+      console.warn('Meeting is within 24 hours, payment deadline set to 30 minutes:', {
+        meetingTime: meetingDate.toISOString(),
+        hoursUntilMeeting,
+        actualExpiresAt: minimumExpirationTime.toISOString(),
+      });
+    } else {
+      // Meeting is more than 24 hours away - customer has up to 24 hours to pay
+      paymentExpiresAt = maximumExpirationTime;
+    }
+
+    console.log('Payment expiration calculation:', {
+      currentTime: currentTime.toISOString(),
+      meetingTime: meetingDate.toISOString(),
+      hoursUntilMeeting,
+      finalExpiresAt: paymentExpiresAt.toISOString(),
+      hoursToPayment: (paymentExpiresAt.getTime() - currentTime.getTime()) / (1000 * 60 * 60),
+    });
+
     // Create checkout session with detailed logging
     console.log('Creating checkout session with params:', {
       customerId,
@@ -262,6 +296,7 @@ export async function POST(request: Request) {
         )}&e=${encodeURIComponent(
           meetingMetadata.guestEmail,
         )}&tz=${encodeURIComponent(meetingMetadata.timezone)}`,
+        expires_at: Math.floor(paymentExpiresAt.getTime() / 1000), // Stripe expects Unix timestamp
       } as Stripe.Checkout.SessionCreateParams),
     );
 
