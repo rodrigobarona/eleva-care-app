@@ -37,6 +37,30 @@ export async function getValidTimesFromSchedule(
 
   if (schedule == null) return [];
 
+  // Get active slot reservations for this expert
+  const currentTime = new Date();
+  const activeReservations = await db.query.SlotReservationTable.findMany({
+    where: (fields, { eq, and, gt }) =>
+      and(eq(fields.clerkUserId, event.clerkUserId), gt(fields.expiresAt, currentTime)),
+  });
+
+  // Convert reservations to a Set for faster lookup
+  const reservedTimes = new Set(
+    activeReservations.map((reservation) => reservation.startTime.toISOString()),
+  );
+
+  console.log(
+    `[getValidTimesFromSchedule] Found ${activeReservations.length} active slot reservations:`,
+    {
+      expertId: event.clerkUserId,
+      reservedSlots: activeReservations.map((r) => ({
+        startTime: r.startTime.toISOString(),
+        guestEmail: r.guestEmail,
+        expiresAt: r.expiresAt.toISOString(),
+      })),
+    },
+  );
+
   // Get scheduling settings for minimum notice period and buffer times
   const settings = await db.query.schedulingSettings.findFirst({
     where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, event.clerkUserId),
@@ -58,6 +82,12 @@ export async function getValidTimesFromSchedule(
 
   const validTimes = [];
   for (const time of times) {
+    // Check if this time slot is currently reserved
+    if (reservedTimes.has(time.toISOString())) {
+      console.log(`[getValidTimesFromSchedule] Skipping reserved slot: ${time.toISOString()}`);
+      continue;
+    }
+
     // For short notice periods (< 24 hours), use exact time comparison
     if (!useDayGranularity) {
       if (time < earliestPossibleTime) continue;
@@ -115,6 +145,9 @@ export async function getValidTimesFromSchedule(
     }
   }
 
+  console.log(
+    `[getValidTimesFromSchedule] Returning ${validTimes.length} valid times out of ${times.length} requested`,
+  );
   return validTimes;
 }
 
