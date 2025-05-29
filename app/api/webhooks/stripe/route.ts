@@ -150,14 +150,47 @@ interface StripeCheckoutSession extends Stripe.Checkout.Session {
  */
 
 /**
- * Helper function to parse metadata safely
+ * Helper function to parse metadata safely with enhanced error logging
+ * @param json The JSON string to parse
+ * @param fallback Default value to return if parsing fails
+ * @param type Optional metadata type for better error context
+ * @returns Parsed metadata or fallback value
  */
-function parseMetadata<T>(json: string | undefined, fallback: T): T {
-  if (!json) return fallback;
+function parseMetadata<T>(json: string | undefined, fallback: T, type?: string): T {
+  if (!json) {
+    console.warn('Empty metadata received:', {
+      type,
+      fallbackUsed: fallback,
+    });
+    return fallback;
+  }
+
   try {
     return JSON.parse(json) as T;
   } catch (error) {
-    console.error('Failed to parse metadata:', error);
+    // Log detailed error information for debugging
+    console.error('Failed to parse metadata:', {
+      type,
+      json: json.length > 500 ? `${json.slice(0, 500)}... (truncated)` : json,
+      error:
+        error instanceof Error
+          ? {
+              name: error.name,
+              message: error.message,
+              stack: error.stack,
+            }
+          : error,
+      fallbackUsed: fallback,
+    });
+
+    // Log warning if JSON looks malformed
+    if (json.includes('\n') || json.includes('\r')) {
+      console.warn('Metadata contains newlines which may indicate formatting issues');
+    }
+    if (!json.startsWith('{') && !json.startsWith('[')) {
+      console.warn('Metadata does not start with { or [ which may indicate invalid JSON');
+    }
+
     return fallback;
   }
 }
@@ -297,7 +330,7 @@ function validateAndParseMetadata<T>(
   validateMetadataString(metadata, type as 'meeting' | 'payment' | 'transfer', sessionId);
 
   // Parse the JSON
-  const rawData = parseMetadata(metadata, defaultValues);
+  const rawData = parseMetadata(metadata, defaultValues, type);
 
   try {
     // Validate against schema
