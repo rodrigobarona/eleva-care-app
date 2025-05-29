@@ -207,7 +207,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
     // Create payment transfer record if it doesn't exist
     if (session.payment_intent) {
-      await createOrUpdatePaymentTransfer({
+      await createPaymentTransferIfNotExists({
         session,
         meetingData,
         paymentData,
@@ -240,7 +240,7 @@ async function handleDoubleBookingRefund(paymentIntentId: string) {
   }
 }
 
-async function createOrUpdatePaymentTransfer({
+async function createPaymentTransferIfNotExists({
   session,
   meetingData,
   paymentData,
