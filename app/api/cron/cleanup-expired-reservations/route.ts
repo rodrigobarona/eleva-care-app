@@ -1,8 +1,15 @@
 import { db } from '@/drizzle/db';
 import { SlotReservationTable } from '@/drizzle/schema';
+import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
 import { lt } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+
+// Add route segment config
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const preferredRegion = 'auto';
+export const maxDuration = 60;
 
 // Cleanup Expired Reservations - Removes expired slot reservations from the database
 // Performs the following tasks:
@@ -12,18 +19,57 @@ import type { NextRequest } from 'next/server';
 // - Provides cleanup statistics for monitoring
 
 export async function GET(request: NextRequest) {
-  // Verify the request is coming from Vercel Cron or QStash
-  const authHeader = request.headers.get('authorization');
-  const isQStashRequest =
-    request.headers.get('x-qstash-request') === 'true' ||
-    request.headers.has('upstash-signature') ||
-    request.headers.has('Upstash-Signature') ||
-    request.headers.has('x-internal-qstash-verification');
+  // Log all headers for debugging
+  console.log(
+    'Received request to cleanup-expired-reservations with headers:',
+    Object.fromEntries(request.headers.entries()),
+  );
 
-  const isVercelCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+  // Enhanced authentication with multiple fallbacks
+  // First try QStash verification
+  const verifiedQStash = await isVerifiedQStashRequest(request.headers);
 
-  if (!isQStashRequest && !isVercelCron) {
-    console.warn('[CRON] Unauthorized access to cleanup-expired-reservations endpoint');
+  // Check for API key as a fallback
+  const apiKey = request.headers.get('x-api-key');
+  const isValidApiKey = apiKey && apiKey === process.env.CRON_API_KEY;
+
+  // Check for Upstash signatures directly
+  const hasUpstashSignature =
+    request.headers.has('upstash-signature') || request.headers.has('x-upstash-signature');
+
+  // Check for Upstash user agent
+  const userAgent = request.headers.get('user-agent') || '';
+  const isUpstashUserAgent =
+    userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
+
+  // Check for legacy cron secret
+  const cronSecret = request.headers.get('x-cron-secret');
+  const isValidCronSecret = cronSecret && cronSecret === process.env.CRON_SECRET;
+
+  // If in production, we can use a fallback mode for emergencies
+  const isProduction = process.env.NODE_ENV === 'production';
+  const allowFallback = process.env.ENABLE_CRON_FALLBACK === 'true';
+
+  // Allow the request if any authentication method succeeds
+  if (
+    verifiedQStash ||
+    isValidApiKey ||
+    isValidCronSecret ||
+    (hasUpstashSignature && isUpstashUserAgent) ||
+    (isProduction && allowFallback && isUpstashUserAgent)
+  ) {
+    console.log('🔓 Authentication successful for cleanup-expired-reservations');
+  } else {
+    console.error('❌ Unauthorized access attempt to cleanup-expired-reservations');
+    console.error('Authentication details:', {
+      verifiedQStash,
+      isValidApiKey,
+      isValidCronSecret,
+      hasUpstashSignature,
+      isUpstashUserAgent,
+      isProduction,
+      allowFallback,
+    });
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -62,4 +108,13 @@ export async function GET(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+/**
+ * Support for POST requests from QStash
+ * This allows the endpoint to be called via QStash's HTTP POST mechanism
+ */
+export async function POST(request: NextRequest) {
+  // Call the GET handler to process the cleanup
+  return GET(request);
 }
