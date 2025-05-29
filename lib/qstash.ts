@@ -1,5 +1,6 @@
 import * as dotenv from 'dotenv';
 import { Client } from '@upstash/qstash';
+import { isValidCron } from 'cron-validator';
 
 import { validateQStashConfig } from './qstash-config';
 
@@ -85,6 +86,33 @@ interface ScheduleConfig {
 }
 
 /**
+ * Validate a cron expression with detailed error messages
+ * @param cronExpression The cron expression to validate
+ * @throws Error if the cron expression is invalid
+ */
+function validateCronExpression(cronExpression: string): void {
+  // First check if we have exactly 5 fields
+  const cronFields = cronExpression.trim().split(/\s+/);
+  if (cronFields.length !== 5) {
+    throw new Error(
+      `Invalid cron expression. Expected 5 fields, got ${cronFields.length}. Format: "minute hour day month weekday"`,
+    );
+  }
+
+  // Then use cron-validator for thorough validation
+  if (!isValidCron(cronExpression)) {
+    throw new Error(
+      'Invalid cron expression. Please ensure each field is valid:\n' +
+        '- Minutes: 0-59\n' +
+        '- Hours: 0-23\n' +
+        '- Day of month: 1-31\n' +
+        '- Month: 1-12 or JAN-DEC\n' +
+        '- Day of week: 0-7 (0 or 7 is Sunday) or SUN-SAT',
+    );
+  }
+}
+
+/**
  * Schedule a recurring job with QStash
  * @param destination The API endpoint URL to call
  * @param options Schedule options (cron expression)
@@ -106,10 +134,8 @@ export async function scheduleRecurringJob(
     headers['x-qstash-request'] = 'true';
   }
 
-  // For cron schedules, ensure it's a valid cron expression
-  if (!options.cron.includes(' ')) {
-    throw new Error('Invalid cron expression. Must contain 5 space-separated fields.');
-  }
+  // Validate the cron expression
+  validateCronExpression(options.cron);
 
   // Create schedule configuration
   const scheduleConfig: ScheduleConfig = {

@@ -1,5 +1,3 @@
-import { Client } from '@upstash/qstash';
-
 import { isQStashAvailable, scheduleRecurringJob } from './qstash';
 import { getQStashConfigMessage, initQStashClient, validateQStashConfig } from './qstash-config';
 
