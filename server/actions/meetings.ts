@@ -143,18 +143,37 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
     const endTimeUTC = new Date(startTimeUTC.getTime() + event.durationInMinutes * 60000);
 
     try {
-      // Step 7: Create calendar event in Google Calendar
-      const calendarEvent = await createCalendarEvent({
-        clerkUserId: data.clerkUserId,
-        guestName: data.guestName,
-        guestEmail: data.guestEmail,
-        startTime: startTimeUTC,
-        guestNotes: data.guestNotes,
-        durationInMinutes: event.durationInMinutes,
-        eventName: event.name,
-        timezone: data.timezone,
-        locale: data.locale || 'en',
-      });
+      let calendarEvent: Awaited<ReturnType<typeof createCalendarEvent>> | null = null;
+      let meetingUrl: string | null = null;
+
+      // Only create calendar events for succeeded payments or free events
+      const shouldCreateCalendarEvent =
+        !data.stripePaymentStatus ||
+        data.stripePaymentStatus === 'succeeded' ||
+        data.stripePaymentStatus === 'processing';
+
+      if (shouldCreateCalendarEvent) {
+        // Step 7: Create calendar event in Google Calendar
+        calendarEvent = await createCalendarEvent({
+          clerkUserId: data.clerkUserId,
+          guestName: data.guestName,
+          guestEmail: data.guestEmail,
+          startTime: startTimeUTC,
+          guestNotes: data.guestNotes,
+          durationInMinutes: event.durationInMinutes,
+          eventName: event.name,
+          timezone: data.timezone,
+          locale: data.locale || 'en',
+        });
+        meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
+        console.log(
+          `Calendar event created for meeting with payment status: ${data.stripePaymentStatus || 'free'}`,
+        );
+      } else {
+        console.log(
+          `Calendar event deferred for meeting with payment status: ${data.stripePaymentStatus}. Will be created when payment succeeds.`,
+        );
+      }
 
       // Step 8: Create the meeting record in the database
       const [meeting] = await db
@@ -168,7 +187,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
           startTime: startTimeUTC,
           endTime: endTimeUTC,
           timezone: data.timezone,
-          meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
+          meetingUrl: meetingUrl,
           stripePaymentIntentId: data.stripePaymentIntentId,
           stripeSessionId: data.stripeSessionId,
           stripePaymentStatus: data.stripePaymentStatus as
@@ -192,7 +211,8 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         {
           ...data,
           endTime: endTimeUTC,
-          meetingUrl: calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null,
+          meetingUrl: meetingUrl,
+          calendarEventCreated: shouldCreateCalendarEvent,
         },
         (await headers()).get('x-forwarded-for') ?? 'Unknown',
         (await headers()).get('user-agent') ?? 'Unknown',

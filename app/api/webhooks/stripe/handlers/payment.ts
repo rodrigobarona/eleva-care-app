@@ -145,135 +145,190 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       // If checkout_session_id is available in paymentIntent metadata, we could try that as a fallback.
       // For now, we proceed to update the transfer record if it exists.
     } else {
+      const meeting = updatedMeeting[0];
       console.log(
-        `Meeting ${updatedMeeting[0].id} status updated to succeeded for paymentIntentId ${paymentIntent.id}`,
+        `Meeting ${meeting.id} status updated to succeeded for paymentIntentId ${paymentIntent.id}`,
       );
-    }
 
-    // Find the payment transfer record
-    const transfer = await db.query.PaymentTransferTable.findFirst({
-      where: eq(PaymentTransferTable.paymentIntentId, paymentIntent.id),
-    });
+      // If meeting doesn't have a meeting URL yet (was created with pending payment), create calendar event now
+      if (!meeting.meetingUrl) {
+        try {
+          console.log(`Creating deferred calendar event for meeting ${meeting.id}`);
 
-    if (!transfer) {
-      console.error(
-        'No transfer record found for payment:',
-        paymentIntent.id,
-        'This might be normal if the meeting was free or if transfer record creation failed earlier.',
-      );
-      // If no transfer record, and meeting was updated, the main goal of confirming meeting payment is achieved.
-      // If there should always be a transfer record for a succeeded payment, this is a separate issue.
-      // We should still attempt to send guest notification if meeting was found and updated.
-    } else if (transfer?.status === PAYMENT_TRANSFER_STATUS_PENDING) {
-      // Ensure transfer exists before checking status
-      // Update transfer status if needed with retry logic only if a transfer record exists
-      await withRetry(
-        async () => {
-          await db
-            .update(PaymentTransferTable)
-            .set({
-              status: PAYMENT_TRANSFER_STATUS_READY,
-              updated: new Date(),
-            })
-            .where(eq(PaymentTransferTable.id, transfer.id));
-        },
-        3,
-        1000,
-      );
-      console.log(`Transfer record ${transfer.id} status updated to READY.`);
+          // Get the event details for calendar creation
+          const event = await db.query.EventTable.findFirst({
+            where: eq(EventTable.id, meeting.eventId),
+          });
 
-      // Notify the expert about the successful payment
-      await notifyExpertOfPaymentSuccess(transfer);
-    } else if (transfer) {
-      console.log(
-        `Transfer record ${transfer.id} already in status ${transfer.status}, not updating to READY.`,
-      );
-    }
+          if (event) {
+            // Import here to avoid circular dependency issues
+            const { createCalendarEvent } = await import('@/server/googleCalendar');
 
-    // Send email notification to the guest
-    if (updatedMeeting.length > 0) {
-      const meetingDetails = await db.query.MeetingTable.findFirst({
-        where: eq(MeetingTable.stripePaymentIntentId, paymentIntent.id),
-        with: {
-          event: {
-            columns: {
-              name: true,
-              durationInMinutes: true,
-            },
-          },
-        },
+            const calendarEvent = await createCalendarEvent({
+              clerkUserId: meeting.clerkUserId,
+              guestName: meeting.guestName,
+              guestEmail: meeting.guestEmail,
+              startTime: meeting.startTime,
+              guestNotes: meeting.guestNotes || undefined,
+              durationInMinutes: event.durationInMinutes,
+              eventName: event.name,
+              timezone: meeting.timezone,
+              locale: extractLocaleFromPaymentIntent(paymentIntent),
+            });
+
+            const meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
+
+            // Update meeting with the new URL
+            if (meetingUrl) {
+              await db
+                .update(MeetingTable)
+                .set({
+                  meetingUrl: meetingUrl,
+                  updatedAt: new Date(),
+                })
+                .where(eq(MeetingTable.id, meeting.id));
+
+              console.log(
+                `Calendar event created and meeting URL updated for meeting ${meeting.id}`,
+              );
+            }
+          }
+        } catch (calendarError) {
+          console.error(
+            `Failed to create deferred calendar event for meeting ${meeting.id}:`,
+            calendarError,
+          );
+          // Don't fail the entire webhook for calendar errors - payment succeeded
+        }
+      }
+
+      // Find the payment transfer record
+      const transfer = await db.query.PaymentTransferTable.findFirst({
+        where: eq(PaymentTransferTable.paymentIntentId, paymentIntent.id),
       });
 
-      // Fetch user details separately since there's no user relation on MeetingTable
-      const userDetails = meetingDetails
-        ? await db.query.UserTable.findFirst({
-            where: eq(UserTable.clerkUserId, meetingDetails.clerkUserId),
-            columns: {
-              firstName: true,
-              lastName: true,
-            },
-          })
-        : null;
-
-      if (meetingDetails?.event && userDetails) {
-        const guestEmail = meetingDetails.guestEmail;
-        const guestName = meetingDetails.guestName ?? 'Guest';
-        const expertName =
-          `${userDetails.firstName ?? ''} ${userDetails.lastName ?? ''}`.trim() || 'Our Expert';
-        const eventName = meetingDetails.event.name;
-        const meetingStartTime = meetingDetails.startTime; // Date object
-        const meetingTimezone = meetingDetails.timezone || 'UTC'; // Default to UTC if not set
-        const durationMinutes = meetingDetails.event.durationInMinutes;
-
-        // Format date and time for the email
-        const zonedStartTime = toZonedTime(meetingStartTime, meetingTimezone);
-        const appointmentDate = format(zonedStartTime, 'EEEE, MMMM d, yyyy', {
-          timeZone: meetingTimezone,
-        });
-        const startTimeFormatted = format(zonedStartTime, 'h:mm a', { timeZone: meetingTimezone });
-
-        const endTime = new Date(meetingStartTime.getTime() + durationMinutes * 60000);
-        const zonedEndTime = toZonedTime(endTime, meetingTimezone);
-        const endTimeFormatted = format(zonedEndTime, 'h:mm a', { timeZone: meetingTimezone });
-
-        const appointmentTime = `${startTimeFormatted} - ${endTimeFormatted} (${meetingTimezone})`;
-        const appointmentDuration = `${durationMinutes} minutes`;
-
-        try {
-          console.log(`Attempting to send payment confirmation email to ${guestEmail}`);
-          const { html, text } = await generateAppointmentEmail({
-            expertName,
-            clientName: guestName,
-            appointmentDate,
-            appointmentTime,
-            timezone: meetingTimezone,
-            appointmentDuration,
-            eventTitle: eventName,
-            meetLink: meetingDetails.meetingUrl ?? undefined,
-            notes: meetingDetails.guestNotes ?? undefined,
-            locale: extractLocaleFromPaymentIntent(paymentIntent),
-          });
-
-          await sendEmail({
-            to: guestEmail,
-            subject: 'Payment Confirmed: Your Eleva Care Meeting is Booked!',
-            html,
-            text,
-          });
-          console.log(
-            `Payment confirmation email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`,
-          );
-        } catch (emailError) {
-          console.error(
-            `Failed to send payment confirmation email to ${guestEmail} for PI ${paymentIntent.id}:`,
-            emailError,
-          );
-          // Do not fail the entire webhook for email error
-        }
-      } else {
-        console.warn(
-          `Could not retrieve all necessary details for PI ${paymentIntent.id} to send guest confirmation email. Meeting Details: ${!!meetingDetails}, Event: ${!!meetingDetails?.event}, User: ${!!userDetails}`,
+      if (!transfer) {
+        console.error(
+          'No transfer record found for payment:',
+          paymentIntent.id,
+          'This might be normal if the meeting was free or if transfer record creation failed earlier.',
         );
+        // If no transfer record, and meeting was updated, the main goal of confirming meeting payment is achieved.
+        // If there should always be a transfer record for a succeeded payment, this is a separate issue.
+        // We should still attempt to send guest notification if meeting was found and updated.
+      } else if (transfer?.status === PAYMENT_TRANSFER_STATUS_PENDING) {
+        // Ensure transfer exists before checking status
+        // Update transfer status if needed with retry logic only if a transfer record exists
+        await withRetry(
+          async () => {
+            await db
+              .update(PaymentTransferTable)
+              .set({
+                status: PAYMENT_TRANSFER_STATUS_READY,
+                updated: new Date(),
+              })
+              .where(eq(PaymentTransferTable.id, transfer.id));
+          },
+          3,
+          1000,
+        );
+        console.log(`Transfer record ${transfer.id} status updated to READY.`);
+
+        // Notify the expert about the successful payment
+        await notifyExpertOfPaymentSuccess(transfer);
+      } else if (transfer) {
+        console.log(
+          `Transfer record ${transfer.id} already in status ${transfer.status}, not updating to READY.`,
+        );
+      }
+
+      // Send email notification to the guest
+      if (meeting) {
+        const meetingDetails = await db.query.MeetingTable.findFirst({
+          where: eq(MeetingTable.stripePaymentIntentId, paymentIntent.id),
+          with: {
+            event: {
+              columns: {
+                name: true,
+                durationInMinutes: true,
+              },
+            },
+          },
+        });
+
+        // Fetch user details separately since there's no user relation on MeetingTable
+        const userDetails = meetingDetails
+          ? await db.query.UserTable.findFirst({
+              where: eq(UserTable.clerkUserId, meetingDetails.clerkUserId),
+              columns: {
+                firstName: true,
+                lastName: true,
+              },
+            })
+          : null;
+
+        if (meetingDetails?.event && userDetails) {
+          const guestEmail = meetingDetails.guestEmail;
+          const guestName = meetingDetails.guestName ?? 'Guest';
+          const expertName =
+            `${userDetails.firstName ?? ''} ${userDetails.lastName ?? ''}`.trim() || 'Our Expert';
+          const eventName = meetingDetails.event.name;
+          const meetingStartTime = meetingDetails.startTime; // Date object
+          const meetingTimezone = meetingDetails.timezone || 'UTC'; // Default to UTC if not set
+          const durationMinutes = meetingDetails.event.durationInMinutes;
+
+          // Format date and time for the email
+          const zonedStartTime = toZonedTime(meetingStartTime, meetingTimezone);
+          const appointmentDate = format(zonedStartTime, 'EEEE, MMMM d, yyyy', {
+            timeZone: meetingTimezone,
+          });
+          const startTimeFormatted = format(zonedStartTime, 'h:mm a', {
+            timeZone: meetingTimezone,
+          });
+
+          const endTime = new Date(meetingStartTime.getTime() + durationMinutes * 60000);
+          const zonedEndTime = toZonedTime(endTime, meetingTimezone);
+          const endTimeFormatted = format(zonedEndTime, 'h:mm a', { timeZone: meetingTimezone });
+
+          const appointmentTime = `${startTimeFormatted} - ${endTimeFormatted} (${meetingTimezone})`;
+          const appointmentDuration = `${durationMinutes} minutes`;
+
+          try {
+            console.log(`Attempting to send payment confirmation email to ${guestEmail}`);
+            const { html, text } = await generateAppointmentEmail({
+              expertName,
+              clientName: guestName,
+              appointmentDate,
+              appointmentTime,
+              timezone: meetingTimezone,
+              appointmentDuration,
+              eventTitle: eventName,
+              meetLink: meetingDetails.meetingUrl ?? undefined,
+              notes: meetingDetails.guestNotes ?? undefined,
+              locale: extractLocaleFromPaymentIntent(paymentIntent),
+            });
+
+            await sendEmail({
+              to: guestEmail,
+              subject: 'Payment Confirmed: Your Eleva Care Meeting is Booked!',
+              html,
+              text,
+            });
+            console.log(
+              `Payment confirmation email successfully sent to ${guestEmail} for PI ${paymentIntent.id}`,
+            );
+          } catch (emailError) {
+            console.error(
+              `Failed to send payment confirmation email to ${guestEmail} for PI ${paymentIntent.id}:`,
+              emailError,
+            );
+            // Do not fail the entire webhook for email error
+          }
+        } else {
+          console.warn(
+            `Could not retrieve all necessary details for PI ${paymentIntent.id} to send guest confirmation email. Meeting Details: ${!!meetingDetails}, Event: ${!!meetingDetails?.event}, User: ${!!userDetails}`,
+          );
+        }
       }
     }
   } catch (error) {
