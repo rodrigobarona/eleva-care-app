@@ -5,9 +5,17 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function GET(request: NextRequest) {
-  // Verify the request is coming from Vercel Cron
+  // Verify the request is coming from Vercel Cron or QStash
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  const isQStashRequest =
+    request.headers.get('x-qstash-request') === 'true' ||
+    request.headers.has('upstash-signature') ||
+    request.headers.has('Upstash-Signature') ||
+    request.headers.has('x-internal-qstash-verification');
+
+  const isVercelCron = authHeader === `Bearer ${process.env.CRON_SECRET}`;
+
+  if (!isQStashRequest && !isVercelCron) {
     console.warn('[CRON] Unauthorized access to cleanup-expired-reservations endpoint');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

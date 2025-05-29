@@ -358,8 +358,10 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
       const isQStashRequest =
         req.headers.get('x-qstash-request') === 'true' ||
         req.headers.has('upstash-signature') ||
+        req.headers.has('Upstash-Signature') ||
         req.headers.has('x-upstash-signature') ||
         req.headers.has('x-signature') ||
+        req.headers.has('x-internal-qstash-verification') ||
         req.url.includes('signature=');
 
       const apiKey = req.headers.get('x-api-key');
