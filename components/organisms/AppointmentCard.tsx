@@ -10,6 +10,7 @@ import Link from 'next/link';
 
 interface Appointment {
   id: string;
+  type: 'appointment';
   guestName: string;
   guestEmail: string;
   startTime: Date;
@@ -20,6 +21,22 @@ interface Appointment {
   stripePaymentStatus: string;
   stripeTransferStatus?: string;
 }
+
+interface Reservation {
+  id: string;
+  type: 'reservation';
+  guestName: string;
+  guestEmail: string;
+  startTime: Date;
+  endTime: Date;
+  timezone: string;
+  expiresAt: Date;
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+  eventId: string;
+}
+
+type AppointmentOrReservation = Appointment | Reservation;
 
 const getStatusBadgeVariant = (status: string) => {
   switch (status) {
@@ -34,22 +51,50 @@ const getStatusBadgeVariant = (status: string) => {
   }
 };
 
-export function AppointmentCard({ appointment }: { appointment: Appointment }) {
+export function AppointmentCard({ appointment }: { appointment: AppointmentOrReservation }) {
+  const isReservation = appointment.type === 'reservation';
+  const reservation = isReservation ? (appointment as Reservation) : null;
+
+  // Calculate time until expiration for reservations
+  const timeUntilExpiration = reservation
+    ? Math.max(0, Math.floor((reservation.expiresAt.getTime() - Date.now()) / (1000 * 60))) // minutes
+    : 0;
+
+  const isExpiringSoon = timeUntilExpiration <= 60; // Less than 1 hour
+
   return (
-    <Card className="mb-4">
+    <Card className={`mb-4 ${isReservation ? 'border-orange-200 bg-orange-50/50' : ''}`}>
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-xl font-semibold">
-              Meeting with {appointment.guestName}
+            <CardTitle
+              className={`text-xl font-semibold ${isReservation ? 'text-orange-900' : ''}`}
+            >
+              {isReservation ? (
+                <div className="flex items-center gap-2">
+                  <span>⏳ Pending Reservation</span>
+                  {isExpiringSoon && <span className="text-sm text-red-600">(Expiring Soon)</span>}
+                </div>
+              ) : (
+                `Meeting with ${appointment.guestName}`
+              )}
             </CardTitle>
             <CardDescription>
               {format(new Date(appointment.startTime), 'EEEE, MMMM d, yyyy')}
+              {isReservation && (
+                <span className="ml-2 text-orange-600">• Expires in {timeUntilExpiration}m</span>
+              )}
             </CardDescription>
           </div>
-          <Badge variant={getStatusBadgeVariant(appointment.stripePaymentStatus)}>
-            {appointment.stripePaymentStatus}
-          </Badge>
+          {isReservation ? (
+            <Badge variant="secondary" className="bg-orange-100 text-orange-800">
+              Awaiting Payment
+            </Badge>
+          ) : (
+            <Badge variant={getStatusBadgeVariant(appointment.stripePaymentStatus)}>
+              {appointment.stripePaymentStatus}
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -68,13 +113,29 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
           <div className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
             <Link
-              href={`/appointments/customer/${encodeURIComponent(appointment.guestEmail)}`}
+              href={`/appointments/patients/${encodeURIComponent(appointment.guestEmail)}`}
               className="text-blue-500 hover:underline"
             >
               {appointment.guestEmail}
             </Link>
           </div>
-          {appointment.meetingUrl && (
+
+          {isReservation && (
+            <div className="rounded-md bg-orange-100 p-3 text-sm text-orange-800">
+              <p className="font-medium">⚠️ This is a temporary reservation</p>
+              <p>
+                The guest started a Multibanco payment but hasn&apos;t completed it yet. This slot
+                is held until {reservation && format(reservation.expiresAt, 'h:mm a')} today.
+              </p>
+              {isExpiringSoon && (
+                <p className="mt-1 font-medium text-red-700">
+                  ⚡ Expires in {timeUntilExpiration} minutes - slot will become available again
+                </p>
+              )}
+            </div>
+          )}
+
+          {!isReservation && appointment.meetingUrl && (
             <div className="flex items-center gap-2">
               <LinkIcon className="h-4 w-4" />
               <div className="flex items-center gap-2">
@@ -92,7 +153,7 @@ export function AppointmentCard({ appointment }: { appointment: Appointment }) {
               </div>
             </div>
           )}
-          {appointment.guestNotes && (
+          {!isReservation && appointment.guestNotes && (
             <div className="mt-4">
               <h4 className="mb-2 font-medium">Guest Notes:</h4>
               <p className="text-gray-600">{appointment.guestNotes}</p>

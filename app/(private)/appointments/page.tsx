@@ -9,6 +9,7 @@ import React from 'react';
 
 interface Appointment {
   id: string;
+  type: 'appointment';
   guestName: string;
   guestEmail: string;
   startTime: Date;
@@ -18,6 +19,38 @@ interface Appointment {
   guestNotes?: string;
   stripePaymentStatus: string;
   stripeTransferStatus?: string;
+}
+
+interface Reservation {
+  id: string;
+  type: 'reservation';
+  guestName: string;
+  guestEmail: string;
+  startTime: Date;
+  endTime: Date;
+  timezone: string;
+  expiresAt: Date;
+  stripeSessionId?: string;
+  stripePaymentIntentId?: string;
+  eventId: string;
+}
+
+type AppointmentOrReservation = Appointment | Reservation;
+
+interface AppointmentsResponse {
+  appointments: Array<
+    Omit<Appointment, 'startTime' | 'endTime'> & {
+      startTime: string;
+      endTime: string;
+    }
+  >;
+  reservations: Array<
+    Omit<Reservation, 'startTime' | 'endTime' | 'expiresAt'> & {
+      startTime: string;
+      endTime: string;
+      expiresAt: string;
+    }
+  >;
 }
 
 const EmptyState = ({ message }: { message: string }) => (
@@ -30,7 +63,7 @@ const EmptyState = ({ message }: { message: string }) => (
 
 export default function AppointmentsPage() {
   const { user, isLoaded } = useUser();
-  const [appointments, setAppointments] = React.useState<Appointment[]>([]);
+  const [appointments, setAppointments] = React.useState<AppointmentOrReservation[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -46,7 +79,25 @@ export default function AppointmentsPage() {
         return;
       }
 
-      setAppointments(data.appointments);
+      // Combine appointments and reservations, converting dates
+      const allAppointments: AppointmentOrReservation[] = [
+        ...data.appointments.map((apt: AppointmentsResponse['appointments'][0]) => ({
+          ...apt,
+          startTime: new Date(apt.startTime),
+          endTime: new Date(apt.endTime),
+        })),
+        ...data.reservations.map((res: AppointmentsResponse['reservations'][0]) => ({
+          ...res,
+          startTime: new Date(res.startTime),
+          endTime: new Date(res.endTime),
+          expiresAt: new Date(res.expiresAt),
+        })),
+      ];
+
+      console.log(
+        `[Appointments Page] Loaded ${data.appointments.length} appointments and ${data.reservations.length} reservations`,
+      );
+      setAppointments(allAppointments);
     } catch (error) {
       setError('Failed to load appointments');
       console.error('Error loading appointments:', error);
@@ -100,18 +151,16 @@ export default function AppointmentsPage() {
 
     if (filtered.length === 0) {
       const messages = {
-        today: 'You have no appointments scheduled for today.',
-        future: 'You have no upcoming appointments scheduled.',
+        today: 'You have no appointments or reservations scheduled for today.',
+        future: 'You have no upcoming appointments or reservations scheduled.',
         past: 'You have no past appointments.',
-        all: 'You have no appointments yet.',
+        all: 'You have no appointments or reservations yet.',
       };
 
       return <EmptyState message={messages[filter]} />;
     }
 
-    return filtered.map((appointment) => (
-      <AppointmentCard key={appointment.id} appointment={appointment} />
-    ));
+    return filtered.map((item) => <AppointmentCard key={item.id} appointment={item} />);
   };
 
   if (!isLoaded || isLoading) {
@@ -131,7 +180,7 @@ export default function AppointmentsPage() {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="mb-6 text-3xl font-bold">Your Appointments</h1>
+      <h1 className="mb-6 text-3xl font-bold">Your Appointments & Reservations</h1>
 
       <Tabs defaultValue="today" className="w-full">
         <TabsList className="mb-6">

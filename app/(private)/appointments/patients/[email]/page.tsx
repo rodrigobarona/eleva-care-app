@@ -12,6 +12,7 @@ import React, { Suspense } from 'react';
 
 interface Appointment {
   id: string;
+  type: 'appointment'; // Required to match AppointmentCard expectations
   guestName: string;
   guestEmail: string;
   startTime: Date;
@@ -145,9 +146,14 @@ function CustomerDetailsContent() {
   }
 
   // Sort appointments by date (newest first)
-  const sortedAppointments = [...(customer.appointments || [])].sort((a, b) => {
-    return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
-  });
+  const sortedAppointments = [...(customer.appointments || [])]
+    .map((appointment) => ({
+      ...appointment,
+      type: 'appointment' as const,
+    }))
+    .sort((a, b) => {
+      return new Date(b.startTime).getTime() - new Date(a.startTime).getTime();
+    });
 
   // Group appointments by status
   const upcomingAppointments = sortedAppointments.filter(
