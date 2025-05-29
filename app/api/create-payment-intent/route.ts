@@ -241,7 +241,6 @@ export async function POST(request: Request) {
       success_url: `${baseUrl}/${locale}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/${locale}/${username}/${eventSlug}`,
       customer: customerId,
-      customer_email: meetingMetadata.guestEmail,
       customer_creation: customerId ? undefined : 'always',
       expires_at: Math.floor(paymentExpiresAt.getTime() / 1000),
       allow_promotion_codes: true,
