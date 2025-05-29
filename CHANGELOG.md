@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Core Web Vitals Optimizations**:
+
   - **Core Layout Rendering (FCP/LCP)**:
     - Converted `app/[locale]/(public)/layout.tsx` to a Server Component.
     - Removed `useEffect`/`setMounted` delay in `HeaderContent.tsx` for faster header rendering.
@@ -25,6 +26,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Inlined and optimized SVG logo in `HeaderContent.tsx` and auth layout.
     - Added color variant support for better theme integration.
     - Reduced SVG path coordinate precision (~1KB reduction).
+
+- **Healthcare-Specific Tax Codes**:
+
+  - Implemented proper healthcare service tax codes for Stripe integration.
+  - Added support for different types of healthcare services:
+    - `txcd_20103200` - Healthcare Provider Services (default).
+    - `txcd_20103000` - Medical Services (General).
+    - `txcd_30070000` - Healthcare Services (Zero-rated).
+    - `txcd_20103100` - Personal Care Services.
+  - Added comprehensive documentation in `/docs/stripe-tax-codes.md`.
+  - Enhanced tax compliance for healthcare providers.
+  - Improved tax reporting accuracy for medical services.
+
+- **Slot Reservation System**:
+
+  - Implemented temporary slot reservations during payment processing.
+  - Added support for delayed payment methods (e.g., Multibanco).
+  - Created database schema for slot reservations and scheduling.
+  - Integrated reservation-aware scheduling logic.
+  - Added conflict detection for active reservations.
+  - Enhanced UI to display both confirmed appointments and pending reservations.
+
+- **Automated Cleanup System**:
+
+  - New QStash cron job for cleaning expired slot reservations (15-minute intervals).
+  - Added timezone-aware cleanup for expired blocked dates (daily).
+  - Implemented efficient batch deletion with comprehensive error handling.
+  - Enhanced logging with timezone context and operation details.
+
+- **Enhanced Payment Flow**:
+  - Dynamic payment method selection based on meeting proximity.
+  - Deferred calendar event creation for pending payments.
+  - Stripe webhook integration for payment intent tracking.
+  - Automatic reservation cleanup on payment success.
+  - Improved payment expiration time calculations.
+  - Added comprehensive validation for payment amounts.
+  - Enhanced error handling with detailed logging.
+  - Improved metadata parsing with type safety.
 
 ### Changed
 
@@ -72,51 +111,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Removed
 
 - **Component Cleanup**:
-  - Removed `components/atoms/Logo.tsx` component in favor of inlined SVG implementation.
+  - Removed `components/atoms/Logo.tsx` component in favor of an inlined SVG implementation.
   - Removed `Icons.elevaCareLogo` from `components/atoms/icons.tsx`.
   - Eliminated redundant font declarations from `globals.css`.
   - Removed unnecessary state management in header components.
   - Removed `'use client'` directive from public layout for server component optimization.
-
-### Added
-
-- **Healthcare-Specific Tax Codes**:
-
-  - Implemented proper healthcare service tax codes for Stripe integration
-  - Added support for different types of healthcare services:
-    - `txcd_20103200` - Healthcare Provider Services (default)
-    - `txcd_20103000` - Medical Services (General)
-    - `txcd_30070000` - Healthcare Services (Zero-rated)
-    - `txcd_20103100` - Personal Care Services
-  - Added comprehensive documentation in `/docs/stripe-tax-codes.md`
-  - Enhanced tax compliance for healthcare providers
-  - Improved tax reporting accuracy for medical services
-
-- **Slot Reservation System**:
-
-  - Implemented temporary slot reservations during payment processing
-  - Added support for delayed payment methods (e.g., Multibanco)
-  - Created database schema for slot reservations and scheduling
-  - Integrated reservation-aware scheduling logic
-  - Added conflict detection for active reservations
-  - Enhanced UI to display both confirmed appointments and pending reservations
-
-- **Automated Cleanup System**:
-
-  - New QStash cron job for cleaning expired slot reservations (15-minute intervals)
-  - Added timezone-aware cleanup for expired blocked dates (daily)
-  - Implemented efficient batch deletion with comprehensive error handling
-  - Enhanced logging with timezone context and operation details
-
-- **Enhanced Payment Flow**:
-  - Dynamic payment method selection based on meeting proximity
-  - Deferred calendar event creation for pending payments
-  - Stripe webhook integration for payment intent tracking
-  - Automatic reservation cleanup on payment success
-  - Improved payment expiration time calculations
-  - Added comprehensive validation for payment amounts
-  - Enhanced error handling with detailed logging
-  - Improved metadata parsing with type safety
 
 ## [0.3.1] - 2025-05-29
 
