@@ -1,3 +1,18 @@
+/**
+ * @file Process Expert Transfers Cron Job
+ * @description Handles the transfer of funds to expert accounts based on payment aging and country rules.
+ * 
+ * This cron job runs every 2 hours and performs the following tasks:
+ * 1. Identifies pending transfers that meet payment aging requirements
+ * 2. Processes transfers based on country-specific payout delays
+ * 3. Creates Stripe transfers for eligible payouts
+ * 4. Updates transfer statuses and handles failures
+ * 5. Maintains detailed audit logs
+ * 
+ * @schedule "0 */2 * * *" (Every 2 hours)
+ * @security Requires QStash authentication
+ */
+
 import { PAYOUT_DELAY_DAYS, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable, UserTable } from '@/drizzle/schema';

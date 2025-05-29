@@ -1,3 +1,17 @@
+/**
+ * @file Cleanup Expired Reservations Cron Job
+ * @description Maintains system hygiene by removing expired slot reservations.
+ * 
+ * This cron job runs every 15 minutes and performs the following tasks:
+ * 1. Identifies slot reservations that have passed their expiration time
+ * 2. Removes expired reservations from the database
+ * 3. Logs detailed information about deleted reservations
+ * 4. Provides cleanup statistics for monitoring
+ * 
+ * @schedule "*/15 * * * *" (Every 15 minutes)
+ * @security Requires QStash or Vercel Cron authentication
+ */
+
 import { db } from '@/drizzle/db';
 import { SlotReservationTable } from '@/drizzle/schema';
 import { lt } from 'drizzle-orm';
