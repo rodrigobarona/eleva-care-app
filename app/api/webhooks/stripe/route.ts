@@ -261,6 +261,29 @@ async function createOrUpdatePaymentTransfer({
     return;
   }
 
+  // Parse and validate payment amounts
+  const amount = Number.parseInt(paymentData.expert, 10);
+  const platformFee = Number.parseInt(paymentData.fee, 10);
+
+  // Validate parsed amounts
+  if (Number.isNaN(amount) || amount <= 0) {
+    console.error('Invalid expert payment amount:', {
+      sessionId: session.id,
+      rawAmount: paymentData.expert,
+      parsedAmount: amount,
+    });
+    throw new Error(`Invalid expert payment amount: ${paymentData.expert}`);
+  }
+
+  if (Number.isNaN(platformFee) || platformFee < 0) {
+    console.error('Invalid platform fee:', {
+      sessionId: session.id,
+      rawFee: paymentData.fee,
+      parsedFee: platformFee,
+    });
+    throw new Error(`Invalid platform fee: ${paymentData.fee}`);
+  }
+
   // Create new transfer record
   await db.insert(PaymentTransferTable).values({
     paymentIntentId: session.payment_intent || '',
@@ -268,8 +291,8 @@ async function createOrUpdatePaymentTransfer({
     eventId: meetingData.id,
     expertConnectAccountId: transferData.account,
     expertClerkUserId: meetingData.expert,
-    amount: Number.parseInt(paymentData.expert, 10),
-    platformFee: Number.parseInt(paymentData.fee, 10),
+    amount,
+    platformFee,
     currency: session.currency || 'eur',
     sessionStartTime: new Date(meetingData.start),
     scheduledTransferTime: new Date(transferData.scheduled),
@@ -279,7 +302,11 @@ async function createOrUpdatePaymentTransfer({
     updated: new Date(),
   });
 
-  console.log(`Created payment transfer record for session ${session.id}`);
+  console.log(`Created payment transfer record for session ${session.id}`, {
+    amount,
+    platformFee,
+    currency: session.currency || 'eur',
+  });
 }
 
 // Map Stripe payment status to database enum with proper validation
