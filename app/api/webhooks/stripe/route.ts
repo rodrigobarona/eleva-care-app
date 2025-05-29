@@ -16,6 +16,7 @@ import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { z } from 'zod';
 
 import { handleAccountUpdated } from './handlers/account';
 import {
@@ -36,94 +37,72 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
-// Note: Configuration is in route.config.ts to ensure Next.js properly applies settings
+/**
+ * Zod schema for meeting metadata validation
+ */
+const MeetingMetadataSchema = z.object({
+  id: z.string().min(1, 'Event ID is required'),
+  expert: z.string().min(1, 'Expert ID is required'),
+  guest: z.string().email('Invalid guest email'),
+  guestName: z.string().optional(),
+  start: z
+    .string()
+    .refine(
+      (val) => !Number.isNaN(Date.parse(val)),
+      'Invalid start time format - must be ISO 8601',
+    ),
+  dur: z.number().positive('Duration must be positive'),
+  locale: z.string().optional(),
+  timezone: z.string().optional(),
+});
 
 /**
- * Metadata structure for Stripe integration.
- *
- * The metadata is split into three logical chunks to optimize size and maintainability:
- * 1. meeting: Core session information
- * 2. payment: Financial transaction details
- * 3. transfer: Expert payout configuration
- *
- * Each chunk is stored as a JSON string in Stripe metadata, with abbreviated field names
- * to stay under Stripe's 500-character metadata limit while maintaining readability.
+ * Zod schema for payment metadata validation
  */
+const PaymentMetadataSchema = z.object({
+  amount: z.string().refine((val) => {
+    const num = Number(val);
+    return !Number.isNaN(num) && num > 0;
+  }, 'Amount must be a positive number'),
+  fee: z.string().refine((val) => {
+    const num = Number(val);
+    return !Number.isNaN(num) && num >= 0;
+  }, 'Fee must be a non-negative number'),
+  expert: z.string().refine((val) => {
+    const num = Number(val);
+    return !Number.isNaN(num) && num > 0;
+  }, 'Expert amount must be a positive number'),
+});
 
 /**
- * Meeting metadata chunk - Contains core session information.
- * Field names are intentionally abbreviated to reduce metadata size.
- *
- * Flow:
- * 1. Created in create-payment-intent
- * 2. Stored in Stripe checkout session
- * 3. Retrieved and parsed in webhook handlers
+ * Zod schema for transfer delay validation
  */
-interface ParsedMeetingMetadata {
-  /** Event ID from the database */
-  id: string;
-  /** Expert's Clerk user ID for authentication and access control */
-  expert: string;
-  /** Guest's email address for communication and identification */
-  guest: string;
-  /** Optional guest's display name (if provided during booking) */
-  guestName?: string;
-  /** ISO 8601 formatted start time (e.g., "2024-05-29T14:00:00Z") */
-  start: string;
-  /** Duration in minutes (used for calendar events and pricing) */
-  dur: number;
-  /** ISO language code for localization (e.g., 'en', 'es', 'pt') */
-  locale?: string;
-  /** IANA timezone identifier for accurate scheduling (e.g., 'Europe/London') */
-  timezone?: string;
-}
+const TransferDelaySchema = z.object({
+  aging: z.number().int().min(0, 'Aging days must be non-negative'),
+  remaining: z.number().int().min(0, 'Remaining days must be non-negative'),
+  required: z.number().int().min(0, 'Required days must be non-negative'),
+});
 
 /**
- * Payment metadata chunk - Contains financial transaction details.
- * Used for payment reconciliation and expert payouts.
- *
- * Flow:
- * 1. Calculated in create-payment-intent
- * 2. Verified in webhook handlers
- * 3. Used for creating payment transfer records
+ * Zod schema for transfer metadata validation
  */
-interface ParsedPaymentMetadata {
-  /** Total payment amount in cents (includes platform fee) */
-  amount: string;
-  /** Platform fee amount in cents (calculated based on total) */
-  fee: string;
-  /** Expert's payout amount in cents (total minus platform fee) */
-  expert: string;
-}
+const TransferMetadataSchema = z.object({
+  status: z.string().min(1, 'Transfer status is required'),
+  account: z.string().min(1, 'Connect account ID is required'),
+  country: z.string().min(2, 'Country code must be at least 2 characters'),
+  delay: TransferDelaySchema,
+  scheduled: z
+    .string()
+    .refine(
+      (val) => !Number.isNaN(Date.parse(val)),
+      'Invalid scheduled time format - must be ISO 8601',
+    ),
+});
 
-/**
- * Transfer metadata chunk - Contains expert payout configuration.
- * Handles delayed payouts and compliance requirements.
- *
- * Flow:
- * 1. Configured in create-payment-intent based on expert's country
- * 2. Used in webhook handlers for scheduling payouts
- * 3. Processed by automated transfer system
- */
-interface ParsedTransferMetadata {
-  /** Current transfer status (e.g., 'PENDING', 'READY') */
-  status: string;
-  /** Expert's Stripe Connect account ID for payouts */
-  account: string;
-  /** Expert's country code for compliance (ISO 3166-1 alpha-2) */
-  country: string;
-  /** Payout delay configuration based on country requirements */
-  delay: {
-    /** Days between payment and session (payment aging) */
-    aging: number;
-    /** Days remaining until eligible for payout */
-    remaining: number;
-    /** Total required delay in days per country rules */
-    required: number;
-  };
-  /** ISO 8601 timestamp for scheduled payout execution */
-  scheduled: string;
-}
+// Update interfaces to match Zod schemas
+type ParsedMeetingMetadata = z.infer<typeof MeetingMetadataSchema>;
+type ParsedPaymentMetadata = z.infer<typeof PaymentMetadataSchema>;
+type ParsedTransferMetadata = z.infer<typeof TransferMetadataSchema>;
 
 /**
  * Extended Stripe Checkout Session type with our custom metadata structure.
@@ -148,7 +127,31 @@ interface StripeCheckoutSession extends Stripe.Checkout.Session {
   payment_intent: string | null;
 }
 
-// Helper function to parse metadata safely
+/**
+ * Metadata structure for Stripe integration.
+ *
+ * The metadata is split into three logical chunks to optimize size and maintainability:
+ * 1. meeting: Core session information
+ * 2. payment: Financial transaction details
+ * 3. transfer: Expert payout configuration
+ *
+ * Each chunk is stored as a JSON string in Stripe metadata, with abbreviated field names
+ * to stay under Stripe's 500-character metadata limit while maintaining readability.
+ */
+
+/**
+ * Meeting metadata chunk - Contains core session information.
+ * Field names are intentionally abbreviated to reduce metadata size.
+ *
+ * Flow:
+ * 1. Created in create-payment-intent
+ * 2. Stored in Stripe checkout session
+ * 3. Retrieved and parsed in webhook handlers
+ */
+
+/**
+ * Helper function to parse metadata safely
+ */
 function parseMetadata<T>(json: string | undefined, fallback: T): T {
   if (!json) return fallback;
   try {
@@ -280,6 +283,40 @@ function validateMetadataString(
   }
 }
 
+/**
+ * Helper function to validate and parse metadata with Zod schema
+ */
+function validateAndParseMetadata<T>(
+  metadata: string | undefined,
+  type: string,
+  sessionId: string,
+  schema: z.ZodSchema<T>,
+  defaultValues: Partial<T>,
+): T {
+  // First validate the string
+  validateMetadataString(metadata, type as 'meeting' | 'payment' | 'transfer', sessionId);
+
+  // Parse the JSON
+  const rawData = parseMetadata(metadata, defaultValues);
+
+  try {
+    // Validate against schema
+    return schema.parse(rawData);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error(`Invalid ${type} metadata structure:`, {
+        sessionId,
+        errors: error.errors,
+        rawData,
+      });
+      throw new Error(
+        `Invalid ${type} metadata structure: ${error.errors.map((e) => e.message).join(', ')}`,
+      );
+    }
+    throw error;
+  }
+}
+
 async function handleCheckoutSession(session: StripeCheckoutSession) {
   console.log('Starting checkout session processing:', {
     sessionId: session.id,
@@ -301,44 +338,61 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       return { success: true, meetingId: existingMeeting.id };
     }
 
-    // Validate metadata strings before parsing
-    validateMetadataString(session.metadata?.meeting, 'meeting', session.id);
+    // Parse and validate metadata with Zod schemas
+    const meetingData = validateAndParseMetadata(
+      session.metadata?.meeting,
+      'meeting',
+      session.id,
+      MeetingMetadataSchema,
+      {
+        id: '',
+        expert: '',
+        guest: '',
+        start: '',
+        dur: 0,
+      },
+    );
 
-    // If payment intent exists, validate payment and transfer metadata
+    let paymentData: ParsedPaymentMetadata | undefined;
+    let transferData: ParsedTransferMetadata | undefined;
+
     if (session.payment_intent) {
-      validateMetadataString(session.metadata?.payment, 'payment', session.id);
-      validateMetadataString(session.metadata?.transfer, 'transfer', session.id);
+      paymentData = validateAndParseMetadata(
+        session.metadata?.payment,
+        'payment',
+        session.id,
+        PaymentMetadataSchema,
+        {
+          amount: '0',
+          fee: '0',
+          expert: '0',
+        },
+      );
+
+      transferData = validateAndParseMetadata(
+        session.metadata?.transfer,
+        'transfer',
+        session.id,
+        TransferMetadataSchema,
+        {
+          status: PAYMENT_TRANSFER_STATUS_PENDING,
+          account: '',
+          country: '',
+          delay: { aging: 0, remaining: 0, required: 0 },
+          scheduled: '',
+        },
+      );
     }
 
-    // Parse metadata chunks with proper typing and validation
-    const meetingData = parseMetadata<ParsedMeetingMetadata>(session.metadata.meeting, {
-      id: '',
-      expert: '',
-      guest: '',
-      start: '',
-      dur: 0,
-    });
-
     // Validate critical meeting metadata
-    validateMeetingMetadata(meetingData, session.id, session.metadata.meeting);
-
-    const paymentData = parseMetadata<ParsedPaymentMetadata>(session.metadata.payment, {
-      amount: '0',
-      fee: '0',
-      expert: '0',
-    });
-
-    const transferData = parseMetadata<ParsedTransferMetadata>(session.metadata.transfer, {
-      status: PAYMENT_TRANSFER_STATUS_PENDING,
-      account: '',
-      country: '',
-      delay: { aging: 0, remaining: 0, required: 0 },
-      scheduled: '',
-    });
+    validateMeetingMetadata(meetingData, session.id, session.metadata?.meeting);
 
     // Validate critical transfer metadata if payment intent exists
     if (session.payment_intent) {
-      validateTransferMetadata(transferData, session.id, session.metadata.transfer);
+      if (!paymentData || !transferData) {
+        throw new Error('Payment and transfer metadata required when payment_intent exists');
+      }
+      validateTransferMetadata(transferData, session.id, session.metadata?.transfer);
     }
 
     // If we have a Clerk user ID, ensure synchronization
@@ -430,8 +484,8 @@ async function createPaymentTransferIfNotExists({
 }: {
   session: StripeCheckoutSession;
   meetingData: ParsedMeetingMetadata;
-  paymentData: ParsedPaymentMetadata;
-  transferData: ParsedTransferMetadata;
+  paymentData?: ParsedPaymentMetadata;
+  transferData?: ParsedTransferMetadata;
 }) {
   // Check for existing transfer
   const existingTransfer = await db.query.PaymentTransferTable.findFirst({
@@ -443,9 +497,13 @@ async function createPaymentTransferIfNotExists({
     return;
   }
 
-  // Validate required fields before insertion
+  // Validate required fields and data
   if (!session.payment_intent) {
     throw new Error('Payment intent ID is required for transfer record creation');
+  }
+
+  if (!paymentData || !transferData) {
+    throw new Error('Payment and transfer data are required for transfer record creation');
   }
 
   if (!transferData.account) {
@@ -668,7 +726,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ received: true });
     } catch (error) {
-      console.error(`Error processing webhook event ${event.type}:`, error);
+      console.error('Error processing webhook event:', error);
       return NextResponse.json(
         { error: 'Internal server error processing webhook' },
         { status: 500 },
