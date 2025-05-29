@@ -10,6 +10,7 @@ import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfe
 import { getOrCreateStripeCustomer } from '@/lib/stripe';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+import { randomUUID } from 'node:crypto';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
@@ -261,27 +262,24 @@ export async function POST(request: Request) {
 
     // Create slot reservation for delayed payment methods (if needed)
     if (reservationExpiresAt && paymentMethodTypes.includes('multibanco')) {
-      try {
-        await db.insert(SlotReservationTable).values({
-          eventId: meetingMetadata.eventId,
-          clerkUserId: meetingMetadata.expertClerkUserId,
-          guestEmail: meetingMetadata.guestEmail,
-          startTime: new Date(meetingMetadata.startTime),
-          endTime: new Date(
-            new Date(meetingMetadata.startTime).getTime() + meetingMetadata.duration * 60 * 1000,
-          ),
-          expiresAt: reservationExpiresAt,
-          stripePaymentIntentId: null, // Will be updated when PI is created
-          stripeSessionId: session.id,
-        });
+      // Create a slot reservation to prevent double-bookings
+      await db.insert(SlotReservationTable).values({
+        id: randomUUID(),
+        eventId: event.id,
+        clerkUserId: meetingMetadata.expertClerkUserId,
+        guestEmail: meetingMetadata.guestEmail,
+        startTime: new Date(meetingMetadata.startTime),
+        endTime: new Date(
+          new Date(meetingMetadata.startTime).getTime() + meetingMetadata.duration * 60 * 1000,
+        ),
+        expiresAt: reservationExpiresAt,
+        stripePaymentIntentId: null, // Will be updated when PI is created
+        stripeSessionId: session.id,
+      });
 
-        console.log(
-          `🔒 Slot reserved until ${reservationExpiresAt.toISOString()} for ${meetingMetadata.guestEmail}`,
-        );
-      } catch (error) {
-        console.error('Failed to create slot reservation:', error);
-        // Continue anyway - the payment flow should still work
-      }
+      console.log(
+        `🔒 Slot reserved until ${reservationExpiresAt.toISOString()} for ${meetingMetadata.guestEmail}`,
+      );
     }
 
     console.log('Checkout session created successfully:', {

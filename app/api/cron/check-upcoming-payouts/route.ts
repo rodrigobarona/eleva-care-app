@@ -1,17 +1,3 @@
-/**
- * @file Check Upcoming Payouts Cron Job
- * @description Notifies experts about upcoming payouts that will be eligible soon.
- *
- * This cron job runs daily at noon UTC and performs the following tasks:
- * 1. Identifies pending transfers without notifications
- * 2. Calculates remaining days until payout based on country rules
- * 3. Sends notifications for payouts eligible in 1-2 days
- * 4. Updates notification timestamps
- * 5. Maintains notification audit trail
- *
- * @schedule "0 12 * * *" (Daily at noon UTC)
- * @security Requires QStash authentication
- */
 import { PAYOUT_DELAY_DAYS } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
@@ -21,6 +7,14 @@ import { getUserByClerkId } from '@/lib/users';
 import { addDays, differenceInDays } from 'date-fns';
 import { and, eq, isNull } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+// Check Upcoming Payouts - Notifies experts about upcoming eligible payouts
+// Performs the following tasks:
+// - Identifies pending transfers without notifications
+// - Calculates remaining days until payout based on country rules
+// - Sends notifications for payouts eligible in 1-2 days
+// - Updates notification timestamps
+// - Maintains notification audit trail
 
 // Add route segment config
 export const runtime = 'nodejs';

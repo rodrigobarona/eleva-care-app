@@ -1,22 +1,16 @@
-/**
- * @file Cleanup Blocked Dates Cron Job
- * @description Removes expired blocked dates from expert calendars, respecting timezone differences.
- *
- * This cron job runs daily at midnight UTC and performs the following tasks:
- * 1. Fetches all blocked dates from the database
- * 2. For each date, checks if it's expired in its own timezone
- * 3. Deletes expired dates while maintaining timezone integrity
- * 4. Provides detailed logging and statistics about the cleanup process
- *
- * @schedule "0 0 * * *" (Daily at midnight UTC)
- * @security Requires QStash authentication
- */
 import { db } from '@/drizzle/db';
 import { BlockedDatesTable } from '@/drizzle/schema';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { formatInTimeZone } from 'date-fns-tz';
 import { inArray } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
+
+// Cleanup Blocked Dates - Removes expired blocked dates from expert calendars
+// Performs the following tasks:
+// - Fetches all blocked dates from the database
+// - Checks if dates are expired in their own timezone
+// - Deletes expired dates while maintaining timezone integrity
+// - Provides detailed logging and cleanup statistics
 
 // Add route segment config
 export const runtime = 'nodejs';

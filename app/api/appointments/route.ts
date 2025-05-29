@@ -1,7 +1,7 @@
 import { db } from '@/drizzle/db';
-import { MeetingTable } from '@/drizzle/schema';
+import { MeetingTable, SlotReservationTable } from '@/drizzle/schema';
 import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
+import { and, eq, gt } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 // Add route segment config
@@ -25,8 +25,10 @@ export async function GET() {
     // Fetch active slot reservations for the expert
     const currentTime = new Date();
     const reservations = await db.query.SlotReservationTable.findMany({
-      where: (fields, { eq, and, gt }) =>
-        and(eq(fields.clerkUserId, userId), gt(fields.expiresAt, currentTime)),
+      where: and(
+        eq(SlotReservationTable.clerkUserId, userId),
+        gt(SlotReservationTable.expiresAt, currentTime),
+      ),
       orderBy: (reservations, { desc }) => [desc(reservations.startTime)],
     });
 

@@ -1,17 +1,3 @@
-/**
- * @file Process Tasks Cron Job
- * @description Main daily task processor that handles expert transfers and system maintenance.
- *
- * This cron job runs daily at 4 AM UTC and performs the following tasks:
- * 1. Processes pending expert transfers
- * 2. Verifies payment statuses
- * 3. Updates transfer records
- * 4. Handles retry logic for failed transfers
- * 5. Maintains system audit logs
- *
- * @schedule "0 4 * * *" (Daily at 4 AM UTC)
- * @security Requires QStash authentication
- */
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
@@ -19,6 +5,14 @@ import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
 import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+
+// Process Tasks - Main daily task processor for expert transfers and system maintenance
+// Performs the following tasks:
+// - Processes pending expert transfers
+// - Verifies payment statuses
+// - Updates transfer records
+// - Handles retry logic for failed transfers
+// - Maintains system audit logs
 
 // Add route segment config
 export const runtime = 'nodejs';

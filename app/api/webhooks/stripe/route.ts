@@ -439,24 +439,19 @@ export async function POST(request: Request) {
         case 'payment_intent.created': {
           console.log('Payment intent created:', event.data.object.id);
 
-          // Update slot reservation with payment intent ID if it exists
+          // Update slot reservation with payment intent ID
           try {
             const paymentIntent = event.data.object as Stripe.PaymentIntent;
             const sessionId = paymentIntent.metadata?.sessionId;
 
             if (sessionId) {
-              const updatedReservation = await db
+              await db
                 .update(SlotReservationTable)
                 .set({
                   stripePaymentIntentId: paymentIntent.id,
-                  updatedAt: new Date(),
                 })
-                .where(eq(SlotReservationTable.stripeSessionId, sessionId))
-                .returning();
-
-              if (updatedReservation.length > 0) {
-                console.log(`🔗 Linked slot reservation to payment intent ${paymentIntent.id}`);
-              }
+                .where(eq(SlotReservationTable.stripeSessionId, sessionId));
+              console.log(`🔗 Linked slot reservation to payment intent ${paymentIntent.id}`);
             }
           } catch (error) {
             console.error('Failed to update slot reservation with payment intent ID:', error);

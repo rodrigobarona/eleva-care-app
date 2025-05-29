@@ -1,8 +1,14 @@
-import { auditDb } from '@/drizzle/auditDb';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { sql } from 'drizzle-orm';
+
+// Keep Alive - Maintains system health and token freshness
+// Performs the following tasks:
+// - Keeps databases alive with health checks
+// - Refreshes Google Calendar tokens for connected users
+// - Maintains OAuth token validity
+// - Logs system health status
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +22,6 @@ export async function GET(request: Request) {
 
     // 1. Keep databases alive
     await db.execute(sql`SELECT 1`);
-    await auditDb.execute(sql`SELECT 1`);
 
     // 2. Refresh tokens only for users with Google Calendar connected
     const googleCalendarService = GoogleCalendarService.getInstance();

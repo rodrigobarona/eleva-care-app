@@ -552,37 +552,40 @@ export const blockedDatesRelations = relations(BlockedDatesTable, ({ one }) => (
 }));
 
 /**
- * Slot Reservations table - temporary reservations for time slots during payment processing
+ * Slot Reservations table - temporary holds for appointment slots
  *
- * When customers choose delayed payment methods (like Multibanco), we need to temporarily
- * reserve their selected time slot to prevent double-bookings while they complete payment.
- * These reservations have an expiration time and are automatically cleaned up.
+ * Each record represents a temporary hold on an appointment slot while a guest
+ * completes the booking process. This prevents double-bookings during checkout.
+ * Records are automatically cleaned up after expiration.
  */
 export const SlotReservationTable = pgTable(
-  'slotReservations',
+  'slot_reservations',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    eventId: uuid('eventId')
+    eventId: uuid('event_id')
       .notNull()
       .references(() => EventTable.id, { onDelete: 'cascade' }),
-    clerkUserId: text('clerkUserId').notNull(), // The expert whose slot is reserved
-    guestEmail: text('guestEmail').notNull(), // The guest who made the reservation
-    startTime: timestamp('startTime').notNull(),
-    endTime: timestamp('endTime').notNull(),
-    expiresAt: timestamp('expiresAt').notNull(),
-    stripePaymentIntentId: text('stripePaymentIntentId').unique(),
-    stripeSessionId: text('stripeSessionId').unique(),
-    createdAt,
-    updatedAt,
+    clerkUserId: text('clerk_user_id').notNull(),
+    guestEmail: text('guest_email').notNull(),
+    startTime: timestamp('start_time').notNull(),
+    endTime: timestamp('end_time').notNull(),
+    expiresAt: timestamp('expires_at').notNull(),
+    stripePaymentIntentId: text('stripe_payment_intent_id').unique(),
+    stripeSessionId: text('stripe_session_id').unique(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at')
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
   },
   (table) => ({
-    clerkUserIdIndex: index('slotReservations_clerkUserId_idx').on(table.clerkUserId),
-    eventIdIndex: index('slotReservations_eventId_idx').on(table.eventId),
-    expiresAtIndex: index('slotReservations_expiresAt_idx').on(table.expiresAt),
-    paymentIntentIdIndex: index('slotReservations_paymentIntentId_idx').on(
+    clerkUserIdIndex: index('slot_reservations_clerk_user_id_idx').on(table.clerkUserId),
+    eventIdIndex: index('slot_reservations_event_id_idx').on(table.eventId),
+    expiresAtIndex: index('slot_reservations_expires_at_idx').on(table.expiresAt),
+    paymentIntentIdIndex: index('slot_reservations_payment_intent_id_idx').on(
       table.stripePaymentIntentId,
     ),
-    sessionIdIndex: index('slotReservations_sessionId_idx').on(table.stripeSessionId),
+    sessionIdIndex: index('slot_reservations_session_id_idx').on(table.stripeSessionId),
   }),
 );
 
@@ -590,7 +593,7 @@ export const SlotReservationTable = pgTable(
  * Relationship definition for SlotReservationTable
  *
  * Establishes a many-to-one relationship with EventTable.
- * Each reservation is for a specific event type.
+ * Each slot reservation is for a specific event type.
  */
 export const slotReservationRelations = relations(SlotReservationTable, ({ one }) => ({
   event: one(EventTable, {

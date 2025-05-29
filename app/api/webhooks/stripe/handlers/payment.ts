@@ -201,14 +201,9 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
             // Clean up slot reservation if it exists
             try {
-              const deletedReservation = await db
+              await db
                 .delete(SlotReservationTable)
-                .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id))
-                .returning();
-
-              if (deletedReservation.length > 0) {
-                console.log(`🧹 Cleaned up slot reservation for payment ${paymentIntent.id}`);
-              }
+                .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id));
             } catch (cleanupError) {
               console.error('Failed to clean up slot reservation:', cleanupError);
               // Continue execution - this is not critical
