@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Healthcare-Specific Tax Codes**:
+
+  - Implemented proper healthcare service tax codes for Stripe integration
+  - Added support for different types of healthcare services:
+    - `txcd_20103200` - Healthcare Provider Services (default)
+    - `txcd_20103000` - Medical Services (General)
+    - `txcd_30070000` - Healthcare Services (Zero-rated)
+    - `txcd_20103100` - Personal Care Services
+  - Added comprehensive documentation in `/docs/stripe-tax-codes.md`
+  - Enhanced tax compliance for healthcare providers
+  - Improved tax reporting accuracy for medical services
+
 - **Slot Reservation System**:
 
   - Implemented temporary slot reservations during payment processing
