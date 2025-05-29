@@ -229,10 +229,15 @@ export async function POST(request: Request) {
             currency: 'eur',
             product_data: {
               name: `${event.name} with ${meetingMetadata.expertName}`,
-              description: `${meetingMetadata.duration} minute session on ${meetingMetadata.startTimeFormatted}`,
-              tax_code: 'txcd_10103001', // General services tax code
+              description: `${meetingData.duration} minute session on ${meetingData.startTimeFormatted}`,
+              // Healthcare-specific tax codes:
+              // txcd_20103000 - Medical Services (General)
+              // txcd_20103200 - Healthcare Provider Services
+              // txcd_30070000 - Healthcare Services (Zero-rated)
+              // txcd_20103100 - Personal Care Services
+              tax_code: 'txcd_20103200', // Healthcare Provider Services - Most appropriate for physical therapy and medical consultations
             },
-            unit_amount: meetingMetadata.price,
+            unit_amount: price,
             tax_behavior: 'exclusive', // Tax calculated separately
           },
           quantity: 1,
