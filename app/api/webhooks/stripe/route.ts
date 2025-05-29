@@ -251,6 +251,35 @@ function validateTransferMetadata(
   }
 }
 
+/**
+ * Validates that a metadata string exists and is not empty
+ * @throws {Error} if the metadata string is missing or empty
+ */
+function validateMetadataString(
+  metadata: string | undefined,
+  type: 'meeting' | 'payment' | 'transfer',
+  sessionId: string,
+): void {
+  if (!metadata?.trim()) {
+    console.error(`Missing or empty ${type} metadata in checkout session:`, {
+      sessionId,
+      metadata,
+    });
+    throw new Error(`Missing or empty ${type} metadata in session. Cannot process ${type} data.`);
+  }
+
+  try {
+    JSON.parse(metadata);
+  } catch (error) {
+    console.error(`Invalid JSON in ${type} metadata:`, {
+      sessionId,
+      metadata,
+      error,
+    });
+    throw new Error(`Invalid JSON in ${type} metadata. Cannot process ${type} data.`);
+  }
+}
+
 async function handleCheckoutSession(session: StripeCheckoutSession) {
   console.log('Starting checkout session processing:', {
     sessionId: session.id,
@@ -272,13 +301,13 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       return { success: true, meetingId: existingMeeting.id };
     }
 
-    // Check for required metadata
-    if (!session.metadata?.meeting) {
-      console.error('Missing meeting metadata in checkout session:', {
-        sessionId: session.id,
-        metadata: session.metadata,
-      });
-      throw new Error('Missing meeting metadata in session. Cannot process meeting.');
+    // Validate metadata strings before parsing
+    validateMetadataString(session.metadata?.meeting, 'meeting', session.id);
+
+    // If payment intent exists, validate payment and transfer metadata
+    if (session.payment_intent) {
+      validateMetadataString(session.metadata?.payment, 'payment', session.id);
+      validateMetadataString(session.metadata?.transfer, 'transfer', session.id);
     }
 
     // Parse metadata chunks with proper typing and validation
