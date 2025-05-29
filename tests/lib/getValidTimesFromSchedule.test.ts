@@ -224,7 +224,7 @@ describe('getValidTimesFromSchedule', () => {
   it('should exclude slots that are currently reserved', async () => {
     // Time to check - 10:00 Monday
     const timeToCheck = setHours(setMinutes(mockDate, 0), 10);
-    
+
     // Mock active slot reservation for this time
     const mockReservation = {
       id: 'reservation_123',
@@ -241,7 +241,7 @@ describe('getValidTimesFromSchedule', () => {
 
     // Mock SlotReservationTable to return the active reservation
     (db.query.SlotReservationTable.findMany as jest.Mock).mockResolvedValue([mockReservation]);
-    
+
     // Set up the mock to return empty array since the slot is reserved
     mockGetValidTimesFromSchedule.mockResolvedValueOnce([]);
 
@@ -253,24 +253,10 @@ describe('getValidTimesFromSchedule', () => {
   it('should include slots when reservations have expired', async () => {
     // Time to check - 10:00 Monday
     const timeToCheck = setHours(setMinutes(mockDate, 0), 10);
-    
-    // Mock expired slot reservation for this time
-    const mockExpiredReservation = {
-      id: 'reservation_123',
-      eventId: 'event_123',
-      clerkUserId: 'user_123', 
-      guestEmail: 'guest@example.com',
-      startTime: timeToCheck,
-      expiresAt: subMinutes(mockDate, 30), // Expired 30 minutes ago
-      stripeSessionId: 'session_123',
-      stripePaymentIntentId: null,
-      createdAt: subMinutes(mockDate, 300),
-      updatedAt: subMinutes(mockDate, 300),
-    };
 
     // Mock SlotReservationTable to return empty array (expired reservations are cleaned up)
     (db.query.SlotReservationTable.findMany as jest.Mock).mockResolvedValue([]);
-    
+
     // Set up the mock to return the valid time since reservation expired
     mockGetValidTimesFromSchedule.mockResolvedValueOnce([timeToCheck]);
 
