@@ -1,18 +1,25 @@
 import { Client } from '@upstash/qstash';
 
 import { isQStashAvailable, scheduleRecurringJob } from './qstash';
-import { getQStashConfigMessage, validateQStashConfig } from './qstash-config';
+import { getQStashConfigMessage, initQStashClient, validateQStashConfig } from './qstash-config';
 
 // Get the base URL for the app
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
 
-// Initialize QStash client
-const qstashClient = new Client({ token: process.env.QSTASH_TOKEN || '' });
+// Initialize QStash client with proper validation
+const qstashClient = initQStashClient();
+if (!qstashClient) {
+  console.error('Failed to initialize QStash client. Check your environment variables.');
+}
 
 /**
  * Delete all existing QStash schedules
  */
 async function cleanupExistingSchedules() {
+  if (!qstashClient) {
+    throw new Error('QStash client is not initialized. Cannot cleanup schedules.');
+  }
+
   try {
     console.log('🧹 Cleaning up existing schedules...');
     const schedules = await qstashClient.schedules.list();
