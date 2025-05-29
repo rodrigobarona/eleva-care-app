@@ -49,17 +49,25 @@ export async function getValidTimesFromSchedule(
     activeReservations.map((reservation) => reservation.startTime.toISOString()),
   );
 
-  console.log(
-    `[getValidTimesFromSchedule] Found ${activeReservations.length} active slot reservations:`,
-    {
-      expertId: event.clerkUserId,
-      reservedSlots: activeReservations.map((r) => ({
-        startTime: r.startTime.toISOString(),
-        guestEmail: r.guestEmail,
-        expiresAt: r.expiresAt.toISOString(),
-      })),
-    },
-  );
+  // Only log detailed reservation info in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log(
+      `[getValidTimesFromSchedule] Found ${activeReservations.length} active slot reservations:`,
+      {
+        expertId: event.clerkUserId,
+        reservedSlots: activeReservations.map((r) => ({
+          startTime: r.startTime.toISOString(),
+          guestEmail: r.guestEmail,
+          expiresAt: r.expiresAt.toISOString(),
+        })),
+      },
+    );
+  } else {
+    // In production, just log the count
+    console.log(
+      `[getValidTimesFromSchedule] Found ${activeReservations.length} active slot reservations for expert ${event.clerkUserId}`,
+    );
+  }
 
   // Get scheduling settings for minimum notice period and buffer times
   const settings = await db.query.schedulingSettings.findFirst({
@@ -84,7 +92,9 @@ export async function getValidTimesFromSchedule(
   for (const time of times) {
     // Check if this time slot is currently reserved
     if (reservedTimes.has(time.toISOString())) {
-      console.log(`[getValidTimesFromSchedule] Skipping reserved slot: ${time.toISOString()}`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`[getValidTimesFromSchedule] Skipping reserved slot: ${time.toISOString()}`);
+      }
       continue;
     }
 
@@ -145,9 +155,13 @@ export async function getValidTimesFromSchedule(
     }
   }
 
-  console.log(
-    `[getValidTimesFromSchedule] Returning ${validTimes.length} valid times out of ${times.length} requested`,
-  );
+  // Only log detailed results in development
+  if (process.env.NODE_ENV === 'development') {
+    console.log(
+      `[getValidTimesFromSchedule] Returning ${validTimes.length} valid times out of ${times.length} requested`,
+    );
+  }
+
   return validTimes;
 }
 
