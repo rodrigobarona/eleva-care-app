@@ -10,6 +10,12 @@ interface VideoPlayerProps {
   preload?: 'auto' | 'metadata' | 'none';
   className?: string;
   poster?: string; // URL for a poster image to show before video loads
+  captions?: {
+    src: string;
+    label: string;
+    srcLang: string;
+    default?: boolean;
+  }[];
 }
 
 // Reminder: To prevent layout shifts, ensure the parent container
@@ -31,7 +37,32 @@ export function VideoPlayer({
   preload = 'metadata', // Default preload to metadata for better performance
   className,
   poster,
+  captions = [], // Default to empty array if no captions provided
 }: VideoPlayerProps) {
+  // Normalize paths by ensuring they start with a slash
+  const normalizePath = (path: string) => {
+    // Remove any existing leading slashes and add a single one
+    return `/${path.replace(/^\/+/, '')}`;
+  };
+
+  const videoSrc = normalizePath(src);
+  const posterSrc = poster ? normalizePath(poster) : undefined;
+
+  // Determine video MIME type based on file extension
+  const getVideoType = (src: string) => {
+    const ext = src.split('.').pop()?.toLowerCase();
+    switch (ext) {
+      case 'webm':
+        return 'video/webm';
+      case 'mp4':
+        return 'video/mp4';
+      case 'ogg':
+        return 'video/ogg';
+      default:
+        return 'video/mp4'; // Default to mp4 if unknown
+    }
+  };
+
   return (
     <video
       width={width}
@@ -44,11 +75,30 @@ export function VideoPlayer({
       controls={controls}
       preload={preload}
       className={className}
-      poster={poster}
+      poster={posterSrc}
     >
-      <source src={src} type="video/webm" />
+      <source src={videoSrc} type={getVideoType(src)} />
+      {/* Always include at least one track element for accessibility */}
+      <track
+        kind="captions"
+        label="No captions available"
+        src="data:text/vtt;base64,V0VCVlRUCgoxCjAwOjAwOjAwLjAwMCAtLT4gMDA6MDA6MDEuMDAwCk5vIGNhcHRpb25zIGF2YWlsYWJsZQo="
+        srcLang="en"
+        default={captions.length === 0}
+      />
+      {/* Add additional caption tracks if provided */}
+      {captions.map((caption) => (
+        <track
+          key={caption.src}
+          kind="captions"
+          label={caption.label}
+          src={normalizePath(caption.src)}
+          srcLang={caption.srcLang}
+          default={caption.default}
+        />
+      ))}
+      {/* Fallback text for browsers that don't support video */}
       Your browser does not support the video tag.
-      <track kind="captions" src={src} />
     </video>
   );
 }

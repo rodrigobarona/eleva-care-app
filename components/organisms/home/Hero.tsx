@@ -18,16 +18,16 @@ const Hero = () => {
     >
       <Suspense fallback={<p>Loading video...</p>}>
         <VideoPlayer
-          src="/img/videos/eleva-care-intro-banner.webm"
+          src="img/videos/eleva-care-intro-banner.webm"
           width={1920}
           height={1080}
-          playsInline={true}
-          autoPlay={true}
-          muted={true}
-          loop={true}
+          playsInline
+          autoPlay
+          muted
+          loop
           controls={false}
           preload="metadata"
-          poster="/img/videos/eleva-care-intro-banner-poster.jpg"
+          poster="img/videos/eleva-care-intro-banner-poster.jpg"
           className="lg:rounded-5xl absolute rounded-2xl object-cover"
         />
       </Suspense>
