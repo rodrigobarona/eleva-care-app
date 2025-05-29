@@ -550,3 +550,51 @@ export const blockedDatesRelations = relations(BlockedDatesTable, ({ one }) => (
     references: [ScheduleTable.clerkUserId],
   }),
 }));
+
+/**
+ * Slot Reservations table - temporary reservations for time slots during payment processing
+ *
+ * When customers choose delayed payment methods (like Multibanco), we need to temporarily
+ * reserve their selected time slot to prevent double-bookings while they complete payment.
+ * These reservations have an expiration time and are automatically cleaned up.
+ */
+export const SlotReservationTable = pgTable(
+  'slotReservations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    eventId: uuid('eventId')
+      .notNull()
+      .references(() => EventTable.id, { onDelete: 'cascade' }),
+    clerkUserId: text('clerkUserId').notNull(), // The expert whose slot is reserved
+    guestEmail: text('guestEmail').notNull(), // The guest who made the reservation
+    startTime: timestamp('startTime').notNull(),
+    endTime: timestamp('endTime').notNull(),
+    expiresAt: timestamp('expiresAt').notNull(),
+    stripePaymentIntentId: text('stripePaymentIntentId').unique(),
+    stripeSessionId: text('stripeSessionId').unique(),
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    clerkUserIdIndex: index('slotReservations_clerkUserId_idx').on(table.clerkUserId),
+    eventIdIndex: index('slotReservations_eventId_idx').on(table.eventId),
+    expiresAtIndex: index('slotReservations_expiresAt_idx').on(table.expiresAt),
+    paymentIntentIdIndex: index('slotReservations_paymentIntentId_idx').on(
+      table.stripePaymentIntentId,
+    ),
+    sessionIdIndex: index('slotReservations_sessionId_idx').on(table.stripeSessionId),
+  }),
+);
+
+/**
+ * Relationship definition for SlotReservationTable
+ *
+ * Establishes a many-to-one relationship with EventTable.
+ * Each reservation is for a specific event type.
+ */
+export const slotReservationRelations = relations(SlotReservationTable, ({ one }) => ({
+  event: one(EventTable, {
+    fields: [SlotReservationTable.eventId],
+    references: [EventTable.id],
+  }),
+}));

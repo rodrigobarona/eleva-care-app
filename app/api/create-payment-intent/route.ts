@@ -5,8 +5,9 @@ import {
   STRIPE_CONFIG,
 } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { EventTable } from '@/drizzle/schema';
-import { getBaseUrl, getOrCreateStripeCustomer, withRetry } from '@/lib/stripe';
+import { EventTable, SlotReservationTable } from '@/drizzle/schema';
+import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
+import { getOrCreateStripeCustomer } from '@/lib/stripe';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -80,6 +81,8 @@ export async function POST(request: Request) {
       });
       throw new Error("Expert's Connect account not found");
     }
+
+    const expertStripeAccountId = event.user.stripeConnectAccountId;
 
     // Prepare meeting metadata
     const meetingMetadata = {
@@ -169,136 +172,117 @@ export async function POST(request: Request) {
       transferDate: transferDate.toISOString(),
     });
 
-    // Calculate payment expiration - maximum 24h to pay, but if meeting is soon, only 30 minutes
+    // Calculate payment expiration and determine payment methods based on timing
     const meetingDate = new Date(meetingData.startTime);
     const currentTime = new Date();
     const hoursUntilMeeting = (meetingDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
 
-    // Ensure minimum 30 minutes from now (Stripe requirement)
-    const minimumExpirationTime = new Date(currentTime.getTime() + 30 * 60 * 1000);
-
-    // Maximum 24 hours from now to complete payment
-    const maximumExpirationTime = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000);
-
+    // Determine payment methods and expiration time based on meeting timing
+    let paymentMethodTypes: string[];
     let paymentExpiresAt: Date;
+    let reservationExpiresAt: Date | null = null;
 
-    if (hoursUntilMeeting <= 24) {
-      // Meeting is within 24 hours - customer must pay within 30 minutes
-      paymentExpiresAt = minimumExpirationTime;
-      console.warn('Meeting is within 24 hours, payment deadline set to 30 minutes:', {
-        meetingTime: meetingDate.toISOString(),
-        hoursUntilMeeting,
-        actualExpiresAt: minimumExpirationTime.toISOString(),
-      });
+    if (hoursUntilMeeting <= 48) {
+      // Meeting is within 48 hours - CREDIT CARD ONLY for instant confirmation
+      paymentMethodTypes = ['card'];
+
+      // Payment must complete within 30 minutes
+      paymentExpiresAt = new Date(currentTime.getTime() + 30 * 60 * 1000);
+
+      console.log(
+        `⚡ Quick booking: Meeting in ${hoursUntilMeeting.toFixed(1)}h - Card only, 30min to pay`,
+      );
     } else {
-      // Meeting is more than 24 hours away - customer has up to 24 hours to pay
-      paymentExpiresAt = maximumExpirationTime;
+      // Meeting is > 48 hours away - Allow both Card and Multibanco
+      paymentMethodTypes = ['card', 'multibanco'];
+
+      // Payment can take up to 4 hours to complete
+      paymentExpiresAt = new Date(currentTime.getTime() + 4 * 60 * 60 * 1000);
+
+      // Reserve slot for 4 hours (same as payment expiration)
+      reservationExpiresAt = paymentExpiresAt;
+
+      console.log(
+        `🕒 Advance booking: Meeting in ${hoursUntilMeeting.toFixed(1)}h - Card + Multibanco, 4h to pay + slot hold`,
+      );
     }
 
-    console.log('Payment expiration calculation:', {
-      currentTime: currentTime.toISOString(),
-      meetingTime: meetingDate.toISOString(),
-      hoursUntilMeeting,
-      finalExpiresAt: paymentExpiresAt.toISOString(),
-      hoursToPayment: (paymentExpiresAt.getTime() - currentTime.getTime()) / (1000 * 60 * 60),
-    });
+    // Get base URL and locale for redirects
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
+    const locale = meetingMetadata.locale || 'en';
 
-    // Create checkout session with detailed logging
-    console.log('Creating checkout session with params:', {
-      customerId,
-      price,
-      applicationFeeAmount,
-      expertAmount,
-      connectAccountId: event.user.stripeConnectAccountId,
-      requiresApproval: requiresApproval,
-      currency: STRIPE_CONFIG.CURRENCY,
-      transferScheduled: transferDate.toISOString(),
-    });
+    // Calculate fees
+    const platformFee = applicationFeeAmount;
+    const expertAccount = event.user;
+    const scheduledTransferTime = transferDate;
 
-    const baseUrl = getBaseUrl();
-
-    const session = await withRetry(async () =>
-      stripe.checkout.sessions.create({
-        customer: customerId as string,
-        payment_method_types: [...STRIPE_CONFIG.PAYMENT_METHODS],
-        mode: 'payment',
-        allow_promotion_codes: true,
-        billing_address_collection: 'auto',
-        automatic_tax: {
-          enabled: true,
-          liability: { type: 'account', account: event.user.stripeConnectAccountId },
-        },
-        tax_id_collection: { enabled: true, required: 'if_supported' },
-        consent_collection: {
-          terms_of_service: 'required',
-        },
-        custom_text: {
-          terms_of_service_acceptance: {
-            message: 'I agree to the [Terms of Service](https://eleva.care/legal/terms)',
-          },
-        },
-        customer_creation: customerId ? undefined : 'always',
-        locale: meetingData.locale || 'auto',
-        customer_update: {
-          address: 'auto',
-          name: 'auto',
-        },
-        customer_email: customerId ? undefined : meetingData.guestEmail,
-        submit_type: 'book',
-        payment_intent_data: {
-          application_fee_amount: applicationFeeAmount,
-          transfer_data: {
-            destination: event.user.stripeConnectAccountId,
-          },
-          metadata: {
-            // Primary source of truth for meeting context
-            meetingData: JSON.stringify(meetingMetadata),
-            // Payment/transfer specific metadata
-            expertConnectAccountId: event.user.stripeConnectAccountId,
-            scheduledTransferTime: transferDate.toISOString(),
-            platformFee: applicationFeeAmount.toString(),
-            expertAmount: expertAmount.toString(),
-            requiresApproval: requiresApproval ? 'true' : 'false',
-            transferStatus: 'PENDING',
-            expertCountry: expertCountry,
-            paymentAgingDays: paymentAgingDays.toString(),
-            requiredPayoutDelay: requiredPayoutDelay.toString(),
-            remainingDelayDays: remainingDelayDays.toString(),
-          },
-        },
-        line_items: [
-          {
-            price_data: {
-              currency: STRIPE_CONFIG.CURRENCY,
-              product_data: {
-                name: 'Consultation Booking',
-                description: `Booking for ${meetingMetadata.guestName} on ${meetingMetadata.startTimeFormatted} (funds will be released to expert ${remainingDelayDays === 1 ? 'the day after' : `in ${remainingDelayDays} days after`} session${requiresApproval ? ' pending approval' : ''})`,
-              },
-              unit_amount: Math.round(price),
+    // Create the checkout session with conditional payment methods
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types:
+        paymentMethodTypes as Stripe.Checkout.SessionCreateParams.PaymentMethodType[],
+      line_items: [
+        {
+          price_data: {
+            currency: 'eur',
+            product_data: {
+              name: `${event.name} with ${meetingMetadata.expertName}`,
+              description: `${meetingMetadata.duration} minute session on ${meetingMetadata.startTimeFormatted}`,
             },
-            quantity: 1,
+            unit_amount: meetingMetadata.price,
           },
-        ],
-        metadata: {
-          // Minimal checkout session metadata - only what's needed for checkout UI
-          eventId: eventId,
-          expertName: meetingMetadata.expertName,
-          guestEmail: meetingMetadata.guestEmail,
-          startTime: meetingMetadata.startTime,
+          quantity: 1,
         },
-        success_url: `${baseUrl}/${meetingMetadata.locale ? `${meetingMetadata.locale}/` : ''}${username}/${eventSlug}/success?session_id={CHECKOUT_SESSION_ID}&startTime=${encodeURIComponent(
-          meetingMetadata.startTime,
-        )}`,
-        cancel_url: `${baseUrl}/${meetingMetadata.locale ? `${meetingMetadata.locale}/` : ''}${username}/${eventSlug}?s=2&d=${encodeURIComponent(
-          meetingData.date,
-        )}&t=${encodeURIComponent(meetingMetadata.startTime)}&n=${encodeURIComponent(
-          meetingMetadata.guestName,
-        )}&e=${encodeURIComponent(
-          meetingMetadata.guestEmail,
-        )}&tz=${encodeURIComponent(meetingMetadata.timezone)}`,
-        expires_at: Math.floor(paymentExpiresAt.getTime() / 1000), // Stripe expects Unix timestamp
-      } as Stripe.Checkout.SessionCreateParams),
-    );
+      ],
+      mode: 'payment',
+      success_url: `${baseUrl}/${locale}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/${locale}/${username}/${eventSlug}`,
+      customer_email: meetingMetadata.guestEmail,
+      expires_at: Math.floor(paymentExpiresAt.getTime() / 1000),
+      payment_intent_data: {
+        application_fee_amount: platformFee,
+        transfer_data: {
+          destination: expertStripeAccountId,
+        },
+        metadata: {
+          meetingData: JSON.stringify(meetingMetadata),
+          expertAmount: expertAmount.toString(),
+          platformFee: platformFee.toString(),
+          transferStatus: PAYMENT_TRANSFER_STATUS_PENDING,
+          expertConnectAccountId: expertStripeAccountId,
+          expertCountry: expertAccount.country || 'Unknown',
+          paymentAgingDays: paymentAgingDays.toString(),
+          remainingDelayDays: remainingDelayDays.toString(),
+          requiredPayoutDelay: requiredPayoutDelay.toString(),
+          requiresApproval: requiresApproval.toString(),
+          scheduledTransferTime: scheduledTransferTime.toISOString(),
+        },
+      },
+    });
+
+    // Create slot reservation for delayed payment methods (if needed)
+    if (reservationExpiresAt && paymentMethodTypes.includes('multibanco')) {
+      try {
+        await db.insert(SlotReservationTable).values({
+          eventId: meetingMetadata.eventId,
+          clerkUserId: meetingMetadata.expertClerkUserId,
+          guestEmail: meetingMetadata.guestEmail,
+          startTime: new Date(meetingMetadata.startTime),
+          endTime: new Date(
+            new Date(meetingMetadata.startTime).getTime() + meetingMetadata.duration * 60 * 1000,
+          ),
+          expiresAt: reservationExpiresAt,
+          stripePaymentIntentId: null, // Will be updated when PI is created
+          stripeSessionId: session.id,
+        });
+
+        console.log(
+          `🔒 Slot reserved until ${reservationExpiresAt.toISOString()} for ${meetingMetadata.guestEmail}`,
+        );
+      } catch (error) {
+        console.error('Failed to create slot reservation:', error);
+        // Continue anyway - the payment flow should still work
+      }
+    }
 
     console.log('Checkout session created successfully:', {
       sessionId: session.id,

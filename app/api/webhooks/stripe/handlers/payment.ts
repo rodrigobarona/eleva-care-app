@@ -1,5 +1,11 @@
 import { db } from '@/drizzle/db';
-import { EventTable, MeetingTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import {
+  EventTable,
+  MeetingTable,
+  PaymentTransferTable,
+  SlotReservationTable,
+  UserTable,
+} from '@/drizzle/schema';
 import {
   PAYMENT_TRANSFER_STATUS_DISPUTED,
   PAYMENT_TRANSFER_STATUS_FAILED,
@@ -191,6 +197,21 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               console.log(
                 `Calendar event created and meeting URL updated for meeting ${meeting.id}`,
               );
+            }
+
+            // Clean up slot reservation if it exists
+            try {
+              const deletedReservation = await db
+                .delete(SlotReservationTable)
+                .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id))
+                .returning();
+
+              if (deletedReservation.length > 0) {
+                console.log(`🧹 Cleaned up slot reservation for payment ${paymentIntent.id}`);
+              }
+            } catch (cleanupError) {
+              console.error('Failed to clean up slot reservation:', cleanupError);
+              // Continue execution - this is not critical
             }
           }
         } catch (calendarError) {

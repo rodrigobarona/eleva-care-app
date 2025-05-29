@@ -1,11 +1,12 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { MeetingTable } from '@/drizzle/schema';
+import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { logAuditEvent } from '@/lib/logAuditEvent';
 import { meetingActionSchema } from '@/schema/meetings';
 import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalendar';
+import type { Meeting } from '@/types/meeting';
 import { addMinutes } from 'date-fns';
 import { headers } from 'next/headers';
 import 'use-server';
@@ -116,6 +117,36 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         code: 'SLOT_ALREADY_BOOKED',
         message:
           'This time slot has just been booked by another user. Please choose a different time.',
+      };
+    }
+
+    // Step 3.5: Check for active slot reservations by other users
+    const conflictingReservation = await db.query.SlotReservationTable.findFirst({
+      where: (fields, operators) =>
+        operators.and(
+          operators.eq(fields.eventId, data.eventId),
+          operators.eq(fields.startTime, data.startTime),
+          operators.ne(fields.guestEmail, data.guestEmail),
+          operators.gt(fields.expiresAt, new Date()), // Only active reservations
+        ),
+    });
+
+    if (conflictingReservation) {
+      console.error('Time slot is currently reserved by another user:', {
+        eventId: data.eventId,
+        startTime: data.startTime,
+        requestingUser: data.guestEmail,
+        existingReservation: {
+          id: conflictingReservation.id,
+          email: conflictingReservation.guestEmail,
+          expiresAt: conflictingReservation.expiresAt,
+        },
+      });
+      return {
+        error: true,
+        code: 'SLOT_TEMPORARILY_RESERVED',
+        message:
+          'This time slot is temporarily reserved by another user. Please choose a different time or try again later.',
       };
     }
 
