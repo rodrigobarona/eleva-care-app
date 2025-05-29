@@ -186,6 +186,71 @@ export async function GET() {
   );
 }
 
+/**
+ * Helper function to validate critical meeting metadata fields
+ * @throws {Error} if any required field is missing or invalid
+ */
+function validateMeetingMetadata(
+  metadata: ParsedMeetingMetadata,
+  sessionId: string,
+  rawMetadata?: string,
+): void {
+  const missingFields = [];
+
+  if (!metadata.id) missingFields.push('id');
+  if (!metadata.expert) missingFields.push('expert');
+  if (!metadata.guest) missingFields.push('guest');
+  if (!metadata.start) missingFields.push('start');
+  if (typeof metadata.dur !== 'number' || metadata.dur <= 0) missingFields.push('duration');
+
+  if (missingFields.length > 0) {
+    console.error('Critical meeting metadata missing or invalid:', {
+      sessionId,
+      missingFields,
+      metadata,
+      rawMetadata,
+    });
+    throw new Error(`Critical meeting metadata is missing or invalid: ${missingFields.join(', ')}`);
+  }
+}
+
+/**
+ * Helper function to validate critical transfer metadata fields
+ * @throws {Error} if any required field is missing or invalid
+ */
+function validateTransferMetadata(
+  metadata: ParsedTransferMetadata,
+  sessionId: string,
+  rawMetadata?: string,
+): void {
+  const missingFields = [];
+
+  if (!metadata.account) missingFields.push('account');
+  if (!metadata.country) missingFields.push('country');
+  if (!metadata.scheduled) missingFields.push('scheduled');
+
+  // Validate delay object structure
+  if (!metadata.delay || typeof metadata.delay !== 'object') {
+    missingFields.push('delay configuration');
+  } else {
+    if (typeof metadata.delay.aging !== 'number') missingFields.push('delay.aging');
+    if (typeof metadata.delay.remaining !== 'number') missingFields.push('delay.remaining');
+    if (typeof metadata.delay.required !== 'number') missingFields.push('delay.required');
+  }
+
+  if (missingFields.length > 0) {
+    console.error('Critical transfer metadata missing or invalid:', {
+      sessionId,
+      missingFields,
+      metadata,
+      rawMetadata,
+    });
+    throw new Error(
+      `Critical transfer metadata is missing or invalid: ${missingFields.join(', ')}`,
+    );
+  }
+}
+
 async function handleCheckoutSession(session: StripeCheckoutSession) {
   console.log('Starting checkout session processing:', {
     sessionId: session.id,
@@ -216,7 +281,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       throw new Error('Missing meeting metadata in session. Cannot process meeting.');
     }
 
-    // Parse metadata chunks with proper typing
+    // Parse metadata chunks with proper typing and validation
     const meetingData = parseMetadata<ParsedMeetingMetadata>(session.metadata.meeting, {
       id: '',
       expert: '',
@@ -224,26 +289,27 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       start: '',
       dur: 0,
     });
+
+    // Validate critical meeting metadata
+    validateMeetingMetadata(meetingData, session.id, session.metadata.meeting);
+
     const paymentData = parseMetadata<ParsedPaymentMetadata>(session.metadata.payment, {
       amount: '0',
       fee: '0',
       expert: '0',
     });
+
     const transferData = parseMetadata<ParsedTransferMetadata>(session.metadata.transfer, {
-      status: 'PENDING',
+      status: PAYMENT_TRANSFER_STATUS_PENDING,
       account: '',
       country: '',
       delay: { aging: 0, remaining: 0, required: 0 },
-      scheduled: new Date().toISOString(),
+      scheduled: '',
     });
 
-    // Validate essential fields
-    if (!meetingData.id || !meetingData.expert || !meetingData.start || !meetingData.guest) {
-      console.error('Essential fields missing from meeting metadata:', {
-        sessionId: session.id,
-        meetingData,
-      });
-      throw new Error('Essential fields missing from meeting metadata.');
+    // Validate critical transfer metadata if payment intent exists
+    if (session.payment_intent) {
+      validateTransferMetadata(transferData, session.id, session.metadata.transfer);
     }
 
     // If we have a Clerk user ID, ensure synchronization
@@ -292,7 +358,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       meetingId: result.meeting?.id,
     });
 
-    // Create payment transfer record if it doesn't exist
+    // Create payment transfer record if payment intent exists
     if (session.payment_intent) {
       await createPaymentTransferIfNotExists({
         session,
@@ -348,6 +414,15 @@ async function createPaymentTransferIfNotExists({
     return;
   }
 
+  // Validate required fields before insertion
+  if (!session.payment_intent) {
+    throw new Error('Payment intent ID is required for transfer record creation');
+  }
+
+  if (!transferData.account) {
+    throw new Error('Expert Connect account ID is required for transfer record creation');
+  }
+
   // Parse and validate payment amounts
   const amount = Number.parseInt(paymentData.expert, 10);
   const platformFee = Number.parseInt(paymentData.fee, 10);
@@ -371,9 +446,9 @@ async function createPaymentTransferIfNotExists({
     throw new Error(`Invalid platform fee: ${paymentData.fee}`);
   }
 
-  // Create new transfer record
+  // Create new transfer record with validated data
   await db.insert(PaymentTransferTable).values({
-    paymentIntentId: session.payment_intent || '',
+    paymentIntentId: session.payment_intent,
     checkoutSessionId: session.id,
     eventId: meetingData.id,
     expertConnectAccountId: transferData.account,
@@ -383,7 +458,7 @@ async function createPaymentTransferIfNotExists({
     currency: session.currency || 'eur',
     sessionStartTime: new Date(meetingData.start),
     scheduledTransferTime: new Date(transferData.scheduled),
-    status: PAYMENT_TRANSFER_STATUS_PENDING, // Always start with PENDING status
+    status: PAYMENT_TRANSFER_STATUS_PENDING,
     requiresApproval: session.metadata?.approval === 'true',
     created: new Date(),
     updated: new Date(),
