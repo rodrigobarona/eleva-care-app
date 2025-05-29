@@ -15,6 +15,7 @@ export function FooterContentWrapper({
   const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    const currentRef = ref.current; // Store ref value
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -25,16 +26,16 @@ export function FooterContentWrapper({
       {
         rootMargin: '0px 0px 100px 0px', // Trigger when 100px from viewport bottom
         threshold: 0.01, // Trigger if even 1% is visible
-      }
+      },
     );
 
-    if (ref.current) {
-      observer.observe(ref.current);
+    if (currentRef) {
+      observer.observe(currentRef);
     }
 
     return () => {
-      if (ref.current) {
-        observer.unobserve(ref.current);
+      if (currentRef) {
+        observer.unobserve(currentRef);
       }
       observer.disconnect();
     };
