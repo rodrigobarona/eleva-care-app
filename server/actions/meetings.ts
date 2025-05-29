@@ -1,12 +1,11 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema';
+import { MeetingTable } from '@/drizzle/schema';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { logAuditEvent } from '@/lib/logAuditEvent';
 import { meetingActionSchema } from '@/schema/meetings';
 import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalendar';
-import type { Meeting } from '@/types/meeting';
 import { addMinutes } from 'date-fns';
 import { headers } from 'next/headers';
 import 'use-server';
