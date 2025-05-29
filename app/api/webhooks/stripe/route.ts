@@ -38,42 +38,79 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
 
 // Note: Configuration is in route.config.ts to ensure Next.js properly applies settings
 
-// Interface for meeting data stored in Stripe metadata
+/**
+ * Interface for meeting data stored in Stripe metadata.
+ * Fields are intentionally abbreviated to reduce metadata size while maintaining readability.
+ */
 interface ParsedMeetingMetadata {
+  /** Event ID from the database */
   id: string;
+  /** Expert's Clerk user ID */
   expert: string;
+  /** Guest's email address */
   guest: string;
-  guestName?: string; // Add optional guest name
+  /** Optional guest's display name */
+  guestName?: string;
+  /** ISO 8601 formatted start time */
   start: string;
+  /** Duration in minutes */
   dur: number;
+  /** ISO language code (e.g., 'en', 'es', 'pt') */
   locale?: string;
-  timezone?: string; // Add optional timezone
+  /** IANA timezone identifier (e.g., 'Europe/London') */
+  timezone?: string;
 }
 
+/**
+ * Interface for payment data stored in Stripe metadata.
+ * Fields are abbreviated to minimize metadata size.
+ */
 interface ParsedPaymentMetadata {
+  /** Total payment amount in cents */
   amount: string;
+  /** Platform fee amount in cents */
   fee: string;
+  /** Expert's payout amount in cents */
   expert: string;
 }
 
+/**
+ * Interface for transfer data stored in Stripe metadata.
+ * Contains information about the payout to the expert.
+ */
 interface ParsedTransferMetadata {
+  /** Current transfer status */
   status: string;
+  /** Expert's Stripe Connect account ID */
   account: string;
+  /** Expert's country code (ISO 3166-1 alpha-2) */
   country: string;
+  /** Delay configuration for the payout */
   delay: {
+    /** Days between payment and session */
     aging: number;
+    /** Days remaining until payout */
     remaining: number;
+    /** Total required delay in days */
     required: number;
   };
+  /** ISO 8601 timestamp for scheduled payout */
   scheduled: string;
 }
 
+/**
+ * Extended Stripe Checkout Session type with our custom metadata.
+ */
 interface StripeCheckoutSession extends Stripe.Checkout.Session {
   metadata: {
-    meeting?: string; // JSON string of ParsedMeetingMetadata
-    payment?: string; // JSON string of ParsedPaymentMetadata
-    transfer?: string; // JSON string of ParsedTransferMetadata
-    approval?: string; // 'true' | 'false'
+    /** JSON string of ParsedMeetingMetadata */
+    meeting?: string;
+    /** JSON string of ParsedPaymentMetadata */
+    payment?: string;
+    /** JSON string of ParsedTransferMetadata */
+    transfer?: string;
+    /** Whether the payout requires manual approval */
+    approval?: string;
   };
   application_fee_amount?: number | null;
   payment_intent: string | null;
