@@ -229,10 +229,8 @@ export async function POST(request: Request) {
                 minute: '2-digit',
                 timeZoneName: 'short',
               })}`,
-              tax_code: 'txcd_20103200', // Healthcare Provider Services
             },
             unit_amount: price,
-            tax_behavior: 'exclusive',
           },
           quantity: 1,
         },
