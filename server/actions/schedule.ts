@@ -114,8 +114,8 @@ export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema
   // Log the schedule update for audit purposes
   await logAuditEvent(
     userId,
-    'update',
-    'schedules',
+    'SCHEDULE_UPDATED',
+    'schedule',
     scheduleId,
     oldSchedule ?? null,
     { ...scheduleData, availabilities },

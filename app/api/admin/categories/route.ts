@@ -43,7 +43,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    const newCategory = await db
+    const newCategory = (await db
       .insert(CategoryTable)
       .values({
         name,
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
         image: image || null,
         parentId: parentId === 'null' ? null : parentId || null,
       })
-      .returning();
+      .returning()) as Array<typeof CategoryTable.$inferSelect>;
 
     return NextResponse.json(newCategory[0]);
   } catch (error) {

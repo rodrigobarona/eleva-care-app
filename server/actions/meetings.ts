@@ -185,8 +185,8 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       // Step 9: Log audit event
       await logAuditEvent(
         data.clerkUserId,
-        'create',
-        'meetings',
+        'MEETING_CREATED',
+        'meeting',
         data.eventId,
         null,
         {

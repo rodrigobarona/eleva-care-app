@@ -56,7 +56,14 @@ export async function POST(request: Request) {
     const event = await db.query.EventTable.findFirst({
       where: eq(EventTable.id, eventId),
       with: {
-        user: true,
+        user: {
+          columns: {
+            stripeConnectAccountId: true,
+            firstName: true,
+            lastName: true,
+            country: true,
+          },
+        },
       },
     });
 

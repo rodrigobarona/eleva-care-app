@@ -1,4 +1,8 @@
 import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
+import {
+  PAYMENT_TRANSFER_STATUS_PENDING,
+  PAYMENT_TRANSFER_STATUSES,
+} from '@/lib/constants/payment-transfers';
 import type { SocialMediaPlatform } from '@/lib/constants/social-media';
 import { relations } from 'drizzle-orm';
 import {
@@ -9,7 +13,6 @@ import {
   json,
   pgEnum,
   pgTable,
-  pgEnum,
   serial,
   text,
   timestamp,
@@ -208,7 +211,7 @@ export const CategoryTable = pgTable('categories', {
   name: text('name').notNull().unique(),
   description: text('description'),
   image: text('image'),
-  parentId: uuid('parentId').references((): any => CategoryTable.id),
+  parentId: uuid('parentId'),
   createdAt,
   updatedAt,
 });
@@ -439,15 +442,10 @@ export const recordsRelations = relations(RecordTable, ({ one }) => ({
  * a delay from the session time) or require manual approval.
  */
 // Define the enum for payment transfer status
-export const paymentTransferStatusEnum = pgEnum('payment_transfer_status_enum', [
-  'PENDING', // Default state, awaiting processing or scheduled time
-  'APPROVED', // Manually approved for payout
-  'READY', // Conditions met, ready for cron job to pick up (internal state after checks)
-  'COMPLETED', // Successfully transferred to expert's Stripe account
-  'FAILED', // Transfer attempt failed
-  'REFUNDED', // Associated payment was refunded, so transfer is effectively void
-  'DISPUTED', // Associated payment is under dispute
-]);
+export const paymentTransferStatusEnum = pgEnum(
+  'payment_transfer_status_enum',
+  PAYMENT_TRANSFER_STATUSES,
+);
 
 export const PaymentTransferTable = pgTable('payment_transfers', {
   id: serial('id').primaryKey(),
@@ -461,7 +459,7 @@ export const PaymentTransferTable = pgTable('payment_transfers', {
   platformFee: integer('platform_fee').notNull(),
   sessionStartTime: timestamp('session_start_time').notNull(),
   scheduledTransferTime: timestamp('scheduled_transfer_time').notNull(),
-  status: paymentTransferStatusEnum('status').notNull().default('PENDING'),
+  status: paymentTransferStatusEnum('status').notNull().default(PAYMENT_TRANSFER_STATUS_PENDING),
   transferId: text('transfer_id'),
   stripeErrorCode: text('stripe_error_code'),
   stripeErrorMessage: text('stripe_error_message'),

@@ -52,7 +52,7 @@ const ExpertsSection = async () => {
         rating: '5.0',
         isTopExpert: profile.isTopExpert,
         isVerified: profile.isVerified,
-        category: profile.primaryCategory?.name || '',
+        category: (profile.primaryCategory as { name: string } | null)?.name || '',
       };
     }),
   );
