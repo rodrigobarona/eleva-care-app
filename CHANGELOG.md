@@ -9,69 +9,104 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.1] - 2025-05-29
 
+### Added
+
+- **Slot Reservation System**:
+
+  - Implemented temporary slot reservations during payment processing
+  - Added support for delayed payment methods (e.g., Multibanco)
+  - Created database schema for slot reservations and scheduling
+  - Integrated reservation-aware scheduling logic
+  - Added conflict detection for active reservations
+  - Enhanced UI to display both confirmed appointments and pending reservations
+
 - **Automated Cleanup System**:
-  - Added new QStash cron job for cleaning up expired blocked dates
-  - Implemented timezone-aware cleanup to respect each blocked date's local timezone
-  - Added detailed logging for cleanup operations with timezone context
-  - Integrated with existing QStash schedule management system
 
-### Technical Improvements & Roadmap
+  - New QStash cron job for cleaning expired slot reservations (15-minute intervals)
+  - Added timezone-aware cleanup for expired blocked dates (daily)
+  - Implemented efficient batch deletion with comprehensive error handling
+  - Enhanced logging with timezone context and operation details
 
-- **Extended Proactive Payment Monitoring**:
-
-  - SEPA Direct Debit: mandate expiration vs meeting time detection
-  - Klarna: payment deadline vs meeting time validation
-  - Bank transfers: processing time vs meeting urgency assessment
-  - Regional payment methods: time-sensitive voucher monitoring
-  - Unified framework for payment method edge case detection
-
-- **Comprehensive Audit Logging Expansion**:
-
-  - Profile updates and role changes tracking
-  - Admin actions and system modifications logging
-  - User synchronization events with detailed metadata
-  - File upload operations with security validation
-  - Event order changes and chronological tracking
-  - Cron job database modifications monitoring
-
-- **Enhanced Security & Compliance**:
-
-  - Patient/Guest secure API for medical records access
-  - File upload security review with server-side validation
-  - Encryption key management policy documentation
-  - Security headers implementation in middleware/Next.js
-  - Data minimization strategies across all endpoints
-
-- **Platform & Integration Improvements**:
-  - Stripe Connect payout delay initialization corrections
-  - Google Calendar event cancellation automation
-  - Console log management and structured logging
-  - Cron job simplification and reliability improvements
-
-### Technical
-
-- **Automated Database Maintenance**:
-  - Created new `cleanup-blocked-dates` endpoint with timezone-aware date comparison
-  - Enhanced QStash configuration to include new cleanup schedule
-  - Implemented efficient batch deletion for expired blocked dates
-  - Added comprehensive error handling and logging
-  - Integrated with existing QStash postbuild automation
+- **Enhanced Payment Flow**:
+  - Dynamic payment method selection based on meeting proximity
+  - Deferred calendar event creation for pending payments
+  - Stripe webhook integration for payment intent tracking
+  - Automatic reservation cleanup on payment success
+  - Improved payment expiration time calculations
 
 ### Changed
 
-- **Cron Job Management**:
-  - Centralized QStash schedule configuration in `setup-qstash-schedules.ts`
+- **Appointment Management**:
+
+  - Updated appointments page to handle both confirmed and pending states
+  - Added visual distinctions for reservation status
+  - Implemented expiration warnings for pending reservations
+  - Improved timezone handling across scheduling components
+
+- **API Enhancements**:
+
+  - Refactored payment intent creation with reservation support
+  - Enhanced Stripe webhook handlers for payment status tracking
+  - Updated meeting creation flow with reservation checks
+  - Improved valid time calculations considering reservations
+
+- **System Architecture**:
+  - Centralized QStash schedule configuration
   - Enhanced schedule creation with proper error handling
-  - Improved logging for schedule creation and updates
-  - Added timezone context to cleanup operations
+  - Improved logging system with structured data
+  - Updated middleware for cron job authentication
 
 ### Fixed
 
 - **Timezone Handling**:
-  - Fixed potential timezone-related issues in blocked dates cleanup
-  - Ensured dates are only deleted when expired in their local timezone
-  - Improved date comparison logic to handle timezone edge cases
-  - Enhanced logging to include timezone context for better debugging
+  - Resolved timezone-related issues in blocked dates cleanup
+  - Fixed date comparison logic for timezone edge cases
+  - Enhanced logging with timezone context
+  - Improved date handling in reservation system
+
+### Documentation
+
+- **Technical Documentation**:
+
+  - Added comprehensive cron job documentation
+  - Updated API endpoint descriptions
+  - Enhanced security and authentication guidelines
+  - Added database schema and migration documentation
+
+- **User Interface**:
+  - Updated terminology from "Customers" to "Patients"
+  - Enhanced UI text for clarity
+  - Added tooltips and help text for reservation status
+
+### Testing
+
+- **New Test Coverage**:
+  - Added tests for reservation conflict detection
+  - Implemented tests for expired reservation handling
+  - Added timezone-aware date cleanup tests
+  - Enhanced payment flow test coverage
+
+### Technical Details
+
+- **Database Changes**:
+
+  - Added `slot_reservations` table with temporal constraints
+  - Implemented payment status tracking
+  - Added reservation-payment linking
+  - Enhanced blocked dates schema
+
+- **API Endpoints**:
+
+  - `/api/cron/cleanup-expired-reservations`: 15-minute cleanup cycle
+  - `/api/cron/cleanup-blocked-dates`: Daily timezone-aware cleanup
+  - Enhanced `/api/appointments` with reservation support
+  - Updated `/api/create-payment-intent` with dynamic payment methods
+
+- **Security**:
+  - Enhanced cron job authentication
+  - Improved payment flow security
+  - Added reservation validation checks
+  - Enhanced data access controls
 
 ## [0.3.0] - 2025-05-27
 
