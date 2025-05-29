@@ -26,6 +26,11 @@ const SCHEDULE_CONFIGS = [
     endpoint: '/api/cron/cleanup-expired-reservations',
     schedule: { cron: '*/15 * * * *' }, // Every 15 minutes
   },
+  {
+    name: 'cleanup-blocked-dates',
+    endpoint: '/api/cron/cleanup-blocked-dates',
+    schedule: { cron: '0 0 * * *' }, // Daily at midnight UTC
+  },
 ];
 
 interface ScheduleResult {
