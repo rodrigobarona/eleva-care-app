@@ -92,7 +92,6 @@ export async function POST(request: Request) {
       expertName: `${event.user.firstName || ''} ${event.user.lastName || ''}`.trim() || 'Expert',
       guestName: meetingData.guestName,
       guestEmail: meetingData.guestEmail,
-      notes: meetingData.guestNotes?.split('\n')[0] || '',
       start: meetingData.startTime,
       duration: event.durationInMinutes,
       tz: meetingData.timezone,
@@ -100,6 +99,10 @@ export async function POST(request: Request) {
       loc: meetingData.locale || 'en',
       locale: meetingData.locale || 'en',
     };
+
+    // Store guest notes separately in the database if needed
+    // We don't include them in Stripe metadata to avoid size limits
+    // The notes will be available through the meeting record
 
     console.log('Prepared meeting metadata for Stripe:', meetingMetadata);
 
