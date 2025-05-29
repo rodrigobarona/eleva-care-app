@@ -7,7 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.1] - 2025-05-29
+## [0.3.2] - 2025-05-29
+
+### Changed
+
+- **Stripe Webhook Handlers**:
+  - Updated webhook handlers to support new metadata structure
+  - Split metadata into logical chunks (meeting, payment, transfer)
+  - Improved error handling and validation
+  - Enhanced type safety with proper interfaces and JSDoc documentation
+  - Added helper functions for metadata parsing
+  - Refactored checkout session processing for better maintainability
+  - Added validation for numeric parsing in payment amounts
+  - Improved guest name and timezone handling
+  - Enhanced payment transfer record creation with proper validation
+
+### Fixed
+
+- **Stripe Metadata Optimization**:
+  - Fixed metadata size limit issue in payment intent creation
+  - Optimized meeting metadata structure to stay under 500 characters
+  - Split metadata into logical chunks (meeting, payment, transfer)
+  - Shortened field names and removed redundant information
+  - Improved error handling for metadata validation
+  - Fixed redundant customer_email in checkout session creation
+  - Enhanced guest name derivation from email with proper formatting
+  - Added proper validation for payment amounts and transfer data
+  - Improved timezone handling with explicit IANA timezone identifiers
 
 ### Added
 
@@ -45,6 +71,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Stripe webhook integration for payment intent tracking
   - Automatic reservation cleanup on payment success
   - Improved payment expiration time calculations
+  - Added comprehensive validation for payment amounts
+  - Enhanced error handling with detailed logging
+  - Improved metadata parsing with type safety
+
+## [0.3.1] - 2025-05-29
 
 ### Changed
 

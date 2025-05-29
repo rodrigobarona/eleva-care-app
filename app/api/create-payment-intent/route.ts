@@ -87,32 +87,22 @@ export async function POST(request: Request) {
 
     // Prepare meeting metadata
     const meetingMetadata = {
-      eventId: eventId,
-      expertClerkUserId: event.clerkUserId,
+      eventId,
+      expertId: event.clerkUserId,
       expertName: `${event.user.firstName || ''} ${event.user.lastName || ''}`.trim() || 'Expert',
       guestName: meetingData.guestName,
       guestEmail: meetingData.guestEmail,
-      guestNotes: meetingData.guestNotes,
-      startTime: meetingData.startTime,
-      startTimeFormatted:
-        meetingData.startTimeFormatted ||
-        (meetingData.locale
-          ? new Date(meetingData.startTime).toLocaleString(meetingData.locale, {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZoneName: 'short',
-            })
-          : new Date(meetingData.startTime).toISOString()),
+      start: meetingData.startTime,
       duration: event.durationInMinutes,
-      timezone: meetingData.timezone,
-      price: price,
+      tz: meetingData.timezone,
+      price,
+      loc: meetingData.locale || 'en',
       locale: meetingData.locale || 'en',
-      isEuropeanCustomer: meetingData.timezone?.includes('Europe') ? 'true' : 'false',
-      preferredTaxHandling: 'vat_only',
     };
+
+    // Store guest notes separately in the database if needed
+    // We don't include them in Stripe metadata to avoid size limits
+    // The notes will be available through the meeting record
 
     console.log('Prepared meeting metadata for Stripe:', meetingMetadata);
 
@@ -229,16 +219,20 @@ export async function POST(request: Request) {
             currency: 'eur',
             product_data: {
               name: `${event.name} with ${meetingMetadata.expertName}`,
-              description: `${meetingData.duration} minute session on ${meetingData.startTimeFormatted}`,
-              // Healthcare-specific tax codes:
-              // txcd_20103000 - Medical Services (General)
-              // txcd_20103200 - Healthcare Provider Services
-              // txcd_30070000 - Healthcare Services (Zero-rated)
-              // txcd_20103100 - Personal Care Services
-              tax_code: 'txcd_20103200', // Healthcare Provider Services - Most appropriate for physical therapy and medical consultations
+              description: `${meetingMetadata.duration} minute session on ${new Date(
+                meetingMetadata.start,
+              ).toLocaleString(meetingMetadata.loc, {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                timeZoneName: 'short',
+              })}`,
+              tax_code: 'txcd_20103200', // Healthcare Provider Services
             },
             unit_amount: price,
-            tax_behavior: 'exclusive', // Tax calculated separately
+            tax_behavior: 'exclusive',
           },
           quantity: 1,
         },
@@ -246,11 +240,10 @@ export async function POST(request: Request) {
       mode: 'payment',
       success_url: `${baseUrl}/${locale}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/${locale}/${username}/${eventSlug}`,
-      customer_email: meetingMetadata.guestEmail,
+      customer: customerId,
       customer_creation: customerId ? undefined : 'always',
       expires_at: Math.floor(paymentExpiresAt.getTime() / 1000),
       allow_promotion_codes: true,
-
       // Enhanced tax handling
       automatic_tax: {
         enabled: true,
@@ -260,15 +253,12 @@ export async function POST(request: Request) {
         enabled: true,
         required: 'if_supported',
       },
-
       // Billing address collection for tax calculation
       billing_address_collection: 'required',
-
       // Phone number collection for booking confirmation
       phone_number_collection: {
         enabled: true,
       },
-
       // Enhanced terms of service consent
       consent_collection: {
         terms_of_service: 'required',
@@ -278,33 +268,46 @@ export async function POST(request: Request) {
           message: 'I agree to the [Terms of Service](https://eleva.care/legal/terms)',
         },
       },
-
       // Enhanced customer information collection
-      locale: 'auto',
+      locale: meetingData.locale || 'en',
       customer_update: {
         name: 'auto',
         address: 'auto',
       },
       submit_type: 'book',
-
       payment_intent_data: {
         application_fee_amount: platformFee,
         transfer_data: {
           destination: expertStripeAccountId,
         },
         metadata: {
-          meetingData: JSON.stringify(meetingMetadata),
-          expertAmount: expertAmount.toString(),
-          platformFee: platformFee.toString(),
-          originalPrice: price.toString(),
-          transferStatus: PAYMENT_TRANSFER_STATUS_PENDING,
-          expertConnectAccountId: expertStripeAccountId,
-          expertCountry: expertAccount.country || 'Unknown',
-          paymentAgingDays: paymentAgingDays.toString(),
-          remainingDelayDays: remainingDelayDays.toString(),
-          requiredPayoutDelay: requiredPayoutDelay.toString(),
-          requiresApproval: requiresApproval.toString(),
-          scheduledTransferTime: scheduledTransferTime.toISOString(),
+          meeting: JSON.stringify({
+            id: eventId,
+            expert: event.clerkUserId,
+            guest: meetingData.guestEmail,
+            start: meetingData.startTime,
+            dur: event.durationInMinutes,
+          }),
+          payment: JSON.stringify({
+            amount: price.toString(),
+            fee: platformFee.toString(),
+            expert: expertAmount.toString(),
+          }),
+          transfer: JSON.stringify({
+            status: PAYMENT_TRANSFER_STATUS_PENDING,
+            account: expertStripeAccountId,
+            country: expertAccount.country || 'Unknown',
+            delay: {
+              aging: paymentAgingDays,
+              remaining: remainingDelayDays,
+              required: requiredPayoutDelay,
+            },
+            scheduled: scheduledTransferTime.toISOString(),
+          }),
+          approval: requiresApproval.toString(),
+          // Add tax and locale handling at root level of payment intent metadata
+          isEuropeanCustomer: meetingData.timezone?.includes('Europe') ? 'true' : 'false',
+          preferredTaxHandling: 'vat_only',
         },
       },
     });
@@ -315,14 +318,14 @@ export async function POST(request: Request) {
       await db.insert(SlotReservationTable).values({
         id: randomUUID(),
         eventId: event.id,
-        clerkUserId: meetingMetadata.expertClerkUserId,
+        clerkUserId: meetingMetadata.expertId,
         guestEmail: meetingMetadata.guestEmail,
-        startTime: new Date(meetingMetadata.startTime),
+        startTime: new Date(meetingMetadata.start),
         endTime: new Date(
-          new Date(meetingMetadata.startTime).getTime() + meetingMetadata.duration * 60 * 1000,
+          new Date(meetingMetadata.start).getTime() + meetingMetadata.duration * 60 * 1000,
         ),
         expiresAt: reservationExpiresAt,
-        stripePaymentIntentId: null, // Will be updated when PI is created
+        stripePaymentIntentId: null,
         stripeSessionId: session.id,
       });
 
