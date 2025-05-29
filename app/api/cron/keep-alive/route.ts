@@ -1,7 +1,7 @@
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import GoogleCalendarService from '@/server/googleCalendar';
-import { sql } from 'drizzle-orm';
+import { gt, sql } from 'drizzle-orm';
 
 // Keep Alive - Maintains system health and token freshness
 // Performs the following tasks:
@@ -45,15 +45,21 @@ export async function GET(request: Request) {
     // 2. Refresh tokens in batches for users with Google Calendar connected
     const googleCalendarService = GoogleCalendarService.getInstance();
     const batchSize = 50; // Process 50 profiles at a time
-    let offset = 0;
+    let lastUserId: string | undefined;
     let hasMore = true;
 
     while (hasMore) {
-      const profiles = await db
+      const query = db
         .select({ userId: ProfileTable.clerkUserId })
         .from(ProfileTable)
         .limit(batchSize)
-        .offset(offset);
+        .orderBy(ProfileTable.clerkUserId);
+
+      if (lastUserId) {
+        query.where(gt(ProfileTable.clerkUserId, lastUserId));
+      }
+
+      const profiles = await query;
 
       if (profiles.length === 0) {
         hasMore = false;
@@ -61,7 +67,9 @@ export async function GET(request: Request) {
       }
 
       metrics.totalProfiles += profiles.length;
-      console.log(`Processing batch of ${profiles.length} profiles (offset: ${offset})`);
+      console.log(
+        `Processing batch of ${profiles.length} profiles (after: ${lastUserId || 'start'})`,
+      );
 
       // Process batch concurrently with limited parallelism
       await Promise.allSettled(
@@ -92,7 +100,7 @@ export async function GET(request: Request) {
         }),
       );
 
-      offset += batchSize;
+      lastUserId = profiles[profiles.length - 1].userId;
     }
 
     const duration = Date.now() - startTime;
