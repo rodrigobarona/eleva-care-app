@@ -1,6 +1,16 @@
 import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
+import {
+  isValidPaymentStatus,
+  PAYMENT_STATUS_PENDING,
+  PAYMENT_STATUS_SUCCEEDED,
+  type PaymentStatus,
+  STRIPE_PAYMENT_STATUS_NO_PAYMENT_REQUIRED,
+  STRIPE_PAYMENT_STATUS_PAID,
+  STRIPE_PAYMENT_STATUS_UNPAID,
+} from '@/lib/constants/payment-statuses';
+import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { eq } from 'drizzle-orm';
@@ -145,17 +155,41 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
     const locale = parsedMeetingData.locale || 'en';
 
-    // Map Stripe payment status to database enum
-    const mapPaymentStatus = (stripeStatus: string) => {
+    // Map Stripe payment status to database enum with proper validation
+    const mapPaymentStatus = (stripeStatus: string): PaymentStatus => {
       switch (stripeStatus) {
-        case 'paid':
-          return 'succeeded';
-        case 'unpaid':
-          return 'pending';
-        case 'no_payment_required':
-          return 'succeeded'; // Treat as succeeded since no payment is needed
+        case STRIPE_PAYMENT_STATUS_PAID:
+          return PAYMENT_STATUS_SUCCEEDED;
+        case STRIPE_PAYMENT_STATUS_UNPAID:
+          return PAYMENT_STATUS_PENDING;
+        case STRIPE_PAYMENT_STATUS_NO_PAYMENT_REQUIRED:
+          return PAYMENT_STATUS_SUCCEEDED; // Treat as succeeded since no payment is needed
         default:
-          return stripeStatus as 'pending' | 'processing' | 'succeeded' | 'failed' | 'refunded';
+          // Validate if the status is already a valid database payment status
+          if (isValidPaymentStatus(stripeStatus)) {
+            return stripeStatus;
+          }
+
+          // Log warning for unknown statuses and return safe default
+          console.warn(
+            `Unknown Stripe payment status encountered: "${stripeStatus}" for session ${session.id}. ` +
+              `Defaulting to "${PAYMENT_STATUS_PENDING}". Please investigate if this is a new Stripe status.`,
+            {
+              sessionId: session.id,
+              unknownStatus: stripeStatus,
+              validStatuses: [
+                'paid',
+                'unpaid',
+                'no_payment_required',
+                'pending',
+                'processing',
+                'succeeded',
+                'failed',
+                'refunded',
+              ],
+            },
+          );
+          return PAYMENT_STATUS_PENDING;
       }
     };
 
@@ -182,7 +216,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       // If double booking and payment is paid, initiate a refund
       if (
         result.code === 'SLOT_ALREADY_BOOKED' &&
-        session.payment_status === 'paid' &&
+        session.payment_status === STRIPE_PAYMENT_STATUS_PAID &&
         typeof session.payment_intent === 'string'
       ) {
         // Check if a refund already exists for this payment_intent
@@ -287,7 +321,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
         currency: session.currency || 'eur',
         sessionStartTime: sessionStartTime, // from parsedMeetingData.startTime
         scheduledTransferTime: finalScheduledTransferTime, // Calculated value
-        status: 'PENDING',
+        status: PAYMENT_TRANSFER_STATUS_PENDING,
         // requiresApproval still directly from session.metadata as it's not meeting context
         requiresApproval: session.metadata?.requiresApproval === 'true',
         created: new Date(),
