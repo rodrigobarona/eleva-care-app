@@ -51,11 +51,11 @@ export async function GET() {
       reservations: reservations.map((reservation) => ({
         id: reservation.id,
         type: 'reservation' as const,
-        guestName: 'Pending Guest', // We don't store guest name in reservations
+        guestName: reservation.guestEmail,
         guestEmail: reservation.guestEmail,
         startTime: reservation.startTime,
-        endTime: new Date(reservation.startTime.getTime() + 45 * 60 * 1000), // Assume 45min duration
-        timezone: 'UTC', // Reservations are stored in UTC
+        endTime: reservation.endTime,
+        timezone: 'UTC',
         expiresAt: reservation.expiresAt,
         stripeSessionId: reservation.stripeSessionId,
         stripePaymentIntentId: reservation.stripePaymentIntentId,
