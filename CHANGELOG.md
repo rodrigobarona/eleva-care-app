@@ -22,9 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Optimized image loading in `ServicesSection.tsx`, `ApproachSection.tsx`, and `ExpertsSection.tsx` using `next/image` with `loading="lazy"` and responsive `sizes` attributes.
     - Implemented dynamic imports for `ServicesSection` and `ApproachSection` with skeleton loading states.
   - **SVG Optimization**:
-    - Inlined and optimized SVG logo in `HeaderContent.tsx` and auth layout
-    - Added color variant support for better theme integration
-    - Reduced SVG path coordinate precision (~1KB reduction)
+    - Inlined and optimized SVG logo in `HeaderContent.tsx` and auth layout.
+    - Added color variant support for better theme integration.
+    - Reduced SVG path coordinate precision (~1KB reduction).
 
 ### Changed
 
@@ -583,7 +583,9 @@ sequenceDiagram
 
 <!-- Version comparison links -->
 
-[Unreleased]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/rodrigo-barona/eleva-care-app/releases/tag/v0.1.0
