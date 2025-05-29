@@ -275,10 +275,12 @@ export const profileRelations = relations(ProfileTable, ({ many, one }) => ({
   primaryCategory: one(CategoryTable, {
     fields: [ProfileTable.primaryCategoryId],
     references: [CategoryTable.id],
+    relationName: 'primaryCategory',
   }),
   secondaryCategory: one(CategoryTable, {
     fields: [ProfileTable.secondaryCategoryId],
     references: [CategoryTable.id],
+    relationName: 'secondaryCategory',
   }),
 }));
 
