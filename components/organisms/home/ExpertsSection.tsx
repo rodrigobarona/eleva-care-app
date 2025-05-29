@@ -107,6 +107,8 @@ const ExpertsSection = async () => {
                         width={1200}
                         height={1200}
                         className="absolute inset-0 h-full w-full overflow-hidden rounded-xl object-cover"
+                        loading="lazy"
+                        sizes="(max-width: 767px) 90vw, (max-width: 1023px) 45vw, 320px"
                       />
                       {/* Top Expert Badge */}
                       {expert.isTopExpert && (

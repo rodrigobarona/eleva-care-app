@@ -6,6 +6,7 @@ import { Link } from '@/lib/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import NextLink from 'next/link';
 import { useCookieConsent } from 'react-cookie-manager';
+import { FooterContentWrapper } from './FooterContentWrapper';
 
 export default function Footer() {
   const t = useTranslations('footer');
@@ -16,12 +17,13 @@ export default function Footer() {
       <div className="lg:rounded-5xl mx-2 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple">
         <div className="lg:rounded-5xl relative rounded-2xl">
           {/* Frosted glass effect overlay */}
-          <div className="lg:rounded-5xl absolute inset-0 rounded-2xl bg-white/80 backdrop-blur-sm" />
+          <div className="lg:rounded-5xl absolute inset-0 rounded-2xl bg-white/80" />
 
-          <div className="relative px-6 lg:px-8">
-            <div className="mx-auto max-w-2xl lg:max-w-7xl">
-              {/* CTA Section */}
-              <section className="relative my-32">
+          <FooterContentWrapper placeholderHeight="h-96">
+            <div className="relative px-6 lg:px-8">
+              <div className="mx-auto max-w-2xl lg:max-w-7xl">
+                {/* CTA Section */}
+                <section className="relative my-32">
                 <div className="relative pb-16 pt-20 text-center sm:py-24">
                   <h2 className="mx-auto max-w-xs font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
                     {t('cta.title')}
@@ -268,7 +270,7 @@ export default function Footer() {
                 </div>
               </div>
             </div>
-          </div>
+          </FooterContentWrapper>
         </div>
       </div>
     </footer>

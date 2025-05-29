@@ -26,7 +26,8 @@ const Hero = () => {
           muted={true}
           loop={true}
           controls={false}
-          preload="auto"
+          preload="metadata"
+          poster="/img/videos/eleva-care-intro-banner-poster.jpg"
           className="lg:rounded-5xl absolute rounded-2xl object-cover"
         />
       </Suspense>

@@ -16,7 +16,7 @@ const SOCIAL_ICONS = {
   tiktok: Music, // Using Music icon for TikTok since there's no TikTok icon in Lucide
 } as const;
 
-export const revalidate = 0;
+export const revalidate = 60; // Changed from 0 to 60 seconds
 
 function ProfileSkeleton() {
   return (
@@ -84,7 +84,13 @@ export default async function UserLayout(props: PageProps) {
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
         {/* Left Column - Profile Info with Suspense */}
         <React.Suspense fallback={<ProfileSkeleton />}>
-          <ProfileInfo username={username} locale={locale} />
+          <ProfileInfo
+            username={username}
+            locale={locale}
+            clerkUserId={user.id}
+            clerkUserImageUrl={user.imageUrl}
+            clerkUserFullName={user.fullName}
+          />
         </React.Suspense>
 
         {/* Right Column - Content */}
@@ -97,21 +103,26 @@ export default async function UserLayout(props: PageProps) {
 }
 
 // Separate component for profile info
-async function ProfileInfo({ username, locale: _locale }: { username: string; locale: string }) {
-  // Only delay in development
+interface ProfileInfoProps {
+  username: string; // Keep username for potential future use or logging
+  locale: string;
+  clerkUserId: string;
+  clerkUserImageUrl: string;
+  clerkUserFullName: string | null;
+}
 
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-  const users = await clerk.users.getUserList({
-    username: [username],
-  });
-
-  const user = users.data[0];
-  if (!user) return notFound();
+async function ProfileInfo({
+  username: _username, // Renamed to avoid confusion if used directly
+  locale: _locale,
+  clerkUserId,
+  clerkUserImageUrl,
+  clerkUserFullName, // Ensure this is used or remove if not needed
+}: ProfileInfoProps) {
+  // User data is now passed from UserLayout, no need to fetch Clerk user here.
+  // The 'user' object previously fetched here is replaced by passed props.
 
   const profile = await db.query.ProfileTable.findFirst({
-    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
+    where: ({ clerkUserId: profileClerkUserId }, { eq }) => eq(profileClerkUserId, clerkUserId),
     with: {
       primaryCategory: true,
       secondaryCategory: true,
@@ -122,14 +133,14 @@ async function ProfileInfo({ username, locale: _locale }: { username: string; lo
     <div className="space-y-6">
       <div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
         <Image
-          src={profile?.profilePicture || user.imageUrl}
-          alt={user.fullName || 'Profile picture'}
+          src={profile?.profilePicture || clerkUserImageUrl}
+          alt={clerkUserFullName || 'Profile picture'}
           fill
           className="object-cover"
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
           placeholder="blur"
-          blurDataURL={profile?.profilePicture || user.imageUrl}
+          // Removed ineffective blurDataURL={profile?.profilePicture || clerkUserImageUrl}
         />
         {/* Top Expert Badge */}
         {profile?.isTopExpert && (
@@ -143,7 +154,7 @@ async function ProfileInfo({ username, locale: _locale }: { username: string; lo
       <div className="space-y-12">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-medium">
-            {profile ? `${profile.firstName} ${profile.lastName}` : user.fullName}
+            {profile ? `${profile.firstName} ${profile.lastName}` : clerkUserFullName}
             {profile?.isVerified && (
               <Image
                 src="/img/expert-verified-icon.svg"

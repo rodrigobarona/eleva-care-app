@@ -25,7 +25,6 @@ const NavLink = ({ href, isScrolled, isRootPath, children }: NavLinkProps) => (
 );
 
 export function HeaderContent() {
-  const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const pathname = usePathname();
   const t = useTranslations('Header');
@@ -35,7 +34,6 @@ export function HeaderContent() {
   const isRootPath = pathname === '/' || /^\/[a-z]{2}(-[a-z]{2})?$/.test(pathname);
 
   useEffect(() => {
-    setMounted(true);
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 0);
     };
@@ -50,16 +48,6 @@ export function HeaderContent() {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
-
-  if (!mounted) {
-    return (
-      <header className="fixed z-50 w-full justify-between px-6 transition-all lg:px-8">
-        <div className="mx-auto flex max-w-2xl lg:max-w-7xl">
-          <div className="h-8 w-auto lg:h-12" />
-        </div>
-      </header>
-    );
-  }
 
   return (
     <header

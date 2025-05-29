@@ -7,9 +7,18 @@ interface VideoPlayerProps {
   muted?: boolean;
   loop?: boolean;
   controls?: boolean;
-  preload?: string;
+  preload?: 'auto' | 'metadata' | 'none';
   className?: string;
+  poster?: string; // URL for a poster image to show before video loads
 }
+
+// Reminder: To prevent layout shifts, ensure the parent container
+// of this VideoPlayer has defined dimensions or an aspect ratio.
+// Example: <div style={{ width: '100%', aspectRatio: '16/9' }}>
+//            <VideoPlayer src="..." />
+//          </div>
+// Or ensure VideoPlayer itself receives explicit width/height for aspect ratio,
+// and its container controls the final display size.
 export function VideoPlayer({
   width,
   height,
@@ -19,8 +28,9 @@ export function VideoPlayer({
   muted,
   loop,
   controls,
-  preload,
+  preload = 'metadata', // Default preload to metadata for better performance
   className,
+  poster,
 }: VideoPlayerProps) {
   return (
     <video
@@ -34,6 +44,7 @@ export function VideoPlayer({
       controls={controls}
       preload={preload}
       className={className}
+      poster={poster}
     >
       <source src={src} type="video/webm" />
       Your browser does not support the video tag.

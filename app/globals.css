@@ -2,10 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -135,7 +131,10 @@ body {
   }
   body {
     @apply bg-background text-foreground;
-  }
+    /* font-family is handled by next/font and Tailwind config (font-sans) */
+  /* The second body rule from the original file was merged into the one above for tidiness.
+     If it had distinct properties not covered by @apply bg-background text-foreground,
+     they would need to be preserved. In this case, it was identical. */
 }
 
 /* Tiptap editor styles */
