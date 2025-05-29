@@ -20,11 +20,13 @@ const ApproachSection: React.FC = () => {
               <div className="lg:rounded-4xl rounded-xl p-2 shadow-md shadow-eleva-neutral-900/5">
                 <div className="overflow-hidden rounded-xl shadow-2xl outline outline-1 -outline-offset-1 outline-eleva-neutral-900/10 lg:rounded-3xl">
                   <Image
-                    alt=""
+                    alt="Three women posing, representing Eleva Care's approach"
                     src="/img/Three-Women-Posing-Photo.jpg"
                     width={1920}
                     height={1280}
                     className="aspect-[3/4] w-full object-cover"
+                    loading="lazy"
+                    sizes="(max-width: 320px) 100vw, (max-width: 1023px) 80vw, 40vw"
                   />
                 </div>
               </div>

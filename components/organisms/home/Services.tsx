@@ -54,9 +54,11 @@ const ServiceSection: React.FC = () => {
                   <Image
                     src={service.image}
                     alt={service.title}
-                    width={300}
-                    height={450}
+                    width={300} // Base width for aspect ratio and smallest srcset
+                    height={450} // Base height for aspect ratio
                     className="w-full object-cover"
+                    loading="lazy"
+                    sizes="(max-width: 768px) 90vw, (max-width: 1280px) 45vw, 300px"
                   />
                 </div>
               </div>

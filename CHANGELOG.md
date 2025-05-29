@@ -9,6 +9,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.2] - 2025-05-29
 
+### Added
+
+- **Core Web Vitals Optimizations**:
+
+  - **Core Layout Rendering (FCP/LCP)**:
+    - Converted `app/[locale]/(public)/layout.tsx` to a Server Component.
+    - Removed `useEffect`/`setMounted` delay in `HeaderContent.tsx` for faster header rendering.
+    - Implemented deferred rendering for footer content using IntersectionObserver.
+    - Created new `FooterContentWrapper.tsx` component for optimized loading.
+  - **Homepage Content Optimization**:
+    - Enhanced video loading in `Hero.tsx` with `preload="metadata"` and `poster` attributes.
+    - Optimized image loading in `ServicesSection.tsx`, `ApproachSection.tsx`, and `ExpertsSection.tsx` using `next/image` with `loading="lazy"` and responsive `sizes` attributes.
+    - Implemented dynamic imports for `ServicesSection` and `ApproachSection` with skeleton loading states.
+  - **SVG Optimization**:
+    - Inlined and optimized SVG logo in `HeaderContent.tsx` and auth layout.
+    - Added color variant support for better theme integration.
+    - Reduced SVG path coordinate precision (~1KB reduction).
+
+- **Healthcare-Specific Tax Codes**:
+
+  - Implemented proper healthcare service tax codes for Stripe integration.
+  - Added support for different types of healthcare services:
+    - `txcd_20103200` - Healthcare Provider Services (default).
+    - `txcd_20103000` - Medical Services (General).
+    - `txcd_30070000` - Healthcare Services (Zero-rated).
+    - `txcd_20103100` - Personal Care Services.
+  - Added comprehensive documentation in `/docs/stripe-tax-codes.md`.
+  - Enhanced tax compliance for healthcare providers.
+  - Improved tax reporting accuracy for medical services.
+
+- **Slot Reservation System**:
+
+  - Implemented temporary slot reservations during payment processing.
+  - Added support for delayed payment methods (e.g., Multibanco).
+  - Created database schema for slot reservations and scheduling.
+  - Integrated reservation-aware scheduling logic.
+  - Added conflict detection for active reservations.
+  - Enhanced UI to display both confirmed appointments and pending reservations.
+
+- **Automated Cleanup System**:
+
+  - New QStash cron job for cleaning expired slot reservations (15-minute intervals).
+  - Added timezone-aware cleanup for expired blocked dates (daily).
+  - Implemented efficient batch deletion with comprehensive error handling.
+  - Enhanced logging with timezone context and operation details.
+
+- **Enhanced Payment Flow**:
+  - Dynamic payment method selection based on meeting proximity.
+  - Deferred calendar event creation for pending payments.
+  - Stripe webhook integration for payment intent tracking.
+  - Automatic reservation cleanup on payment success.
+  - Improved payment expiration time calculations.
+  - Added comprehensive validation for payment amounts.
+  - Enhanced error handling with detailed logging.
+  - Improved metadata parsing with type safety.
+
 ### Changed
 
 - **Stripe Webhook Handlers**:
@@ -21,6 +77,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added validation for numeric parsing in payment amounts
   - Improved guest name and timezone handling
   - Enhanced payment transfer record creation with proper validation
+- **UI Performance Enhancements**:
+
+  - Removed `backdrop-blur` from `Footer.tsx` for better rendering performance.
+  - Enhanced `VideoPlayer.tsx` with optimized preload settings and container sizing.
+  - Improved scroll event handling in header components.
+  - Added skeleton loading states for dynamically imported sections.
+
+- **Loading & Caching Optimizations**:
+  - Changed page revalidation from `0` to `60` seconds for better ISR performance.
+  - Improved TTFB on dynamic routes by eliminating redundant data fetches.
+  - Removed ineffective `blurDataURL` from `next/image` components.
+  - Optimized font loading by removing redundant `font-family` declarations.
+  - Refactored user data flow in profile pages for better efficiency.
 
 ### Fixed
 
@@ -34,46 +103,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced guest name derivation from email with proper formatting
   - Added proper validation for payment amounts and transfer data
   - Improved timezone handling with explicit IANA timezone identifiers
+- **Layout & Visual Stability**:
+  - Resolved layout shifts in video containers through proper sizing.
+  - Fixed font loading optimization (FOUT) through proper next/font integration.
+  - Implemented skeleton loaders for dynamically imported sections.
 
-### Added
+### Removed
 
-- **Healthcare-Specific Tax Codes**:
-
-  - Implemented proper healthcare service tax codes for Stripe integration
-  - Added support for different types of healthcare services:
-    - `txcd_20103200` - Healthcare Provider Services (default)
-    - `txcd_20103000` - Medical Services (General)
-    - `txcd_30070000` - Healthcare Services (Zero-rated)
-    - `txcd_20103100` - Personal Care Services
-  - Added comprehensive documentation in `/docs/stripe-tax-codes.md`
-  - Enhanced tax compliance for healthcare providers
-  - Improved tax reporting accuracy for medical services
-
-- **Slot Reservation System**:
-
-  - Implemented temporary slot reservations during payment processing
-  - Added support for delayed payment methods (e.g., Multibanco)
-  - Created database schema for slot reservations and scheduling
-  - Integrated reservation-aware scheduling logic
-  - Added conflict detection for active reservations
-  - Enhanced UI to display both confirmed appointments and pending reservations
-
-- **Automated Cleanup System**:
-
-  - New QStash cron job for cleaning expired slot reservations (15-minute intervals)
-  - Added timezone-aware cleanup for expired blocked dates (daily)
-  - Implemented efficient batch deletion with comprehensive error handling
-  - Enhanced logging with timezone context and operation details
-
-- **Enhanced Payment Flow**:
-  - Dynamic payment method selection based on meeting proximity
-  - Deferred calendar event creation for pending payments
-  - Stripe webhook integration for payment intent tracking
-  - Automatic reservation cleanup on payment success
-  - Improved payment expiration time calculations
-  - Added comprehensive validation for payment amounts
-  - Enhanced error handling with detailed logging
-  - Improved metadata parsing with type safety
+- **Component Cleanup**:
+  - Removed `components/atoms/Logo.tsx` component in favor of an inlined SVG implementation.
+  - Removed `Icons.elevaCareLogo` from `components/atoms/icons.tsx`.
+  - Eliminated redundant font declarations from `globals.css`.
+  - Removed unnecessary state management in header components.
+  - Removed `'use client'` directive from public layout for server component optimization.
 
 ## [0.3.1] - 2025-05-29
 
@@ -540,7 +582,9 @@ sequenceDiagram
 
 <!-- Version comparison links -->
 
-[Unreleased]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.1...v0.3.2
+[0.3.1]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/rodrigo-barona/eleva-care-app/releases/tag/v0.1.0
