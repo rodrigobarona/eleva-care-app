@@ -1,8 +1,33 @@
+import { Client } from '@upstash/qstash';
+
 import { isQStashAvailable, scheduleRecurringJob } from './qstash';
 import { getQStashConfigMessage, validateQStashConfig } from './qstash-config';
 
 // Get the base URL for the app
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
+
+// Initialize QStash client
+const qstashClient = new Client({ token: process.env.QSTASH_TOKEN || '' });
+
+/**
+ * Delete all existing QStash schedules
+ */
+async function cleanupExistingSchedules() {
+  try {
+    console.log('🧹 Cleaning up existing schedules...');
+    const schedules = await qstashClient.schedules.list();
+
+    for (const schedule of schedules) {
+      console.log(`Deleting schedule ${schedule.scheduleId}...`);
+      await qstashClient.schedules.delete(schedule.scheduleId);
+    }
+
+    console.log(`✅ Deleted ${schedules.length} schedules`);
+  } catch (error) {
+    console.error('Failed to cleanup schedules:', error);
+    throw error;
+  }
+}
 
 // This maps the cron jobs from vercel.json to QStash schedules
 const SCHEDULE_CONFIGS = [
@@ -14,7 +39,7 @@ const SCHEDULE_CONFIGS = [
   {
     name: 'process-expert-transfers',
     endpoint: '/api/cron/process-expert-transfers',
-    schedule: { interval: '2h' as const }, // Every 2 hours - use const assertion for ScheduleInterval type
+    schedule: { cron: '0 */2 * * *' }, // Every 2 hours (at minute 0)
   },
   {
     name: 'check-upcoming-payouts',
@@ -76,6 +101,9 @@ export async function setupQStashSchedules(): Promise<ScheduleResult[]> {
       error: 'QStash client is not initialized properly.',
     }));
   }
+
+  // First, cleanup existing schedules
+  await cleanupExistingSchedules();
 
   // Proceed with schedule creation
   for (const config of SCHEDULE_CONFIGS) {
