@@ -1,42 +1,34 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
-import { isAdmin } from '@/lib/auth/roles.server';
+import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
+import {
+  PAYMENT_TRANSFER_STATUS_APPROVED,
+  PAYMENT_TRANSFER_STATUS_PENDING,
+} from '@/lib/constants/payment-transfers';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
-import { type NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 /**
  * POST endpoint to manually approve a pending expert transfer
  * This can only be used by administrators and requires a valid transferId
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
+  // Check admin authentication
+  const authResponse = await adminAuthMiddleware();
+  if (authResponse) return authResponse;
+
   try {
-    // Verify admin access
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify admin role using the centralized isAdmin function
-    const userIsAdmin = await isAdmin();
-
-    if (!userIsAdmin) {
-      console.warn(`Non-admin user ${userId} attempted to approve transfer`);
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    // Get transfer ID from request body
-    const body = await request.json();
-    const { transferId, notes } = body;
+    const { transferId } = await request.json();
 
     if (!transferId || typeof transferId !== 'number') {
       return NextResponse.json(
-        { error: 'Invalid request. Transfer ID is required.' },
+        { error: 'Invalid request. Transfer ID is required and must be a number.' },
         { status: 400 },
       );
     }
 
-    // Check if the transfer exists and is in PENDING status
+    // Check if the transfer exists and is in the correct status
     const transfer = await db.query.PaymentTransferTable.findFirst({
       where: eq(PaymentTransferTable.id, transferId),
     });
@@ -45,22 +37,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Transfer not found' }, { status: 404 });
     }
 
-    if (transfer.status !== 'PENDING') {
+    if (transfer.status !== PAYMENT_TRANSFER_STATUS_PENDING) {
       return NextResponse.json(
         {
-          error: `Transfer cannot be approved because it is in ${transfer.status} status`,
-          currentStatus: transfer.status,
+          error: 'Transfer cannot be approved',
+          details: `Transfer is in status: ${transfer.status}, only PENDING transfers can be approved`,
         },
         { status: 400 },
       );
     }
 
-    // Approve the transfer
+    // Get userId for audit logging
+    const { userId } = await auth();
+
+    // Update transfer to approved status
     await db
       .update(PaymentTransferTable)
       .set({
-        status: 'APPROVED',
-        adminNotes: notes || null,
+        status: PAYMENT_TRANSFER_STATUS_APPROVED,
         adminUserId: userId,
         updated: new Date(),
       })

@@ -6,6 +6,7 @@ import { logAuditEvent } from '@/lib/logAuditEvent';
 import { getServerStripe } from '@/lib/stripe';
 import { eventFormSchema } from '@/schema/events';
 import { checkExpertSetupStatus, markStepComplete } from '@/server/actions/expert-setup';
+import { EVENT_CREATED, EVENT_DELETED, EVENT_UPDATED } from '@/types/audit';
 import { auth } from '@clerk/nextjs/server';
 import { and, count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -60,8 +61,8 @@ export async function createEvent(
     // Log the event creation
     await logAuditEvent(
       insertedEvent.userId,
-      'create',
-      'events',
+      EVENT_CREATED,
+      'event',
       insertedEvent.id,
       null,
       { ...data },
@@ -140,8 +141,8 @@ export async function updateEvent(
 
   await logAuditEvent(
     updatedEvent.userId,
-    'update',
-    'events',
+    EVENT_UPDATED,
+    'event',
     updatedEvent.id,
     oldEvent, // Pass the old values here
     { ...data }, // New values
@@ -224,8 +225,8 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
 
     await logAuditEvent(
       deletedEvent.userId,
-      'delete',
-      'events',
+      EVENT_DELETED,
+      'event',
       deletedEvent.id,
       oldEvent,
       'User requested deletion',
@@ -318,10 +319,10 @@ export async function updateEventActiveState(
     // Log the update action
     await logAuditEvent(
       userId,
-      'update',
-      'events',
+      EVENT_UPDATED,
+      'event',
       id,
-      { isActive: event.isActive },
+      event,
       { isActive },
       ipAddress,
       userAgent,

@@ -1,5 +1,12 @@
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import {
+  PAYMENT_TRANSFER_STATUS_DISPUTED,
+  PAYMENT_TRANSFER_STATUS_FAILED,
+  PAYMENT_TRANSFER_STATUS_PENDING,
+  PAYMENT_TRANSFER_STATUS_READY,
+  PAYMENT_TRANSFER_STATUS_REFUNDED,
+} from '@/lib/constants/payment-transfers';
 import { generateAppointmentEmail, sendEmail } from '@/lib/email';
 import { logAuditEvent } from '@/lib/logAuditEvent';
 import { createUserNotification } from '@/lib/notifications';
@@ -157,7 +164,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       // If no transfer record, and meeting was updated, the main goal of confirming meeting payment is achieved.
       // If there should always be a transfer record for a succeeded payment, this is a separate issue.
       // We should still attempt to send guest notification if meeting was found and updated.
-    } else if (transfer?.status === 'PENDING') {
+    } else if (transfer?.status === PAYMENT_TRANSFER_STATUS_PENDING) {
       // Ensure transfer exists before checking status
       // Update transfer status if needed with retry logic only if a transfer record exists
       await withRetry(
@@ -165,7 +172,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           await db
             .update(PaymentTransferTable)
             .set({
-              status: 'READY',
+              status: PAYMENT_TRANSFER_STATUS_READY,
               updated: new Date(),
             })
             .where(eq(PaymentTransferTable.id, transfer.id));
@@ -350,13 +357,16 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
         'This might be normal if the meeting was free or if transfer record creation failed earlier.',
       );
       // If meetingDetails exist, still try to notify guest
-    } else if (transfer.status === 'PENDING' || transfer.status === 'READY') {
+    } else if (
+      transfer.status === PAYMENT_TRANSFER_STATUS_PENDING ||
+      transfer.status === PAYMENT_TRANSFER_STATUS_READY
+    ) {
       await withRetry(
         async () => {
           await db
             .update(PaymentTransferTable)
             .set({
-              status: 'FAILED',
+              status: PAYMENT_TRANSFER_STATUS_FAILED,
               stripeErrorMessage: lastPaymentError, // Store the failure reason
               updated: new Date(),
             })
@@ -504,7 +514,7 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
     await db
       .update(PaymentTransferTable)
       .set({
-        status: 'REFUNDED', // Ensure this matches PaymentTransferTable schema/enum if any
+        status: PAYMENT_TRANSFER_STATUS_REFUNDED, // Ensure this matches PaymentTransferTable schema/enum if any
         updated: new Date(),
       })
       .where(eq(PaymentTransferTable.id, transfer.id));
@@ -549,7 +559,7 @@ export async function handleDisputeCreated(dispute: Stripe.Dispute) {
     await db
       .update(PaymentTransferTable)
       .set({
-        status: 'DISPUTED', // Ensure this matches PaymentTransferTable schema/enum
+        status: PAYMENT_TRANSFER_STATUS_DISPUTED, // Ensure this matches PaymentTransferTable schema/enum
         updated: new Date(),
       })
       .where(eq(PaymentTransferTable.id, transfer.id));

@@ -33,7 +33,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    const updatedCategory = await db
+    const updatedCategory = (await db
       .update(CategoryTable)
       .set({
         name,
@@ -42,7 +42,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
         updatedAt: new Date(),
       })
       .where(eq(CategoryTable.id, params.id))
-      .returning();
+      .returning()) as Array<typeof CategoryTable.$inferSelect>;
 
     if (!updatedCategory.length) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
@@ -84,10 +84,10 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
       );
     }
 
-    const deletedCategory = await db
+    const deletedCategory = (await db
       .delete(CategoryTable)
       .where(eq(CategoryTable.id, params.id))
-      .returning();
+      .returning()) as Array<typeof CategoryTable.$inferSelect>;
 
     if (!deletedCategory.length) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });

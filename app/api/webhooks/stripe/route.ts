@@ -1,6 +1,16 @@
 import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
+import {
+  isValidPaymentStatus,
+  PAYMENT_STATUS_PENDING,
+  PAYMENT_STATUS_SUCCEEDED,
+  type PaymentStatus,
+  STRIPE_PAYMENT_STATUS_NO_PAYMENT_REQUIRED,
+  STRIPE_PAYMENT_STATUS_PAID,
+  STRIPE_PAYMENT_STATUS_UNPAID,
+} from '@/lib/constants/payment-statuses';
+import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { eq } from 'drizzle-orm';
@@ -93,7 +103,10 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
     // Check for required metadata
     if (!session.metadata?.meetingData) {
-      console.error('Missing meetingData in checkout session metadata:', { sessionId: session.id, metadata: session.metadata });
+      console.error('Missing meetingData in checkout session metadata:', {
+        sessionId: session.id,
+        metadata: session.metadata,
+      });
       throw new Error('Missing meetingData in session metadata. Cannot process meeting.');
     }
 
@@ -101,45 +114,98 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     try {
       parsedMeetingData = JSON.parse(session.metadata.meetingData) as ParsedMeetingMetadata;
     } catch (error) {
-      console.error('Failed to parse meetingData from session metadata:', { sessionId: session.id, meetingDataString: session.metadata.meetingData, error });
+      console.error('Failed to parse meetingData from session metadata:', {
+        sessionId: session.id,
+        meetingDataString: session.metadata.meetingData,
+        error,
+      });
       throw new Error('Invalid meetingData format in session metadata.');
     }
 
     // Validate essential fields from parsedMeetingData
-    if (!parsedMeetingData.eventId || !parsedMeetingData.expertClerkUserId || !parsedMeetingData.startTime || !parsedMeetingData.guestEmail) {
-        console.error('Essential fields missing from parsed meetingData:', { sessionId: session.id, parsedMeetingData });
-        throw new Error('Essential fields missing from parsed meetingData.');
+    if (
+      !parsedMeetingData.eventId ||
+      !parsedMeetingData.expertClerkUserId ||
+      !parsedMeetingData.startTime ||
+      !parsedMeetingData.guestEmail
+    ) {
+      console.error('Essential fields missing from parsed meetingData:', {
+        sessionId: session.id,
+        parsedMeetingData,
+      });
+      throw new Error('Essential fields missing from parsed meetingData.');
     }
-    
+
     const eventId = parsedMeetingData.eventId; // eventId is now from meetingData
     const expertClerkUserIdFromMeetingData = parsedMeetingData.expertClerkUserId;
 
     // If we have a Clerk user ID, ensure synchronization
     if (expertClerkUserIdFromMeetingData) {
       try {
-        console.log('Ensuring user synchronization for Clerk user:', expertClerkUserIdFromMeetingData);
+        console.log(
+          'Ensuring user synchronization for Clerk user:',
+          expertClerkUserIdFromMeetingData,
+        );
         await ensureFullUserSynchronization(expertClerkUserIdFromMeetingData);
       } catch (error) {
         console.error('Failed to synchronize user data:', error);
         // Continue processing even if synchronization fails
       }
     }
-    
+
     const locale = parsedMeetingData.locale || 'en';
 
+    // Map Stripe payment status to database enum with proper validation
+    const mapPaymentStatus = (stripeStatus: string): PaymentStatus => {
+      switch (stripeStatus) {
+        case STRIPE_PAYMENT_STATUS_PAID:
+          return PAYMENT_STATUS_SUCCEEDED;
+        case STRIPE_PAYMENT_STATUS_UNPAID:
+          return PAYMENT_STATUS_PENDING;
+        case STRIPE_PAYMENT_STATUS_NO_PAYMENT_REQUIRED:
+          return PAYMENT_STATUS_SUCCEEDED; // Treat as succeeded since no payment is needed
+        default:
+          // Validate if the status is already a valid database payment status
+          if (isValidPaymentStatus(stripeStatus)) {
+            return stripeStatus;
+          }
+
+          // Log warning for unknown statuses and return safe default
+          console.warn(
+            `Unknown Stripe payment status encountered: "${stripeStatus}" for session ${session.id}. ` +
+              `Defaulting to "${PAYMENT_STATUS_PENDING}". Please investigate if this is a new Stripe status.`,
+            {
+              sessionId: session.id,
+              unknownStatus: stripeStatus,
+              validStatuses: [
+                'paid',
+                'unpaid',
+                'no_payment_required',
+                'pending',
+                'processing',
+                'succeeded',
+                'failed',
+                'refunded',
+              ],
+            },
+          );
+          return PAYMENT_STATUS_PENDING;
+      }
+    };
+
     const result = await createMeeting({
-      eventId: eventId, // Sourced from parsedMeetingData
-      clerkUserId: expertClerkUserIdFromMeetingData, // Sourced from parsedMeetingData
+      eventId: eventId,
+      clerkUserId: expertClerkUserIdFromMeetingData,
       startTime: new Date(parsedMeetingData.startTime),
       guestEmail: parsedMeetingData.guestEmail,
       guestName: parsedMeetingData.guestName,
       guestNotes: parsedMeetingData.guestNotes,
       timezone: parsedMeetingData.timezone,
       stripeSessionId: session.id,
-      stripePaymentStatus: session.payment_status,
+      stripePaymentStatus: mapPaymentStatus(session.payment_status),
       stripeAmount: session.amount_total ?? undefined,
       // platformFee is session.application_fee_amount
-      stripeApplicationFeeAmount: session.application_fee_amount ?? undefined, 
+      stripeApplicationFeeAmount: session.application_fee_amount ?? undefined,
       locale: locale,
     });
 
@@ -150,7 +216,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       // If double booking and payment is paid, initiate a refund
       if (
         result.code === 'SLOT_ALREADY_BOOKED' &&
-        session.payment_status === 'paid' &&
+        session.payment_status === STRIPE_PAYMENT_STATUS_PAID &&
         typeof session.payment_intent === 'string'
       ) {
         // Check if a refund already exists for this payment_intent
@@ -179,17 +245,19 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
     // Extract metadata from session for payment transfer
     // expertConnectAccountId is still directly on session.metadata as per create-payment-intent
-    const expertConnectAccountId = session.metadata?.expertConnectAccountId; 
+    const expertConnectAccountId = session.metadata?.expertConnectAccountId;
     // expertClerkUserId is now reliably from parsedMeetingData.expertClerkUserId
     // sessionStartTime is now reliably from parsedMeetingData.startTime
     const sessionStartTime = new Date(parsedMeetingData.startTime);
     // platformFee is directly on the session object as application_fee_amount
     const platformFee = session.application_fee_amount ?? 0;
 
-
     if (!expertConnectAccountId) {
       // This should ideally not happen if create-payment-intent sets it.
-      console.error('Critical: Missing expertConnectAccountId in checkout session metadata:', { sessionId: session.id, metadata: session.metadata });
+      console.error('Critical: Missing expertConnectAccountId in checkout session metadata:', {
+        sessionId: session.id,
+        metadata: session.metadata,
+      });
       // Fail catastrophically if expertConnectAccountId is missing, as payouts will fail.
       throw new Error('Critical: expertConnectAccountId is missing from session metadata.');
     }
@@ -200,14 +268,17 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       const connectAccount = await stripe.accounts.retrieve(expertConnectAccountId);
       expertCountry = connectAccount.country || 'PT';
     } catch (error) {
-      console.warn(`Could not retrieve expert country for Connect account ${expertConnectAccountId}, using default: ${expertCountry}`, error);
+      console.warn(
+        `Could not retrieve expert country for Connect account ${expertConnectAccountId}, using default: ${expertCountry}`,
+        error,
+      );
     }
 
     // Record payment received date (now)
     const paymentReceivedDate = new Date();
     const requiredPayoutDelay = getMinimumPayoutDelay(expertCountry);
     // Use duration from parsedMeetingData
-    const sessionDurationMs = (parsedMeetingData.duration ?? 60) * 60 * 1000; 
+    const sessionDurationMs = (parsedMeetingData.duration ?? 60) * 60 * 1000;
 
     const paymentAgingDays = Math.max(
       0,
@@ -250,9 +321,9 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
         currency: session.currency || 'eur',
         sessionStartTime: sessionStartTime, // from parsedMeetingData.startTime
         scheduledTransferTime: finalScheduledTransferTime, // Calculated value
-        status: 'PENDING',
+        status: PAYMENT_TRANSFER_STATUS_PENDING,
         // requiresApproval still directly from session.metadata as it's not meeting context
-        requiresApproval: session.metadata?.requiresApproval === 'true', 
+        requiresApproval: session.metadata?.requiresApproval === 'true',
         created: new Date(),
         updated: new Date(),
       });

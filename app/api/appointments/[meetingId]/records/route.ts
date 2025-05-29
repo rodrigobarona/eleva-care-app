@@ -44,7 +44,7 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
       .returning();
 
     // Log audit event
-    const headersList = headers();
+    const headersList = await headers();
     try {
       await logAuditEvent(
         clerkUserId,
@@ -73,7 +73,7 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
     console.error('Error creating record:', error);
 
     // Log security-sensitive failures and errors
-    const headersList = headers();
+    const headersList = await headers();
     try {
       const { userId: clerkUserId } = await auth();
       const isSecuritySensitive =
@@ -146,7 +146,7 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
     }));
 
     // Log audit event
-    const headersList = headers();
+    const headersList = await headers();
     try {
       await logAuditEvent(
         clerkUserId,
@@ -172,7 +172,7 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
     console.error('Error fetching records:', error);
 
     // Log security-sensitive failures and errors
-    const headersList = headers();
+    const headersList = await headers();
     try {
       const { userId: clerkUserId } = await auth();
       const isSecuritySensitive =
@@ -249,7 +249,7 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
       .returning();
 
     // Log audit event
-    const headersList = headers();
+    const headersList = await headers();
     try {
       await logAuditEvent(
         clerkUserId,
@@ -284,7 +284,7 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
     console.error('Error updating record:', error);
 
     // Log security-sensitive failures and errors
-    const headersList = headers();
+    const headersList = await headers();
     try {
       const { userId: clerkUserId } = await auth();
       const isSecuritySensitive =

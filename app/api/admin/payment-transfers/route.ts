@@ -1,6 +1,10 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
 import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
+import {
+  PAYMENT_TRANSFER_STATUSES,
+  type PaymentTransferStatus,
+} from '@/lib/constants/payment-transfers';
 import { auth } from '@clerk/nextjs/server';
 import { and, asc, desc, eq, gte, like, lte, sql } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -46,7 +50,16 @@ export async function GET(request: NextRequest) {
     const conditions = [];
 
     if (filters.status) {
-      conditions.push(eq(PaymentTransferTable.status, filters.status));
+      if (!PAYMENT_TRANSFER_STATUSES.includes(filters.status as PaymentTransferStatus)) {
+        return NextResponse.json(
+          {
+            error: 'Invalid status format',
+            details: `Valid statuses are: ${PAYMENT_TRANSFER_STATUSES.join(', ')}`,
+          },
+          { status: 400 },
+        );
+      }
+      conditions.push(eq(PaymentTransferTable.status, filters.status as PaymentTransferStatus));
     }
 
     if (filters.expertId) {

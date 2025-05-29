@@ -2,6 +2,12 @@ import { PAYOUT_DELAY_DAYS, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable, UserTable } from '@/drizzle/schema';
 import {
+  PAYMENT_TRANSFER_STATUS_APPROVED,
+  PAYMENT_TRANSFER_STATUS_COMPLETED,
+  PAYMENT_TRANSFER_STATUS_FAILED,
+  PAYMENT_TRANSFER_STATUS_PENDING,
+} from '@/lib/constants/payment-transfers';
+import {
   createPayoutCompletedNotification,
   createPayoutFailedNotification,
 } from '@/lib/payment-notifications';
@@ -106,12 +112,12 @@ export async function GET(request: Request) {
         or(
           // Regular time-based transfers
           and(
-            eq(PaymentTransferTable.status, 'PENDING'),
+            eq(PaymentTransferTable.status, PAYMENT_TRANSFER_STATUS_PENDING),
             lte(PaymentTransferTable.scheduledTransferTime, now),
             eq(PaymentTransferTable.requiresApproval, false),
           ),
           // Manually approved transfers
-          eq(PaymentTransferTable.status, 'APPROVED'),
+          eq(PaymentTransferTable.status, PAYMENT_TRANSFER_STATUS_APPROVED),
         ),
         isNull(PaymentTransferTable.transferId),
       ),
@@ -125,7 +131,7 @@ export async function GET(request: Request) {
     const eligibleTransfers = [];
     for (const transfer of pendingTransfers) {
       // For approved transfers, we skip the payment aging check
-      if (transfer.status === 'APPROVED') {
+      if (transfer.status === PAYMENT_TRANSFER_STATUS_APPROVED) {
         eligibleTransfers.push(transfer);
         continue;
       }
@@ -198,12 +204,12 @@ export async function GET(request: Request) {
             description: `Expert payout for session ${transfer.eventId}`,
           });
 
-          // Update the transfer record with the transfer ID and set status to COMPLETED
+          // Update the transfer record with success
           await db
             .update(PaymentTransferTable)
             .set({
-              status: 'COMPLETED',
               transferId: stripeTransfer.id,
+              status: PAYMENT_TRANSFER_STATUS_COMPLETED,
               updated: new Date(),
             })
             .where(eq(PaymentTransferTable.id, transfer.id));
@@ -238,8 +244,12 @@ export async function GET(request: Request) {
           console.error('Error creating Stripe transfer:', error);
 
           const stripeError = error as Stripe.errors.StripeError;
+          // Increment retry count, with maximum retry limit
           const newRetryCount = (transfer.retryCount || 0) + 1;
-          const newStatus = newRetryCount >= MAX_RETRY_COUNT ? 'FAILED' : 'PENDING';
+          const newStatus =
+            newRetryCount >= MAX_RETRY_COUNT
+              ? PAYMENT_TRANSFER_STATUS_FAILED
+              : PAYMENT_TRANSFER_STATUS_PENDING;
 
           // Update the transfer record with the error and increment retry count
           await db
@@ -254,7 +264,7 @@ export async function GET(request: Request) {
             .where(eq(PaymentTransferTable.id, transfer.id));
 
           // If we've reached the max retry count, send a notification to the expert
-          if (newStatus === 'FAILED') {
+          if (newStatus === PAYMENT_TRANSFER_STATUS_FAILED) {
             try {
               await createPayoutFailedNotification({
                 userId: transfer.expertClerkUserId,

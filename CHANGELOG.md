@@ -7,15 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Planned Features
-
-- **PIX Payment Method Integration (Brazilian Market)**:
-  - Add PIX to Stripe payment configuration for Brazilian customers
-  - Implement PIX-specific error handling and edge case monitoring
-  - PIX payment flow integration with existing audit logging
-  - Support for BRL currency and Brazilian payment regulations
-  - PIX voucher/QR code expiry monitoring similar to Multibanco
-
 ### Technical Improvements & Roadmap
 
 - **Extended Proactive Payment Monitoring**:
