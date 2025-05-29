@@ -172,6 +172,7 @@ interface MeetingData {
   guestEmail: string;
   timezone: string;
   guestNotes?: string;
+  locale?: string;
 }
 
 /**
