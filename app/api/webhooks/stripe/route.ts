@@ -43,9 +43,11 @@ interface ParsedMeetingMetadata {
   id: string;
   expert: string;
   guest: string;
+  guestName?: string; // Add optional guest name
   start: string;
   dur: number;
   locale?: string;
+  timezone?: string; // Add optional timezone
 }
 
 interface ParsedPaymentMetadata {
@@ -86,6 +88,22 @@ function parseMetadata<T>(json: string | undefined, fallback: T): T {
     console.error('Failed to parse metadata:', error);
     return fallback;
   }
+}
+
+// Helper function to safely extract guest name
+function getGuestName(metadata: ParsedMeetingMetadata): string {
+  // Use provided guest name if available
+  if (metadata?.guestName?.trim()) {
+    return metadata.guestName.trim();
+  }
+
+  // Fallback: Try to derive from email, but handle special cases
+  const emailPrefix = metadata.guest.split('@')[0];
+  // Replace dots and special characters with spaces, then clean up
+  return emailPrefix
+    .replace(/[._-]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ');
 }
 
 // Add simple GET handler
@@ -175,13 +193,13 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       clerkUserId: meetingData.expert,
       startTime: new Date(meetingData.start),
       guestEmail: meetingData.guest,
-      guestName: meetingData.guest.split('@')[0], // Fallback name from email
-      timezone: 'UTC', // Default to UTC, timezone handling moved to client
+      guestName: getGuestName(meetingData),
+      timezone: meetingData.timezone || 'UTC', // Use provided timezone or fallback to UTC
       stripeSessionId: session.id,
       stripePaymentStatus: mapPaymentStatus(session.payment_status, session.id),
       stripeAmount: session.amount_total ?? undefined,
       stripeApplicationFeeAmount: session.application_fee_amount ?? undefined,
-      locale: meetingData.locale || 'en', // Default to English, locale handling moved to client
+      locale: meetingData.locale || 'en',
     });
 
     // Handle possible errors
