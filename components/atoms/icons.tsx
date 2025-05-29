@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import type React from 'react';
 
 type IconProps = React.HTMLAttributes<SVGElement>;
