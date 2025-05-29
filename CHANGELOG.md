@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.2] - 2025-05-29
+
 ### Changed
 
 - **Stripe Webhook Handlers**:
@@ -62,6 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Stripe webhook integration for payment intent tracking
   - Automatic reservation cleanup on payment success
   - Improved payment expiration time calculations
+
+## [0.3.1] - 2025-05-29
 
 ### Changed
 

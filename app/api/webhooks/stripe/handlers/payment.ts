@@ -144,23 +144,6 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
   console.log('Payment succeeded:', paymentIntent.id);
 
   try {
-    // Parse metadata
-    const meetingData = parseMetadata(paymentIntent.metadata?.meeting, {
-      id: '',
-      expert: '',
-      guest: '',
-      start: '',
-      dur: 0,
-    });
-
-    const transferData = parseMetadata(paymentIntent.metadata?.transfer, {
-      status: PAYMENT_TRANSFER_STATUS_PENDING,
-      account: '',
-      country: '',
-      delay: { aging: 0, remaining: 0, required: 0 },
-      scheduled: '',
-    });
-
     // Update Meeting status
     const updatedMeeting = await db
       .update(MeetingTable)
@@ -254,16 +237,40 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
       // Handle transfer status update
       if (!transfer) {
-        console.log(
-          'No transfer record found for payment:',
-          paymentIntent.id,
-          '(This is normal for free meetings or if transfer record creation failed earlier)',
-        );
-        return; // Early return since there's no transfer to process
-      }
+        // If no transfer record exists, create one from the payment intent metadata
+        const transferData = parseMetadata(paymentIntent.metadata?.transfer, {
+          status: PAYMENT_TRANSFER_STATUS_PENDING,
+          account: '',
+          country: '',
+          delay: { aging: 0, remaining: 0, required: 0 },
+          scheduled: '',
+        });
 
-      // Process existing transfer based on its status
-      if (transfer.status === PAYMENT_TRANSFER_STATUS_PENDING) {
+        const paymentData = parseMetadata(paymentIntent.metadata?.payment, {
+          amount: '0',
+          fee: '0',
+          expert: '0',
+        });
+
+        if (transferData && paymentData) {
+          await db.insert(PaymentTransferTable).values({
+            paymentIntentId: paymentIntent.id,
+            checkoutSessionId: paymentIntent.metadata?.sessionId || 'LEGACY',
+            eventId: meeting.eventId,
+            expertConnectAccountId: transferData.account,
+            expertClerkUserId: meeting.clerkUserId,
+            amount: Number.parseInt(paymentData.expert, 10),
+            platformFee: Number.parseInt(paymentData.fee, 10),
+            currency: 'eur',
+            sessionStartTime: meeting.startTime,
+            scheduledTransferTime: new Date(transferData.scheduled),
+            status: PAYMENT_TRANSFER_STATUS_READY,
+            created: new Date(),
+            updated: new Date(),
+          });
+          console.log(`Created new transfer record for payment ${paymentIntent.id}`);
+        }
+      } else if (transfer.status === PAYMENT_TRANSFER_STATUS_PENDING) {
         // Update transfer status to READY with retry logic
         await withRetry(
           async () => {

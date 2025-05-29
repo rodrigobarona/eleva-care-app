@@ -1,4 +1,4 @@
-import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
+import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable, SlotReservationTable } from '@/drizzle/schema';
 import {
@@ -45,6 +45,7 @@ interface ParsedMeetingMetadata {
   guest: string;
   start: string;
   dur: number;
+  locale?: string;
 }
 
 interface ParsedPaymentMetadata {
@@ -128,20 +129,26 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       throw new Error('Missing meeting metadata in session. Cannot process meeting.');
     }
 
-    // Parse metadata chunks
-    const meetingData = parseMetadata(session.metadata.meeting, null);
-    const paymentData = parseMetadata(session.metadata.payment, null);
-    const transferData = parseMetadata(session.metadata.transfer, null);
-
-    if (!meetingData || !paymentData || !transferData) {
-      console.error('Failed to parse required metadata:', {
-        sessionId: session.id,
-        hasMeetingData: !!meetingData,
-        hasPaymentData: !!paymentData,
-        hasTransferData: !!transferData,
-      });
-      throw new Error('Invalid metadata format in session.');
-    }
+    // Parse metadata chunks with proper typing
+    const meetingData = parseMetadata<ParsedMeetingMetadata>(session.metadata.meeting, {
+      id: '',
+      expert: '',
+      guest: '',
+      start: '',
+      dur: 0,
+    });
+    const paymentData = parseMetadata<ParsedPaymentMetadata>(session.metadata.payment, {
+      amount: '0',
+      fee: '0',
+      expert: '0',
+    });
+    const transferData = parseMetadata<ParsedTransferMetadata>(session.metadata.transfer, {
+      status: 'PENDING',
+      account: '',
+      country: '',
+      delay: { aging: 0, remaining: 0, required: 0 },
+      scheduled: new Date().toISOString(),
+    });
 
     // Validate essential fields
     if (!meetingData.id || !meetingData.expert || !meetingData.start || !meetingData.guest) {
@@ -171,10 +178,10 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       guestName: meetingData.guest.split('@')[0], // Fallback name from email
       timezone: 'UTC', // Default to UTC, timezone handling moved to client
       stripeSessionId: session.id,
-      stripePaymentStatus: mapPaymentStatus(session.payment_status),
+      stripePaymentStatus: mapPaymentStatus(session.payment_status, session.id),
       stripeAmount: session.amount_total ?? undefined,
       stripeApplicationFeeAmount: session.application_fee_amount ?? undefined,
-      locale: 'en', // Default to English, locale handling moved to client
+      locale: meetingData.locale || 'en', // Default to English, locale handling moved to client
     });
 
     // Handle possible errors
@@ -266,7 +273,7 @@ async function createOrUpdatePaymentTransfer({
     currency: session.currency || 'eur',
     sessionStartTime: new Date(meetingData.start),
     scheduledTransferTime: new Date(transferData.scheduled),
-    status: transferData.status,
+    status: PAYMENT_TRANSFER_STATUS_PENDING, // Always start with PENDING status
     requiresApproval: session.metadata?.approval === 'true',
     created: new Date(),
     updated: new Date(),
@@ -276,7 +283,7 @@ async function createOrUpdatePaymentTransfer({
 }
 
 // Map Stripe payment status to database enum with proper validation
-const mapPaymentStatus = (stripeStatus: string): PaymentStatus => {
+const mapPaymentStatus = (stripeStatus: string, sessionId?: string): PaymentStatus => {
   switch (stripeStatus) {
     case STRIPE_PAYMENT_STATUS_PAID:
       return PAYMENT_STATUS_SUCCEEDED;
@@ -292,10 +299,12 @@ const mapPaymentStatus = (stripeStatus: string): PaymentStatus => {
 
       // Log warning for unknown statuses and return safe default
       console.warn(
-        `Unknown Stripe payment status encountered: "${stripeStatus}" for session ${session.id}. ` +
+        `Unknown Stripe payment status encountered: "${stripeStatus}"${
+          sessionId ? ` for session ${sessionId}` : ''
+        }. ` +
           `Defaulting to "${PAYMENT_STATUS_PENDING}". Please investigate if this is a new Stripe status.`,
         {
-          sessionId: session.id,
+          sessionId,
           unknownStatus: stripeStatus,
           validStatuses: [
             'paid',
