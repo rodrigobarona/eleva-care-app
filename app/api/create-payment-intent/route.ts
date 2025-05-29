@@ -239,6 +239,7 @@ export async function POST(request: Request) {
       cancel_url: `${baseUrl}/${locale}/${username}/${eventSlug}`,
       customer_email: meetingMetadata.guestEmail,
       expires_at: Math.floor(paymentExpiresAt.getTime() / 1000),
+      allow_promotion_codes: true,
       payment_intent_data: {
         application_fee_amount: platformFee,
         transfer_data: {
@@ -248,6 +249,7 @@ export async function POST(request: Request) {
           meetingData: JSON.stringify(meetingMetadata),
           expertAmount: expertAmount.toString(),
           platformFee: platformFee.toString(),
+          originalPrice: price.toString(),
           transferStatus: PAYMENT_TRANSFER_STATUS_PENDING,
           expertConnectAccountId: expertStripeAccountId,
           expertCountry: expertAccount.country || 'Unknown',
