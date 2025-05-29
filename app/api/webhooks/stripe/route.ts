@@ -39,77 +39,109 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
 // Note: Configuration is in route.config.ts to ensure Next.js properly applies settings
 
 /**
- * Interface for meeting data stored in Stripe metadata.
- * Fields are intentionally abbreviated to reduce metadata size while maintaining readability.
+ * Metadata structure for Stripe integration.
+ *
+ * The metadata is split into three logical chunks to optimize size and maintainability:
+ * 1. meeting: Core session information
+ * 2. payment: Financial transaction details
+ * 3. transfer: Expert payout configuration
+ *
+ * Each chunk is stored as a JSON string in Stripe metadata, with abbreviated field names
+ * to stay under Stripe's 500-character metadata limit while maintaining readability.
+ */
+
+/**
+ * Meeting metadata chunk - Contains core session information.
+ * Field names are intentionally abbreviated to reduce metadata size.
+ *
+ * Flow:
+ * 1. Created in create-payment-intent
+ * 2. Stored in Stripe checkout session
+ * 3. Retrieved and parsed in webhook handlers
  */
 interface ParsedMeetingMetadata {
   /** Event ID from the database */
   id: string;
-  /** Expert's Clerk user ID */
+  /** Expert's Clerk user ID for authentication and access control */
   expert: string;
-  /** Guest's email address */
+  /** Guest's email address for communication and identification */
   guest: string;
-  /** Optional guest's display name */
+  /** Optional guest's display name (if provided during booking) */
   guestName?: string;
-  /** ISO 8601 formatted start time */
+  /** ISO 8601 formatted start time (e.g., "2024-05-29T14:00:00Z") */
   start: string;
-  /** Duration in minutes */
+  /** Duration in minutes (used for calendar events and pricing) */
   dur: number;
-  /** ISO language code (e.g., 'en', 'es', 'pt') */
+  /** ISO language code for localization (e.g., 'en', 'es', 'pt') */
   locale?: string;
-  /** IANA timezone identifier (e.g., 'Europe/London') */
+  /** IANA timezone identifier for accurate scheduling (e.g., 'Europe/London') */
   timezone?: string;
 }
 
 /**
- * Interface for payment data stored in Stripe metadata.
- * Fields are abbreviated to minimize metadata size.
+ * Payment metadata chunk - Contains financial transaction details.
+ * Used for payment reconciliation and expert payouts.
+ *
+ * Flow:
+ * 1. Calculated in create-payment-intent
+ * 2. Verified in webhook handlers
+ * 3. Used for creating payment transfer records
  */
 interface ParsedPaymentMetadata {
-  /** Total payment amount in cents */
+  /** Total payment amount in cents (includes platform fee) */
   amount: string;
-  /** Platform fee amount in cents */
+  /** Platform fee amount in cents (calculated based on total) */
   fee: string;
-  /** Expert's payout amount in cents */
+  /** Expert's payout amount in cents (total minus platform fee) */
   expert: string;
 }
 
 /**
- * Interface for transfer data stored in Stripe metadata.
- * Contains information about the payout to the expert.
+ * Transfer metadata chunk - Contains expert payout configuration.
+ * Handles delayed payouts and compliance requirements.
+ *
+ * Flow:
+ * 1. Configured in create-payment-intent based on expert's country
+ * 2. Used in webhook handlers for scheduling payouts
+ * 3. Processed by automated transfer system
  */
 interface ParsedTransferMetadata {
-  /** Current transfer status */
+  /** Current transfer status (e.g., 'PENDING', 'READY') */
   status: string;
-  /** Expert's Stripe Connect account ID */
+  /** Expert's Stripe Connect account ID for payouts */
   account: string;
-  /** Expert's country code (ISO 3166-1 alpha-2) */
+  /** Expert's country code for compliance (ISO 3166-1 alpha-2) */
   country: string;
-  /** Delay configuration for the payout */
+  /** Payout delay configuration based on country requirements */
   delay: {
-    /** Days between payment and session */
+    /** Days between payment and session (payment aging) */
     aging: number;
-    /** Days remaining until payout */
+    /** Days remaining until eligible for payout */
     remaining: number;
-    /** Total required delay in days */
+    /** Total required delay in days per country rules */
     required: number;
   };
-  /** ISO 8601 timestamp for scheduled payout */
+  /** ISO 8601 timestamp for scheduled payout execution */
   scheduled: string;
 }
 
 /**
- * Extended Stripe Checkout Session type with our custom metadata.
+ * Extended Stripe Checkout Session type with our custom metadata structure.
+ *
+ * The metadata is split into chunks to:
+ * - Stay under Stripe's 500-character limit
+ * - Maintain logical grouping of data
+ * - Support future extensibility
  */
 interface StripeCheckoutSession extends Stripe.Checkout.Session {
   metadata: {
-    /** JSON string of ParsedMeetingMetadata */
+    /** JSON string of meeting details (ParsedMeetingMetadata) */
     meeting?: string;
-    /** JSON string of ParsedPaymentMetadata */
+    /** JSON string of payment details (ParsedPaymentMetadata) */
     payment?: string;
-    /** JSON string of ParsedTransferMetadata */
+    /** JSON string of transfer configuration (ParsedTransferMetadata) */
     transfer?: string;
-    /** Whether the payout requires manual approval */
+    /** Whether manual approval is required before payout */
     approval?: string;
   };
   application_fee_amount?: number | null;
