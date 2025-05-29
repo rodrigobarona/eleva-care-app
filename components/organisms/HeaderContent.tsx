@@ -23,8 +23,13 @@ const NavLink = ({ href, isScrolled, isRootPath, children }: NavLinkProps) => (
   </Link>
 );
 
+interface ElevaLogoProps {
+  className?: string;
+  variant?: 'default' | 'white';
+}
+
 // Inline the logo SVG for better performance
-const ElevaCareLogo = ({ className }: { className?: string }) => (
+const ElevaCareLogo = ({ className, variant = 'default' }: ElevaLogoProps) => (
   <svg
     width="1801"
     height="357"
@@ -34,6 +39,7 @@ const ElevaCareLogo = ({ className }: { className?: string }) => (
     aria-label="ElevaCare Logo"
     role="img"
     className={className}
+    style={{ color: variant === 'white' ? 'white' : 'currentColor' }}
   >
     <path
       fillRule="evenodd"
@@ -89,7 +95,10 @@ export function HeaderContent() {
             isRootPath && !isScrolled ? 'text-white' : 'text-foreground'
           }`}
         >
-          <ElevaCareLogo className="h-8 w-auto lg:h-12" />
+          <ElevaCareLogo
+            className="h-8 w-auto lg:h-12"
+            variant={isRootPath && !isScrolled ? 'white' : 'default'}
+          />
         </Link>
         <nav className="ml-auto flex items-center gap-4 sm:gap-6">
           <NavLink href="/#experts" isScrolled={isScrolled} isRootPath={isRootPath}>
