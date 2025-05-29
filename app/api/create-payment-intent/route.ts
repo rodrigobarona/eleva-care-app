@@ -87,13 +87,13 @@ export async function POST(request: Request) {
 
     // Prepare meeting metadata
     const meetingMetadata = {
-      eventId: eventId, // Added eventId here
+      eventId: eventId,
       expertClerkUserId: event.clerkUserId,
       expertName: `${event.user.firstName || ''} ${event.user.lastName || ''}`.trim() || 'Expert',
       guestName: meetingData.guestName,
       guestEmail: meetingData.guestEmail,
       guestNotes: meetingData.guestNotes,
-      startTime: meetingData.startTime, // This is the original startTime from the client
+      startTime: meetingData.startTime,
       startTimeFormatted:
         meetingData.startTimeFormatted ||
         (meetingData.locale
@@ -110,6 +110,8 @@ export async function POST(request: Request) {
       timezone: meetingData.timezone,
       price: price,
       locale: meetingData.locale || 'en',
+      isEuropeanCustomer: meetingData.timezone?.includes('Europe') ? 'true' : 'false',
+      preferredTaxHandling: 'vat_only',
     };
 
     console.log('Prepared meeting metadata for Stripe:', meetingMetadata);
@@ -228,8 +230,10 @@ export async function POST(request: Request) {
             product_data: {
               name: `${event.name} with ${meetingMetadata.expertName}`,
               description: `${meetingMetadata.duration} minute session on ${meetingMetadata.startTimeFormatted}`,
+              tax_code: 'txcd_10103001', // General services tax code
             },
             unit_amount: meetingMetadata.price,
+            tax_behavior: 'exclusive', // Tax calculated separately
           },
           quantity: 1,
         },
@@ -238,8 +242,46 @@ export async function POST(request: Request) {
       success_url: `${baseUrl}/${locale}/booking/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/${locale}/${username}/${eventSlug}`,
       customer_email: meetingMetadata.guestEmail,
+      customer_creation: customerId ? undefined : 'always',
       expires_at: Math.floor(paymentExpiresAt.getTime() / 1000),
       allow_promotion_codes: true,
+
+      // Enhanced tax handling
+      automatic_tax: {
+        enabled: true,
+        liability: { type: 'account', account: expertStripeAccountId },
+      },
+      tax_id_collection: {
+        enabled: true,
+        required: 'if_supported',
+      },
+
+      // Billing address collection for tax calculation
+      billing_address_collection: 'required',
+
+      // Phone number collection for booking confirmation
+      phone_number_collection: {
+        enabled: true,
+      },
+
+      // Enhanced terms of service consent
+      consent_collection: {
+        terms_of_service: 'required',
+      },
+      custom_text: {
+        terms_of_service_acceptance: {
+          message: 'I agree to the [Terms of Service](https://eleva.care/legal/terms)',
+        },
+      },
+
+      // Enhanced customer information collection
+      locale: 'auto',
+      customer_update: {
+        name: 'auto',
+        address: 'auto',
+      },
+      submit_type: 'book',
+
       payment_intent_data: {
         application_fee_amount: platformFee,
         transfer_data: {
