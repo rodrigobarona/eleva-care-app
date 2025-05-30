@@ -3,6 +3,7 @@
 import { Button } from '@/components/atoms/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/molecules/tabs';
 import { AppointmentCard } from '@/components/organisms/AppointmentCard';
+import { generateCustomerId } from '@/lib/utils/customerUtils';
 import { useUser } from '@clerk/nextjs';
 import { Calendar } from 'lucide-react';
 import React from 'react';
@@ -36,6 +37,10 @@ interface Reservation {
 }
 
 type AppointmentOrReservation = Appointment | Reservation;
+
+type AppointmentWithCustomerId = AppointmentOrReservation & {
+  customerId: string;
+};
 
 interface AppointmentsResponse {
   appointments: Array<
@@ -115,8 +120,23 @@ export default function AppointmentsPage() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const filterAppointments = (filter: 'today' | 'future' | 'past' | 'all') => {
-    const filtered = appointments.filter((appointment) => {
+  // Memoize appointments with customer IDs to prevent regeneration
+  const appointmentsWithCustomerIds = React.useMemo(() => {
+    if (!user?.id) return [] as AppointmentWithCustomerId[];
+
+    return appointments.map(
+      (item): AppointmentWithCustomerId => ({
+        ...item,
+        customerId: generateCustomerId(user.id, item.guestEmail),
+      }),
+    );
+  }, [appointments, user?.id]);
+
+  const renderAppointmentsMemoized = (filter: 'today' | 'future' | 'past' | 'all') => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const filtered = appointmentsWithCustomerIds.filter((appointment) => {
       const appointmentDate = new Date(appointment.startTime);
       appointmentDate.setHours(0, 0, 0, 0);
 
@@ -133,7 +153,7 @@ export default function AppointmentsPage() {
     });
 
     // Sort based on the filter type
-    return filtered.sort((a, b) => {
+    const sorted = filtered.sort((a, b) => {
       const dateA = new Date(a.startTime);
       const dateB = new Date(b.startTime);
 
@@ -144,12 +164,8 @@ export default function AppointmentsPage() {
       // For past events: most recent first
       return dateB.getTime() - dateA.getTime();
     });
-  };
 
-  const renderAppointments = (filter: 'today' | 'future' | 'past' | 'all') => {
-    const filtered = filterAppointments(filter);
-
-    if (filtered.length === 0) {
+    if (sorted.length === 0) {
       const messages = {
         today: 'You have no appointments or reservations scheduled for today.',
         future: 'You have no upcoming appointments or reservations scheduled.',
@@ -160,19 +176,13 @@ export default function AppointmentsPage() {
       return <EmptyState message={messages[filter]} />;
     }
 
-    return filtered.map((item) => {
-      // Generate secure customer ID for the link (same algorithm as in API)
-      let customerId: string | undefined;
-      if (user?.id && item.guestEmail) {
-        const customerIdSeed = `${user.id}-${item.guestEmail}`;
-        customerId = Buffer.from(customerIdSeed)
-          .toString('base64')
-          .replace(/[^a-zA-Z0-9]/g, '')
-          .substring(0, 12);
-      }
-
-      return <AppointmentCard key={item.id} appointment={item} customerId={customerId} />;
-    });
+    return sorted.map((item) => (
+      <AppointmentCard
+        key={`${item.id}-${item.customerId}`}
+        appointment={item}
+        customerId={item.customerId}
+      />
+    ));
   };
 
   if (!isLoaded || isLoading) {
@@ -202,13 +212,13 @@ export default function AppointmentsPage() {
           <TabsTrigger value="all">All</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="today">{renderAppointments('today')}</TabsContent>
+        <TabsContent value="today">{renderAppointmentsMemoized('today')}</TabsContent>
 
-        <TabsContent value="future">{renderAppointments('future')}</TabsContent>
+        <TabsContent value="future">{renderAppointmentsMemoized('future')}</TabsContent>
 
-        <TabsContent value="past">{renderAppointments('past')}</TabsContent>
+        <TabsContent value="past">{renderAppointmentsMemoized('past')}</TabsContent>
 
-        <TabsContent value="all">{renderAppointments('all')}</TabsContent>
+        <TabsContent value="all">{renderAppointmentsMemoized('all')}</TabsContent>
       </Tabs>
     </div>
   );

@@ -12,6 +12,7 @@ import {
   TableRow,
 } from '@/components/molecules/table';
 import { formatCurrency } from '@/lib/utils';
+import { isValidCustomerId } from '@/lib/utils/customerUtils';
 import { useUser } from '@clerk/nextjs';
 import { AlertCircle, Calendar, CalendarClock, PlusCircle, Search, Users } from 'lucide-react';
 import Link from 'next/link';
@@ -148,6 +149,13 @@ export default function CustomersPage() {
   };
 
   const handleViewCustomer = (customer: Customer) => {
+    // Validate customer ID format before navigation
+    if (!isValidCustomerId(customer.id)) {
+      console.error(`Invalid customer ID format: ${customer.id}`);
+      setError('Invalid customer ID format');
+      return;
+    }
+
     router.push(`/appointments/patients/${customer.id}`);
   };
 

@@ -136,7 +136,7 @@ export function RecordDialog({
       <DialogContent
         className={cn(
           'flex h-[90vh] w-[95vw] max-w-6xl flex-col overflow-hidden p-0',
-          'border shadow-2xl',
+          'gap-0 border shadow-2xl',
         )}
       >
         {/* Compact Header */}

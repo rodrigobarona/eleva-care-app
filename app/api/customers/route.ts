@@ -1,6 +1,7 @@
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable } from '@/drizzle/schema';
 import { isExpert } from '@/lib/auth/roles.server';
+import { generateCustomerId } from '@/lib/utils/customerUtils';
 import { auth } from '@clerk/nextjs/server';
 import { desc, eq, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -49,11 +50,7 @@ export async function GET() {
     const customers = customersWithAppointments.map((customer) => {
       // Create a secure, deterministic customer ID based on email hash and expert ID
       // This ensures consistent IDs without exposing email directly
-      const customerIdSeed = `${userId}-${customer.email}`;
-      const customerId = Buffer.from(customerIdSeed)
-        .toString('base64')
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .substring(0, 12);
+      const customerId = generateCustomerId(userId, customer.email);
 
       return {
         id: customerId, // Secure, non-email-based ID

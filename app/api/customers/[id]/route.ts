@@ -1,6 +1,7 @@
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable } from '@/drizzle/schema';
 import { isExpert } from '@/lib/auth/roles.server';
+import { findEmailByCustomerId } from '@/lib/utils/customerUtils';
 import { auth } from '@clerk/nextjs/server';
 import { and, desc, eq } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
@@ -38,19 +39,9 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
 
     const allCustomers = await allCustomersQuery;
 
-    // Find the customer email that matches the provided ID
-    let customerEmail: string | null = null;
-    for (const customer of allCustomers) {
-      const customerIdSeed = `${userId}-${customer.email}`;
-      const generatedId = Buffer.from(customerIdSeed)
-        .toString('base64')
-        .replace(/[^a-zA-Z0-9]/g, '')
-        .substring(0, 12);
-      if (generatedId === customerId) {
-        customerEmail = customer.email;
-        break;
-      }
-    }
+    // Find the customer email that matches the provided ID using the shared utility
+    const customerEmails = allCustomers.map((customer) => customer.email);
+    const customerEmail = findEmailByCustomerId(userId, customerId, customerEmails);
 
     if (!customerEmail) {
       return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
