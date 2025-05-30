@@ -147,12 +147,9 @@ export function RecordDialog({
               <GravatarAvatar
                 email={guestEmail}
                 name={guestName}
-                size={32}
+                size={36}
                 className="flex-shrink-0"
               />
-              <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
-                <FileEdit className="h-4 w-4 text-primary" />
-              </div>
               <div className="min-w-0 flex-1">
                 <DialogTitle className="truncate text-base font-semibold text-foreground">
                   {guestName}
