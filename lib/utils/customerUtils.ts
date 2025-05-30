@@ -4,6 +4,33 @@
  */
 
 /**
+ * Simple hash function to replace crypto dependency
+ * Creates a deterministic hash from input string
+ */
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  // Convert to positive hex string and pad to 8 characters
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}
+
+/**
+ * Extended hash function that creates a 12-character hash
+ */
+function extendedHash(str: string): string {
+  // Get hash of original string
+  const hash1 = simpleHash(str);
+  // Get hash of reversed string for additional entropy
+  const hash2 = simpleHash(str.split('').reverse().join(''));
+  // Combine and take first 12 characters
+  return (hash1 + hash2).substring(0, 12);
+}
+
+/**
  * Generates a consistent, secure customer ID based on user ID and guest email
  * This function should be used anywhere customer IDs need to be generated or matched
  *
@@ -22,11 +49,8 @@ export function generateCustomerId(userId: string, guestEmail: string): string {
   // Create a seed using the user ID and normalized email
   const customerIdSeed = `${userId}-${normalizedEmail}`;
 
-  // Generate a base64 encoded ID and clean it to only alphanumeric characters
-  const customerId = Buffer.from(customerIdSeed)
-    .toString('base64')
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .substring(0, 12);
+  // Generate hash using extended hash function
+  const customerId = extendedHash(customerIdSeed);
 
   return customerId;
 }

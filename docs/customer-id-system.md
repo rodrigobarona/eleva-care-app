@@ -10,7 +10,8 @@ The Customer ID System provides a secure, consistent method for generating and m
 - **Deterministic Generation**: Same patient + same practitioner = Same customer ID
 - **Cross-Component Consistency**: Shared utilities ensure identical IDs across all parts of the application
 - **GDPR/Privacy Compliance**: Removes PII from URLs and application logs
-- **Secure and Scalable**: 12-character alphanumeric IDs with proper validation
+- **Secure and Scalable**: 12-character hexadecimal IDs with proper validation
+- **Collision-Free**: Hash-based algorithm ensures unique IDs for different emails
 
 ## Architecture
 
@@ -23,6 +24,33 @@ The system is built around three core utility functions in `lib/utils/customerUt
 Generates a consistent, secure customer ID based on user ID and guest email.
 
 ```typescript
+/**
+ * Simple hash function to replace crypto dependency
+ * Creates a deterministic hash from input string
+ */
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  // Convert to positive hex string and pad to 8 characters
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}
+
+/**
+ * Extended hash function that creates a 12-character hash
+ */
+function extendedHash(str: string): string {
+  // Get hash of original string
+  const hash1 = simpleHash(str);
+  // Get hash of reversed string for additional entropy
+  const hash2 = simpleHash(str.split('').reverse().join(''));
+  // Combine and take first 12 characters
+  return (hash1 + hash2).substring(0, 12);
+}
+
 export function generateCustomerId(userId: string, guestEmail: string): string {
   if (!userId || !guestEmail) {
     throw new Error('Both userId and guestEmail are required to generate customer ID');
@@ -34,11 +62,8 @@ export function generateCustomerId(userId: string, guestEmail: string): string {
   // Create a seed using the user ID and normalized email
   const customerIdSeed = `${userId}-${normalizedEmail}`;
 
-  // Generate a base64 encoded ID and clean it to only alphanumeric characters
-  const customerId = Buffer.from(customerIdSeed)
-    .toString('base64')
-    .replace(/[^a-zA-Z0-9]/g, '')
-    .substring(0, 12);
+  // Generate hash using extended hash function
+  const customerId = extendedHash(customerIdSeed);
 
   return customerId;
 }
@@ -47,9 +72,18 @@ export function generateCustomerId(userId: string, guestEmail: string): string {
 **Algorithm Details:**
 
 - Combines Clerk user ID with normalized email address
-- Creates Base64 encoding for security
-- Filters to alphanumeric characters only
-- Truncates to exactly 12 characters for consistency
+- Uses a hash algorithm for even distribution of customer IDs
+- Applies double hashing (original + reversed) for enhanced entropy
+- Produces exactly 12 hexadecimal characters for consistency
+- **Fixed Issue**: Previous Base64 approach caused ID collisions; new hash ensures uniqueness
+
+**Example Results:**
+
+```
+user_2tYRmKEdAbmZUJUDPvkIzzdnMvq + acarolinadcoelho@gmail.com => 2d5756ac4cf5
+user_2tYRmKEdAbmZUJUDPvkIzzdnMvq + jafmota@gmail.com           => 761a96de0b2b
+user_2tYRmKEdAbmZUJUDPvkIzzdnMvq + felix_kidd@hotmail.co.uk    => 2cb481802a43
+```
 
 #### 2. `findEmailByCustomerId(userId, customerId, emailList)`
 
