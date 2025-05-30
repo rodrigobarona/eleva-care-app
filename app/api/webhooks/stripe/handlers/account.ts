@@ -1,3 +1,4 @@
+import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
@@ -86,6 +87,7 @@ export async function handleAccountUpdated(account: Stripe.Account) {
             previousPayoutsEnabled !== account.payouts_enabled ||
             previousChargesEnabled !== account.charges_enabled
           ) {
+            // Use existing notification system
             await createUserNotification({
               userId: user.id,
               type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
@@ -97,6 +99,38 @@ export async function handleAccountUpdated(account: Stripe.Account) {
                 statusType: 'payout_charges_status_change',
               },
             });
+
+            // Also trigger Novu workflow for enhanced marketplace notifications
+            try {
+              const subscriber = {
+                subscriberId: user.clerkUserId,
+                email: user.email || 'no-email@eleva.care',
+                firstName: user.firstName || '',
+                lastName: user.lastName || '',
+                data: {
+                  stripeAccountId: account.id,
+                  role: 'expert', // Connect accounts are for experts
+                },
+              };
+
+              const payload = {
+                title: getConnectAccountStatusTitle(account),
+                message: getAccountUpdateMessage(account),
+                requiresAction: !account.charges_enabled || !account.payouts_enabled,
+                actionRequired: getActionRequired(account),
+                actionUrl: '/account/connect',
+                accountId: account.id,
+                chargesEnabled: account.charges_enabled,
+                payoutsEnabled: account.payouts_enabled,
+                detailsSubmitted: account.details_submitted,
+              };
+
+              await triggerWorkflow('marketplace-connect-status', subscriber, payload);
+              console.log('✅ Novu workflow triggered for Connect account update');
+            } catch (novuError) {
+              console.error('❌ Failed to trigger Novu workflow:', novuError);
+              // Don't fail the entire webhook for Novu errors
+            }
           }
         });
       },
@@ -130,4 +164,24 @@ export async function handleAccountUpdated(account: Stripe.Account) {
     // 3. Send alerts to administrators
     // 4. Record in a dedicated "failed_operations" table
   }
+}
+
+function getConnectAccountStatusTitle(account: Stripe.Account): string {
+  if (account.charges_enabled && account.payouts_enabled) {
+    return 'Payment Account Activated! 🎉';
+  }
+  if (account.details_submitted) {
+    return 'Account Under Review';
+  }
+  return 'Payment Account Setup Required';
+}
+
+function getActionRequired(account: Stripe.Account): string | undefined {
+  if (!account.details_submitted) {
+    return 'Complete your payment account setup to start receiving payments';
+  }
+  if (!account.charges_enabled || !account.payouts_enabled) {
+    return 'Please wait for Stripe to review your account details';
+  }
+  return undefined;
 }

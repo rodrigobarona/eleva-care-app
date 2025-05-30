@@ -31,6 +31,7 @@ import {
   handlePaymentIntentRequiresAction,
   handlePaymentSucceeded,
 } from './handlers/payment';
+import { handlePayoutFailed, handlePayoutPaid } from './handlers/payout';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
@@ -753,6 +754,12 @@ export async function POST(request: Request) {
           }
           break;
         }
+        case 'payout.paid':
+          await handlePayoutPaid(event.data.object as Stripe.Payout);
+          break;
+        case 'payout.failed':
+          await handlePayoutFailed(event.data.object as Stripe.Payout);
+          break;
         default:
           console.log(`Unhandled event type: ${event.type}`);
       }

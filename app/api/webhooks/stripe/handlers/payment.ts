@@ -1,3 +1,4 @@
+import { triggerWorkflow } from '@/app/utils/novu';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
@@ -663,6 +664,44 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
         // Notify the expert about the successful payment
         await notifyExpertOfPaymentSuccess(transfer);
+
+        // Also trigger Novu marketplace workflow for enhanced notifications
+        try {
+          const expertUser = await db.query.UserTable.findFirst({
+            where: eq(UserTable.clerkUserId, transfer.expertClerkUserId),
+            columns: { firstName: true, lastName: true, email: true },
+          });
+
+          if (expertUser) {
+            const subscriber = {
+              subscriberId: transfer.expertClerkUserId,
+              email: expertUser.email || 'no-email@eleva.care',
+              firstName: expertUser.firstName || '',
+              lastName: expertUser.lastName || '',
+              data: {
+                transferId: transfer.id,
+                role: 'expert',
+              },
+            };
+
+            const sessionDate = format(meeting.startTime, 'EEEE, MMMM d, yyyy');
+            const amount = (transfer.amount / 100).toFixed(2); // Convert cents to euros
+
+            const payload = {
+              amount,
+              clientName: meeting.guestName || 'Client',
+              sessionDate,
+              transactionId: paymentIntent.id,
+              dashboardUrl: '/account/billing',
+            };
+
+            await triggerWorkflow('marketplace-payment-received', subscriber, payload);
+            console.log('✅ Marketplace payment notification sent via Novu');
+          }
+        } catch (novuError) {
+          console.error('❌ Failed to trigger marketplace payment notification:', novuError);
+          // Don't fail the entire webhook for Novu errors
+        }
       } else {
         console.log(
           `Transfer record ${transfer.id} already in status ${transfer.status}, not updating to READY.`,
