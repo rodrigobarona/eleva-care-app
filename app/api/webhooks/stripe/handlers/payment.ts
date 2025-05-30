@@ -141,32 +141,71 @@ async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: strin
  * Enhanced collision detection that considers both booking conflicts and actual minimum notice periods
  * @param expertId - Expert's Clerk user ID
  * @param startTime - Appointment start time
- * @param _eventId - Original event ID (currently unused)
+ * @param eventId - Event ID to get duration information
  * @returns Object with conflict info and reason
  */
 async function checkAppointmentConflict(
   expertId: string,
   startTime: Date,
-  _eventId: string,
+  eventId: string,
 ): Promise<{ hasConflict: boolean; reason?: string; minimumNoticeHours?: number }> {
   try {
     console.log(`🔍 Enhanced collision check for expert ${expertId} at ${startTime.toISOString()}`);
 
-    // 1. Check for existing confirmed meetings at the same time slot
-    const conflictingMeeting = await db.query.MeetingTable.findFirst({
-      where: and(
-        eq(MeetingTable.clerkUserId, expertId),
-        eq(MeetingTable.startTime, startTime),
-        eq(MeetingTable.stripePaymentStatus, 'succeeded'),
-      ),
+    // Get the event details to calculate the appointment end time
+    const event = await db.query.EventTable.findFirst({
+      where: eq(EventTable.id, eventId),
+      columns: { durationInMinutes: true },
     });
 
-    if (conflictingMeeting) {
-      console.log(
-        `⚠️ Time slot conflict: existing meeting ${conflictingMeeting.id} at ${startTime.toISOString()}`,
-      );
-      return { hasConflict: true, reason: 'time_slot_taken' };
+    if (!event) {
+      console.error(`❌ Event not found: ${eventId}`);
+      return { hasConflict: true, reason: 'event_not_found' };
     }
+
+    // Calculate the end time of the new appointment
+    const endTime = new Date(startTime.getTime() + event.durationInMinutes * 60 * 1000);
+
+    console.log(
+      `📅 New appointment: ${startTime.toISOString()} - ${endTime.toISOString()} (${event.durationInMinutes} min)`,
+    );
+
+    // 1. Check for existing confirmed meetings with TIME RANGE OVERLAP
+    // Two meetings overlap if: !(meeting1_end <= meeting2_start || meeting2_end <= meeting1_start)
+    // Simplified: meeting1_start < meeting2_end && meeting2_start < meeting1_end
+    const conflictingMeetings = await db.query.MeetingTable.findMany({
+      where: and(
+        eq(MeetingTable.clerkUserId, expertId),
+        eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+      ),
+      with: {
+        event: {
+          columns: { durationInMinutes: true },
+        },
+      },
+    });
+
+    for (const existingMeeting of conflictingMeetings) {
+      const existingEndTime = new Date(
+        existingMeeting.startTime.getTime() + existingMeeting.event.durationInMinutes * 60 * 1000,
+      );
+
+      // Check for overlap: new appointment overlaps with existing if:
+      // new_start < existing_end AND existing_start < new_end
+      const hasOverlap = startTime < existingEndTime && existingMeeting.startTime < endTime;
+
+      if (hasOverlap) {
+        console.log(
+          `⚠️ TIME RANGE OVERLAP detected!
+          📅 Existing: ${existingMeeting.startTime.toISOString()} - ${existingEndTime.toISOString()} (${existingMeeting.event.durationInMinutes} min)
+          📅 New:      ${startTime.toISOString()} - ${endTime.toISOString()} (${event.durationInMinutes} min)
+          🔴 Meeting ID: ${existingMeeting.id}`,
+        );
+        return { hasConflict: true, reason: 'time_range_overlap' };
+      }
+    }
+
+    console.log('✅ No time range conflicts found');
 
     // 2. Check actual minimum notice period requirements from expert's settings
     const expertSchedulingSettings = await db.query.schedulingSettings.findFirst({
