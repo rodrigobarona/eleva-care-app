@@ -7,7 +7,7 @@ interface PageProps {
   params: Promise<{ locale: string; document: string }>;
 }
 
-const validDocuments = ['terms', 'privacy', 'cookie', 'dpa'];
+const validDocuments = ['terms', 'privacy', 'cookie', 'dpa', 'payment-policies'];
 
 // Create a mapping of document types to their display names
 const documentDisplayNames = {
@@ -15,6 +15,7 @@ const documentDisplayNames = {
   privacy: 'Privacy Policy',
   cookie: 'Cookie Policy',
   dpa: 'Data Processing Agreement',
+  'payment-policies': 'Payment Policies',
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

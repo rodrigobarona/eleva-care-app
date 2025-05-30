@@ -257,18 +257,16 @@ export async function POST(request: Request) {
       consent_collection: {
         terms_of_service: 'required',
       },
-      custom_text: {
-        terms_of_service_acceptance: {
-          message: 'I agree to the [Terms of Service](https://eleva.care/legal/terms)',
-        },
-        // Add notice about Multibanco availability based on appointment timing
-        ...(hoursUntilMeeting <= 72 && {
-          submit: {
-            message:
-              '⚠️ **Payment Notice:** Multibanco payments are not available for appointments scheduled within 72 hours. Only credit/debit card payments are accepted for immediate booking confirmation.',
+      // Add notice about Multibanco availability based on appointment timing
+      ...(hoursUntilMeeting > 72 &&
+        paymentMethodTypes.includes('multibanco') && {
+          custom_text: {
+            submit: {
+              message:
+                '⚠️ **Multibanco Payment Notice:** If you choose Multibanco as your payment method, your appointment slot will be reserved for 24 hours while we wait for payment confirmation. After 24 hours, if payment is not received, we cannot guarantee the appointment will still be available. For immediate confirmation, please use a credit/debit card.',
+            },
           },
         }),
-      },
       // Enhanced customer information collection
       locale: meetingData.locale || 'en',
       customer_update: {
