@@ -28,8 +28,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
 
 /**
  * Extract locale from payment intent metadata and fallback sources
- * @param paymentIntent - Stripe payment intent with metadata
- * @returns The best available locale or 'en' as fallback
  */
 function extractLocaleFromPaymentIntent(paymentIntent: Stripe.PaymentIntent): string {
   try {
@@ -72,7 +70,6 @@ function parseMetadata<T>(json: string | undefined, fallback: T): T {
 
 /**
  * Notify expert about successful payment
- * @param transfer - Payment transfer record
  */
 async function notifyExpertOfPaymentSuccess(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
@@ -86,10 +83,6 @@ async function notifyExpertOfPaymentSuccess(transfer: { expertClerkUserId: strin
 
 /**
  * Notify expert about failed payment
- * @param transfer - Payment transfer record
- * @param paymentIntentId - Stripe payment intent ID
- * @param lastPaymentError - Payment failure reason
- * @param meetingDetails - Optional meeting details for enhanced message
  */
 async function notifyExpertOfPaymentFailure(
   transfer: { expertClerkUserId: string },
@@ -118,7 +111,6 @@ async function notifyExpertOfPaymentFailure(
 
 /**
  * Notify expert about payment refund
- * @param transfer - Payment transfer record
  */
 async function notifyExpertOfPaymentRefund(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
@@ -132,7 +124,6 @@ async function notifyExpertOfPaymentRefund(transfer: { expertClerkUserId: string
 
 /**
  * Notify expert about payment dispute
- * @param transfer - Payment transfer record
  */
 async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
@@ -146,59 +137,67 @@ async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: strin
 }
 
 /**
- * Check for appointment time slot conflicts for late Multibanco payments
+ * Enhanced collision detection that considers both booking conflicts and minimum notice periods
  * @param expertId - Expert's Clerk user ID
  * @param startTime - Appointment start time
- * @param _eventId - Original event ID to exclude from conflict check (unused for now)
- * @returns true if there's a conflict, false otherwise
+ * @param _eventId - Original event ID (currently unused)
+ * @returns Object with conflict info and reason
  */
 async function checkAppointmentConflict(
   expertId: string,
   startTime: Date,
   _eventId: string,
-): Promise<boolean> {
+): Promise<{ hasConflict: boolean; reason?: string; minimumNoticeHours?: number }> {
   try {
-    console.log(
-      `🔍 Checking for appointment conflicts for expert ${expertId} at ${startTime.toISOString()}`,
-    );
+    console.log(`🔍 Enhanced collision check for expert ${expertId} at ${startTime.toISOString()}`);
 
-    // Check if there's already a confirmed meeting at this time slot
+    // 1. Check for existing confirmed meetings at the same time slot
     const conflictingMeeting = await db.query.MeetingTable.findFirst({
       where: and(
         eq(MeetingTable.clerkUserId, expertId),
         eq(MeetingTable.startTime, startTime),
         eq(MeetingTable.stripePaymentStatus, 'succeeded'),
-        // Exclude the current event ID if it exists (in case of multiple payments for same event)
-        // Note: We need to check this carefully as the meeting might not exist yet
       ),
     });
 
     if (conflictingMeeting) {
       console.log(
-        `⚠️ Appointment conflict detected: existing meeting ${conflictingMeeting.id} at ${startTime.toISOString()}`,
+        `⚠️ Time slot conflict: existing meeting ${conflictingMeeting.id} at ${startTime.toISOString()}`,
       );
-      return true;
+      return { hasConflict: true, reason: 'time_slot_taken' };
     }
 
-    console.log(`✅ No appointment conflicts found for ${startTime.toISOString()}`);
-    return false;
+    // 2. Check minimum notice period requirements (simplified for now)
+    const currentTime = new Date();
+    const hoursUntilAppointment = (startTime.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+
+    // For now, use a simple 24-hour minimum notice check
+    // TODO: Query actual SchedulingSettings when schema is confirmed
+    if (hoursUntilAppointment < 24) {
+      console.log(
+        `⚠️ Minimum notice violation: appointment at ${startTime.toISOString()} only has ${hoursUntilAppointment.toFixed(1)}h notice`,
+      );
+      return {
+        hasConflict: true,
+        reason: 'minimum_notice_violation',
+        minimumNoticeHours: 24,
+      };
+    }
+
+    console.log(`✅ No conflicts found for ${startTime.toISOString()}`);
+    return { hasConflict: false };
   } catch (error) {
-    console.error('Error checking appointment conflicts:', error);
+    console.error('Error in enhanced collision check:', error);
     // In case of error, assume no conflict to avoid blocking legitimate payments
-    return false;
+    return { hasConflict: false };
   }
 }
 
 /**
  * Process partial refund for appointment conflicts (90% refund, 10% processing fee)
- * @param paymentIntent - Stripe payment intent
- * @param stripe - Stripe instance
- * @param reason - Reason for the refund
- * @returns Refund object if successful, null if failed
  */
 async function processPartialRefund(
   paymentIntent: Stripe.PaymentIntent,
-  stripe: Stripe,
   reason: string,
 ): Promise<Stripe.Refund | null> {
   try {
@@ -219,6 +218,7 @@ async function processPartialRefund(
         original_amount: originalAmount.toString(),
         processing_fee: processingFee.toString(),
         refund_percentage: '90',
+        conflict_type: reason,
       },
     });
 
@@ -231,7 +231,7 @@ async function processPartialRefund(
 }
 
 /**
- * Send notification emails for appointment conflicts and refunds
+ * Send simplified conflict notification using existing email system
  */
 async function notifyAppointmentConflict(
   guestEmail: string,
@@ -239,34 +239,62 @@ async function notifyAppointmentConflict(
   expertName: string,
   startTime: Date,
   refundAmount: number,
+  originalAmount: number,
   locale: string,
+  conflictReason: string,
+  minimumNoticeHours?: number,
 ) {
   try {
+    console.log(`📧 Sending conflict notification to ${guestEmail} in locale ${locale}`);
+
+    // Use simplified English messages for now
     const messages = {
       en: {
         subject: 'Appointment Booking - Time Slot No Longer Available',
         title: 'Appointment Conflict - Refund Processed',
-        message: `Dear ${guestName},\n\nWe regret to inform you that your appointment with ${expertName} scheduled for ${format(startTime, 'PPp')} is no longer available as the time slot has been booked by another client.\n\nSince this was a delayed Multibanco payment, we have processed a refund of €${(refundAmount / 100).toFixed(2)} (90% of the original amount, with 10% retained as a processing fee as outlined in our payment policies).\n\nWe apologize for the inconvenience and invite you to book a new appointment at your convenience.\n\nBest regards,\nEleva.care Team`,
+        greeting: `Dear ${guestName},`,
+        conflictMessage: `We regret to inform you that your appointment with ${expertName} scheduled for ${format(startTime, 'PPP pp')} is no longer available as the time slot has been booked by another client.`,
+        latePaymentExplanation: `Since this was a delayed Multibanco payment, we have processed a refund of €${(refundAmount / 100).toFixed(2)} (90% of the original amount, with 10% retained as a processing fee as outlined in our payment policies).`,
+        apologyAndInvitation:
+          'We apologize for the inconvenience and invite you to book a new appointment at your convenience.',
+        signature: 'Best regards,\nEleva.care Team',
       },
       pt: {
         subject: 'Marcação de Consulta - Horário Não Disponível',
         title: 'Conflito de Marcação - Reembolso Processado',
-        message: `Caro/a ${guestName},\n\nLamentamos informar que a sua consulta com ${expertName} marcada para ${format(startTime, 'PPp')} já não está disponível, pois o horário foi reservado por outro cliente.\n\nComo este foi um pagamento Multibanco tardio, processámos um reembolso de €${(refundAmount / 100).toFixed(2)} (90% do valor original, com 10% retido como taxa de processamento conforme descrito nas nossas políticas de pagamento).\n\nPedimos desculpa pelo inconveniente e convidamo-lo/a a marcar uma nova consulta à sua conveniência.\n\nCumprimentos,\nEquipa Eleva.care`,
+        greeting: `Caro/a ${guestName},`,
+        conflictMessage: `Lamentamos informar que a sua consulta com ${expertName} marcada para ${format(startTime, 'PPP pp')} já não está disponível, pois o horário foi reservado por outro cliente.`,
+        latePaymentExplanation: `Como este foi um pagamento Multibanco tardio, processámos um reembolso de €${(refundAmount / 100).toFixed(2)} (90% do valor original, com 10% retido como taxa de processamento conforme descrito nas nossas políticas de pagamento).`,
+        apologyAndInvitation:
+          'Pedimos desculpa pelo inconveniente e convidamo-lo/a a marcar uma nova consulta à sua conveniência.',
+        signature: 'Cumprimentos,\nEquipa Eleva.care',
       },
     };
 
     const content = messages[locale as keyof typeof messages] || messages.en;
 
+    const htmlContent = `
+      <h2>${content.title}</h2>
+      <p>${content.greeting}</p>
+      <p>${content.conflictMessage}</p>
+      <p>${content.latePaymentExplanation}</p>
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3>Refund Details</h3>
+        <p>Original amount: €${(originalAmount / 100).toFixed(2)}</p>
+        <p>Refund amount: €${(refundAmount / 100).toFixed(2)} (90%)</p>
+        <p>Processing fee retained: €${((originalAmount - refundAmount) / 100).toFixed(2)} (10%)</p>
+      </div>
+      <p>${content.apologyAndInvitation}</p>
+      <p>${content.signature.replace('\\n', '<br>')}</p>
+    `;
+
     await sendEmail({
       to: guestEmail,
       subject: content.subject,
-      html: `
-        <h2>${content.title}</h2>
-        <p>${content.message.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>
-      `,
+      html: htmlContent,
     });
 
-    console.log(`📧 Conflict notification sent to ${guestEmail}`);
+    console.log(`✅ Conflict notification sent to ${guestEmail}`);
   } catch (error) {
     console.error('Error sending conflict notification:', error);
   }
@@ -294,11 +322,12 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
     let hasConflict = false;
     if (isMultibancoPayment && meetingData.expert && meetingData.start) {
       const appointmentStart = new Date(meetingData.start);
-      hasConflict = await checkAppointmentConflict(
+      const conflictResult = await checkAppointmentConflict(
         meetingData.expert,
         appointmentStart,
         meetingData.id,
       );
+      hasConflict = conflictResult.hasConflict;
 
       if (hasConflict) {
         console.log(`🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`);
@@ -306,7 +335,6 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         // Process 90% refund
         const refund = await processPartialRefund(
           paymentIntent,
-          stripe,
           'Appointment time slot no longer available due to late payment',
         );
 
@@ -328,7 +356,10 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             expertName,
             appointmentStart,
             refund.amount,
+            paymentIntent.amount,
             extractLocaleFromPaymentIntent(paymentIntent),
+            conflictResult.reason,
+            conflictResult.minimumNoticeHours,
           );
 
           console.log(`✅ Conflict handled: 90% refund processed for PI ${paymentIntent.id}`);
