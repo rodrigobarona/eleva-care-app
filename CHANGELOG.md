@@ -198,9 +198,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Eliminated input interruption** during typing by optimizing URL synchronization timing.
 
 - **Stripe International Compatibility Issues**:
+
   - **Consent Collection Country Restrictions**: Fixed `consent_collection.promotions` error for non-US experts. The promotions consent feature is only available in the United States per Stripe's documentation, so the field is now conditionally included only for US-based experts.
   - **Enhanced International Payment Processing**: Improved Stripe checkout session creation to handle country-specific feature availability automatically.
   - **Better Error Handling**: Resolved API errors that prevented payment intent creation for experts operating outside the United States.
+
+- **Patient Record Dialog UI/UX Improvements**:
+  - **Redesigned Header Layout**: Completely redesigned the patient record dialog header with professional gradient background, compact layout, and improved visual hierarchy.
+  - **Enhanced Save Status Indicators**: Added real-time visual indicators for save status with colored dots and clear text (Saved/Unsaved/Saving with spinner).
+  - **Improved Window Controls**: Better positioned and styled minimize/close buttons with hover effects and semantic colors.
+  - **Compact Toolbar Design**: Redesigned rich text editor toolbar to be more space-efficient with smaller buttons (7x7px), better grouping with separators, and cleaner styling.
+  - **Professional Status Bar**: Added informative status bar showing last modification time, version info, and auto-save status.
+  - **Better Typography**: Improved font hierarchy with truncation for long names and better spacing throughout the dialog.
+  - **Enhanced Accessibility**: Added proper tooltips and ARIA labels for all toolbar buttons and controls.
 
 ### Enhanced
 

@@ -137,49 +137,75 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
 
   return (
     <div className="overflow-hidden rounded-md border">
-      <div className="flex gap-2 border-b bg-muted/50 p-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          className={editor.isActive('bold') ? 'bg-muted' : ''}
-        >
-          <Bold className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          className={editor.isActive('italic') ? 'bg-muted' : ''}
-        >
-          <Italic className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          className={editor.isActive('bulletList') ? 'bg-muted' : ''}
-        >
-          <List className="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="icon"
-          onClick={() => {
-            const url = window.prompt('Enter the URL');
-            if (url) {
-              editor.chain().focus().setLink({ href: url }).run();
-            }
-          }}
-          className={editor.isActive('link') ? 'bg-muted' : ''}
-        >
-          <LinkIcon className="h-4 w-4" />
-        </Button>
+      {/* Improved Compact Toolbar */}
+      <div className="flex-none border-b bg-muted/30">
+        <div className="flex items-center gap-1 p-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            title="Bold"
+            style={{
+              backgroundColor: editor.isActive('bold') ? 'hsl(var(--accent))' : 'transparent',
+            }}
+          >
+            <Bold className="h-3.5 w-3.5" />
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            title="Italic"
+            style={{
+              backgroundColor: editor.isActive('italic') ? 'hsl(var(--accent))' : 'transparent',
+            }}
+          >
+            <Italic className="h-3.5 w-3.5" />
+          </Button>
+
+          <div className="mx-1 h-5 w-px bg-border" />
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            title="Bullet List"
+            style={{
+              backgroundColor: editor.isActive('bulletList') ? 'hsl(var(--accent))' : 'transparent',
+            }}
+          >
+            <List className="h-3.5 w-3.5" />
+          </Button>
+
+          <div className="mx-1 h-5 w-px bg-border" />
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => {
+              const url = window.prompt('Enter the URL');
+              if (url) {
+                editor.chain().focus().setLink({ href: url }).run();
+              }
+            }}
+            title="Insert Link"
+            style={{
+              backgroundColor: editor.isActive('link') ? 'hsl(var(--accent))' : 'transparent',
+            }}
+          >
+            <LinkIcon className="h-3.5 w-3.5" />
+          </Button>
+        </div>
       </div>
+
       <EditorContent editor={editor} />
     </div>
   );
