@@ -1,37 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getNotificationMessages } from './actions';
-import { Button } from '@/components/atoms/button'; // Assuming Button component exists
-import { Input } from '@/components/atoms/input';   // Assuming Input component exists
+import { Button } from '@/components/atoms/button';
+// Assuming Button component exists
+import { Input } from '@/components/atoms/input';
+import type { MessageResponseDto } from '@novu/api/models/components/messageresponsedto';
+// Assuming Input component exists
 import { debounce } from 'lodash';
+import { useEffect, useState } from 'react';
 
-// Define NovuMessage type matching the one in actions.ts
-interface NovuMessage {
-  _id: string;
-  _templateId: string;
-  _subscriberId: string;
-  createdAt: string;
-  content: string | { type: string; content: any[] };
-  payload: Record<string, any>;
-  seen: boolean;
-  read: boolean;
-  status: string;
-  channel: string;
-  subscriber?: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    subscriberId: string;
-  };
-  error?: {
-    message: string;
-    code: string;
-  };
-}
+import { getNotificationMessages } from './actions';
 
 interface FetchResult {
-  messages: NovuMessage[];
+  messages: MessageResponseDto[];
   totalCount: number;
   pageSize: number;
   currentPage: number;
@@ -74,8 +54,11 @@ export default function NotificationsLogPage() {
   }, 500);
 
   useEffect(() => {
-    fetchLogs(currentPage, subscriberIdFilter.trim() === '' ? undefined : subscriberIdFilter.trim());
-  }, [currentPage]); // Re-fetch when currentPage changes
+    fetchLogs(
+      currentPage,
+      subscriberIdFilter.trim() === '' ? undefined : subscriberIdFilter.trim(),
+    );
+  }, [currentPage, subscriberIdFilter]); // Re-fetch when currentPage or filter changes
 
   const handleSubscriberIdChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSubscriberIdFilter(event.target.value);
@@ -92,9 +75,9 @@ export default function NotificationsLogPage() {
     setCurrentPage((prevPage) => Math.max(0, prevPage - 1));
   };
 
-  const getMessageTitle = (message: NovuMessage): string => {
-    if (typeof message.payload?.title === 'string') {
-      return message.payload.title;
+  const getMessageTitle = (message: MessageResponseDto): string => {
+    if (message.subject) {
+      return message.subject;
     }
     if (typeof message.content === 'string') {
       return message.content.substring(0, 100) + (message.content.length > 100 ? '...' : '');
@@ -115,8 +98,9 @@ export default function NotificationsLogPage() {
           onChange={handleSubscriberIdChange}
           className="max-w-sm"
         />
-        <p className="text-xs text-muted-foreground mt-1">
-          Note: Subscriber ID filtering might be approximate if not directly supported by the SDK for this call.
+        <p className="mt-1 text-xs text-muted-foreground">
+          Note: Subscriber ID filtering might be approximate if not directly supported by the SDK
+          for this call.
         </p>
       </div>
 
@@ -129,24 +113,53 @@ export default function NotificationsLogPage() {
             <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
               <thead className="bg-gray-50 dark:bg-gray-800">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Subscriber ID</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Title/Content</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Channel</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Created At</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">Seen/Read</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                    ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                    Subscriber ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                    Title/Content
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                    Channel
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                    Status
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                    Created At
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-300">
+                    Seen/Read
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200 bg-white dark:divide-gray-700 dark:bg-gray-900">
                 {data.messages.map((message) => (
-                  <tr key={message._id}>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100" title={message._id}>{message._id.slice(-8)}...</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{message.subscriber?.subscriberId || message._subscriberId}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{getMessageTitle(message)}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{message.channel}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{message.status}</td>
-                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">{new Date(message.createdAt).toLocaleString()}</td>
+                  <tr key={message.id}>
+                    <td
+                      className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100"
+                      title={message.id || 'N/A'}
+                    >
+                      {message.id?.slice(-8) || 'N/A'}...
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                      {message.subscriberId}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                      {getMessageTitle(message)}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                      {message.channel}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                      {message.status}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
+                      {new Date(message.createdAt).toLocaleString()}
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                       {message.seen ? 'Seen' : 'Unseen'} / {message.read ? 'Read' : 'Unread'}
                     </td>
@@ -154,7 +167,10 @@ export default function NotificationsLogPage() {
                 ))}
                 {data.messages.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400">
+                    <td
+                      colSpan={7}
+                      className="px-6 py-4 text-center text-sm text-gray-500 dark:text-gray-400"
+                    >
                       No messages found.
                     </td>
                   </tr>

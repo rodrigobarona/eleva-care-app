@@ -1,8 +1,4 @@
 import novu from '@/config/novu';
-// Database related imports are no longer needed as NotificationTable and its functions are removed.
-// import { db } from '@/drizzle/db';
-// import { NotificationTable } from '@/drizzle/schema';
-// import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
 
 /**
  * Type definitions for notification creation
@@ -34,11 +30,14 @@ export async function createUserNotification(params: CreateNotificationParams): 
     if (!novuEventName) {
       // If no event name, it's not necessarily an error in triggering,
       // but indicates a configuration issue or an unhandled notification type.
-      console.warn(`No Novu event mapping for notification type: ${params.type}. Notification not sent.`);
+      console.warn(
+        `No Novu event mapping for notification type: ${params.type}. Notification not sent.`,
+      );
       return false; // Or handle as an error depending on desired strictness
     }
 
-    await novu.trigger(novuEventName, {
+    await novu.trigger({
+      workflowId: novuEventName,
       to: {
         subscriberId: params.userId,
       },
@@ -47,10 +46,11 @@ export async function createUserNotification(params: CreateNotificationParams): 
         message: params.message,
         actionUrl: params.actionUrl,
         // Add any other relevant data that Novu templates might need
-        // internalNotificationId is removed
       },
     });
-    console.log(`Novu notification triggered successfully for event: ${novuEventName}, user: ${params.userId}`);
+    console.log(
+      `Novu notification triggered successfully for event: ${novuEventName}, user: ${params.userId}`,
+    );
     return true;
   } catch (novuError) {
     console.error('Error sending notification via Novu:', novuError);
@@ -79,5 +79,3 @@ function mapNotificationTypeToNovuEvent(type: NotificationType): string | null {
       return null;
   }
 }
-// Removed markNotificationAsRead and getUnreadNotifications functions
-// as NotificationTable is being removed.

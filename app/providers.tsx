@@ -41,6 +41,8 @@ function NovuWrapper({ children }: { children: React.ReactNode }) {
     <NovuProvider
       subscriberId={user.id} // Assuming Clerk user.id is the correct subscriberId for Novu
       applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
+      backendUrl="https://eu.api.novu.co"
+      socketUrl="https://eu.ws.novu.co"
       // initialFetchingStrategy can be added here if needed, e.g.
       // initialFetchingStrategy={{ fetchNotifications: true, fetchUserPreferences: true }}
     >

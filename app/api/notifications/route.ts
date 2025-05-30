@@ -1,9 +1,9 @@
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema'; // NotificationTable removed
-import { createUserNotification } from '@/lib/notifications'; // getUnreadNotifications removed
+import { UserTable } from '@/drizzle/schema';
+import { createUserNotification } from '@/lib/notifications';
 import type { CreateNotificationParams } from '@/lib/notifications';
 import { currentUser } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm'; // Removed: and, desc, gt, isNull, or
+import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 // Add route segment config
@@ -91,9 +91,11 @@ export async function POST(request: Request) {
       );
     }
   } catch (error) {
-    // This catch block now handles errors from parsing request, user checks, or unexpected errors.
     console.error('Error in POST /api/notifications:', error);
     const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
-    return NextResponse.json({ success: false, error: `Failed to process notification request: ${errorMessage}` }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: `Failed to process notification request: ${errorMessage}` },
+      { status: 500 },
+    );
   }
 }

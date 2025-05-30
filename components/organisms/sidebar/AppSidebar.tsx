@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
 } from '@/components/organisms/sidebar/sidebar';
 import { useUser } from '@clerk/nextjs';
-import { Calendar, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
+import { Bell, Calendar, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
 import { Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
@@ -53,11 +53,15 @@ const mainItems: SidebarItem[] = [
       { title: 'Booking Window', url: '/booking/schedule/limits#booking-window' },
     ],
   },
-
   {
     title: 'Expert Profile',
     url: '/booking/expert',
     icon: User,
+  },
+  {
+    title: 'Notifications',
+    url: '/account/notifications',
+    icon: Bell,
   },
 ];
 
