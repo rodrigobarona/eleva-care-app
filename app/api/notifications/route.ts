@@ -12,64 +12,6 @@ export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 
 /**
- * GET /api/notifications
- *
- * Fetches notifications for the current user
- *
- * @query includeRead - Whether to include read notifications (default: false)
- *
- * @returns 200 - Success with notifications array
- * @returns 401 - Unauthorized if no user is authenticated
- * @returns 404 - User not found in database
- * @returns 500 - Server error during fetch
- */
-export async function GET(request: Request) {
-  try {
-    // Get the current user
-    const user = await currentUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Get user from database
-    const dbUser = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, user.id),
-    });
-
-    if (!dbUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    // Check if we should include read notifications
-    const url = new URL(request.url);
-    const includeRead = url.searchParams.get('includeRead') === 'true';
-
-    // Get notifications
-    let notifications: Array<typeof NotificationTable.$inferSelect> = [];
-
-    if (includeRead) {
-      // Get all notifications
-      const now = new Date();
-      notifications = await db.query.NotificationTable.findMany({
-        where: and(
-          eq(NotificationTable.userId, dbUser.id),
-          or(isNull(NotificationTable.expiresAt), gt(NotificationTable.expiresAt, now)),
-        ),
-        orderBy: [desc(NotificationTable.createdAt)],
-      });
-    } else {
-      // Get only unread notifications
-      notifications = await getUnreadNotifications(dbUser.id);
-    }
-
-    return NextResponse.json({ notifications });
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 });
-  }
-}
-
-/**
  * POST /api/notifications
  *
  * Creates a new notification for a user

@@ -1,8 +1,10 @@
 'use client';
 
 import { AuthorizationProvider } from '@/components/molecules/AuthorizationProvider';
+import { ENV_CONFIG } from '@/config/env';
 import { enUS, esES, ptBR, ptPT } from '@clerk/localizations';
-import { ClerkProvider } from '@clerk/nextjs';
+import { ClerkProvider, useUser } from '@clerk/nextjs';
+import { NovuProvider } from '@novu/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
@@ -22,6 +24,30 @@ const CookieManager = dynamic(
   () => import('react-cookie-manager').then((mod) => mod.CookieManager),
   { ssr: false, loading: () => null },
 );
+
+// Define NovuWrapper component here to access useUser hook
+function NovuWrapper({ children }: { children: React.ReactNode }) {
+  const { user, isLoaded } = useUser();
+
+  // Ensure Clerk user is loaded and applicationIdentifier is available
+  if (!isLoaded || !user || !ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) {
+    // You might want to render a loading state or null while waiting for user/config
+    // For now, just return children if Novu cannot be initialized.
+    // Or, you could show a specific loading indicator for Novu.
+    return <>{children}</>;
+  }
+
+  return (
+    <NovuProvider
+      subscriberId={user.id} // Assuming Clerk user.id is the correct subscriberId for Novu
+      applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
+      // initialFetchingStrategy can be added here if needed, e.g.
+      // initialFetchingStrategy={{ fetchNotifications: true, fetchUserPreferences: true }}
+    >
+      {children}
+    </NovuProvider>
+  );
+}
 
 interface ClientProvidersProps {
   children: React.ReactNode;
@@ -127,7 +153,7 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
           >
             <PHProvider client={posthog}>
               {posthogLoaded && <PostHogPageView />}
-              {children}
+              <NovuWrapper>{children}</NovuWrapper>
             </PHProvider>
             <Toaster closeButton position="bottom-right" richColors />
           </CookieManager>

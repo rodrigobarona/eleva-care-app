@@ -1,3 +1,5 @@
+import { Novu } from '@novu/node'; // Likely not needed if using the instance directly
+import novu from '@/config/novu';
 import { db } from '@/drizzle/db';
 import { NotificationTable } from '@/drizzle/schema';
 import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
@@ -45,10 +47,59 @@ export async function createUserNotification(params: CreateNotificationParams): 
       throw new Error('Failed to create notification');
     }
 
-    return result[0].id;
+    const notificationId = result[0].id;
+
+    // --- Novu Integration ---
+    try {
+      const novuEventName = mapNotificationTypeToNovuEvent(params.type);
+      if (novuEventName) {
+        await novu.trigger(novuEventName, {
+          to: {
+            subscriberId: params.userId, // Ensure this aligns with your Novu subscriber ID format
+          },
+          payload: {
+            title: params.title,
+            message: params.message,
+            actionUrl: params.actionUrl,
+            // You can add any other relevant data here
+            // For example, the notificationId from your database
+            internalNotificationId: notificationId,
+          },
+        });
+        console.log(`Novu notification triggered for event: ${novuEventName}, user: ${params.userId}`);
+      }
+    } catch (novuError) {
+      console.error('Error sending notification via Novu:', novuError);
+      // Do not re-throw; creating the DB notification is the primary goal
+    }
+    // --- End Novu Integration ---
+
+    return notificationId;
   } catch (error) {
     console.error('Error creating user notification:', error);
     throw error;
+  }
+}
+
+/**
+ * Maps local NotificationType to Novu event trigger IDs.
+ * These event IDs/names need to be created in your Novu dashboard.
+ * @param type The local notification type
+ * @returns The Novu event name/ID or null if no mapping exists
+ */
+function mapNotificationTypeToNovuEvent(type: NotificationType): string | null {
+  switch (type) {
+    case 'VERIFICATION_HELP':
+      return 'verification-help'; // Example: matches VERIFICATION_HELP
+    case 'ACCOUNT_UPDATE':
+      return 'account-update'; // Example: matches ACCOUNT_UPDATE
+    case 'SECURITY_ALERT':
+      return 'security-alert'; // Example: matches SECURITY_ALERT
+    case 'SYSTEM_MESSAGE':
+      return 'system-message'; // Example: matches SYSTEM_MESSAGE
+    default:
+      console.warn(`No Novu event mapping for notification type: ${type}`);
+      return null;
   }
 }
 

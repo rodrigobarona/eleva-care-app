@@ -49,6 +49,10 @@ export const ENV_CONFIG = {
   // Gravatar API Configuration
   GRAVATAR_API_KEY: process.env.GRAVATAR_API_KEY || '',
 
+  // Novu Configuration
+  NOVU_API_KEY: process.env.NOVU_API_KEY || '',
+  NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER: process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER || '',
+
   // Security
   ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || '',
   CRON_API_KEY: process.env.CRON_API_KEY || '',
@@ -190,6 +194,25 @@ export const ENV_VALIDATORS = {
   },
 
   /**
+   * Validate Novu environment variables
+   */
+  novu(): EnvValidationResult {
+    const missingVars: string[] = [];
+
+    if (!ENV_CONFIG.NOVU_API_KEY) missingVars.push('NOVU_API_KEY');
+    if (!ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) missingVars.push('NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER');
+
+    return {
+      isValid: missingVars.length === 0,
+      message:
+        missingVars.length > 0
+          ? `Missing Novu environment variables: ${missingVars.join(', ')}`
+          : 'Novu configuration is valid',
+      missingVars,
+    };
+  },
+
+  /**
    * Validate all critical environment variables
    */
   critical(): EnvValidationResult {
@@ -285,6 +308,7 @@ export const ENV_HELPERS = {
       hasQStash: Boolean(ENV_CONFIG.QSTASH_TOKEN),
       hasEmail: Boolean(ENV_CONFIG.RESEND_API_KEY),
       hasGravatar: this.hasGravatarApiKey(),
+      hasNovu: Boolean(ENV_CONFIG.NOVU_API_KEY && ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER),
       baseUrl: this.getBaseUrl(),
     };
   },
