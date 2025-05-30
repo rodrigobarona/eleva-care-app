@@ -7,8 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.2] - 2025-05-29
-
 ### Added
 
 - **Core Web Vitals Optimizations**:
@@ -79,6 +77,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Multilingual Routing**: Implemented proper routing configuration for `/legal/payment-policies` across all locales
   - **Seamless User Experience**: Payment policies accessible through standard legal document navigation patterns
   - **Professional Documentation Structure**: Consistent formatting and structure matching existing legal documents
+
+- **Multilingual Stripe Checkout Integration**:
+  - **Internationalized Payment Notices**: Converted hardcoded English Multibanco payment notices to multilingual messages using next-intl framework
+  - **Legal Page Integration**: Added direct links to payment policies and terms of service within Stripe checkout custom text
+  - **Comprehensive Language Support**: Full support for English, Portuguese, Spanish, and Brazilian Portuguese checkout experiences
+  - **Dynamic URL Construction**: Automatic locale-based URL generation for legal document links in checkout flow
+  - **Enhanced Terms of Service**: Multilingual terms acceptance messaging with proper legal document linking
 
 ### Changed
 

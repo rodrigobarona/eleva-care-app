@@ -9,6 +9,7 @@ import { EventTable, SlotReservationTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
 import { getOrCreateStripeCustomer } from '@/lib/stripe';
 import { eq } from 'drizzle-orm';
+import { getTranslations } from 'next-intl/server';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import Stripe from 'stripe';
@@ -52,6 +53,17 @@ export async function POST(request: Request) {
       console.warn('Missing startTime in meeting data');
       return NextResponse.json({ message: 'Missing required field: startTime' }, { status: 400 });
     }
+
+    // Extract locale for translations
+    const locale = meetingData.locale || 'en';
+
+    // Get translations for the checkout messages
+    const t = await getTranslations({ locale, namespace: 'Payments.checkout' });
+
+    // Construct URLs for legal pages
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care';
+    const paymentPoliciesUrl = `${baseUrl}/${locale}/legal/payment-policies`;
+    const termsUrl = `${baseUrl}/${locale}/legal/terms-of-service`;
 
     // Get expert's Connect account
     console.log('Querying event details:', { eventId });
@@ -200,10 +212,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get base URL and locale for redirects
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
-    const locale = meetingMetadata.locale || 'en';
-
     // Calculate fees
     const platformFee = applicationFeeAmount;
     const expertAccount = event.user;
@@ -253,20 +261,31 @@ export async function POST(request: Request) {
       },
       // Billing address collection for tax calculation
       billing_address_collection: 'required',
-      // Enhanced terms of service consent
+      // Enhanced terms of service consent with multilingual support
       consent_collection: {
         terms_of_service: 'required',
+        promotions: 'none',
       },
       // Add notice about Multibanco availability based on appointment timing
       ...(hoursUntilMeeting > 72 &&
         paymentMethodTypes.includes('multibanco') && {
           custom_text: {
             submit: {
-              message:
-                '⚠️ **Multibanco Payment Notice:** If you choose Multibanco as your payment method, your appointment slot will be reserved for 24 hours while we wait for payment confirmation. After 24 hours, if payment is not received, we cannot guarantee the appointment will still be available. For immediate confirmation, please use a credit/debit card.',
+              message: t('multibancoNotice', { paymentPoliciesUrl }),
+            },
+            terms_of_service_acceptance: {
+              message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
             },
           },
         }),
+      // For appointments within 72 hours (no Multibanco), still show terms
+      ...(hoursUntilMeeting <= 72 && {
+        custom_text: {
+          terms_of_service_acceptance: {
+            message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
+          },
+        },
+      }),
       // Enhanced customer information collection
       locale: meetingData.locale || 'en',
       customer_update: {

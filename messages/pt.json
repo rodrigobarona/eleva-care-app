@@ -336,6 +336,10 @@
         "refundAmount": "Valor reembolsado: €{amount} (90%)",
         "processingFee": "Taxa de processamento retida: €{amount} (10%)"
       }
+    },
+    "checkout": {
+      "multibancoNotice": "⚠️ **Aviso de Pagamento Multibanco:** Se escolher Multibanco como método de pagamento, o seu horário de consulta será reservado por 24 horas enquanto aguardamos confirmação do pagamento. Após 24 horas, se o pagamento não for recebido, não podemos garantir que a consulta ainda estará disponível. Para confirmação imediata, use um cartão de crédito/débito. [Ver Políticas de Pagamento]({paymentPoliciesUrl})",
+      "termsOfService": "Ao prosseguir com o pagamento, concorda com os nossos [Termos de Serviço]({termsUrl}) e [Políticas de Pagamento]({paymentPoliciesUrl})."
     }
   }
 }

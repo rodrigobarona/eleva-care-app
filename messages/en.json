@@ -337,6 +337,10 @@
         "refundAmount": "Refund amount: €{amount} (90%)",
         "processingFee": "Processing fee retained: €{amount} (10%)"
       }
+    },
+    "checkout": {
+      "multibancoNotice": "⚠️ **Multibanco Payment Notice:** If you choose Multibanco as your payment method, your appointment slot will be reserved for 24 hours while we wait for payment confirmation. After 24 hours, if payment is not received, we cannot guarantee the appointment will still be available. For immediate confirmation, please use a credit/debit card. [View Payment Policies]({paymentPoliciesUrl})",
+      "termsOfService": "By proceeding with payment, you agree to our [Terms of Service]({termsUrl}) and [Payment Policies]({paymentPoliciesUrl})."
     }
   }
 }
