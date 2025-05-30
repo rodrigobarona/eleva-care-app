@@ -25,17 +25,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added color variant support for better theme integration.
     - Reduced SVG path coordinate precision (~1KB reduction).
 
-- **Healthcare-Specific Tax Codes**:
+- **Secure Customer ID System**:
 
-  - Implemented proper healthcare service tax codes for Stripe integration.
-  - Added support for different types of healthcare services:
-    - `txcd_20103200` - Healthcare Provider Services (default).
-    - `txcd_20103000` - Medical Services (General).
-    - `txcd_30070000` - Healthcare Services (Zero-rated).
-    - `txcd_20103100` - Personal Care Services.
-  - Added comprehensive documentation in `/docs/stripe-tax-codes.md`.
-  - Enhanced tax compliance for healthcare providers.
-  - Improved tax reporting accuracy for medical services.
+  - **Shared Utility Functions**: Created comprehensive customer ID utilities in `lib/utils/customerUtils.ts` with three core functions:
+    - `generateCustomerId(userId, guestEmail)`: Deterministic 12-character alphanumeric ID generation
+    - `findEmailByCustomerId(userId, customerId, emailList)`: Efficient reverse lookup functionality
+    - `isValidCustomerId(customerId)`: Format validation with regex pattern matching
+  - **Cross-Component Consistency**: Unified customer ID generation across all frontend components and backend APIs
+  - **Performance Optimization**: Implemented React.useMemo for customer ID memoization preventing unnecessary recalculations
+  - **TypeScript Integration**: Added `AppointmentWithCustomerId` type for enhanced type safety and developer experience
+  - **Privacy-First Design**: Replaced email-based URLs with secure customer IDs (e.g., `/patients/ABC123DEF456` instead of `/patients/user@example.com`)
+  - **Comprehensive Documentation**: Created detailed documentation in `/docs/customer-id-system.md` covering architecture, implementation, security, and best practices
+
+- **Enhanced Tax and Billing Compliance**:
+
+  - **Automatic Tax Handling**: Implemented enhanced tax calculation system with liability delegation to expert Connect accounts
+  - **Tax ID Collection**: Added support for tax identification collection when supported by customer's region
+  - **European Tax Compliance**: Enhanced VAT handling for European customers with proper tax metadata
+  - **Billing Address Collection**: Required billing address collection for accurate tax calculation and compliance
+  - **Enhanced Customer Data Collection**: Automatic collection and updating of customer name and address information
 
 - **Slot Reservation System**:
 
@@ -144,6 +152,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 
 - **Customer Management Privacy Enhancement**:
+
   - **Replaced email-based URLs** with secure, deterministic customer IDs for patient details pages.
   - **Removed email exposure** from URLs (`/patients/user@example.com` → `/patients/ABC123DEF456`).
   - **Implemented secure ID generation** using Base64 encoding with expert-scoped salting.
@@ -153,9 +162,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **AppointmentCard Security**: Updated all appointment card components to generate and use secure customer IDs for patient links, eliminating email exposure across the application.
   - **Backward compatibility**: Graceful fallback for components without customer ID context.
 
+- **Enhanced Customer ID System Security**:
+  - **Deterministic Generation**: Same patient + same practitioner always generates identical customer ID for consistency
+  - **Expert-Scoped Security**: Customer IDs are scoped to authenticated expert, preventing cross-expert data access
+  - **Input Validation**: Comprehensive validation of customer ID format (12 alphanumeric characters) before processing
+  - **Non-Guessable IDs**: Base64 encoding with normalization prevents customer ID enumeration attacks
+  - **Error Handling**: Secure error handling that doesn't expose sensitive information in logs or responses
+  - **Authentication Integration**: Proper role-based access control on all customer-related endpoints
+
 ### Performance
 
 - **React Hook Form Advanced Optimization**:
+
   - **Component Architecture**: Extracted `Step2Content` as standalone component with explicit props to eliminate closure dependencies.
   - **Memoization Enhancement**: Implemented custom React.memo comparison function for selective re-renders.
   - **Hook Optimization**: Replaced `form.watch()` with targeted `useWatch` subscriptions.
@@ -164,7 +182,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **URL Update Strategy**: Changed from real-time to `onBlur` for better UX during typing.
   - **Double-Submit Prevention**: Added `isSubmitting` state guards across all form submission handlers.
 
+- **Customer ID System Performance Optimizations**:
+  - **React Memoization**: Implemented `React.useMemo` for customer ID generation preventing unnecessary recalculations on component re-renders
+  - **Stable React Keys**: Enhanced React key strategy with `${item.id}-${item.customerId}` for optimal component tracking and re-render prevention
+  - **API Efficiency**: Streamlined customer lookup with shared utilities reducing code duplication and improving maintainability
+  - **Component Re-render Reduction**: Eliminated customer ID regeneration in render cycles through proper dependency array management
+  - **Memory Optimization**: Centralized customer ID logic reducing memory footprint across multiple components
+  - **Render Stability**: Consistent customer ID generation prevents unnecessary component updates and improves UI stability
+
 ### Fixed
+
+- **Customer ID Consistency Issues**:
+
+  - **Resolved appointment card URL inconsistency**: Fixed issue where all appointment cards were showing the same URL for patient details, caused by inconsistent customer ID generation across component renders
+  - **Eliminated customer ID regeneration**: Implemented proper memoization to prevent customer IDs from changing between renders
+  - **Fixed React key conflicts**: Enhanced React key strategy to ensure unique, stable keys for each appointment card component
+  - **Corrected URL generation**: Unified customer ID generation algorithm across appointments page and customers list page
+  - **Resolved component re-render issues**: Eliminated unnecessary customer ID recalculations that were causing UI inconsistencies
 
 - **Stripe Metadata Optimization**:
 
@@ -230,6 +264,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - More readable countdown timers (hours instead of minutes)
   - Clearer expiration warnings with appropriate thresholds
   - Better date formatting for multi-day reservation holds
+
+### Technical
+
+- **New Utility Files**:
+
+  - **`lib/utils/customerUtils.ts`**: Comprehensive customer ID utilities with three core functions for generation, lookup, and validation
+  - **`docs/customer-id-system.md`**: Complete documentation covering architecture, implementation, security, testing, and best practices
+
+- **Enhanced Type Definitions**:
+
+  - **`AppointmentWithCustomerId`**: New TypeScript type extending appointments with secure customer ID properties
+  - **Customer Interface Updates**: Enhanced customer interface with secure ID field replacing email-based identification
+
+- **API Endpoint Enhancements**:
+
+  - **`/api/customers`**: Updated to use shared customer ID generation utility for consistency
+  - **`/api/customers/[id]`**: Enhanced with efficient reverse lookup using `findEmailByCustomerId` utility
+  - **Authentication**: Strengthened role-based access control across all customer endpoints
+
+- **Component Architecture Improvements**:
+
+  - **Appointments Page**: Refactored with memoized customer ID generation and stable React keys
+  - **Customers Page**: Enhanced with customer ID validation and error handling
+  - **AppointmentCard Component**: Updated to use consistent customer ID generation and linking
+
+- **Performance Optimizations**:
+  - **React Memoization**: `React.useMemo` implementation for customer ID generation
+  - **Dependency Management**: Proper dependency arrays for memoization hooks
+  - **Component Re-render Prevention**: Stable React keys and memoized customer data
 
 ### Removed
 
