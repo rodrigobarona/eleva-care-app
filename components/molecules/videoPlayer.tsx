@@ -85,6 +85,7 @@ export function VideoPlayer({
         src="data:text/vtt;base64,V0VCVlRUCgoxCjAwOjAwOjAwLjAwMCAtLT4gMDA6MDA6MDEuMDAwCk5vIGNhcHRpb25zIGF2YWlsYWJsZQo="
         srcLang="en"
         default={captions.length === 0}
+        className="sr-only"
       />
       {/* Add additional caption tracks if provided */}
       {captions.map((caption) => (
