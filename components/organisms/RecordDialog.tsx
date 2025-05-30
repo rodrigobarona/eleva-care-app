@@ -7,7 +7,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import { GravatarAvatar } from '@/components/molecules/GravatarAvatar';
 import RecordEditor from '@/components/molecules/RecordEditor';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -144,12 +143,6 @@ export function RecordDialog({
         <DialogHeader className="flex-none border-b bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
           <div className="flex items-center justify-between px-4 py-3 pr-12">
             <div className="flex min-w-0 flex-1 items-center gap-3">
-              <GravatarAvatar
-                email={guestEmail}
-                name={guestName}
-                size={32}
-                className="flex-shrink-0"
-              />
               <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10">
                 <FileEdit className="h-4 w-4 text-primary" />
               </div>

@@ -11,7 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/molecules/table';
-import { GravatarAvatar } from '@/components/molecules/GravatarAvatar';
 import { formatCurrency } from '@/lib/utils';
 import { isValidCustomerId } from '@/lib/utils/customerUtils';
 import { useUser } from '@clerk/nextjs';
@@ -262,17 +261,7 @@ export default function CustomersPage() {
               <TableBody>
                 {filteredCustomers.map((customer) => (
                   <TableRow key={customer.id}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3">
-                        <GravatarAvatar
-                          email={customer.email}
-                          name={customer.name}
-                          size={32}
-                          className="flex-shrink-0"
-                        />
-                        <span>{customer.name || 'N/A'}</span>
-                      </div>
-                    </TableCell>
+                    <TableCell className="font-medium">{customer.name || 'N/A'}</TableCell>
                     <TableCell>{customer.email}</TableCell>
                     <TableCell>{customer.appointmentsCount || 0}</TableCell>
                     <TableCell>{formatCurrency(customer.totalSpend || 0)}</TableCell>
