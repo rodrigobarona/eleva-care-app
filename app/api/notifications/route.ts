@@ -1,9 +1,9 @@
 import { db } from '@/drizzle/db';
-import { NotificationTable, UserTable } from '@/drizzle/schema';
-import { createUserNotification, getUnreadNotifications } from '@/lib/notifications';
+import { UserTable } from '@/drizzle/schema'; // NotificationTable removed
+import { createUserNotification } from '@/lib/notifications'; // getUnreadNotifications removed
 import type { CreateNotificationParams } from '@/lib/notifications';
 import { currentUser } from '@clerk/nextjs/server';
-import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
+import { eq } from 'drizzle-orm'; // Removed: and, desc, gt, isNull, or
 import { NextResponse } from 'next/server';
 
 // Add route segment config
@@ -76,12 +76,24 @@ export async function POST(request: Request) {
       expiresAt: body.expiresAt ? new Date(body.expiresAt) : undefined,
     };
 
-    // Create notification
-    const notificationId = await createUserNotification(notificationParams);
+    // Trigger notification via Novu
+    const success = await createUserNotification(notificationParams);
 
-    return NextResponse.json({ id: notificationId }, { status: 201 });
+    if (success) {
+      return NextResponse.json(
+        { success: true, message: 'Notification triggered successfully via Novu.' },
+        { status: 202 }, // 202 Accepted: The request has been accepted for processing, but the processing has not been completed.
+      );
+    } else {
+      return NextResponse.json(
+        { success: false, error: 'Failed to trigger notification via Novu.' },
+        { status: 500 }, // Internal Server Error
+      );
+    }
   } catch (error) {
-    console.error('Error creating notification:', error);
-    return NextResponse.json({ error: 'Failed to create notification' }, { status: 500 });
+    // This catch block now handles errors from parsing request, user checks, or unexpected errors.
+    console.error('Error in POST /api/notifications:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred.';
+    return NextResponse.json({ success: false, error: `Failed to process notification request: ${errorMessage}` }, { status: 500 });
   }
 }
