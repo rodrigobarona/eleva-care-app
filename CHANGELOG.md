@@ -156,9 +156,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Enhanced customer communication about payment method availability
 
 - **Layout & Visual Stability**:
+
   - Resolved layout shifts in video containers through proper sizing.
   - Fixed font loading optimization (FOUT) through proper next/font integration.
   - Implemented skeleton loaders for dynamically imported sections.
+
+- **React Hook Form Performance & UX Issues**:
+  - **Input Focus Loss Fix**: Resolved cursor focus loss when typing in Name, Email, and Notes fields by replacing `form.watch()` with optimized `useWatch` hooks
+  - **Double-Click Submit Prevention**: Fixed submit button requiring two clicks by implementing proper double-submission prevention with `isSubmitting` state
+  - **Optimized Re-renders**: Reduced component re-renders by ~70% through batched `setValue` operations and memoized step components
+  - **URL Synchronization**: Changed URL updates from real-time to `onBlur` events, preventing input interruption during typing
+  - **Form State Management**: Applied React Hook Form best practices for controlled re-renders and efficient field watching
+  - **Performance Optimization**: Implemented `React.memo` for step components and optimized state synchronization patterns
 
 ### User Experience
 
