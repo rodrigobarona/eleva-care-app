@@ -278,14 +278,15 @@ export const expertOnboardingCompleteWorkflow = workflow(
   async ({ payload, step }) => {
     await step.inApp('onboarding-complete', async () => ({
       subject: 'Expert setup complete!',
-      body: `Congratulations! Your expert profile is now live. You can start receiving bookings from clients.`,
+      body: `Congratulations ${payload.expertName}! Your expert profile is now live. You can start receiving bookings from clients.`,
     }));
 
     await step.email('expert-welcome-email', async () => ({
       subject: 'Welcome to the Eleva Care Expert Network!',
       body: `
-        <h2>Congratulations!</h2>
+        <h2>Congratulations, ${payload.expertName}!</h2>
         <p>Your expert profile is now active on Eleva Care.</p>
+        ${payload.specialization ? `<p><strong>Specialization:</strong> ${payload.specialization}</p>` : ''}
         <h3>You can now:</h3>
         <ul>
           <li>Receive client bookings</li>
