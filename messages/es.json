@@ -276,7 +276,8 @@
         "privacy": "Política de Privacidad",
         "cookie": "Política de Cookies",
         "preferences": "Preferencias de Cookies",
-        "dpa": "Procesamiento de Datos"
+        "dpa": "Procesamiento de Datos",
+        "paymentPolicies": "Políticas de Pago"
       }
     },
     "copyright": "Todos los derechos reservados.",
@@ -319,5 +320,26 @@
     "manageCookiesStatusDeclined": "Rechazado",
     "manageCancelButtonText": "Cancelar",
     "manageSaveButtonText": "Guardar Preferencias"
+  },
+  "Payments": {
+    "collision": {
+      "title": "Conflicto de Cita - Reembolso Procesado",
+      "subject": "Reserva de Cita - Horario No Disponible",
+      "greeting": "Estimado/a {clientName},",
+      "conflictMessage": "Lamentamos informarle que su cita con {expertName} programada para {appointmentDateTime} ya no está disponible ya que el horario ha sido reservado por otro cliente.",
+      "latePaymentExplanation": "Como este fue un pago Multibanco tardío, hemos procesado un reembolso de €{refundAmount} (90% del monto original, con 10% retenido como tarifa de procesamiento según se describe en nuestras políticas de pago).",
+      "apologyAndInvitation": "Nos disculpamos por las molestias y le invitamos a reservar una nueva cita a su conveniencia.",
+      "signature": "Saludos cordiales,\nEquipo Eleva.care",
+      "minimumNoticeViolation": "El horario de la cita ya no cumple con el requisito de aviso mínimo del especialista de {minimumNoticeHours} horas.",
+      "refundDetails": {
+        "originalAmount": "Monto original: €{amount}",
+        "refundAmount": "Monto reembolsado: €{amount} (90%)",
+        "processingFee": "Tarifa de procesamiento retenida: €{amount} (10%)"
+      }
+    },
+    "checkout": {
+      "multibancoNotice": "⚠️ **Aviso de Pago Multibanco:** Si elige Multibanco como método de pago, su horario de cita será reservado por 24 horas mientras esperamos la confirmación del pago. Después de 24 horas, si no se recibe el pago, no podemos garantizar que la cita siga disponible. Para confirmación inmediata, use una tarjeta de crédito/débito. [Ver Políticas de Pago]({paymentPoliciesUrl})",
+      "termsOfService": "Al proceder con el pago, acepta nuestros [Términos de Servicio]({termsUrl}) y [Políticas de Pago]({paymentPoliciesUrl})."
+    }
   }
 }

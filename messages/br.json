@@ -269,7 +269,8 @@
         "privacy": "Política de Privacidade",
         "cookie": "Política de Cookies",
         "preferences": "Preferências de Cookies",
-        "dpa": "Processamento de Dados"
+        "dpa": "Processamento de Dados",
+        "paymentPolicies": "Políticas de Pagamento"
       }
     },
     "copyright": "Todos os direitos reservados.",
@@ -319,5 +320,26 @@
     "termsOfService": "Termos de Serviço",
     "metaTitle": "Documentação Legal | Eleva Care",
     "metaDescription": "Informações importantes sobre os termos de serviço, políticas de privacidade e outros documentos legais da Eleva Care."
+  },
+  "Payments": {
+    "collision": {
+      "title": "Conflito de Agendamento - Reembolso Processado",
+      "subject": "Agendamento de Consulta - Horário Não Disponível",
+      "greeting": "Prezado/a {clientName},",
+      "conflictMessage": "Lamentamos informar que sua consulta com {expertName} agendada para {appointmentDateTime} não está mais disponível, pois o horário foi reservado por outro cliente.",
+      "latePaymentExplanation": "Como este foi um pagamento Multibanco tardio, processamos um reembolso de €{refundAmount} (90% do valor original, com 10% retido como taxa de processamento conforme descrito em nossas políticas de pagamento).",
+      "apologyAndInvitation": "Pedimos desculpas pelo inconveniente e convidamos você a agendar uma nova consulta quando for conveniente.",
+      "signature": "Cordialmente,\nEquipe Eleva.care",
+      "minimumNoticeViolation": "O horário da consulta não atende mais ao requisito de aviso mínimo do especialista de {minimumNoticeHours} horas.",
+      "refundDetails": {
+        "originalAmount": "Valor original: €{amount}",
+        "refundAmount": "Valor reembolsado: €{amount} (90%)",
+        "processingFee": "Taxa de processamento retida: €{amount} (10%)"
+      }
+    },
+    "checkout": {
+      "multibancoNotice": "⚠️ **Aviso de Pagamento Multibanco:** Se você escolher Multibanco como método de pagamento, seu horário de consulta será reservado por 24 horas enquanto aguardamos a confirmação do pagamento. Após 24 horas, se o pagamento não for recebido, não podemos garantir que a consulta ainda estará disponível. Para confirmação imediata, use um cartão de crédito/débito. [Ver Políticas de Pagamento]({paymentPoliciesUrl})",
+      "termsOfService": "Ao prosseguir com o pagamento, você concorda com nossos [Termos de Serviço]({termsUrl}) e [Políticas de Pagamento]({paymentPoliciesUrl})."
+    }
   }
 }

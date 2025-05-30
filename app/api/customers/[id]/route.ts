@@ -6,13 +6,14 @@ import { and, desc, eq } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-// Use the format that matches other API routes in the codebase
-export async function GET(request: NextRequest, props: { params: Promise<{ email: string }> }) {
+/**
+ * GET handler for individual customer details by secure ID
+ */
+export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
-    // Extract params from the promise
     const params = await props.params;
     const { userId } = await auth();
-    const customerEmail = decodeURIComponent(params.email);
+    const customerId = params.id;
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -24,7 +25,38 @@ export async function GET(request: NextRequest, props: { params: Promise<{ email
       return NextResponse.json({ error: 'Forbidden: Expert role required' }, { status: 403 });
     }
 
-    // Get customer appointments
+    // First, get all customers for this expert to find the matching ID
+    const allCustomersQuery = db
+      .select({
+        email: MeetingTable.guestEmail,
+        name: MeetingTable.guestName,
+      })
+      .from(MeetingTable)
+      .innerJoin(EventTable, eq(EventTable.id, MeetingTable.eventId))
+      .where(eq(EventTable.clerkUserId, userId))
+      .groupBy(MeetingTable.guestEmail, MeetingTable.guestName);
+
+    const allCustomers = await allCustomersQuery;
+
+    // Find the customer email that matches the provided ID
+    let customerEmail: string | null = null;
+    for (const customer of allCustomers) {
+      const customerIdSeed = `${userId}-${customer.email}`;
+      const generatedId = Buffer.from(customerIdSeed)
+        .toString('base64')
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .substring(0, 12);
+      if (generatedId === customerId) {
+        customerEmail = customer.email;
+        break;
+      }
+    }
+
+    if (!customerEmail) {
+      return NextResponse.json({ error: 'Customer not found' }, { status: 404 });
+    }
+
+    // Now get all appointments for this customer
     const appointments = await db
       .select({
         id: MeetingTable.id,
@@ -47,7 +79,7 @@ export async function GET(request: NextRequest, props: { params: Promise<{ email
       .orderBy(desc(MeetingTable.startTime));
 
     if (appointments.length === 0) {
-      return NextResponse.json({ error: 'Customer doesn&apos;t exist' }, { status: 404 });
+      return NextResponse.json({ error: 'Customer has no appointments' }, { status: 404 });
     }
 
     // Calculate total spend
@@ -56,14 +88,14 @@ export async function GET(request: NextRequest, props: { params: Promise<{ email
       0,
     );
 
-    // Create customer object
+    // Create customer object with secure ID
     const customer = {
-      id: customerEmail,
+      id: customerId, // Use the provided secure ID
       email: customerEmail,
       name: appointments[0].guestName || '',
       stripeCustomerId: appointments[0]?.stripePaymentIntentId
         ? `cus_${appointments[0].stripePaymentIntentId.substring(3, 11)}`
-        : null, // Generate a fake customer ID for demo
+        : null,
       totalSpend,
       appointmentsCount: appointments.length,
       lastAppointment: appointments[0]?.startTime || null,

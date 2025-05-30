@@ -26,6 +26,7 @@ export const routing = defineRouting({
     '/legal/terms': '/legal/terms',
     '/legal/cookie': '/legal/cookie',
     '/legal/dpa': '/legal/dpa',
+    '/legal/payment-policies': '/legal/payment-policies',
     '/help': '/help',
     '/contact': '/contact',
     '/community': '/community',

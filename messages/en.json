@@ -277,7 +277,8 @@
         "privacy": "Privacy Policy",
         "cookie": "Cookie Policy",
         "preferences": "Cookies Preferences",
-        "dpa": "Data Processing"
+        "dpa": "Data Processing",
+        "paymentPolicies": "Payment Policies"
       }
     },
     "copyright": "All rights reserved.",
@@ -320,5 +321,26 @@
     "manageCookiesStatusDeclined": "Declined",
     "manageCancelButtonText": "Cancel",
     "manageSaveButtonText": "Save Preferences"
+  },
+  "Payments": {
+    "collision": {
+      "title": "Appointment Conflict - Refund Processed",
+      "subject": "Appointment Booking - Time Slot No Longer Available",
+      "greeting": "Dear {clientName},",
+      "conflictMessage": "We regret to inform you that your appointment with {expertName} scheduled for {appointmentDateTime} is no longer available as the time slot has been booked by another client.",
+      "latePaymentExplanation": "Since this was a delayed Multibanco payment, we have processed a refund of €{refundAmount} (90% of the original amount, with 10% retained as a processing fee as outlined in our payment policies).",
+      "apologyAndInvitation": "We apologize for the inconvenience and invite you to book a new appointment at your convenience.",
+      "signature": "Best regards,\nEleva.care Team",
+      "minimumNoticeViolation": "The appointment time no longer meets the expert's minimum notice requirement of {minimumNoticeHours} hours.",
+      "refundDetails": {
+        "originalAmount": "Original amount: €{amount}",
+        "refundAmount": "Refund amount: €{amount} (90%)",
+        "processingFee": "Processing fee retained: €{amount} (10%)"
+      }
+    },
+    "checkout": {
+      "multibancoNotice": "⚠️ **Multibanco Payment Notice:** If you choose Multibanco as your payment method, your appointment slot will be reserved for 24 hours while we wait for payment confirmation. After 24 hours, if payment is not received, we cannot guarantee the appointment will still be available. For immediate confirmation, please use a credit/debit card. [View Payment Policies]({paymentPoliciesUrl})",
+      "termsOfService": "By proceeding with payment, you agree to our [Terms of Service]({termsUrl}) and [Payment Policies]({paymentPoliciesUrl})."
+    }
   }
 }

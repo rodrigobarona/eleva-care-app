@@ -148,7 +148,7 @@ export default function CustomersPage() {
   };
 
   const handleViewCustomer = (customer: Customer) => {
-    router.push(`/appointments/patients/${encodeURIComponent(customer.email)}`);
+    router.push(`/appointments/patients/${customer.id}`);
   };
 
   if (!isLoaded || isLoading) {

@@ -43,7 +43,7 @@ interface CustomerDetails {
 
 function CustomerDetailsContent() {
   const params = useParams();
-  const email = decodeURIComponent(params.email as string);
+  const customerId = params.id as string; // Now using the correct 'id' parameter
   const [customer, setCustomer] = React.useState<CustomerDetails | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -53,8 +53,8 @@ function CustomerDetailsContent() {
       try {
         setIsLoading(true);
 
-        // Use the unified API endpoint for customer details
-        const response = await fetch(`/api/customers/${encodeURIComponent(email)}`);
+        // Use the new ID-based API endpoint
+        const response = await fetch(`/api/customers/${customerId}`);
 
         if (!response.ok) {
           console.error(`API error: ${response.status} ${response.statusText}`);
@@ -77,7 +77,7 @@ function CustomerDetailsContent() {
     };
 
     loadCustomerDetails();
-  }, [email]);
+  }, [customerId]);
 
   if (isLoading) {
     return (
@@ -181,7 +181,7 @@ function CustomerDetailsContent() {
         <Card className="md:col-span-1">
           <CardHeader>
             <CardTitle>Customer Information</CardTitle>
-            <CardDescription>Details about {customer.name || email}</CardDescription>
+            <CardDescription>Details about {customer.name || customer.email}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">

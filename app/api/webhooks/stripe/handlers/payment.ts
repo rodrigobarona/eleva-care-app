@@ -1,8 +1,10 @@
+import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
   EventTable,
   MeetingTable,
   PaymentTransferTable,
+  schedulingSettings,
   SlotReservationTable,
   UserTable,
 } from '@/drizzle/schema';
@@ -18,13 +20,17 @@ import { logAuditEvent } from '@/lib/logAuditEvent';
 import { createUserNotification } from '@/lib/notifications';
 import { withRetry } from '@/lib/stripe';
 import { format, toZonedTime } from 'date-fns-tz';
-import { eq } from 'drizzle-orm';
-import type { Stripe } from 'stripe';
+import { and, eq } from 'drizzle-orm';
+import { getTranslations } from 'next-intl/server';
+import Stripe from 'stripe';
+
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
+  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
+});
 
 /**
  * Extract locale from payment intent metadata and fallback sources
- * @param paymentIntent - Stripe payment intent with metadata
- * @returns The best available locale or 'en' as fallback
  */
 function extractLocaleFromPaymentIntent(paymentIntent: Stripe.PaymentIntent): string {
   try {
@@ -67,7 +73,6 @@ function parseMetadata<T>(json: string | undefined, fallback: T): T {
 
 /**
  * Notify expert about successful payment
- * @param transfer - Payment transfer record
  */
 async function notifyExpertOfPaymentSuccess(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
@@ -81,10 +86,6 @@ async function notifyExpertOfPaymentSuccess(transfer: { expertClerkUserId: strin
 
 /**
  * Notify expert about failed payment
- * @param transfer - Payment transfer record
- * @param paymentIntentId - Stripe payment intent ID
- * @param lastPaymentError - Payment failure reason
- * @param meetingDetails - Optional meeting details for enhanced message
  */
 async function notifyExpertOfPaymentFailure(
   transfer: { expertClerkUserId: string },
@@ -113,7 +114,6 @@ async function notifyExpertOfPaymentFailure(
 
 /**
  * Notify expert about payment refund
- * @param transfer - Payment transfer record
  */
 async function notifyExpertOfPaymentRefund(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
@@ -127,7 +127,6 @@ async function notifyExpertOfPaymentRefund(transfer: { expertClerkUserId: string
 
 /**
  * Notify expert about payment dispute
- * @param transfer - Payment transfer record
  */
 async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
@@ -140,10 +139,321 @@ async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: strin
   });
 }
 
+/**
+ * Helper to check if two time ranges overlap
+ */
+function hasTimeOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean {
+  return start1 < end2 && start2 < end1;
+}
+
+/**
+ * Enhanced collision detection that considers both booking conflicts and actual minimum notice periods
+ * @param expertId - Expert's Clerk user ID
+ * @param startTime - Appointment start time
+ * @param eventId - Event ID to get duration information
+ * @returns Object with conflict info and reason
+ */
+async function checkAppointmentConflict(
+  expertId: string,
+  startTime: Date,
+  eventId: string,
+): Promise<{ hasConflict: boolean; reason?: string; minimumNoticeHours?: number }> {
+  try {
+    console.log(`🔍 Enhanced collision check for expert ${expertId} at ${startTime.toISOString()}`);
+
+    // Get the event details to calculate the appointment end time
+    const event = await db.query.EventTable.findFirst({
+      where: eq(EventTable.id, eventId),
+      columns: { durationInMinutes: true },
+    });
+
+    if (!event) {
+      console.error(`❌ Event not found: ${eventId}`);
+      return { hasConflict: true, reason: 'event_not_found' };
+    }
+
+    // Calculate the end time of the new appointment
+    const endTime = new Date(startTime.getTime() + event.durationInMinutes * 60 * 1000);
+
+    console.log(
+      `📅 New appointment: ${startTime.toISOString()} - ${endTime.toISOString()} (${event.durationInMinutes} min)`,
+    );
+
+    // 1. Check for existing confirmed meetings with TIME RANGE OVERLAP
+    const conflictingMeetings = await db.query.MeetingTable.findMany({
+      where: and(
+        eq(MeetingTable.clerkUserId, expertId),
+        eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+      ),
+      with: {
+        event: {
+          columns: { durationInMinutes: true },
+        },
+      },
+    });
+
+    for (const existingMeeting of conflictingMeetings) {
+      const existingEndTime = new Date(
+        existingMeeting.startTime.getTime() + existingMeeting.event.durationInMinutes * 60 * 1000,
+      );
+
+      // Use helper for overlap check
+      if (hasTimeOverlap(startTime, endTime, existingMeeting.startTime, existingEndTime)) {
+        console.log(
+          `⚠️ TIME RANGE OVERLAP detected!
+          📅 Existing: ${existingMeeting.startTime.toISOString()} - ${existingEndTime.toISOString()} (${existingMeeting.event.durationInMinutes} min)
+          📅 New:      ${startTime.toISOString()} - ${endTime.toISOString()} (${event.durationInMinutes} min)
+          🔴 Meeting ID: ${existingMeeting.id}`,
+        );
+        return { hasConflict: true, reason: 'time_range_overlap' };
+      }
+    }
+
+    console.log('✅ No time range conflicts found');
+
+    // 2. Check actual minimum notice period requirements from expert's settings
+    const expertSchedulingSettings = await db.query.schedulingSettings.findFirst({
+      where: eq(schedulingSettings.userId, expertId),
+    });
+
+    // Get the minimum notice in minutes from expert's settings, default to 1440 (24 hours)
+    const minimumNoticeMinutes = expertSchedulingSettings?.minimumNotice || 1440;
+    const currentTime = new Date();
+    const millisecondsUntilAppointment = startTime.getTime() - currentTime.getTime();
+    const minutesUntilAppointment = millisecondsUntilAppointment / (1000 * 60);
+
+    console.log(
+      `📋 Expert ${expertId} minimum notice: ${minimumNoticeMinutes} minutes, appointment in ${minutesUntilAppointment.toFixed(1)} minutes`,
+    );
+
+    if (minutesUntilAppointment < minimumNoticeMinutes) {
+      const minimumNoticeHours = Math.ceil(minimumNoticeMinutes / 60);
+      const availableHours = Math.floor(minutesUntilAppointment / 60);
+
+      console.log(
+        `⚠️ Minimum notice violation: appointment at ${startTime.toISOString()} requires ${minimumNoticeHours}h notice, but only ${availableHours}h available`,
+      );
+
+      return {
+        hasConflict: true,
+        reason: 'minimum_notice_violation',
+        minimumNoticeHours,
+      };
+    }
+
+    console.log(`✅ No conflicts found for ${startTime.toISOString()}`);
+    return { hasConflict: false };
+  } catch (error) {
+    console.error('Error in enhanced collision check:', error);
+    // In case of error, assume no conflict to avoid blocking legitimate payments
+    return { hasConflict: false };
+  }
+}
+
+/**
+ * Process partial refund for appointment conflicts (90% refund, 10% processing fee)
+ */
+async function processPartialRefund(
+  paymentIntent: Stripe.PaymentIntent,
+  reason: string,
+): Promise<Stripe.Refund | null> {
+  try {
+    const originalAmount = paymentIntent.amount;
+    const refundAmount = Math.floor(originalAmount * 0.9); // 90% refund
+    const processingFee = originalAmount - refundAmount; // 10% processing fee
+
+    console.log(
+      `💰 Processing partial refund: Original: ${originalAmount}, Refund: ${refundAmount}, Fee: ${processingFee}`,
+    );
+
+    const refund = await stripe.refunds.create({
+      payment_intent: paymentIntent.id,
+      amount: refundAmount,
+      reason: 'requested_by_customer',
+      metadata: {
+        reason: reason,
+        original_amount: originalAmount.toString(),
+        processing_fee: processingFee.toString(),
+        refund_percentage: '90',
+        conflict_type: reason,
+      },
+    });
+
+    console.log(`✅ Partial refund processed: ${refund.id} for amount ${refundAmount}`);
+    return refund;
+  } catch (error) {
+    console.error('Error processing partial refund:', error);
+    return null;
+  }
+}
+
+/**
+ * Send conflict notification using existing email system with multilingual support
+ */
+async function notifyAppointmentConflict(
+  guestEmail: string,
+  guestName: string,
+  expertName: string,
+  startTime: Date,
+  refundAmount: number,
+  originalAmount: number,
+  locale: string,
+  conflictReason: string,
+  minimumNoticeHours?: number,
+) {
+  try {
+    console.log(
+      `📧 Sending conflict notification to ${guestEmail} in locale ${locale} for reason: ${conflictReason}`,
+    );
+
+    // Load collision messages from internationalization files
+    const t = await getTranslations({ locale, namespace: 'Payments.collision' });
+
+    // Format amounts for display
+    const refundAmountFormatted = (refundAmount / 100).toFixed(2);
+    const originalAmountFormatted = (originalAmount / 100).toFixed(2);
+    const processingFeeFormatted = ((originalAmount - refundAmount) / 100).toFixed(2);
+    const appointmentDateTime = format(startTime, 'PPP pp');
+
+    // Get base conflict message and append specific reason if applicable
+    let conflictMessage = t('conflictMessage', {
+      expertName,
+      appointmentDateTime,
+    });
+
+    // Add specific conflict reason context
+    if (conflictReason === 'minimum_notice_violation' && minimumNoticeHours) {
+      const minimumNoticeMessage = t('minimumNoticeViolation', {
+        minimumNoticeHours: minimumNoticeHours.toString(),
+      });
+      conflictMessage += ` ${minimumNoticeMessage}`;
+    }
+
+    // Build email content using translated messages
+    const emailTitle = t('title');
+    const emailSubject = t('subject');
+    const greeting = t('greeting', { clientName: guestName });
+    const latePaymentExplanation = t('latePaymentExplanation', {
+      refundAmount: refundAmountFormatted,
+    });
+    const apologyAndInvitation = t('apologyAndInvitation');
+    const signature = t('signature');
+
+    // Build refund details section
+    const refundDetailsHTML = `
+      <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
+        <h3>Refund Details</h3>
+        <p>${t('refundDetails.originalAmount', { amount: originalAmountFormatted })}</p>
+        <p>${t('refundDetails.refundAmount', { amount: refundAmountFormatted })}</p>
+        <p>${t('refundDetails.processingFee', { amount: processingFeeFormatted })}</p>
+      </div>
+    `;
+
+    const htmlContent = `
+      <h2>${emailTitle}</h2>
+      <p>${greeting}</p>
+      <p>${conflictMessage}</p>
+      <p>${latePaymentExplanation}</p>
+      ${refundDetailsHTML}
+      <p>${apologyAndInvitation}</p>
+      <p>${signature.replace(/\\n/g, '<br>')}</p>
+    `;
+
+    await sendEmail({
+      to: guestEmail,
+      subject: emailSubject,
+      html: htmlContent,
+    });
+
+    console.log(
+      `✅ Conflict notification sent to ${guestEmail} (reason: ${conflictReason}${minimumNoticeHours ? `, minimum notice: ${minimumNoticeHours}h` : ''})`,
+    );
+  } catch (error) {
+    console.error('Error sending conflict notification:', error);
+  }
+}
+
 export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
   console.log('Payment succeeded:', paymentIntent.id);
 
   try {
+    // Parse meeting metadata to check if this might be a late Multibanco payment
+    const meetingData = parseMetadata(paymentIntent.metadata?.meeting, {
+      id: '',
+      expert: '',
+      guest: '',
+      guestName: '',
+      start: '',
+      dur: 0,
+      notes: '',
+    });
+
+    // Check if this is a Multibanco payment and if it's potentially late
+    const isMultibancoPayment = paymentIntent.payment_method_types?.includes('multibanco');
+
+    // If it's a Multibanco payment and we have session timing info, check for conflicts
+    let hasConflict = false;
+    if (isMultibancoPayment && meetingData.expert && meetingData.start) {
+      const appointmentStart = new Date(meetingData.start);
+      const conflictResult = await checkAppointmentConflict(
+        meetingData.expert,
+        appointmentStart,
+        meetingData.id,
+      );
+      hasConflict = conflictResult.hasConflict;
+
+      if (hasConflict) {
+        console.log(`🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`);
+
+        // Process 90% refund
+        const refund = await processPartialRefund(
+          paymentIntent,
+          'Appointment time slot no longer available due to late payment',
+        );
+
+        if (refund) {
+          // Get expert's name for notification
+          const expertUser = await db.query.UserTable.findFirst({
+            where: eq(UserTable.clerkUserId, meetingData.expert),
+            columns: { firstName: true, lastName: true },
+          });
+
+          const expertName = expertUser
+            ? `${expertUser.firstName || ''} ${expertUser.lastName || ''}`.trim() || 'Expert'
+            : 'Expert';
+
+          // Notify all parties about the conflict
+          await notifyAppointmentConflict(
+            meetingData.guest,
+            meetingData.guestName || 'Guest',
+            expertName,
+            appointmentStart,
+            refund.amount,
+            paymentIntent.amount,
+            extractLocaleFromPaymentIntent(paymentIntent),
+            conflictResult.reason || 'unknown_conflict',
+            conflictResult.minimumNoticeHours,
+          );
+
+          console.log(`✅ Conflict handled: 90% refund processed for PI ${paymentIntent.id}`);
+
+          // Mark the meeting as refunded and return early
+          await db
+            .update(MeetingTable)
+            .set({
+              stripePaymentStatus: 'refunded',
+              updatedAt: new Date(),
+            })
+            .where(eq(MeetingTable.stripePaymentIntentId, paymentIntent.id));
+
+          return; // Exit early - don't create calendar event or proceed with normal flow
+        }
+      } else {
+        console.log(`✅ Multibanco payment ${paymentIntent.id} processed without conflicts`);
+      }
+    }
+
+    // If no conflict or not a Multibanco payment, proceed with normal flow
     // Update Meeting status
     const updatedMeeting = await db
       .update(MeetingTable)

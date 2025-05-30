@@ -9,6 +9,7 @@ import { EventTable, SlotReservationTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
 import { getOrCreateStripeCustomer } from '@/lib/stripe';
 import { eq } from 'drizzle-orm';
+import { getTranslations } from 'next-intl/server';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import Stripe from 'stripe';
@@ -52,6 +53,17 @@ export async function POST(request: Request) {
       console.warn('Missing startTime in meeting data');
       return NextResponse.json({ message: 'Missing required field: startTime' }, { status: 400 });
     }
+
+    // Extract locale for translations
+    const locale = meetingData.locale || 'en';
+
+    // Get translations for the checkout messages
+    const t = await getTranslations({ locale, namespace: 'Payments.checkout' });
+
+    // Construct URLs for legal pages
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care';
+    const paymentPoliciesUrl = `${baseUrl}/${locale}/legal/payment-policies`;
+    const termsUrl = `${baseUrl}/${locale}/legal/terms-of-service`;
 
     // Get expert's Connect account
     console.log('Querying event details:', { eventId });
@@ -200,10 +212,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get base URL and locale for redirects
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
-    const locale = meetingMetadata.locale || 'en';
-
     // Calculate fees
     const platformFee = applicationFeeAmount;
     const expertAccount = event.user;
@@ -253,22 +261,31 @@ export async function POST(request: Request) {
       },
       // Billing address collection for tax calculation
       billing_address_collection: 'required',
-      // Enhanced terms of service consent
+      // Enhanced terms of service consent with multilingual support
       consent_collection: {
         terms_of_service: 'required',
+        promotions: 'none',
       },
-      custom_text: {
-        terms_of_service_acceptance: {
-          message: 'I agree to the [Terms of Service](https://eleva.care/legal/terms)',
-        },
-        // Add notice about Multibanco availability based on appointment timing
-        ...(hoursUntilMeeting <= 72 && {
-          submit: {
-            message:
-              '⚠️ **Payment Notice:** Multibanco payments are not available for appointments scheduled within 72 hours. Only credit/debit card payments are accepted for immediate booking confirmation.',
+      // Add notice about Multibanco availability based on appointment timing
+      ...(hoursUntilMeeting > 72 &&
+        paymentMethodTypes.includes('multibanco') && {
+          custom_text: {
+            submit: {
+              message: t('multibancoNotice', { paymentPoliciesUrl }),
+            },
+            terms_of_service_acceptance: {
+              message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
+            },
           },
         }),
-      },
+      // For appointments within 72 hours (no Multibanco), still show terms
+      ...(hoursUntilMeeting <= 72 && {
+        custom_text: {
+          terms_of_service_acceptance: {
+            message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),
+          },
+        },
+      }),
       // Enhanced customer information collection
       locale: meetingData.locale || 'en',
       customer_update: {

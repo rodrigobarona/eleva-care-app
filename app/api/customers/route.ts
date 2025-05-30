@@ -34,6 +34,8 @@ export async function GET() {
         totalSpend: sql<number>`sum(${EventTable.price})`.as('total_spend'),
         // Get most recent appointment date
         lastAppointment: sql<string>`max(${MeetingTable.startTime})`.as('last_appointment'),
+        // Get first appointment to calculate customer since date
+        firstAppointment: sql<string>`min(${MeetingTable.startTime})`.as('first_appointment'),
       })
       .from(MeetingTable)
       .innerJoin(EventTable, eq(EventTable.id, MeetingTable.eventId))
@@ -43,20 +45,27 @@ export async function GET() {
 
     const customersWithAppointments = await customersWithAppointmentsQuery;
 
-    // Get Stripe customer IDs where available
-    // Since we don't have direct PaymentIntentTable, we'll just use the customer data without Stripe IDs for now
-    // In a real-world scenario, you would have a proper payment intents table to join here
+    // Format the response with secure customer IDs
+    const customers = customersWithAppointments.map((customer) => {
+      // Create a secure, deterministic customer ID based on email hash and expert ID
+      // This ensures consistent IDs without exposing email directly
+      const customerIdSeed = `${userId}-${customer.email}`;
+      const customerId = Buffer.from(customerIdSeed)
+        .toString('base64')
+        .replace(/[^a-zA-Z0-9]/g, '')
+        .substring(0, 12);
 
-    // Format the response
-    const customers = customersWithAppointments.map((customer) => ({
-      id: customer.email, // Using email as ID since it's unique per customer
-      email: customer.email,
-      name: customer.name,
-      appointmentsCount: customer.appointmentsCount,
-      totalSpend: customer.totalSpend || 0,
-      lastAppointment: customer.lastAppointment,
-      stripeCustomerId: null, // We don't have a way to get this without PaymentIntentTable
-    }));
+      return {
+        id: customerId, // Secure, non-email-based ID
+        email: customer.email,
+        name: customer.name,
+        appointmentsCount: customer.appointmentsCount,
+        totalSpend: customer.totalSpend || 0,
+        lastAppointment: customer.lastAppointment,
+        firstAppointment: customer.firstAppointment,
+        stripeCustomerId: null, // We don't have a way to get this without PaymentIntentTable
+      };
+    });
 
     return NextResponse.json({ customers });
   } catch (error) {

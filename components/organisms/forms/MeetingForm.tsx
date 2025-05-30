@@ -33,7 +33,8 @@ import {
   useQueryStates,
 } from 'nuqs';
 import { Suspense } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
+import type { UseFormReturn } from 'react-hook-form';
 import type { z } from 'zod';
 
 interface BlockedDate {
@@ -63,6 +64,229 @@ interface MeetingFormProps {
   blockedDates?: BlockedDate[];
 }
 
+// Define the query state type for reuse
+type QueryStates = {
+  step: '1' | '2' | '3';
+  date: Date | null;
+  time: Date | null;
+  name: string;
+  email: string;
+  timezone: string;
+};
+
+// Extract Step2Content as a separate component with props to reduce closure dependencies
+interface Step2ContentProps {
+  form: UseFormReturn<z.infer<typeof meetingFormSchema>>;
+  queryStates: {
+    date: Date | null;
+    time: Date | null;
+    timezone: string;
+  };
+  setQueryStates: (updater: (prev: QueryStates) => Partial<QueryStates>) => void;
+  timezone: string;
+  eventDuration: number;
+  beforeEventBuffer: number;
+  afterEventBuffer: number;
+  transitionToStep: (step: '1' | '2' | '3') => void;
+  handleNextStep: (nextStep: '1' | '2' | '3') => Promise<void>;
+  isSubmitting: boolean;
+  price: number;
+  use24Hour: boolean;
+}
+
+const Step2Content = React.memo<Step2ContentProps>(
+  ({
+    form,
+    queryStates,
+    setQueryStates,
+    timezone,
+    eventDuration,
+    beforeEventBuffer,
+    afterEventBuffer,
+    transitionToStep,
+    handleNextStep,
+    isSubmitting,
+    price,
+    use24Hour,
+  }) => {
+    // Get values directly from form for display
+    const currentDate = form.getValues('date');
+    const currentTime = form.getValues('startTime');
+    const currentTimezone = form.getValues('timezone');
+
+    // Use watched values or fallback to query states
+    const displayDate = currentDate || queryStates.date;
+    const displayTime = currentTime || queryStates.time;
+
+    // Calculate total duration including buffer times
+    const totalDuration = eventDuration + beforeEventBuffer + afterEventBuffer;
+    const hasBufferTime = beforeEventBuffer > 0 || afterEventBuffer > 0;
+
+    // Memoize updateURLOnBlur with proper dependencies
+    const updateURLOnBlur = React.useCallback(() => {
+      const name = form.getValues('guestName')?.trim();
+      const email = form.getValues('guestEmail')?.trim();
+
+      const updates: Record<string, string | undefined> = {};
+      if (name) updates.name = name;
+      if (email) updates.email = email;
+
+      if (Object.keys(updates).length > 0) {
+        setQueryStates((prev) => ({ ...prev, ...updates }));
+      }
+    }, [form, setQueryStates]);
+
+    return (
+      <div className="rounded-lg border p-6">
+        <div className="mb-6">
+          <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
+          <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              <span>
+                {displayDate ? (
+                  format(displayDate, 'EEEE, MMMM d, yyyy')
+                ) : (
+                  <em className="text-red-500">Date not selected</em>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span>
+                {displayTime ? (
+                  formatInTimeZone(
+                    displayTime,
+                    currentTimezone || timezone,
+                    use24Hour ? 'HH:mm' : 'h:mm a',
+                  )
+                ) : (
+                  <em className="text-red-500">Time not selected</em>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              <span>{(currentTimezone || timezone).replace('_', ' ')}</span>
+            </div>
+            {hasBufferTime && (
+              <div className="mt-2 text-sm">
+                <p>Total time blocked: {totalDuration} minutes</p>
+                {beforeEventBuffer > 0 && (
+                  <p className="text-xs">({beforeEventBuffer} min buffer before)</p>
+                )}
+                {afterEventBuffer > 0 && (
+                  <p className="text-xs">({afterEventBuffer} min buffer after)</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="guestName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="font-semibold">Your Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter your full name"
+                    {...field}
+                    onBlur={() => {
+                      field.onBlur();
+                      updateURLOnBlur();
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="guestEmail"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="font-semibold">Your Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    {...field}
+                    onBlur={() => {
+                      field.onBlur();
+                      updateURLOnBlur();
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="guestNotes"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel className="font-semibold">Additional Notes</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Share anything that will help prepare for our meeting..."
+                    className="min-h-32"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="mt-6 flex justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => transitionToStep('1')}
+            disabled={isSubmitting}
+          >
+            Back
+          </Button>
+          <Button
+            type="button"
+            onClick={() => handleNextStep('3')}
+            disabled={isSubmitting}
+            className="relative"
+          >
+            {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
+            {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+          </Button>
+        </div>
+      </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison function to prevent unnecessary re-renders
+    // Only re-render if specific props that affect the UI have changed
+    return (
+      prevProps.isSubmitting === nextProps.isSubmitting &&
+      prevProps.price === nextProps.price &&
+      prevProps.timezone === nextProps.timezone &&
+      prevProps.eventDuration === nextProps.eventDuration &&
+      prevProps.beforeEventBuffer === nextProps.beforeEventBuffer &&
+      prevProps.afterEventBuffer === nextProps.afterEventBuffer &&
+      prevProps.use24Hour === nextProps.use24Hour &&
+      prevProps.queryStates.date?.getTime() === nextProps.queryStates.date?.getTime() &&
+      prevProps.queryStates.time?.getTime() === nextProps.queryStates.time?.getTime() &&
+      prevProps.queryStates.timezone === nextProps.queryStates.timezone
+    );
+  },
+);
+
+// Add display name for debugging
+Step2Content.displayName = 'Step2Content';
+
 export function MeetingFormContent({
   validTimes,
   eventId,
@@ -91,11 +315,6 @@ export function MeetingFormContent({
   const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
   const [isPrefetching, setIsPrefetching] = React.useState(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = React.useState(false);
-
-  // Simple refs for input elements - no complex focus management needed
-  const nameInputRef = React.useRef<HTMLInputElement>(null);
-  const emailInputRef = React.useRef<HTMLInputElement>(null);
-  const notesInputRef = React.useRef<HTMLTextAreaElement>(null);
 
   // Query state configuration
   const queryStateParsers = React.useMemo(
@@ -139,8 +358,17 @@ export function MeetingFormContent({
     mode: 'onBlur',
   });
 
-  // Extract values we'll use for various purposes
-  const timezone = form.watch('timezone');
+  // Use useWatch for specific field watching to optimize performance and prevent re-renders
+  const watchedTimezone = useWatch({ control: form.control, name: 'timezone' });
+  const watchedDate = useWatch({ control: form.control, name: 'date' });
+  const watchedStartTime = useWatch({ control: form.control, name: 'startTime' });
+
+  // Use the watched values or fallback to query states/form values
+  const timezone =
+    watchedTimezone || queryStates.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const selectedDateValue = watchedDate || queryStates.date;
+  const selectedTimeValue = watchedStartTime || queryStates.time;
+  const currentStep = queryStates.step;
 
   // Function to check if a date is blocked
   const isDateBlocked = React.useCallback(
@@ -167,33 +395,6 @@ export function MeetingFormContent({
     return validTimes.filter((time) => !isDateBlocked(time));
   }, [validTimes, isDateBlocked, blockedDates]);
 
-  // Watch form values for reactive UI updates while also ensuring we get the latest
-  // values from either the form or URL parameters for the BookingLayout
-  const date = form.watch('date');
-  const startTime = form.watch('startTime');
-  const selectedDateValue = form.getValues('date') || queryStates.date;
-  const selectedTimeValue = form.getValues('startTime') || queryStates.time;
-  const currentStep = queryStates.step;
-
-  // Log when date and time values change
-  React.useEffect(() => {
-    if (date || startTime) {
-      console.log('Form values updated:', { date, startTime });
-    }
-  }, [date, startTime]);
-
-  // Log when these values change for debugging
-  React.useEffect(() => {
-    console.log('Selected date/time values updated:', {
-      formDate: form.getValues('date'),
-      formTime: form.getValues('startTime'),
-      urlDate: queryStates.date,
-      urlTime: queryStates.time,
-      selectedDateValue,
-      selectedTimeValue,
-    });
-  }, [selectedDateValue, selectedTimeValue, queryStates.date, queryStates.time, form]);
-
   // Enhanced step transition with validation
   const transitionToStep = React.useCallback(
     (nextStep: typeof currentStep) => {
@@ -213,11 +414,11 @@ export function MeetingFormContent({
 
           // If we have date/time in the URL but not in form, synchronize them
           if (!hasDate && queryStates.date) {
-            form.setValue('date', queryStates.date);
+            form.setValue('date', queryStates.date, { shouldValidate: false });
           }
 
           if (!hasTime && queryStates.time) {
-            form.setValue('startTime', queryStates.time);
+            form.setValue('startTime', queryStates.time, { shouldValidate: false });
           }
 
           // If we still don't have all required values, stay on step 1
@@ -303,6 +504,13 @@ export function MeetingFormContent({
         return;
       }
 
+      // Prevent double submissions
+      if (isSubmitting) {
+        return;
+      }
+
+      setIsSubmitting(true);
+
       try {
         // For free meetings, create the meeting directly
         if (price === 0) {
@@ -344,6 +552,8 @@ export function MeetingFormContent({
         form.setError('root', {
           message: 'There was an error saving your event',
         });
+      } finally {
+        setIsSubmitting(false);
       }
     },
     [
@@ -358,16 +568,20 @@ export function MeetingFormContent({
       transitionToStep,
       username,
       eventSlug,
+      isSubmitting,
     ],
   );
 
-  // Prefetch checkout URL when step 2 is filled out
+  // Prefetch checkout URL when step 2 is filled out - use watched values
+  const watchedGuestName = useWatch({ control: form.control, name: 'guestName' });
+  const watchedGuestEmail = useWatch({ control: form.control, name: 'guestEmail' });
+
   React.useEffect(() => {
     // Only prefetch if we're on step 2, have complete valid form data, price > 0, and not already fetched
     const hasCompletedForm =
-      form.getValues('guestName')?.length > 2 &&
-      form.getValues('guestEmail')?.length > 5 &&
-      form.getValues('guestEmail').includes('@');
+      watchedGuestName?.length > 2 &&
+      watchedGuestEmail?.length > 5 &&
+      watchedGuestEmail.includes('@');
 
     const canPrefetch =
       currentStep === '2' && hasCompletedForm && price > 0 && !checkoutUrl && !isPrefetching;
@@ -393,7 +607,15 @@ export function MeetingFormContent({
 
       return () => clearTimeout(timer);
     }
-  }, [currentStep, form, price, checkoutUrl, isPrefetching, createPaymentIntent]);
+  }, [
+    currentStep,
+    watchedGuestName,
+    watchedGuestEmail,
+    price,
+    checkoutUrl,
+    isPrefetching,
+    createPaymentIntent,
+  ]);
 
   // Handle next step with improved checkout flow
   const handleNextStep = React.useCallback(
@@ -404,9 +626,13 @@ export function MeetingFormContent({
         return;
       }
 
+      // Prevent double submissions
+      if (isSubmitting) {
+        return;
+      }
+
       // For free sessions, handle differently
       if (price === 0) {
-        setIsSubmitting(true);
         try {
           await form.handleSubmit(onSubmit)();
         } catch (error) {
@@ -414,8 +640,6 @@ export function MeetingFormContent({
           form.setError('root', {
             message: 'Failed to process request',
           });
-        } finally {
-          setIsSubmitting(false);
         }
         return;
       }
@@ -449,66 +673,62 @@ export function MeetingFormContent({
         setIsSubmitting(false);
       }
     },
-    [form, price, createPaymentIntent, onSubmit, router, transitionToStep],
+    [form, price, createPaymentIntent, onSubmit, router, transitionToStep, isSubmitting],
   );
 
-  // Effects
+  // Initialize first available date only once
   React.useEffect(() => {
-    if (!validTimes.length || queryStates.date) return;
+    if (!validTimes.length || queryStates.date || form.getValues('date')) return;
 
     const firstAvailableTime = validTimes[0];
-    const zonedTime = toZonedTime(firstAvailableTime, form.getValues('timezone'));
+    const zonedTime = toZonedTime(firstAvailableTime, timezone);
     const localDate = startOfDay(zonedTime);
 
-    form.setValue('date', localDate);
+    form.setValue('date', localDate, { shouldValidate: false });
     setQueryStates({ date: localDate });
-  }, [validTimes, queryStates.date, form, setQueryStates]);
+  }, [validTimes, queryStates.date, form, setQueryStates, timezone]);
 
-  // Simplified URL update without complex handlers
-  const updateURLOnSubmit = React.useCallback(() => {
-    if (currentStep !== '2') return;
-
-    // Get current form values
-    const name = form.getValues('guestName')?.trim();
-    const email = form.getValues('guestEmail')?.trim();
-
-    // Update URL all at once
-    const updates: Record<string, string | undefined> = {};
-    if (name) updates.name = name;
-    if (email) updates.email = email;
-
-    setQueryStates((prev) => ({ ...prev, ...updates }));
-  }, [currentStep, form, setQueryStates]);
-
-  // Synchronize values from URL parameters to form
+  // Optimized URL synchronization - only run once on mount and when URL changes
   React.useEffect(() => {
-    // Synchronize name and email if they're in the URL
+    let hasChanges = false;
+    const updates: Partial<z.infer<typeof meetingFormSchema>> = {};
+
+    // Synchronize values from URL parameters to form only if they differ
     if (queryStates.name && queryStates.name !== form.getValues('guestName')) {
-      form.setValue('guestName', queryStates.name, { shouldValidate: false, shouldDirty: true });
+      updates.guestName = queryStates.name;
+      hasChanges = true;
     }
 
     if (queryStates.email && queryStates.email !== form.getValues('guestEmail')) {
-      form.setValue('guestEmail', queryStates.email, { shouldValidate: false, shouldDirty: true });
+      updates.guestEmail = queryStates.email;
+      hasChanges = true;
     }
 
-    // Synchronize date and time - critical for returning from checkout or refresh
     if (queryStates.date) {
       const currentDate = form.getValues('date');
       const dateChanged = !currentDate || currentDate.getTime() !== queryStates.date.getTime();
-
       if (dateChanged) {
-        console.log('Restoring date from URL:', queryStates.date);
-        form.setValue('date', queryStates.date, { shouldValidate: false, shouldDirty: true });
+        updates.date = queryStates.date;
+        hasChanges = true;
       }
     }
 
     if (queryStates.time) {
       const currentTime = form.getValues('startTime');
       const timeChanged = !currentTime || currentTime.getTime() !== queryStates.time.getTime();
-
       if (timeChanged) {
-        console.log('Restoring time from URL:', queryStates.time);
-        form.setValue('startTime', queryStates.time, { shouldValidate: false, shouldDirty: true });
+        updates.startTime = queryStates.time;
+        hasChanges = true;
+      }
+    }
+
+    // Apply all updates at once to minimize re-renders
+    if (hasChanges) {
+      for (const [key, value] of Object.entries(updates)) {
+        form.setValue(key as keyof typeof updates, value, {
+          shouldValidate: false,
+          shouldDirty: true,
+        });
       }
     }
   }, [queryStates.name, queryStates.email, queryStates.date, queryStates.time, form]);
@@ -536,31 +756,32 @@ export function MeetingFormContent({
   }, [clerkUserId, router]);
 
   // Handle date selection
-  const handleDateSelect = (selectedDate: Date) => {
-    form.setValue('date', selectedDate);
-    setQueryStates({ date: selectedDate });
-  };
+  const handleDateSelect = React.useCallback(
+    (selectedDate: Date) => {
+      form.setValue('date', selectedDate, { shouldValidate: false });
+      setQueryStates({ date: selectedDate });
+    },
+    [form, setQueryStates],
+  );
 
   // Handle time selection
-  const handleTimeSelect = (selectedTime: Date) => {
-    form.setValue('startTime', selectedTime);
-    setQueryStates({ time: selectedTime });
-    handleNextStep('2'); // Automatically move to step 2 when time is selected
-  };
+  const handleTimeSelect = React.useCallback(
+    (selectedTime: Date) => {
+      form.setValue('startTime', selectedTime, { shouldValidate: false });
+      setQueryStates({ time: selectedTime });
+      transitionToStep('2'); // Automatically move to step 2 when time is selected
+    },
+    [form, setQueryStates, transitionToStep],
+  );
 
   // Handle timezone change
-  const handleTimezoneChange = (newTimezone: string) => {
-    form.setValue('timezone', newTimezone);
-    setQueryStates({ timezone: newTimezone });
-  };
-
-  // Simplified effect to handle the auto-focus of name field when entering step 2
-  React.useEffect(() => {
-    if (currentStep === '2' && nameInputRef.current) {
-      // Simple focus without all the complex state tracking
-      nameInputRef.current.focus();
-    }
-  }, [currentStep]);
+  const handleTimezoneChange = React.useCallback(
+    (newTimezone: string) => {
+      form.setValue('timezone', newTimezone, { shouldValidate: false });
+      setQueryStates({ timezone: newTimezone });
+    },
+    [form, setQueryStates],
+  );
 
   // Validate required data for the current step
   React.useEffect(() => {
@@ -575,8 +796,8 @@ export function MeetingFormContent({
         // Check if we have these values in the URL params
         if (queryStates.date && queryStates.time) {
           // Apply the values from URL
-          form.setValue('date', queryStates.date);
-          form.setValue('startTime', queryStates.time);
+          form.setValue('date', queryStates.date, { shouldValidate: false });
+          form.setValue('startTime', queryStates.time, { shouldValidate: false });
         } else {
           // Go back to step 1 to select date and time
           transitionToStep('1');
@@ -584,23 +805,6 @@ export function MeetingFormContent({
       }
     }
   }, [currentStep, queryStates.date, queryStates.time, form, transitionToStep]);
-
-  // Log the form and URL state for debugging (outside of useEffect to avoid dependency issues)
-  console.log('MeetingForm rendering with state:', {
-    urlParameters: {
-      step: queryStates.step,
-      date: queryStates.date ? queryStates.date.toISOString() : null,
-      time: queryStates.time ? queryStates.time.toISOString() : null,
-      name: queryStates.name,
-      email: queryStates.email,
-    },
-    formValues: {
-      date: form.getValues('date') ? form.getValues('date').toISOString() : null,
-      startTime: form.getValues('startTime') ? form.getValues('startTime').toISOString() : null,
-      guestName: form.getValues('guestName'),
-      guestEmail: form.getValues('guestEmail'),
-    },
-  });
 
   // Early return for calendar sync check
   if (!isCalendarSynced) {
@@ -623,148 +827,6 @@ export function MeetingFormContent({
     );
   }
 
-  // Content for Step 2
-  const Step2Content = () => {
-    // Get values directly from form, not just watched values
-    // This ensures we have access to them after refresh
-    const currentDate = form.getValues('date');
-    const currentTime = form.getValues('startTime');
-    const currentTimezone = form.getValues('timezone');
-
-    // If date or time is missing but present in URL, try to use those
-    const displayDate = currentDate || queryStates.date;
-    const displayTime = currentTime || queryStates.time;
-
-    // Calculate total duration including buffer times
-    const totalDuration = eventDuration + beforeEventBuffer + afterEventBuffer;
-    const hasBufferTime = beforeEventBuffer > 0 || afterEventBuffer > 0;
-
-    return (
-      <div className="rounded-lg border p-6">
-        <div className="mb-6">
-          <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
-          <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4" />
-              <span>
-                {displayDate ? (
-                  format(displayDate, 'EEEE, MMMM d, yyyy')
-                ) : (
-                  <em className="text-red-500">Date not selected</em>
-                )}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span>
-                {displayTime ? (
-                  formatInTimeZone(
-                    displayTime,
-                    currentTimezone || timezone,
-                    use24Hour ? 'HH:mm' : 'h:mm a',
-                  )
-                ) : (
-                  <em className="text-red-500">Time not selected</em>
-                )}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              <span>{(currentTimezone || timezone).replace('_', ' ')}</span>
-            </div>
-            {hasBufferTime && (
-              <div className="mt-2 text-sm">
-                <p>Total time blocked: {totalDuration} minutes</p>
-                {beforeEventBuffer > 0 && (
-                  <p className="text-xs">({beforeEventBuffer} min buffer before)</p>
-                )}
-                {afterEventBuffer > 0 && (
-                  <p className="text-xs">({afterEventBuffer} min buffer after)</p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="guestName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="font-semibold">Your Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter your full name" {...field} ref={nameInputRef} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="guestEmail"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="font-semibold">Your Email</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    {...field}
-                    ref={emailInputRef}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="guestNotes"
-            render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel className="font-semibold">Additional Notes</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Share anything that will help prepare for our meeting..."
-                    className="min-h-32"
-                    {...field}
-                    ref={notesInputRef}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="mt-6 flex justify-between">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => transitionToStep('1')}
-            disabled={isSubmitting}
-          >
-            Back
-          </Button>
-          <Button
-            type="button"
-            onClick={() => {
-              // Update URL parameters before proceeding
-              updateURLOnSubmit();
-              handleNextStep('3');
-            }}
-            disabled={isSubmitting}
-            className="relative"
-          >
-            {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
-            {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-          </Button>
-        </div>
-      </div>
-    );
-  };
-
   // Content for Step 3
   const Step3Content = () => (
     <div className="flex items-center justify-center py-12">
@@ -783,7 +845,7 @@ export function MeetingFormContent({
 
   return (
     <Form {...form}>
-      <form className="space-y-6">
+      <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
         <div className="mb-6 flex w-full flex-wrap items-center justify-center gap-4">
           <div className="flex items-center">
             <div
@@ -857,7 +919,26 @@ export function MeetingFormContent({
         >
           {currentStep !== '1' && (
             <div>
-              {currentStep === '2' && <Step2Content />}
+              {currentStep === '2' && (
+                <Step2Content
+                  form={form}
+                  queryStates={{
+                    date: queryStates.date,
+                    time: queryStates.time,
+                    timezone: queryStates.timezone,
+                  }}
+                  setQueryStates={setQueryStates}
+                  timezone={timezone}
+                  eventDuration={eventDuration}
+                  beforeEventBuffer={beforeEventBuffer}
+                  afterEventBuffer={afterEventBuffer}
+                  transitionToStep={transitionToStep}
+                  handleNextStep={handleNextStep}
+                  isSubmitting={isSubmitting}
+                  price={price}
+                  use24Hour={use24Hour}
+                />
+              )}
               {currentStep === '3' && <Step3Content />}
             </div>
           )}
