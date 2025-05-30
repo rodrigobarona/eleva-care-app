@@ -154,3 +154,87 @@ Potential improvements to consider:
 - [Cron Jobs](./cron-jobs.md)
 - [Payment Transfers](./PAYMENT_TRANSFERS.md)
 - [API Documentation](./api-documentation.md)
+- [Payment Policies (Legal)](../content/payment-policies/) - Comprehensive user-facing documentation
+
+## Legal Documentation & User Resources
+
+### Payment Policies Documentation
+
+The platform provides comprehensive, multilingual payment policy documentation accessible to all users through the website's legal navigation. These policies provide detailed explanations of payment processes, user rights, and business practices.
+
+#### Accessibility
+
+Payment policies are available in 4 languages:
+
+- **English**: `/en/legal/payment-policies`
+- **Portuguese**: `/pt/legal/payment-policies`
+- **Spanish**: `/es/legal/payment-policies`
+- **Brazilian Portuguese**: `/br/legal/payment-policies`
+
+#### Content Coverage
+
+The payment policies documentation includes detailed sections on:
+
+1. **Payment Methods**: Supported payment types and availability
+2. **Multibanco Policies**: Specific rules for Portuguese bank transfer payments
+3. **Conflict Resolution**: Automatic conflict detection and refund procedures
+4. **Refund Structure**: Clear explanation of 90%/10% refund policy
+5. **Security & Compliance**: Data protection and regulatory compliance
+6. **Customer Support**: Contact information and support procedures
+7. **Legal Compliance**: Regulatory framework and consumer rights
+
+#### Integration with Technical Systems
+
+The legal documentation is fully integrated with the platform's technical implementation:
+
+- **Collision Detection System**: Policies align with automated conflict detection in webhooks
+- **Refund Processing**: Documentation matches actual Stripe refund implementation
+- **Email Notifications**: Policy explanations match automated notification content
+- **Scheduling Rules**: Legal terms reflect actual expert minimum notice requirements
+
+#### Navigation & Discovery
+
+Users can access payment policies through:
+
+- **Footer Navigation**: Direct links from all website pages
+- **Legal Document Hub**: Centralized access at `/legal/` endpoint
+- **Contextual References**: Links from payment-related pages and emails
+- **Multilingual Support**: Automatic language detection and appropriate routing
+
+#### Compliance & Updates
+
+- **Effective Date**: May 29, 2025 (aligned with technical implementation)
+- **Legal Framework**: Compliance with Portuguese consumer protection laws, EU PSD2 regulations, and GDPR
+- **Version Control**: Documentation updates synchronized with technical changes
+- **User Notification**: Policy changes communicated through email and platform notifications
+
+### Benefits for Users
+
+#### Transparency
+
+- Clear explanation of payment timing restrictions
+- Detailed refund procedures and timelines
+- Comprehensive conflict resolution processes
+
+#### Legal Protection
+
+- Formal documentation of user rights and business obligations
+- Clear dispute resolution procedures
+- Regulatory compliance documentation
+
+#### Multilingual Accessibility
+
+- Native language support for Portuguese, Spanish, and English speakers
+- Consistent policy application across all supported regions
+- Cultural and linguistic adaptation of legal terms
+
+### Technical Implementation Notes
+
+The legal documentation system uses:
+
+- **MDX Format**: Rich content with embedded components and formatting
+- **Next.js Routing**: Automatic locale-based routing and navigation
+- **Static Generation**: Fast loading and SEO optimization
+- **Component Reuse**: Consistent styling with existing legal documents
+
+This ensures that users have comprehensive access to payment policy information in their preferred language, while maintaining technical consistency with the platform's automated systems.
