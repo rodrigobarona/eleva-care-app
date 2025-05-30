@@ -3,6 +3,7 @@ import {
   EventTable,
   MeetingTable,
   PaymentTransferTable,
+  schedulingSettings,
   SlotReservationTable,
   UserTable,
 } from '@/drizzle/schema';
@@ -137,7 +138,7 @@ async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: strin
 }
 
 /**
- * Enhanced collision detection that considers both booking conflicts and minimum notice periods
+ * Enhanced collision detection that considers both booking conflicts and actual minimum notice periods
  * @param expertId - Expert's Clerk user ID
  * @param startTime - Appointment start time
  * @param _eventId - Original event ID (currently unused)
@@ -167,20 +168,33 @@ async function checkAppointmentConflict(
       return { hasConflict: true, reason: 'time_slot_taken' };
     }
 
-    // 2. Check minimum notice period requirements (simplified for now)
-    const currentTime = new Date();
-    const hoursUntilAppointment = (startTime.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+    // 2. Check actual minimum notice period requirements from expert's settings
+    const expertSchedulingSettings = await db.query.schedulingSettings.findFirst({
+      where: eq(schedulingSettings.userId, expertId),
+    });
 
-    // For now, use a simple 24-hour minimum notice check
-    // TODO: Query actual SchedulingSettings when schema is confirmed
-    if (hoursUntilAppointment < 24) {
+    // Get the minimum notice in minutes from expert's settings, default to 1440 (24 hours)
+    const minimumNoticeMinutes = expertSchedulingSettings?.minimumNotice || 1440;
+    const currentTime = new Date();
+    const millisecondsUntilAppointment = startTime.getTime() - currentTime.getTime();
+    const minutesUntilAppointment = millisecondsUntilAppointment / (1000 * 60);
+
+    console.log(
+      `📋 Expert ${expertId} minimum notice: ${minimumNoticeMinutes} minutes, appointment in ${minutesUntilAppointment.toFixed(1)} minutes`,
+    );
+
+    if (minutesUntilAppointment < minimumNoticeMinutes) {
+      const minimumNoticeHours = Math.ceil(minimumNoticeMinutes / 60);
+      const availableHours = Math.floor(minutesUntilAppointment / 60);
+
       console.log(
-        `⚠️ Minimum notice violation: appointment at ${startTime.toISOString()} only has ${hoursUntilAppointment.toFixed(1)}h notice`,
+        `⚠️ Minimum notice violation: appointment at ${startTime.toISOString()} requires ${minimumNoticeHours}h notice, but only ${availableHours}h available`,
       );
+
       return {
         hasConflict: true,
         reason: 'minimum_notice_violation',
-        minimumNoticeHours: 24,
+        minimumNoticeHours,
       };
     }
 
@@ -231,7 +245,7 @@ async function processPartialRefund(
 }
 
 /**
- * Send simplified conflict notification using existing email system
+ * Send conflict notification using existing email system with multilingual support
  */
 async function notifyAppointmentConflict(
   guestEmail: string,
@@ -241,8 +255,8 @@ async function notifyAppointmentConflict(
   refundAmount: number,
   originalAmount: number,
   locale: string,
-  conflictReason: string,
-  minimumNoticeHours?: number,
+  _conflictReason: string,
+  _minimumNoticeHours?: number,
 ) {
   try {
     console.log(`📧 Sending conflict notification to ${guestEmail} in locale ${locale}`);
@@ -358,7 +372,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             refund.amount,
             paymentIntent.amount,
             extractLocaleFromPaymentIntent(paymentIntent),
-            conflictResult.reason,
+            conflictResult.reason || 'unknown_conflict',
             conflictResult.minimumNoticeHours,
           );
 
