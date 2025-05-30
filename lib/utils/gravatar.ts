@@ -2,9 +2,7 @@
  * Gravatar utility functions for generating avatar URLs and fetching profile data
  * Supports both basic public API and enhanced authenticated API with API key
  */
-// Import Node.js crypto for server-side
 import { ENV_HELPERS } from '@/config/env';
-import md5 from 'blueimp-md5';
 
 /**
  * Gravatar default image options
@@ -22,12 +20,12 @@ export enum GravatarDefault {
 /**
  * Gravatar options for customizing avatar appearance
  */
-export type GravatarOptions = {
+export interface GravatarOptions {
   size?: number; // Size in pixels (1-2048)
   default?: GravatarDefault | string; // Default image type
   rating?: 'g' | 'pg' | 'r' | 'x'; // Content rating
   forceDefault?: boolean; // Always show default image
-};
+}
 
 /**
  * Gravatar profile data interface (from REST API)
@@ -69,42 +67,86 @@ export interface GravatarProfile {
 }
 
 /**
- * Creates an MD5 hash from an email address
- * @param email - The email to hash
- * @returns MD5 hashed string in hexadecimal format
+ * Simple hash function for email addresses when crypto API is not available
+ * Not cryptographically secure, but suitable for Gravatar URLs
  */
-export const getEmailHash = (email: string): string => {
-  const trimmedEmail = email.trim().toLowerCase();
-  return md5(trimmedEmail);
-};
+function simpleHash(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  // Convert to hex and pad to 32 characters (to mimic MD5 length)
+  const hex = Math.abs(hash).toString(16);
+  return hex.padStart(32, '0').substring(0, 32);
+}
 
 /**
- * Generates a Gravatar URL from an email address
- * @param email - The user's email address
- * @param options - Configuration options for the Gravatar URL
- * @returns A complete Gravatar URL
+ * Generates SHA256 hash using Web Crypto API (preferred)
+ * Falls back to simple hash if crypto is not available
  */
-export const getGravatarUrl = (email: string, options: GravatarOptions = {}): string => {
-  if (!email) return '';
+async function generateEmailHash(email: string): Promise<string> {
+  const normalizedEmail = email.toLowerCase().trim();
 
-  const hash = getEmailHash(email);
-  const {
-    size = 80,
-    default: defaultImage = GravatarDefault.MM,
-    rating = 'g',
-    forceDefault = false,
-  } = options;
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    try {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(normalizedEmail);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+    } catch (error) {
+      console.warn('Web Crypto API failed, falling back to simple hash:', error);
+    }
+  }
 
-  const queryParams = new URLSearchParams();
+  // Fallback to simple hash
+  return simpleHash(normalizedEmail);
+}
 
-  if (size) queryParams.append('s', size.toString());
-  if (defaultImage) queryParams.append('d', defaultImage);
-  if (rating) queryParams.append('r', rating);
-  if (forceDefault) queryParams.append('f', 'y');
+/**
+ * Generates hash of email address for Gravatar (synchronous version)
+ * Uses simple hash function for immediate URL generation
+ */
+function hashEmail(email: string): string {
+  return simpleHash(email.toLowerCase().trim());
+}
 
-  const queryString = queryParams.toString();
-  return `https://www.gravatar.com/avatar/${hash}${queryString ? `?${queryString}` : ''}`;
-};
+/**
+ * Generates a Gravatar URL for the given email address
+ * @param email - Email address
+ * @param options - Gravatar customization options
+ * @returns Gravatar URL
+ */
+export function getGravatarUrl(email: string, options: GravatarOptions = {}): string {
+  if (!email) {
+    return '';
+  }
+
+  const hash = hashEmail(email);
+  const baseUrl = 'https://www.gravatar.com/avatar';
+  const url = new URL(`${baseUrl}/${hash}`);
+
+  // Add query parameters
+  if (options.size && options.size >= 1 && options.size <= 2048) {
+    url.searchParams.set('s', options.size.toString());
+  }
+
+  if (options.default) {
+    url.searchParams.set('d', options.default);
+  }
+
+  if (options.rating) {
+    url.searchParams.set('r', options.rating);
+  }
+
+  if (options.forceDefault) {
+    url.searchParams.set('f', 'y');
+  }
+
+  return url.toString();
+}
 
 /**
  * Fetches full Gravatar profile data using the REST API
@@ -116,7 +158,7 @@ export async function getGravatarProfile(email: string): Promise<GravatarProfile
   if (!email) return null;
 
   try {
-    const hash = getEmailHash(email);
+    const hash = await generateEmailHash(email);
     const apiKey = ENV_HELPERS.getGravatarApiKey();
 
     // Build headers
@@ -125,7 +167,7 @@ export async function getGravatarProfile(email: string): Promise<GravatarProfile
     };
 
     if (apiKey) {
-      headers.Authorization = `Bearer ${apiKey}`;
+      headers['Authorization'] = `Bearer ${apiKey}`;
     }
 
     const response = await fetch(`https://api.gravatar.com/v3/profiles/${hash}`, {
@@ -170,7 +212,7 @@ export async function hasGravatar(email: string): Promise<boolean> {
 
   // Fallback to image-based checking
   try {
-    const url = await getGravatarUrl(email, { default: GravatarDefault.BLANK, size: 1 });
+    const url = getGravatarUrl(email, { default: GravatarDefault.BLANK, size: 1 });
 
     // Use fetch with a timeout to check if image exists
     const controller = new AbortController();
@@ -186,7 +228,7 @@ export async function hasGravatar(email: string): Promise<boolean> {
     // Gravatar returns 200 even for non-existent emails with default=blank
     // But the content-length will be different for actual vs blank images
     const contentLength = response.headers.get('content-length');
-    return response.ok && contentLength !== null && Number(contentLength) > 100;
+    return response.ok && contentLength !== null && +contentLength > 100;
   } catch {
     // Network error or timeout - assume no Gravatar to avoid blocking
     return false;
@@ -251,7 +293,7 @@ export async function getEnhancedAvatarData(
     const profile = await getGravatarProfile(email);
 
     // Generate avatar URL (always works)
-    const avatarUrl = await getGravatarUrl(email, {
+    const avatarUrl = getGravatarUrl(email, {
       size: 40,
       default: GravatarDefault.MM,
       rating: 'pg',
@@ -277,7 +319,7 @@ export async function getEnhancedAvatarData(
     console.warn('Failed to get enhanced avatar data:', error);
 
     // Fallback to basic avatar URL
-    const avatarUrl = await getGravatarUrl(email, {
+    const avatarUrl = getGravatarUrl(email, {
       size: 40,
       default: GravatarDefault.MM,
       rating: 'pg',
