@@ -319,14 +319,6 @@ export async function POST(request: Request) {
           preferredTaxHandling: 'vat_only',
         },
       },
-      // Set Multibanco expiration to 1 day (Stripe minimum, matches our payment window)
-      ...(paymentMethodTypes.includes('multibanco') && {
-        payment_method_options: {
-          multibanco: {
-            expires_after_days: 1, // Minimum allowed by Stripe
-          },
-        },
-      }),
     });
 
     // Create slot reservation for delayed payment methods (if needed)
