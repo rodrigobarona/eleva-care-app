@@ -276,11 +276,12 @@ export async function POST(request: Request) {
         address: 'auto',
       },
       submit_type: 'book',
-      // Prefill customer name if provided
-      ...(meetingData.guestName && {
-        customer_email: meetingData.guestEmail,
-        customer_name: meetingData.guestName,
-      }),
+      // Prefill customer information only if we don't have an existing customer
+      ...(!customerId &&
+        meetingData.guestName && {
+          customer_email: meetingData.guestEmail,
+          customer_name: meetingData.guestName,
+        }),
       payment_intent_data: {
         application_fee_amount: platformFee,
         transfer_data: {
