@@ -1,4 +1,4 @@
-import { Novu } from '@novu/api';
+import { Novu } from '@novu/node';
 
 const novuApiKey = process.env.NOVU_API_KEY;
 
@@ -8,10 +8,9 @@ if (!novuApiKey) {
   // throw new Error('NOVU_API_KEY is not defined.');
 }
 
-// Initialize Novu with the API key and EU backend URL
-const novu = new Novu({
-  secretKey: novuApiKey!,
-  serverURL: 'https://eu.api.novu.co',
-});
+// Initialize Novu with the API key
+// We check novuApiKey above, but typescript might still complain it could be undefined.
+// Using a non-null assertion (!) or a check here if you prefer.
+const novu = new Novu(novuApiKey!);
 
 export default novu;
