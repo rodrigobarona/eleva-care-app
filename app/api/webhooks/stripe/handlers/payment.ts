@@ -140,6 +140,13 @@ async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: strin
 }
 
 /**
+ * Helper to check if two time ranges overlap
+ */
+function hasTimeOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boolean {
+  return start1 < end2 && start2 < end1;
+}
+
+/**
  * Enhanced collision detection that considers both booking conflicts and actual minimum notice periods
  * @param expertId - Expert's Clerk user ID
  * @param startTime - Appointment start time
@@ -173,8 +180,6 @@ async function checkAppointmentConflict(
     );
 
     // 1. Check for existing confirmed meetings with TIME RANGE OVERLAP
-    // Two meetings overlap if: !(meeting1_end <= meeting2_start || meeting2_end <= meeting1_start)
-    // Simplified: meeting1_start < meeting2_end && meeting2_start < meeting1_end
     const conflictingMeetings = await db.query.MeetingTable.findMany({
       where: and(
         eq(MeetingTable.clerkUserId, expertId),
@@ -192,11 +197,8 @@ async function checkAppointmentConflict(
         existingMeeting.startTime.getTime() + existingMeeting.event.durationInMinutes * 60 * 1000,
       );
 
-      // Check for overlap: new appointment overlaps with existing if:
-      // new_start < existing_end AND existing_start < new_end
-      const hasOverlap = startTime < existingEndTime && existingMeeting.startTime < endTime;
-
-      if (hasOverlap) {
+      // Use helper for overlap check
+      if (hasTimeOverlap(startTime, endTime, existingMeeting.startTime, existingEndTime)) {
         console.log(
           `⚠️ TIME RANGE OVERLAP detected!
           📅 Existing: ${existingMeeting.startTime.toISOString()} - ${existingEndTime.toISOString()} (${existingMeeting.event.durationInMinutes} min)
@@ -446,6 +448,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
           return; // Exit early - don't create calendar event or proceed with normal flow
         }
+      } else {
+        console.log(`✅ Multibanco payment ${paymentIntent.id} processed without conflicts`);
       }
     }
 
