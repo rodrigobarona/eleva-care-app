@@ -192,9 +192,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Implemented skeleton loaders for dynamically imported sections.
 
 - **Meeting Form UX Issues**:
+
   - **Resolved cursor focus loss** after typing first character in input fields.
   - **Fixed double-click submit requirement** through proper form state management.
   - **Eliminated input interruption** during typing by optimizing URL synchronization timing.
+
+- **Stripe International Compatibility Issues**:
+  - **Consent Collection Country Restrictions**: Fixed `consent_collection.promotions` error for non-US experts. The promotions consent feature is only available in the United States per Stripe's documentation, so the field is now conditionally included only for US-based experts.
+  - **Enhanced International Payment Processing**: Improved Stripe checkout session creation to handle country-specific feature availability automatically.
+  - **Better Error Handling**: Resolved API errors that prevented payment intent creation for experts operating outside the United States.
 
 ### Enhanced
 

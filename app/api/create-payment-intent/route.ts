@@ -261,10 +261,8 @@ export async function POST(request: Request) {
       },
       // Billing address collection for tax calculation
       billing_address_collection: 'required',
-      // Enhanced terms of service consent with multilingual support
       consent_collection: {
         terms_of_service: 'required',
-        promotions: 'none',
       },
       // Add notice about Multibanco availability based on appointment timing
       ...(hoursUntilMeeting > 72 &&
