@@ -115,10 +115,10 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
         });
       }
     } finally {
-      // Reset the flag after a brief delay to allow the update to complete
-      setTimeout(() => {
+      // Reset the flag after the microtask queue completes for more predictable timing
+      queueMicrotask(() => {
         isUpdatingFromProp.current = false;
-      }, 0);
+      });
     }
   }, [value, editor]);
 
