@@ -21,7 +21,7 @@ export default function MissionSection({
     <>
       <section className="mt-16 grid grid-cols-1 lg:grid-cols-2 lg:gap-12">
         <div className="max-w-lg">
-          <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
+          <h2 className="font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70">
             {title}
           </h2>
           {description.map((item) => (
@@ -70,7 +70,7 @@ export default function MissionSection({
         </div>
 
         <div className="max-lg:mt-16 lg:col-span-1">
-          <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
+          <h2 className="font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70">
             {statsTitle}
           </h2>
           <Separator className="mt-6" />

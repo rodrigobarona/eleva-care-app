@@ -27,7 +27,7 @@ const Hero = () => {
           loop
           controls={false}
           preload="metadata"
-          poster="img/videos/eleva-care-intro-banner-poster.jpg"
+          poster="img/videos/eleva-care-intro-banner-poster.webp"
           className="lg:rounded-5xl absolute rounded-2xl object-cover"
         />
       </Suspense>

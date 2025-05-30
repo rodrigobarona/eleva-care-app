@@ -11,7 +11,7 @@ export default function BeliefCard({ title, beliefs }: BeliefCardProps) {
   return (
     <>
       <section className="mt-24">
-        <h2 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
+        <h2 className="font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70">
           {title}
         </h2>
         <Separator className="mt-6" />

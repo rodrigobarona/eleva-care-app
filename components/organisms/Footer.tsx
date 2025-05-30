@@ -26,7 +26,7 @@ export default function Footer() {
                 {/* CTA Section */}
                 <section className="relative my-32">
                   <div className="relative pb-16 pt-20 text-center sm:py-24">
-                    <h2 className="mx-auto max-w-xs font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
+                    <h2 className="mx-auto max-w-xs font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70">
                       {t('cta.title')}
                     </h2>
                     <p className="mx-auto mt-2 max-w-3xl text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-neutral-900 sm:text-6xl">

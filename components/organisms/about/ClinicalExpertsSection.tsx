@@ -21,7 +21,7 @@ export default function ClinicalExpertsSection({
 }: ClinicalExpertsSectionProps) {
   return (
     <section>
-      <h3 className="mt-24 font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
+      <h3 className="mt-24 font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70">
         {title}
       </h3>
       <Separator className="mt-6" />

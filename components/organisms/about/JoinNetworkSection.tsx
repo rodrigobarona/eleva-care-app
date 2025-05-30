@@ -24,7 +24,7 @@ export default function JoinNetworkSection({
     <section className="mt-12">
       <div className="mt-24 grid grid-cols-1 gap-16 lg:grid-cols-[1fr_24rem]">
         <div className="lg:max-w-2xl">
-          <h3 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
+          <h3 className="font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70">
             {title}
           </h3>
           <ul className="mt-8 space-y-8">

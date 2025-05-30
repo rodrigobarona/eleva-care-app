@@ -38,7 +38,7 @@ const PodcastSection: React.FC<PodcastSectionProps> = ({ title, subtitle, descri
             </div>
             <div className="mt-10 w-full flex-auto space-y-4 lg:mt-0 lg:w-3/5">
               <div className="mb-6">
-                <h2 className="text-elevaNeutral-100 data-[dark]:text-elevaNeutral-100/60 font-mono text-xs/5 font-semibold uppercase tracking-widest">
+                <h2 className="text-elevaNeutral-100 data-[dark]:text-elevaNeutral-100/60 font-mono text-xs/5 font-normal uppercase tracking-widest">
                   {subtitle}
                 </h2>
                 <h3 className="text-elevaNeutral-100 data-[dark]:text-elevaNeutral-100 mt-2 text-pretty font-serif text-4xl font-light tracking-tighter sm:text-6xl">

@@ -43,7 +43,7 @@ const TeamSection: React.FC<TeamSectionProps> = ({ title, subtitle, description,
       <section id="team" className="w-full px-6 pb-24 pt-12 md:py-24 lg:px-8 lg:py-32">
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <div className="mb-12">
-            <h2 className="text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60 font-mono text-xs/5 font-semibold uppercase tracking-widest">
+            <h2 className="text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60 font-mono text-xs/5 font-normal uppercase tracking-widest">
               {title}
             </h2>
             <h3 className="text-seco text-elevaPrimary data-[dark]:text-elevaNeutral-100 mt-2 text-pretty font-serif text-4xl font-light tracking-tighter sm:text-6xl">

@@ -22,7 +22,7 @@ const NewsletterSection: React.FC<NewsletterSectionProps> = ({
         <div className="mx-auto max-w-2xl lg:max-w-7xl">
           <div className="mx-auto max-w-xl text-center">
             <div className="mb-6">
-              <h2 className="text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60 font-mono text-xs/5 font-semibold uppercase tracking-widest">
+              <h2 className="text-elevaNeutral-900/70 data-[dark]:text-elevaNeutral-900/60 font-mono text-xs/5 font-normal uppercase tracking-widest">
                 {subtitle}
               </h2>
               <h3 className="text-elevaPrimary data-[dark]:text-elevaNeutral-100 mt-2 text-balance font-serif text-4xl font-light tracking-tighter lg:text-6xl">

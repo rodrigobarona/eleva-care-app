@@ -40,7 +40,7 @@ export default function TeamSection({ title, description, leadership }: TeamSect
         </div>
 
         <div className="mt-16 lg:col-span-2">
-          <h3 className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
+          <h3 className="font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70">
             {title}
           </h3>
           <Separator className="mt-6" />

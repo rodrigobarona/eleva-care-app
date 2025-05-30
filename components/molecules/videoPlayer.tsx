@@ -9,7 +9,7 @@ interface VideoPlayerProps {
   controls?: boolean;
   preload?: 'auto' | 'metadata' | 'none';
   className?: string;
-  poster?: string; // URL for a poster image to show before video loads
+  poster?: string; // URL for a WebP poster image
   captions?: {
     src: string;
     label: string;
@@ -39,14 +39,11 @@ export function VideoPlayer({
   poster,
   captions = [], // Default to empty array if no captions provided
 }: VideoPlayerProps) {
-  // Normalize paths by ensuring they start with a slash
-  const normalizePath = (path: string) => {
-    // Remove any existing leading slashes and add a single one
-    return `/${path.replace(/^\/+/, '')}`;
-  };
+  // Normalize paths by removing leading slashes
+  const normalizePath = (path: string) => path.replace(/^\/+/, '');
 
   const videoSrc = normalizePath(src);
-  const posterSrc = poster ? normalizePath(poster) : undefined;
+  const posterSrc = poster ? `/${normalizePath(poster)}` : undefined;
 
   // Determine video MIME type based on file extension
   const getVideoType = (src: string) => {
@@ -64,43 +61,49 @@ export function VideoPlayer({
   };
 
   return (
-    <video
-      width={width}
-      height={height}
-      style={{ height: '100%', width: '100%' }}
-      playsInline={playsInline}
-      autoPlay={autoPlay}
-      muted={muted}
-      loop={loop}
-      controls={controls}
-      preload={preload}
-      className={className}
-      poster={posterSrc}
-    >
-      <source src={videoSrc} type={getVideoType(src)} />
-      {/* Always include at least one track element for accessibility */}
-      <track
-        kind="captions"
-        label="No captions available"
-        src="data:text/vtt;base64,V0VCVlRUCgoxCjAwOjAwOjAwLjAwMCAtLT4gMDA6MDA6MDEuMDAwCk5vIGNhcHRpb25zIGF2YWlsYWJsZQo="
-        srcLang="en"
-        default={captions.length === 0}
-        className="sr-only"
-      />
-      {/* Add additional caption tracks if provided */}
-      {captions.map((caption) => (
+    <>
+      {poster && (
+        <picture style={{ display: 'none' }}>
+          <img src={poster} alt="" />
+        </picture>
+      )}
+      <video
+        width={width}
+        height={height}
+        style={{ height: '100%', width: '100%' }}
+        playsInline={playsInline}
+        autoPlay={autoPlay}
+        muted={muted}
+        loop={loop}
+        controls={controls}
+        preload={preload}
+        className={className}
+        poster={posterSrc}
+      >
+        <source src={videoSrc} type={getVideoType(src)} />
+        {/* Always include at least one track element for accessibility */}
         <track
-          key={caption.src}
           kind="captions"
-          label={caption.label}
-          src={normalizePath(caption.src)}
-          srcLang={caption.srcLang}
-          default={caption.default}
+          label="No captions available"
+          src="data:text/vtt;base64,V0VCVlRUCgoxCjAwOjAwOjAwLjAwMCAtLT4gMDA6MDA6MDEuMDAwCgo="
+          srcLang="en"
+          default={captions.length === 0}
         />
-      ))}
-      {/* Fallback text for browsers that don't support video */}
-      Your browser does not support the video tag.
-    </video>
+        {/* Add additional caption tracks if provided */}
+        {captions.map((caption) => (
+          <track
+            key={caption.src}
+            kind="captions"
+            label={caption.label}
+            src={normalizePath(caption.src)}
+            srcLang={caption.srcLang}
+            default={caption.default}
+          />
+        ))}
+        {/* Fallback text for browsers that don't support video */}
+        Your browser does not support the video tag.
+      </video>
+    </>
   );
 }
 export default VideoPlayer;
