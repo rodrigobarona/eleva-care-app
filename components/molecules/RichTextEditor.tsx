@@ -52,7 +52,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     editorProps: {
       attributes: {
         class:
-          'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[100px] px-3 py-2',
+          'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] h-full px-3 py-2',
       },
     },
     immediatelyRender: false,
