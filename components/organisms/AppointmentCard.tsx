@@ -57,10 +57,10 @@ export function AppointmentCard({ appointment }: { appointment: AppointmentOrRes
 
   // Calculate time until expiration for reservations
   const timeUntilExpiration = reservation
-    ? Math.max(0, Math.floor((reservation.expiresAt.getTime() - Date.now()) / (1000 * 60))) // minutes
+    ? Math.max(0, Math.floor((reservation.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60))) // hours
     : 0;
 
-  const isExpiringSoon = timeUntilExpiration <= 60; // Less than 1 hour
+  const isExpiringSoon = timeUntilExpiration <= 2; // Less than 2 hours
 
   return (
     <Card className={`mb-4 ${isReservation ? 'border-orange-200 bg-orange-50/50' : ''}`}>
@@ -82,7 +82,7 @@ export function AppointmentCard({ appointment }: { appointment: AppointmentOrRes
             <CardDescription>
               {format(new Date(appointment.startTime), 'EEEE, MMMM d, yyyy')}
               {isReservation && (
-                <span className="ml-2 text-orange-600">• Expires in {timeUntilExpiration}m</span>
+                <span className="ml-2 text-orange-600">• Expires in {timeUntilExpiration}h</span>
               )}
             </CardDescription>
           </div>
@@ -125,11 +125,11 @@ export function AppointmentCard({ appointment }: { appointment: AppointmentOrRes
               <p className="font-medium">⚠️ This is a temporary reservation</p>
               <p>
                 The guest started a Multibanco payment but hasn&apos;t completed it yet. This slot
-                is held until {reservation && format(reservation.expiresAt, 'h:mm a')} today.
+                is held until {reservation && format(reservation.expiresAt, 'MMM d, h:mm a')}.
               </p>
               {isExpiringSoon && (
                 <p className="mt-1 font-medium text-red-700">
-                  ⚡ Expires in {timeUntilExpiration} minutes - slot will become available again
+                  ⚡ Expires in {timeUntilExpiration} hours - slot will become available again
                 </p>
               )}
             </div>

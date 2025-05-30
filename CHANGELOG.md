@@ -7,6 +7,69 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Payment Method Restrictions & User Experience**:
+
+  - **Extended Multibanco cutoff period**: Changed from 48 hours to 72 hours before appointment for Multibanco availability
+  - **Appointments ≤ 72 hours**: Credit card only with 30-minute payment window for instant confirmation
+  - **Appointments > 72 hours**: Both credit card and Multibanco available with 24-hour payment window
+  - **Clear user communication**: Added custom notice in Stripe checkout explaining Multibanco restrictions for appointments within 72 hours
+
+- **Payment Window Extensions**:
+
+  - **Multibanco payment window**: Extended from 4 hours to 24 hours for advance bookings (>72h)
+  - **Slot reservation period**: Extended to 24 hours to match Multibanco payment window
+  - **Consistent expiration handling**: Aligned all systems to work with 24-hour periods instead of 4-hour cutoffs
+
+- **UI/UX Improvements**:
+  - **Countdown display optimization**: Changed from minutes to hours in appointment cards for better readability
+    - Before: `120m`, `30m` (difficult to read for long periods)
+    - After: `5h`, `2h` (much more user-friendly)
+  - **Expiring soon threshold**: Updated from 1 hour to 2 hours for 24-hour reservation windows
+  - **Date display enhancement**: Improved reservation notices to show full dates (`Jun 2, 3:45 PM`) instead of time-only for multi-day holds
+
+### Technical
+
+- **Stripe Integration Updates**:
+
+  - Updated payment method logic in `/api/create-payment-intent` to use 72-hour cutoff
+  - Enhanced checkout session with conditional custom notices for Multibanco restrictions
+  - Implemented proper Stripe Multibanco configuration with 1-day minimum expiration (as per Stripe requirements)
+  - Removed complex programmatic cancellation logic in favor of simpler 24-hour approach
+
+- **Component Architecture**:
+
+  - Enhanced `AppointmentCard.tsx` with improved countdown calculations (hours vs minutes)
+  - Updated reservation display logic for better user comprehension
+  - Improved time-until-expiration calculations for 24-hour windows
+
+- **System Consistency**:
+  - Aligned slot reservation cleanup system with new 24-hour periods (no code changes needed)
+  - Updated all related logging and console output to reflect new timing requirements
+  - Ensured consistent behavior across payment processing, UI display, and cleanup systems
+
+### Fixed
+
+- **Payment Flow Improvements**:
+  - Simplified Multibanco expiration handling by working with Stripe's native 1-day minimum
+  - Eliminated complex 4-hour programmatic cancellation requirements
+  - Improved payment method selection logic for better user experience
+  - Enhanced customer communication about payment method availability
+
+### User Experience
+
+- **Better Payment Method Communication**:
+
+  - Clear explanation when Multibanco is not available: _"Multibanco payments are not available for appointments scheduled within 72 hours. Only credit/debit card payments are accepted for immediate booking confirmation."_
+  - Improved visual feedback in checkout process
+  - Better understanding of payment windows and restrictions
+
+- **Enhanced Reservation Management**:
+  - More readable countdown timers (hours instead of minutes)
+  - Clearer expiration warnings with appropriate thresholds
+  - Better date formatting for multi-day reservation holds
+
 ## [0.3.2] - 2025-05-29
 
 ### Added

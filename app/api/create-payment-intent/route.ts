@@ -175,8 +175,8 @@ export async function POST(request: Request) {
     let paymentExpiresAt: Date;
     let reservationExpiresAt: Date | null = null;
 
-    if (hoursUntilMeeting <= 48) {
-      // Meeting is within 48 hours - CREDIT CARD ONLY for instant confirmation
+    if (hoursUntilMeeting <= 72) {
+      // Meeting is within 72 hours - CREDIT CARD ONLY for instant confirmation
       paymentMethodTypes = ['card'];
 
       // Payment must complete within 30 minutes
@@ -186,17 +186,17 @@ export async function POST(request: Request) {
         `⚡ Quick booking: Meeting in ${hoursUntilMeeting.toFixed(1)}h - Card only, 30min to pay`,
       );
     } else {
-      // Meeting is > 48 hours away - Allow both Card and Multibanco
+      // Meeting is > 72 hours away - Allow both Card and Multibanco
       paymentMethodTypes = ['card', 'multibanco'];
 
-      // Payment can take up to 4 hours to complete
-      paymentExpiresAt = new Date(currentTime.getTime() + 4 * 60 * 60 * 1000);
+      // Payment can take up to 24 hours to complete (Multibanco minimum)
+      paymentExpiresAt = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000);
 
-      // Reserve slot for 4 hours (same as payment expiration)
+      // Reserve slot for 24 hours (same as payment expiration)
       reservationExpiresAt = paymentExpiresAt;
 
       console.log(
-        `🕒 Advance booking: Meeting in ${hoursUntilMeeting.toFixed(1)}h - Card + Multibanco, 4h to pay + slot hold`,
+        `🕒 Advance booking: Meeting in ${hoursUntilMeeting.toFixed(1)}h - Card + Multibanco, 24h to pay + slot hold`,
       );
     }
 
@@ -253,10 +253,6 @@ export async function POST(request: Request) {
       },
       // Billing address collection for tax calculation
       billing_address_collection: 'required',
-      // Phone number collection for booking confirmation
-      phone_number_collection: {
-        enabled: true,
-      },
       // Enhanced terms of service consent
       consent_collection: {
         terms_of_service: 'required',
@@ -265,6 +261,13 @@ export async function POST(request: Request) {
         terms_of_service_acceptance: {
           message: 'I agree to the [Terms of Service](https://eleva.care/legal/terms)',
         },
+        // Add notice about Multibanco availability based on appointment timing
+        ...(hoursUntilMeeting <= 72 && {
+          submit: {
+            message:
+              '⚠️ **Payment Notice:** Multibanco payments are not available for appointments scheduled within 72 hours. Only credit/debit card payments are accepted for immediate booking confirmation.',
+          },
+        }),
       },
       // Enhanced customer information collection
       locale: meetingData.locale || 'en',
@@ -273,6 +276,11 @@ export async function POST(request: Request) {
         address: 'auto',
       },
       submit_type: 'book',
+      // Prefill customer name if provided
+      ...(meetingData.guestName && {
+        customer_email: meetingData.guestEmail,
+        customer_name: meetingData.guestName,
+      }),
       payment_intent_data: {
         application_fee_amount: platformFee,
         transfer_data: {
@@ -283,8 +291,10 @@ export async function POST(request: Request) {
             id: eventId,
             expert: event.clerkUserId,
             guest: meetingData.guestEmail,
+            guestName: meetingData.guestName,
             start: meetingData.startTime,
             dur: event.durationInMinutes,
+            notes: meetingData.guestNotes || '', // Preserve guest notes
           }),
           payment: JSON.stringify({
             amount: price.toString(),
@@ -307,6 +317,14 @@ export async function POST(request: Request) {
           isEuropeanCustomer: meetingData.timezone?.includes('Europe') ? 'true' : 'false',
           preferredTaxHandling: 'vat_only',
         },
+        // Set Multibanco expiration to 1 day (Stripe minimum, matches our payment window)
+        ...(paymentMethodTypes.includes('multibanco') && {
+          payment_method_options: {
+            multibanco: {
+              expires_after_days: 1, // Minimum allowed by Stripe
+            },
+          },
+        }),
       },
     });
 
