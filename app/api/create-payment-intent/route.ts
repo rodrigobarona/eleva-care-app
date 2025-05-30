@@ -297,6 +297,36 @@ export async function POST(request: Request) {
           customer_email: meetingData.guestEmail,
           customer_name: meetingData.guestName,
         }),
+      // ADD METADATA TO CHECKOUT SESSION (for webhook processing)
+      metadata: {
+        meeting: JSON.stringify({
+          id: eventId,
+          expert: event.clerkUserId,
+          guest: meetingData.guestEmail,
+          guestName: meetingData.guestName,
+          start: meetingData.startTime,
+          dur: event.durationInMinutes,
+          notes: meetingData.guestNotes || '', // Preserve guest notes
+        }),
+        payment: JSON.stringify({
+          amount: price.toString(),
+          fee: platformFee.toString(),
+          expert: expertAmount.toString(),
+        }),
+        transfer: JSON.stringify({
+          status: PAYMENT_TRANSFER_STATUS_PENDING,
+          account: expertStripeAccountId,
+          country: expertAccount.country || 'Unknown',
+          delay: {
+            aging: paymentAgingDays,
+            remaining: remainingDelayDays,
+            required: requiredPayoutDelay,
+          },
+          scheduled: scheduledTransferTime.toISOString(),
+        }),
+        approval: requiresApproval.toString(),
+        sessionId: '', // Will be set by Stripe
+      },
       payment_intent_data: {
         application_fee_amount: platformFee,
         transfer_data: {
