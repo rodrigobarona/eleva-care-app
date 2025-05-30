@@ -10,6 +10,8 @@ Add your API key to `.env`:
 GRAVATAR_API_KEY=your_api_key_here
 ```
 
+**Note**: The API key is now managed through the centralized environment configuration in `config/env.ts`. The system will automatically detect and use the API key when available.
+
 ## Basic Usage Examples
 
 ### 1. Enhanced Appointment Cards
@@ -96,6 +98,21 @@ if (avatarData) {
 }
 ```
 
+### Environment Configuration Status
+
+```typescript
+import { ENV_HELPERS, ENV_VALIDATORS } from '@/config/env';
+
+// Check if Gravatar API key is configured
+if (ENV_HELPERS.hasGravatarApiKey()) {
+  console.log('Gravatar API key is available');
+}
+
+// Get environment summary
+const summary = ENV_HELPERS.getEnvironmentSummary();
+console.log('Has Gravatar API:', summary.hasGravatar);
+```
+
 ## Component Props Reference
 
 ### GravatarAvatar Enhanced Props
@@ -133,12 +150,59 @@ The implementation gracefully handles all scenarios:
 - **Without API key**: Works exactly as before (backward compatible)
 - **Network issues**: Always falls back to initials/icons
 
+## Environment Configuration
+
+The Gravatar API key is now part of the centralized environment configuration system:
+
+### Configuration File
+
+The centralized config is located at `config/env.ts` and includes:
+
+```typescript
+export const ENV_CONFIG = {
+  // ... other config
+  GRAVATAR_API_KEY: process.env.GRAVATAR_API_KEY || '',
+  // ... other config
+};
+
+export const ENV_HELPERS = {
+  getGravatarApiKey(): string | undefined {
+    return ENV_CONFIG.GRAVATAR_API_KEY || undefined;
+  },
+
+  hasGravatarApiKey(): boolean {
+    return Boolean(ENV_CONFIG.GRAVATAR_API_KEY);
+  },
+  // ... other helpers
+};
+```
+
+### Validation
+
+You can validate environment variables:
+
+```typescript
+import { ENV_VALIDATORS } from '@/config/env';
+// Get environment summary
+import { ENV_HELPERS } from '@/config/env';
+
+// Check critical environment variables
+const validation = ENV_VALIDATORS.critical();
+if (!validation.isValid) {
+  console.error(validation.message);
+}
+
+const summary = ENV_HELPERS.getEnvironmentSummary();
+console.log('Environment status:', summary);
+```
+
 ## Performance Notes
 
 - API calls are cached and optimized
 - Components work immediately even if API is slow
 - No performance degradation for existing functionality
 - Higher rate limits (1000 vs 100 requests/hour) with API key
+- Centralized environment management improves maintainability
 
 ## Testing
 
@@ -148,5 +212,6 @@ Test the enhanced functionality:
 2. Set `enhanced={true}` on the component
 3. Hover to see professional information in tooltip
 4. Check browser network tab to see API calls to `api.gravatar.com`
+5. Verify environment configuration: `ENV_HELPERS.hasGravatarApiKey()`
 
-The API key enhances the patient experience by showing professional context while maintaining all existing functionality!
+The API key enhances the patient experience by showing professional context while maintaining all existing functionality and providing centralized environment management!

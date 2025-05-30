@@ -2,7 +2,7 @@
  * Gravatar utility functions for generating avatar URLs and fetching profile data
  * Supports both basic public API and enhanced authenticated API with API key
  */
-import { getGravatarApiKey } from './env';
+import { ENV_HELPERS } from '@/config/env';
 
 /**
  * Gravatar default image options
@@ -159,7 +159,7 @@ export async function getGravatarProfile(email: string): Promise<GravatarProfile
 
   try {
     const hash = await generateEmailHash(email);
-    const apiKey = getGravatarApiKey();
+    const apiKey = ENV_HELPERS.getGravatarApiKey();
 
     // Build headers
     const headers: Record<string, string> = {
@@ -200,7 +200,7 @@ export async function hasGravatar(email: string): Promise<boolean> {
   if (!email) return false;
 
   // Try API-based checking first (more reliable)
-  const apiKey = getGravatarApiKey();
+  const apiKey = ENV_HELPERS.getGravatarApiKey();
   if (apiKey) {
     try {
       const profile = await getGravatarProfile(email);
