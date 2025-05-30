@@ -34,6 +34,7 @@ import {
 } from 'nuqs';
 import { Suspense } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
+import type { UseFormReturn } from 'react-hook-form';
 import type { z } from 'zod';
 
 interface BlockedDate {
@@ -62,6 +63,229 @@ interface MeetingFormProps {
   afterEventBuffer?: number;
   blockedDates?: BlockedDate[];
 }
+
+// Define the query state type for reuse
+type QueryStates = {
+  step: '1' | '2' | '3';
+  date: Date | null;
+  time: Date | null;
+  name: string;
+  email: string;
+  timezone: string;
+};
+
+// Extract Step2Content as a separate component with props to reduce closure dependencies
+interface Step2ContentProps {
+  form: UseFormReturn<z.infer<typeof meetingFormSchema>>;
+  queryStates: {
+    date: Date | null;
+    time: Date | null;
+    timezone: string;
+  };
+  setQueryStates: (updater: (prev: QueryStates) => Partial<QueryStates>) => void;
+  timezone: string;
+  eventDuration: number;
+  beforeEventBuffer: number;
+  afterEventBuffer: number;
+  transitionToStep: (step: '1' | '2' | '3') => void;
+  handleNextStep: (nextStep: '1' | '2' | '3') => Promise<void>;
+  isSubmitting: boolean;
+  price: number;
+  use24Hour: boolean;
+}
+
+const Step2Content = React.memo<Step2ContentProps>(
+  ({
+    form,
+    queryStates,
+    setQueryStates,
+    timezone,
+    eventDuration,
+    beforeEventBuffer,
+    afterEventBuffer,
+    transitionToStep,
+    handleNextStep,
+    isSubmitting,
+    price,
+    use24Hour,
+  }) => {
+    // Get values directly from form for display
+    const currentDate = form.getValues('date');
+    const currentTime = form.getValues('startTime');
+    const currentTimezone = form.getValues('timezone');
+
+    // Use watched values or fallback to query states
+    const displayDate = currentDate || queryStates.date;
+    const displayTime = currentTime || queryStates.time;
+
+    // Calculate total duration including buffer times
+    const totalDuration = eventDuration + beforeEventBuffer + afterEventBuffer;
+    const hasBufferTime = beforeEventBuffer > 0 || afterEventBuffer > 0;
+
+    // Memoize updateURLOnBlur with proper dependencies
+    const updateURLOnBlur = React.useCallback(() => {
+      const name = form.getValues('guestName')?.trim();
+      const email = form.getValues('guestEmail')?.trim();
+
+      const updates: Record<string, string | undefined> = {};
+      if (name) updates.name = name;
+      if (email) updates.email = email;
+
+      if (Object.keys(updates).length > 0) {
+        setQueryStates((prev) => ({ ...prev, ...updates }));
+      }
+    }, [form, setQueryStates]);
+
+    return (
+      <div className="rounded-lg border p-6">
+        <div className="mb-6">
+          <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
+          <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              <span>
+                {displayDate ? (
+                  format(displayDate, 'EEEE, MMMM d, yyyy')
+                ) : (
+                  <em className="text-red-500">Date not selected</em>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span>
+                {displayTime ? (
+                  formatInTimeZone(
+                    displayTime,
+                    currentTimezone || timezone,
+                    use24Hour ? 'HH:mm' : 'h:mm a',
+                  )
+                ) : (
+                  <em className="text-red-500">Time not selected</em>
+                )}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Globe className="h-4 w-4" />
+              <span>{(currentTimezone || timezone).replace('_', ' ')}</span>
+            </div>
+            {hasBufferTime && (
+              <div className="mt-2 text-sm">
+                <p>Total time blocked: {totalDuration} minutes</p>
+                {beforeEventBuffer > 0 && (
+                  <p className="text-xs">({beforeEventBuffer} min buffer before)</p>
+                )}
+                {afterEventBuffer > 0 && (
+                  <p className="text-xs">({afterEventBuffer} min buffer after)</p>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-6 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="guestName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="font-semibold">Your Name</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="Enter your full name"
+                    {...field}
+                    onBlur={() => {
+                      field.onBlur();
+                      updateURLOnBlur();
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="guestEmail"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="font-semibold">Your Email</FormLabel>
+                <FormControl>
+                  <Input
+                    type="email"
+                    placeholder="you@example.com"
+                    {...field}
+                    onBlur={() => {
+                      field.onBlur();
+                      updateURLOnBlur();
+                    }}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name="guestNotes"
+            render={({ field }) => (
+              <FormItem className="md:col-span-2">
+                <FormLabel className="font-semibold">Additional Notes</FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Share anything that will help prepare for our meeting..."
+                    className="min-h-32"
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="mt-6 flex justify-between">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => transitionToStep('1')}
+            disabled={isSubmitting}
+          >
+            Back
+          </Button>
+          <Button
+            type="button"
+            onClick={() => handleNextStep('3')}
+            disabled={isSubmitting}
+            className="relative"
+          >
+            {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
+            {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+          </Button>
+        </div>
+      </div>
+    );
+  },
+  (prevProps, nextProps) => {
+    // Custom comparison function to prevent unnecessary re-renders
+    // Only re-render if specific props that affect the UI have changed
+    return (
+      prevProps.isSubmitting === nextProps.isSubmitting &&
+      prevProps.price === nextProps.price &&
+      prevProps.timezone === nextProps.timezone &&
+      prevProps.eventDuration === nextProps.eventDuration &&
+      prevProps.beforeEventBuffer === nextProps.beforeEventBuffer &&
+      prevProps.afterEventBuffer === nextProps.afterEventBuffer &&
+      prevProps.use24Hour === nextProps.use24Hour &&
+      prevProps.queryStates.date?.getTime() === nextProps.queryStates.date?.getTime() &&
+      prevProps.queryStates.time?.getTime() === nextProps.queryStates.time?.getTime() &&
+      prevProps.queryStates.timezone === nextProps.queryStates.timezone
+    );
+  },
+);
+
+// Add display name for debugging
+Step2Content.displayName = 'Step2Content';
 
 export function MeetingFormContent({
   validTimes,
@@ -603,169 +827,6 @@ export function MeetingFormContent({
     );
   }
 
-  // Content for Step 2 - Memoized to prevent unnecessary re-renders
-  const Step2Content = React.memo(() => {
-    // Get values directly from form for display
-    const currentDate = form.getValues('date');
-    const currentTime = form.getValues('startTime');
-    const currentTimezone = form.getValues('timezone');
-
-    // Use watched values or fallback to query states
-    const displayDate = currentDate || queryStates.date;
-    const displayTime = currentTime || queryStates.time;
-
-    // Calculate total duration including buffer times
-    const totalDuration = eventDuration + beforeEventBuffer + afterEventBuffer;
-    const hasBufferTime = beforeEventBuffer > 0 || afterEventBuffer > 0;
-
-    // Update URL when leaving the form fields (not on every keystroke)
-    const updateURLOnBlur = React.useCallback(() => {
-      const name = form.getValues('guestName')?.trim();
-      const email = form.getValues('guestEmail')?.trim();
-
-      const updates: Record<string, string | undefined> = {};
-      if (name) updates.name = name;
-      if (email) updates.email = email;
-
-      if (Object.keys(updates).length > 0) {
-        setQueryStates((prev) => ({ ...prev, ...updates }));
-      }
-    }, []);
-
-    return (
-      <div className="rounded-lg border p-6">
-        <div className="mb-6">
-          <h2 className="mb-3 text-xl font-semibold">Confirm your meeting details</h2>
-          <div className="flex flex-col gap-1 rounded-md bg-muted/50 p-3 text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <CalendarIcon className="h-4 w-4" />
-              <span>
-                {displayDate ? (
-                  format(displayDate, 'EEEE, MMMM d, yyyy')
-                ) : (
-                  <em className="text-red-500">Date not selected</em>
-                )}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4" />
-              <span>
-                {displayTime ? (
-                  formatInTimeZone(
-                    displayTime,
-                    currentTimezone || timezone,
-                    use24Hour ? 'HH:mm' : 'h:mm a',
-                  )
-                ) : (
-                  <em className="text-red-500">Time not selected</em>
-                )}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              <span>{(currentTimezone || timezone).replace('_', ' ')}</span>
-            </div>
-            {hasBufferTime && (
-              <div className="mt-2 text-sm">
-                <p>Total time blocked: {totalDuration} minutes</p>
-                {beforeEventBuffer > 0 && (
-                  <p className="text-xs">({beforeEventBuffer} min buffer before)</p>
-                )}
-                {afterEventBuffer > 0 && (
-                  <p className="text-xs">({afterEventBuffer} min buffer after)</p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="grid gap-6 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="guestName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="font-semibold">Your Name</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter your full name"
-                    {...field}
-                    onBlur={() => {
-                      field.onBlur();
-                      updateURLOnBlur();
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="guestEmail"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="font-semibold">Your Email</FormLabel>
-                <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    {...field}
-                    onBlur={() => {
-                      field.onBlur();
-                      updateURLOnBlur();
-                    }}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="guestNotes"
-            render={({ field }) => (
-              <FormItem className="md:col-span-2">
-                <FormLabel className="font-semibold">Additional Notes</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Share anything that will help prepare for our meeting..."
-                    className="min-h-32"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-
-        <div className="mt-6 flex justify-between">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => transitionToStep('1')}
-            disabled={isSubmitting}
-          >
-            Back
-          </Button>
-          <Button
-            type="button"
-            onClick={() => handleNextStep('3')}
-            disabled={isSubmitting}
-            className="relative"
-          >
-            {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
-            {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
-          </Button>
-        </div>
-      </div>
-    );
-  });
-
-  // Add display name for the memoized component
-  Step2Content.displayName = 'Step2Content';
-
   // Content for Step 3
   const Step3Content = () => (
     <div className="flex items-center justify-center py-12">
@@ -858,7 +919,26 @@ export function MeetingFormContent({
         >
           {currentStep !== '1' && (
             <div>
-              {currentStep === '2' && <Step2Content />}
+              {currentStep === '2' && (
+                <Step2Content
+                  form={form}
+                  queryStates={{
+                    date: queryStates.date,
+                    time: queryStates.time,
+                    timezone: queryStates.timezone,
+                  }}
+                  setQueryStates={setQueryStates}
+                  timezone={timezone}
+                  eventDuration={eventDuration}
+                  beforeEventBuffer={beforeEventBuffer}
+                  afterEventBuffer={afterEventBuffer}
+                  transitionToStep={transitionToStep}
+                  handleNextStep={handleNextStep}
+                  isSubmitting={isSubmitting}
+                  price={price}
+                  use24Hour={use24Hour}
+                />
+              )}
               {currentStep === '3' && <Step3Content />}
             </div>
           )}
