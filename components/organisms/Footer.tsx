@@ -209,6 +209,14 @@ export default function Footer() {
                                 {t('nav.legal.dpa')}
                               </Link>
                             </li>
+                            <li>
+                              <Link
+                                href="/legal/payment-policies"
+                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              >
+                                {t('nav.legal.paymentPolicies')}
+                              </Link>
+                            </li>
                           </ul>
                         </div>
                       </div>
