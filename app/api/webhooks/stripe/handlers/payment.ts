@@ -19,7 +19,12 @@ import { createUserNotification } from '@/lib/notifications';
 import { withRetry } from '@/lib/stripe';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
-import type { Stripe } from 'stripe';
+import Stripe from 'stripe';
+
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
+  apiVersion: '2025-02-24.acacia',
+});
 
 /**
  * Extract locale from payment intent metadata and fallback sources
@@ -144,13 +149,13 @@ async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: strin
  * Check for appointment time slot conflicts for late Multibanco payments
  * @param expertId - Expert's Clerk user ID
  * @param startTime - Appointment start time
- * @param eventId - Original event ID to exclude from conflict check
+ * @param _eventId - Original event ID to exclude from conflict check (unused for now)
  * @returns true if there's a conflict, false otherwise
  */
 async function checkAppointmentConflict(
   expertId: string,
   startTime: Date,
-  eventId: string,
+  _eventId: string,
 ): Promise<boolean> {
   try {
     console.log(
@@ -160,9 +165,9 @@ async function checkAppointmentConflict(
     // Check if there's already a confirmed meeting at this time slot
     const conflictingMeeting = await db.query.MeetingTable.findFirst({
       where: and(
-        eq(MeetingTable.expertClerkUserId, expertId),
+        eq(MeetingTable.clerkUserId, expertId),
         eq(MeetingTable.startTime, startTime),
-        eq(MeetingTable.status, 'confirmed'),
+        eq(MeetingTable.stripePaymentStatus, 'succeeded'),
         // Exclude the current event ID if it exists (in case of multiple payments for same event)
         // Note: We need to check this carefully as the meeting might not exist yet
       ),
@@ -271,6 +276,78 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
   console.log('Payment succeeded:', paymentIntent.id);
 
   try {
+    // Parse meeting metadata to check if this might be a late Multibanco payment
+    const meetingData = parseMetadata(paymentIntent.metadata?.meeting, {
+      id: '',
+      expert: '',
+      guest: '',
+      guestName: '',
+      start: '',
+      dur: 0,
+      notes: '',
+    });
+
+    // Check if this is a Multibanco payment and if it's potentially late
+    const isMultibancoPayment = paymentIntent.payment_method_types?.includes('multibanco');
+
+    // If it's a Multibanco payment and we have session timing info, check for conflicts
+    let hasConflict = false;
+    if (isMultibancoPayment && meetingData.expert && meetingData.start) {
+      const appointmentStart = new Date(meetingData.start);
+      hasConflict = await checkAppointmentConflict(
+        meetingData.expert,
+        appointmentStart,
+        meetingData.id,
+      );
+
+      if (hasConflict) {
+        console.log(`🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`);
+
+        // Process 90% refund
+        const refund = await processPartialRefund(
+          paymentIntent,
+          stripe,
+          'Appointment time slot no longer available due to late payment',
+        );
+
+        if (refund) {
+          // Get expert's name for notification
+          const expertUser = await db.query.UserTable.findFirst({
+            where: eq(UserTable.clerkUserId, meetingData.expert),
+            columns: { firstName: true, lastName: true },
+          });
+
+          const expertName = expertUser
+            ? `${expertUser.firstName || ''} ${expertUser.lastName || ''}`.trim() || 'Expert'
+            : 'Expert';
+
+          // Notify all parties about the conflict
+          await notifyAppointmentConflict(
+            meetingData.guest,
+            meetingData.guestName || 'Guest',
+            expertName,
+            appointmentStart,
+            refund.amount,
+            extractLocaleFromPaymentIntent(paymentIntent),
+          );
+
+          console.log(`✅ Conflict handled: 90% refund processed for PI ${paymentIntent.id}`);
+
+          // Mark the meeting as refunded and return early
+          await db
+            .update(MeetingTable)
+            .set({
+              stripePaymentStatus: 'refunded',
+              updatedAt: new Date(),
+            })
+            .where(eq(MeetingTable.stripePaymentIntentId, paymentIntent.id));
+
+          return; // Exit early - don't create calendar event or proceed with normal flow
+        }
+      }
+    }
+
+    // If no conflict or not a Multibanco payment, proceed with normal flow
     // Update Meeting status
     const updatedMeeting = await db
       .update(MeetingTable)
