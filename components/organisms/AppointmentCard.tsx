@@ -38,6 +38,11 @@ interface Reservation {
 
 type AppointmentOrReservation = Appointment | Reservation;
 
+interface AppointmentCardProps {
+  appointment: AppointmentOrReservation;
+  customerId?: string; // Optional secure customer ID for patient link
+}
+
 const getStatusBadgeVariant = (status: string) => {
   switch (status) {
     case 'succeeded':
@@ -51,7 +56,7 @@ const getStatusBadgeVariant = (status: string) => {
   }
 };
 
-export function AppointmentCard({ appointment }: { appointment: AppointmentOrReservation }) {
+export function AppointmentCard({ appointment, customerId }: AppointmentCardProps) {
   const isReservation = appointment.type === 'reservation';
   const reservation = isReservation ? (appointment as Reservation) : null;
 
@@ -112,12 +117,16 @@ export function AppointmentCard({ appointment }: { appointment: AppointmentOrRes
           </div>
           <div className="flex items-center gap-2">
             <Mail className="h-4 w-4" />
-            <Link
-              href={`/appointments/patients/${encodeURIComponent(appointment.guestEmail)}`}
-              className="text-blue-500 hover:underline"
-            >
-              {appointment.guestEmail}
-            </Link>
+            {customerId ? (
+              <Link
+                href={`/appointments/patients/${customerId}`}
+                className="text-blue-500 hover:underline"
+              >
+                {appointment.guestEmail}
+              </Link>
+            ) : (
+              <span className="text-gray-600">{appointment.guestEmail}</span>
+            )}
           </div>
 
           {isReservation && (

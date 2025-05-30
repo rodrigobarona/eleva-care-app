@@ -262,7 +262,11 @@ function CustomerDetailsContent() {
                 <TabsContent value="all">
                   <div className="space-y-4">
                     {sortedAppointments.map((appointment) => (
-                      <AppointmentCard key={appointment.id} appointment={appointment} />
+                      <AppointmentCard
+                        key={appointment.id}
+                        appointment={appointment}
+                        customerId={customer.id}
+                      />
                     ))}
                   </div>
                 </TabsContent>
@@ -271,7 +275,11 @@ function CustomerDetailsContent() {
                   <div className="space-y-4">
                     {upcomingAppointments.length > 0 ? (
                       upcomingAppointments.map((appointment) => (
-                        <AppointmentCard key={appointment.id} appointment={appointment} />
+                        <AppointmentCard
+                          key={appointment.id}
+                          appointment={appointment}
+                          customerId={customer.id}
+                        />
                       ))
                     ) : (
                       <div className="rounded-lg border border-dashed p-6 text-center">
@@ -287,7 +295,11 @@ function CustomerDetailsContent() {
                   <div className="space-y-4">
                     {pastAppointments.length > 0 ? (
                       pastAppointments.map((appointment) => (
-                        <AppointmentCard key={appointment.id} appointment={appointment} />
+                        <AppointmentCard
+                          key={appointment.id}
+                          appointment={appointment}
+                          customerId={customer.id}
+                        />
                       ))
                     ) : (
                       <div className="rounded-lg border border-dashed p-6 text-center">

@@ -160,7 +160,19 @@ export default function AppointmentsPage() {
       return <EmptyState message={messages[filter]} />;
     }
 
-    return filtered.map((item) => <AppointmentCard key={item.id} appointment={item} />);
+    return filtered.map((item) => {
+      // Generate secure customer ID for the link (same algorithm as in API)
+      let customerId: string | undefined;
+      if (user?.id && item.guestEmail) {
+        const customerIdSeed = `${user.id}-${item.guestEmail}`;
+        customerId = Buffer.from(customerIdSeed)
+          .toString('base64')
+          .replace(/[^a-zA-Z0-9]/g, '')
+          .substring(0, 12);
+      }
+
+      return <AppointmentCard key={item.id} appointment={item} customerId={customerId} />;
+    });
   };
 
   if (!isLoaded || isLoading) {

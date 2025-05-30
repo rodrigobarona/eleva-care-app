@@ -141,6 +141,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Optimized font loading by removing redundant `font-family` declarations.
   - Refactored user data flow in profile pages for better efficiency.
 
+### Security
+
+- **Customer Management Privacy Enhancement**:
+  - **Replaced email-based URLs** with secure, deterministic customer IDs for patient details pages.
+  - **Removed email exposure** from URLs (`/patients/user@example.com` → `/patients/ABC123DEF456`).
+  - **Implemented secure ID generation** using Base64 encoding with expert-scoped salting.
+  - **Updated API endpoints** from `/api/customers/[email]` to `/api/customers/[id]` for better data privacy.
+  - **Enhanced authentication** with proper expert role validation on all customer endpoints.
+  - **GDPR/Privacy compliance** improvement by removing PII from URLs and logs.
+  - **AppointmentCard Security**: Updated all appointment card components to generate and use secure customer IDs for patient links, eliminating email exposure across the application.
+  - **Backward compatibility**: Graceful fallback for components without customer ID context.
+
 ### Performance
 
 - **React Hook Form Advanced Optimization**:
