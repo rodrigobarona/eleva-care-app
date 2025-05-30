@@ -20,6 +20,7 @@ import { createUserNotification } from '@/lib/notifications';
 import { withRetry } from '@/lib/stripe';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
+import { getTranslations } from 'next-intl/server';
 import Stripe from 'stripe';
 
 // Initialize Stripe
@@ -294,60 +295,76 @@ async function notifyAppointmentConflict(
   refundAmount: number,
   originalAmount: number,
   locale: string,
-  _conflictReason: string,
-  _minimumNoticeHours?: number,
+  conflictReason: string,
+  minimumNoticeHours?: number,
 ) {
   try {
-    console.log(`📧 Sending conflict notification to ${guestEmail} in locale ${locale}`);
+    console.log(
+      `📧 Sending conflict notification to ${guestEmail} in locale ${locale} for reason: ${conflictReason}`,
+    );
 
-    // Use simplified English messages for now
-    const messages = {
-      en: {
-        subject: 'Appointment Booking - Time Slot No Longer Available',
-        title: 'Appointment Conflict - Refund Processed',
-        greeting: `Dear ${guestName},`,
-        conflictMessage: `We regret to inform you that your appointment with ${expertName} scheduled for ${format(startTime, 'PPP pp')} is no longer available as the time slot has been booked by another client.`,
-        latePaymentExplanation: `Since this was a delayed Multibanco payment, we have processed a refund of €${(refundAmount / 100).toFixed(2)} (90% of the original amount, with 10% retained as a processing fee as outlined in our payment policies).`,
-        apologyAndInvitation:
-          'We apologize for the inconvenience and invite you to book a new appointment at your convenience.',
-        signature: 'Best regards,\nEleva.care Team',
-      },
-      pt: {
-        subject: 'Marcação de Consulta - Horário Não Disponível',
-        title: 'Conflito de Marcação - Reembolso Processado',
-        greeting: `Caro/a ${guestName},`,
-        conflictMessage: `Lamentamos informar que a sua consulta com ${expertName} marcada para ${format(startTime, 'PPP pp')} já não está disponível, pois o horário foi reservado por outro cliente.`,
-        latePaymentExplanation: `Como este foi um pagamento Multibanco tardio, processámos um reembolso de €${(refundAmount / 100).toFixed(2)} (90% do valor original, com 10% retido como taxa de processamento conforme descrito nas nossas políticas de pagamento).`,
-        apologyAndInvitation:
-          'Pedimos desculpa pelo inconveniente e convidamo-lo/a a marcar uma nova consulta à sua conveniência.',
-        signature: 'Cumprimentos,\nEquipa Eleva.care',
-      },
-    };
+    // Load collision messages from internationalization files
+    const t = await getTranslations({ locale, namespace: 'Payments.collision' });
 
-    const content = messages[locale as keyof typeof messages] || messages.en;
+    // Format amounts for display
+    const refundAmountFormatted = (refundAmount / 100).toFixed(2);
+    const originalAmountFormatted = (originalAmount / 100).toFixed(2);
+    const processingFeeFormatted = ((originalAmount - refundAmount) / 100).toFixed(2);
+    const appointmentDateTime = format(startTime, 'PPP pp');
 
-    const htmlContent = `
-      <h2>${content.title}</h2>
-      <p>${content.greeting}</p>
-      <p>${content.conflictMessage}</p>
-      <p>${content.latePaymentExplanation}</p>
+    // Get base conflict message and append specific reason if applicable
+    let conflictMessage = t('conflictMessage', {
+      expertName,
+      appointmentDateTime,
+    });
+
+    // Add specific conflict reason context
+    if (conflictReason === 'minimum_notice_violation' && minimumNoticeHours) {
+      const minimumNoticeMessage = t('minimumNoticeViolation', {
+        minimumNoticeHours: minimumNoticeHours.toString(),
+      });
+      conflictMessage += ` ${minimumNoticeMessage}`;
+    }
+
+    // Build email content using translated messages
+    const emailTitle = t('title');
+    const emailSubject = t('subject');
+    const greeting = t('greeting', { clientName: guestName });
+    const latePaymentExplanation = t('latePaymentExplanation', {
+      refundAmount: refundAmountFormatted,
+    });
+    const apologyAndInvitation = t('apologyAndInvitation');
+    const signature = t('signature');
+
+    // Build refund details section
+    const refundDetailsHTML = `
       <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 20px 0;">
         <h3>Refund Details</h3>
-        <p>Original amount: €${(originalAmount / 100).toFixed(2)}</p>
-        <p>Refund amount: €${(refundAmount / 100).toFixed(2)} (90%)</p>
-        <p>Processing fee retained: €${((originalAmount - refundAmount) / 100).toFixed(2)} (10%)</p>
+        <p>${t('refundDetails.originalAmount', { amount: originalAmountFormatted })}</p>
+        <p>${t('refundDetails.refundAmount', { amount: refundAmountFormatted })}</p>
+        <p>${t('refundDetails.processingFee', { amount: processingFeeFormatted })}</p>
       </div>
-      <p>${content.apologyAndInvitation}</p>
-      <p>${content.signature.replace('\\n', '<br>')}</p>
+    `;
+
+    const htmlContent = `
+      <h2>${emailTitle}</h2>
+      <p>${greeting}</p>
+      <p>${conflictMessage}</p>
+      <p>${latePaymentExplanation}</p>
+      ${refundDetailsHTML}
+      <p>${apologyAndInvitation}</p>
+      <p>${signature.replace(/\\n/g, '<br>')}</p>
     `;
 
     await sendEmail({
       to: guestEmail,
-      subject: content.subject,
+      subject: emailSubject,
       html: htmlContent,
     });
 
-    console.log(`✅ Conflict notification sent to ${guestEmail}`);
+    console.log(
+      `✅ Conflict notification sent to ${guestEmail} (reason: ${conflictReason}${minimumNoticeHours ? `, minimum notice: ${minimumNoticeHours}h` : ''})`,
+    );
   } catch (error) {
     console.error('Error sending conflict notification:', error);
   }
