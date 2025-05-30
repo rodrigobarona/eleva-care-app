@@ -1,5 +1,9 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
+import {
+  NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+  NOTIFICATION_TYPE_SECURITY_ALERT,
+} from '@/lib/constants/notifications';
 import { createUserNotification } from '@/lib/notifications';
 import { withRetry } from '@/lib/stripe';
 import { markStepCompleteForUser } from '@/server/actions/expert-setup';
@@ -70,20 +74,25 @@ export async function handleIdentityVerificationUpdated(
             await markStepCompleteForUser('identity', user.clerkUserId);
             await createUserNotification({
               userId: user.id,
-              type: 'VERIFICATION_HELP',
-              title: 'Identity Verification Complete',
-              message:
-                'Your identity has been successfully verified. You can now proceed with setting up your payment account.',
-              actionUrl: '/account/connect',
+              type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+              data: {
+                userName: user.firstName || 'User',
+                title: 'Identity Verification Complete',
+                message: 'Your identity verification has been completed successfully.',
+                actionUrl: '/account/verification',
+              },
             });
           } else if (verificationSession.status === 'requires_input') {
             await createUserNotification({
               userId: user.id,
-              type: 'VERIFICATION_HELP',
-              title: 'Identity Verification Needs Attention',
-              message:
-                'Your identity verification requires additional information. Please complete the verification process.',
-              actionUrl: '/account/identity',
+              type: NOTIFICATION_TYPE_SECURITY_ALERT,
+              data: {
+                userName: user.firstName || 'User',
+                title: 'Identity Verification Needs Attention',
+                message:
+                  'Your identity verification requires additional information. Please review and resubmit.',
+                actionUrl: '/account/verification',
+              },
             });
           }
         });

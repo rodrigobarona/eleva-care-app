@@ -1,5 +1,6 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
+import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
 import { createUserNotification } from '@/lib/notifications';
 import { withRetry } from '@/lib/stripe';
 import { markStepCompleteForUser } from '@/server/actions/expert-setup';
@@ -87,10 +88,14 @@ export async function handleAccountUpdated(account: Stripe.Account) {
           ) {
             await createUserNotification({
               userId: user.id,
-              type: 'ACCOUNT_UPDATE',
-              title: 'Account Status Updated',
-              message: getAccountUpdateMessage(account),
-              actionUrl: '/account/connect',
+              type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+              data: {
+                userName: user.firstName || 'User',
+                message: getAccountUpdateMessage(account),
+                actionUrl: '/account/connect',
+                accountId: account.id,
+                statusType: 'payout_charges_status_change',
+              },
             });
           }
         });

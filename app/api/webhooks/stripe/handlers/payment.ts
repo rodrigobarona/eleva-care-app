@@ -9,6 +9,10 @@ import {
   UserTable,
 } from '@/drizzle/schema';
 import {
+  NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+  NOTIFICATION_TYPE_SECURITY_ALERT,
+} from '@/lib/constants/notifications';
+import {
   PAYMENT_TRANSFER_STATUS_DISPUTED,
   PAYMENT_TRANSFER_STATUS_FAILED,
   PAYMENT_TRANSFER_STATUS_PENDING,
@@ -77,10 +81,13 @@ function parseMetadata<T>(json: string | undefined, fallback: T): T {
 async function notifyExpertOfPaymentSuccess(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
     userId: transfer.expertClerkUserId,
-    type: 'ACCOUNT_UPDATE',
-    title: 'Payment Received',
-    message: 'A payment for your session has been successfully processed.',
-    actionUrl: '/account/payments',
+    type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+    data: {
+      userName: 'Expert',
+      title: 'Payment Received',
+      message: 'A payment for your session has been successfully processed.',
+      actionUrl: '/account/payments',
+    },
   });
 }
 
@@ -105,10 +112,13 @@ async function notifyExpertOfPaymentFailure(
 
   await createUserNotification({
     userId: transfer.expertClerkUserId,
-    type: 'ACCOUNT_UPDATE',
-    title: 'Important: Session Payment Failed & Canceled',
-    message,
-    actionUrl: '/account/payments',
+    type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+    data: {
+      userName: 'Expert',
+      title: 'Important: Session Payment Failed & Canceled',
+      message,
+      actionUrl: '/account/payments',
+    },
   });
 }
 
@@ -118,10 +128,13 @@ async function notifyExpertOfPaymentFailure(
 async function notifyExpertOfPaymentRefund(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
     userId: transfer.expertClerkUserId,
-    type: 'ACCOUNT_UPDATE',
-    title: 'Payment Refunded',
-    message: 'A payment has been refunded for one of your sessions.',
-    actionUrl: '/account/payments',
+    type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+    data: {
+      userName: 'Expert',
+      title: 'Payment Refunded',
+      message: 'A payment has been refunded for one of your sessions.',
+      actionUrl: '/account/payments',
+    },
   });
 }
 
@@ -131,11 +144,14 @@ async function notifyExpertOfPaymentRefund(transfer: { expertClerkUserId: string
 async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
     userId: transfer.expertClerkUserId,
-    type: 'SECURITY_ALERT',
-    title: 'Payment Dispute Opened',
-    message:
-      'A payment dispute has been opened for one of your sessions. We will contact you with more information.',
-    actionUrl: '/account/payments',
+    type: NOTIFICATION_TYPE_SECURITY_ALERT,
+    data: {
+      userName: 'Expert',
+      title: 'Payment Dispute Opened',
+      message:
+        'A payment dispute has been opened for one of your sessions. We will contact you with more information.',
+      actionUrl: '/account/payments',
+    },
   });
 }
 

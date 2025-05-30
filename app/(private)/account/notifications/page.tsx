@@ -2,146 +2,47 @@
 
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent } from '@/components/atoms/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/atoms/tabs';
-import { NotificationsList } from '@/components/molecules/NotificationsList';
-import type { NotificationType } from '@/lib/notifications';
+import { ENV_CONFIG } from '@/config/env';
+import { useUser } from '@clerk/nextjs';
+import { Inbox } from '@novu/nextjs';
 import { CheckCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
-
-// Define the Notification type
-interface Notification {
-  id: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  actionUrl?: string | null;
-  read: boolean;
-  createdAt: Date;
-}
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user, isLoaded } = useUser();
 
-  useEffect(() => {
-    async function fetchNotifications() {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await fetch('/api/notifications');
-
-        if (!response.ok) {
-          let errorMessage = `Failed to fetch notifications (HTTP ${response.status})`;
-          try {
-            const errorData = await response.json();
-            if (errorData.error) {
-              errorMessage = errorData.error;
-            }
-          } catch (parseError) {
-            console.warn('Could not parse error response:', parseError);
-          }
-          throw new Error(errorMessage);
-        }
-
-        const data = await response.json();
-        setNotifications(data.notifications || []);
-      } catch (err) {
-        const errorMessage =
-          err instanceof Error
-            ? `Failed to load notifications: ${err.message}`
-            : 'Failed to load notifications: Unknown error';
-        setError(errorMessage);
-        console.error('Error fetching notifications:', {
-          error: err,
-          endpoint: '/api/notifications',
-          timestamp: new Date().toISOString(),
-        });
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchNotifications();
-  }, []);
-
-  async function handleNotificationRead(id: string) {
-    try {
-      const response = await fetch(`/api/notifications/${id}`, {
-        method: 'PATCH',
-      });
-
-      if (!response.ok) {
-        let errorMessage = `Failed to mark notifications as read (HTTP ${response.status})`;
-        try {
-          const errorData = await response.json();
-          if (errorData.error) {
-            errorMessage = errorData.error;
-          }
-        } catch (parseError) {
-          console.warn('Could not parse error response:', parseError);
-        }
-        throw new Error(errorMessage);
-      }
-
-      // Update local state after successful API call
-      setNotifications((prev) => prev.filter((n) => n.id !== id));
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? `Failed to mark notification as read: ${err.message}`
-          : 'Failed to mark notification as read: Unknown error';
-      setError(errorMessage);
-      console.error('Error marking notification as read:', {
-        error: err,
-        notificationId: id,
-        timestamp: new Date().toISOString(),
-      });
-    }
+  // If user is not loaded, show loading state
+  if (!isLoaded) {
+    return (
+      <div className="container max-w-5xl py-8">
+        <div className="mb-8 animate-pulse">
+          <div className="mb-2 h-8 w-48 rounded bg-muted" />
+          <div className="h-4 w-96 rounded bg-muted" />
+        </div>
+        <div className="space-y-4">
+          <div className="h-24 animate-pulse rounded-lg bg-muted" />
+          <div className="h-24 animate-pulse rounded-lg bg-muted" />
+        </div>
+      </div>
+    );
   }
 
-  async function handleMarkAllRead() {
-    try {
-      const response = await fetch('/api/notifications/mark-all-read', {
-        method: 'POST',
-      });
-
-      if (!response.ok) {
-        let errorMessage = `Failed to mark all notifications as read (HTTP ${response.status})`;
-        try {
-          const errorData = await response.json();
-          if (errorData.error) {
-            errorMessage = errorData.error;
-          }
-        } catch (parseError) {
-          console.warn('Could not parse error response:', parseError);
-        }
-        throw new Error(errorMessage);
-      }
-
-      // Clear all notifications from local state
-      setNotifications([]);
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error
-          ? `Failed to mark all notifications as read: ${err.message}`
-          : 'Failed to mark all notifications as read: Unknown error';
-      setError(errorMessage);
-      console.error('Error marking all notifications as read:', {
-        error: err,
-        timestamp: new Date().toISOString(),
-      });
-    }
+  // If user is not loaded or no application identifier, show error
+  if (!user || !ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) {
+    return (
+      <div className="container max-w-5xl py-8">
+        <Card>
+          <CardContent className="flex items-center justify-center p-8 text-center">
+            <div>
+              <h2 className="mb-2 text-lg font-semibold text-destructive">Configuration Error</h2>
+              <p className="text-muted-foreground">
+                Notification service is not properly configured. Please contact support.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
-
-  // Filter notifications by type
-  const verificationNotifications = notifications.filter((n) => n.type === 'VERIFICATION_HELP');
-  const accountNotifications = notifications.filter((n) => n.type === 'ACCOUNT_UPDATE');
-  const securityNotifications = notifications.filter((n) => n.type === 'SECURITY_ALERT');
-  const systemNotifications = notifications.filter((n) => n.type === 'SYSTEM_MESSAGE');
-
-  // Count unread notifications
-  const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
     <div className="container max-w-5xl py-8">
@@ -152,88 +53,23 @@ export default function NotificationsPage() {
             Manage your notifications and stay updated on important changes
           </p>
         </div>
-        {unreadCount > 0 && (
-          <Button variant="outline" onClick={handleMarkAllRead} className="flex items-center gap-2">
-            <CheckCircle className="h-4 w-4" />
-            Mark all as read
-          </Button>
-        )}
+        <Button variant="outline" className="flex items-center gap-2">
+          <CheckCircle className="h-4 w-4" />
+          Mark all as read
+        </Button>
       </div>
 
-      <Tabs defaultValue="all" className="w-full">
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="all" className="relative">
-              All
-              {unreadCount > 0 && (
-                <span className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground">
-                  {unreadCount}
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="verification">Verification</TabsTrigger>
-            <TabsTrigger value="account">Account</TabsTrigger>
-            <TabsTrigger value="security">Security</TabsTrigger>
-            <TabsTrigger value="system">System</TabsTrigger>
-          </TabsList>
-        </div>
-
-        <div className="mt-6">
-          <TabsContent value="all">
-            {loading ? (
-              <div className="space-y-4">
-                <div className="h-24 animate-pulse rounded-lg bg-muted" />
-                <div className="h-24 animate-pulse rounded-lg bg-muted" />
-              </div>
-            ) : error ? (
-              <Card>
-                <CardContent className="flex items-center justify-center p-6 text-destructive">
-                  {error}
-                </CardContent>
-              </Card>
-            ) : notifications.length > 0 ? (
-              <NotificationsList
-                notifications={notifications}
-                onMarkAsRead={handleNotificationRead}
-              />
-            ) : (
-              <Card>
-                <CardContent className="flex items-center justify-center p-6 text-muted-foreground">
-                  No notifications to display.
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="verification">
-            <NotificationsList
-              notifications={verificationNotifications}
-              onMarkAsRead={handleNotificationRead}
-            />
-          </TabsContent>
-
-          <TabsContent value="account">
-            <NotificationsList
-              notifications={accountNotifications}
-              onMarkAsRead={handleNotificationRead}
-            />
-          </TabsContent>
-
-          <TabsContent value="security">
-            <NotificationsList
-              notifications={securityNotifications}
-              onMarkAsRead={handleNotificationRead}
-            />
-          </TabsContent>
-
-          <TabsContent value="system">
-            <NotificationsList
-              notifications={systemNotifications}
-              onMarkAsRead={handleNotificationRead}
-            />
-          </TabsContent>
-        </div>
-      </Tabs>
+      {/* Novu Inbox Integration using @novu/nextjs */}
+      <Card>
+        <CardContent className="p-6">
+          <Inbox
+            applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
+            subscriber={user.id}
+            backendUrl="https://eu.api.novu.co"
+            socketUrl="https://eu.ws.novu.co"
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { AuthorizationProvider } from '@/components/molecules/AuthorizationProvi
 import { ENV_CONFIG } from '@/config/env';
 import { enUS, esES, ptBR, ptPT } from '@clerk/localizations';
 import { ClerkProvider, useUser } from '@clerk/nextjs';
-import { NovuProvider } from '@novu/react';
+import { NovuProvider } from '@novu/nextjs';
 import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';

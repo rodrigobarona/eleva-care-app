@@ -1,0 +1,264 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Novu Notifications Setup Rule
+
+This rule provides guidelines for implementing and maintaining Novu notifications in the Eleva Care app following Next.js best practices with the current supported packages.
+
+## Package Usage
+
+### ✅ Current Packages (May 2025)
+- `@novu/framework@2.6.7` - Use for server-side workflow definitions and triggers
+- `@novu/nextjs@3.5.0` - Use for frontend Inbox components
+
+### ❌ Avoid
+- `@novu/node` (deprecated, migrated)
+- `@novu/headless` (deprecated, removed)
+- `@novu/react` components (use `@novu/nextjs` instead)
+- Direct API calls without using the framework
+
+## Implementation Guidelines
+
+### 1. Server-Side Configuration
+
+Define workflows using the framework:
+
+```typescript
+// config/novu.ts
+import { workflow } from '@novu/framework';
+import { serve } from '@novu/framework/next';
+import { z } from 'zod';
+
+export const welcomeWorkflow = workflow(
+  'user-welcome',
+  async ({ payload, step }) => {
+    await step.inApp('welcome-message', async () => ({
+      subject: `Welcome to Eleva Care, ${payload.userName}!`,
+      body: `Hi ${payload.userName}! Welcome to Eleva Care.`,
+    }));
+  },
+  {
+    payloadSchema: z.object({
+      userName: z.string(),
+    }),
+  }
+);
+
+// Serve workflows for Next.js API routes
+export const { GET, POST, OPTIONS } = serve({ 
+  workflows: [welcomeWorkflow],
+  apiKey: process.env.NOVU_API_KEY,
+});
+```
+
+### 2. Next.js API Route
+
+Create the required API endpoint:
+
+```typescript
+// app/api/novu/route.ts
+import { GET, POST, OPTIONS } from '@/config/novu';
+
+export { GET, POST, OPTIONS };
+```
+
+### 3. Frontend Inbox Component
+
+Use the Next.js specific implementation:
+
+```tsx
+// app/(private)/account/notifications/page.tsx
+import { Inbox } from '@novu/nextjs';
+
+<Inbox
+  applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
+  subscriber={user.id}
+  backendUrl="https://eu.api.novu.co"
+  socketUrl="https://eu.ws.novu.co"
+/>
+```
+
+### 4. Notification Types & Constants
+
+Always use centralized constants from `lib/constants/notifications.ts`:
+
+```typescript
+import { 
+  NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+  NOTIFICATION_TYPE_SECURITY_ALERT 
+} from '@/lib/constants/notifications';
+
+// ✅ Correct
+await createUserNotification({
+  userId: user.id,
+  type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+  data: { userName: user.firstName }
+});
+
+// ❌ Avoid hardcoded strings
+await createUserNotification({
+  userId: user.id,
+  type: 'account_update', // Don't do this
+  data: { userName: user.firstName }
+});
+```
+
+### 5. Creating Notifications
+
+Use the centralized function with workflow triggers:
+
+```typescript
+import { createUserNotification } from '@/lib/notifications';
+import { NOTIFICATION_TYPE_SECURITY_ALERT } from '@/lib/constants/notifications';
+
+const success = await createUserNotification({
+  userId: user.id,
+  type: NOTIFICATION_TYPE_SECURITY_ALERT,
+  data: {
+    message: 'Your password has been changed',
+    alertType: 'password_change'
+  }
+});
+```
+
+## Environment Variables
+
+### Required
+```env
+NOVU_API_KEY=your_novu_api_key
+NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER=your_application_identifier
+```
+
+### Optional (defaults to EU region)
+```env
+NEXT_PUBLIC_NOVU_BACKEND_URL=https://eu.api.novu.co
+NEXT_PUBLIC_NOVU_SOCKET_URL=https://eu.ws.novu.co
+```
+
+## File Structure
+
+### Core Files
+- `config/novu.ts` - Workflow definitions and API route setup
+- `app/api/novu/route.ts` - Next.js API route for Novu framework
+- `lib/notifications.ts` - Core notification functions
+- `lib/constants/notifications.ts` - Centralized types and constants
+- `app/(private)/account/notifications/page.tsx` - Main notifications UI
+
+### Integration Files
+- `lib/payment-notifications.ts` - Payment-specific notifications
+- `app/api/webhooks/stripe/route.ts` - Stripe webhook handlers
+
+## Notification Workflow Creation
+
+### 1. Define in Configuration
+```typescript
+// config/novu.ts
+export const newWorkflow = workflow(
+  'new-workflow-id',
+  async ({ payload, step }) => {
+    await step.inApp('notification-step', async () => ({
+      subject: 'New Notification',
+      body: `Hello ${payload.userName}!`,
+    }));
+  },
+  {
+    payloadSchema: z.object({
+      userName: z.string(),
+    }),
+  }
+);
+```
+
+### 2. Add to Workflows Array
+```typescript
+export const workflows = [
+  // ... existing workflows
+  newWorkflow,
+];
+```
+
+### 3. Implement Usage
+```typescript
+await createUserNotification({
+  userId: user.id,
+  type: NOTIFICATION_TYPE_SYSTEM_MESSAGE,
+  data: {
+    message: 'Your new feature notification',
+    userName: user.firstName
+  }
+});
+```
+
+## Best Practices
+
+### Type Safety
+- Always use TypeScript interfaces
+- Use the centralized notification constants
+- Validate environment variables at startup
+- Define payload schemas for all workflows
+
+### Performance
+- Batch notifications when possible
+- Use appropriate error handling
+- Implement proper loading states
+- Monitor workflow execution
+
+### Security
+- Validate all input data
+- Use environment variables for sensitive config
+- Consider HMAC authentication for production
+
+### Error Handling
+```typescript
+try {
+  const success = await createUserNotification(params);
+  if (!success) {
+    console.error('Failed to create notification');
+  }
+} catch (error) {
+  console.error('Notification error:', error);
+}
+```
+
+## Migration Status ✅ **COMPLETE**
+
+### Successfully Migrated (May 2025)
+- ✅ **From**: `@novu/node@2.6.6` (deprecated)
+- ✅ **To**: `@novu/framework@2.6.7` (current)
+- ✅ **Removed**: `@novu/headless@2.6.6` (no longer needed)
+- ✅ **Updated**: All notification workflows to use the new framework
+- ✅ **Created**: `/api/novu` endpoint for framework integration
+
+## Troubleshooting
+
+### Common Issues
+1. **Notifications not appearing**: Check environment variables, `/api/novu` endpoint, and user subscription
+2. **WebSocket issues**: Verify socket URL and network connectivity
+3. **Workflow not triggering**: Check workflow configuration and inclusion in workflows array
+
+### Debug Logging
+```typescript
+console.log('Creating notification:', {
+  userId,
+  type,
+  data,
+});
+```
+
+## Integration Points
+
+### Stripe Webhooks
+Payment events automatically trigger notifications via webhook handlers.
+
+### User Registration
+Welcome notifications sent via Clerk webhook integration.
+
+### Account Management
+Security and account update notifications triggered by user actions.
+
+## Related Documentation
+- [Technical Implementation](../docs/novu-notifications.md)
+- [Business Workflows](../docs/notification_workflows_guide.md)
+- [Novu Framework Guide](https://docs.novu.co/framework)

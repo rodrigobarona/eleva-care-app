@@ -87,11 +87,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Professional Documentation Structure**: Consistent formatting and structure matching existing legal documents
 
 - **Multilingual Stripe Checkout Integration**:
+
   - **Internationalized Payment Notices**: Converted hardcoded English Multibanco payment notices to multilingual messages using next-intl framework
   - **Legal Page Integration**: Added direct links to payment policies and terms of service within Stripe checkout custom text
   - **Comprehensive Language Support**: Full support for English, Portuguese, Spanish, and Brazilian Portuguese checkout experiences
   - **Dynamic URL Construction**: Automatic locale-based URL generation for legal document links in checkout flow
   - **Enhanced Terms of Service**: Multilingual terms acceptance messaging with proper legal document linking
+
+- **Comprehensive Novu Notification System**:
+
+  - **Real-time Notification Infrastructure**: Integrated Novu platform for multi-channel notification delivery with EU-based backend configuration
+  - **React Provider Integration**: Seamless integration with Clerk authentication using user IDs as subscriber identifiers
+  - **Notification Inbox Interface**: Full-featured notification center at `/account/notifications` with:
+    - Real-time notification display with WebSocket connections
+    - Unread count tracking and visual indicators
+    - Custom notification rendering with avatar support
+    - Primary/secondary action buttons with toast feedback
+    - Rich content display (subject, body, custom data)
+    - Mark as read functionality and localized date formatting
+  - **User Navigation Integration**: Quick-access notification bell in user navigation with popover interface (400x600px)
+  - **Admin Notification Management**: Comprehensive admin logging system at `/admin/notifications-log` with:
+    - Paginated notification message viewing (admin-only access)
+    - Subscriber ID filtering with debounced search
+    - Message content parsing and display
+    - Comprehensive error handling and loading states
+  - **API Notification System**: RESTful API for notification creation at `POST /api/notifications` supporting:
+    - Four notification types: `VERIFICATION_HELP`, `ACCOUNT_UPDATE`, `SECURITY_ALERT`, `SYSTEM_MESSAGE`
+    - Workflow mapping to Novu event IDs
+    - Comprehensive error handling and status codes (202 Accepted for success)
+  - **Environment Configuration**: Complete environment validation and configuration with:
+    - `NOVU_API_KEY` and `NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER` validation
+    - EU region configuration (`https://eu.api.novu.co`, `https://eu.ws.novu.co`)
+    - Graceful degradation when service unavailable
+  - **Real-time Event Handling**: Advanced event listener system for:
+    - `notifications.notification_received` with toast notifications
+    - `notifications.unread_count_changed` with console logging
+    - Proper event cleanup to prevent memory leaks
+  - **TypeScript Integration**: Complete type safety with interfaces for notification data, API responses, and event handlers
+  - **Dependencies**: Added `@novu/api@^1.2.0` and `@novu/react@^3.5.0` for complete platform integration
 
 ### Changed
 
