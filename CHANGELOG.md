@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.3.2] - 2025-05-30
 
 ### Added
 
@@ -86,6 +86,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Enhanced Terms of Service**: Multilingual terms acceptance messaging with proper legal document linking
 
 ### Changed
+
+- **Stripe API Version Update**:
+
+  - Updated Stripe API version to `2025-04-30.basil` (latest as of June 2025) for all server and webhook integrations.
+  - Centralized Stripe API version configuration in `config/stripe.ts` via `STRIPE_CONFIG.API_VERSION`.
+  - All Stripe clients (including webhook handlers) now use the centralized version for consistency and maintainability.
+  - Ensured compatibility with latest Stripe features and API changes.
 
 - **Stripe Webhook Handlers**:
 
