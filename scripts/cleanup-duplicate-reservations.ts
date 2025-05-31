@@ -1,6 +1,5 @@
 #!/usr/bin/env tsx
 import { db } from '@/drizzle/db';
-import { SlotReservationTable } from '@/drizzle/schema';
 import { sql } from 'drizzle-orm';
 
 /**
@@ -9,7 +8,14 @@ import { sql } from 'drizzle-orm';
  * This script:
  * 1. Identifies duplicate reservations (same event_id, start_time, guest_email)
  * 2. Keeps only the most recent reservation for each duplicate group
- * 3. Deletes the older duplicates
+ * 3. Deletes the older duplicates with verification
+ * 4. Reports actual vs expected deletion counts for accuracy
+ *
+ * IMPROVEMENTS:
+ * - ✅ Verifies delete operation success by checking actual deleted row count
+ * - ✅ Uses RETURNING clause to confirm deletions
+ * - ✅ Warns if expected vs actual deletion counts don't match
+ * - ✅ Removed unused imports for cleaner code
  *
  * This should be run BEFORE applying the unique constraint migration.
  */
@@ -76,13 +82,22 @@ async function cleanupDuplicateReservations() {
         const deleteQuery = sql`
           DELETE FROM slot_reservations 
           WHERE id = ANY(${deleteIds})
+          RETURNING id
         `;
 
         const result = await db.execute(deleteQuery);
-        const deletedCount = deleteIds.length;
+        const deletedCount = result.rows.length;
         totalDeleted += deletedCount;
 
-        console.log(`   ✅ Deleted ${deletedCount} duplicate reservations`);
+        console.log(
+          `   ✅ Deleted ${deletedCount} duplicate reservations (expected: ${deleteIds.length})`,
+        );
+
+        if (deletedCount !== deleteIds.length) {
+          console.warn(
+            `   ⚠️  Expected to delete ${deleteIds.length} but only deleted ${deletedCount}`,
+          );
+        }
       }
     }
 
