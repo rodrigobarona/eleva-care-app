@@ -1,5 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
-import { Novu } from '@novu/framework';
+import { Novu } from '@novu/node';
 import { createHmac } from 'crypto';
 
 // Initialize Novu defensively - handle missing secret key during build
@@ -181,9 +181,11 @@ export async function createOrUpdateNovuSubscriber(data: SubscriberData) {
       avatar: data.avatar,
       locale: data.locale || 'en-US', // Default to English
       data: {
+        // Spread custom data first
+        ...(data.data || {}),
+        // Then set explicit fields to ensure they take precedence
         role: data.role,
         timezone: data.timezone,
-        ...data.data,
       },
     });
     console.log(`Novu subscriber updated: ${data.subscriberId}`);
@@ -302,5 +304,5 @@ export async function triggerNewBookingExpert(
   }
 }
 
-// Export the novu instance (could be null)
-export { novu };
+// Export the novu client instance (could be null)
+export { novu as novu };
