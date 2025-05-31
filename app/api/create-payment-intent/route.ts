@@ -18,6 +18,86 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
+// Helper function to create shared metadata for checkout session and payment intent
+function createSharedMetadata({
+  eventId,
+  expertClerkUserId,
+  guestEmail,
+  guestName,
+  startTime,
+  duration,
+  guestNotes,
+  price,
+  platformFee,
+  expertAmount,
+  expertStripeAccountId,
+  expertCountry,
+  paymentAgingDays,
+  remainingDelayDays,
+  requiredPayoutDelay,
+  scheduledTransferTime,
+  requiresApproval,
+  meetingData,
+}: {
+  eventId: string;
+  expertClerkUserId: string;
+  guestEmail: string;
+  guestName: string;
+  startTime: string;
+  duration: number;
+  guestNotes?: string;
+  price: number;
+  platformFee: number;
+  expertAmount: number;
+  expertStripeAccountId: string;
+  expertCountry: string;
+  paymentAgingDays: number;
+  remainingDelayDays: number;
+  requiredPayoutDelay: number;
+  scheduledTransferTime: Date;
+  requiresApproval: boolean;
+  meetingData: {
+    timezone?: string;
+    locale?: string;
+    guestEmail: string;
+    guestName: string;
+    startTime: string;
+    guestNotes?: string;
+  };
+}) {
+  return {
+    meeting: JSON.stringify({
+      id: eventId,
+      expert: expertClerkUserId,
+      guest: guestEmail,
+      guestName: guestName,
+      start: startTime,
+      dur: duration,
+      notes: guestNotes || '',
+    }),
+    payment: JSON.stringify({
+      amount: price.toString(),
+      fee: platformFee.toString(),
+      expert: expertAmount.toString(),
+    }),
+    transfer: JSON.stringify({
+      status: PAYMENT_TRANSFER_STATUS_PENDING,
+      account: expertStripeAccountId,
+      country: expertCountry || 'Unknown',
+      delay: {
+        aging: paymentAgingDays,
+        remaining: remainingDelayDays,
+        required: requiredPayoutDelay,
+      },
+      scheduled: scheduledTransferTime.toISOString(),
+    }),
+    approval: requiresApproval.toString(),
+    // Add tax and locale handling at root level of metadata
+    isEuropeanCustomer: meetingData.timezone?.includes('Europe') ? 'true' : 'false',
+    preferredTaxHandling: 'vat_only',
+  };
+}
+
 export async function POST(request: Request) {
   console.log('Starting payment intent creation process');
 
@@ -214,8 +294,29 @@ export async function POST(request: Request) {
 
     // Calculate fees
     const platformFee = applicationFeeAmount;
-    const expertAccount = event.user;
     const scheduledTransferTime = transferDate;
+
+    // Create metadata object once to avoid duplication
+    const sharedMetadata = createSharedMetadata({
+      eventId,
+      expertClerkUserId: event.clerkUserId,
+      guestEmail: meetingData.guestEmail,
+      guestName: meetingData.guestName,
+      startTime: meetingData.startTime,
+      duration: event.durationInMinutes,
+      guestNotes: meetingData.guestNotes,
+      price,
+      platformFee,
+      expertAmount,
+      expertStripeAccountId,
+      expertCountry,
+      paymentAgingDays,
+      remainingDelayDays,
+      requiredPayoutDelay,
+      scheduledTransferTime,
+      requiresApproval,
+      meetingData,
+    });
 
     // Create the checkout session with conditional payment methods
     const session = await stripe.checkout.sessions.create({
@@ -299,32 +400,7 @@ export async function POST(request: Request) {
         }),
       // ADD METADATA TO CHECKOUT SESSION (for webhook processing)
       metadata: {
-        meeting: JSON.stringify({
-          id: eventId,
-          expert: event.clerkUserId,
-          guest: meetingData.guestEmail,
-          guestName: meetingData.guestName,
-          start: meetingData.startTime,
-          dur: event.durationInMinutes,
-          notes: meetingData.guestNotes || '', // Preserve guest notes
-        }),
-        payment: JSON.stringify({
-          amount: price.toString(),
-          fee: platformFee.toString(),
-          expert: expertAmount.toString(),
-        }),
-        transfer: JSON.stringify({
-          status: PAYMENT_TRANSFER_STATUS_PENDING,
-          account: expertStripeAccountId,
-          country: expertAccount.country || 'Unknown',
-          delay: {
-            aging: paymentAgingDays,
-            remaining: remainingDelayDays,
-            required: requiredPayoutDelay,
-          },
-          scheduled: scheduledTransferTime.toISOString(),
-        }),
-        approval: requiresApproval.toString(),
+        ...sharedMetadata,
         sessionId: '', // Will be set by Stripe
       },
       payment_intent_data: {
@@ -332,37 +408,7 @@ export async function POST(request: Request) {
         transfer_data: {
           destination: expertStripeAccountId,
         },
-        metadata: {
-          meeting: JSON.stringify({
-            id: eventId,
-            expert: event.clerkUserId,
-            guest: meetingData.guestEmail,
-            guestName: meetingData.guestName,
-            start: meetingData.startTime,
-            dur: event.durationInMinutes,
-            notes: meetingData.guestNotes || '', // Preserve guest notes
-          }),
-          payment: JSON.stringify({
-            amount: price.toString(),
-            fee: platformFee.toString(),
-            expert: expertAmount.toString(),
-          }),
-          transfer: JSON.stringify({
-            status: PAYMENT_TRANSFER_STATUS_PENDING,
-            account: expertStripeAccountId,
-            country: expertAccount.country || 'Unknown',
-            delay: {
-              aging: paymentAgingDays,
-              remaining: remainingDelayDays,
-              required: requiredPayoutDelay,
-            },
-            scheduled: scheduledTransferTime.toISOString(),
-          }),
-          approval: requiresApproval.toString(),
-          // Add tax and locale handling at root level of payment intent metadata
-          isEuropeanCustomer: meetingData.timezone?.includes('Europe') ? 'true' : 'false',
-          preferredTaxHandling: 'vat_only',
-        },
+        metadata: sharedMetadata,
       },
     });
 

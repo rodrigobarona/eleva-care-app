@@ -48,7 +48,7 @@ export async function createUpcomingPayoutNotification({
       userId,
       type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
       data: {
-        userName: 'User', // Default username
+        userName: 'Expert', // Default username for payment notifications
         title: `Upcoming Payout: ${formattedAmount}`,
         message,
         actionUrl: `/events/${eventId}`,
@@ -71,13 +71,11 @@ export async function createPayoutCompletedNotification({
   userId,
   amount,
   currency,
-  transferId: _transferId,
   eventId,
 }: {
   userId: string;
   amount: number;
   currency: string;
-  transferId: string;
   eventId: string;
 }) {
   const formattedAmount = formatCurrency(amount, currency);
@@ -87,7 +85,7 @@ export async function createPayoutCompletedNotification({
       userId,
       type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
       data: {
-        userName: 'User', // Default username
+        userName: 'Expert', // Default username for payment notifications
         title: `Payment Sent: ${formattedAmount}`,
         message: `Your payment of ${formattedAmount} has been sent to your Stripe account. It should arrive in your bank account within 1-2 business days.`,
         actionUrl: `/events/${eventId}`,
@@ -110,13 +108,11 @@ export async function createPayoutFailedNotification({
   amount,
   currency,
   errorMessage,
-  eventId: _eventId,
 }: {
   userId: string;
   amount: number;
   currency: string;
   errorMessage: string;
-  eventId: string;
 }) {
   const formattedAmount = formatCurrency(amount, currency);
 
@@ -125,7 +121,7 @@ export async function createPayoutFailedNotification({
       userId,
       type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
       data: {
-        userName: 'User', // Default username
+        userName: 'Expert', // Default username for payment notifications
         title: 'Payment Issue: Action Required',
         message: `We encountered an issue sending your payment of ${formattedAmount}. Error: ${errorMessage}. Please check your Stripe account settings.`,
         actionUrl: '/account/billing',
