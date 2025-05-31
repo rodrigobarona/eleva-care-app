@@ -66,18 +66,60 @@ export { GET, POST, OPTIONS };
 
 ### 3. Frontend Inbox Component
 
-Use the Next.js specific implementation:
+Use the Next.js specific implementation with HMAC authentication for production security:
 
 ```tsx
 // app/(private)/account/notifications/page.tsx
 import { Inbox } from '@novu/nextjs';
+import { useNovuInboxProps } from '@/hooks/use-secure-novu';
 
-<Inbox
-  applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
-  subscriber={user.id}
-  backendUrl="https://eu.api.novu.co"
-  socketUrl="https://eu.ws.novu.co"
-/>
+export function NotificationsPage() {
+  const { 
+    applicationIdentifier,
+    subscriberId, 
+    subscriberHash,
+    isReady,
+    isLoading,
+    error 
+  } = useNovuInboxProps();
+
+  if (isLoading) {
+    return <div>Loading notifications...</div>;
+  }
+
+  if (error || !isReady) {
+    return <div>Failed to load notifications</div>;
+  }
+
+  return (
+    <Inbox
+      applicationIdentifier={applicationIdentifier}
+      subscriberId={subscriberId}
+      subscriberHash={subscriberHash}
+      backendUrl="https://eu.api.novu.co"
+      socketUrl="https://eu.ws.novu.co"
+    />
+  );
+}
+```
+
+**Important**: Always use HMAC authentication in production. The `subscriberHash` is generated server-side using your `NOVU_SECRET_KEY` to prevent unauthorized access to notification feeds.
+
+#### Alternative: Direct HMAC Implementation
+
+For custom implementations, you can generate the HMAC hash directly:
+
+```tsx
+// utils/novu-client.ts
+import { generateSubscriberHash } from '@/app/utils/novu';
+
+export function getSecureNovuProps(userId: string) {
+  return {
+    applicationIdentifier: process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
+    subscriberId: userId,
+    subscriberHash: generateSubscriberHash(userId),
+  };
+}
 ```
 
 ### 4. Notification Types & Constants
@@ -209,6 +251,47 @@ await createUserNotification({
 - Validate all input data
 - Use environment variables for sensitive config
 - Consider HMAC authentication for production
+
+#### HMAC Authentication Implementation
+
+For production security, always use HMAC authentication to prevent unauthorized access to notification feeds:
+
+```typescript
+// Server-side: Generate HMAC hash
+import { createHmac } from 'crypto';
+
+export function generateSubscriberHash(subscriberId: string): string {
+  if (!process.env.NOVU_SECRET_KEY) {
+    throw new Error('NOVU_SECRET_KEY is required for HMAC authentication');
+  }
+  
+  return createHmac('sha256', process.env.NOVU_SECRET_KEY)
+    .update(subscriberId)
+    .digest('hex');
+}
+
+// API endpoint for secure subscriber data
+export async function GET(request: NextRequest) {
+  const { userId } = getAuth(request);
+  
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const secureData = {
+    subscriberId: userId,
+    subscriberHash: generateSubscriberHash(userId),
+  };
+
+  return NextResponse.json({ success: true, data: secureData });
+}
+```
+
+**Why HMAC is Important:**
+- Prevents unauthorized users from accessing other users' notifications
+- Ensures notification feeds are cryptographically secured
+- Required for production deployments to maintain data privacy
+- Uses server-side secret key that's never exposed to the client
 
 ### Error Handling
 ```typescript
