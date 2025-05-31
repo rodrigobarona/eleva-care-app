@@ -18,6 +18,7 @@ import {
   DEFAULT_BEFORE_EVENT_BUFFER,
 } from '@/lib/constants/scheduling';
 import { hasValidTokens } from '@/lib/googleCalendarClient';
+import { FormCache } from '@/lib/redis';
 import { meetingFormSchema } from '@/schema/meetings';
 import { createMeeting } from '@/server/actions/meetings';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -323,7 +324,6 @@ export function MeetingFormContent({
 
   // **CRITICAL: Use ref for immediate duplicate prevention**
   const isProcessingRef = React.useRef(false);
-  const lastRequestRef = React.useRef<string | null>(null);
 
   // **PREVENT DUPLICATE REQUESTS: Force re-render when ref changes**
   const [, forceRender] = React.useReducer((x) => x + 1, 0);
@@ -455,45 +455,61 @@ export function MeetingFormContent({
 
   // Function to create or get payment intent
   const createPaymentIntent = React.useCallback(async () => {
-    // **CRITICAL: Immediate duplicate check using ref**
-    if (isProcessingRef.current) {
-      console.log('🚫 Payment intent creation already in progress - blocking duplicate');
-      return checkoutUrl;
-    }
-
     // Don't recreate if already fetched
     if (checkoutUrl) {
       console.log('✅ Using existing checkout URL');
       return checkoutUrl;
     }
 
-    // **IDEMPOTENCY: Generate request key for deduplication**
-    const requestKey = generateRequestKey();
+    const formValues = form.getValues();
 
-    // **DUPLICATE DETECTION: Check if this exact request was already made**
-    if (lastRequestRef.current === requestKey) {
-      console.log('🚫 Duplicate request detected - blocking');
+    // **VALIDATION: Ensure required data is present**
+    if (!formValues.guestEmail || !formValues.startTime) {
+      throw new Error('Missing required form data');
+    }
+
+    // **REDIS-BASED DUPLICATE PREVENTION: Generate cache key**
+    const formCacheKey = FormCache.generateKey(
+      eventId,
+      formValues.guestEmail,
+      formValues.startTime.toISOString(),
+    );
+
+    // **CHECK: If this submission is already processing**
+    const isAlreadyProcessing = await FormCache.isProcessing(formCacheKey);
+    if (isAlreadyProcessing) {
+      console.log('🚫 Form submission already in progress (Redis cache) - blocking duplicate');
       return null;
+    }
+
+    // **CRITICAL: Use both ref and Redis for immediate + distributed protection**
+    if (isProcessingRef.current) {
+      console.log('🚫 Payment intent creation already in progress (ref) - blocking duplicate');
+      return checkoutUrl;
     }
 
     // **IMMEDIATE STATE UPDATE: Set processing flag using ref**
     isProcessingRef.current = true;
-    lastRequestRef.current = requestKey;
     forceRender(); // Force re-render to show loading state
     setIsCreatingCheckout(true);
 
     try {
-      const formValues = form.getValues();
+      // **REDIS: Mark as processing in distributed cache**
+      await FormCache.set(formCacheKey, {
+        eventId,
+        guestEmail: formValues.guestEmail,
+        startTime: formValues.startTime.toISOString(),
+        status: 'processing',
+        timestamp: Date.now(),
+      });
 
-      // **VALIDATION: Ensure required data is present**
-      if (!formValues.guestEmail || !formValues.startTime) {
-        throw new Error('Missing required form data');
-      }
+      // **IDEMPOTENCY: Generate request key for API deduplication**
+      const requestKey = generateRequestKey();
 
       // Get the locale for multilingual emails
       const userLocale = locale || 'en';
 
-      console.log('🚀 Creating payment intent with key:', requestKey);
+      console.log('🚀 Creating payment intent with Redis cache key:', formCacheKey);
 
       // Create payment intent using the new enhanced endpoint
       const response = await fetch('/api/create-payment-intent', {
@@ -539,13 +555,17 @@ export function MeetingFormContent({
       }
 
       console.log('✅ Payment intent created successfully');
+
+      // **REDIS: Mark as completed**
+      await FormCache.markCompleted(formCacheKey);
+
       setCheckoutUrl(url);
       return url;
     } catch (error) {
       console.error('❌ Payment creation error:', error);
 
-      // **ERROR HANDLING: Reset state on error**
-      lastRequestRef.current = null;
+      // **ERROR HANDLING: Mark as failed in Redis and reset state**
+      await FormCache.markFailed(formCacheKey);
 
       form.setError('root', {
         message:

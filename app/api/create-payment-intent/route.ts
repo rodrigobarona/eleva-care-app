@@ -7,6 +7,7 @@ import {
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
+import { IdempotencyCache } from '@/lib/redis';
 import { getOrCreateStripeCustomer } from '@/lib/stripe';
 import { getAuth } from '@clerk/nextjs/server';
 import { and, eq, gt } from 'drizzle-orm';
@@ -14,23 +15,10 @@ import { getTranslations } from 'next-intl/server';
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
+// Initialize Stripe client
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
-
-// **IDEMPOTENCY CACHE: Store recent requests to prevent duplicates**
-const idempotencyCache = new Map<string, { url: string; timestamp: number }>();
-const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
-
-// **CLEANUP: Remove expired entries from cache**
-const cleanupCache = () => {
-  const now = Date.now();
-  for (const [key, entry] of idempotencyCache.entries()) {
-    if (now - entry.timestamp > CACHE_TTL_MS) {
-      idempotencyCache.delete(key);
-    }
-  }
-};
 
 // Helper function to create shared metadata for checkout session and payment intent
 // Note: sessionId is intentionally NOT included in metadata as it's always available
@@ -118,15 +106,12 @@ export async function POST(request: NextRequest) {
   console.log('Starting payment intent creation process');
 
   try {
-    // **IDEMPOTENCY: Check for duplicate requests**
+    // **IDEMPOTENCY: Check for duplicate requests using distributed cache**
     const idempotencyKey = request.headers.get('Idempotency-Key');
 
     if (idempotencyKey) {
-      // Clean up expired cache entries
-      cleanupCache();
-
-      // Check if we've seen this request before
-      const cachedResult = idempotencyCache.get(idempotencyKey);
+      // Check if we've seen this request before in distributed cache
+      const cachedResult = await IdempotencyCache.get(idempotencyKey);
       if (cachedResult) {
         console.log(`🔄 Returning cached result for idempotency key: ${idempotencyKey}`);
         return NextResponse.json({ url: cachedResult.url });
@@ -547,9 +532,8 @@ export async function POST(request: NextRequest) {
 
     // **IDEMPOTENCY: Cache the successful result**
     if (idempotencyKey && session.url) {
-      idempotencyCache.set(idempotencyKey, {
+      await IdempotencyCache.set(idempotencyKey, {
         url: session.url,
-        timestamp: Date.now(),
       });
       console.log(`💾 Cached result for idempotency key: ${idempotencyKey}`);
     }

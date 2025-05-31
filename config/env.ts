@@ -14,56 +14,42 @@ export const ENV_CONFIG = {
   DATABASE_URL: process.env.DATABASE_URL || '',
   AUDITLOG_DATABASE_URL: process.env.AUDITLOG_DATABASE_URL || '',
 
-  // KV Database Configuration
-  KV_REST_API_URL: process.env.KV_REST_API_URL || '',
-  KV_REST_API_TOKEN: process.env.KV_REST_API_TOKEN || '',
+  // Unified Redis Configuration (Upstash)
+  UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || '',
+  UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || '',
 
   // Authentication (Clerk)
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || '',
+  CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY || '',
+  CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET || '',
 
   // Stripe Configuration
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
+  STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY || '',
   STRIPE_API_VERSION: process.env.STRIPE_API_VERSION || '2025-04-30.basil',
   STRIPE_PLATFORM_FEE_PERCENTAGE: process.env.STRIPE_PLATFORM_FEE_PERCENTAGE || '0.15',
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
+  STRIPE_CONNECT_WEBHOOK_SECRET: process.env.STRIPE_CONNECT_WEBHOOK_SECRET || '',
+  STRIPE_IDENTITY_WEBHOOK_SECRET: process.env.STRIPE_IDENTITY_WEBHOOK_SECRET || '',
 
   // QStash Configuration
   QSTASH_TOKEN: process.env.QSTASH_TOKEN || '',
   QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY || '',
   QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY || '',
-  QSTASH_URL: process.env.QSTASH_URL || '',
 
-  // Google OAuth Configuration
-  GOOGLE_OAUTH_CLIENT_ID: process.env.GOOGLE_OAUTH_CLIENT_ID || '',
-  GOOGLE_OAUTH_CLIENT_SECRET: process.env.GOOGLE_OAUTH_CLIENT_SECRET || '',
-  GOOGLE_OAUTH_REDIRECT_URL: process.env.GOOGLE_OAUTH_REDIRECT_URL || '',
-
-  // Email Configuration (Resend)
+  // Email Configuration
   RESEND_API_KEY: process.env.RESEND_API_KEY || '',
-  RESEND_EMAIL_BOOKINGS_FROM: process.env.RESEND_EMAIL_BOOKINGS_FROM || '',
 
-  // External API Configuration
-  DUB_API_KEY: process.env.DUB_API_KEY || '',
-  DUB_API_ENDPOINT: process.env.DUB_API_ENDPOINT || 'https://api.dub.co/links',
-  DUB_DEFAULT_DOMAIN: process.env.DUB_DEFAULT_DOMAIN || 'go.eleva.care',
-
-  // Gravatar API Configuration
-  GRAVATAR_API_KEY: process.env.GRAVATAR_API_KEY || '',
+  // Base URL Configuration
+  NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || '',
 
   // Novu Configuration
+  NOVU_API_KEY: process.env.NOVU_API_KEY || '',
   NOVU_SECRET_KEY: process.env.NOVU_SECRET_KEY || '',
   NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER:
     process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER || '',
 
-  // Security
-  ENCRYPTION_KEY: process.env.ENCRYPTION_KEY || '',
-  CRON_API_KEY: process.env.CRON_API_KEY || '',
-
-  // Application URLs
-  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || '',
-  NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || '',
-  VERCEL_URL: process.env.VERCEL_URL || '',
-
-  // Analytics
+  // Posthog Configuration
   NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY || '',
   NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST || '',
 } as const;
@@ -97,6 +83,32 @@ export const ENV_VALIDATORS = {
           ? `Missing database environment variables: ${missingVars.join(', ')}`
           : 'Database configuration is valid',
       missingVars,
+    };
+  },
+
+  /**
+   * Validate unified Redis configuration
+   */
+  redis(): EnvValidationResult {
+    const missingVars: string[] = [];
+
+    // Check for unified Redis configuration
+    if (!ENV_CONFIG.UPSTASH_REDIS_REST_URL) missingVars.push('UPSTASH_REDIS_REST_URL');
+    if (!ENV_CONFIG.UPSTASH_REDIS_REST_TOKEN) missingVars.push('UPSTASH_REDIS_REST_TOKEN');
+
+    const hasUnifiedConfig = missingVars.length === 0;
+
+    let message = '';
+    if (hasUnifiedConfig) {
+      message = 'Unified Redis configuration is valid';
+    } else {
+      message = `Missing Redis environment variables: ${missingVars.join(', ')}. Redis cache will fall back to in-memory mode.`;
+    }
+
+    return {
+      isValid: hasUnifiedConfig,
+      message,
+      missingVars: hasUnifiedConfig ? [] : missingVars,
     };
   },
 
@@ -175,32 +187,15 @@ export const ENV_VALIDATORS = {
   },
 
   /**
-   * Validate Google OAuth configuration
-   */
-  googleOAuth(): EnvValidationResult {
-    const missingVars: string[] = [];
-
-    if (!ENV_CONFIG.GOOGLE_OAUTH_CLIENT_ID) missingVars.push('GOOGLE_OAUTH_CLIENT_ID');
-    if (!ENV_CONFIG.GOOGLE_OAUTH_CLIENT_SECRET) missingVars.push('GOOGLE_OAUTH_CLIENT_SECRET');
-    if (!ENV_CONFIG.GOOGLE_OAUTH_REDIRECT_URL) missingVars.push('GOOGLE_OAUTH_REDIRECT_URL');
-
-    return {
-      isValid: missingVars.length === 0,
-      message:
-        missingVars.length > 0
-          ? `Missing Google OAuth environment variables: ${missingVars.join(', ')}`
-          : 'Google OAuth configuration is valid',
-      missingVars,
-    };
-  },
-
-  /**
    * Validate Novu environment variables
    */
   novu(): EnvValidationResult {
     const missingVars: string[] = [];
 
-    if (!ENV_CONFIG.NOVU_SECRET_KEY) missingVars.push('NOVU_SECRET_KEY');
+    // Check for either NOVU_API_KEY or NOVU_SECRET_KEY (legacy compatibility)
+    if (!ENV_CONFIG.NOVU_API_KEY && !ENV_CONFIG.NOVU_SECRET_KEY) {
+      missingVars.push('NOVU_API_KEY or NOVU_SECRET_KEY');
+    }
     if (!ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER)
       missingVars.push('NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER');
 
@@ -264,33 +259,11 @@ export const ENV_HELPERS = {
   },
 
   /**
-   * Get the Gravatar API key
-   */
-  getGravatarApiKey(): string | undefined {
-    return ENV_CONFIG.GRAVATAR_API_KEY || undefined;
-  },
-
-  /**
-   * Check if Gravatar API key is configured
-   */
-  hasGravatarApiKey(): boolean {
-    return Boolean(ENV_CONFIG.GRAVATAR_API_KEY);
-  },
-
-  /**
    * Get the base application URL with fallbacks
    */
   getBaseUrl(): string {
-    if (ENV_CONFIG.NEXT_PUBLIC_APP_URL) {
-      return ENV_CONFIG.NEXT_PUBLIC_APP_URL;
-    }
-
     if (ENV_CONFIG.NEXT_PUBLIC_BASE_URL) {
       return ENV_CONFIG.NEXT_PUBLIC_BASE_URL;
-    }
-
-    if (ENV_CONFIG.VERCEL_URL) {
-      return `https://${ENV_CONFIG.VERCEL_URL}`;
     }
 
     return this.isDevelopment() ? 'http://localhost:3000' : 'https://eleva.care';
@@ -300,6 +273,8 @@ export const ENV_HELPERS = {
    * Get environment configuration summary
    */
   getEnvironmentSummary() {
+    const redisValidation = ENV_VALIDATORS.redis();
+
     return {
       nodeEnv: ENV_CONFIG.NODE_ENV,
       isDevelopment: this.isDevelopment(),
@@ -307,9 +282,10 @@ export const ENV_HELPERS = {
       hasDatabase: Boolean(ENV_CONFIG.DATABASE_URL),
       hasAuth: Boolean(ENV_CONFIG.CLERK_SECRET_KEY),
       hasStripe: Boolean(ENV_CONFIG.STRIPE_SECRET_KEY),
+      hasRedis: redisValidation.isValid,
+      redisMode: ENV_CONFIG.UPSTASH_REDIS_REST_URL ? 'unified' : 'in-memory',
       hasQStash: Boolean(ENV_CONFIG.QSTASH_TOKEN),
       hasEmail: Boolean(ENV_CONFIG.RESEND_API_KEY),
-      hasGravatar: this.hasGravatarApiKey(),
       hasNovu: Boolean(
         ENV_CONFIG.NOVU_SECRET_KEY && ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
       ),

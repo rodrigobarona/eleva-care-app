@@ -1,7 +1,7 @@
 import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable, UserTable } from '@/drizzle/schema';
-import { Redis } from '@upstash/redis';
+import { CustomerCache } from '@/lib/redis';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
@@ -10,21 +10,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
-// Initialize Redis with correct environment variables
-const redis = new Redis({
-  url: process.env.KV_REST_API_URL ?? '',
-  token: process.env.KV_REST_API_TOKEN ?? '',
-});
-
-// Define consistent key prefixes for Redis
-const REDIS_KEYS = {
-  USER_TO_CUSTOMER: (userId: string) => `stripe:user:${userId}`,
-  CUSTOMER: (customerId: string) => `stripe:customer:${customerId}`,
-  CUSTOMER_BY_EMAIL: (email: string) => `stripe:customer:email:${email}`,
-  SUBSCRIPTION: (subscriptionId: string) => `stripe:subscription:${subscriptionId}`,
-};
-
-// Enhanced type definitions for KV storage
+// Enhanced type definitions for customer data (now using unified CustomerCache)
 interface StripeCustomerData {
   stripeCustomerId: string;
   email: string;
@@ -58,57 +44,15 @@ export async function getServerStripe() {
   return stripe;
 }
 
-// Add detailed Redis connection verification
-async function verifyRedisConnection() {
-  try {
-    // Test both read and write operations
-    const testKey = 'stripe:connection:test';
-    const testValue = `test-${Date.now()}`;
-
-    // Test write
-    const writeResult = await redis.set(testKey, testValue);
-    console.log('Redis write test result:', writeResult);
-
-    // Test read
-    const readResult = await redis.get(testKey);
-    console.log('Redis read test result:', readResult);
-
-    // Cleanup
-    await redis.del(testKey);
-
-    const success = writeResult === 'OK' && readResult === testValue;
-    if (!success) {
-      console.error('Redis connection test failed:', {
-        writeResult,
-        readResult,
-      });
-      return false;
-    }
-
-    console.log('Redis connection verified successfully');
-    return true;
-  } catch (error) {
-    console.error('Redis connection verification failed:', error);
-    return false;
-  }
-}
-
 /**
- * Synchronizes Stripe customer data to KV store
+ * Synchronizes Stripe customer data to unified CustomerCache
  * This is the single source of truth for customer data
  */
 export async function syncStripeDataToKV(
   stripeCustomerId: string,
 ): Promise<StripeCustomerData | null> {
   try {
-    // Verify Redis connection first with detailed logging
-    console.log('Verifying Redis connection before sync...');
-    const isRedisConnected = await verifyRedisConnection();
-    if (!isRedisConnected) {
-      console.error('Redis connection verification failed, aborting sync');
-      throw new Error('Redis connection failed');
-    }
-    console.log('Redis connection verified, proceeding with sync');
+    console.log('Syncing Stripe customer data to unified cache...');
 
     // Expand to include subscriptions data
     const customer = await stripe.customers.retrieve(stripeCustomerId, {
@@ -135,24 +79,22 @@ export async function syncStripeDataToKV(
       updatedAt: Date.now(),
     };
 
-    console.log('Preparing to store customer data:', customerData);
+    console.log('Preparing to store customer data in unified cache:', customerData);
 
-    // Store in Redis with multiple access patterns for reliable lookup
+    // Store in unified CustomerCache with multiple access patterns
     const storeOperations = [
-      // Store by Stripe customer ID
-      redis.set(REDIS_KEYS.CUSTOMER(customer.id), JSON.stringify(customerData)),
+      // Store customer data by Stripe customer ID
+      CustomerCache.setCustomer(customer.id, customerData),
     ];
 
     // Store mapping from email to customer ID if email exists
     if (customer.email) {
-      storeOperations.push(redis.set(REDIS_KEYS.CUSTOMER_BY_EMAIL(customer.email), customer.id));
+      storeOperations.push(CustomerCache.setEmailMapping(customer.email, customer.id));
     }
 
     // Store mapping from user ID to customer ID if exists
     if (customerData.userId) {
-      storeOperations.push(
-        redis.set(REDIS_KEYS.USER_TO_CUSTOMER(customerData.userId), customer.id),
-      );
+      storeOperations.push(CustomerCache.setUserMapping(customerData.userId, customer.id));
     }
 
     // Store subscription data individually if there are subscriptions
@@ -170,33 +112,24 @@ export async function syncStripeDataToKV(
           updatedAt: Date.now(),
         };
 
-        storeOperations.push(
-          redis.set(REDIS_KEYS.SUBSCRIPTION(subscription.id), JSON.stringify(subscriptionData)),
-        );
+        storeOperations.push(CustomerCache.setSubscription(subscription.id, subscriptionData));
       }
     }
 
-    // Execute all Redis operations
-    const results = await Promise.allSettled(storeOperations);
+    // Execute all cache operations
+    await Promise.allSettled(storeOperations);
 
-    // Check if any operations failed
-    const failedOps = results.filter((result) => result.status === 'rejected');
-    if (failedOps.length > 0) {
-      console.error('Some Redis operations failed:', results);
-      throw new Error('Failed to store customer data in Redis');
-    }
-
-    console.log('Successfully synced customer data to KV');
+    console.log('Successfully synced customer data to unified cache');
     return customerData;
   } catch (error) {
-    console.error('Failed to sync Stripe data to KV:', error);
+    console.error('Failed to sync Stripe data to unified cache:', error);
     throw error;
   }
 }
 
 /**
  * Gets an existing Stripe customer or creates a new one
- * Always uses KV as the source of truth with fallback to Stripe API
+ * Always uses unified CustomerCache as the source of truth with fallback to Stripe API
  */
 export async function getOrCreateStripeCustomer(
   userId?: string,
@@ -212,10 +145,10 @@ export async function getOrCreateStripeCustomer(
     // First try to find existing customer by userId (most reliable)
     if (userId) {
       console.log('Looking up customer by userId:', userId);
-      const existingCustomerId = await redis.get<string>(REDIS_KEYS.USER_TO_CUSTOMER(userId));
+      const existingCustomerId = await CustomerCache.getCustomerByUserId(userId);
 
       if (existingCustomerId) {
-        console.log('Found existing customer ID in KV by userId:', existingCustomerId);
+        console.log('Found existing customer ID in unified cache by userId:', existingCustomerId);
 
         // Sync latest data from Stripe to ensure it's up to date
         await syncStripeDataToKV(existingCustomerId);
@@ -239,7 +172,7 @@ export async function getOrCreateStripeCustomer(
                 },
               });
 
-              // Force sync to KV after update
+              // Force sync to unified cache after update
               await syncStripeDataToKV(existingCustomerId);
             }
           } catch (error) {
@@ -254,14 +187,14 @@ export async function getOrCreateStripeCustomer(
     // If no customer found by userId, try by email
     if (email) {
       console.log('Looking up customer by email:', email);
-      const existingCustomerId = await redis.get<string>(REDIS_KEYS.CUSTOMER_BY_EMAIL(email));
+      const existingCustomerId = await CustomerCache.getCustomerByEmail(email);
 
       if (existingCustomerId) {
-        console.log('Found existing customer ID in KV by email:', existingCustomerId);
+        console.log('Found existing customer ID in unified cache by email:', existingCustomerId);
 
         // If we have userId but it wasn't linked, update the link
         if (userId) {
-          await redis.set(REDIS_KEYS.USER_TO_CUSTOMER(userId), existingCustomerId);
+          await CustomerCache.setUserMapping(userId, existingCustomerId);
 
           // Also update customer metadata and name in Stripe
           const customerData = await stripe.customers.retrieve(existingCustomerId);
@@ -281,7 +214,7 @@ export async function getOrCreateStripeCustomer(
 
             await stripe.customers.update(existingCustomerId, updateParams);
 
-            // Force sync to KV after update
+            // Force sync to unified cache after update
             await syncStripeDataToKV(existingCustomerId);
           }
         }
@@ -291,9 +224,9 @@ export async function getOrCreateStripeCustomer(
         return existingCustomerId;
       }
 
-      // If still not found in KV, search directly in Stripe as fallback
-      // This handles case where KV might have lost data
-      console.log('No customer found in KV, searching Stripe directly by email');
+      // If still not found in unified cache, search directly in Stripe as fallback
+      // This handles case where unified cache might have lost data
+      console.log('No customer found in unified cache, searching Stripe directly by email');
       const existingCustomers = await stripe.customers.list({
         email,
         limit: 1,
@@ -319,11 +252,11 @@ export async function getOrCreateStripeCustomer(
         if (Object.keys(updateParams.metadata || {}).length > 0 || updateParams.name) {
           await stripe.customers.update(existingCustomer.id, updateParams);
 
-          // Force sync to KV after update
+          // Force sync to unified cache after update
           await syncStripeDataToKV(existingCustomer.id);
         }
 
-        // Sync to KV and return
+        // Sync to unified cache and return
         await syncStripeDataToKV(existingCustomer.id);
         return existingCustomer.id;
       }
@@ -349,7 +282,7 @@ export async function getOrCreateStripeCustomer(
       metadata: newCustomer.metadata,
     });
 
-    // Sync the new customer to KV
+    // Sync the new customer to unified cache
     await syncStripeDataToKV(newCustomer.id);
     return newCustomer.id;
   } catch (error) {
