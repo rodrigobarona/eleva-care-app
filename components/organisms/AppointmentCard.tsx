@@ -3,7 +3,6 @@
 import { Badge } from '@/components/atoms/badge';
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
-import { GravatarAvatar } from '@/components/molecules/GravatarAvatar';
 import { RecordDialog } from '@/components/organisms/RecordDialog';
 import { format } from 'date-fns';
 import { Clock, Link as LinkIcon, Mail, User } from 'lucide-react';
@@ -72,35 +71,25 @@ export function AppointmentCard({ appointment, customerId }: AppointmentCardProp
     <Card className={`mb-4 ${isReservation ? 'border-orange-200 bg-orange-50/50' : ''}`}>
       <CardHeader>
         <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3">
-            <GravatarAvatar
-              email={appointment.guestEmail}
-              name={appointment.guestName}
-              size={48}
-              className="mt-1 flex-shrink-0"
-            />
-            <div>
-              <CardTitle
-                className={`text-xl font-semibold ${isReservation ? 'text-orange-900' : ''}`}
-              >
-                {isReservation ? (
-                  <div className="flex items-center gap-2">
-                    <span>⏳ Pending Reservation</span>
-                    {isExpiringSoon && (
-                      <span className="text-sm text-red-600">(Expiring Soon)</span>
-                    )}
-                  </div>
-                ) : (
-                  `Meeting with ${appointment.guestName}`
-                )}
-              </CardTitle>
-              <CardDescription>
-                {format(new Date(appointment.startTime), 'EEEE, MMMM d, yyyy')}
-                {isReservation && (
-                  <span className="ml-2 text-orange-600">• Expires in {timeUntilExpiration}h</span>
-                )}
-              </CardDescription>
-            </div>
+          <div>
+            <CardTitle
+              className={`text-xl font-semibold ${isReservation ? 'text-orange-900' : ''}`}
+            >
+              {isReservation ? (
+                <div className="flex items-center gap-2">
+                  <span>⏳ Pending Reservation</span>
+                  {isExpiringSoon && <span className="text-sm text-red-600">(Expiring Soon)</span>}
+                </div>
+              ) : (
+                `Meeting with ${appointment.guestName}`
+              )}
+            </CardTitle>
+            <CardDescription>
+              {format(new Date(appointment.startTime), 'EEEE, MMMM d, yyyy')}
+              {isReservation && (
+                <span className="ml-2 text-orange-600">• Expires in {timeUntilExpiration}h</span>
+              )}
+            </CardDescription>
           </div>
           {isReservation ? (
             <Badge variant="secondary" className="bg-orange-100 text-orange-800">

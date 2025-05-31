@@ -2,7 +2,6 @@
 
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
-import { GravatarAvatar } from '@/components/molecules/GravatarAvatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/molecules/tabs';
 import { AppointmentCard } from '@/components/organisms/AppointmentCard';
 import { formatCurrency } from '@/lib/utils';
@@ -181,18 +180,8 @@ function CustomerDetailsContent() {
         {/* Customer Info Card */}
         <Card className="md:col-span-1">
           <CardHeader>
-            <div className="flex items-center gap-3">
-              <GravatarAvatar
-                email={customer.email}
-                name={customer.name}
-                size={64}
-                className="flex-shrink-0"
-              />
-              <div>
-                <CardTitle>Customer Information</CardTitle>
-                <CardDescription>Details about {customer.name || customer.email}</CardDescription>
-              </div>
-            </div>
+            <CardTitle>Customer Information</CardTitle>
+            <CardDescription>Details about {customer.name || customer.email}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
