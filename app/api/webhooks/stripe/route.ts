@@ -1,4 +1,4 @@
-import { STRIPE_CONFIG } from '@/config/stripe';
+import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable, SlotReservationTable } from '@/drizzle/schema';
 import {
@@ -14,7 +14,7 @@ import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfe
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { eq } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
 
@@ -34,8 +34,8 @@ import {
 import { handlePayoutFailed, handlePayoutPaid } from './handlers/payout';
 
 // Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
+const stripe = new Stripe(ENV_CONFIG.STRIPE_SECRET_KEY, {
+  apiVersion: ENV_CONFIG.STRIPE_API_VERSION as Stripe.LatestApiVersion,
 });
 
 /**
@@ -638,142 +638,129 @@ const mapPaymentStatus = (stripeStatus: string, sessionId?: string): PaymentStat
  * @param request The incoming request from Stripe
  * @returns A JSON response indicating success or failure
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const body = await request.text();
+  const signature = request.headers.get('stripe-signature');
+
+  if (!signature) {
+    console.error('❌ Missing Stripe signature');
+    return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
+  }
+
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error('❌ Missing STRIPE_WEBHOOK_SECRET');
+    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+  }
+
+  let event: Stripe.Event;
+
   try {
-    // Get the raw request body as text for Stripe signature verification
-    // IMPORTANT: This consumes the request body stream. Any subsequent calls to request.text()
-    // or request.json() will return empty results. The body must be read only once.
-    const body = await request.text();
+    event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    console.error(
+      '❌ Webhook signature verification failed:',
+      err instanceof Error ? err.message : err,
+    );
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  }
 
-    // Get the Stripe signature from request headers directly
-    const sig = request.headers.get('stripe-signature');
-
-    if (!sig) {
-      console.error('Missing Stripe signature in webhook request');
-      return NextResponse.json({ error: 'Webhook Error: Missing signature' }, { status: 400 });
-    }
-
-    // Verify the webhook signature
-    let event: Stripe.Event;
-    try {
-      const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-      if (!webhookSecret) {
-        throw new Error('STRIPE_WEBHOOK_SECRET environment variable is not defined');
-      }
-
-      // Use the raw body string with the signature for verification
-      event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-      console.log(`Stripe webhook verified: ${event.type}`);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      console.error(`Webhook signature verification error: ${errorMessage}`);
-      return NextResponse.json({ error: `Webhook Error: ${errorMessage}` }, { status: 400 });
-    }
-
-    // Process the event based on type
-    try {
-      switch (event.type) {
-        case 'account.updated':
-          await handleAccountUpdated(event.data.object as Stripe.Account);
-          break;
-        case 'identity.verification_session.verified':
-        case 'identity.verification_session.requires_input': {
-          // Validate that the object has the expected properties of a verification session
-          const obj = event.data.object;
-          if (!obj || typeof obj !== 'object' || !('status' in obj) || !('id' in obj)) {
-            console.error('Invalid verification session object:', obj);
-            break;
-          }
-          const verificationSession = obj as Stripe.Identity.VerificationSession;
-
-          // For identity verification, we need to find the user by the verification status
-          // and extract any related account ID from the metadata
-          await handleIdentityVerificationUpdated(verificationSession);
+  // Process the event based on type
+  try {
+    switch (event.type) {
+      case 'account.updated':
+        await handleAccountUpdated(event.data.object as Stripe.Account);
+        break;
+      case 'identity.verification_session.verified':
+      case 'identity.verification_session.requires_input': {
+        // Validate that the object has the expected properties of a verification session
+        const obj = event.data.object;
+        if (!obj || typeof obj !== 'object' || !('status' in obj) || !('id' in obj)) {
+          console.error('Invalid verification session object:', obj);
           break;
         }
-        case 'checkout.session.completed':
-          try {
-            console.log('Processing checkout.session.completed event');
-            await handleCheckoutSession(event.data.object as StripeCheckoutSession);
-          } catch (error) {
-            console.error('Error in checkout.session.completed handler:', error);
-            throw error; // Rethrow to be caught by the outer try-catch
-          }
-          break;
-        case 'payment_intent.succeeded':
-          await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
-          break;
-        case 'payment_intent.payment_failed':
-          await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
-          break;
-        case 'payment_intent.requires_action':
-          await handlePaymentIntentRequiresAction(event.data.object as Stripe.PaymentIntent);
-          break;
-        case 'charge.refunded':
-          await handleChargeRefunded(event.data.object as Stripe.Charge);
-          break;
-        case 'charge.dispute.created':
-          await handleDisputeCreated(event.data.object as Stripe.Dispute);
-          break;
-        case 'account.external_account.created':
-          if ('account' in event.data.object && typeof event.data.object.account === 'string') {
-            await handleExternalAccountCreated(
-              event.data.object as Stripe.BankAccount | Stripe.Card,
-              event.data.object.account,
-            );
-          }
-          break;
-        case 'account.external_account.deleted':
-          if ('account' in event.data.object && typeof event.data.object.account === 'string') {
-            await handleExternalAccountDeleted(
-              event.data.object as Stripe.BankAccount | Stripe.Card,
-              event.data.object.account,
-            );
-          }
-          break;
-        case 'payment_intent.created': {
-          console.log('Payment intent created:', event.data.object.id);
+        const verificationSession = obj as Stripe.Identity.VerificationSession;
 
-          // Update slot reservation with payment intent ID
-          try {
-            const paymentIntent = event.data.object as Stripe.PaymentIntent;
-            const sessionId = paymentIntent.metadata?.sessionId;
-
-            if (sessionId) {
-              await db
-                .update(SlotReservationTable)
-                .set({
-                  stripePaymentIntentId: paymentIntent.id,
-                })
-                .where(eq(SlotReservationTable.stripeSessionId, sessionId));
-              console.log(`🔗 Linked slot reservation to payment intent ${paymentIntent.id}`);
-            }
-          } catch (error) {
-            console.error('Failed to update slot reservation with payment intent ID:', error);
-            // Continue execution - this is not critical
-          }
-          break;
-        }
-        case 'payout.paid':
-          await handlePayoutPaid(event.data.object as Stripe.Payout);
-          break;
-        case 'payout.failed':
-          await handlePayoutFailed(event.data.object as Stripe.Payout);
-          break;
-        default:
-          console.log(`Unhandled event type: ${event.type}`);
+        // For identity verification, we need to find the user by the verification status
+        // and extract any related account ID from the metadata
+        await handleIdentityVerificationUpdated(verificationSession);
+        break;
       }
+      case 'checkout.session.completed':
+        try {
+          console.log('Processing checkout.session.completed event');
+          await handleCheckoutSession(event.data.object as StripeCheckoutSession);
+        } catch (error) {
+          console.error('Error in checkout.session.completed handler:', error);
+          throw error; // Rethrow to be caught by the outer try-catch
+        }
+        break;
+      case 'payment_intent.succeeded':
+        await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
+        break;
+      case 'payment_intent.payment_failed':
+        await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
+        break;
+      case 'payment_intent.requires_action':
+        await handlePaymentIntentRequiresAction(event.data.object as Stripe.PaymentIntent);
+        break;
+      case 'charge.refunded':
+        await handleChargeRefunded(event.data.object as Stripe.Charge);
+        break;
+      case 'charge.dispute.created':
+        await handleDisputeCreated(event.data.object as Stripe.Dispute);
+        break;
+      case 'account.external_account.created':
+        if ('account' in event.data.object && typeof event.data.object.account === 'string') {
+          await handleExternalAccountCreated(
+            event.data.object as Stripe.BankAccount | Stripe.Card,
+            event.data.object.account,
+          );
+        }
+        break;
+      case 'account.external_account.deleted':
+        if ('account' in event.data.object && typeof event.data.object.account === 'string') {
+          await handleExternalAccountDeleted(
+            event.data.object as Stripe.BankAccount | Stripe.Card,
+            event.data.object.account,
+          );
+        }
+        break;
+      case 'payment_intent.created': {
+        console.log('Payment intent created:', event.data.object.id);
 
-      return NextResponse.json({ received: true });
-    } catch (error) {
-      console.error('Error processing webhook event:', error);
-      return NextResponse.json(
-        { error: 'Internal server error processing webhook' },
-        { status: 500 },
-      );
+        // Update slot reservation with payment intent ID
+        try {
+          const paymentIntent = event.data.object as Stripe.PaymentIntent;
+          const sessionId = paymentIntent.metadata?.sessionId;
+
+          if (sessionId) {
+            await db
+              .update(SlotReservationTable)
+              .set({
+                stripePaymentIntentId: paymentIntent.id,
+              })
+              .where(eq(SlotReservationTable.stripeSessionId, sessionId));
+            console.log(`🔗 Linked slot reservation to payment intent ${paymentIntent.id}`);
+          }
+        } catch (error) {
+          console.error('Failed to update slot reservation with payment intent ID:', error);
+          // Continue execution - this is not critical
+        }
+        break;
+      }
+      case 'payout.paid':
+        await handlePayoutPaid(event.data.object as Stripe.Payout);
+        break;
+      case 'payout.failed':
+        await handlePayoutFailed(event.data.object as Stripe.Payout);
+        break;
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
     }
+
+    return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Unexpected error in webhook handler:', error);
+    console.error('Error processing webhook event:', error);
     return NextResponse.json(
       { error: 'Internal server error processing webhook' },
       { status: 500 },

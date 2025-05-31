@@ -2,9 +2,8 @@
 
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent } from '@/components/atoms/card';
-import { ENV_CONFIG } from '@/config/env';
+import { SecureNovuInbox } from '@/components/notifications/secure-novu-inbox';
 import { useUser } from '@clerk/nextjs';
-import { Inbox } from '@novu/nextjs';
 import { CheckCircle } from 'lucide-react';
 
 export default function NotificationsPage() {
@@ -26,17 +25,15 @@ export default function NotificationsPage() {
     );
   }
 
-  // If user is not loaded or no application identifier, show error
-  if (!user || !ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) {
+  // If user is not loaded, show error
+  if (!user) {
     return (
       <div className="container max-w-5xl py-8">
         <Card>
           <CardContent className="flex items-center justify-center p-8 text-center">
             <div>
-              <h2 className="mb-2 text-lg font-semibold text-destructive">Configuration Error</h2>
-              <p className="text-muted-foreground">
-                Notification service is not properly configured. Please contact support.
-              </p>
+              <h2 className="mb-2 text-lg font-semibold text-destructive">Authentication Error</h2>
+              <p className="text-muted-foreground">Please log in to view your notifications.</p>
             </div>
           </CardContent>
         </Card>
@@ -59,15 +56,10 @@ export default function NotificationsPage() {
         </Button>
       </div>
 
-      {/* Novu Inbox Integration using @novu/nextjs */}
+      {/* Secure Novu Inbox with HMAC Authentication */}
       <Card>
         <CardContent className="p-6">
-          <Inbox
-            applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
-            subscriber={user.id}
-            backendUrl="https://eu.api.novu.co"
-            socketUrl="https://eu.ws.novu.co"
-          />
+          <SecureNovuInbox />
         </CardContent>
       </Card>
     </div>

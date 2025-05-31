@@ -5,6 +5,7 @@ import { ENV_CONFIG } from '@/config/env';
 import { enUS, esES, ptBR, ptPT } from '@clerk/localizations';
 import { ClerkProvider, useUser } from '@clerk/nextjs';
 import { NovuProvider } from '@novu/nextjs';
+import { NovuProvider as ReactNovuProvider } from '@novu/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
@@ -44,7 +45,14 @@ function NovuWrapper({ children }: { children: React.ReactNode }) {
       // initialFetchingStrategy can be added here if needed, e.g.
       // initialFetchingStrategy={{ fetchNotifications: true, fetchUserPreferences: true }}
     >
-      {children}
+      <ReactNovuProvider
+        applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
+        subscriberId={user.id}
+        backendUrl="https://eu.api.novu.co"
+        socketUrl="https://eu.ws.novu.co"
+      >
+        {children}
+      </ReactNovuProvider>
     </NovuProvider>
   );
 }

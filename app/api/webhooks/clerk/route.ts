@@ -1,6 +1,8 @@
 import { triggerWorkflow } from '@/app/utils/novu';
+import { ENV_CONFIG } from '@/config/env';
 import { UserJSON, WebhookEvent } from '@clerk/nextjs/server';
 import { headers } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
 import { Webhook } from 'svix';
 
 // Single source of truth for all supported Clerk events and their corresponding Novu workflows
@@ -32,35 +34,41 @@ const EVENT_TO_WORKFLOW_MAPPINGS = {
   },
 } as const;
 
-export async function POST(request: Request) {
-  try {
-    const SIGNING_SECRET = process.env.CLERK_SIGNING_SECRET;
-    if (!SIGNING_SECRET) {
-      throw new Error('Please add CLERK_SIGNING_SECRET from Clerk Dashboard to .env');
-    }
+export async function POST(request: NextRequest) {
+  const headerPayload = await headers();
+  const svixId = headerPayload.get('svix-id');
+  const svixTimestamp = headerPayload.get('svix-timestamp');
+  const svixSignature = headerPayload.get('svix-signature');
 
-    const webhook = new Webhook(SIGNING_SECRET);
-    const headerPayload = await headers();
-    const validatedHeaders = validateHeaders(headerPayload);
-
-    const payload = await request.json();
-    const body = JSON.stringify(payload);
-
-    const event = await verifyWebhook(webhook, body, {
-      'svix-id': validatedHeaders.svix_id,
-      'svix-timestamp': validatedHeaders.svix_timestamp,
-      'svix-signature': validatedHeaders.svix_signature,
-    });
-
-    await handleWebhookEvent(event);
-
-    return new Response('Webhook received', { status: 200 });
-  } catch (error) {
-    console.error('Clerk webhook processing error:', error);
-    return new Response(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`, {
-      status: 400,
-    });
+  if (!svixId || !svixTimestamp || !svixSignature) {
+    return NextResponse.json({ error: 'Missing Clerk webhook headers' }, { status: 400 });
   }
+
+  if (!ENV_CONFIG.CLERK_SECRET_KEY) {
+    console.error('Missing CLERK_SIGNING_SECRET');
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+  }
+
+  const payload = await request.text();
+
+  const webhook = new Webhook(ENV_CONFIG.CLERK_SECRET_KEY);
+
+  let event: WebhookEvent;
+
+  try {
+    event = webhook.verify(payload, {
+      'svix-id': svixId,
+      'svix-timestamp': svixTimestamp,
+      'svix-signature': svixSignature,
+    }) as WebhookEvent;
+  } catch (error) {
+    console.error('Error verifying Clerk webhook:', error);
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  }
+
+  await handleWebhookEvent(event);
+
+  return NextResponse.json({ message: 'Webhook received' }, { status: 200 });
 }
 
 const handleWebhookEvent = async (event: WebhookEvent) => {
@@ -130,34 +138,24 @@ async function subscriberBuilder(response: WebhookEvent) {
 }
 
 async function payloadBuilder(response: WebhookEvent) {
+  // Clean the payload to remove null values and ensure type compatibility
+  const data = response.data as any; // eslint-disable-line @typescript-eslint/no-explicit-any
+  const cleanedData: Record<string, string | number | boolean | Record<string, unknown>> = {};
+
+  // Copy non-null values from data
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== null && value !== undefined) {
+      if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+        cleanedData[key] = value;
+      } else if (typeof value === 'object') {
+        cleanedData[key] = value as Record<string, unknown>;
+      }
+    }
+  }
+
   return {
-    ...response.data,
+    ...cleanedData,
     eventType: response.type,
     timestamp: Date.now(),
   };
 }
-
-const validateHeaders = (headerPayload: Headers) => {
-  const svix_id = headerPayload.get('svix-id');
-  const svix_timestamp = headerPayload.get('svix-timestamp');
-  const svix_signature = headerPayload.get('svix-signature');
-
-  if (!svix_id || !svix_timestamp || !svix_signature) {
-    throw new Error('Missing Svix headers');
-  }
-
-  return { svix_id, svix_timestamp, svix_signature };
-};
-
-const verifyWebhook = async (
-  webhook: Webhook,
-  body: string,
-  headers: { 'svix-id': string; 'svix-timestamp': string; 'svix-signature': string },
-): Promise<WebhookEvent> => {
-  try {
-    return webhook.verify(body, headers) as WebhookEvent;
-  } catch (err) {
-    console.error('Error: Could not verify Clerk webhook:', err);
-    throw new Error('Clerk webhook verification error');
-  }
-};
