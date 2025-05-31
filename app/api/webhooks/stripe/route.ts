@@ -759,50 +759,104 @@ export async function POST(request: NextRequest) {
         try {
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
 
-          // Check if this is a Multibanco payment (delayed payment method)
-          // Multibanco payments need slot reservations during the pending period
-          const hasMultibanco = paymentIntent.payment_method_types?.includes('multibanco');
+          // Update existing slot reservation with payment intent ID
+          // Reservations are now created immediately after session creation in create-payment-intent route
+          if (paymentIntent.metadata?.session_id) {
+            console.log(`🔗 Updating slot reservation with payment intent ID: ${paymentIntent.id}`);
 
-          if (hasMultibanco && paymentIntent.metadata?.meeting) {
+            try {
+              // Find and update the slot reservation with the session ID
+              const updatedReservations = await db
+                .update(SlotReservationTable)
+                .set({
+                  stripePaymentIntentId: paymentIntent.id,
+                  updatedAt: new Date(),
+                })
+                .where(eq(SlotReservationTable.stripeSessionId, paymentIntent.metadata.session_id))
+                .returning({
+                  id: SlotReservationTable.id,
+                  guestEmail: SlotReservationTable.guestEmail,
+                });
+
+              if (updatedReservations.length > 0) {
+                console.log(
+                  `✅ Updated ${updatedReservations.length} slot reservation(s) with payment intent ID`,
+                  {
+                    paymentIntentId: paymentIntent.id,
+                    sessionId: paymentIntent.metadata.session_id,
+                    reservationIds: updatedReservations.map((r) => r.id),
+                  },
+                );
+              } else {
+                console.warn(
+                  `⚠️ No slot reservation found for session ID: ${paymentIntent.metadata.session_id}`,
+                  {
+                    paymentIntentId: paymentIntent.id,
+                    sessionId: paymentIntent.metadata.session_id,
+                  },
+                );
+              }
+            } catch (updateError) {
+              console.error(
+                'Failed to update slot reservation with payment intent ID:',
+                updateError,
+              );
+              // Don't fail the payment intent creation - this is not critical for payment processing
+            }
+          } else {
             console.log(
-              `🏧 Multibanco payment detected - creating slot reservation for payment intent ${paymentIntent.id}`,
+              `💳 Payment intent created without session_id metadata: ${paymentIntent.id}`,
+            );
+          }
+
+          // Legacy support: Handle old Multibanco payments that might not have session-based reservations
+          const hasMultibanco = paymentIntent.payment_method_types?.includes('multibanco');
+          if (
+            hasMultibanco &&
+            paymentIntent.metadata?.meeting &&
+            !paymentIntent.metadata?.session_id
+          ) {
+            console.log(
+              `🏧 Legacy Multibanco payment detected - creating fallback reservation for payment intent ${paymentIntent.id}`,
             );
 
             try {
               // Parse meeting metadata to get slot details
               const meetingData = JSON.parse(paymentIntent.metadata.meeting);
 
-              // Create slot reservation for Multibanco payments
-              await db.insert(SlotReservationTable).values({
-                id: crypto.randomUUID(),
-                eventId: meetingData.id,
-                clerkUserId: meetingData.expert,
-                guestEmail: meetingData.guest,
-                startTime: new Date(meetingData.start),
-                endTime: new Date(
-                  new Date(meetingData.start).getTime() + meetingData.dur * 60 * 1000,
-                ),
-                expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours for Multibanco
-                stripePaymentIntentId: paymentIntent.id,
-                stripeSessionId: null, // Will be updated when session is available
-              });
+              // Create slot reservation for legacy Multibanco payments (fallback)
+              await db
+                .insert(SlotReservationTable)
+                .values({
+                  eventId: meetingData.id,
+                  clerkUserId: meetingData.expert,
+                  guestEmail: meetingData.guest,
+                  startTime: new Date(meetingData.start),
+                  endTime: new Date(
+                    new Date(meetingData.start).getTime() + meetingData.dur * 60 * 1000,
+                  ),
+                  expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours for Multibanco
+                  stripePaymentIntentId: paymentIntent.id,
+                  stripeSessionId: null,
+                })
+                .onConflictDoNothing({
+                  target: [
+                    SlotReservationTable.eventId,
+                    SlotReservationTable.startTime,
+                    SlotReservationTable.guestEmail,
+                  ],
+                });
 
               console.log(
-                `✅ Slot reserved for Multibanco payment: ${meetingData.guest} - expires in 24h`,
+                `✅ Legacy slot reservation created for Multibanco payment: ${meetingData.guest}`,
               );
             } catch (reservationError) {
-              console.error('Failed to create Multibanco slot reservation:', reservationError);
+              console.error(
+                'Failed to create legacy Multibanco slot reservation:',
+                reservationError,
+              );
               // Don't fail the payment intent creation - just log the error
             }
-          } else if (hasMultibanco) {
-            console.warn(
-              'Multibanco payment intent created but missing meeting metadata:',
-              paymentIntent.id,
-            );
-          } else {
-            console.log(
-              `💳 Immediate payment method detected - no reservation needed for ${paymentIntent.id}`,
-            );
           }
         } catch (error) {
           console.error('Error processing payment_intent.created:', error);

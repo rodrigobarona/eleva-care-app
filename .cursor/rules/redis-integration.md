@@ -502,3 +502,69 @@ async function checkRateLimit(identifier: string, action: string) {
 ```
 
 **Remember**: Always prioritize data consistency, security, and user experience when implementing Redis caching. When in doubt, favor conservative TTL values and comprehensive error handling.
+
+### Atomic Slot Reservation (Race Condition Prevention)
+
+**Critical Pattern**: Always use database transactions for slot reservation to prevent double-booking.
+
+```typescript
+// ✅ CORRECT: Atomic reservation with transaction
+await db.transaction(async (tx) => {
+  // Re-check conflicts within transaction
+  const conflictCheck = await tx.query.SlotReservationTable.findFirst({
+    where: and(
+      eq(SlotReservationTable.eventId, eventId),
+      eq(SlotReservationTable.startTime, startTime),
+      gt(SlotReservationTable.expiresAt, new Date()),
+    ),
+  });
+
+  if (conflictCheck) {
+    // Expire Stripe session and throw error
+    await stripe.checkout.sessions.expire(sessionId);
+    throw new Error(`Race condition detected: conflicting user: ${conflictCheck.guestEmail}`);
+  }
+
+  // Create reservation with conflict handling
+  const reservation = await tx.insert(SlotReservationTable).values({
+    eventId,
+    clerkUserId,
+    guestEmail,
+    startTime,
+    endTime,
+    expiresAt,
+    stripeSessionId: sessionId,
+  }).onConflictDoNothing({
+    target: [SlotReservationTable.eventId, SlotReservationTable.startTime, SlotReservationTable.guestEmail],
+  }).returning({ id: SlotReservationTable.id });
+
+  // Validate insertion success
+  if (reservation.length === 0) {
+    throw new Error('Unique constraint violation: Another reservation exists');
+  }
+
+  return reservation[0];
+});
+```
+
+```typescript
+// ❌ WRONG: Non-atomic check + insert (race condition vulnerability)
+const existing = await db.query.SlotReservationTable.findFirst({...});
+if (existing) {
+  return conflict;
+}
+// [GAP: Another request can create reservation here]
+await db.insert(SlotReservationTable).values({...}); // Race condition!
+```
+
+**Implementation Checklist**:
+- ✅ Wrap check + insert in `db.transaction()`
+- ✅ Use `onConflictDoNothing()` with unique constraint targeting
+- ✅ Validate insertion success (check returned array length)
+- ✅ Expire Stripe sessions on conflicts
+- ✅ Return appropriate HTTP status codes (409 for races, 500 for failures)
+- ✅ Link payment intents to reservations via session_id metadata
+
+### Core Cache Utilities
+
+All cache utilities use **object literal pattern** (not static classes):

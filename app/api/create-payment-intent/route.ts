@@ -732,7 +732,10 @@ export async function POST(request: NextRequest) {
         transfer_data: {
           destination: expertStripeAccountId,
         },
-        metadata: sharedMetadata,
+        metadata: {
+          ...sharedMetadata,
+          session_id: '', // Will be updated after session creation
+        },
       },
     });
 
@@ -740,6 +743,146 @@ export async function POST(request: NextRequest) {
       sessionId: session.id,
       url: session.url,
     });
+
+    // **IMPORTANT: Update payment intent with session ID for webhook linking**
+    if (session.payment_intent) {
+      try {
+        await stripe.paymentIntents.update(session.payment_intent.toString(), {
+          metadata: {
+            session_id: session.id,
+          },
+        });
+        console.log('✅ Payment intent updated with session ID:', {
+          paymentIntentId: session.payment_intent,
+          sessionId: session.id,
+        });
+      } catch (updateError) {
+        console.error('Failed to update payment intent with session ID:', updateError);
+        // Continue execution - this is not critical for the immediate flow
+      }
+    }
+
+    // **CRITICAL: Create slot reservation immediately after session creation to prevent race conditions**
+    // This must be done atomically to prevent double-booking between concurrent requests
+    try {
+      const endTime = new Date(
+        appointmentStartTime.getTime() + event.durationInMinutes * 60 * 1000,
+      );
+
+      // Use database transaction to ensure atomicity of check + insert
+      await db.transaction(async (tx) => {
+        // Re-check for conflicts within transaction to prevent race conditions
+        const conflictCheck = await tx.query.SlotReservationTable.findFirst({
+          where: and(
+            eq(SlotReservationTable.eventId, eventId),
+            eq(SlotReservationTable.startTime, appointmentStartTime),
+            gt(SlotReservationTable.expiresAt, new Date()),
+          ),
+        });
+
+        // Also check for confirmed meetings within transaction
+        const meetingConflictCheck = await tx.query.MeetingTable.findFirst({
+          where: and(
+            eq(MeetingTable.eventId, eventId),
+            eq(MeetingTable.startTime, appointmentStartTime),
+            eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+          ),
+        });
+
+        if (conflictCheck || meetingConflictCheck) {
+          // If conflict detected within transaction, delete the Stripe session and fail
+          try {
+            await stripe.checkout.sessions.expire(session.id);
+            console.log(
+              'Expired Stripe session due to conflict detected in transaction:',
+              session.id,
+            );
+          } catch (expireError) {
+            console.error('Failed to expire Stripe session after conflict:', expireError);
+          }
+
+          const conflictType = conflictCheck ? 'slot reservation' : 'confirmed meeting';
+          const conflictEmail = conflictCheck?.guestEmail || meetingConflictCheck?.guestEmail;
+
+          throw new Error(
+            `Race condition detected: ${conflictType} exists for this slot (conflicting user: ${conflictEmail})`,
+          );
+        }
+
+        // Create slot reservation within transaction
+        const slotReservation = await tx
+          .insert(SlotReservationTable)
+          .values({
+            eventId: eventId,
+            clerkUserId: event.clerkUserId,
+            guestEmail: meetingData.guestEmail,
+            startTime: appointmentStartTime,
+            endTime: endTime,
+            expiresAt: paymentExpiresAt,
+            stripeSessionId: session.id,
+            stripePaymentIntentId: null, // Will be updated when payment intent is created
+          })
+          .onConflictDoNothing({
+            target: [
+              SlotReservationTable.eventId,
+              SlotReservationTable.startTime,
+              SlotReservationTable.guestEmail,
+            ],
+          })
+          .returning({ id: SlotReservationTable.id });
+
+        // Check if the insert was successful (not conflicted)
+        if (slotReservation.length === 0) {
+          throw new Error(
+            'Unique constraint violation: Another reservation exists for this slot and user combination',
+          );
+        }
+
+        console.log('✅ Slot reservation created successfully in transaction:', {
+          reservationId: slotReservation[0].id,
+          sessionId: session.id,
+          guestEmail: meetingData.guestEmail,
+          startTime: appointmentStartTime.toISOString(),
+          expiresAt: paymentExpiresAt.toISOString(),
+        });
+      });
+
+      console.log('🔒 Slot reserved atomically - no race condition possible');
+    } catch (reservationError) {
+      console.error('Failed to create slot reservation:', reservationError);
+
+      // If we can't reserve the slot, we should not allow the user to proceed
+      // Expire the Stripe session since the slot cannot be reserved
+      try {
+        await stripe.checkout.sessions.expire(session.id);
+        console.log('Expired Stripe session due to reservation failure:', session.id);
+      } catch (expireError) {
+        console.error('Failed to expire Stripe session after reservation failure:', expireError);
+      }
+
+      // Return appropriate error based on the reservation failure
+      if (
+        reservationError instanceof Error &&
+        reservationError.message.includes('Race condition detected')
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              'This time slot was just booked by another user. Please choose a different time.',
+            code: 'SLOT_RACE_CONDITION',
+          },
+          { status: 409 },
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error: 'Failed to reserve the time slot. Please try again.',
+          code: 'SLOT_RESERVATION_FAILED',
+        },
+        { status: 500 },
+      );
+    }
 
     // **IDEMPOTENCY: Cache the successful result**
     if (idempotencyKey && session.url) {
