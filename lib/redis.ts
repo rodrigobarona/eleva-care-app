@@ -132,6 +132,67 @@ class RedisManager {
   }
 
   /**
+   * Atomically increment a numeric value
+   */
+  async incr(key: string, increment: number = 1): Promise<number> {
+    if (this.isRedisAvailable && this.redis) {
+      try {
+        return await this.redis.incrby(key, increment);
+      } catch (error) {
+        console.error('Redis INCR error:', error);
+        // Fallback to non-atomic in-memory increment
+      }
+    }
+
+    // In-memory fallback (non-atomic)
+    const current = await this.get(key);
+    const newValue = parseInt(current || '0') + increment;
+    await this.set(key, newValue.toString());
+    return newValue;
+  }
+
+  /**
+   * Set expiration on an existing key
+   */
+  async expire(key: string, seconds: number): Promise<boolean> {
+    if (this.isRedisAvailable && this.redis) {
+      try {
+        const result = await this.redis.expire(key, seconds);
+        return result === 1;
+      } catch (error) {
+        console.error('Redis EXPIRE error:', error);
+        // Fallback to in-memory cache
+      }
+    }
+
+    // In-memory fallback
+    const cached = this.inMemoryCache.get(key);
+    if (cached) {
+      cached.expiresAt = Date.now() + seconds * 1000;
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Get multiple values by keys
+   */
+  async mget(keys: string[]): Promise<(string | null)[]> {
+    if (this.isRedisAvailable && this.redis) {
+      try {
+        const results = await this.redis.mget(...keys);
+        return results as (string | null)[];
+      } catch (error) {
+        console.error('Redis MGET error:', error);
+        // Fallback to individual gets
+      }
+    }
+
+    // In-memory fallback
+    return Promise.all(keys.map((key) => this.get(key)));
+  }
+
+  /**
    * Set a key with expiration using Unix timestamp
    */
   async setWithTimestamp(key: string, value: string, expiresAt: number): Promise<void> {
@@ -192,30 +253,33 @@ class RedisManager {
 export const redisManager = new RedisManager();
 
 /**
+ * Idempotency cache constants and functions
+ */
+const IDEMPOTENCY_CACHE_PREFIX = 'idempotency:';
+const IDEMPOTENCY_DEFAULT_TTL_SECONDS = 600; // 10 minutes
+
+/**
  * Idempotency cache utility for API endpoints
  */
-export class IdempotencyCache {
-  private static readonly CACHE_PREFIX = 'idempotency:';
-  private static readonly DEFAULT_TTL_SECONDS = 600; // 10 minutes
-
+export const IdempotencyCache = {
   /**
    * Store an idempotency result
    */
-  static async set(
+  async set(
     key: string,
     result: { url: string },
-    ttlSeconds: number = this.DEFAULT_TTL_SECONDS,
+    ttlSeconds: number = IDEMPOTENCY_DEFAULT_TTL_SECONDS,
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + key;
+    const cacheKey = IDEMPOTENCY_CACHE_PREFIX + key;
     const value = JSON.stringify(result);
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get an idempotency result
    */
-  static async get(key: string): Promise<{ url: string } | null> {
-    const cacheKey = this.CACHE_PREFIX + key;
+  async get(key: string): Promise<{ url: string } | null> {
+    const cacheKey = IDEMPOTENCY_CACHE_PREFIX + key;
     const cached = await redisManager.get(cacheKey);
 
     if (cached) {
@@ -229,46 +293,49 @@ export class IdempotencyCache {
     }
 
     return null;
-  }
+  },
 
   /**
    * Check if an idempotency key exists
    */
-  static async exists(key: string): Promise<boolean> {
-    const cacheKey = this.CACHE_PREFIX + key;
+  async exists(key: string): Promise<boolean> {
+    const cacheKey = IDEMPOTENCY_CACHE_PREFIX + key;
     return await redisManager.exists(cacheKey);
-  }
+  },
 
   /**
    * Delete an idempotency key
    */
-  static async delete(key: string): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + key;
+  async delete(key: string): Promise<void> {
+    const cacheKey = IDEMPOTENCY_CACHE_PREFIX + key;
     await redisManager.del(cacheKey);
-  }
+  },
 
   /**
    * Clean up expired entries (not needed for Redis as it handles TTL automatically)
    * This method is kept for compatibility and debugging
    */
-  static async cleanup(): Promise<void> {
+  async cleanup(): Promise<void> {
     // Redis handles TTL automatically, so this is a no-op for Redis
     // For in-memory cache, cleanup happens automatically in get operations
     console.log('Idempotency cache cleanup requested (automatic with Redis)');
-  }
-}
+  },
+};
+
+/**
+ * Form cache constants
+ */
+const FORM_CACHE_PREFIX = 'form:';
+const FORM_DEFAULT_TTL_SECONDS = 300; // 5 minutes
 
 /**
  * Form cache utility for frontend duplicate prevention
  */
-export class FormCache {
-  private static readonly CACHE_PREFIX = 'form:';
-  private static readonly DEFAULT_TTL_SECONDS = 300; // 5 minutes
-
+export const FormCache = {
   /**
    * Store a form submission state
    */
-  static async set(
+  async set(
     key: string,
     formData: {
       eventId: string;
@@ -277,24 +344,24 @@ export class FormCache {
       status: 'processing' | 'completed' | 'failed';
       timestamp: number;
     },
-    ttlSeconds: number = this.DEFAULT_TTL_SECONDS,
+    ttlSeconds: number = FORM_DEFAULT_TTL_SECONDS,
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + key;
+    const cacheKey = FORM_CACHE_PREFIX + key;
     const value = JSON.stringify(formData);
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get a form submission state
    */
-  static async get(key: string): Promise<{
+  async get(key: string): Promise<{
     eventId: string;
     guestEmail: string;
     startTime: string;
     status: 'processing' | 'completed' | 'failed';
     timestamp: number;
   } | null> {
-    const cacheKey = this.CACHE_PREFIX + key;
+    const cacheKey = FORM_CACHE_PREFIX + key;
     const cached = await redisManager.get(cacheKey);
 
     if (cached) {
@@ -308,55 +375,55 @@ export class FormCache {
     }
 
     return null;
-  }
+  },
 
   /**
    * Check if a form submission is in progress
    */
-  static async isProcessing(key: string): Promise<boolean> {
-    const cached = await this.get(key);
+  async isProcessing(key: string): Promise<boolean> {
+    const cached = await FormCache.get(key);
     return cached?.status === 'processing';
-  }
+  },
 
   /**
    * Mark form submission as completed
    */
-  static async markCompleted(key: string): Promise<void> {
-    const cached = await this.get(key);
+  async markCompleted(key: string): Promise<void> {
+    const cached = await FormCache.get(key);
     if (cached) {
       cached.status = 'completed';
       cached.timestamp = Date.now();
-      await this.set(key, cached);
+      await FormCache.set(key, cached);
     }
-  }
+  },
 
   /**
    * Mark form submission as failed
    */
-  static async markFailed(key: string): Promise<void> {
-    const cached = await this.get(key);
+  async markFailed(key: string): Promise<void> {
+    const cached = await FormCache.get(key);
     if (cached) {
       cached.status = 'failed';
       cached.timestamp = Date.now();
-      await this.set(key, cached);
+      await FormCache.set(key, cached);
     }
-  }
+  },
 
   /**
    * Delete a form submission cache entry
    */
-  static async delete(key: string): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + key;
+  async delete(key: string): Promise<void> {
+    const cacheKey = FORM_CACHE_PREFIX + key;
     await redisManager.del(cacheKey);
-  }
+  },
 
   /**
    * Generate a unique key for form submission
    */
-  static generateKey(eventId: string, guestEmail: string, startTime: string): string {
+  generateKey(eventId: string, guestEmail: string, startTime: string): string {
     return `${eventId}-${guestEmail}-${startTime}`.replace(/[^a-zA-Z0-9-_]/g, '_');
-  }
-}
+  },
+};
 
 /**
  * Types for cached data structures
@@ -385,34 +452,37 @@ interface CachedSubscriptionData {
 }
 
 /**
+ * Customer cache constants
+ */
+const CUSTOMER_CACHE_PREFIX = 'customer:';
+const CUSTOMER_USER_PREFIX = 'user:';
+const CUSTOMER_EMAIL_PREFIX = 'email:';
+const CUSTOMER_SUBSCRIPTION_PREFIX = 'subscription:';
+const CUSTOMER_DEFAULT_TTL_SECONDS = 86400; // 24 hours
+
+/**
  * Customer cache utility for Stripe customer/session data
  * Consolidates the existing KV store functionality from lib/stripe.ts
  */
-export class CustomerCache {
-  private static readonly CACHE_PREFIX = 'customer:';
-  private static readonly USER_PREFIX = 'user:';
-  private static readonly EMAIL_PREFIX = 'email:';
-  private static readonly SUBSCRIPTION_PREFIX = 'subscription:';
-  private static readonly DEFAULT_TTL_SECONDS = 86400; // 24 hours
-
+export const CustomerCache = {
   /**
    * Store customer data by Stripe customer ID
    */
-  static async setCustomer(
+  async setCustomer(
     customerId: string,
     customerData: CachedCustomerData,
-    ttlSeconds: number = this.DEFAULT_TTL_SECONDS,
+    ttlSeconds: number = CUSTOMER_DEFAULT_TTL_SECONDS,
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + customerId;
+    const cacheKey = CUSTOMER_CACHE_PREFIX + customerId;
     const value = JSON.stringify(customerData);
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get customer data by Stripe customer ID
    */
-  static async getCustomer(customerId: string): Promise<CachedCustomerData | null> {
-    const cacheKey = this.CACHE_PREFIX + customerId;
+  async getCustomer(customerId: string): Promise<CachedCustomerData | null> {
+    const cacheKey = CUSTOMER_CACHE_PREFIX + customerId;
     const cached = await redisManager.get(cacheKey);
 
     if (cached) {
@@ -425,66 +495,66 @@ export class CustomerCache {
     }
 
     return null;
-  }
+  },
 
   /**
    * Store user ID to customer ID mapping
    */
-  static async setUserMapping(
+  async setUserMapping(
     userId: string,
     customerId: string,
-    ttlSeconds: number = this.DEFAULT_TTL_SECONDS,
+    ttlSeconds: number = CUSTOMER_DEFAULT_TTL_SECONDS,
   ): Promise<void> {
-    const cacheKey = this.USER_PREFIX + userId;
+    const cacheKey = CUSTOMER_USER_PREFIX + userId;
     await redisManager.set(cacheKey, customerId, ttlSeconds);
-  }
+  },
 
   /**
    * Get customer ID by user ID
    */
-  static async getCustomerByUserId(userId: string): Promise<string | null> {
-    const cacheKey = this.USER_PREFIX + userId;
+  async getCustomerByUserId(userId: string): Promise<string | null> {
+    const cacheKey = CUSTOMER_USER_PREFIX + userId;
     return await redisManager.get(cacheKey);
-  }
+  },
 
   /**
    * Store email to customer ID mapping
    */
-  static async setEmailMapping(
+  async setEmailMapping(
     email: string,
     customerId: string,
-    ttlSeconds: number = this.DEFAULT_TTL_SECONDS,
+    ttlSeconds: number = CUSTOMER_DEFAULT_TTL_SECONDS,
   ): Promise<void> {
-    const cacheKey = this.EMAIL_PREFIX + email;
+    const cacheKey = CUSTOMER_EMAIL_PREFIX + email;
     await redisManager.set(cacheKey, customerId, ttlSeconds);
-  }
+  },
 
   /**
    * Get customer ID by email
    */
-  static async getCustomerByEmail(email: string): Promise<string | null> {
-    const cacheKey = this.EMAIL_PREFIX + email;
+  async getCustomerByEmail(email: string): Promise<string | null> {
+    const cacheKey = CUSTOMER_EMAIL_PREFIX + email;
     return await redisManager.get(cacheKey);
-  }
+  },
 
   /**
    * Store subscription data
    */
-  static async setSubscription(
+  async setSubscription(
     subscriptionId: string,
     subscriptionData: CachedSubscriptionData,
-    ttlSeconds: number = this.DEFAULT_TTL_SECONDS,
+    ttlSeconds: number = CUSTOMER_DEFAULT_TTL_SECONDS,
   ): Promise<void> {
-    const cacheKey = this.SUBSCRIPTION_PREFIX + subscriptionId;
+    const cacheKey = CUSTOMER_SUBSCRIPTION_PREFIX + subscriptionId;
     const value = JSON.stringify(subscriptionData);
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get subscription data
    */
-  static async getSubscription(subscriptionId: string): Promise<CachedSubscriptionData | null> {
-    const cacheKey = this.SUBSCRIPTION_PREFIX + subscriptionId;
+  async getSubscription(subscriptionId: string): Promise<CachedSubscriptionData | null> {
+    const cacheKey = CUSTOMER_SUBSCRIPTION_PREFIX + subscriptionId;
     const cached = await redisManager.get(cacheKey);
 
     if (cached) {
@@ -497,31 +567,31 @@ export class CustomerCache {
     }
 
     return null;
-  }
+  },
 
   /**
    * Delete customer and all related mappings
    */
-  static async deleteCustomer(customerId: string, email?: string, userId?: string): Promise<void> {
-    const deletePromises = [redisManager.del(this.CACHE_PREFIX + customerId)];
+  async deleteCustomer(customerId: string, email?: string, userId?: string): Promise<void> {
+    const deletePromises = [redisManager.del(CUSTOMER_CACHE_PREFIX + customerId)];
 
     if (email) {
-      deletePromises.push(redisManager.del(this.EMAIL_PREFIX + email));
+      deletePromises.push(redisManager.del(CUSTOMER_EMAIL_PREFIX + email));
     }
 
     if (userId) {
-      deletePromises.push(redisManager.del(this.USER_PREFIX + userId));
+      deletePromises.push(redisManager.del(CUSTOMER_USER_PREFIX + userId));
     }
 
     await Promise.all(deletePromises);
-  }
+  },
 
   /**
    * Health check for customer cache
    */
-  static async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; message: string }> {
+  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; message: string }> {
     try {
-      const testKey = this.CACHE_PREFIX + 'health-check';
+      const testKey = CUSTOMER_CACHE_PREFIX + 'health-check';
       const testData = { test: true, timestamp: Date.now() };
 
       await redisManager.set(testKey, JSON.stringify(testData), 10);
@@ -539,32 +609,35 @@ export class CustomerCache {
         message: `Customer cache error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
-  }
-}
+  },
+};
 
 export default redisManager;
 
 /**
+ * Rate limiting cache constants
+ */
+const RATE_LIMIT_CACHE_PREFIX = 'rate_limit:';
+const RATE_LIMIT_DEFAULT_WINDOW_SECONDS = 300; // 5 minutes
+
+/**
  * Rate limiting cache utility for API endpoints and user actions
  */
-export class RateLimitCache {
-  private static readonly CACHE_PREFIX = 'rate_limit:';
-  private static readonly DEFAULT_WINDOW_SECONDS = 300; // 5 minutes
-
+export const RateLimitCache = {
   /**
    * Check if a rate limit has been exceeded
    */
-  static async checkRateLimit(
+  async checkRateLimit(
     key: string,
     maxAttempts: number,
-    windowSeconds: number = this.DEFAULT_WINDOW_SECONDS,
+    windowSeconds: number = RATE_LIMIT_DEFAULT_WINDOW_SECONDS,
   ): Promise<{
     allowed: boolean;
     remaining: number;
     resetTime: number;
     totalHits: number;
   }> {
-    const cacheKey = this.CACHE_PREFIX + key;
+    const cacheKey = RATE_LIMIT_CACHE_PREFIX + key;
     const now = Date.now();
     const windowStart = now - windowSeconds * 1000;
 
@@ -601,16 +674,16 @@ export class RateLimitCache {
         totalHits: 0,
       };
     }
-  }
+  },
 
   /**
    * Record a rate limit attempt
    */
-  static async recordAttempt(
+  async recordAttempt(
     key: string,
-    windowSeconds: number = this.DEFAULT_WINDOW_SECONDS,
+    windowSeconds: number = RATE_LIMIT_DEFAULT_WINDOW_SECONDS,
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + key;
+    const cacheKey = RATE_LIMIT_CACHE_PREFIX + key;
     const now = Date.now();
     const windowStart = now - windowSeconds * 1000;
 
@@ -630,38 +703,38 @@ export class RateLimitCache {
       console.error('Failed to record rate limit attempt:', error);
       // Continue execution even if recording fails
     }
-  }
+  },
 
   /**
    * Reset rate limit for a specific key
    */
-  static async resetRateLimit(key: string): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + key;
+  async resetRateLimit(key: string): Promise<void> {
+    const cacheKey = RATE_LIMIT_CACHE_PREFIX + key;
     await redisManager.del(cacheKey);
-  }
+  },
 
   /**
    * Get rate limit status without recording an attempt
    */
-  static async getRateLimitStatus(
+  async getRateLimitStatus(
     key: string,
     maxAttempts: number,
-    windowSeconds: number = this.DEFAULT_WINDOW_SECONDS,
+    windowSeconds: number = RATE_LIMIT_DEFAULT_WINDOW_SECONDS,
   ): Promise<{
     attempts: number;
     remaining: number;
     resetTime: number;
     blocked: boolean;
   }> {
-    const result = await this.checkRateLimit(key, maxAttempts, windowSeconds);
+    const result = await RateLimitCache.checkRateLimit(key, maxAttempts, windowSeconds);
     return {
       attempts: result.totalHits,
       remaining: result.remaining,
       resetTime: result.resetTime,
       blocked: !result.allowed,
     };
-  }
-}
+  },
+};
 
 /**
  * Notification queue interfaces
@@ -684,17 +757,20 @@ export interface NotificationBatchData {
 }
 
 /**
+ * Notification queue cache constants
+ */
+const NOTIFICATION_QUEUE_CACHE_PREFIX = 'notification_queue:';
+const NOTIFICATION_BATCH_PREFIX = 'notification_batch:';
+const NOTIFICATION_DEFAULT_TTL_SECONDS = 3600; // 1 hour
+
+/**
  * Notification queue cache for managing notification delivery and batching
  */
-export class NotificationQueueCache {
-  private static readonly CACHE_PREFIX = 'notification_queue:';
-  private static readonly BATCH_PREFIX = 'notification_batch:';
-  private static readonly DEFAULT_TTL_SECONDS = 3600; // 1 hour
-
+export const NotificationQueueCache = {
   /**
    * Queue a notification for batch processing
    */
-  static async queueNotification(
+  async queueNotification(
     userId: string,
     notification: {
       type: string;
@@ -705,7 +781,7 @@ export class NotificationQueueCache {
       scheduledFor?: Date;
     },
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + userId;
+    const cacheKey = NOTIFICATION_QUEUE_CACHE_PREFIX + userId;
     const now = Date.now();
 
     const queueItem: QueuedNotification = {
@@ -737,21 +813,18 @@ export class NotificationQueueCache {
 
       // Store updated queue
       const value = JSON.stringify(queue);
-      await redisManager.set(cacheKey, value, this.DEFAULT_TTL_SECONDS);
+      await redisManager.set(cacheKey, value, NOTIFICATION_DEFAULT_TTL_SECONDS);
     } catch (error) {
       console.error('Failed to queue notification:', error);
       throw error;
     }
-  }
+  },
 
   /**
    * Get pending notifications for a user
    */
-  static async getPendingNotifications(
-    userId: string,
-    limit: number = 10,
-  ): Promise<QueuedNotification[]> {
-    const cacheKey = this.CACHE_PREFIX + userId;
+  async getPendingNotifications(userId: string, limit: number = 10): Promise<QueuedNotification[]> {
+    const cacheKey = NOTIFICATION_QUEUE_CACHE_PREFIX + userId;
     const now = Date.now();
 
     try {
@@ -766,16 +839,13 @@ export class NotificationQueueCache {
       console.error('Failed to get pending notifications:', error);
       return [];
     }
-  }
+  },
 
   /**
    * Remove processed notifications from queue
    */
-  static async removeProcessedNotifications(
-    userId: string,
-    notificationIds: string[],
-  ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + userId;
+  async removeProcessedNotifications(userId: string, notificationIds: string[]): Promise<void> {
+    const cacheKey = NOTIFICATION_QUEUE_CACHE_PREFIX + userId;
 
     try {
       const cached = await redisManager.get(cacheKey);
@@ -790,22 +860,22 @@ export class NotificationQueueCache {
         await redisManager.del(cacheKey);
       } else {
         const value = JSON.stringify(queue);
-        await redisManager.set(cacheKey, value, this.DEFAULT_TTL_SECONDS);
+        await redisManager.set(cacheKey, value, NOTIFICATION_DEFAULT_TTL_SECONDS);
       }
     } catch (error) {
       console.error('Failed to remove processed notifications:', error);
     }
-  }
+  },
 
   /**
    * Create a batch key for grouping notifications
    */
-  static async createBatch(
+  async createBatch(
     batchId: string,
     notifications: Array<{ userId: string; notification: QueuedNotification }>,
     ttlSeconds: number = 1800, // 30 minutes
   ): Promise<void> {
-    const cacheKey = this.BATCH_PREFIX + batchId;
+    const cacheKey = NOTIFICATION_BATCH_PREFIX + batchId;
     const batchData: NotificationBatchData = {
       notifications,
       createdAt: Date.now(),
@@ -813,98 +883,96 @@ export class NotificationQueueCache {
     };
     const value = JSON.stringify(batchData);
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get batch for processing
    */
-  static async getBatch(batchId: string): Promise<NotificationBatchData | null> {
-    const cacheKey = this.BATCH_PREFIX + batchId;
+  async getBatch(batchId: string): Promise<NotificationBatchData | null> {
+    const cacheKey = NOTIFICATION_BATCH_PREFIX + batchId;
     const cached = await redisManager.get(cacheKey);
     return cached ? JSON.parse(cached) : null;
-  }
-}
+  },
+};
+
+/**
+ * Analytics cache constants
+ */
+const ANALYTICS_CACHE_PREFIX = 'analytics:';
+const ANALYTICS_METRICS_PREFIX = 'metrics:';
+const ANALYTICS_DEFAULT_TTL_SECONDS = 1800; // 30 minutes
 
 /**
  * Analytics cache for metrics and performance data
  */
-export class AnalyticsCache {
-  private static readonly CACHE_PREFIX = 'analytics:';
-  private static readonly METRICS_PREFIX = 'metrics:';
-  private static readonly DEFAULT_TTL_SECONDS = 1800; // 30 minutes
-
+export const AnalyticsCache = {
   /**
    * Cache analytics data
    */
-  static async cacheAnalytics(
+  async cacheAnalytics(
     key: string,
     data: Record<string, unknown>,
-    ttlSeconds: number = this.DEFAULT_TTL_SECONDS,
+    ttlSeconds: number = ANALYTICS_DEFAULT_TTL_SECONDS,
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + key;
+    const cacheKey = ANALYTICS_CACHE_PREFIX + key;
     const value = JSON.stringify({
       data,
       cachedAt: Date.now(),
     });
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get cached analytics data
    */
-  static async getAnalytics(key: string): Promise<{
+  async getAnalytics(key: string): Promise<{
     data: Record<string, unknown>;
     cachedAt: number;
   } | null> {
-    const cacheKey = this.CACHE_PREFIX + key;
+    const cacheKey = ANALYTICS_CACHE_PREFIX + key;
     const cached = await redisManager.get(cacheKey);
     return cached ? JSON.parse(cached) : null;
-  }
+  },
 
   /**
-   * Increment a metric counter
+   * Increment a metric counter atomically
    */
-  static async incrementMetric(
+  async incrementMetric(
     metricKey: string,
     increment: number = 1,
     windowSeconds: number = 3600, // 1 hour
   ): Promise<number> {
-    const cacheKey = this.METRICS_PREFIX + metricKey;
+    const cacheKey = ANALYTICS_METRICS_PREFIX + metricKey;
 
     try {
-      // Check if key exists
-      const exists = await redisManager.exists(cacheKey);
+      // Use atomic increment operation
+      const newValue = await redisManager.incr(cacheKey, increment);
 
-      if (!exists) {
-        // Create new metric with TTL
-        await redisManager.set(cacheKey, increment.toString(), windowSeconds);
-        return increment;
-      } else {
-        // Increment existing metric
-        const current = await redisManager.get(cacheKey);
-        const newValue = parseInt(current || '0') + increment;
-        await redisManager.set(cacheKey, newValue.toString(), windowSeconds);
-        return newValue;
+      // Set TTL if this was the first increment
+      if (newValue === increment) {
+        await redisManager.expire(cacheKey, windowSeconds);
       }
+
+      return newValue;
     } catch (error) {
       console.error('Failed to increment metric:', error);
       return increment; // Return the increment as fallback
     }
-  }
+  },
 
   /**
    * Get metric value
    */
-  static async getMetric(metricKey: string): Promise<number> {
-    const cacheKey = this.METRICS_PREFIX + metricKey;
+  async getMetric(metricKey: string): Promise<number> {
+    const cacheKey = ANALYTICS_METRICS_PREFIX + metricKey;
     const cached = await redisManager.get(cacheKey);
     return cached ? parseInt(cached) : 0;
-  }
+  },
 
   /**
    * Cache PostHog analytics data
    */
-  static async cachePostHogData(
+  async cachePostHogData(
     userId: string,
     eventData: Record<string, unknown>,
     ttlSeconds: number = 86400, // 24 hours
@@ -912,20 +980,23 @@ export class AnalyticsCache {
     const cacheKey = `posthog:user:${userId}:${Date.now()}`;
     const value = JSON.stringify(eventData);
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
-}
+  },
+};
+
+/**
+ * Session cache constants
+ */
+const SESSION_CACHE_PREFIX = 'session:';
+const SESSION_DEFAULT_TTL_SECONDS = 86400; // 24 hours
 
 /**
  * Session enhancement cache for storing additional session data
  */
-export class SessionCache {
-  private static readonly CACHE_PREFIX = 'session:';
-  private static readonly DEFAULT_TTL_SECONDS = 86400; // 24 hours
-
+export const SessionCache = {
   /**
    * Store enhanced session data
    */
-  static async setSessionData(
+  async setSessionData(
     sessionId: string,
     data: {
       userId: string;
@@ -934,20 +1005,20 @@ export class SessionCache {
       deviceInfo?: Record<string, unknown>;
       preferences?: Record<string, unknown>;
     },
-    ttlSeconds: number = this.DEFAULT_TTL_SECONDS,
+    ttlSeconds: number = SESSION_DEFAULT_TTL_SECONDS,
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + sessionId;
+    const cacheKey = SESSION_CACHE_PREFIX + sessionId;
     const value = JSON.stringify({
       ...data,
       updatedAt: Date.now(),
     });
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get enhanced session data
    */
-  static async getSessionData(sessionId: string): Promise<{
+  async getSessionData(sessionId: string): Promise<{
     userId: string;
     roles: string[];
     lastActivity: number;
@@ -955,19 +1026,16 @@ export class SessionCache {
     preferences?: Record<string, unknown>;
     updatedAt: number;
   } | null> {
-    const cacheKey = this.CACHE_PREFIX + sessionId;
+    const cacheKey = SESSION_CACHE_PREFIX + sessionId;
     const cached = await redisManager.get(cacheKey);
     return cached ? JSON.parse(cached) : null;
-  }
+  },
 
   /**
    * Update session activity
    */
-  static async updateSessionActivity(
-    sessionId: string,
-    lastActivity: number = Date.now(),
-  ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + sessionId;
+  async updateSessionActivity(sessionId: string, lastActivity: number = Date.now()): Promise<void> {
+    const cacheKey = SESSION_CACHE_PREFIX + sessionId;
     const cached = await redisManager.get(cacheKey);
 
     if (cached) {
@@ -976,47 +1044,50 @@ export class SessionCache {
       sessionData.updatedAt = Date.now();
 
       const value = JSON.stringify(sessionData);
-      await redisManager.set(cacheKey, value, this.DEFAULT_TTL_SECONDS);
+      await redisManager.set(cacheKey, value, SESSION_DEFAULT_TTL_SECONDS);
     }
-  }
+  },
 
   /**
    * Remove session data
    */
-  static async removeSessionData(sessionId: string): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + sessionId;
+  async removeSessionData(sessionId: string): Promise<void> {
+    const cacheKey = SESSION_CACHE_PREFIX + sessionId;
     await redisManager.del(cacheKey);
-  }
-}
+  },
+};
+
+/**
+ * Database cache constants
+ */
+const DATABASE_CACHE_PREFIX = 'db:';
+const DATABASE_DEFAULT_TTL_SECONDS = 1800; // 30 minutes
 
 /**
  * Database query cache for frequently accessed data
  */
-export class DatabaseCache {
-  private static readonly CACHE_PREFIX = 'db:';
-  private static readonly DEFAULT_TTL_SECONDS = 1800; // 30 minutes
-
+export const DatabaseCache = {
   /**
    * Cache user data
    */
-  static async setUser(
+  async setUser(
     userId: string,
     userData: Record<string, unknown>,
-    ttlSeconds: number = this.DEFAULT_TTL_SECONDS,
+    ttlSeconds: number = DATABASE_DEFAULT_TTL_SECONDS,
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + `user:${userId}`;
+    const cacheKey = DATABASE_CACHE_PREFIX + `user:${userId}`;
     const value = JSON.stringify({
       ...userData,
       cachedAt: Date.now(),
     });
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get cached user data
    */
-  static async getUser(userId: string): Promise<Record<string, unknown> | null> {
-    const cacheKey = this.CACHE_PREFIX + `user:${userId}`;
+  async getUser(userId: string): Promise<Record<string, unknown> | null> {
+    const cacheKey = DATABASE_CACHE_PREFIX + `user:${userId}`;
     const cached = await redisManager.get(cacheKey);
 
     if (cached) {
@@ -1029,29 +1100,29 @@ export class DatabaseCache {
     }
 
     return null;
-  }
+  },
 
   /**
    * Cache expert profile with events and availability
    */
-  static async setExpertProfile(
+  async setExpertProfile(
     userId: string,
     profileData: Record<string, unknown>,
     ttlSeconds: number = 600, // 10 minutes for profiles (more dynamic data)
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + `profile:${userId}`;
+    const cacheKey = DATABASE_CACHE_PREFIX + `profile:${userId}`;
     const value = JSON.stringify({
       ...profileData,
       cachedAt: Date.now(),
     });
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get cached expert profile
    */
-  static async getExpertProfile(userId: string): Promise<Record<string, unknown> | null> {
-    const cacheKey = this.CACHE_PREFIX + `profile:${userId}`;
+  async getExpertProfile(userId: string): Promise<Record<string, unknown> | null> {
+    const cacheKey = DATABASE_CACHE_PREFIX + `profile:${userId}`;
     const cached = await redisManager.get(cacheKey);
 
     if (cached) {
@@ -1064,29 +1135,29 @@ export class DatabaseCache {
     }
 
     return null;
-  }
+  },
 
   /**
    * Cache dashboard analytics for customers/experts
    */
-  static async setDashboardData(
+  async setDashboardData(
     userId: string,
     dashboardData: Record<string, unknown>,
     ttlSeconds: number = 900, // 15 minutes
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + `dashboard:${userId}`;
+    const cacheKey = DATABASE_CACHE_PREFIX + `dashboard:${userId}`;
     const value = JSON.stringify({
       ...dashboardData,
       cachedAt: Date.now(),
     });
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get cached dashboard data
    */
-  static async getDashboardData(userId: string): Promise<Record<string, unknown> | null> {
-    const cacheKey = this.CACHE_PREFIX + `dashboard:${userId}`;
+  async getDashboardData(userId: string): Promise<Record<string, unknown> | null> {
+    const cacheKey = DATABASE_CACHE_PREFIX + `dashboard:${userId}`;
     const cached = await redisManager.get(cacheKey);
 
     if (cached) {
@@ -1099,27 +1170,27 @@ export class DatabaseCache {
     }
 
     return null;
-  }
+  },
 
   /**
    * Invalidate all cached data for a user
    */
-  static async invalidateUser(userId: string): Promise<void> {
+  async invalidateUser(userId: string): Promise<void> {
     const keysToDelete = [
-      this.CACHE_PREFIX + `user:${userId}`,
-      this.CACHE_PREFIX + `profile:${userId}`,
-      this.CACHE_PREFIX + `dashboard:${userId}`,
+      DATABASE_CACHE_PREFIX + `user:${userId}`,
+      DATABASE_CACHE_PREFIX + `profile:${userId}`,
+      DATABASE_CACHE_PREFIX + `dashboard:${userId}`,
     ];
 
     await Promise.all(keysToDelete.map((key) => redisManager.del(key)));
-  }
+  },
 
   /**
    * Health check for database cache
    */
-  static async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; message: string }> {
+  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; message: string }> {
     try {
-      const testKey = this.CACHE_PREFIX + 'health-check';
+      const testKey = DATABASE_CACHE_PREFIX + 'health-check';
       const testData = { test: true, timestamp: Date.now() };
 
       await redisManager.set(testKey, JSON.stringify(testData), 10);
@@ -1137,25 +1208,28 @@ export class DatabaseCache {
         message: `Database cache error: ${error instanceof Error ? error.message : 'Unknown error'}`,
       };
     }
-  }
-}
+  },
+};
+
+/**
+ * Temporary data cache constants
+ */
+const TEMP_DATA_CACHE_PREFIX = 'temp:';
 
 /**
  * Temporary data storage for multi-step processes
  */
-export class TempDataCache {
-  private static readonly CACHE_PREFIX = 'temp:';
-
+export const TempDataCache = {
   /**
    * Store setup progress for expert onboarding
    */
-  static async storeSetupProgress(
+  async storeSetupProgress(
     userId: string,
     step: string,
     data: Record<string, unknown>,
     ttlSeconds: number = 3600, // 1 hour
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + `setup:${userId}:${step}`;
+    const cacheKey = TEMP_DATA_CACHE_PREFIX + `setup:${userId}:${step}`;
     const value = JSON.stringify({
       ...data,
       step,
@@ -1163,16 +1237,13 @@ export class TempDataCache {
       timestamp: Date.now(),
     });
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get setup progress
    */
-  static async getSetupProgress(
-    userId: string,
-    step: string,
-  ): Promise<Record<string, unknown> | null> {
-    const cacheKey = this.CACHE_PREFIX + `setup:${userId}:${step}`;
+  async getSetupProgress(userId: string, step: string): Promise<Record<string, unknown> | null> {
+    const cacheKey = TEMP_DATA_CACHE_PREFIX + `setup:${userId}:${step}`;
     const cached = await redisManager.get(cacheKey);
 
     if (cached) {
@@ -1185,30 +1256,30 @@ export class TempDataCache {
     }
 
     return null;
-  }
+  },
 
   /**
    * Store OAuth state data
    */
-  static async storeOAuthState(
+  async storeOAuthState(
     state: string,
     data: Record<string, unknown>,
     ttlSeconds: number = 900, // 15 minutes
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + `oauth:${state}`;
+    const cacheKey = TEMP_DATA_CACHE_PREFIX + `oauth:${state}`;
     const value = JSON.stringify({
       ...data,
       state,
       timestamp: Date.now(),
     });
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get and consume OAuth state (one-time use)
    */
-  static async getOAuthState(state: string): Promise<Record<string, unknown> | null> {
-    const cacheKey = this.CACHE_PREFIX + `oauth:${state}`;
+  async getOAuthState(state: string): Promise<Record<string, unknown> | null> {
+    const cacheKey = TEMP_DATA_CACHE_PREFIX + `oauth:${state}`;
     const cached = await redisManager.get(cacheKey);
 
     if (cached) {
@@ -1222,30 +1293,30 @@ export class TempDataCache {
     }
 
     return null;
-  }
+  },
 
   /**
    * Store verification tokens
    */
-  static async storeVerificationToken(
+  async storeVerificationToken(
     token: string,
     data: Record<string, unknown>,
     ttlSeconds: number = 3600, // 1 hour
   ): Promise<void> {
-    const cacheKey = this.CACHE_PREFIX + `verification:${token}`;
+    const cacheKey = TEMP_DATA_CACHE_PREFIX + `verification:${token}`;
     const value = JSON.stringify({
       ...data,
       token,
       timestamp: Date.now(),
     });
     await redisManager.set(cacheKey, value, ttlSeconds);
-  }
+  },
 
   /**
    * Get and consume verification token (one-time use)
    */
-  static async getVerificationToken(token: string): Promise<Record<string, unknown> | null> {
-    const cacheKey = this.CACHE_PREFIX + `verification:${token}`;
+  async getVerificationToken(token: string): Promise<Record<string, unknown> | null> {
+    const cacheKey = TEMP_DATA_CACHE_PREFIX + `verification:${token}`;
     const cached = await redisManager.get(cacheKey);
 
     if (cached) {
@@ -1259,5 +1330,5 @@ export class TempDataCache {
     }
 
     return null;
-  }
-}
+  },
+};
