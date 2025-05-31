@@ -7,7 +7,7 @@ import {
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
-import { IdempotencyCache } from '@/lib/redis';
+import { IdempotencyCache, RateLimitCache } from '@/lib/redis';
 import { getOrCreateStripeCustomer } from '@/lib/stripe';
 import { getAuth } from '@clerk/nextjs/server';
 import { and, eq, gt } from 'drizzle-orm';
@@ -19,6 +19,177 @@ import Stripe from 'stripe';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
+
+// Payment rate limiting configuration (stricter than identity verification)
+const PAYMENT_RATE_LIMITS = {
+  // User-based limits (very strict for financial operations)
+  USER: {
+    maxAttempts: 5,
+    windowSeconds: 900, // 15 minutes
+    description: 'per user per 15 minutes',
+  },
+  // IP-based limits (abuse prevention)
+  IP: {
+    maxAttempts: 20,
+    windowSeconds: 900, // 15 minutes
+    description: 'per IP per 15 minutes',
+  },
+  // Global system protection
+  GLOBAL: {
+    maxAttempts: 1000,
+    windowSeconds: 60, // 1 minute
+    description: 'system-wide per minute',
+  },
+  // Daily user limits (additional protection)
+  USER_DAILY: {
+    maxAttempts: 20,
+    windowSeconds: 86400, // 24 hours
+    description: 'per user per day',
+  },
+} as const;
+
+/**
+ * Enhanced payment rate limiting with multi-layer protection
+ * Implements stricter limits for financial operations
+ */
+async function checkPaymentRateLimits(userId: string, clientIP: string) {
+  try {
+    // Layer 1: User-based rate limiting (strictest - 15 minute window)
+    const userLimit = await RateLimitCache.checkRateLimit(
+      `payment:user:${userId}`,
+      PAYMENT_RATE_LIMITS.USER.maxAttempts,
+      PAYMENT_RATE_LIMITS.USER.windowSeconds,
+    );
+
+    if (!userLimit.allowed) {
+      return {
+        allowed: false,
+        reason: 'user_limit_exceeded',
+        message: `Too many payment attempts. You can try again in ${Math.ceil((userLimit.resetTime - Date.now()) / 1000)} seconds.`,
+        resetTime: userLimit.resetTime,
+        remaining: userLimit.remaining,
+        limit: `${PAYMENT_RATE_LIMITS.USER.maxAttempts} ${PAYMENT_RATE_LIMITS.USER.description}`,
+      };
+    }
+
+    // Layer 2: Daily user limits (additional fraud protection)
+    const userDailyLimit = await RateLimitCache.checkRateLimit(
+      `payment:user-daily:${userId}`,
+      PAYMENT_RATE_LIMITS.USER_DAILY.maxAttempts,
+      PAYMENT_RATE_LIMITS.USER_DAILY.windowSeconds,
+    );
+
+    if (!userDailyLimit.allowed) {
+      return {
+        allowed: false,
+        reason: 'user_daily_limit_exceeded',
+        message:
+          'Daily payment attempt limit reached. Please try again tomorrow or contact support if you need assistance.',
+        resetTime: userDailyLimit.resetTime,
+        remaining: userDailyLimit.remaining,
+        limit: `${PAYMENT_RATE_LIMITS.USER_DAILY.maxAttempts} ${PAYMENT_RATE_LIMITS.USER_DAILY.description}`,
+      };
+    }
+
+    // Layer 3: IP-based rate limiting (abuse prevention)
+    const ipLimit = await RateLimitCache.checkRateLimit(
+      `payment:ip:${clientIP}`,
+      PAYMENT_RATE_LIMITS.IP.maxAttempts,
+      PAYMENT_RATE_LIMITS.IP.windowSeconds,
+    );
+
+    if (!ipLimit.allowed) {
+      return {
+        allowed: false,
+        reason: 'ip_limit_exceeded',
+        message: `Too many payment attempts from this location. Please try again in ${Math.ceil((ipLimit.resetTime - Date.now()) / 1000)} seconds.`,
+        resetTime: ipLimit.resetTime,
+        remaining: ipLimit.remaining,
+        limit: `${PAYMENT_RATE_LIMITS.IP.maxAttempts} ${PAYMENT_RATE_LIMITS.IP.description}`,
+      };
+    }
+
+    // Layer 4: Global system protection
+    const globalLimit = await RateLimitCache.checkRateLimit(
+      'payment:global',
+      PAYMENT_RATE_LIMITS.GLOBAL.maxAttempts,
+      PAYMENT_RATE_LIMITS.GLOBAL.windowSeconds,
+    );
+
+    if (!globalLimit.allowed) {
+      return {
+        allowed: false,
+        reason: 'system_limit_exceeded',
+        message:
+          'System is currently experiencing high payment volume. Please try again in a moment.',
+        resetTime: globalLimit.resetTime,
+        remaining: globalLimit.remaining,
+        limit: `${PAYMENT_RATE_LIMITS.GLOBAL.maxAttempts} ${PAYMENT_RATE_LIMITS.GLOBAL.description}`,
+      };
+    }
+
+    // All limits passed
+    return {
+      allowed: true,
+      limits: {
+        user: {
+          remaining: userLimit.remaining,
+          resetTime: userLimit.resetTime,
+          totalHits: userLimit.totalHits,
+        },
+        userDaily: {
+          remaining: userDailyLimit.remaining,
+          resetTime: userDailyLimit.resetTime,
+          totalHits: userDailyLimit.totalHits,
+        },
+        ip: {
+          remaining: ipLimit.remaining,
+          resetTime: ipLimit.resetTime,
+          totalHits: ipLimit.totalHits,
+        },
+        global: {
+          remaining: globalLimit.remaining,
+          resetTime: globalLimit.resetTime,
+          totalHits: globalLimit.totalHits,
+        },
+      },
+    };
+  } catch (error) {
+    console.error('Redis payment rate limiting error:', error);
+
+    // For payment endpoints, we're more cautious - temporarily block on Redis errors
+    console.warn('Payment rate limiting failed - applying temporary restriction');
+    return {
+      allowed: false,
+      reason: 'rate_limiting_error',
+      message: 'Payment processing is temporarily unavailable. Please try again in a few moments.',
+      fallback: true,
+    };
+  }
+}
+
+/**
+ * Record payment rate limit attempts across all layers
+ */
+async function recordPaymentRateLimitAttempts(userId: string, clientIP: string) {
+  try {
+    await Promise.all([
+      RateLimitCache.recordAttempt(
+        `payment:user:${userId}`,
+        PAYMENT_RATE_LIMITS.USER.windowSeconds,
+      ),
+      RateLimitCache.recordAttempt(
+        `payment:user-daily:${userId}`,
+        PAYMENT_RATE_LIMITS.USER_DAILY.windowSeconds,
+      ),
+      RateLimitCache.recordAttempt(`payment:ip:${clientIP}`, PAYMENT_RATE_LIMITS.IP.windowSeconds),
+      RateLimitCache.recordAttempt('payment:global', PAYMENT_RATE_LIMITS.GLOBAL.windowSeconds),
+    ]);
+  } catch (error) {
+    console.error('Error recording payment rate limit attempts:', error);
+    // Continue execution even if recording fails
+  }
+}
 
 // Helper function to create shared metadata for checkout session and payment intent
 // Note: sessionId is intentionally NOT included in metadata as it's always available
@@ -106,6 +277,49 @@ export async function POST(request: NextRequest) {
   console.log('Starting payment intent creation process');
 
   try {
+    // **AUTHENTICATION: Verify user is authenticated**
+    const { userId } = getAuth(request);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // **RATE LIMITING: Apply payment-specific rate limits**
+    const forwarded = request.headers.get('x-forwarded-for');
+    const clientIP =
+      forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
+
+    const rateLimitResult = await checkPaymentRateLimits(userId, clientIP);
+
+    if (!rateLimitResult.allowed) {
+      console.log(`Payment rate limit exceeded for user ${userId} (IP: ${clientIP}):`, {
+        reason: rateLimitResult.reason,
+        limit: rateLimitResult.limit,
+        resetTime: rateLimitResult.resetTime,
+      });
+
+      return NextResponse.json(
+        {
+          error: rateLimitResult.message,
+          details: {
+            reason: rateLimitResult.reason,
+            resetTime: rateLimitResult.resetTime,
+            limit: rateLimitResult.limit,
+          },
+        },
+        {
+          status: 429,
+          headers: {
+            'X-RateLimit-Limit': rateLimitResult.limit || 'Payment rate limit exceeded',
+            'X-RateLimit-Remaining': rateLimitResult.remaining?.toString() || '0',
+            'X-RateLimit-Reset': rateLimitResult.resetTime?.toString() || '0',
+            'Retry-After': rateLimitResult.resetTime
+              ? Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000).toString()
+              : '60',
+          },
+        },
+      );
+    }
+
     // **IDEMPOTENCY: Check for duplicate requests using distributed cache**
     const idempotencyKey = request.headers.get('Idempotency-Key');
 
@@ -116,12 +330,6 @@ export async function POST(request: NextRequest) {
         console.log(`🔄 Returning cached result for idempotency key: ${idempotencyKey}`);
         return NextResponse.json({ url: cachedResult.url });
       }
-    }
-
-    // **AUTHENTICATION: Verify user is authenticated**
-    const { userId } = getAuth(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Parse request body
@@ -155,6 +363,9 @@ export async function POST(request: NextRequest) {
       console.warn('Missing startTime in meeting data');
       return NextResponse.json({ message: 'Missing required field: startTime' }, { status: 400 });
     }
+
+    // **RECORD RATE LIMIT ATTEMPT: Only after validating request**
+    await recordPaymentRateLimitAttempts(userId, clientIP);
 
     // Extract locale for translations
     const locale = meetingData.locale || 'en';
