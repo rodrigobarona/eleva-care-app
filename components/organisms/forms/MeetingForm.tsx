@@ -18,6 +18,7 @@ import {
   DEFAULT_BEFORE_EVENT_BUFFER,
 } from '@/lib/constants/scheduling';
 import { hasValidTokens } from '@/lib/googleCalendarClient';
+import { FormCache } from '@/lib/redis';
 import { meetingFormSchema } from '@/schema/meetings';
 import { createMeeting } from '@/server/actions/meetings';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -90,6 +91,7 @@ interface Step2ContentProps {
   transitionToStep: (step: '1' | '2' | '3') => void;
   handleNextStep: (nextStep: '1' | '2' | '3') => Promise<void>;
   isSubmitting: boolean;
+  isProcessingRef: React.MutableRefObject<boolean>;
   price: number;
   use24Hour: boolean;
 }
@@ -106,6 +108,7 @@ const Step2Content = React.memo<Step2ContentProps>(
     transitionToStep,
     handleNextStep,
     isSubmitting,
+    isProcessingRef,
     price,
     use24Hour,
   }) => {
@@ -249,18 +252,20 @@ const Step2Content = React.memo<Step2ContentProps>(
             type="button"
             variant="outline"
             onClick={() => transitionToStep('1')}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isProcessingRef.current}
           >
             Back
           </Button>
           <Button
             type="button"
             onClick={() => handleNextStep('3')}
-            disabled={isSubmitting}
+            disabled={isSubmitting || isProcessingRef.current}
             className="relative"
           >
             {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
-            {isSubmitting && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+            {(isSubmitting || isProcessingRef.current) && (
+              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+            )}
           </Button>
         </div>
       </div>
@@ -271,6 +276,7 @@ const Step2Content = React.memo<Step2ContentProps>(
     // Only re-render if specific props that affect the UI have changed
     return (
       prevProps.isSubmitting === nextProps.isSubmitting &&
+      prevProps.isProcessingRef.current === nextProps.isProcessingRef.current &&
       prevProps.price === nextProps.price &&
       prevProps.timezone === nextProps.timezone &&
       prevProps.eventDuration === nextProps.eventDuration &&
@@ -315,6 +321,12 @@ export function MeetingFormContent({
   const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
   const [isPrefetching, setIsPrefetching] = React.useState(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = React.useState(false);
+
+  // **CRITICAL: Use ref for immediate duplicate prevention**
+  const isProcessingRef = React.useRef(false);
+
+  // **PREVENT DUPLICATE REQUESTS: Force re-render when ref changes**
+  const [, forceRender] = React.useReducer((x) => x + 1, 0);
 
   // Query state configuration
   const queryStateParsers = React.useMemo(
@@ -369,6 +381,12 @@ export function MeetingFormContent({
   const selectedDateValue = watchedDate || queryStates.date;
   const selectedTimeValue = watchedStartTime || queryStates.time;
   const currentStep = queryStates.step;
+
+  // **IDEMPOTENCY: Generate unique request key for deduplication**
+  const generateRequestKey = React.useCallback(() => {
+    const formValues = form.getValues();
+    return `${eventId}-${formValues.guestEmail}-${formValues.startTime?.toISOString()}-${Date.now()}`;
+  }, [eventId, form]);
 
   // Function to check if a date is blocked
   const isDateBlocked = React.useCallback(
@@ -438,21 +456,68 @@ export function MeetingFormContent({
   // Function to create or get payment intent
   const createPaymentIntent = React.useCallback(async () => {
     // Don't recreate if already fetched
-    if (checkoutUrl) return checkoutUrl;
+    if (checkoutUrl) {
+      console.log('✅ Using existing checkout URL');
+      return checkoutUrl;
+    }
 
+    const formValues = form.getValues();
+
+    // **VALIDATION: Ensure required data is present**
+    if (!formValues.guestEmail || !formValues.startTime) {
+      throw new Error('Missing required form data');
+    }
+
+    // **REDIS-BASED DUPLICATE PREVENTION: Generate cache key**
+    const formCacheKey = FormCache.generateKey(
+      eventId,
+      formValues.guestEmail,
+      formValues.startTime.toISOString(),
+    );
+
+    // **CHECK: If this submission is already processing**
+    const isAlreadyProcessing = await FormCache.isProcessing(formCacheKey);
+    if (isAlreadyProcessing) {
+      console.log('🚫 Form submission already in progress (Redis cache) - blocking duplicate');
+      return null;
+    }
+
+    // **CRITICAL: Use both ref and Redis for immediate + distributed protection**
+    if (isProcessingRef.current) {
+      console.log('🚫 Payment intent creation already in progress (ref) - blocking duplicate');
+      return checkoutUrl;
+    }
+
+    // **IMMEDIATE STATE UPDATE: Set processing flag using ref**
+    isProcessingRef.current = true;
+    forceRender(); // Force re-render to show loading state
     setIsCreatingCheckout(true);
 
     try {
-      const formValues = form.getValues();
+      // **REDIS: Mark as processing in distributed cache**
+      await FormCache.set(formCacheKey, {
+        eventId,
+        guestEmail: formValues.guestEmail,
+        startTime: formValues.startTime.toISOString(),
+        status: 'processing',
+        timestamp: Date.now(),
+      });
+
+      // **IDEMPOTENCY: Generate request key for API deduplication**
+      const requestKey = generateRequestKey();
 
       // Get the locale for multilingual emails
       const userLocale = locale || 'en';
+
+      console.log('🚀 Creating payment intent with Redis cache key:', formCacheKey);
 
       // Create payment intent using the new enhanced endpoint
       const response = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // **IDEMPOTENCY HEADER: Prevent server-side duplicates**
+          'Idempotency-Key': requestKey,
         },
         body: JSON.stringify({
           eventId,
@@ -462,41 +527,69 @@ export function MeetingFormContent({
             guestName: formValues.guestName,
             guestEmail: formValues.guestEmail,
             guestNotes: formValues.guestNotes,
-            startTime:
-              formValues.date && formValues.startTime ? formValues.startTime.toISOString() : null,
-            startTimeFormatted:
-              formValues.date && formValues.startTime
-                ? formValues.startTime.toLocaleString(userLocale, {
-                    dateStyle: 'full',
-                    timeStyle: 'short',
-                  })
-                : '',
+            startTime: formValues.startTime.toISOString(),
+            startTimeFormatted: formValues.startTime.toLocaleString(userLocale, {
+              dateStyle: 'full',
+              timeStyle: 'short',
+            }),
             timezone: formValues.timezone || 'UTC',
             locale: userLocale,
             date: formValues.date?.toISOString() || '',
           },
           username,
           eventSlug,
+          // **IDEMPOTENCY: Include request key in payload**
+          requestKey,
         }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create payment intent');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to create payment intent');
       }
 
       const { url } = await response.json();
+
+      if (!url) {
+        throw new Error('No checkout URL received from server');
+      }
+
+      console.log('✅ Payment intent created successfully');
+
+      // **REDIS: Mark as completed**
+      await FormCache.markCompleted(formCacheKey);
+
       setCheckoutUrl(url);
       return url;
     } catch (error) {
-      console.error('Payment creation error:', error);
+      console.error('❌ Payment creation error:', error);
+
+      // **ERROR HANDLING: Mark as failed in Redis and reset state**
+      await FormCache.markFailed(formCacheKey);
+
       form.setError('root', {
-        message: 'There was an error creating your payment.',
+        message:
+          error instanceof Error ? error.message : 'There was an error creating your payment.',
       });
       return null;
     } finally {
+      // **CLEANUP: Always reset processing state**
+      isProcessingRef.current = false;
       setIsCreatingCheckout(false);
+      forceRender(); // Force re-render to update UI
     }
-  }, [checkoutUrl, clerkUserId, eventId, eventSlug, form, locale, price, username]);
+  }, [
+    checkoutUrl,
+    clerkUserId,
+    eventId,
+    eventSlug,
+    form,
+    locale,
+    price,
+    username,
+    generateRequestKey,
+    forceRender,
+  ]);
 
   const onSubmit = React.useCallback(
     async (values: z.infer<typeof meetingFormSchema>) => {
@@ -626,8 +719,9 @@ export function MeetingFormContent({
         return;
       }
 
-      // Prevent double submissions
-      if (isSubmitting) {
+      // **CRITICAL: Prevent double submissions using ref**
+      if (isProcessingRef.current) {
+        console.log('🚫 Payment flow already in progress - blocking duplicate');
         return;
       }
 
@@ -644,8 +738,11 @@ export function MeetingFormContent({
         return;
       }
 
-      // For paid sessions
+      // **IMMEDIATE STATE UPDATE: Use ref for instant feedback**
+      isProcessingRef.current = true;
       setIsSubmitting(true);
+      forceRender(); // Update UI immediately
+
       try {
         // First move to step 3 immediately to show loading
         transitionToStep('3');
@@ -654,6 +751,7 @@ export function MeetingFormContent({
         const url = await createPaymentIntent();
 
         if (url) {
+          console.log('🚀 Redirecting to checkout:', url);
           // Keep loading state active until navigation
           if (url.startsWith('/') || url.startsWith(window.location.origin)) {
             router.push(url);
@@ -664,16 +762,19 @@ export function MeetingFormContent({
           throw new Error('Failed to get checkout URL');
         }
       } catch (error) {
-        console.error('Error:', error);
+        console.error('❌ Checkout flow error:', error);
         form.setError('root', {
           message: 'Failed to process request',
         });
-        // Go back to step 2 on error
+
+        // **ERROR RECOVERY: Go back to step 2 on error**
         transitionToStep('2');
+        isProcessingRef.current = false;
         setIsSubmitting(false);
+        forceRender();
       }
     },
-    [form, price, createPaymentIntent, onSubmit, router, transitionToStep, isSubmitting],
+    [form, price, createPaymentIntent, onSubmit, router, transitionToStep, forceRender],
   );
 
   // Initialize first available date only once
@@ -833,11 +934,14 @@ export function MeetingFormContent({
       <div className="text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
         <p className="mt-4 text-lg font-medium">
-          {isCreatingCheckout
-            ? 'Creating checkout...'
+          {isCreatingCheckout || isProcessingRef.current
+            ? 'Creating secure checkout...'
             : checkoutUrl
               ? 'Redirecting to payment...'
               : 'Preparing checkout...'}
+        </p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Please do not close this window or navigate away
         </p>
       </div>
     </div>
@@ -935,6 +1039,7 @@ export function MeetingFormContent({
                   transitionToStep={transitionToStep}
                   handleNextStep={handleNextStep}
                   isSubmitting={isSubmitting}
+                  isProcessingRef={isProcessingRef}
                   price={price}
                   use24Hour={use24Hour}
                 />

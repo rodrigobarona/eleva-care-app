@@ -1,7 +1,7 @@
 import { db } from '@/drizzle/db';
 import { SlotReservationTable } from '@/drizzle/schema';
 import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
-import { lt } from 'drizzle-orm';
+import { lt, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -11,10 +11,11 @@ export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
-// Cleanup Expired Reservations - Removes expired slot reservations from the database
+// Enhanced Cleanup for Slot Reservations - Removes expired and duplicate reservations
 // Performs the following tasks:
 // - Identifies slot reservations that have passed their expiration time
 // - Removes expired reservations from the database
+// - Detects and removes duplicate reservations (same event, time, guest)
 // - Logs detailed information about deleted reservations
 // - Provides cleanup statistics for monitoring
 
@@ -73,38 +74,110 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  console.log('[CRON] Starting expired slot reservations cleanup...');
+  console.log('[CRON] Starting slot reservations cleanup (expired + duplicates)...');
 
   try {
     const currentTime = new Date();
 
-    // Delete all reservations that have expired
-    const deletedReservations = await db
+    // **Step 1: Clean up expired reservations**
+    const deletedExpiredReservations = await db
       .delete(SlotReservationTable)
       .where(lt(SlotReservationTable.expiresAt, currentTime))
       .returning();
 
-    console.log(`[CRON] Cleaned up ${deletedReservations.length} expired slot reservations:`, {
-      count: deletedReservations.length,
-      currentTime: currentTime.toISOString(),
-      deletedReservations: deletedReservations.map((r) => ({
-        id: r.id,
-        guestEmail: r.guestEmail,
-        startTime: r.startTime.toISOString(),
-        expiresAt: r.expiresAt.toISOString(),
-        expired: (currentTime.getTime() - r.expiresAt.getTime()) / (1000 * 60), // minutes ago
-      })),
+    console.log(
+      `[CRON] Cleaned up ${deletedExpiredReservations.length} expired slot reservations:`,
+      {
+        count: deletedExpiredReservations.length,
+        currentTime: currentTime.toISOString(),
+        deletedReservations: deletedExpiredReservations.map((r) => ({
+          id: r.id,
+          guestEmail: r.guestEmail,
+          startTime: r.startTime.toISOString(),
+          expiresAt: r.expiresAt.toISOString(),
+          expired: (currentTime.getTime() - r.expiresAt.getTime()) / (1000 * 60), // minutes ago
+        })),
+      },
+    );
+
+    // **Step 2: Clean up duplicate reservations (safety net)**
+    console.log('[CRON] Checking for duplicate reservations...');
+
+    const duplicatesQuery = sql`
+      SELECT 
+        event_id,
+        start_time,
+        guest_email,
+        COUNT(*) as duplicate_count,
+        ARRAY_AGG(id ORDER BY created_at DESC) as reservation_ids
+      FROM slot_reservations 
+      GROUP BY event_id, start_time, guest_email 
+      HAVING COUNT(*) > 1
+    `;
+
+    const duplicates = await db.execute(duplicatesQuery);
+
+    let totalDuplicatesDeleted = 0;
+    const duplicateCleanupResults = [];
+
+    if (duplicates.rows.length > 0) {
+      console.log(
+        `[CRON] Found ${duplicates.rows.length} groups of duplicate reservations, cleaning up...`,
+      );
+
+      for (const duplicate of duplicates.rows) {
+        const reservationIds = duplicate.reservation_ids as string[];
+        const [keepId, ...deleteIds] = reservationIds; // Keep the most recent
+
+        if (deleteIds.length > 0) {
+          const deleteQuery = sql`
+            DELETE FROM slot_reservations 
+            WHERE id = ANY(${deleteIds})
+          `;
+
+          await db.execute(deleteQuery);
+          totalDuplicatesDeleted += deleteIds.length;
+
+          duplicateCleanupResults.push({
+            eventId: duplicate.event_id,
+            startTime: duplicate.start_time,
+            guestEmail: duplicate.guest_email,
+            originalCount: duplicate.duplicate_count,
+            kept: keepId,
+            deleted: deleteIds,
+          });
+
+          console.log(
+            `[CRON] Cleaned up ${deleteIds.length} duplicates for slot (kept: ${keepId})`,
+          );
+        }
+      }
+    } else {
+      console.log('[CRON] No duplicate reservations found');
+    }
+
+    const totalCleaned = deletedExpiredReservations.length + totalDuplicatesDeleted;
+
+    console.log(`[CRON] Cleanup completed successfully:`, {
+      expiredDeleted: deletedExpiredReservations.length,
+      duplicatesDeleted: totalDuplicatesDeleted,
+      totalCleaned: totalCleaned,
+      timestamp: currentTime.toISOString(),
     });
 
     return NextResponse.json({
       success: true,
-      cleanedUp: deletedReservations.length,
+      expiredCleaned: deletedExpiredReservations.length,
+      duplicatesCleaned: totalDuplicatesDeleted,
+      totalCleaned: totalCleaned,
+      duplicateGroups: duplicates.rows.length,
+      duplicateDetails: duplicateCleanupResults,
       timestamp: currentTime.toISOString(),
     });
   } catch (error) {
-    console.error('[CRON] Error cleaning up expired slot reservations:', error);
+    console.error('[CRON] Error during slot reservations cleanup:', error);
     return NextResponse.json(
-      { error: 'Failed to cleanup expired reservations', details: String(error) },
+      { error: 'Failed to cleanup reservations', details: String(error) },
       { status: 500 },
     );
   }

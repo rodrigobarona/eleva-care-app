@@ -232,7 +232,6 @@ export async function GET(request: Request) {
               userId: transfer.expertClerkUserId,
               amount: transfer.amount,
               currency: transfer.currency,
-              transferId: stripeTransfer.id,
               eventId: transfer.eventId,
             });
             console.log(
@@ -279,7 +278,6 @@ export async function GET(request: Request) {
                 amount: transfer.amount,
                 currency: transfer.currency,
                 errorMessage: stripeError.message || 'Unknown payment processing error',
-                eventId: transfer.eventId,
               });
               console.log(
                 `Payment failure notification sent to expert ${transfer.expertClerkUserId}`,

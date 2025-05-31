@@ -1,96 +1,85 @@
-import { db } from '@/drizzle/db';
-import { NotificationTable } from '@/drizzle/schema';
-import { and, desc, eq, gt, isNull, or } from 'drizzle-orm';
+import { accountVerificationWorkflow, securityAlertWorkflow, welcomeWorkflow } from '@/config/novu';
+import {
+  NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+  NOTIFICATION_TYPE_SECURITY_ALERT,
+  NOTIFICATION_TYPE_SYSTEM_MESSAGE,
+  NOTIFICATION_TYPE_VERIFICATION_HELP,
+  type NotificationType,
+} from '@/lib/constants/notifications';
 
 /**
  * Type definitions for notification creation
  */
-export type NotificationType =
-  | 'VERIFICATION_HELP' // Identity verification issues
-  | 'ACCOUNT_UPDATE' // Account status changes
-  | 'SECURITY_ALERT' // Security related notifications
-  | 'SYSTEM_MESSAGE'; // General system messages
-
 export interface CreateNotificationParams {
   userId: string;
   type: NotificationType;
-  title: string;
-  message: string;
-  actionUrl?: string;
-  expiresAt?: Date;
+  data?: Record<string, unknown>;
 }
 
 /**
- * Creates a new notification for a user
+ * Creates a new notification for a user via Novu workflows
  *
  * @param params Notification parameters
- * @returns The created notification ID
+ * @returns Boolean indicating if the workflow trigger was successful.
  */
-export async function createUserNotification(params: CreateNotificationParams): Promise<string> {
+export async function createUserNotification(params: CreateNotificationParams): Promise<boolean> {
   try {
-    const result = await db
-      .insert(NotificationTable)
-      .values({
-        userId: params.userId,
-        type: params.type,
-        title: params.title,
-        message: params.message,
-        actionUrl: params.actionUrl,
-        expiresAt: params.expiresAt,
-        read: false,
-      })
-      .returning({ id: NotificationTable.id });
+    const { userId, type, data = {} } = params;
 
-    if (!result || result.length === 0) {
-      throw new Error('Failed to create notification');
+    // Map notification type to workflow and trigger
+    switch (type) {
+      case NOTIFICATION_TYPE_VERIFICATION_HELP:
+        await accountVerificationWorkflow.trigger({
+          to: userId,
+          payload: {
+            userId,
+            verificationUrl: (data.verificationUrl as string) || undefined,
+            ...data,
+          },
+        });
+        break;
+
+      case NOTIFICATION_TYPE_ACCOUNT_UPDATE:
+        await welcomeWorkflow.trigger({
+          to: userId,
+          payload: {
+            userName: (data.userName as string) || 'User',
+            ...data,
+          },
+        });
+        break;
+
+      case NOTIFICATION_TYPE_SECURITY_ALERT:
+        await securityAlertWorkflow.trigger({
+          to: userId,
+          payload: {
+            message: (data.message as string) || 'Security alert notification',
+            alertType: (data.alertType as string) || undefined,
+            ...data,
+          },
+        });
+        break;
+
+      case NOTIFICATION_TYPE_SYSTEM_MESSAGE:
+        await securityAlertWorkflow.trigger({
+          to: userId,
+          payload: {
+            message: (data.message as string) || 'System message',
+            alertType: 'system',
+            ...data,
+          },
+        });
+        break;
+
+      default:
+        console.warn(`No workflow mapping for notification type: ${type}. Notification not sent.`);
+        return false;
     }
 
-    return result[0].id;
-  } catch (error) {
-    console.error('Error creating user notification:', error);
-    throw error;
-  }
-}
-
-/**
- * Marks a notification as read
- *
- * @param notificationId The ID of the notification to mark as read
- * @returns Boolean indicating success
- */
-export async function markNotificationAsRead(notificationId: string): Promise<boolean> {
-  try {
-    await db
-      .update(NotificationTable)
-      .set({ read: true })
-      .where(eq(NotificationTable.id, notificationId));
+    console.log(`Novu workflow triggered successfully for type: ${type}, user: ${userId}`);
     return true;
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
+  } catch (novuError) {
+    console.error('Error triggering notification workflow:', novuError);
     return false;
-  }
-}
-
-/**
- * Gets all unread notifications for a user
- *
- * @param userId The user ID to get notifications for
- * @returns Array of notification objects
- */
-export async function getUnreadNotifications(userId: string) {
-  try {
-    const now = new Date();
-
-    return await db.query.NotificationTable.findMany({
-      where: and(
-        eq(NotificationTable.userId, userId),
-        eq(NotificationTable.read, false),
-        or(isNull(NotificationTable.expiresAt), gt(NotificationTable.expiresAt, now)),
-      ),
-      orderBy: [desc(NotificationTable.createdAt)],
-    });
-  } catch (error) {
-    console.error('Error fetching unread notifications:', error);
-    return [];
   }
 }

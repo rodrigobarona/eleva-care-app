@@ -55,6 +55,7 @@ export const PUBLIC_ROUTES = [
   '/api/webhooks/stripe(.*)', // Stripe webhooks (payments, subscriptions)
   '/api/webhooks/stripe-identity(.*)', // Stripe Identity verification webhooks
   '/api/webhooks/stripe-connect(.*)', // Stripe Connect webhooks (connect accounts)
+  '/api/webhooks/clerk(.*)', // Clerk webhooks (user events, auth events)
   '/api/keep-alive', // Health check endpoint
 
   // TEMPORARY FIX: Make cron endpoints public until UpStash authentication is working properly

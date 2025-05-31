@@ -1,6 +1,5 @@
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
-import { UserNotifications } from '@/components/organisms/dashboard/UserNotifications';
 import { ROLE_COMMUNITY_EXPERT, ROLE_TOP_EXPERT } from '@/lib/auth/roles';
 import { UserButton } from '@clerk/nextjs';
 import { auth, currentUser } from '@clerk/nextjs/server';
@@ -84,9 +83,6 @@ export default async function HomePage() {
           </svg>
         </div>
       </div>
-
-      {/* User Notifications */}
-      <UserNotifications />
 
       {isExpert && (
         <>

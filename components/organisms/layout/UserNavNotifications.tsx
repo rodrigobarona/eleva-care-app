@@ -1,160 +1,75 @@
 'use client';
 
-import { Button } from '@/components/atoms/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
-import { NotificationsList } from '@/components/molecules/NotificationsList';
-import type { NotificationType } from '@/lib/notifications';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/molecules/dropdown-menu';
+import { NotificationDropdown } from '@/components/notifications/secure-novu-inbox';
+import { useSecureNovuCounts } from '@/hooks/use-secure-novu';
 import { Bell } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
+import Link from 'next/link';
 
-// Define the Notification type using the shared NotificationType enum
-interface Notification {
-  id: string;
-  type: NotificationType;
-  title: string;
-  message: string;
-  actionUrl?: string | null;
-  read: boolean;
-  createdAt: Date;
+interface UserNavNotificationsProps {
+  showDropdown?: boolean; // Whether to show dropdown or just link to page
 }
 
-export function UserNavNotifications() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [open, setOpen] = useState(false);
-  const router = useRouter();
+export function UserNavNotifications({ showDropdown = false }: UserNavNotificationsProps) {
+  const { unreadCount, isLoading, error, isReady } = useSecureNovuCounts();
 
-  // Fetch notifications when opened
-  useEffect(() => {
-    if (open) {
-      fetchNotifications();
-    }
-  }, [open]);
+  const notificationButton = (
+    <div className="relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+      <Bell className="h-5 w-5" />
 
-  const fetchNotifications = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/notifications');
+      {/* Unread Count Badge */}
+      {unreadCount > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-semibold text-white">
+          {unreadCount > 9 ? '9+' : unreadCount}
+        </span>
+      )}
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch notifications');
-      }
+      {/* Loading/Error Indicator */}
+      {isLoading && (
+        <span className="absolute -right-1 -top-1 h-2 w-2 animate-pulse rounded-full bg-blue-500" />
+      )}
 
-      const data = await response.json();
-      setNotifications(data.notifications || []);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      toast.error('Failed to load notifications', {
-        description: error instanceof Error ? error.message : 'Please try again later',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      {error && (
+        <span
+          className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-yellow-500"
+          title="Notification service unavailable"
+        />
+      )}
 
-  const handleNotificationRead = async (id: string) => {
-    try {
-      // Store original notifications state for rollback if needed
-      const originalNotifications = notifications;
+      {/* Secure Connection Indicator (only show when ready) */}
+      {isReady && !isLoading && !error && (
+        <span
+          className="absolute -bottom-1 -right-1 h-2 w-2 rounded-full bg-green-500"
+          title="Secure notifications ready"
+        />
+      )}
+    </div>
+  );
 
-      // Optimistic update
-      setNotifications((prev) =>
-        prev.map((notification) =>
-          notification.id === id ? { ...notification, read: true } : notification,
-        ),
-      );
+  // If dropdown is disabled, return a simple link
+  if (!showDropdown) {
+    return (
+      <Link href="/account/notifications" title="Notifications">
+        {notificationButton}
+      </Link>
+    );
+  }
 
-      // Send request to server
-      const response = await fetch(`/api/notifications/${id}`, {
-        method: 'PATCH',
-      });
-
-      if (!response.ok) {
-        // Get error details from response if available
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
-          errorData.error || `Failed to mark notification as read (HTTP ${response.status})`;
-
-        // Rollback optimistic update
-        setNotifications(originalNotifications);
-        throw new Error(errorMessage);
-      }
-
-      // Close popover on success
-      setOpen(false);
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      // Show error toast
-      toast.error('Failed to update notification', {
-        description: error instanceof Error ? error.message : 'Please try again later',
-      });
-      // Rollback optimistic update if not already done
-      if (error instanceof Error && !error.message.includes('HTTP')) {
-        setNotifications((prev) =>
-          prev.map((notification) =>
-            notification.id === id ? { ...notification, read: false } : notification,
-          ),
-        );
-      }
-    }
-  };
-
-  // Count unread notifications
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
+  // Return dropdown version
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative"
-          aria-label={`${unreadCount} unread notifications`}
-        >
-          <Bell className="h-5 w-5" />
-          {unreadCount > 0 && (
-            <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-medium text-white">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-4">
-        <div className="mb-2 flex items-center justify-between">
-          <h4 className="text-sm font-medium">Notifications</h4>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-auto p-0 text-xs text-muted-foreground"
-              onClick={fetchNotifications}
-            >
-              Refresh
-            </Button>
-          )}
-        </div>
-        {loading ? (
-          <div className="py-4 text-center text-muted-foreground">
-            <p>Loading notifications...</p>
-          </div>
-        ) : (
-          <NotificationsList notifications={notifications} onMarkAsRead={handleNotificationRead} />
-        )}
-        {notifications.length > 0 && (
-          <div className="mt-2 text-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push('/account/notifications')}
-              className="w-full text-xs"
-            >
-              View all notifications
-            </Button>
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button title="Notifications" className="focus:outline-none">
+          {notificationButton}
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="right" align="start" className="p-0">
+        <NotificationDropdown />
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

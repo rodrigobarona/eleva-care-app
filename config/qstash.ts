@@ -39,5 +39,9 @@ export const qstash = {
       endpoint: '/api/cron/cleanup-blocked-dates',
       cron: '0 0 * * *', // Daily at midnight UTC
     },
+    appointmentReminders: {
+      endpoint: '/api/cron/appointment-reminders',
+      cron: '0 9 * * *', // Daily at 9 AM
+    },
   },
 };
