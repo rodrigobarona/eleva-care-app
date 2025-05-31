@@ -1,51 +1,12 @@
 'use client';
 
 import { useNovuInboxProps } from '@/hooks/use-secure-novu';
+import { useNotifications } from '@novu/react';
 import { AlertCircle, Bell, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
-// Note: @novu/react will need to be installed separately for frontend use
-// For now, we'll create a placeholder interface
-interface MockInboxProps {
-  applicationIdentifier: string;
-  subscriberId: string;
-  subscriberHash: string;
-  renderNotification?: (notification: NotificationData) => React.ReactNode;
-  onNotificationClick?: (notification: NotificationData) => void;
-  hideNotificationCenter?: boolean;
-}
-
-interface NotificationData {
-  id: string;
-  subject: string;
-  body: string;
-  avatar?: string;
-  createdAt: string;
-  isRead: boolean;
-  isArchived: boolean;
-}
-
-// Placeholder Inbox component - replace with actual @novu/react when installed
-function MockInbox(props: MockInboxProps) {
-  return (
-    <div className="rounded-lg border p-4">
-      <div className="text-sm text-muted-foreground">
-        Novu Inbox Component
-        <br />
-        Subscriber: {props.subscriberId}
-        <br />
-        Hash: {props.subscriberHash?.substring(0, 8)}...
-        <br />
-        <span className="text-xs text-green-600">✓ HMAC Authenticated</span>
-      </div>
-    </div>
-  );
-}
-
 interface SecureNovuInboxProps {
   className?: string;
-  renderNotification?: (notification: NotificationData) => React.ReactNode;
-  onNotificationClick?: (notification: NotificationData) => void;
 }
 
 /**
@@ -57,11 +18,7 @@ interface SecureNovuInboxProps {
  * - Handles loading and error states
  * - Only renders when authentication is successful
  */
-export function SecureNovuInbox({
-  className = '',
-  renderNotification,
-  onNotificationClick,
-}: SecureNovuInboxProps) {
+export function SecureNovuInbox({ className = '' }: SecureNovuInboxProps) {
   const { applicationIdentifier, subscriberId, subscriberHash, isReady, isLoading, error } =
     useNovuInboxProps();
 
@@ -104,13 +61,17 @@ export function SecureNovuInbox({
   // Render secure Novu Inbox
   return (
     <div className={className}>
-      <MockInbox
-        applicationIdentifier={applicationIdentifier}
-        subscriberId={subscriberId}
-        subscriberHash={subscriberHash}
-        renderNotification={renderNotification}
-        onNotificationClick={onNotificationClick}
-      />
+      <div className="rounded-lg border p-4">
+        <div className="text-sm text-muted-foreground">
+          Novu Inbox Component
+          <br />
+          Subscriber: {subscriberId}
+          <br />
+          Hash: {subscriberHash?.substring(0, 8)}...
+          <br />
+          <span className="text-xs text-green-600">✓ HMAC Authenticated</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -120,8 +81,12 @@ export function SecureNovuInbox({
  */
 export function SecureNotificationsList({ className = '' }: { className?: string }) {
   const { isReady, isLoading, error } = useNovuInboxProps();
+  const { notifications, isLoading: notificationsLoading } = useNotifications({
+    limit: 5,
+    read: false, // Show unread notifications
+  });
 
-  if (isLoading) {
+  if (isLoading || notificationsLoading) {
     return (
       <div className={`space-y-2 ${className}`}>
         {[...Array(3)].map((_, i) => (
@@ -139,16 +104,6 @@ export function SecureNotificationsList({ className = '' }: { className?: string
     );
   }
 
-  const sampleNotification = {
-    id: '1',
-    subject: 'Sample Notification',
-    body: 'This is a sample notification to show the secure component structure.',
-    avatar: '',
-    createdAt: new Date().toISOString(),
-    isRead: false,
-    isArchived: false,
-  };
-
   return (
     <div className={className}>
       <div className="space-y-2">
@@ -158,20 +113,31 @@ export function SecureNotificationsList({ className = '' }: { className?: string
             <br />
             <span className="text-xs text-green-600">✓ HMAC Authenticated</span>
           </div>
-          <div className="border-b p-3 transition-colors hover:bg-muted/50">
-            <div className="flex items-start gap-3">
-              <div className="min-w-0 flex-1">
-                <h4 className="truncate text-sm font-medium">{sampleNotification.subject}</h4>
-                <p className="mt-1 text-sm text-muted-foreground">{sampleNotification.body}</p>
-                <time className="mt-2 block text-xs text-muted-foreground">
-                  {new Date(sampleNotification.createdAt).toLocaleDateString()}
-                </time>
-              </div>
-              {!sampleNotification.isRead && (
-                <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
-              )}
+          {notifications && notifications.length > 0 ? (
+            <div className="space-y-1">
+              {notifications.map((notification) => (
+                <div
+                  key={notification.id}
+                  className="border-b p-3 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="truncate text-sm font-medium">{notification.subject}</h4>
+                      <p className="mt-1 text-sm text-muted-foreground">{notification.body}</p>
+                      <time className="mt-2 block text-xs text-muted-foreground">
+                        {new Date(notification.createdAt).toLocaleDateString()}
+                      </time>
+                    </div>
+                    {!notification.isRead && (
+                      <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
+          ) : (
+            <p className="text-center text-muted-foreground">No notifications</p>
+          )}
         </div>
       </div>
     </div>
@@ -184,8 +150,12 @@ export function SecureNotificationsList({ className = '' }: { className?: string
  */
 export function NotificationDropdown({ className = '' }: { className?: string }) {
   const { isReady, isLoading, error } = useNovuInboxProps();
+  const { notifications, isLoading: notificationsLoading } = useNotifications({
+    limit: 3, // Show only the 3 most recent
+    read: false, // Show unread notifications first
+  });
 
-  if (isLoading) {
+  if (isLoading || notificationsLoading) {
     return (
       <div className={`w-80 p-4 ${className}`}>
         <div className="flex items-center gap-2 text-muted-foreground">
@@ -207,24 +177,6 @@ export function NotificationDropdown({ className = '' }: { className?: string })
     );
   }
 
-  // Sample notifications for demonstration
-  const recentNotifications = [
-    {
-      id: '1',
-      subject: 'New appointment booking',
-      body: 'You have a new appointment with Sarah Johnson',
-      createdAt: '2024-01-20T10:00:00Z',
-      isRead: false,
-    },
-    {
-      id: '2',
-      subject: 'Payment received',
-      body: 'Payment of €75.00 has been processed',
-      createdAt: '2024-01-19T15:30:00Z',
-      isRead: true,
-    },
-  ];
-
   return (
     <div className={`w-80 ${className}`}>
       {/* Header */}
@@ -238,9 +190,9 @@ export function NotificationDropdown({ className = '' }: { className?: string })
 
       {/* Notification List */}
       <div className="max-h-96 overflow-y-auto">
-        {recentNotifications.length > 0 ? (
+        {notifications && notifications.length > 0 ? (
           <div className="space-y-1 p-2">
-            {recentNotifications.map((notification) => (
+            {notifications.map((notification) => (
               <div
                 key={notification.id}
                 className="flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-muted/50"

@@ -1,34 +1,139 @@
 import { workflow } from '@novu/framework';
 import { z } from 'zod';
 
-// Define notification workflows
+// Helper function to create localized workflow content
+async function getLocalizedContent(
+  workflowKey: string,
+  locale: string,
+  params: Record<string, string | number | boolean | undefined>,
+  type: 'inApp' | 'email' = 'inApp',
+) {
+  try {
+    const messages = await import(`@/messages/${locale}.json`);
+    const notificationData = messages.notifications?.[workflowKey];
+
+    if (!notificationData) {
+      throw new Error(`No translation found for ${workflowKey} in ${locale}`);
+    }
+
+    // Simple template replacement
+    const replaceVars = (
+      text: string,
+      vars: Record<string, string | number | boolean | undefined>,
+    ) => {
+      return text.replace(/\{(\w+)\}/g, (match, key) => String(vars[key] || match));
+    };
+
+    if (type === 'email' && notificationData.email) {
+      const email = notificationData.email;
+      let body = '';
+
+      if (email.title) body += `<h2>${replaceVars(email.title, params)}</h2>\n`;
+      if (email.greeting) body += `<p>${replaceVars(email.greeting, params)}</p>\n`;
+      if (email.body) body += `<p>${replaceVars(email.body, params)}</p>\n`;
+
+      if (email.detailsTitle) {
+        body += `<h3>${replaceVars(email.detailsTitle, params)}</h3>\n<ul>\n`;
+        const details = [
+          'amount',
+          'client',
+          'sessionDate',
+          'transactionId',
+          'service',
+          'date',
+          'time',
+        ];
+        details.forEach((key) => {
+          if (email[key])
+            body += `  <li><strong>${replaceVars(email[key], params)}</strong></li>\n`;
+        });
+        body += `</ul>\n`;
+      }
+
+      if (email.footer) body += `<p>${replaceVars(email.footer, params)}</p>\n`;
+      if (email.cta) {
+        const ctaUrl = params.dashboardUrl || params.actionUrl || '/account';
+        body += `<p><a href="${String(ctaUrl)}">${replaceVars(email.cta, params)}</a></p>\n`;
+      }
+
+      return {
+        subject: replaceVars(email.subject, params),
+        body: body.trim(),
+      };
+    }
+
+    return {
+      subject: replaceVars(notificationData.subject, params),
+      body: replaceVars(notificationData.body, params),
+    };
+  } catch (error) {
+    console.error(`Failed to get localized content for ${workflowKey}:`, error);
+    return {
+      subject: `Notification: ${workflowKey}`,
+      body: 'A notification has been sent to you.',
+    };
+  }
+}
+
+// Helper to determine locale from payload
+function getLocale(payload: Record<string, string | number | boolean | undefined>): string {
+  if (payload.locale) return String(payload.locale);
+  if (payload.country) {
+    const countryMap: Record<string, string> = {
+      PT: 'pt',
+      BR: 'pt-BR',
+      ES: 'es',
+      MX: 'es',
+      AR: 'es',
+      CO: 'es',
+    };
+    return countryMap[String(payload.country).toUpperCase()] || 'en';
+  }
+  return 'en';
+}
+
+// Define notification workflows with next-intl integration
 export const welcomeWorkflow = workflow(
   'user-welcome',
   async ({ payload, step }) => {
-    await step.inApp('welcome-message', async () => ({
-      subject: `Welcome to Eleva Care, ${payload.userName}!`,
-      body: `Hi ${payload.userName}! Welcome to Eleva Care. We're excited to help you on your healthcare journey.`,
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('welcome', locale, payload);
+
+    await step.inApp('welcome-message', async () => content);
+
+    const emailContent = await getLocalizedContent('welcome', locale, payload, 'email');
+    await step.email('welcome-email', async () => ({
+      subject: emailContent.subject,
+      body: emailContent.body,
     }));
   },
   {
     payloadSchema: z.object({
       userName: z.string(),
+      firstName: z.string().optional(),
+      lastName: z.string().optional(),
+      email: z.string().email().optional(),
+      clerkUserId: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
 
 export const accountVerificationWorkflow = workflow(
   'account-verification',
-  async ({ payload: _payload, step }) => {
-    await step.inApp('verification-reminder', async () => ({
-      subject: 'Please verify your account',
-      body: 'To get the most out of Eleva Care, please verify your account.',
-    }));
+  async ({ payload, step }) => {
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('accountVerification', locale, payload);
+
+    await step.inApp('verification-reminder', async () => content);
   },
   {
     payloadSchema: z.object({
       userId: z.string(),
       verificationUrl: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
@@ -36,15 +141,17 @@ export const accountVerificationWorkflow = workflow(
 export const paymentSuccessWorkflow = workflow(
   'payment-success',
   async ({ payload, step }) => {
-    await step.inApp('payment-confirmation', async () => ({
-      subject: 'Payment successful!',
-      body: `Your payment of ${payload.amount} for ${payload.planName} has been processed successfully.`,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('paymentSuccess', locale, payload);
+
+    await step.inApp('payment-confirmation', async () => content);
   },
   {
     payloadSchema: z.object({
       amount: z.string(),
       planName: z.string(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
@@ -52,15 +159,17 @@ export const paymentSuccessWorkflow = workflow(
 export const paymentFailedWorkflow = workflow(
   'payment-failed',
   async ({ payload, step }) => {
-    await step.inApp('payment-failure', async () => ({
-      subject: 'Payment failed',
-      body: `We couldn't process your payment of ${payload.amount}. Please check your payment method and try again.`,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('paymentFailed', locale, payload);
+
+    await step.inApp('payment-failure', async () => content);
   },
   {
     payloadSchema: z.object({
       amount: z.string(),
       reason: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
@@ -68,15 +177,17 @@ export const paymentFailedWorkflow = workflow(
 export const securityAlertWorkflow = workflow(
   'security-alert',
   async ({ payload, step }) => {
-    await step.inApp('security-notification', async () => ({
-      subject: 'Security Alert',
-      body: payload.message,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('securityAlert', locale, payload);
+
+    await step.inApp('security-notification', async () => content);
   },
   {
     payloadSchema: z.object({
       message: z.string(),
       alertType: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
@@ -121,65 +232,20 @@ export const stripePayoutWorkflow = workflow(
 export const marketplacePaymentReceivedWorkflow = workflow(
   'marketplace-payment-received',
   async ({ payload, step }) => {
-    await step.inApp('payment-received-notification', async () => ({
-      subject: `Payment Received: €${payload.amount}`,
-      body: `You've received a payment of €${payload.amount} from ${payload.clientName || 'a client'} for your session on ${payload.sessionDate}. Transfer will be processed according to your payout schedule.`,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('marketplacePaymentReceived', locale, payload);
 
+    await step.inApp('payment-received-notification', async () => content);
+
+    const emailContent = await getLocalizedContent(
+      'marketplacePaymentReceived',
+      locale,
+      payload,
+      'email',
+    );
     await step.email('payment-received-email', async () => ({
-      subject: `Payment Received - €${payload.amount}`,
-      body: `
-        {% assign lang_code = subscriber.locale | slice: 0, 2 %}
-        {% if lang_code == 'pt' and subscriber.locale == 'pt-BR' %}
-        <h2>Pagamento Recebido!</h2>
-        <p>Ótimas notícias! Você recebeu um pagamento pelos seus serviços.</p>
-        <h3>Detalhes do Pagamento:</h3>
-        <ul>
-          <li><strong>Valor:</strong> €${payload.amount}</li>
-          <li><strong>Cliente:</strong> ${payload.clientName || 'Cliente'}</li>
-          <li><strong>Data da Sessão:</strong> ${payload.sessionDate}</li>
-          <li><strong>ID da Transação:</strong> ${payload.transactionId}</li>
-        </ul>
-        <p>Este pagamento será transferido para sua conta de acordo com seu cronograma de pagamento.</p>
-        <p><a href="${payload.dashboardUrl || '/account/billing'}">Ver Detalhes do Pagamento</a></p>
-        {% elsif lang_code == 'pt' %}
-        <h2>Pagamento Recebido!</h2>
-        <p>Excelentes notícias! Recebeu um pagamento pelos seus serviços.</p>
-        <h3>Detalhes do Pagamento:</h3>
-        <ul>
-          <li><strong>Valor:</strong> €${payload.amount}</li>
-          <li><strong>Cliente:</strong> ${payload.clientName || 'Cliente'}</li>
-          <li><strong>Data da Sessão:</strong> ${payload.sessionDate}</li>
-          <li><strong>ID da Transação:</strong> ${payload.transactionId}</li>
-        </ul>
-        <p>Este pagamento será transferido para a sua conta de acordo com o seu cronograma de pagamento.</p>
-        <p><a href="${payload.dashboardUrl || '/account/billing'}">Ver Detalhes do Pagamento</a></p>
-        {% elsif lang_code == 'es' %}
-        <h2>¡Pago Recibido!</h2>
-        <p>¡Excelentes noticias! Has recibido un pago por tus servicios.</p>
-        <h3>Detalles del Pago:</h3>
-        <ul>
-          <li><strong>Importe:</strong> €${payload.amount}</li>
-          <li><strong>Cliente:</strong> ${payload.clientName || 'Cliente'}</li>
-          <li><strong>Fecha de la Sesión:</strong> ${payload.sessionDate}</li>
-          <li><strong>ID de Transacción:</strong> ${payload.transactionId}</li>
-        </ul>
-        <p>Este pago será transferido a tu cuenta según tu cronograma de pagos.</p>
-        <p><a href="${payload.dashboardUrl || '/account/billing'}">Ver Detalles del Pago</a></p>
-        {% else %}
-        <h2>Payment Received!</h2>
-        <p>Great news! You've received a payment for your services.</p>
-        <h3>Payment Details:</h3>
-        <ul>
-          <li><strong>Amount:</strong> €${payload.amount}</li>
-          <li><strong>Client:</strong> ${payload.clientName || 'Client'}</li>
-          <li><strong>Session Date:</strong> ${payload.sessionDate}</li>
-          <li><strong>Transaction ID:</strong> ${payload.transactionId}</li>
-        </ul>
-        <p>This payment will be transferred to your account according to your payout schedule.</p>
-        <p><a href="${payload.dashboardUrl || '/account/billing'}">View Payment Details</a></p>
-        {% endif %}
-      `,
+      subject: emailContent.subject,
+      body: emailContent.body,
     }));
   },
   {
@@ -189,6 +255,8 @@ export const marketplacePaymentReceivedWorkflow = workflow(
       sessionDate: z.string(),
       transactionId: z.string(),
       dashboardUrl: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
@@ -196,25 +264,20 @@ export const marketplacePaymentReceivedWorkflow = workflow(
 export const marketplacePayoutProcessedWorkflow = workflow(
   'marketplace-payout-processed',
   async ({ payload, step }) => {
-    await step.inApp('payout-processed-notification', async () => ({
-      subject: `Payout Processed: €${payload.amount}`,
-      body: `Your payout of €${payload.amount} has been processed and sent to your bank account. Expected arrival: ${payload.expectedArrival}.`,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('marketplacePayoutProcessed', locale, payload);
 
+    await step.inApp('payout-processed-notification', async () => content);
+
+    const emailContent = await getLocalizedContent(
+      'marketplacePayoutProcessed',
+      locale,
+      payload,
+      'email',
+    );
     await step.email('payout-processed-email', async () => ({
-      subject: `Payout Processed - €${payload.amount}`,
-      body: `
-        <h2>Payout Processed</h2>
-        <p>Your earnings have been transferred to your bank account.</p>
-        <h3>Payout Details:</h3>
-        <ul>
-          <li><strong>Amount:</strong> €${payload.amount}</li>
-          <li><strong>Payout ID:</strong> ${payload.payoutId}</li>
-          <li><strong>Expected Arrival:</strong> ${payload.expectedArrival}</li>
-          <li><strong>Bank Account:</strong> ${payload.bankAccount}</li>
-        </ul>
-        <p><a href="${payload.dashboardUrl || '/account/billing'}">View Payout History</a></p>
-      `,
+      subject: emailContent.subject,
+      body: emailContent.body,
     }));
   },
   {
@@ -224,6 +287,8 @@ export const marketplacePayoutProcessedWorkflow = workflow(
       expectedArrival: z.string(),
       bankAccount: z.string(),
       dashboardUrl: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
@@ -297,16 +362,18 @@ export const userCreatedWorkflow = workflow(
 export const recentLoginWorkflow = workflow(
   'recent-login-v2',
   async ({ payload, step }) => {
-    await step.inApp('login-notification', async () => ({
-      subject: 'New login detected',
-      body: `We detected a new login to your account from ${payload.location || 'a new device'} at ${payload.timestamp}.`,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('recentLogin', locale, payload);
+
+    await step.inApp('login-notification', async () => content);
   },
   {
     payloadSchema: z.object({
       location: z.string().optional(),
       timestamp: z.string(),
       ipAddress: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
@@ -349,41 +416,15 @@ export const expertOnboardingCompleteWorkflow = workflow(
 export const appointmentReminderWorkflow = workflow(
   'appointment-reminder-24hr',
   async ({ payload, step }) => {
-    await step.inApp('appointment-reminder-notification', async () => ({
-      subject: `Reminder: Your appointment is ${payload.timeUntilAppointment}`,
-      body: `Your ${payload.appointmentType} with ${payload.expertName} is ${payload.timeUntilAppointment} on ${payload.appointmentDate} at ${payload.appointmentTime}.`,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('appointmentReminder', locale, payload);
 
+    await step.inApp('appointment-reminder-notification', async () => content);
+
+    const emailContent = await getLocalizedContent('appointmentReminder', locale, payload, 'email');
     await step.email('appointment-reminder-email', async () => ({
-      subject: `Reminder: Your Eleva Care Appointment is ${payload.timeUntilAppointment}`,
-      body: `
-        {% assign lang_code = subscriber.locale | slice: 0, 2 %}
-        {% if lang_code == 'pt' and subscriber.locale == 'pt-BR' %}
-        <h2>Lembrete de Consulta</h2>
-        <p>Olá ${payload.userName},</p>
-        <p>Este é um lembrete amigável de que sua ${payload.appointmentType} com ${payload.expertName} é ${payload.timeUntilAppointment}, no dia ${payload.appointmentDate} às ${payload.appointmentTime}.</p>
-        <p><a href="${payload.meetingLink}">Acesse sua consulta</a></p>
-        <p>Por favor, certifique-se de que você está em um local tranquilo com uma conexão de internet estável.</p>
-        {% elsif lang_code == 'pt' %}
-        <h2>Lembrete de Consulta</h2>
-        <p>Olá ${payload.userName},</p>
-        <p>Este é um lembrete amigável de que a sua ${payload.appointmentType} com ${payload.expertName} é ${payload.timeUntilAppointment}, no dia ${payload.appointmentDate} às ${payload.appointmentTime}.</p>
-        <p><a href="${payload.meetingLink}">Aceda à sua consulta</a></p>
-        <p>Por favor, certifique-se de que está num local sossegado com uma ligação estável à internet.</p>
-        {% elsif lang_code == 'es' %}
-        <h2>Recordatorio de Cita</h2>
-        <p>Hola ${payload.userName},</p>
-        <p>Este es un recordatorio de que tu ${payload.appointmentType} con ${payload.expertName} es ${payload.timeUntilAppointment}, el ${payload.appointmentDate} a las ${payload.appointmentTime}.</p>
-        <p><a href="${payload.meetingLink}">Accede a tu cita</a></p>
-        <p>Por favor, asegúrate de estar en un lugar tranquilo con una conexión a internet estable.</p>
-        {% else %}
-        <h2>Appointment Reminder</h2>
-        <p>Hi ${payload.userName},</p>
-        <p>This is a friendly reminder that your ${payload.appointmentType} with ${payload.expertName} is ${payload.timeUntilAppointment}, on ${payload.appointmentDate} at ${payload.appointmentTime}.</p>
-        <p><a href="${payload.meetingLink}">Join your meeting</a></p>
-        <p>Please ensure you are in a quiet place with a stable internet connection.</p>
-        {% endif %}
-      `,
+      subject: emailContent.subject,
+      body: emailContent.body,
     }));
   },
   {
@@ -395,6 +436,8 @@ export const appointmentReminderWorkflow = workflow(
       appointmentType: z.string(),
       timeUntilAppointment: z.string(),
       meetingLink: z.string(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
@@ -402,22 +445,20 @@ export const appointmentReminderWorkflow = workflow(
 export const appointmentCancelledWorkflow = workflow(
   'appointment-cancelled',
   async ({ payload, step }) => {
-    await step.inApp('appointment-cancelled-notification', async () => ({
-      subject: `Appointment Cancelled: ${payload.appointmentType}`,
-      body: `Your appointment with ${payload.expertName} on ${payload.appointmentDate} has been cancelled.`,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('appointmentCancelled', locale, payload);
 
+    await step.inApp('appointment-cancelled-notification', async () => content);
+
+    const emailContent = await getLocalizedContent(
+      'appointmentCancelled',
+      locale,
+      payload,
+      'email',
+    );
     await step.email('appointment-cancelled-email', async () => ({
-      subject: `Your Eleva Care Appointment Has Been Cancelled`,
-      body: `
-        <h2>Appointment Cancelled</h2>
-        <p>Hi ${payload.userName},</p>
-        <p>Your ${payload.appointmentType} with ${payload.expertName} scheduled for ${payload.appointmentDate} at ${payload.appointmentTime} has been cancelled.</p>
-        ${payload.reasonForCancellation ? `<p><strong>Reason:</strong> ${payload.reasonForCancellation}</p>` : ''}
-        ${payload.refundStatusMessage ? `<p>${payload.refundStatusMessage}</p>` : ''}
-        <p>We apologize for any inconvenience. You can book a new appointment anytime.</p>
-        <p><a href="${payload.rebookingLink || '/booking'}">Book New Appointment</a></p>
-      `,
+      subject: emailContent.subject,
+      body: emailContent.body,
     }));
   },
   {
@@ -430,6 +471,8 @@ export const appointmentCancelledWorkflow = workflow(
       reasonForCancellation: z.string().optional(),
       refundStatusMessage: z.string().optional(),
       rebookingLink: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
@@ -438,22 +481,15 @@ export const appointmentCancelledWorkflow = workflow(
 export const expertPayoutSetupReminderWorkflow = workflow(
   'expert-payout-setup-reminder',
   async ({ payload, step }) => {
-    await step.inApp('payout-setup-reminder', async () => ({
-      subject: 'Complete your payout setup',
-      body: `Hi ${payload.expertName}, please complete your Stripe Connect setup to start receiving payments from clients.`,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('expertPayoutSetup', locale, payload);
 
+    await step.inApp('payout-setup-reminder', async () => content);
+
+    const emailContent = await getLocalizedContent('expertPayoutSetup', locale, payload, 'email');
     await step.email('payout-setup-reminder-email', async () => ({
-      subject: 'Complete Your Eleva Care Payout Account Setup',
-      body: `
-        <h2>Complete Your Payout Setup</h2>
-        <p>Hi ${payload.expertName},</p>
-        <p>To start receiving payments from your clients, you need to complete your payout account setup.</p>
-        <p><strong>This is required to receive payments for your sessions.</strong></p>
-        <p><a href="${payload.stripeConnectSetupLink}">Complete Payout Setup</a></p>
-        ${payload.deadlineText ? `<p><em>${payload.deadlineText}</em></p>` : ''}
-        <p>Need help? <a href="${payload.supportContactLink || '/support'}">Contact Support</a></p>
-      `,
+      subject: emailContent.subject,
+      body: emailContent.body,
     }));
   },
   {
@@ -462,6 +498,8 @@ export const expertPayoutSetupReminderWorkflow = workflow(
       stripeConnectSetupLink: z.string(),
       deadlineText: z.string().optional(),
       supportContactLink: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
@@ -502,27 +540,15 @@ export const expertProfileActionRequiredWorkflow = workflow(
 export const newBookingExpertWorkflow = workflow(
   'new-booking-expert',
   async ({ payload, step }) => {
-    await step.inApp('new-booking-notification', async () => ({
-      subject: `New Booking: ${payload.appointmentType}`,
-      body: `You have a new booking from ${payload.clientName} for ${payload.appointmentDate} at ${payload.appointmentTime}.`,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('newBookingExpert', locale, payload);
 
+    await step.inApp('new-booking-notification', async () => content);
+
+    const emailContent = await getLocalizedContent('newBookingExpert', locale, payload, 'email');
     await step.email('new-booking-email', async () => ({
-      subject: `New Booking: ${payload.appointmentType} with ${payload.clientName}`,
-      body: `
-        <h2>New Booking Alert!</h2>
-        <p>Hi ${payload.expertName},</p>
-        <p>You have a new booking!</p>
-        <h3>Booking Details:</h3>
-        <ul>
-          <li><strong>Service:</strong> ${payload.appointmentType}</li>
-          <li><strong>Client:</strong> ${payload.clientName}</li>
-          <li><strong>Date:</strong> ${payload.appointmentDate}</li>
-          <li><strong>Time:</strong> ${payload.appointmentTime}</li>
-        </ul>
-        ${payload.clientNotes ? `<p><strong>Client Notes:</strong> ${payload.clientNotes}</p>` : ''}
-        <p><a href="${payload.appointmentDetailsLink}">View Booking Details</a></p>
-      `,
+      subject: emailContent.subject,
+      body: emailContent.body,
     }));
   },
   {
@@ -534,6 +560,8 @@ export const newBookingExpertWorkflow = workflow(
       appointmentTime: z.string(),
       clientNotes: z.string().optional(),
       appointmentDetailsLink: z.string(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );

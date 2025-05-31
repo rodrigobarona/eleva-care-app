@@ -88,7 +88,7 @@ const handleWebhookEvent = async (event: WebhookEvent) => {
       eventType: event.type,
     });
 
-    await triggerWorkflow(workflow, subscriber, payload);
+    await triggerWorkflow(workflow, payload, subscriber.subscriberId);
   } catch (error) {
     console.error('Error handling Clerk webhook event:', error);
     throw error;

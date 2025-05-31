@@ -7,16 +7,18 @@ let novu: Novu | null = null;
 
 try {
   if (ENV_CONFIG.NOVU_SECRET_KEY) {
-    novu = new Novu(ENV_CONFIG.NOVU_SECRET_KEY);
+    novu = new Novu(ENV_CONFIG.NOVU_SECRET_KEY, {
+      backendUrl: 'https://eu.api.novu.co',
+    });
   } else {
-    console.warn('NOVU_SECRET_KEY not found - Novu functionality will be disabled');
+    console.warn('[Novu] Secret key not available, some functionality will be limited');
   }
 } catch (error) {
-  console.warn('Failed to initialize Novu:', error);
+  console.error('[Novu] Failed to initialize:', error);
 }
 
-// Novu-compatible payload type that matches ITriggerPayload requirements
-type NovuPayload = Record<
+// Type definition for notification payload to ensure compatibility with Novu
+export type NovuPayload = Record<
   string,
   string | number | boolean | Record<string, unknown> | string[] | undefined
 >;
@@ -61,65 +63,104 @@ function isNovuAvailable(): boolean {
 }
 
 /**
- * Generate HMAC hash for secure subscriber authentication
- * This prevents malicious actors from accessing other users' notification feeds
- * Uses the same NOVU_SECRET_KEY that's used for API operations
+ * Generate HMAC hash for subscriber authentication
+ * This prevents unauthorized access to notification feeds
  *
- * @param subscriberId The Clerk user ID to hash
- * @returns HMAC SHA-256 hash for secure frontend authentication
+ * @param subscriberId - Unique identifier for the subscriber (usually Clerk user ID)
+ * @returns HMAC hash for secure authentication
  */
 export function generateSubscriberHash(subscriberId: string): string {
   if (!ENV_CONFIG.NOVU_SECRET_KEY) {
-    throw new Error('NOVU_SECRET_KEY is required for HMAC generation');
+    throw new Error('NOVU_SECRET_KEY is required for HMAC authentication');
   }
 
   return createHmac('sha256', ENV_CONFIG.NOVU_SECRET_KEY).update(subscriberId).digest('hex');
 }
 
 /**
- * Get secure subscriber data for frontend Inbox component
- * Includes HMAC hash for production security
+ * Get secure subscriber data for Novu authentication
+ * Includes both the subscriber ID and the HMAC hash
  *
- * @param subscriberId The Clerk user ID
- * @returns Object with subscriberId and secure hash for frontend use
+ * @param subscriberId - Unique identifier for the subscriber
+ * @returns Object containing subscriber ID and hash for secure authentication
  */
 export function getSecureSubscriberData(subscriberId: string) {
-  return {
-    subscriberId,
-    subscriberHash: generateSubscriberHash(subscriberId),
-  };
+  try {
+    const subscriberHash = generateSubscriberHash(subscriberId);
+    return {
+      subscriberId,
+      subscriberHash,
+    };
+  } catch (error) {
+    console.error('Failed to generate secure subscriber data:', error);
+    throw error;
+  }
 }
 
 /**
- * Generic function to trigger any Novu workflow - used by webhooks
+ * Trigger a workflow with enhanced error handling and type safety
+ *
+ * @param workflowId - The Novu workflow identifier
+ * @param payload - Notification payload data (type-safe)
+ * @param subscriberId - Target subscriber ID
+ * @returns Promise resolving to the trigger result or null on failure
  */
 export async function triggerWorkflow(
   workflowId: string,
-  subscriber: SubscriberData,
   payload: NovuPayload,
+  subscriberId: string,
 ) {
-  if (!isNovuAvailable()) {
-    console.warn('Novu not available - skipping workflow trigger:', workflowId);
-    return;
+  if (!novu) {
+    console.warn(`[Novu] Cannot trigger workflow ${workflowId}: Novu not initialized`);
+    return null;
   }
 
   try {
-    // Ensure subscriber exists/is updated first
-    await createOrUpdateNovuSubscriber(subscriber);
-
-    // Trigger the workflow
-    await novu!.trigger(workflowId, {
-      to: { subscriberId: subscriber.subscriberId },
+    const result = await novu.trigger(workflowId, {
+      to: {
+        subscriberId,
+      },
       payload,
     });
 
     console.log(
-      `Workflow triggered successfully: ${workflowId} for subscriber: ${subscriber.subscriberId}`,
+      `[Novu] Successfully triggered workflow ${workflowId} for subscriber ${subscriberId}`,
     );
+    return result;
   } catch (error) {
-    console.error(`Error triggering workflow ${workflowId}:`, error);
-    throw error;
+    console.error(`[Novu] Failed to trigger workflow ${workflowId}:`, error);
+    return null;
   }
+}
+
+/**
+ * Trigger a workflow with multiple subscribers
+ *
+ * @param workflowId - The Novu workflow identifier
+ * @param payload - Notification payload data
+ * @param subscriberIds - Array of target subscriber IDs
+ * @returns Promise resolving to array of results
+ */
+export async function triggerWorkflowBatch(
+  workflowId: string,
+  payload: NovuPayload,
+  subscriberIds: string[],
+) {
+  if (!novu) {
+    console.warn(`[Novu] Cannot trigger batch workflow ${workflowId}: Novu not initialized`);
+    return [];
+  }
+
+  const results = await Promise.allSettled(
+    subscriberIds.map((subscriberId) => triggerWorkflow(workflowId, payload, subscriberId)),
+  );
+
+  const successful = results.filter((result) => result.status === 'fulfilled').length;
+  const failed = results.length - successful;
+
+  console.log(`[Novu] Batch workflow ${workflowId}: ${successful} successful, ${failed} failed`);
+
+  return results;
 }
 
 /**

@@ -341,5 +341,128 @@
       "multibancoNotice": "⚠️ **Aviso de Pago Multibanco:** Si elige Multibanco como método de pago, su horario de cita será reservado por 24 horas mientras esperamos la confirmación del pago. Después de 24 horas, si no se recibe el pago, no podemos garantizar que la cita siga disponible. Para confirmación inmediata, use una tarjeta de crédito/débito. [Ver Políticas de Pago]({paymentPoliciesUrl})",
       "termsOfService": "Al proceder con el pago, acepta nuestros [Términos de Servicio]({termsUrl}) y [Políticas de Pago]({paymentPoliciesUrl})."
     }
+  },
+  "notifications": {
+    "welcome": {
+      "subject": "¡Bienvenido a Eleva Care, {userName}!",
+      "body": "¡Hola {userName}! Bienvenido a Eleva Care. Estamos emocionados de ayudarte en tu viaje de salud.",
+      "email": {
+        "subject": "¡Bienvenido a Eleva Care!",
+        "title": "¡Bienvenido a Eleva Care!",
+        "greeting": "Hola {firstName},",
+        "body": "Gracias por unirte a nuestra plataforma de salud. Estamos emocionados de ayudarte en tu viaje de bienestar.",
+        "nextStepsTitle": "Próximos Pasos:",
+        "nextSteps": [
+          "Completa tu perfil",
+          "Navega por los especialistas disponibles",
+          "Reserva tu primera consulta"
+        ],
+        "cta": "Completa Tu Perfil"
+      }
+    },
+    "accountVerification": {
+      "subject": "Por favor, verifica tu cuenta",
+      "body": "Para aprovechar al máximo Eleva Care, por favor verifica tu cuenta."
+    },
+    "paymentSuccess": {
+      "subject": "¡Pago exitoso!",
+      "body": "Tu pago de {amount} para {planName} ha sido procesado exitosamente."
+    },
+    "paymentFailed": {
+      "subject": "Fallo en el pago",
+      "body": "No pudimos procesar tu pago de {amount}. Por favor, verifica tu método de pago e intenta nuevamente."
+    },
+    "securityAlert": {
+      "subject": "Alerta de Seguridad",
+      "body": "{message}"
+    },
+    "marketplacePaymentReceived": {
+      "subject": "Pago Recibido: €{amount}",
+      "body": "Has recibido un pago de €{amount} de {clientName} por tu sesión el {sessionDate}. La transferencia será procesada según tu cronograma de pagos.",
+      "email": {
+        "subject": "Pago Recibido - €{amount}",
+        "title": "¡Pago Recibido!",
+        "greeting": "¡Excelentes noticias! Has recibido un pago por tus servicios.",
+        "detailsTitle": "Detalles del Pago:",
+        "amount": "Importe: €{amount}",
+        "client": "Cliente: {clientName}",
+        "sessionDate": "Fecha de la Sesión: {sessionDate}",
+        "transactionId": "ID de Transacción: {transactionId}",
+        "footer": "Este pago será transferido a tu cuenta según tu cronograma de pagos.",
+        "cta": "Ver Detalles del Pago"
+      }
+    },
+    "marketplacePayoutProcessed": {
+      "subject": "Pago Procesado: €{amount}",
+      "body": "Tu pago de €{amount} ha sido procesado y enviado a tu cuenta bancaria. Llegada esperada: {expectedArrival}.",
+      "email": {
+        "subject": "Pago Procesado - €{amount}",
+        "title": "Pago Procesado",
+        "body": "Tus ganancias han sido transferidas a tu cuenta bancaria.",
+        "detailsTitle": "Detalles del Pago:",
+        "amount": "Importe: €{amount}",
+        "payoutId": "ID del Pago: {payoutId}",
+        "expectedArrival": "Llegada Esperada: {expectedArrival}",
+        "bankAccount": "Cuenta Bancaria: {bankAccount}",
+        "cta": "Ver Historial de Pagos"
+      }
+    },
+    "appointmentReminder": {
+      "subject": "Recordatorio: Tu cita es {timeUntilAppointment}",
+      "body": "Tu {appointmentType} con {expertName} es {timeUntilAppointment} el {appointmentDate} a las {appointmentTime}.",
+      "email": {
+        "subject": "Recordatorio: Tu cita de Eleva Care es {timeUntilAppointment}",
+        "title": "Recordatorio de Cita",
+        "greeting": "Hola {userName},",
+        "body": "Este es un recordatorio amigable de que tu {appointmentType} con {expertName} es {timeUntilAppointment}, el {appointmentDate} a las {appointmentTime}.",
+        "cta": "Accede a tu cita",
+        "footer": "Por favor, asegúrate de estar en un lugar tranquilo con una conexión a internet estable."
+      }
+    },
+    "appointmentCancelled": {
+      "subject": "Cita Cancelada: {appointmentType}",
+      "body": "Tu cita con {expertName} el {appointmentDate} ha sido cancelada.",
+      "email": {
+        "subject": "Tu Cita de Eleva Care Ha Sido Cancelada",
+        "title": "Cita Cancelada",
+        "greeting": "Hola {userName},",
+        "body": "Tu {appointmentType} con {expertName} programada para el {appointmentDate} a las {appointmentTime} ha sido cancelada.",
+        "apology": "Nos disculpamos por cualquier inconveniente. Puedes reservar una nueva cita en cualquier momento.",
+        "cta": "Reservar Nueva Cita"
+      }
+    },
+    "expertPayoutSetup": {
+      "subject": "Completa la configuración de tu pago",
+      "body": "Hola {expertName}, por favor completa la configuración de Stripe Connect para comenzar a recibir pagos de los clientes.",
+      "email": {
+        "subject": "Completa la Configuración de Tu Cuenta de Pago de Eleva Care",
+        "title": "Completa la Configuración de Tu Pago",
+        "greeting": "Hola {expertName},",
+        "body": "Para comenzar a recibir pagos de tus clientes, necesitas completar la configuración de tu cuenta de pago.",
+        "requirement": "Esto es necesario para recibir pagos por tus sesiones.",
+        "cta": "Completar Configuración de Pago",
+        "support": "¿Necesitas ayuda? Contacta Soporte"
+      }
+    },
+    "newBookingExpert": {
+      "subject": "Nueva Reserva: {appointmentType}",
+      "body": "Tienes una nueva reserva de {clientName} para el {appointmentDate} a las {appointmentTime}.",
+      "email": {
+        "subject": "Nueva Reserva: {appointmentType} con {clientName}",
+        "title": "¡Alerta de Nueva Reserva!",
+        "greeting": "Hola {expertName},",
+        "body": "¡Tienes una nueva reserva!",
+        "detailsTitle": "Detalles de la Reserva:",
+        "service": "Servicio: {appointmentType}",
+        "client": "Cliente: {clientName}",
+        "date": "Fecha: {appointmentDate}",
+        "time": "Hora: {appointmentTime}",
+        "cta": "Ver Detalles de la Reserva"
+      }
+    },
+    "recentLogin": {
+      "subject": "Nuevo inicio de sesión detectado",
+      "body": "Detectamos un nuevo inicio de sesión en tu cuenta desde {location} a las {timestamp}."
+    }
   }
 }
