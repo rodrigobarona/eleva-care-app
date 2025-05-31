@@ -49,7 +49,7 @@ export const welcomeWorkflow = workflow(
 // Serve workflows for Next.js API routes
 export const { GET, POST, OPTIONS } = serve({ 
   workflows: [welcomeWorkflow],
-  apiKey: process.env.NOVU_API_KEY,
+  apiKey: process.env.NOVU_SECRET_KEY,
 });
 ```
 
@@ -127,7 +127,7 @@ const success = await createUserNotification({
 
 ### Required
 ```env
-NOVU_API_KEY=your_novu_api_key
+NOVU_SECRET_KEY=your_novu_secret_key
 NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER=your_application_identifier
 ```
 
