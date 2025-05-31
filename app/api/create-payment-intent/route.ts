@@ -11,9 +11,7 @@ import { getOrCreateStripeCustomer } from '@/lib/stripe';
 import { getAuth } from '@clerk/nextjs/server';
 import { and, eq, gt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
-import { NextResponse } from 'next/server';
-import { NextRequest } from 'next/server';
-import { randomUUID } from 'node:crypto';
+import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
@@ -402,7 +400,6 @@ export async function POST(request: NextRequest) {
     // Determine payment methods and expiration time based on meeting timing
     let paymentMethodTypes: string[];
     let paymentExpiresAt: Date;
-    let reservationExpiresAt: Date | null = null;
 
     if (hoursUntilMeeting <= 72) {
       // Meeting is within 72 hours - CREDIT CARD ONLY for instant confirmation
@@ -421,11 +418,8 @@ export async function POST(request: NextRequest) {
       // Payment can take up to 24 hours to complete (Multibanco minimum)
       paymentExpiresAt = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000);
 
-      // Reserve slot for 24 hours (same as payment expiration)
-      reservationExpiresAt = paymentExpiresAt;
-
       console.log(
-        `🕒 Advance booking: Meeting in ${hoursUntilMeeting.toFixed(1)}h - Card + Multibanco, 24h to pay + slot hold`,
+        `🕒 Advance booking: Meeting in ${hoursUntilMeeting.toFixed(1)}h - Card + Multibanco, 24h to pay`,
       );
     }
 
@@ -545,60 +539,6 @@ export async function POST(request: NextRequest) {
         metadata: sharedMetadata,
       },
     });
-
-    // **IMPROVED: Create slot reservation for delayed payment methods with proper error handling**
-    if (reservationExpiresAt && paymentMethodTypes.includes('multibanco')) {
-      try {
-        // Create a slot reservation to prevent double-bookings
-        await db.insert(SlotReservationTable).values({
-          id: randomUUID(),
-          eventId: event.id,
-          clerkUserId: meetingMetadata.expertId,
-          guestEmail: meetingMetadata.guestEmail,
-          startTime: new Date(meetingMetadata.start),
-          endTime: new Date(
-            new Date(meetingMetadata.start).getTime() + meetingMetadata.duration * 60 * 1000,
-          ),
-          expiresAt: reservationExpiresAt,
-          stripePaymentIntentId: null,
-          stripeSessionId: session.id,
-        });
-
-        console.log(
-          `🔒 Slot reserved until ${reservationExpiresAt.toISOString()} for ${meetingMetadata.guestEmail}`,
-        );
-      } catch (reservationError) {
-        console.error('Failed to create slot reservation:', reservationError);
-
-        // If slot reservation fails due to constraint violation, clean up the Stripe session
-        try {
-          await stripe.checkout.sessions.expire(session.id);
-          console.log('Expired Stripe session due to reservation conflict:', session.id);
-        } catch (expireError) {
-          console.error('Failed to expire Stripe session:', expireError);
-        }
-
-        // Return appropriate error
-        if (reservationError instanceof Error && reservationError.message.includes('unique')) {
-          return NextResponse.json(
-            {
-              error:
-                'This time slot was just reserved by another user. Please choose a different time.',
-              code: 'SLOT_RESERVATION_CONFLICT',
-            },
-            { status: 409 },
-          );
-        } else {
-          return NextResponse.json(
-            {
-              error: 'Failed to reserve time slot. Please try again.',
-              code: 'RESERVATION_ERROR',
-            },
-            { status: 500 },
-          );
-        }
-      }
-    }
 
     console.log('Checkout session created successfully:', {
       sessionId: session.id,
