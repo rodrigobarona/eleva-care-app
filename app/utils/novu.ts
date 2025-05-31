@@ -1,5 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
-import { Novu } from '@novu/node';
+import { Novu } from '@novu/framework';
 import { createHmac } from 'crypto';
 
 // Initialize Novu defensively - handle missing secret key during build

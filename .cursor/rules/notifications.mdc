@@ -10,14 +10,17 @@ This rule provides guidelines for implementing and maintaining Novu notification
 ## Package Usage
 
 ### ✅ Current Packages (May 2025)
-- `@novu/framework@2.6.7` - Use for server-side workflow definitions and triggers
+- `@novu/framework@2.6.7` - Use for server-side workflow definitions and triggers (**RECOMMENDED, replaces @novu/node**)
 - `@novu/nextjs@3.5.0` - Use for frontend Inbox components
 
 ### ❌ Avoid
-- `@novu/node` (deprecated, migrated)
+- `@novu/node` (deprecated, replaced by @novu/framework)
 - `@novu/headless` (deprecated, removed)
 - `@novu/react` components (use `@novu/nextjs` instead)
 - Direct API calls without using the framework
+
+> **Migration Note:**
+> If you are still using `@novu/node` for legacy code, migrate to `@novu/framework` as soon as possible. All new server-side notification logic should use `@novu/framework` for workflows, triggers, and type safety.
 
 ## Implementation Guidelines
 
