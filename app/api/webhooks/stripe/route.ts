@@ -53,6 +53,7 @@ const MeetingMetadataSchema = z.object({
       'Invalid start time format - must be ISO 8601',
     ),
   dur: z.number().positive('Duration must be positive'),
+  notes: z.string().optional(),
   locale: z.string().optional(),
   timezone: z.string().optional(),
 });
@@ -446,6 +447,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       startTime: new Date(meetingData.start),
       guestEmail: meetingData.guest,
       guestName: getGuestName(meetingData),
+      guestNotes: meetingData.notes,
       timezone: meetingData.timezone || 'UTC', // Use provided timezone or fallback to UTC
       stripeSessionId: session.id,
       stripePaymentStatus: mapPaymentStatus(session.payment_status, session.id),

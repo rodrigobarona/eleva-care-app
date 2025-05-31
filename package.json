@@ -24,6 +24,7 @@
     "qstash:test": "node --input-type=module scripts/test-qstash-connection.js",
     "qstash:update": "tsx scripts/update-qstash-schedules.ts",
     "postbuild": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-specifier-resolution=node tsx scripts/update-qstash-schedules.ts || echo 'QStash setup skipped'",
+    "cleanup:duplicates": "NODE_NO_WARNINGS=1 tsx scripts/cleanup-duplicate-reservations.ts",
     "test": "jest",
     "test:unit": "jest tests/unit",
     "test:integration": "jest tests/integration",

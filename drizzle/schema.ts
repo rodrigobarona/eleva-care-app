@@ -17,6 +17,7 @@ import {
   text,
   timestamp,
   uuid,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 /**
@@ -549,6 +550,12 @@ export const SlotReservationTable = pgTable(
       table.stripePaymentIntentId,
     ),
     sessionIdIndex: index('slot_reservations_session_id_idx').on(table.stripeSessionId),
+    // Unique constraint to prevent duplicate active reservations for the same slot
+    activeSlotReservationUnique: unique('slot_reservations_active_slot_unique').on(
+      table.eventId,
+      table.startTime,
+      table.guestEmail,
+    ),
   }),
 );
 

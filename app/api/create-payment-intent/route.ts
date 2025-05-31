@@ -5,18 +5,34 @@ import {
   STRIPE_CONFIG,
 } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { EventTable, SlotReservationTable } from '@/drizzle/schema';
+import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
 import { getOrCreateStripeCustomer } from '@/lib/stripe';
-import { eq } from 'drizzle-orm';
+import { getAuth } from '@clerk/nextjs/server';
+import { and, eq, gt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { randomUUID } from 'node:crypto';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
+
+// **IDEMPOTENCY CACHE: Store recent requests to prevent duplicates**
+const idempotencyCache = new Map<string, { url: string; timestamp: number }>();
+const CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+// **CLEANUP: Remove expired entries from cache**
+const cleanupCache = () => {
+  const now = Date.now();
+  for (const [key, entry] of idempotencyCache.entries()) {
+    if (now - entry.timestamp > CACHE_TTL_MS) {
+      idempotencyCache.delete(key);
+    }
+  }
+};
 
 // Helper function to create shared metadata for checkout session and payment intent
 // Note: sessionId is intentionally NOT included in metadata as it's always available
@@ -100,10 +116,31 @@ function createSharedMetadata({
   };
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   console.log('Starting payment intent creation process');
 
   try {
+    // **IDEMPOTENCY: Check for duplicate requests**
+    const idempotencyKey = request.headers.get('Idempotency-Key');
+
+    if (idempotencyKey) {
+      // Clean up expired cache entries
+      cleanupCache();
+
+      // Check if we've seen this request before
+      const cachedResult = idempotencyCache.get(idempotencyKey);
+      if (cachedResult) {
+        console.log(`🔄 Returning cached result for idempotency key: ${idempotencyKey}`);
+        return NextResponse.json({ url: cachedResult.url });
+      }
+    }
+
+    // **AUTHENTICATION: Verify user is authenticated**
+    const { userId } = getAuth(request);
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     // Parse request body
     const body = await request.json();
     console.log('Request body received:', {
@@ -199,6 +236,104 @@ export async function POST(request: Request) {
     // The notes will be available through the meeting record
 
     console.log('Prepared meeting metadata for Stripe:', meetingMetadata);
+
+    // **CRITICAL: Check for existing reservations and conflicts BEFORE creating anything**
+    const appointmentStartTime = new Date(meetingData.startTime);
+
+    // Check for existing active reservations for this exact slot
+    const existingReservation = await db.query.SlotReservationTable.findFirst({
+      where: and(
+        eq(SlotReservationTable.eventId, eventId),
+        eq(SlotReservationTable.startTime, appointmentStartTime),
+        gt(SlotReservationTable.expiresAt, new Date()), // Only active reservations
+      ),
+    });
+
+    if (existingReservation) {
+      // Check if it's the same user (allow them to continue with existing reservation)
+      if (existingReservation.guestEmail === meetingData.guestEmail) {
+        console.log('User has existing active reservation, checking if we can reuse session:', {
+          reservationId: existingReservation.id,
+          sessionId: existingReservation.stripeSessionId,
+          expiresAt: existingReservation.expiresAt,
+        });
+
+        // Try to retrieve the existing Stripe session
+        if (existingReservation.stripeSessionId) {
+          try {
+            const existingSession = await stripe.checkout.sessions.retrieve(
+              existingReservation.stripeSessionId,
+            );
+
+            // If session is still valid and unpaid, return it
+            if (existingSession.status === 'open' && existingSession.payment_status === 'unpaid') {
+              console.log('Reusing existing valid session:', existingSession.id);
+              return NextResponse.json({
+                url: existingSession.url,
+              });
+            } else {
+              console.log('Existing session is no longer valid:', {
+                status: existingSession.status,
+                paymentStatus: existingSession.payment_status,
+              });
+              // Clean up the expired reservation
+              await db
+                .delete(SlotReservationTable)
+                .where(eq(SlotReservationTable.id, existingReservation.id));
+            }
+          } catch (stripeError) {
+            console.log('Failed to retrieve existing session, will create new one:', stripeError);
+            // Clean up the invalid reservation
+            await db
+              .delete(SlotReservationTable)
+              .where(eq(SlotReservationTable.id, existingReservation.id));
+          }
+        }
+      } else {
+        // Different user has this slot reserved
+        console.warn('Slot already reserved by another user:', {
+          requestingUser: meetingData.guestEmail,
+          reservedBy: existingReservation.guestEmail,
+          expiresAt: existingReservation.expiresAt,
+        });
+        return NextResponse.json(
+          {
+            error:
+              'This time slot is temporarily reserved by another user. Please choose a different time or try again later.',
+            code: 'SLOT_TEMPORARILY_RESERVED',
+          },
+          { status: 409 },
+        );
+      }
+    }
+
+    // Check for confirmed meetings in this slot
+    const conflictingMeeting = await db.query.MeetingTable.findFirst({
+      where: and(
+        eq(MeetingTable.eventId, eventId),
+        eq(MeetingTable.startTime, appointmentStartTime),
+        eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+      ),
+    });
+
+    if (conflictingMeeting) {
+      console.error('Time slot already booked with confirmed payment:', {
+        eventId,
+        startTime: appointmentStartTime,
+        requestingUser: meetingData.guestEmail,
+        existingBooking: {
+          id: conflictingMeeting.id,
+          email: conflictingMeeting.guestEmail,
+        },
+      });
+      return NextResponse.json(
+        {
+          error: 'This time slot has been booked by another user. Please choose a different time.',
+          code: 'SLOT_ALREADY_BOOKED',
+        },
+        { status: 409 },
+      );
+    }
 
     // Get or create customer with guest name for prefilled checkout
     console.log('Attempting to get/create Stripe customer with name:', meetingData.guestName);
@@ -411,32 +546,73 @@ export async function POST(request: Request) {
       },
     });
 
-    // Create slot reservation for delayed payment methods (if needed)
+    // **IMPROVED: Create slot reservation for delayed payment methods with proper error handling**
     if (reservationExpiresAt && paymentMethodTypes.includes('multibanco')) {
-      // Create a slot reservation to prevent double-bookings
-      await db.insert(SlotReservationTable).values({
-        id: randomUUID(),
-        eventId: event.id,
-        clerkUserId: meetingMetadata.expertId,
-        guestEmail: meetingMetadata.guestEmail,
-        startTime: new Date(meetingMetadata.start),
-        endTime: new Date(
-          new Date(meetingMetadata.start).getTime() + meetingMetadata.duration * 60 * 1000,
-        ),
-        expiresAt: reservationExpiresAt,
-        stripePaymentIntentId: null,
-        stripeSessionId: session.id,
-      });
+      try {
+        // Create a slot reservation to prevent double-bookings
+        await db.insert(SlotReservationTable).values({
+          id: randomUUID(),
+          eventId: event.id,
+          clerkUserId: meetingMetadata.expertId,
+          guestEmail: meetingMetadata.guestEmail,
+          startTime: new Date(meetingMetadata.start),
+          endTime: new Date(
+            new Date(meetingMetadata.start).getTime() + meetingMetadata.duration * 60 * 1000,
+          ),
+          expiresAt: reservationExpiresAt,
+          stripePaymentIntentId: null,
+          stripeSessionId: session.id,
+        });
 
-      console.log(
-        `🔒 Slot reserved until ${reservationExpiresAt.toISOString()} for ${meetingMetadata.guestEmail}`,
-      );
+        console.log(
+          `🔒 Slot reserved until ${reservationExpiresAt.toISOString()} for ${meetingMetadata.guestEmail}`,
+        );
+      } catch (reservationError) {
+        console.error('Failed to create slot reservation:', reservationError);
+
+        // If slot reservation fails due to constraint violation, clean up the Stripe session
+        try {
+          await stripe.checkout.sessions.expire(session.id);
+          console.log('Expired Stripe session due to reservation conflict:', session.id);
+        } catch (expireError) {
+          console.error('Failed to expire Stripe session:', expireError);
+        }
+
+        // Return appropriate error
+        if (reservationError instanceof Error && reservationError.message.includes('unique')) {
+          return NextResponse.json(
+            {
+              error:
+                'This time slot was just reserved by another user. Please choose a different time.',
+              code: 'SLOT_RESERVATION_CONFLICT',
+            },
+            { status: 409 },
+          );
+        } else {
+          return NextResponse.json(
+            {
+              error: 'Failed to reserve time slot. Please try again.',
+              code: 'RESERVATION_ERROR',
+            },
+            { status: 500 },
+          );
+        }
+      }
     }
 
     console.log('Checkout session created successfully:', {
       sessionId: session.id,
       url: session.url,
     });
+
+    // **IDEMPOTENCY: Cache the successful result**
+    if (idempotencyKey && session.url) {
+      idempotencyCache.set(idempotencyKey, {
+        url: session.url,
+        timestamp: Date.now(),
+      });
+      console.log(`💾 Cached result for idempotency key: ${idempotencyKey}`);
+    }
 
     return NextResponse.json({
       url: session.url,
