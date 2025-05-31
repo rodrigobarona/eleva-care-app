@@ -53,13 +53,13 @@ Novu.co is a versatile notification infrastructure service that provides several
 The core integration with Novu is established through environment variables and configuration files within our application:
 
 - **API Keys & Identifiers:**
-  - `NOVU_API_KEY`: A secret key used by our backend to authenticate with the Novu API for triggering events. This is stored securely as an environment variable.
+  - `NOVU_SECRET_KEY`: A secret key used by our backend to authenticate with the Novu API for triggering events. This is stored securely as an environment variable.
   - `NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER`: A public identifier for our Novu application, used by frontend components like the `NovuProvider` to connect to the correct Novu instance. This is also an environment variable.
 - **Backend Configuration (`config/novu.ts`):**
-  - This file initializes the Novu Node.js SDK instance using the `NOVU_API_KEY`.
+  - This file initializes the Novu Node.js SDK instance using the `NOVU_SECRET_KEY`.
   - The initialized `novu` object is then used throughout the backend (e.g., in `lib/notifications.ts`) to trigger notification events.
 - **Environment Configuration (`config/env.ts`):**
-  - This file centralizes the management of environment variables, including `NOVU_API_KEY` and `NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER`. It ensures these variables are available to the application and may include validation checks.
+  - This file centralizes the management of environment variables, including `NOVU_SECRET_KEY` and `NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER`. It ensures these variables are available to the application and may include validation checks.
 - **Frontend Provider (`app/providers.tsx`):**
   - The `NovuProvider` component from `@novu/react` wraps our application (or relevant parts of it).
   - It's configured with the `NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER` and the current user's `subscriberId`.
@@ -2413,7 +2413,7 @@ The Novu dashboard is the primary tool for monitoring the health and status of y
       - SMS provider might have insufficient funds or be blocked.
       - The Novu logs for a specific channel step often provide details from the provider if a delivery attempt failed.
     - **Payload Mismatches:** Sending a payload structure that differs from what the template expects (e.g., a variable name changed in the backend but not updated in the template).
-    - **API Key / Application ID Issues:** Ensure the `NOVU_API_KEY` on the backend and `NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER` on the frontend are correct for the target Novu environment.
+    - **API Key / Application ID Issues:** Ensure the `NOVU_SECRET_KEY` on the backend and `NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER` on the frontend are correct for the target Novu environment.
 
 4.  **Debugging:**
     - When a notification fails, the Novu log entry for that event is the first place to look. It often contains error messages or codes that can pinpoint the issue.

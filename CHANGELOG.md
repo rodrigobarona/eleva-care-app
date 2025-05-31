@@ -116,7 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Workflow mapping to Novu event IDs
     - Comprehensive error handling and status codes (202 Accepted for success)
   - **Environment Configuration**: Complete environment validation and configuration with:
-    - `NOVU_API_KEY` and `NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER` validation
+    - `NOVU_SECRET_KEY` and `NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER` validation
     - EU region configuration (`https://eu.api.novu.co`, `https://eu.ws.novu.co`)
     - Graceful degradation when service unavailable
   - **Real-time Event Handling**: Advanced event listener system for:

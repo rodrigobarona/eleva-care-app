@@ -70,7 +70,7 @@ export const welcomeWorkflow = workflow(
 // Serve workflows for Next.js API routes
 export const { GET, POST, OPTIONS } = serve({
   workflows: [welcomeWorkflow],
-  apiKey: process.env.NOVU_API_KEY,
+  apiKey: process.env.NOVU_SECRET_KEY,
 });
 ```
 
@@ -151,7 +151,7 @@ await createUserNotification({
 
 ```env
 # Novu Configuration
-NOVU_API_KEY=your_novu_api_key
+NOVU_SECRET_KEY=your_novu_secret_key
 NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER=your_application_identifier
 ```
 
@@ -274,7 +274,7 @@ For production environments, enable HMAC authentication:
 ```typescript
 // Generate hash on server
 import { createHmac } from 'crypto';
-const subscriberHash = createHmac('sha256', process.env.NOVU_API_KEY)
+const subscriberHash = createHmac('sha256', process.env.NOVU_SECRET_KEY)
   .update(subscriberId)
   .digest('hex');
 
