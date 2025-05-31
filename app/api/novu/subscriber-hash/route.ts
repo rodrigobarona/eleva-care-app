@@ -1,4 +1,5 @@
 import { getSecureSubscriberData } from '@/app/utils/novu';
+import { isAdmin } from '@/lib/auth/roles.server';
 import { getAuth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * Alternative endpoint that accepts subscriberId for admin use
- * Should only be used for internal/admin purposes with proper validation
+ * Allows admins to get any subscriber's hash, regular users can only get their own
  */
 export async function POST(request: NextRequest) {
   try {
@@ -59,9 +60,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'subscriberId is required' }, { status: 400 });
     }
 
-    // For security, only allow users to get their own hash
-    // Or add admin role check here for admin users
-    if (subscriberId !== userId) {
+    // Check if user has admin role
+    const userIsAdmin = await isAdmin();
+
+    // Allow admins to get any subscriber's hash, others only their own
+    if (!userIsAdmin && subscriberId !== userId) {
       return NextResponse.json(
         { error: 'Can only generate hash for your own subscriber ID' },
         { status: 403 },
