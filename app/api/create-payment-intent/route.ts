@@ -19,6 +19,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
 });
 
 // Helper function to create shared metadata for checkout session and payment intent
+// Note: sessionId is intentionally NOT included in metadata as it's always available
+// in webhook events via event.data.object.id and following Stripe best practices
 function createSharedMetadata({
   eventId,
   expertClerkUserId,
@@ -399,10 +401,7 @@ export async function POST(request: Request) {
           customer_name: meetingData.guestName,
         }),
       // ADD METADATA TO CHECKOUT SESSION (for webhook processing)
-      metadata: {
-        ...sharedMetadata,
-        sessionId: '', // Will be set by Stripe
-      },
+      metadata: sharedMetadata,
       payment_intent_data: {
         application_fee_amount: platformFee,
         transfer_data: {

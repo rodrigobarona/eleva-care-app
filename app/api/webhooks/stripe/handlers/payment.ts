@@ -626,7 +626,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           // All validations passed, create transfer record
           await db.insert(PaymentTransferTable).values({
             paymentIntentId: paymentIntent.id,
-            checkoutSessionId: paymentIntent.metadata?.sessionId || 'LEGACY',
+            checkoutSessionId: 'UNKNOWN', // Session ID not available in payment intent metadata per best practices
             eventId: meeting.eventId,
             expertConnectAccountId: transferData.account,
             expertClerkUserId: meeting.clerkUserId,
