@@ -25,6 +25,66 @@ if (typeof TextEncoder === 'undefined') {
   });
 }
 
+// Mock Next.js Web API globals for webhook testing
+Object.defineProperty(global, 'Request', {
+  value: class MockRequest {
+    constructor(
+      public url: string,
+      public init?: any,
+    ) {
+      this.headers = {
+        get: (name: string) => {
+          const headers = this.init?.headers || {};
+          return headers[name] || null;
+        },
+      };
+    }
+    async text() {
+      return this.init?.body || '{}';
+    }
+    async json() {
+      return JSON.parse(await this.text());
+    }
+    headers: any;
+  },
+  writable: true,
+});
+
+Object.defineProperty(global, 'Response', {
+  value: class MockResponse {
+    constructor(
+      public body?: any,
+      public init?: ResponseInit,
+    ) {
+      this.status = init?.status || 200;
+    }
+    async json() {
+      return this.body;
+    }
+    status: number;
+
+    static json(data: any, init?: ResponseInit) {
+      return new MockResponse(data, init);
+    }
+  },
+  writable: true,
+});
+
+// Mock NextResponse specifically for Next.js
+jest.mock('next/server', () => ({
+  NextRequest: jest.fn().mockImplementation((url: string, init?: any) => {
+    return new (global as any).Request(url, init);
+  }),
+  NextResponse: {
+    json: (data: any, init?: ResponseInit) => {
+      return new (global as any).Response(data, init);
+    },
+    next: () => new (global as any).Response(null, { status: 200 }),
+    redirect: (url: string) =>
+      new (global as any).Response(null, { status: 302, headers: { Location: url } }),
+  },
+}));
+
 // Mock Next.js headers
 jest.mock('next/headers', () => ({
   headers: jest.fn(() => new Map()),
