@@ -43,8 +43,8 @@ export async function GET() {
       email: user.emailAddresses[0]?.emailAddress,
     });
 
-    // Get user data from unified CustomerCache
-    const kvUser = await CustomerCache.getCustomerByUserId(userId);
+    // Get customer ID from unified CustomerCache (first step)
+    const customerId = await CustomerCache.getCustomerByUserId(userId);
 
     // Get the user's primary email
     const primaryEmail = user.emailAddresses.find(
@@ -56,14 +56,27 @@ export async function GET() {
     const lastName = user.lastName || '';
     const fullName = [firstName, lastName].filter(Boolean).join(' ');
 
-    // Parse the cached customer data (CustomerCache stores JSON strings)
+    // Get full customer data using the customer ID (second step)
     let customerData: StripeCustomerData | null = null;
-    if (kvUser) {
+    if (customerId) {
       try {
-        // CustomerCache might return the data directly or as JSON string
-        customerData = typeof kvUser === 'string' ? JSON.parse(kvUser) : kvUser;
+        // CustomerCache.getCustomer returns CachedCustomerData which matches StripeCustomerData structure
+        const cachedData = await CustomerCache.getCustomer(customerId);
+        if (cachedData) {
+          // Convert CachedCustomerData to StripeCustomerData (they have compatible structures)
+          customerData = {
+            stripeCustomerId: cachedData.stripeCustomerId,
+            email: cachedData.email,
+            userId: cachedData.userId || userId,
+            name: cachedData.name,
+            subscriptions: cachedData.subscriptions || [],
+            defaultPaymentMethod: cachedData.defaultPaymentMethod,
+            created: cachedData.created,
+            updatedAt: cachedData.updatedAt,
+          };
+        }
       } catch (error) {
-        console.warn('Failed to parse customer data from cache:', error);
+        console.warn('Failed to retrieve customer data from cache:', error);
         customerData = null;
       }
     }
@@ -115,10 +128,15 @@ export async function GET() {
     return NextResponse.json({
       isInSync: basicDataInSync && stripeDataInSync,
       debug: {
+        hasCustomerId: !!customerId,
         hasCustomerData: !!customerData,
+        customerId: customerId,
         basicDataInSync,
         stripeDataInSync,
         cacheSource: 'unified_customer_cache',
+        retrievalMethod: 'two_step_customer_lookup',
+        userIdMapping: !!customerId,
+        customerDataRetrieval: !!customerData,
       },
     });
   } catch (error) {

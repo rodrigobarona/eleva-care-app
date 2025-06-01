@@ -961,11 +961,25 @@ sequenceDiagram
 - Email notifications with Resend
 - Database integration with Neon and Drizzle ORM
 
-<!-- Version comparison links -->
+## [0.4.2] - 2024-11-XX - Critical CustomerCache Bug Fix
 
-[Unreleased]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.2...HEAD
-[0.3.2]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.1...v0.3.2
-[0.3.1]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.3.0...v0.3.1
-[0.3.0]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.2.0...v0.3.0
-[0.2.0]: https://github.com/rodrigo-barona/eleva-care-app/compare/v0.1.0...v0.2.0
-[0.1.0]: https://github.com/rodrigo-barona/eleva-care-app/releases/tag/v0.1.0
+### 🔴 CRITICAL BUG FIXES
+
+**CustomerCache Type Mismatch in check-kv-sync Route**
+
+- ✅ **FIXED**: Critical type mismatch where `CustomerCache.getCustomerByUserId()` returns customer ID string but was treated as customer data object
+- ✅ **FIXED**: Runtime JSON parsing errors when attempting to parse customer ID as JSON
+- ✅ **FIXED**: TypeScript type safety violations in customer data handling
+- ✅ **IMPLEMENTED**: Proper two-step customer data retrieval process
+- ✅ **ENHANCED**: Error handling and debugging capabilities for customer cache operations
+
+**Technical Details**:
+
+- Replaced incorrect single-step data retrieval with proper two-step process:
+  1. `getCustomerByUserId(userId)` → Returns customer ID string
+  2. `getCustomer(customerId)` → Returns full customer data object
+- Added comprehensive test coverage for the fix
+- Enhanced debug information for troubleshooting cache issues
+- Improved type safety and code maintainability
+
+**Impact**: Prevents runtime crashes in user sync checking and ensures reliable customer data retrieval
