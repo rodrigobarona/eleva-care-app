@@ -338,7 +338,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     path.startsWith('/api/cron/') ||
     path.startsWith('/api/qstash/') ||
     path.startsWith('/api/internal/') ||
-    path.startsWith('/api/healthcheck/') ||
+    path.startsWith('/api/healthcheck') ||
     path.startsWith('/api/create-payment-intent')
   ) {
     console.log(`📁 Static/internal route, skipping: ${path}`);
@@ -637,8 +637,8 @@ export const config = {
     // - api/cron/       (scheduled jobs endpoints)
     // - api/qstash/     (qstash verification endpoint)
     // - api/internal/   (internal services communication)
-    // - api/healthcheck/ (health monitoring endpoints)
+    // - api/healthcheck (health monitoring endpoints)
     // - api/create-payment-intent (payment processing endpoint)
-    '/((?!_next/static|_next/image|favicon.ico|.*\\..*|api/webhooks/|api/cron/|api/qstash/|api/internal/|api/healthcheck/|api/create-payment-intent).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\..*|api/webhooks/|api/cron/|api/qstash/|api/internal/|api/healthcheck|api/create-payment-intent).*)',
   ],
 };

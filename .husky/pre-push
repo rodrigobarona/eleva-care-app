@@ -1,0 +1,32 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Running pre-push checks..."
+
+# Check if we're pushing to main or develop
+branch=$(git branch --show-current)
+
+if [ "$branch" = "main" ] || [ "$branch" = "develop" ]; then
+  echo "⚠️  Pushing to $branch - running full test suite..."
+  
+  # Run all critical tests before pushing to main/develop
+  echo "🧪 Running unit tests..."
+  pnpm test:unit --passWithNoTests
+  
+  echo "🪝 Running webhook tests..."
+  pnpm test tests/api/webhooks/ --passWithNoTests
+  
+  echo "🔗 Running integration tests..."
+  pnpm test:integration --passWithNoTests
+  
+  echo "🏗️ Testing build..."
+  pnpm build
+  
+else
+  echo "📦 Running focused tests for feature branch..."
+  
+  # For feature branches, run tests related to changed files
+  pnpm test --findRelatedTests --passWithNoTests $(git diff origin/$branch..HEAD --name-only | grep -E '\.(ts|tsx)$' | paste -sd ' ' || echo "")
+fi
+
+echo "✅ Pre-push checks completed!" 

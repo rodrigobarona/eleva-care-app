@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running pre-commit checks..."
+
+# Run lint-staged for staged files
+pnpm lint-staged
+
+# Run tests for modified files
+echo "🧪 Running tests for modified files..."
+if git diff --cached --name-only | grep -E '\.(ts|tsx)$' > /dev/null; then
+  FILES=$(git diff --cached --name-only | grep -E '\.(ts|tsx)$')
+  if [ ! -z "$FILES" ]; then
+    pnpm test --findRelatedTests $FILES --passWithNoTests
+  fi
+fi
+
+echo "✅ Pre-commit checks completed!" 
