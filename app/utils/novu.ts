@@ -1,5 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
-import { getLocalizedWorkflowId } from '@/config/novu';
+import { getLocalizedWorkflowId } from '@/config/novu/workflows';
 import { Novu } from '@novu/api';
 import { createHmac } from 'crypto';
 
@@ -24,6 +24,9 @@ export type NovuPayload = Record<
   string,
   string | number | boolean | Record<string, unknown> | string[] | undefined
 >;
+
+// Define the supported locales type
+type SupportedLocale = 'en' | 'pt' | 'es' | 'br';
 
 interface SubscriberData {
   subscriberId: string;
@@ -106,13 +109,13 @@ export function getSecureSubscriberData(subscriberId: string) {
  * @param locale - Locale string (e.g., 'en-US', 'pt-PT', 'pt-BR', 'es-ES')
  * @returns Normalized locale for workflow ID (e.g., 'en', 'pt', 'br', 'es')
  */
-export function normalizeLocaleForWorkflow(locale?: string): string {
+export function normalizeLocaleForWorkflow(locale?: string): SupportedLocale {
   if (!locale) return 'en';
 
   const normalizedLocale = locale.toLowerCase();
 
   // Map specific locales to our workflow locales
-  const localeMap: Record<string, string> = {
+  const localeMap: Record<string, SupportedLocale> = {
     en: 'en',
     'en-us': 'en',
     'en-gb': 'en',
