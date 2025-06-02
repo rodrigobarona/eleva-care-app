@@ -1,7 +1,7 @@
 'use client';
 
 import { usePostHogEvents, usePostHogFeatureFlag } from '@/lib/hooks/usePostHog';
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 
 // PostHog Type Definitions
 interface PostHogEventProperties {
@@ -264,8 +264,8 @@ export class ErrorTracker extends React.Component<ErrorTrackerProps, ErrorTracke
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Track error with PostHog
-    if (typeof window !== 'undefined' && (window as WindowWithPostHog).posthog) {
-      (window as WindowWithPostHog).posthog.capture('react_error_boundary', {
+    if (typeof window !== 'undefined' && (window as unknown as WindowWithPostHog).posthog) {
+      (window as unknown as WindowWithPostHog).posthog.capture('react_error_boundary', {
         error_message: error.message,
         error_stack: error.stack,
         component_stack: errorInfo.componentStack,
@@ -301,8 +301,8 @@ export function setupGlobalErrorTracking() {
 
   // Track unhandled JavaScript errors
   window.addEventListener('error', (event) => {
-    if ((window as WindowWithPostHog).posthog) {
-      (window as WindowWithPostHog).posthog.capture('javascript_error', {
+    if ((window as unknown as WindowWithPostHog).posthog) {
+      (window as unknown as WindowWithPostHog).posthog.capture('javascript_error', {
         error_message: event.error?.message || event.message,
         error_stack: event.error?.stack,
         filename: event.filename,
@@ -315,8 +315,8 @@ export function setupGlobalErrorTracking() {
 
   // Track unhandled promise rejections
   window.addEventListener('unhandledrejection', (event) => {
-    if ((window as WindowWithPostHog).posthog) {
-      (window as WindowWithPostHog).posthog.capture('unhandled_promise_rejection', {
+    if ((window as unknown as WindowWithPostHog).posthog) {
+      (window as unknown as WindowWithPostHog).posthog.capture('unhandled_promise_rejection', {
         reason: event.reason?.toString() || 'Unknown reason',
         stack: event.reason?.stack,
       });
