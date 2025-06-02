@@ -3,6 +3,67 @@ import { ProfileTable } from '@/drizzle/schema';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { gt, sql } from 'drizzle-orm';
 
+/**
+ * Safely extracts and validates a base URL from environment variables
+ * @param envValue - The environment variable value (potentially comma-separated URLs)
+ * @param fallbackUrl - The default URL to use if validation fails
+ * @returns A validated URL string
+ */
+function getValidBaseUrl(
+  envValue: string | undefined,
+  fallbackUrl: string = 'http://localhost:3000',
+): string {
+  try {
+    // Check if environment variable exists and is non-empty
+    if (!envValue || typeof envValue !== 'string' || envValue.trim() === '') {
+      console.warn(
+        'Environment variable NEXT_PUBLIC_APP_URL is empty or undefined, using fallback',
+      );
+      return fallbackUrl;
+    }
+
+    // Split by comma and get the first URL, trim whitespace
+    const urls = envValue
+      .split(',')
+      .map((url) => url.trim())
+      .filter((url) => url.length > 0);
+
+    if (urls.length === 0) {
+      console.warn('No valid URLs found in NEXT_PUBLIC_APP_URL after splitting, using fallback');
+      return fallbackUrl;
+    }
+
+    const firstUrl = urls[0];
+
+    // Validate the URL using the URL constructor (will throw if invalid)
+    const urlObject = new URL(firstUrl);
+
+    // Additional security checks
+    if (!['http:', 'https:'].includes(urlObject.protocol)) {
+      throw new Error(
+        `Invalid protocol: ${urlObject.protocol}. Only http: and https: are allowed.`,
+      );
+    }
+
+    // Return the validated URL as string
+    return urlObject.toString();
+  } catch (error) {
+    console.error('Failed to validate base URL from environment variable:', {
+      envValue,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+
+    // Validate fallback URL as well
+    try {
+      const fallbackUrlObject = new URL(fallbackUrl);
+      return fallbackUrlObject.toString();
+    } catch {
+      console.error('Fallback URL is also invalid, using safe default');
+      return 'http://localhost:3000';
+    }
+  }
+}
+
 // Keep Alive - Maintains system health and token freshness
 // Performs the following tasks:
 // - Comprehensive system health checks via internal health endpoint
@@ -60,9 +121,14 @@ export async function GET(request: Request) {
     try {
       const healthCheckStart = Date.now();
 
-      // Get the base URL for the health check
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.split(',')[0] || 'http://localhost:3000';
+      // Get the base URL for the health check with proper validation
+      const baseUrl = getValidBaseUrl(process.env.NEXT_PUBLIC_APP_URL);
       const healthCheckUrl = `${baseUrl}/api/healthcheck`;
+
+      // Log the URL being used for transparency (but only in development)
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Using health check URL: ${healthCheckUrl}`);
+      }
 
       const healthResponse = await fetch(healthCheckUrl, {
         method: 'GET',
