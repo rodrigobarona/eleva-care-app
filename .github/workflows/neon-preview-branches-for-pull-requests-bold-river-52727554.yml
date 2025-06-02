@@ -1,4 +1,4 @@
-name: Create/Delete Branch for Pull Request
+name: 🗄️ Neon Preview Branch with Tests
 
 on:
   pull_request:
@@ -13,20 +13,21 @@ concurrency:
 
 jobs:
   setup:
-    name: Setup
+    name: 🏗️ Setup
     outputs:
       branch: ${{ steps.branch_name.outputs.current_branch }}
     runs-on: ubuntu-latest
     steps:
-      - name: Get branch name
+      - name: 📥 Get branch name
         id: branch_name
         uses: tj-actions/branch-names@v8
 
   create_neon_branch:
-    name: Create Neon Branch
+    name: 🗄️ Create Neon Branch
     outputs:
-      db_url: ${{ steps.create_neon_branch_encode.outputs.db_url }}
-      db_url_with_pooler: ${{ steps.create_neon_branch_encode.outputs.db_url_with_pooler }}
+      db_url: ${{ steps.create_neon_branch.outputs.db_url }}
+      db_url_with_pooler: ${{ steps.create_neon_branch.outputs.db_url_with_pooler }}
+      branch_id: ${{ steps.create_neon_branch.outputs.branch_id }}
     needs: setup
     if: |
       github.event_name == 'pull_request' && (
@@ -35,7 +36,7 @@ jobs:
       || github.event.action == 'reopened')
     runs-on: ubuntu-latest
     steps:
-      - name: Create Neon Branch
+      - name: 🗄️ Create Neon Branch
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v5
         with:
@@ -43,31 +44,169 @@ jobs:
           branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
 
-  # The step above creates a new Neon branch.
-  # You may want to do something with the new branch, such as run migrations, run tests
-  # on it, or send the connection details to a hosting platform environment.
-  # The branch DATABASE_URL is available to you via:
-  # "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}".
-  # It's important you don't log the DATABASE_URL as output as it contains a username and
-  # password for your database.
-  # For example, you can uncomment the lines below to run a database migration command:
-  #      - name: Run Migrations
-  #        run: npm run db:migrate
-  #        env:
-  #          # to use pooled connection
-  #          DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
-  #          # OR to use unpooled connection
-  #          # DATABASE_URL: "${{ steps.create_neon_branch.outputs.db_url }}"
+      - name: 🎉 Comment on PR with branch info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## 🗄️ Neon Preview Branch Created
+
+            **Branch ID**: \`${{ steps.create_neon_branch.outputs.branch_id }}\`
+            **Branch Name**: \`preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}\`
+
+            🧪 Tests will run against this preview database to ensure database operations work correctly.
+
+            > **Note**: This database will be automatically deleted when the PR is closed.`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  migrate_preview_db:
+    name: 🚀 Migrate Preview Database
+    needs: [setup, create_neon_branch]
+    runs-on: ubuntu-latest
+    if: needs.create_neon_branch.result == 'success'
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🗄️ Generate and run migrations
+        run: |
+          pnpm generate
+          pnpm migrate
+        env:
+          DATABASE_URL: ${{ needs.create_neon_branch.outputs.db_url_with_pooler }}
+
+      - name: 🌱 Seed preview database
+        run: |
+          # Run any seeding scripts for preview environment
+          # pnpm db:seed
+          echo "Database migrated and ready for testing"
+        env:
+          DATABASE_URL: ${{ needs.create_neon_branch.outputs.db_url_with_pooler }}
+
+  test_with_preview_db:
+    name: 🧪 Test Against Preview Database
+    needs: [setup, create_neon_branch, migrate_preview_db]
+    runs-on: ubuntu-latest
+    if: needs.migrate_preview_db.result == 'success'
+    strategy:
+      matrix:
+        test-type: [integration, webhook-integration]
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🧪 Run integration tests with real database
+        if: matrix.test-type == 'integration'
+        run: pnpm test:integration --coverage
+        env:
+          DATABASE_URL: ${{ needs.create_neon_branch.outputs.db_url_with_pooler }}
+          NODE_ENV: test
+          # Test environment variables
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_TEST_SECRET_KEY }}
+
+      - name: 🪝 Run webhook integration tests
+        if: matrix.test-type == 'webhook-integration'
+        run: |
+          # Run a subset of webhook tests that can work with real database
+          pnpm test tests/api/webhooks/ --testPathIgnorePatterns="mocked" --coverage
+        env:
+          DATABASE_URL: ${{ needs.create_neon_branch.outputs.db_url_with_pooler }}
+          NODE_ENV: test
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_TEST_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_TEST_WEBHOOK_SECRET }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_TEST_SECRET_KEY }}
+
+      - name: 📊 Upload test coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage/lcov.info
+          flags: preview-db-${{ matrix.test-type }}
+          name: Preview DB Tests - ${{ matrix.test-type }}
+
+  comment_test_results:
+    name: 💬 Comment Test Results
+    needs: [setup, test_with_preview_db]
+    runs-on: ubuntu-latest
+    if: always() && needs.create_neon_branch.result == 'success'
+    steps:
+      - name: 💬 Update PR with test results
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const testResults = '${{ needs.test_with_preview_db.result }}';
+            const emoji = testResults === 'success' ? '✅' : '❌';
+            const status = testResults === 'success' ? 'PASSED' : 'FAILED';
+
+            const comment = `## 🧪 Preview Database Test Results
+
+            ${emoji} **Tests ${status}** against preview database
+
+            **Branch**: \`preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}\`
+            **Status**: ${status}
+
+            ${testResults === 'success' ? 
+              '🎉 All integration and webhook tests passed with real database connections!' :
+              '⚠️ Some tests failed. Please check the workflow logs for details.'}
+
+            [View detailed results](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
 
   delete_neon_branch:
-    name: Delete Neon Branch
+    name: 🗑️ Delete Neon Branch
     needs: setup
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
     runs-on: ubuntu-latest
     steps:
-      - name: Delete Neon Branch
+      - name: 🗑️ Delete Neon Branch
         uses: neondatabase/delete-branch-action@v3
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: 💬 Confirm deletion
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = `## 🗑️ Preview Branch Cleaned Up
+
+            The preview database branch \`preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}\` has been deleted.
+
+            Thanks for your contribution! 🙏`;
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });

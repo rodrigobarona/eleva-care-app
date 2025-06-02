@@ -342,5 +342,147 @@
       "multibancoNotice": "⚠️ **Multibanco Payment Notice:** If you choose Multibanco as your payment method, your appointment slot will be reserved for 24 hours while we wait for payment confirmation. After 24 hours, if payment is not received, we cannot guarantee the appointment will still be available. For immediate confirmation, please use a credit/debit card. [View Payment Policies]({paymentPoliciesUrl})",
       "termsOfService": "By proceeding with payment, you agree to our [Terms of Service]({termsUrl}) and [Payment Policies]({paymentPoliciesUrl})."
     }
+  },
+  "notifications": {
+    "welcome": {
+      "subject": "Welcome to Eleva Care, {userName}!",
+      "body": "Hi {userName}! Welcome to Eleva Care. We're excited to help you on your healthcare journey.",
+      "email": {
+        "subject": "Welcome to Eleva Care!",
+        "title": "Welcome to Eleva Care!",
+        "greeting": "Hi {firstName},",
+        "body": "Thank you for joining our healthcare platform. We're excited to help you on your wellness journey.",
+        "nextStepsTitle": "Next Steps:",
+        "nextSteps": [
+          "Complete your profile",
+          "Browse available experts",
+          "Book your first consultation"
+        ],
+        "cta": "Complete Your Profile"
+      }
+    },
+    "accountVerification": {
+      "subject": "Please verify your account",
+      "body": "To get the most out of Eleva Care, please verify your account."
+    },
+    "paymentSuccess": {
+      "subject": "Payment successful!",
+      "body": "Your payment of {amount} for {planName} has been processed successfully."
+    },
+    "paymentFailed": {
+      "subject": "Payment failed",
+      "body": "We couldn't process your payment of {amount}. Please check your payment method and try again."
+    },
+    "securityAlert": {
+      "subject": "Security Alert",
+      "body": "{message}"
+    },
+    "marketplacePaymentReceived": {
+      "subject": "Payment Received: €{amount}",
+      "body": "You've received a payment of €{amount} from {clientName} for your session on {sessionDate}. Transfer will be processed according to your payout schedule.",
+      "email": {
+        "subject": "Payment Received - €{amount}",
+        "title": "Payment Received!",
+        "greeting": "Great news! You've received a payment for your services.",
+        "detailsTitle": "Payment Details:",
+        "amount": "Amount: €{amount}",
+        "client": "Client: {clientName}",
+        "sessionDate": "Session Date: {sessionDate}",
+        "transactionId": "Transaction ID: {transactionId}",
+        "footer": "This payment will be transferred to your account according to your payout schedule.",
+        "cta": "View Payment Details"
+      }
+    },
+    "marketplacePayoutProcessed": {
+      "subject": "Payout Processed: €{amount}",
+      "body": "Your payout of €{amount} has been processed and sent to your bank account. Expected arrival: {expectedArrival}.",
+      "email": {
+        "subject": "Payout Processed - €{amount}",
+        "title": "Payout Processed",
+        "body": "Your earnings have been transferred to your bank account.",
+        "detailsTitle": "Payout Details:",
+        "amount": "Amount: €{amount}",
+        "payoutId": "Payout ID: {payoutId}",
+        "expectedArrival": "Expected Arrival: {expectedArrival}",
+        "bankAccount": "Bank Account: {bankAccount}",
+        "cta": "View Payout History"
+      }
+    },
+    "appointmentReminder": {
+      "subject": "Reminder: Your appointment is {timeUntilAppointment}",
+      "body": "Your {appointmentType} with {expertName} is {timeUntilAppointment} on {appointmentDate} at {appointmentTime}.",
+      "email": {
+        "subject": "Reminder: Your Eleva Care Appointment is {timeUntilAppointment}",
+        "title": "Appointment Reminder",
+        "greeting": "Hi {userName},",
+        "body": "This is a friendly reminder that your {appointmentType} with {expertName} is {timeUntilAppointment}, on {appointmentDate} at {appointmentTime}.",
+        "cta": "Join your meeting",
+        "footer": "Please ensure you are in a quiet place with a stable internet connection."
+      }
+    },
+    "appointmentCancelled": {
+      "subject": "Appointment Cancelled: {appointmentType}",
+      "body": "Your appointment with {expertName} on {appointmentDate} has been cancelled.",
+      "email": {
+        "subject": "Your Eleva Care Appointment Has Been Cancelled",
+        "title": "Appointment Cancelled",
+        "greeting": "Hi {userName},",
+        "body": "Your {appointmentType} with {expertName} scheduled for {appointmentDate} at {appointmentTime} has been cancelled.",
+        "apology": "We apologize for any inconvenience. You can book a new appointment anytime.",
+        "cta": "Book New Appointment"
+      }
+    },
+    "expertPayoutSetup": {
+      "subject": "Complete your payout setup",
+      "body": "Hi {expertName}, please complete your Stripe Connect setup to start receiving payments from clients.",
+      "email": {
+        "subject": "Complete Your Eleva Care Payout Account Setup",
+        "title": "Complete Your Payout Setup",
+        "greeting": "Hi {expertName},",
+        "body": "To start receiving payments from your clients, you need to complete your payout account setup.",
+        "requirement": "This is required to receive payments for your sessions.",
+        "cta": "Complete Payout Setup",
+        "support": "Need help? Contact Support"
+      }
+    },
+    "newBookingExpert": {
+      "subject": "New Booking: {appointmentType}",
+      "body": "You have a new booking from {clientName} for {appointmentDate} at {appointmentTime}.",
+      "email": {
+        "subject": "New Booking: {appointmentType} with {clientName}",
+        "title": "New Booking Alert!",
+        "greeting": "Hi {expertName},",
+        "body": "You have a new booking!",
+        "detailsTitle": "Booking Details:",
+        "service": "Service: {appointmentType}",
+        "client": "Client: {clientName}",
+        "date": "Date: {appointmentDate}",
+        "time": "Time: {appointmentTime}",
+        "cta": "View Booking Details"
+      }
+    },
+    "recentLogin": {
+      "subject": "New login detected",
+      "body": "We detected a new login to your account from {location} at {timestamp}."
+    },
+    "expertOnboardingComplete": {
+      "subject": "Expert setup complete!",
+      "body": "Congratulations {expertName}! Your expert profile is now live. You can start receiving bookings from clients.",
+      "email": {
+        "subject": "Welcome to the Eleva Care Expert Network!",
+        "title": "Congratulations, {expertName}!",
+        "greeting": "Your expert profile is now active on Eleva Care.",
+        "body": "Your expert profile is now active on Eleva Care.",
+        "specialization": "Specialization: {specialization}",
+        "nextStepsTitle": "You can now:",
+        "nextSteps": [
+          "Receive client bookings",
+          "Manage your availability",
+          "Track your earnings",
+          "Build your client base"
+        ],
+        "cta": "Go to Dashboard"
+      }
+    }
   }
 }

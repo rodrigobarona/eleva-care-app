@@ -1,5 +1,6 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
+import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
 import { createUserNotification } from '@/lib/notifications';
 import { withRetry } from '@/lib/stripe';
 import { eq } from 'drizzle-orm';
@@ -28,13 +29,17 @@ export async function handleExternalAccountCreated(
         await db.transaction(async (_tx) => {
           await createUserNotification({
             userId: user.id,
-            type: 'ACCOUNT_UPDATE',
-            title: externalAccount.object === 'bank_account' ? 'Bank Account Added' : 'Card Added',
-            message:
-              externalAccount.object === 'bank_account'
-                ? 'Your bank account has been successfully added to your Stripe Connect account.'
-                : 'Your card has been successfully added to your Stripe Connect account.',
-            actionUrl: '/account/connect',
+            type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+            data: {
+              userName: user.firstName || 'User',
+              title:
+                externalAccount.object === 'bank_account' ? 'Bank Account Added' : 'Card Added',
+              message:
+                externalAccount.object === 'bank_account'
+                  ? 'Your bank account has been successfully added to your Stripe Connect account.'
+                  : 'Your card has been successfully added to your Stripe Connect account.',
+              actionUrl: '/account/connect',
+            },
           });
         });
       },
@@ -66,13 +71,16 @@ export async function handleExternalAccountDeleted(
   await db.transaction(async (_tx) => {
     await createUserNotification({
       userId: user.id,
-      type: 'ACCOUNT_UPDATE',
-      title: externalAccount.object === 'bank_account' ? 'Bank Account Removed' : 'Card Removed',
-      message:
-        externalAccount.object === 'bank_account'
-          ? 'A bank account has been removed from your Stripe Connect account.'
-          : 'A card has been removed from your Stripe Connect account.',
-      actionUrl: '/account/connect',
+      type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+      data: {
+        userName: user.firstName || 'User',
+        title: externalAccount.object === 'bank_account' ? 'Bank Account Removed' : 'Card Removed',
+        message:
+          externalAccount.object === 'bank_account'
+            ? 'A bank account has been removed from your Stripe Connect account.'
+            : 'A card has been removed from your Stripe Connect account.',
+        actionUrl: '/account/connect',
+      },
     });
   });
 }

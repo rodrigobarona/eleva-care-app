@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Welcome Workflow",
+    "identifier": "user-welcome",
+    "id": "683d471cba5916254d924f4b",
+    "critical": true,
+    "dashboardUrl": "https://web.novu.co/workflows/683d471cba5916254d924f4b"
+  },
+  {
+    "name": "Payment Success Workflow",
+    "identifier": "payment-success",
+    "id": "683d471de6c6c2dbca9c7ea6",
+    "critical": true,
+    "dashboardUrl": "https://web.novu.co/workflows/683d471de6c6c2dbca9c7ea6"
+  },
+  {
+    "name": "Payment Failed Workflow",
+    "identifier": "payment-failed",
+    "id": "683d471eba5916254d924fb1",
+    "critical": true,
+    "dashboardUrl": "https://web.novu.co/workflows/683d471eba5916254d924fb1"
+  },
+  {
+    "name": "Appointment Reminder Workflow",
+    "identifier": "appointment-reminder-24hr",
+    "id": "683d471ea466ec9b60623c70",
+    "critical": true,
+    "dashboardUrl": "https://web.novu.co/workflows/683d471ea466ec9b60623c70"
+  },
+  {
+    "name": "Expert Onboarding Complete Workflow",
+    "identifier": "expert-onboarding-complete",
+    "id": "683d471f99e4295e5c090559",
+    "critical": true,
+    "dashboardUrl": "https://web.novu.co/workflows/683d471f99e4295e5c090559"
+  },
+  {
+    "name": "Health Check Failure Workflow",
+    "identifier": "health-check-failure",
+    "id": "683d471f10a49b6d0c28cebf",
+    "critical": true,
+    "dashboardUrl": "https://web.novu.co/workflows/683d471f10a49b6d0c28cebf"
+  }
+]

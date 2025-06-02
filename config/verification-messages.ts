@@ -1,4 +1,7 @@
-import type { NotificationType } from '@/lib/notifications';
+import {
+  NOTIFICATION_TYPE_VERIFICATION_HELP,
+  type NotificationType,
+} from '@/lib/constants/notifications';
 
 export interface VerificationMessage {
   title: string;
@@ -121,7 +124,7 @@ export function createVerificationHelpNotification(errorMessage?: string): {
 } {
   const { title, message } = getVerificationMessage(errorMessage);
   return {
-    type: 'VERIFICATION_HELP',
+    type: NOTIFICATION_TYPE_VERIFICATION_HELP,
     title,
     message,
   };

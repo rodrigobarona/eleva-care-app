@@ -15,6 +15,20 @@
       "when": 1748505772109,
       "tag": "0001_zippy_blue_blade",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1748629505602,
+      "tag": "0002_same_kate_bishop",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1748673230894,
+      "tag": "0003_melodic_power_pack",
+      "breakpoints": true
     }
   ]
 }

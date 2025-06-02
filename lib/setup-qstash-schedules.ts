@@ -63,6 +63,11 @@ const SCHEDULE_CONFIGS = [
     endpoint: '/api/cron/cleanup-blocked-dates',
     schedule: { cron: '0 0 * * *' }, // Daily at midnight UTC
   },
+  {
+    name: 'appointment-reminders',
+    endpoint: '/api/cron/appointment-reminders',
+    schedule: { cron: '0 9 * * *' }, // Daily at 9 AM
+  },
 ];
 
 interface ScheduleResult {

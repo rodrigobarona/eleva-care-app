@@ -17,6 +17,7 @@ import {
   text,
   timestamp,
   uuid,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 /**
@@ -474,43 +475,6 @@ export const PaymentTransferTable = pgTable('payment_transfers', {
   updated: timestamp('updated').notNull().defaultNow(),
 });
 
-/**
- * Notification table - stores user notifications
- *
- * Used to display important messages to users in the dashboard:
- * - System notifications
- * - Verification issues
- * - Account status updates
- * - Security alerts
- */
-export const NotificationTable = pgTable('notifications', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  userId: uuid('user_id')
-    .notNull()
-    .references(() => UserTable.id, { onDelete: 'cascade' }),
-  type: text('type').notNull(),
-  title: text('title').notNull(),
-  message: text('message').notNull(),
-  actionUrl: text('action_url'),
-  read: boolean('read').default(false),
-  readAt: timestamp('read_at'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  expiresAt: timestamp('expires_at'),
-});
-
-/**
- * Relationship definition for NotificationTable
- *
- * Establishes a many-to-one relationship with UserTable.
- * Each notification belongs to a specific user.
- */
-export const notificationRelations = relations(NotificationTable, ({ one }) => ({
-  user: one(UserTable, {
-    fields: [NotificationTable.userId],
-    references: [UserTable.id],
-  }),
-}));
-
 // Add the scheduling settings table
 export const schedulingSettings = pgTable('scheduling_settings', {
   id: serial('id').primaryKey(),
@@ -586,6 +550,12 @@ export const SlotReservationTable = pgTable(
       table.stripePaymentIntentId,
     ),
     sessionIdIndex: index('slot_reservations_session_id_idx').on(table.stripeSessionId),
+    // Unique constraint to prevent duplicate active reservations for the same slot
+    activeSlotReservationUnique: unique('slot_reservations_active_slot_unique').on(
+      table.eventId,
+      table.startTime,
+      table.guestEmail,
+    ),
   }),
 );
 

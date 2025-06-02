@@ -1,0 +1,20 @@
+echo "🔍 Running pre-commit checks..."
+
+# Run lint-staged for staged files
+pnpm lint-staged
+
+# Run tests for modified files
+echo "🧪 Running tests for modified files..."
+if git diff --cached --name-only | grep -E '\.(ts|tsx)$' > /dev/null; then
+  FILES=$(git diff --cached --name-only | grep -E '\.(ts|tsx)$' | xargs)
+  if [ -n "$FILES" ]; then
+    echo "🔍 Found changed TypeScript files, running related tests..."
+    npx jest --findRelatedTests $FILES --passWithNoTests
+  else
+    echo "📝 No TypeScript files changed, skipping tests"
+  fi
+else
+  echo "📝 No TypeScript files changed, skipping tests"
+fi
+
+echo "✅ Pre-commit checks completed!"

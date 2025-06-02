@@ -1,3 +1,4 @@
+import { triggerWorkflow } from '@/app/utils/novu';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
@@ -8,6 +9,10 @@ import {
   SlotReservationTable,
   UserTable,
 } from '@/drizzle/schema';
+import {
+  NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+  NOTIFICATION_TYPE_SECURITY_ALERT,
+} from '@/lib/constants/notifications';
 import {
   PAYMENT_TRANSFER_STATUS_DISPUTED,
   PAYMENT_TRANSFER_STATUS_FAILED,
@@ -77,10 +82,13 @@ function parseMetadata<T>(json: string | undefined, fallback: T): T {
 async function notifyExpertOfPaymentSuccess(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
     userId: transfer.expertClerkUserId,
-    type: 'ACCOUNT_UPDATE',
-    title: 'Payment Received',
-    message: 'A payment for your session has been successfully processed.',
-    actionUrl: '/account/payments',
+    type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+    data: {
+      userName: 'Expert',
+      title: 'Payment Received',
+      message: 'A payment for your session has been successfully processed.',
+      actionUrl: '/account/payments',
+    },
   });
 }
 
@@ -105,10 +113,13 @@ async function notifyExpertOfPaymentFailure(
 
   await createUserNotification({
     userId: transfer.expertClerkUserId,
-    type: 'ACCOUNT_UPDATE',
-    title: 'Important: Session Payment Failed & Canceled',
-    message,
-    actionUrl: '/account/payments',
+    type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+    data: {
+      userName: 'Expert',
+      title: 'Important: Session Payment Failed & Canceled',
+      message,
+      actionUrl: '/account/payments',
+    },
   });
 }
 
@@ -118,10 +129,13 @@ async function notifyExpertOfPaymentFailure(
 async function notifyExpertOfPaymentRefund(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
     userId: transfer.expertClerkUserId,
-    type: 'ACCOUNT_UPDATE',
-    title: 'Payment Refunded',
-    message: 'A payment has been refunded for one of your sessions.',
-    actionUrl: '/account/payments',
+    type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+    data: {
+      userName: 'Expert',
+      title: 'Payment Refunded',
+      message: 'A payment has been refunded for one of your sessions.',
+      actionUrl: '/account/payments',
+    },
   });
 }
 
@@ -131,11 +145,14 @@ async function notifyExpertOfPaymentRefund(transfer: { expertClerkUserId: string
 async function notifyExpertOfPaymentDispute(transfer: { expertClerkUserId: string }) {
   await createUserNotification({
     userId: transfer.expertClerkUserId,
-    type: 'SECURITY_ALERT',
-    title: 'Payment Dispute Opened',
-    message:
-      'A payment dispute has been opened for one of your sessions. We will contact you with more information.',
-    actionUrl: '/account/payments',
+    type: NOTIFICATION_TYPE_SECURITY_ALERT,
+    data: {
+      userName: 'Expert',
+      title: 'Payment Dispute Opened',
+      message:
+        'A payment dispute has been opened for one of your sessions. We will contact you with more information.',
+      actionUrl: '/account/payments',
+    },
   });
 }
 
@@ -609,7 +626,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           // All validations passed, create transfer record
           await db.insert(PaymentTransferTable).values({
             paymentIntentId: paymentIntent.id,
-            checkoutSessionId: paymentIntent.metadata?.sessionId || 'LEGACY',
+            checkoutSessionId: 'UNKNOWN', // Session ID not available in payment intent metadata per best practices
             eventId: meeting.eventId,
             expertConnectAccountId: transferData.account,
             expertClerkUserId: meeting.clerkUserId,
@@ -647,6 +664,44 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
         // Notify the expert about the successful payment
         await notifyExpertOfPaymentSuccess(transfer);
+
+        // Also trigger Novu marketplace workflow for enhanced notifications
+        try {
+          const expertUser = await db.query.UserTable.findFirst({
+            where: eq(UserTable.clerkUserId, transfer.expertClerkUserId),
+            columns: { firstName: true, lastName: true, email: true },
+          });
+
+          if (expertUser) {
+            const subscriber = {
+              subscriberId: transfer.expertClerkUserId,
+              email: expertUser.email || 'no-email@eleva.care',
+              firstName: expertUser.firstName || '',
+              lastName: expertUser.lastName || '',
+              data: {
+                transferId: transfer.id,
+                role: 'expert',
+              },
+            };
+
+            const sessionDate = format(meeting.startTime, 'EEEE, MMMM d, yyyy');
+            const amount = (transfer.amount / 100).toFixed(2); // Convert cents to euros
+
+            const payload = {
+              amount,
+              clientName: meeting.guestName || 'Client',
+              sessionDate,
+              transactionId: paymentIntent.id,
+              dashboardUrl: '/account/billing',
+            };
+
+            await triggerWorkflow('marketplace-payment-received', payload, subscriber.subscriberId);
+            console.log('✅ Marketplace payment notification sent via Novu');
+          }
+        } catch (novuError) {
+          console.error('❌ Failed to trigger marketplace payment notification:', novuError);
+          // Don't fail the entire webhook for Novu errors
+        }
       } else {
         console.log(
           `Transfer record ${transfer.id} already in status ${transfer.status}, not updating to READY.`,

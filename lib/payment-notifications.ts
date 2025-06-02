@@ -1,3 +1,5 @@
+import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
+
 import { createUserNotification } from './notifications';
 import { formatCurrency } from './utils';
 
@@ -41,18 +43,19 @@ export async function createUpcomingPayoutNotification({
     message = `You will receive a payment of ${formattedAmount} on ${formattedPayoutDate} for your session on ${formattedSessionDate}.`;
   }
 
-  // Set expiration date (2 days after payout date)
-  const expiresAt = new Date(payoutDate);
-  expiresAt.setDate(expiresAt.getDate() + 2);
-
   try {
     return await createUserNotification({
       userId,
-      type: 'ACCOUNT_UPDATE',
-      title: `Upcoming Payout: ${formattedAmount}`,
-      message,
-      actionUrl: `/events/${eventId}`,
-      expiresAt,
+      type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+      data: {
+        userName: 'Expert', // Default username for payment notifications
+        title: `Upcoming Payout: ${formattedAmount}`,
+        message,
+        actionUrl: `/events/${eventId}`,
+        amount: formattedAmount,
+        payoutDate: formattedPayoutDate,
+        eventId,
+      },
     });
   } catch (error) {
     console.error('Failed to create upcoming payout notification:', error);
@@ -68,29 +71,27 @@ export async function createPayoutCompletedNotification({
   userId,
   amount,
   currency,
-  transferId: _transferId,
   eventId,
 }: {
   userId: string;
   amount: number;
   currency: string;
-  transferId: string;
   eventId: string;
 }) {
   const formattedAmount = formatCurrency(amount, currency);
 
-  // Set expiration date (7 days from now)
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
-
   try {
     return await createUserNotification({
       userId,
-      type: 'ACCOUNT_UPDATE',
-      title: `Payment Sent: ${formattedAmount}`,
-      message: `Your payment of ${formattedAmount} has been sent to your Stripe account. It should arrive in your bank account within 1-2 business days.`,
-      actionUrl: `/events/${eventId}`,
-      expiresAt,
+      type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+      data: {
+        userName: 'Expert', // Default username for payment notifications
+        title: `Payment Sent: ${formattedAmount}`,
+        message: `Your payment of ${formattedAmount} has been sent to your Stripe account. It should arrive in your bank account within 1-2 business days.`,
+        actionUrl: `/events/${eventId}`,
+        amount: formattedAmount,
+        eventId,
+      },
     });
   } catch (error) {
     console.error('Failed to create payout completed notification:', error);
@@ -107,28 +108,26 @@ export async function createPayoutFailedNotification({
   amount,
   currency,
   errorMessage,
-  eventId: _eventId,
 }: {
   userId: string;
   amount: number;
   currency: string;
   errorMessage: string;
-  eventId: string;
 }) {
   const formattedAmount = formatCurrency(amount, currency);
-
-  // Set expiration date (30 days from now - important issue)
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 30);
 
   try {
     return await createUserNotification({
       userId,
-      type: 'ACCOUNT_UPDATE',
-      title: 'Payment Issue: Action Required',
-      message: `We encountered an issue sending your payment of ${formattedAmount}. Error: ${errorMessage}. Please check your Stripe account settings.`,
-      actionUrl: '/account/billing',
-      expiresAt,
+      type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
+      data: {
+        userName: 'Expert', // Default username for payment notifications
+        title: 'Payment Issue: Action Required',
+        message: `We encountered an issue sending your payment of ${formattedAmount}. Error: ${errorMessage}. Please check your Stripe account settings.`,
+        actionUrl: '/account/billing',
+        amount: formattedAmount,
+        errorMessage,
+      },
     });
   } catch (error) {
     console.error('Failed to create payout failed notification:', error);
