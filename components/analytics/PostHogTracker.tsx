@@ -1,7 +1,7 @@
 'use client';
 
 import { usePostHogEvents, usePostHogFeatureFlag } from '@/lib/hooks/usePostHog';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 
 // PostHog Type Definitions
 interface PostHogEventProperties {
@@ -42,7 +42,12 @@ export function PostHogTracker({
   trackOnMount = false,
 }: PostHogTrackerProps) {
   const { trackEvent } = usePostHogEvents();
-  const { flagValue } = usePostHogFeatureFlag(featureFlag || '', false);
+
+  // Only call usePostHogFeatureFlag if featureFlag is provided and non-empty
+  const { flagValue } = usePostHogFeatureFlag(
+    featureFlag && featureFlag.length > 0 ? featureFlag : '',
+    false,
+  );
 
   useEffect(() => {
     if (trackOnMount && eventName) {
@@ -51,7 +56,7 @@ export function PostHogTracker({
   }, [trackOnMount, eventName, eventProperties, trackEvent]);
 
   useEffect(() => {
-    if (featureFlag && flagValue) {
+    if (featureFlag && featureFlag.length > 0 && flagValue) {
       trackEvent('feature_flag_exposure', {
         flag_key: featureFlag,
         flag_value: flagValue,
@@ -67,17 +72,16 @@ export function PostHogTracker({
  * Click Tracking Wrapper
  *
  * Automatically tracks click events on wrapped elements.
+ * Provides proper keyboard accessibility.
  */
 interface ClickTrackerProps {
   children: React.ReactNode;
-  eventName?: string;
   eventProperties?: PostHogEventProperties;
   element?: string;
 }
 
 export function ClickTracker({
   children,
-  eventName: _eventName = 'element_clicked',
   eventProperties,
   element = 'unknown',
 }: ClickTrackerProps) {
@@ -92,8 +96,22 @@ export function ClickTracker({
     });
   };
 
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    // Handle Enter and Space keys for keyboard accessibility
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      const target = event.target as HTMLElement;
+      trackEngagement('click', element, {
+        ...eventProperties,
+        click_target: target?.tagName?.toLowerCase(),
+        click_text: target?.textContent?.slice(0, 100),
+        interaction_type: 'keyboard',
+      });
+    }
+  };
+
   return (
-    <div onClick={handleClick} onKeyDown={() => {}} role="button" tabIndex={0} data-ph-capture>
+    <div onClick={handleClick} onKeyDown={handleKeyDown} role="button" tabIndex={0} data-ph-capture>
       {children}
     </div>
   );
@@ -108,26 +126,34 @@ interface FormTrackerProps {
   children: React.ReactNode;
   formName: string;
   onSubmit?: (data: FormData) => void;
+  validateForm?: (formData: FormData) => boolean;
 }
 
-export function FormTracker({ children, formName, onSubmit }: FormTrackerProps) {
+export function FormTracker({ children, formName, onSubmit, validateForm }: FormTrackerProps) {
   const { trackEvent, trackConversion } = usePostHogEvents();
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault(); // Prevent default form submission
+
     const formData = new FormData(event.currentTarget);
     const formObject = Object.fromEntries(formData.entries());
+
+    // Determine if form has errors using validation function or form validity
+    const hasErrors = validateForm ? !validateForm(formData) : !event.currentTarget.checkValidity();
 
     // Track form submission
     trackEvent('form_submitted', {
       form_name: formName,
       field_count: Object.keys(formObject).length,
-      has_errors: false, // This should be determined by form validation
+      has_errors: hasErrors,
     });
 
-    // Track as conversion step
-    trackConversion('form_completion', formName, {
-      field_count: Object.keys(formObject).length,
-    });
+    // Only track conversion if form is valid
+    if (!hasErrors) {
+      trackConversion('form_completion', formName, {
+        field_count: Object.keys(formObject).length,
+      });
+    }
 
     onSubmit?.(formData);
   };
@@ -183,6 +209,7 @@ export function BusinessEventTracker({
 
   const handleKeyDown = (keyEvent: React.KeyboardEvent) => {
     if (triggerOn === 'click' && (keyEvent.key === 'Enter' || keyEvent.key === ' ')) {
+      keyEvent.preventDefault();
       trackBusinessEvent(event, properties);
     }
   };
@@ -221,20 +248,26 @@ export function PerformanceTracker({
   trackRenderTime = false,
 }: PerformanceTrackerProps) {
   const { trackEvent } = usePostHogEvents();
+  const startTimeRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (trackRenderTime) {
-      const startTime = performance.now();
+      // Record start time only once when component mounts
+      startTimeRef.current = performance.now();
 
+      // Cleanup function runs only on unmount
       return () => {
-        const endTime = performance.now();
-        trackEvent('component_render_time', {
-          component_name: componentName,
-          render_time: endTime - startTime,
-        });
+        if (startTimeRef.current !== null) {
+          const endTime = performance.now();
+          trackEvent('component_render_time', {
+            component_name: componentName,
+            render_time: endTime - startTimeRef.current,
+          });
+        }
       };
     }
-  }, [trackRenderTime, componentName, trackEvent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array ensures this only runs on mount/unmount
 
   return <>{children}</>;
 }

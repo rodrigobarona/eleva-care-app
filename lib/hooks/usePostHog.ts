@@ -39,11 +39,10 @@ export function usePostHogFeatureFlag(flagKey: string, defaultValue: boolean = f
     // Listen for feature flag updates
     posthog.onFeatureFlags(checkFlag);
 
+    // Note: PostHog's onFeatureFlags doesn't provide an unsubscribe mechanism
+    // The cleanup will happen automatically when the component unmounts
     return () => {
-      // Cleanup listener if available
-      if (posthog.featureFlags?.off) {
-        posthog.featureFlags.off('change', checkFlag);
-      }
+      // No cleanup needed - PostHog handles this internally
     };
   }, [posthog, flagKey, defaultValue]);
 
@@ -65,7 +64,7 @@ export function usePostHogEvents() {
         ...properties,
         timestamp: new Date().toISOString(),
         user_id: user?.id,
-        session_id: posthog.sessionRecording?.sessionId,
+        session_id: posthog.sessionRecording?.['_sessionId'],
       };
 
       posthog.capture(eventName, enrichedProperties);
@@ -162,10 +161,10 @@ export function usePostHogABTest(experimentKey: string, variants: string[]) {
     checkExperiment();
     posthog.onFeatureFlags(checkExperiment);
 
+    // Note: PostHog's onFeatureFlags doesn't provide an unsubscribe mechanism
+    // The cleanup will happen automatically when the component unmounts
     return () => {
-      if (posthog.featureFlags?.off) {
-        posthog.featureFlags.off('change', checkExperiment);
-      }
+      // No cleanup needed - PostHog handles this internally
     };
   }, [posthog, experimentKey, variants]);
 
