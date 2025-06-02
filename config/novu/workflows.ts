@@ -82,7 +82,7 @@ export const paymentSuccessWorkflowEN = workflow(
     // In-app confirmation
     await step.inApp('payment-confirmation', async () => ({
       subject: 'Payment successful!',
-      body: `Your payment of {amount} for {planName} has been processed successfully.`,
+      body: `Your payment of ${payload.amount} for ${payload.planName} has been processed successfully.`,
     }));
 
     // Email receipt
@@ -97,10 +97,10 @@ export const paymentSuccessWorkflowEN = workflow(
           <p>Your payment has been successfully processed.</p>
           <div style="background-color: #f8f9fa; padding: 16px; border-radius: 8px; margin: 16px 0;">
             <h3>Payment Details:</h3>
-            <p><strong>Amount:</strong> {{payload.amount}}</p>
-            <p><strong>Plan:</strong> {{payload.planName}}</p>
-            <p><strong>Date:</strong> {{payload.paymentDate}}</p>
-            <p><strong>Transaction ID:</strong> {{payload.transactionId}}</p>
+            <p><strong>Amount:</strong> ${payload.amount}</p>
+            <p><strong>Plan:</strong> ${payload.planName}</p>
+            <p><strong>Date:</strong> ${payload.paymentDate}</p>
+            <p><strong>Transaction ID:</strong> ${payload.transactionId}</p>
           </div>
           <p>Thank you for your payment!</p>
         </div>
@@ -137,7 +137,7 @@ export const paymentFailedWorkflowEN = workflow(
     // In-app alert
     await step.inApp('payment-failure', async () => ({
       subject: 'Payment failed',
-      body: `We couldn't process your payment of {amount}. Please check your payment method and try again.`,
+      body: `We couldn't process your payment of ${payload.amount}. Please check your payment method and try again.`,
       primaryAction: {
         label: 'Update Payment Method',
         redirect: {
@@ -194,8 +194,8 @@ export const appointmentReminderWorkflowEN = workflow(
   async ({ step, payload }) => {
     // In-app reminder
     await step.inApp('appointment-reminder-notification', async () => ({
-      subject: 'Reminder: Your appointment is {timeUntilAppointment}',
-      body: `Your {appointmentType} with {expertName} is {timeUntilAppointment} on {appointmentDate} at {appointmentTime}.`,
+      subject: `Reminder: Your appointment is ${payload.timeUntilAppointment}`,
+      body: `Your ${payload.appointmentType} with ${payload.expertName} is ${payload.timeUntilAppointment} on ${payload.appointmentDate} at ${payload.appointmentTime}.`,
       primaryAction: {
         label: 'Join your meeting',
         redirect: {
@@ -207,24 +207,24 @@ export const appointmentReminderWorkflowEN = workflow(
 
     // Email reminder
     await step.email('appointment-reminder-email', async () => ({
-      subject: `Reminder: Your Eleva Care Appointment is {timeUntilAppointment}`,
+      subject: `Reminder: Your Eleva Care Appointment is ${payload.timeUntilAppointment}`,
       body: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #006D77; color: white; padding: 20px; text-align: center;">
           <h1>Appointment Reminder</h1>
         </div>
         <div style="padding: 20px;">
-          <p>Hi {userName},{{payload.userName}}</p>
-          <p>This is a friendly reminder that your {appointmentType} with {expertName} is {timeUntilAppointment}, on {appointmentDate} at {appointmentTime}.</p>
+          <p>Hi ${payload.userName},</p>
+          <p>This is a friendly reminder that your ${payload.appointmentType} with ${payload.expertName} is ${payload.timeUntilAppointment}, on ${payload.appointmentDate} at ${payload.appointmentTime}.</p>
           <div style="background-color: #e8f5f8; padding: 16px; border-radius: 8px; margin: 16px 0;">
             <h3>Appointment Details:</h3>
-            <p><strong>Expert:</strong> {{payload.expertName}}</p>
-            <p><strong>Date:</strong> {{payload.appointmentDate}}</p>
-            <p><strong>Time:</strong> {{payload.appointmentTime}}</p>
-            <p><strong>Type:</strong> {{payload.appointmentType}}</p>
+            <p><strong>Expert:</strong> ${payload.expertName}</p>
+            <p><strong>Date:</strong> ${payload.appointmentDate}</p>
+            <p><strong>Time:</strong> ${payload.appointmentTime}</p>
+            <p><strong>Type:</strong> ${payload.appointmentType}</p>
           </div>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="{{payload.meetingLink}}" style="background-color: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            <a href="${payload.meetingLink}" style="background-color: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
               Join your meeting
             </a>
           </div>
@@ -266,7 +266,7 @@ export const expertOnboardingCompleteWorkflowEN = workflow(
     // In-app notification
     await step.inApp('onboarding-complete', async () => ({
       subject: 'Expert setup complete!',
-      body: `Congratulations {expertName}! Your expert profile is now live. You can start receiving bookings from clients.`,
+      body: `Congratulations ${payload.expertName}! Your expert profile is now live. You can start receiving bookings from clients.`,
       primaryAction: {
         label: 'Go to Dashboard',
         redirect: {
@@ -282,17 +282,17 @@ export const expertOnboardingCompleteWorkflowEN = workflow(
       body: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <div style="background-color: #006D77; color: white; padding: 20px; text-align: center;">
-          <h1>Congratulations, {expertName}!</h1>
+          <h1>Congratulations, ${payload.expertName}!</h1>
         </div>
         <div style="padding: 20px;">
           <p>Your expert profile is now active on Eleva Care.</p>
-          <p><strong>Specialization: {specialization}</strong></p>
+          <p><strong>Specialization: ${payload.specialization}</strong></p>
           <h3>You can now:</h3>
           <ul>
             <li>Receive client bookings</li><li>Manage your availability</li><li>Track your earnings</li><li>Build your client base</li>
           </ul>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="{{payload.dashboardUrl}}" style="background-color: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            <a href="${payload.dashboardUrl}" style="background-color: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
               Go to Dashboard
             </a>
           </div>
@@ -344,14 +344,14 @@ export const healthCheckFailureWorkflowEN = workflow(
           <p>A health check failure has been detected in the Eleva Care application.</p>
           <h3>System Details</h3>
           <ul>
-            <li><strong>Status:</strong> {{payload.status}}</li>
-            <li><strong>Error:</strong> {{payload.error}}</li>
-            <li><strong>Environment:</strong> {{payload.environment}}</li>
-            <li><strong>Timestamp:</strong> {{payload.timestamp}}</li>
-            <li><strong>Version:</strong> {{payload.version}}</li>
+            <li><strong>Status:</strong> ${payload.status}</li>
+            <li><strong>Error:</strong> ${payload.error}</li>
+            <li><strong>Environment:</strong> ${payload.environment}</li>
+            <li><strong>Timestamp:</strong> ${payload.timestamp}</li>
+            <li><strong>Version:</strong> ${payload.version}</li>
           </ul>
           <div style="text-align: center; margin: 30px 0;">
-            <a href="{{payload.monitoringUrl}}" style="background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Monitoring Dashboard</a>
+            <a href="${payload.monitoringUrl}" style="background-color: #dc3545; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Monitoring Dashboard</a>
           </div>
         </div>
       </div>
