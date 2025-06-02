@@ -23,7 +23,7 @@ console.log(`QSTASH_CURRENT_SIGNING_KEY exists: ${!!process.env.QSTASH_CURRENT_S
 console.log(`QSTASH_NEXT_SIGNING_KEY exists: ${!!process.env.QSTASH_NEXT_SIGNING_KEY}`);
 
 // Ensure this runs as a script
-if (require.main === module) {
+if (import.meta.url.startsWith('file:')) {
   main()
     .then(() => process.exit(0))
     .catch((error) => {

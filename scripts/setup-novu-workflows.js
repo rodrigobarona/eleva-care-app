@@ -5,14 +5,20 @@
  * Creates and configures notification workflows using the new @novu/framework
  * with next-intl for multilingual support
  *
- * Run with: node -r dotenv/config scripts/setup-novu-workflows.mjs
+ * Run with: node -r dotenv/config scripts/setup-novu-workflows.js
  * or: npm run setup:novu-workflows
  *
  * This script generates workflow definitions for the Novu Framework
  * Note: These variables are defined in config/env.ts for centralized access
  */
-import fs from 'fs';
-import path from 'path';
+import { getLocalizedWorkflowId, getWorkflowsForLocale } from '@/config/novu/workflows';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+// Get the current file's directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Check environment variables
 const NOVU_SECRET_KEY = process.env.NOVU_SECRET_KEY;
@@ -35,25 +41,79 @@ console.log('🌐 Setting up multilingual Novu Framework workflows for Eleva Car
 // Define supported locales
 const supportedLocales = ['en', 'pt', 'es', 'br'];
 
+/**
+ * Helper function to escape HTML to prevent XSS vulnerabilities
+ * @param {string} unsafe - The unsafe string that might contain HTML
+ * @returns {string} - The escaped safe string
+ */
+function escapeHtml(unsafe) {
+  if (typeof unsafe !== 'string') return '';
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Validates translation content for potentially unsafe HTML
+ * @param {string} content - The content to validate
+ * @returns {boolean} - Whether the content is safe
+ */
+function validateTranslationContent(content) {
+  // Check for script tags
+  if (/<script\b[^>]*>[\s\S]*?<\/script>/gi.test(content)) {
+    return false;
+  }
+  // Check for on* event handlers
+  if (/\bon\w+\s*=/gi.test(content)) {
+    return false;
+  }
+  // Check for javascript: URLs
+  if (/javascript\s*:/gi.test(content)) {
+    return false;
+  }
+  return true;
+}
+
 // Load translations for all locales
 const translations = {};
 for (const locale of supportedLocales) {
   try {
-    const messagePath = path.join(process.cwd(), `messages/${locale}.json`);
+    const messagePath = path.join(__dirname, '..', `messages/${locale}.json`);
     if (fs.existsSync(messagePath)) {
-      translations[locale] = JSON.parse(fs.readFileSync(messagePath, 'utf8'));
-      console.log(`✅ Loaded translations for ${locale}`);
+      const content = fs.readFileSync(messagePath, 'utf8');
+      const translationData = JSON.parse(content);
+
+      // Validate translation content
+      const validateTranslation = (obj) => {
+        for (const key in obj) {
+          if (typeof obj[key] === 'string') {
+            if (!validateTranslationContent(obj[key])) {
+              throw new Error(`Unsafe HTML content detected in translation key: ${key}`);
+            }
+          } else if (typeof obj[key] === 'object') {
+            validateTranslation(obj[key]);
+          }
+        }
+      };
+
+      validateTranslation(translationData);
+      translations[locale] = translationData;
+      console.log(`✅ Loaded and validated translations for ${locale}`);
     } else {
       console.warn(`⚠️  Translation file not found for ${locale}`);
     }
   } catch (error) {
     console.error(`❌ Error loading translations for ${locale}:`, error.message);
+    process.exit(1);
   }
 }
 
 console.log();
 
-// Helper function to get translated message
+// Helper function to get translated message with HTML escaping
 function getTranslation(locale, path, defaultValue = '') {
   const keys = path.split('.');
   let current = translations[locale];
@@ -64,13 +124,13 @@ function getTranslation(locale, path, defaultValue = '') {
     } else {
       // Fallback to English if translation not found
       if (locale !== 'en' && translations['en']) {
-        return getTranslation('en', path, defaultValue);
+        return escapeHtml(getTranslation('en', path, defaultValue));
       }
-      return defaultValue;
+      return escapeHtml(defaultValue);
     }
   }
 
-  return current || defaultValue;
+  return escapeHtml(current || defaultValue);
 }
 
 // Helper function to create email template
@@ -558,31 +618,18 @@ export function getLocalizedWorkflowId(baseId: string, locale: string = 'en') {
 }
 `;
 
-// Write the workflows file
-const workflowsFilePath = path.join(workflowsDir, 'workflows.ts');
-fs.writeFileSync(workflowsFilePath, workflowsContent);
-console.log('✅ Created multilingual workflows file:', workflowsFilePath);
-
 // Create an index file for easy imports
 const indexContent = `export * from './workflows';
 `;
 
-const indexFilePath = path.join(workflowsDir, 'index.ts');
-fs.writeFileSync(indexFilePath, indexContent);
-console.log('✅ Created index file:', indexFilePath);
-
 // Update the main config/novu.ts file to use the new Framework approach
-const configNovuPath = path.join(process.cwd(), 'config/novu.ts');
 const configNovuContent = `import { workflows, workflowsByLocale, getWorkflowsForLocale, getLocalizedWorkflowId } from './novu';
 
 // Export workflows for the Novu Framework
 export { workflows, workflowsByLocale, getWorkflowsForLocale, getLocalizedWorkflowId };
 `;
 
-fs.writeFileSync(configNovuPath, configNovuContent);
-console.log('✅ Updated config/novu.ts');
-
-// Create documentation
+// Documentation content
 const docContent = `# Multilingual Novu Framework Workflows
 
 This document describes the multilingual Novu Framework workflows configured for Eleva Care using next-intl.
@@ -768,12 +815,48 @@ Before deploying to production:
 5. Test with different locale users
 `;
 
-const docPath = path.join(
-  process.cwd(),
-  'docs/02-core-systems/notifications/07-multilingual-novu-workflows.md',
-);
-fs.writeFileSync(docPath, docContent);
-console.log('✅ Created multilingual documentation:', docPath);
+// Write the workflows file
+const workflowsFilePath = path.join(workflowsDir, 'workflows.ts');
+try {
+  fs.writeFileSync(workflowsFilePath, workflowsContent);
+  console.log('✅ Created multilingual workflows file:', workflowsFilePath);
+} catch (error) {
+  console.error('❌ Failed to write workflows file:', error.message);
+  process.exit(1);
+}
+
+// Create an index file for easy imports
+try {
+  const indexFilePath = path.join(workflowsDir, 'index.ts');
+  fs.writeFileSync(indexFilePath, indexContent);
+  console.log('✅ Created index file:', indexFilePath);
+} catch (error) {
+  console.error('❌ Failed to write index file:', error.message);
+  process.exit(1);
+}
+
+// Update the main config/novu.ts file
+try {
+  const configNovuPath = path.join(process.cwd(), 'config/novu.ts');
+  fs.writeFileSync(configNovuPath, configNovuContent);
+  console.log('✅ Updated config/novu.ts');
+} catch (error) {
+  console.error('❌ Failed to write config/novu.ts:', error.message);
+  process.exit(1);
+}
+
+// Create documentation
+try {
+  const docPath = path.join(
+    process.cwd(),
+    'docs/02-core-systems/notifications/07-multilingual-novu-workflows.md',
+  );
+  fs.writeFileSync(docPath, docContent);
+  console.log('✅ Created multilingual documentation:', docPath);
+} catch (error) {
+  console.error('❌ Failed to write documentation:', error.message);
+  process.exit(1);
+}
 
 console.log('\n🎉 Multilingual Novu Framework workflows created successfully!');
 console.log('\n📂 Files created:');
