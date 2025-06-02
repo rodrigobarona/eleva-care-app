@@ -566,6 +566,99 @@ export const newBookingExpertWorkflow = workflow(
   },
 );
 
+// Health Check Failure Workflow
+export const healthCheckFailureWorkflow = workflow(
+  'health-check-failure',
+  async ({ payload, step }) => {
+    // Send immediate notification
+    await step.inApp('health-check-alert', async () => ({
+      subject: `⚠️ Health Check Failure: ${payload.environment}`,
+      body: `Status: ${payload.status}
+Error: ${payload.error || 'Unknown error'}
+Environment: ${payload.environment}
+Memory: ${payload.memory.used}MB/${payload.memory.total}MB (${payload.memory.percentage}%)
+Timestamp: ${payload.timestamp}`,
+    }));
+
+    // Send detailed email
+    await step.email('health-check-alert-email', async () => ({
+      subject: `⚠️ Eleva Care Health Check Failure - ${payload.environment}`,
+      body: `
+<h2>⚠️ Health Check Failure Alert</h2>
+
+<p>A health check failure has been detected in the Eleva Care application.</p>
+
+<h3>System Details</h3>
+<ul>
+  <li><strong>Status:</strong> ${payload.status}</li>
+  <li><strong>Error:</strong> ${payload.error || 'Unknown error'}</li>
+  <li><strong>Environment:</strong> ${payload.environment}</li>
+  <li><strong>Timestamp:</strong> ${payload.timestamp}</li>
+  <li><strong>Version:</strong> ${payload.version}</li>
+  <li><strong>Node Version:</strong> ${payload.nodeVersion}</li>
+</ul>
+
+<h3>Memory Usage</h3>
+<ul>
+  <li><strong>Used:</strong> ${payload.memory.used}MB</li>
+  <li><strong>Total:</strong> ${payload.memory.total}MB</li>
+  <li><strong>Usage:</strong> ${payload.memory.percentage}%</li>
+</ul>
+
+<h3>System Information</h3>
+<ul>
+  <li><strong>Uptime:</strong> ${payload.uptime} seconds</li>
+  <li><strong>Platform:</strong> ${payload.platform}</li>
+  <li><strong>Architecture:</strong> ${payload.arch}</li>
+</ul>
+
+<h3>Environment Configuration</h3>
+<ul>
+  <li><strong>Database:</strong> ${payload.config?.hasDatabase ? 'Connected✅' : 'Disconnected❌'}</li>
+  <li><strong>Auth:</strong> ${payload.config?.hasAuth ? 'Enabled✅' : 'Disabled❌'}</li>
+  <li><strong>Stripe:</strong> ${payload.config?.hasStripe ? 'Connected✅' : 'Disconnected❌'}</li>
+  <li><strong>Redis:</strong> ${payload.config?.hasRedis ? `Connected✅ (${payload.config.redisMode})` : 'Disconnected❌'}</li>
+  <li><strong>QStash:</strong> ${payload.config?.hasQStash ? 'Connected✅' : 'Disconnected❌'}</li>
+  <li><strong>Email:</strong> ${payload.config?.hasEmail ? 'Configured✅' : 'Not Configured❌'}</li>
+  <li><strong>Novu:</strong> ${payload.config?.hasNovu ? 'Connected✅' : 'Disconnected❌'}</li>
+</ul>
+
+<p><a href="${payload.config?.baseUrl}/admin/monitoring">View Monitoring Dashboard</a></p>`,
+    }));
+  },
+  {
+    payloadSchema: z.object({
+      status: z.enum(['healthy', 'unhealthy']),
+      error: z.string().optional(),
+      timestamp: z.string(),
+      environment: z.string(),
+      version: z.string(),
+      nodeVersion: z.string(),
+      memory: z.object({
+        used: z.number(),
+        total: z.number(),
+        percentage: z.number(),
+      }),
+      uptime: z.number(),
+      platform: z.string().optional(),
+      arch: z.string().optional(),
+      config: z
+        .object({
+          hasDatabase: z.boolean(),
+          hasAuth: z.boolean(),
+          hasStripe: z.boolean(),
+          hasRedis: z.boolean(),
+          redisMode: z.string(),
+          hasQStash: z.boolean(),
+          hasEmail: z.boolean(),
+          hasNovu: z.boolean(),
+          baseUrl: z.string(),
+        })
+        .optional(),
+    }),
+  },
+);
+
 // Export all workflows
 export const workflows = [
   welcomeWorkflow,
@@ -589,4 +682,5 @@ export const workflows = [
   expertPayoutSetupReminderWorkflow,
   expertProfileActionRequiredWorkflow,
   newBookingExpertWorkflow,
+  healthCheckFailureWorkflow,
 ];
