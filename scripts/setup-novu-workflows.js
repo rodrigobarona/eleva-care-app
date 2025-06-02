@@ -14,12 +14,11 @@ const path = require('path');
 
 // Novu API configuration (also defined in config/env.ts)
 const NOVU_SECRET_KEY = process.env.NOVU_SECRET_KEY;
-const NOVU_API_KEY = process.env.NOVU_API_KEY;
 const NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER = process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER;
 const NOVU_BASE_URL = process.env.NOVU_BASE_URL || 'https://eu.api.novu.co';
 
-if (!NOVU_SECRET_KEY && !NOVU_API_KEY) {
-  console.error('❌ Missing required environment variables: NOVU_SECRET_KEY or NOVU_API_KEY');
+if (!NOVU_SECRET_KEY) {
+  console.error('❌ Missing required environment variables: NOVU_SECRET_KEY');
   process.exit(1);
 }
 
@@ -30,7 +29,7 @@ if (!NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) {
   process.exit(1);
 }
 
-const apiKey = NOVU_SECRET_KEY || NOVU_API_KEY;
+const apiKey = NOVU_SECRET_KEY;
 
 // API helper function
 async function novuAPI(endpoint, method = 'GET', data = null) {
