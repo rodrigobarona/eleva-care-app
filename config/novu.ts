@@ -1,6 +1,19 @@
 import { workflow } from '@novu/framework';
 import { z } from 'zod';
 
+// HTML escaping utility to prevent XSS vulnerabilities
+function escapeHtml(text: string): string {
+  const htmlEscapeMap: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;',
+  };
+  return text.replace(/[&<>"'/]/g, (char) => htmlEscapeMap[char]);
+}
+
 // Helper function to create localized workflow content
 async function getLocalizedContent(
   workflowKey: string,
@@ -16,24 +29,29 @@ async function getLocalizedContent(
       throw new Error(`No translation found for ${workflowKey} in ${locale}`);
     }
 
-    // Simple template replacement
+    // Template replacement with optional HTML escaping for security
     const replaceVars = (
       text: string,
       vars: Record<string, string | number | boolean | undefined>,
+      shouldEscapeHtml: boolean = false,
     ) => {
-      return text.replace(/\{(\w+)\}/g, (match, key) => String(vars[key] || match));
+      return text.replace(/\{(\w+)\}/g, (match, key) => {
+        const value = String(vars[key] || match);
+        return shouldEscapeHtml ? escapeHtml(value) : value;
+      });
     };
 
     if (type === 'email' && notificationData.email) {
       const email = notificationData.email;
       let body = '';
 
-      if (email.title) body += `<h2>${replaceVars(email.title, params)}</h2>\n`;
-      if (email.greeting) body += `<p>${replaceVars(email.greeting, params)}</p>\n`;
-      if (email.body) body += `<p>${replaceVars(email.body, params)}</p>\n`;
+      // Use HTML escaping for email content to prevent XSS
+      if (email.title) body += `<h2>${replaceVars(email.title, params, true)}</h2>\n`;
+      if (email.greeting) body += `<p>${replaceVars(email.greeting, params, true)}</p>\n`;
+      if (email.body) body += `<p>${replaceVars(email.body, params, true)}</p>\n`;
 
       if (email.detailsTitle) {
-        body += `<h3>${replaceVars(email.detailsTitle, params)}</h3>\n<ul>\n`;
+        body += `<h3>${replaceVars(email.detailsTitle, params, true)}</h3>\n<ul>\n`;
         const details = [
           'amount',
           'client',
@@ -45,23 +63,25 @@ async function getLocalizedContent(
         ];
         details.forEach((key) => {
           if (email[key])
-            body += `  <li><strong>${replaceVars(email[key], params)}</strong></li>\n`;
+            body += `  <li><strong>${replaceVars(email[key], params, true)}</strong></li>\n`;
         });
         body += `</ul>\n`;
       }
 
-      if (email.footer) body += `<p>${replaceVars(email.footer, params)}</p>\n`;
+      if (email.footer) body += `<p>${replaceVars(email.footer, params, true)}</p>\n`;
       if (email.cta) {
+        // URLs should not be HTML-escaped, but the CTA text should be
         const ctaUrl = params.dashboardUrl || params.actionUrl || '/account';
-        body += `<p><a href="${String(ctaUrl)}">${replaceVars(email.cta, params)}</a></p>\n`;
+        body += `<p><a href="${String(ctaUrl)}">${replaceVars(email.cta, params, true)}</a></p>\n`;
       }
 
       return {
-        subject: replaceVars(email.subject, params),
+        subject: replaceVars(email.subject, params, true),
         body: body.trim(),
       };
     }
 
+    // For in-app notifications, escaping is not needed as they don't render HTML
     return {
       subject: replaceVars(notificationData.subject, params),
       body: replaceVars(notificationData.body, params),
