@@ -29,13 +29,13 @@ We use three primary font families:
 #### 1. Section Headers
 
 ```tsx
-<h3 className="text-eleva-primary font-serif text-xl tracking-tight">Section Title</h3>
+<h3 className="font-serif text-xl tracking-tight text-eleva-primary">Section Title</h3>
 ```
 
 #### 2. Section Descriptions
 
 ```tsx
-<p className="text-eleva-neutral-900/70 mt-1 text-sm leading-6">
+<p className="mt-1 text-sm leading-6 text-eleva-neutral-900/70">
   Clear description of what this section does.
 </p>
 ```
@@ -43,13 +43,13 @@ We use three primary font families:
 #### 3. Form Field Labels
 
 ```tsx
-<div className="text-eleva-neutral-900 text-sm font-medium">Field Label</div>
+<div className="text-sm font-medium text-eleva-neutral-900">Field Label</div>
 ```
 
 #### 4. Helper Text
 
 ```tsx
-<FormDescription className="text-eleva-neutral-900/60 text-xs">
+<FormDescription className="text-xs text-eleva-neutral-900/60">
   Additional context about this field
 </FormDescription>
 ```
@@ -57,7 +57,7 @@ We use three primary font families:
 #### 5. Error Messages
 
 ```tsx
-<FormMessage className="text-eleva-highlight-red text-xs" />
+<FormMessage className="text-xs text-eleva-highlight-red" />
 ```
 
 ## Button Design System
@@ -81,8 +81,8 @@ Our button system follows a clear hierarchy based on action importance:
         disabled={isLoading}
         className={cn(
           'px-6 py-2.5 font-medium shadow-lg transition-all',
-          'bg-eleva-primary hover:bg-eleva-primary/90 text-white',
-          'focus:ring-eleva-primary/50 focus:ring-2 focus:ring-offset-2',
+          'bg-eleva-primary text-white hover:bg-eleva-primary/90',
+          'focus:ring-2 focus:ring-eleva-primary/50 focus:ring-offset-2',
           'disabled:cursor-not-allowed disabled:opacity-50',
           'rounded-full',
         )}
@@ -109,7 +109,7 @@ Our button system follows a clear hierarchy based on action importance:
 ```tsx
 <Button
   variant="outline"
-  className="border-eleva-primary-light text-eleva-primary hover:bg-eleva-primary-light gap-2 rounded-md transition-colors hover:text-white"
+  className="gap-2 rounded-md border-eleva-primary-light text-eleva-primary transition-colors hover:bg-eleva-primary-light hover:text-white"
 >
   <Plus className="size-4" />
   Add Item
@@ -124,7 +124,7 @@ Our button system follows a clear hierarchy based on action importance:
 ```tsx
 <Button
   variant="outline"
-  className="border-eleva-neutral-200 text-eleva-neutral-900 hover:bg-eleva-neutral-100 rounded transition-colors"
+  className="rounded border-eleva-neutral-200 text-eleva-neutral-900 transition-colors hover:bg-eleva-neutral-100"
 >
   Cancel
 </Button>
@@ -146,7 +146,7 @@ Our button system follows a clear hierarchy based on action importance:
           <Button
             variant="ghost"
             size="icon"
-            className="text-eleva-neutral-900/60 hover:bg-eleva-primary/10 hover:text-eleva-primary rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+            className="rounded-full text-eleva-neutral-900/60 opacity-0 transition-opacity hover:bg-eleva-primary/10 hover:text-eleva-primary group-hover:opacity-100"
           >
             <Pencil className="size-4" />
           </Button>
@@ -163,7 +163,7 @@ Our button system follows a clear hierarchy based on action importance:
           <Button
             variant="ghost"
             size="icon"
-            className="text-eleva-neutral-900/60 hover:bg-eleva-highlight-red/10 hover:text-eleva-highlight-red rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+            className="rounded-full text-eleva-neutral-900/60 opacity-0 transition-opacity hover:bg-eleva-highlight-red/10 hover:text-eleva-highlight-red group-hover:opacity-100"
           >
             <Trash2 className="size-4" />
           </Button>
@@ -187,8 +187,8 @@ Use this pattern for complex forms with multiple sections:
 <div className="space-y-8">
   <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
     <div>
-      <h3 className="text-eleva-primary font-serif text-xl tracking-tight">Section Title</h3>
-      <p className="text-eleva-neutral-900/70 mt-1 text-sm leading-6">
+      <h3 className="font-serif text-xl tracking-tight text-eleva-primary">Section Title</h3>
+      <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/70">
         Description of what this section configures.
       </p>
     </div>
@@ -196,7 +196,7 @@ Use this pattern for complex forms with multiple sections:
     <div className="lg:col-span-2">{/* Form content */}</div>
   </div>
 
-  <Separator className="bg-eleva-neutral-200 my-8" />
+  <Separator className="my-8 bg-eleva-neutral-200" />
 
   {/* Next section */}
 </div>
@@ -220,12 +220,12 @@ Use this pattern for complex forms with multiple sections:
   render={({ field }) => (
     <FormItem className="space-y-2">
       <div className="flex items-center gap-2">
-        <div className="text-eleva-neutral-900 text-sm font-medium">Field Label</div>
+        <div className="text-sm font-medium text-eleva-neutral-900">Field Label</div>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="size-6">
-                <Info className="text-eleva-neutral-900/60 size-4" />
+                <Info className="size-4 text-eleva-neutral-900/60" />
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -236,7 +236,7 @@ Use this pattern for complex forms with multiple sections:
       </div>
       <FormControl>
         <Select onValueChange={field.onChange} value={field.value}>
-          <SelectTrigger className="border-eleva-neutral-200 w-[240px]">
+          <SelectTrigger className="w-[240px] border-eleva-neutral-200">
             <SelectValue placeholder="Select option" />
           </SelectTrigger>
           <SelectContent>
@@ -248,10 +248,10 @@ Use this pattern for complex forms with multiple sections:
           </SelectContent>
         </Select>
       </FormControl>
-      <FormDescription className="text-eleva-neutral-900/60 text-xs">
+      <FormDescription className="text-xs text-eleva-neutral-900/60">
         Additional context about this field
       </FormDescription>
-      <FormMessage className="text-eleva-highlight-red text-xs" />
+      <FormMessage className="text-xs text-eleva-highlight-red" />
     </FormItem>
   )}
 />
@@ -265,18 +265,18 @@ Use this pattern for complex forms with multiple sections:
   name="fieldName"
   render={({ field }) => (
     <FormItem className="space-y-2">
-      <FormLabel className="text-eleva-neutral-900 text-sm font-medium">Field Label</FormLabel>
+      <FormLabel className="text-sm font-medium text-eleva-neutral-900">Field Label</FormLabel>
       <FormControl>
         <Input
           {...field}
           placeholder="Enter value"
-          className="border-eleva-neutral-200 focus:border-eleva-primary focus:ring-eleva-primary/20 h-10"
+          className="h-10 border-eleva-neutral-200 focus:border-eleva-primary focus:ring-eleva-primary/20"
         />
       </FormControl>
-      <FormDescription className="text-eleva-neutral-900/60 text-xs">
+      <FormDescription className="text-xs text-eleva-neutral-900/60">
         Helper text for this field
       </FormDescription>
-      <FormMessage className="text-eleva-highlight-red text-xs" />
+      <FormMessage className="text-xs text-eleva-highlight-red" />
     </FormItem>
   )}
 />
@@ -287,7 +287,7 @@ Use this pattern for complex forms with multiple sections:
 ```tsx
 <div className="flex items-center gap-3">
   <Switch checked={isEnabled} onCheckedChange={setIsEnabled} />
-  <span className="text-eleva-neutral-900 text-sm font-medium">Enable Feature</span>
+  <span className="text-sm font-medium text-eleva-neutral-900">Enable Feature</span>
 </div>
 ```
 
@@ -547,10 +547,10 @@ export function ExampleForm() {
         {/* First Section */}
         <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
           <div>
-            <h3 className="text-eleva-primary font-serif text-xl tracking-tight">
+            <h3 className="font-serif text-xl tracking-tight text-eleva-primary">
               General Settings
             </h3>
-            <p className="text-eleva-neutral-900/70 mt-1 text-sm leading-6">
+            <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/70">
               Configure basic application settings.
             </p>
           </div>
@@ -562,12 +562,12 @@ export function ExampleForm() {
               render={({ field }) => (
                 <FormItem className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="text-eleva-neutral-900 text-sm font-medium">Setting 1</div>
+                    <div className="text-sm font-medium text-eleva-neutral-900">Setting 1</div>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="text-eleva-neutral-900/60 size-4" />
+                            <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -578,7 +578,7 @@ export function ExampleForm() {
                   </div>
                   <FormControl>
                     <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="border-eleva-neutral-200 w-[240px]">
+                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
                         <SelectValue placeholder="Select option" />
                       </SelectTrigger>
                       <SelectContent>
@@ -591,25 +591,25 @@ export function ExampleForm() {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription className="text-eleva-neutral-900/60 text-xs">
+                  <FormDescription className="text-xs text-eleva-neutral-900/60">
                     Choose the appropriate setting for your needs
                   </FormDescription>
-                  <FormMessage className="text-eleva-highlight-red text-xs" />
+                  <FormMessage className="text-xs text-eleva-highlight-red" />
                 </FormItem>
               )}
             />
           </div>
         </div>
 
-        <Separator className="bg-eleva-neutral-200 my-8" />
+        <Separator className="my-8 bg-eleva-neutral-200" />
 
         {/* Second Section */}
         <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
           <div>
-            <h3 className="text-eleva-primary font-serif text-xl tracking-tight">
+            <h3 className="font-serif text-xl tracking-tight text-eleva-primary">
               Advanced Settings
             </h3>
-            <p className="text-eleva-neutral-900/70 mt-1 text-sm leading-6">
+            <p className="mt-1 text-sm leading-6 text-eleva-neutral-900/70">
               Configure advanced application features.
             </p>
           </div>
@@ -621,12 +621,12 @@ export function ExampleForm() {
               render={({ field }) => (
                 <FormItem className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <div className="text-eleva-neutral-900 text-sm font-medium">Setting 2</div>
+                    <div className="text-sm font-medium text-eleva-neutral-900">Setting 2</div>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button variant="ghost" size="icon" className="size-6">
-                            <Info className="text-eleva-neutral-900/60 size-4" />
+                            <Info className="size-4 text-eleva-neutral-900/60" />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -637,7 +637,7 @@ export function ExampleForm() {
                   </div>
                   <FormControl>
                     <Select onValueChange={field.onChange} value={field.value}>
-                      <SelectTrigger className="border-eleva-neutral-200 w-[240px]">
+                      <SelectTrigger className="w-[240px] border-eleva-neutral-200">
                         <SelectValue placeholder="Select option" />
                       </SelectTrigger>
                       <SelectContent>
@@ -650,10 +650,10 @@ export function ExampleForm() {
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormDescription className="text-eleva-neutral-900/60 text-xs">
+                  <FormDescription className="text-xs text-eleva-neutral-900/60">
                     Select the advanced configuration option
                   </FormDescription>
-                  <FormMessage className="text-eleva-highlight-red text-xs" />
+                  <FormMessage className="text-xs text-eleva-highlight-red" />
                 </FormItem>
               )}
             />
@@ -668,8 +668,8 @@ export function ExampleForm() {
               disabled={isLoading}
               className={cn(
                 'px-6 py-2.5 font-medium shadow-lg transition-all',
-                'bg-eleva-primary hover:bg-eleva-primary/90 text-white',
-                'focus:ring-eleva-primary/50 focus:ring-2 focus:ring-offset-2',
+                'bg-eleva-primary text-white hover:bg-eleva-primary/90',
+                'focus:ring-2 focus:ring-eleva-primary/50 focus:ring-offset-2',
                 'disabled:cursor-not-allowed disabled:opacity-50',
                 'rounded-full',
               )}
