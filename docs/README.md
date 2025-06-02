@@ -67,16 +67,15 @@ Our documentation follows a **hierarchical priority-based system** designed for 
 │   ├── 01-novu-integration.md         # Notification system
 │   ├── 02-notification-workflows.md   # Workflow definitions
 │   ├── 03-stripe-novu-integration.md  # Payment notifications
-│   └── 04-novu-localization-security-fixes.md # i18n & XSS fixes
+│   ├── 04-novu-localization-security-fixes.md # i18n & XSS fixes
+│   └── 05-novu-automation-scripts.md  # API automation & setup
 ├── authentication/
 │   ├── 01-clerk-configuration.md      # Auth system setup
-│   ├── 02-role-management.md          # Role-based access
-│   ├── 03-permission-system.md        # Permission handling
-│   └── 04-route-protection.md         # Protected route setup
+│   └── 02-user-management.md          # User role management
 └── caching/
-    ├── 01-redis-implementation.md     # Redis cache system
-    ├── 02-customer-cache.md           # Customer data caching
-    └── 03-rate-limiting.md             # Distributed rate limiting
+    ├── 01-redis-implementation.md     # Redis caching system
+    └── 02-cache-optimization.md       # Performance optimization
+└── 06-automation-systems-summary.md   # PostHog & Novu automation
 ```
 
 ### 03 - Infrastructure (Priority: High)

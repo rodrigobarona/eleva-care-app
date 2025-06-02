@@ -36,11 +36,15 @@
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
     "prepare": "husky install",
-    "setup:posthog-dashboards": "node scripts/setup-posthog-dashboards.js",
+    "setup:posthog-dashboards": "node -r dotenv/config scripts/setup-posthog-dashboards.js",
     "posthog:dashboards": "npm run setup:posthog-dashboards",
-    "test:posthog": "node scripts/test-posthog-connection.js",
-    "test:posthog-env": "node scripts/test-env-visibility.js",
-    "validate:posthog-permissions": "node scripts/validate-posthog-permissions.js"
+    "test:posthog": "node -r dotenv/config scripts/test-posthog-connection.js",
+    "test:posthog-env": "node -r dotenv/config scripts/test-env-visibility.js",
+    "validate:posthog-permissions": "node -r dotenv/config scripts/validate-posthog-permissions.js",
+    "setup:novu-workflows": "node -r dotenv/config scripts/setup-novu-workflows.js",
+    "novu:workflows": "npm run setup:novu-workflows",
+    "test:novu": "node -r dotenv/config scripts/test-novu-connection.js",
+    "test:novu-permissions": "node -r dotenv/config scripts/test-novu-connection.js --permissions"
   },
   "dependencies": {
     "@clerk/elements": "^0.23.18",

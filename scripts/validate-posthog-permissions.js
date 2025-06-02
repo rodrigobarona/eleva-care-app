@@ -5,6 +5,8 @@
  *
  * Validates that your PostHog API key has the correct minimal permissions
  * for dashboard automation while ensuring no excessive permissions are granted.
+ * Run with: node -r dotenv/config scripts/validate-posthog-permissions.js
+ * or: npm run validate:posthog-permissions
  * Note: These variables are also defined in config/env.ts for centralized access
  */
 

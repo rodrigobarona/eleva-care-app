@@ -4,7 +4,8 @@
  * PostHog Dashboard Setup Script
  *
  * Creates the comprehensive dashboard suite for Eleva Care
- * Run with: node scripts/setup-posthog-dashboards.js
+ * Run with: node -r dotenv/config scripts/setup-posthog-dashboards.js
+ * or: npm run setup:posthog-dashboards
  * Note: These variables are also defined in config/env.ts for centralized access
  */
 
