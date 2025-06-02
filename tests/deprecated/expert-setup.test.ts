@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { ProfileTable, UserTable } from '@/drizzle/schema';
+// import { ProfileTable, UserTable } from '@/drizzle/schema';
 import {
   checkExpertSetupStatus,
   markStepComplete,

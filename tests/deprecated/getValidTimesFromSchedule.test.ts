@@ -1,8 +1,10 @@
 import { db } from '@/drizzle/db';
-import { ScheduleTable } from '@/drizzle/schema';
+// import { ScheduleTable } from '@/drizzle/schema';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-import { addDays, addMinutes, setHours, setMinutes, subMinutes } from 'date-fns';
+import { addDays, addMinutes, setHours, setMinutes } from 'date-fns';
+
+// import { subMinutes } from 'date-fns';
 
 // Make sure we're using the mocked version from setup.ts
 jest.mock('@/drizzle/db');

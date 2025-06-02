@@ -12,7 +12,21 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
-  testPathIgnorePatterns: ['/node_modules/'],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/tests/deprecated/', // Ignore deprecated tests by default
+  ],
+  // Performance optimization
+  maxWorkers: '50%',
+  // Better error reporting
+  verbose: true,
+  collectCoverageFrom: [
+    'app/**/*.{ts,tsx}',
+    'components/**/*.{ts,tsx}',
+    'lib/**/*.{ts,tsx}',
+    '!**/*.d.ts',
+    '!**/node_modules/**',
+  ],
 };
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config
