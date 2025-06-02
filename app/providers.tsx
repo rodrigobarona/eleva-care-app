@@ -9,8 +9,8 @@ import { NovuProvider as ReactNovuProvider } from '@novu/react';
 import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
-import { useParams } from 'next/navigation';
-import { posthog } from 'posthog-js';
+import { useParams, usePathname } from 'next/navigation';
+import { posthog, PostHog, PostHogConfig } from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { useEffect, useState } from 'react';
 import 'react-cookie-manager/style.css';
@@ -26,24 +26,157 @@ const CookieManager = dynamic(
   { ssr: false, loading: () => null },
 );
 
+// TypeScript interfaces for Clerk metadata
+interface ClerkPublicMetadata {
+  signInCount?: number;
+  role?: string;
+  onboardingCompleted?: boolean;
+  sessionCount?: number;
+}
+
+// Enhanced configuration function
+const getPostHogConfig = (): Partial<PostHogConfig> => {
+  const isDev = ENV_CONFIG.NODE_ENV === 'development';
+  const isLocalhost =
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  return {
+    api_host: ENV_CONFIG.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.posthog.com',
+    ui_host: ENV_CONFIG.NEXT_PUBLIC_POSTHOG_HOST || 'https://us.posthog.com',
+    debug: isDev,
+    capture_pageview: false, // We handle this manually for enhanced tracking
+    capture_pageleave: true,
+    capture_performance: true,
+    session_recording: {
+      recordCrossOriginIframes: true,
+    },
+    autocapture: {
+      capture_copied_text: true,
+      css_selector_allowlist: ['[data-ph-capture]'],
+      url_allowlist: isDev ? undefined : [window.location.hostname],
+    },
+    bootstrap: {
+      distinctID: undefined,
+      isIdentifiedID: false,
+      featureFlags: {},
+    },
+    loaded: (ph: PostHog) => {
+      if (isDev) {
+        console.log('[PostHog] Loaded successfully');
+      }
+
+      ph.register({
+        app_version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
+        environment: ENV_CONFIG.NODE_ENV,
+        build_timestamp: process.env.NEXT_PUBLIC_BUILD_TIMESTAMP,
+      });
+    },
+    advanced_disable_decide: false,
+    secure_cookie: !isLocalhost,
+    persistence: 'localStorage+cookie' as const,
+    cookie_expiration: 365,
+    respect_dnt: true,
+    opt_out_capturing_by_default: false,
+    ip: !isDev,
+    property_blacklist: ['$initial_referrer', '$initial_referring_domain'],
+  };
+};
+
+// PostHog user identification and tracking
+function PostHogUserTracker() {
+  const { user, isLoaded } = useUser();
+  const pathname = usePathname();
+  const params = useParams();
+
+  useEffect(() => {
+    if (!isLoaded || typeof window === 'undefined') return;
+
+    const locale = (params?.locale as string) || 'en';
+    const isPrivateRoute =
+      pathname?.startsWith('/(private)') ||
+      pathname?.includes('/dashboard') ||
+      pathname?.includes('/account') ||
+      pathname?.includes('/admin');
+
+    posthog.register({
+      route_type: isPrivateRoute ? 'private' : 'public',
+      locale: locale,
+      user_authenticated: !!user,
+    });
+
+    if (user) {
+      const metadata = user.publicMetadata as ClerkPublicMetadata;
+
+      posthog.identify(user.id, {
+        email: user.primaryEmailAddress?.emailAddress,
+        name: user.fullName,
+        first_name: user.firstName,
+        last_name: user.lastName,
+        phone: user.primaryPhoneNumber?.phoneNumber,
+        avatar: user.imageUrl,
+        created_at: user.createdAt,
+        last_sign_in: user.lastSignInAt,
+        email_verified: user.primaryEmailAddress?.verification?.status === 'verified',
+        phone_verified: user.primaryPhoneNumber?.verification?.status === 'verified',
+        has_image: !!user.imageUrl,
+        sign_in_count: metadata?.signInCount || 0,
+        user_role: metadata?.role || 'user',
+        onboarding_completed: metadata?.onboardingCompleted || false,
+        preferred_locale: locale,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      });
+
+      posthog.people.set({
+        email: user.primaryEmailAddress?.emailAddress,
+        name: user.fullName,
+        avatar: user.imageUrl,
+        locale: locale,
+        last_seen: new Date().toISOString(),
+        total_sessions: (metadata?.sessionCount || 0) + 1,
+      });
+
+      if (user.lastSignInAt) {
+        const timeSinceLastSignIn = Date.now() - new Date(user.lastSignInAt).getTime();
+        if (timeSinceLastSignIn < 60000) {
+          posthog.capture('user_signed_in', {
+            sign_in_method: 'clerk',
+            is_new_session: true,
+            locale: locale,
+          });
+        }
+      }
+    } else {
+      posthog.register({
+        user_type: 'anonymous',
+        locale: locale,
+      });
+    }
+
+    posthog.register({
+      page_type: isPrivateRoute ? 'app' : 'marketing',
+      page_section: isPrivateRoute
+        ? pathname?.split('/')[2] || 'dashboard'
+        : pathname?.split('/')[2] || 'home',
+    });
+  }, [user, isLoaded, pathname, params]);
+
+  return null;
+}
+
 // Define NovuWrapper component here to access useUser hook
 function NovuWrapper({ children }: { children: React.ReactNode }) {
   const { user, isLoaded } = useUser();
 
   // Ensure Clerk user is loaded and applicationIdentifier is available
   if (!isLoaded || !user || !ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) {
-    // You might want to render a loading state or null while waiting for user/config
-    // For now, just return children if Novu cannot be initialized.
-    // Or, you could show a specific loading indicator for Novu.
     return <>{children}</>;
   }
 
   return (
     <NovuProvider
-      subscriberId={user.id} // Assuming Clerk user.id is the correct subscriberId for Novu
+      subscriberId={user.id}
       applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
-      // initialFetchingStrategy can be added here if needed, e.g.
-      // initialFetchingStrategy={{ fetchNotifications: true, fetchUserPreferences: true }}
     >
       <ReactNovuProvider
         applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
@@ -63,9 +196,9 @@ interface ClientProvidersProps {
 }
 
 /**
- * Client Providers - These components provide client-side features
- * ClerkProvider, ThemeProvider, AuthorizationProvider, CookieManager, PostHog, and Toaster
- * This does NOT include internationalization (use IntlProvider for that)
+ * Client Providers - Enhanced with comprehensive PostHog analytics
+ * Tracks user behavior across public and private sections
+ * Includes feature flags, session recording, and performance monitoring
  */
 export function ClientProviders({ children, messages }: ClientProvidersProps) {
   const [posthogLoaded, setPosthogLoaded] = useState(false);
@@ -74,9 +207,8 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
   // Get the current locale from the URL params
   const currentLocale = (params?.locale as string) || 'en';
 
-  // Map the locale to the correct localization based on the imported localizations
+  // Map the locale to the correct localization
   const getLocalization = (locale: string) => {
-    // Direct mapping from URL locales to imported localizations
     const localizationMap: Record<string, typeof enUS> = {
       en: enUS,
       pt: ptPT,
@@ -84,10 +216,9 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
       'pt-BR': ptBR,
     };
 
-    // Only access properties we know exist
     const localization = localizationMap[locale];
 
-    if (!localization && process.env.NODE_ENV === 'development') {
+    if (!localization && ENV_CONFIG.NODE_ENV === 'development') {
       console.warn(`[Clerk] No localization found for locale: ${locale}`);
     }
 
@@ -95,49 +226,89 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
   };
 
   useEffect(() => {
-    // PostHog setup
+    // Enhanced PostHog setup
     if (typeof window === 'undefined') return;
 
-    // Skip PostHog on localhost/development environments
-    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      console.info('[PostHog] Skipped initialization on localhost');
+    const apiKey = ENV_CONFIG.NEXT_PUBLIC_POSTHOG_KEY;
+
+    if (!apiKey) {
+      console.warn('[PostHog] Not initialized: Missing API key');
       return;
     }
 
-    // Check if we have valid config
-    const apiKey = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-    const apiHost = process.env.NEXT_PUBLIC_POSTHOG_HOST;
+    // Skip PostHog on localhost in development (optional)
+    const isLocalhost =
+      window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
-    if (!apiKey || !apiHost) {
-      console.warn('[PostHog] Not initialized: Missing or invalid API key or host');
+    if (isLocalhost && ENV_CONFIG.NODE_ENV === 'development') {
+      console.info('[PostHog] Skipped initialization on localhost in development');
       return;
     }
 
     try {
-      // Initialize PostHog with error handling
+      // Initialize PostHog with enhanced configuration
+      const config = getPostHogConfig();
+
       posthog.init(apiKey, {
-        api_host: apiHost,
-        capture_pageview: false,
-        capture_pageleave: true,
-        loaded: (_ph) => {
+        ...config,
+        loaded: (ph: PostHog) => {
           setPosthogLoaded(true);
+          config.loaded?.(ph);
+
+          // Track application start
+          ph.capture('app_loaded', {
+            locale: currentLocale,
+            user_agent: navigator.userAgent,
+            screen_width: window.screen.width,
+            screen_height: window.screen.height,
+            viewport_width: window.innerWidth,
+            viewport_height: window.innerHeight,
+            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            language: navigator.language,
+            platform: navigator.platform,
+          });
         },
-        advanced_disable_decide: true, // Disable remote configuration
-        disable_session_recording: true, // Disable session recording
-        autocapture: false, // Disable automatic event capture
       });
 
-      // Add global error listener for PostHog
+      // Enhanced error tracking
       window.addEventListener('error', (event) => {
-        if (event.error?.message?.includes('PostHog')) {
-          console.warn('[PostHog] Error caught:', event.error.message);
-          event.preventDefault();
-        }
+        posthog.capture('javascript_error', {
+          error_message: event.error?.message || event.message,
+          error_stack: event.error?.stack,
+          filename: event.filename,
+          line_number: event.lineno,
+          column_number: event.colno,
+          user_agent: navigator.userAgent,
+        });
+      });
+
+      // Track unhandled promise rejections
+      window.addEventListener('unhandledrejection', (event) => {
+        posthog.capture('unhandled_promise_rejection', {
+          reason: event.reason?.toString() || 'Unknown reason',
+          stack: event.reason?.stack,
+        });
+      });
+
+      // Track page visibility changes
+      document.addEventListener('visibilitychange', () => {
+        posthog.capture('page_visibility_changed', {
+          visibility_state: document.visibilityState,
+        });
+      });
+
+      // Track network status
+      window.addEventListener('online', () => {
+        posthog.capture('network_status_changed', { status: 'online' });
+      });
+
+      window.addEventListener('offline', () => {
+        posthog.capture('network_status_changed', { status: 'offline' });
       });
     } catch (error) {
       console.error('[PostHog] Failed to initialize:', error);
     }
-  }, []);
+  }, [currentLocale]);
 
   return (
     <ClerkProvider
@@ -160,7 +331,12 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
             translations={createCookieTranslations(messages)}
           >
             <PHProvider client={posthog}>
-              {posthogLoaded && <PostHogPageView />}
+              {posthogLoaded && (
+                <>
+                  <PostHogPageView />
+                  <PostHogUserTracker />
+                </>
+              )}
               <NovuWrapper>{children}</NovuWrapper>
             </PHProvider>
             <Toaster closeButton position="bottom-right" richColors />

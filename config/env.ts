@@ -26,7 +26,7 @@ export const ENV_CONFIG = {
   // Stripe Configuration
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
   STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY || '',
-  STRIPE_API_VERSION: process.env.STRIPE_API_VERSION || '2025-04-30.basil',
+  STRIPE_API_VERSION: process.env.STRIPE_API_VERSION || '2025-05-28.basil',
   STRIPE_PLATFORM_FEE_PERCENTAGE: process.env.STRIPE_PLATFORM_FEE_PERCENTAGE || '0.15',
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
   STRIPE_CONNECT_WEBHOOK_SECRET: process.env.STRIPE_CONNECT_WEBHOOK_SECRET || '',
@@ -53,6 +53,8 @@ export const ENV_CONFIG = {
   // Posthog Configuration
   NEXT_PUBLIC_POSTHOG_KEY: process.env.NEXT_PUBLIC_POSTHOG_KEY || '',
   NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST || '',
+  POSTHOG_API_KEY: process.env.POSTHOG_API_KEY || '',
+  POSTHOG_PROJECT_ID: process.env.POSTHOG_PROJECT_ID || '',
 } as const;
 
 /**
@@ -211,6 +213,41 @@ export const ENV_VALIDATORS = {
   },
 
   /**
+   * Validate PostHog environment variables
+   */
+  posthog(): EnvValidationResult {
+    const missingVars: string[] = [];
+
+    // Client-side tracking variables (required for analytics)
+    if (!ENV_CONFIG.NEXT_PUBLIC_POSTHOG_KEY) missingVars.push('NEXT_PUBLIC_POSTHOG_KEY');
+    if (!ENV_CONFIG.NEXT_PUBLIC_POSTHOG_HOST) missingVars.push('NEXT_PUBLIC_POSTHOG_HOST');
+
+    // Server-side API variables (optional, only for dashboard automation)
+    const hasApiConfig = ENV_CONFIG.POSTHOG_API_KEY && ENV_CONFIG.POSTHOG_PROJECT_ID;
+    const hasPartialApiConfig = ENV_CONFIG.POSTHOG_API_KEY || ENV_CONFIG.POSTHOG_PROJECT_ID;
+
+    let message = '';
+    if (missingVars.length === 0) {
+      if (hasApiConfig) {
+        message = 'PostHog configuration is complete (analytics + dashboard automation)';
+      } else if (hasPartialApiConfig) {
+        message =
+          'PostHog analytics configured, but incomplete API configuration for dashboard automation';
+      } else {
+        message = 'PostHog analytics configured (dashboard automation not configured)';
+      }
+    } else {
+      message = `Missing PostHog environment variables: ${missingVars.join(', ')}`;
+    }
+
+    return {
+      isValid: missingVars.length === 0,
+      message,
+      missingVars,
+    };
+  },
+
+  /**
    * Validate all critical environment variables
    */
   critical(): EnvValidationResult {
@@ -275,6 +312,7 @@ export const ENV_HELPERS = {
    */
   getEnvironmentSummary() {
     const redisValidation = ENV_VALIDATORS.redis();
+    const posthogValidation = ENV_VALIDATORS.posthog();
 
     return {
       nodeEnv: ENV_CONFIG.NODE_ENV,
@@ -290,6 +328,8 @@ export const ENV_HELPERS = {
       hasNovu: Boolean(
         ENV_CONFIG.NOVU_SECRET_KEY && ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
       ),
+      hasPostHog: posthogValidation.isValid,
+      hasPostHogAPI: Boolean(ENV_CONFIG.POSTHOG_API_KEY && ENV_CONFIG.POSTHOG_PROJECT_ID),
       baseUrl: this.getBaseUrl(),
     };
   },
