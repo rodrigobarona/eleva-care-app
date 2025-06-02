@@ -44,7 +44,6 @@ export const ENV_CONFIG = {
   NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || '',
 
   // Novu Configuration
-  NOVU_API_KEY: process.env.NOVU_API_KEY || '',
   NOVU_SECRET_KEY: process.env.NOVU_SECRET_KEY || '',
   NOVU_BASE_URL: process.env.NOVU_BASE_URL || 'https://eu.api.novu.co',
   NOVU_ADMIN_SUBSCRIBER_ID: process.env.NOVU_ADMIN_SUBSCRIBER_ID || 'admin',
@@ -196,9 +195,9 @@ export const ENV_VALIDATORS = {
   novu(): EnvValidationResult {
     const missingVars: string[] = [];
 
-    // Check for either NOVU_API_KEY or NOVU_SECRET_KEY (legacy compatibility)
-    if (!ENV_CONFIG.NOVU_API_KEY && !ENV_CONFIG.NOVU_SECRET_KEY) {
-      missingVars.push('NOVU_API_KEY or NOVU_SECRET_KEY');
+    // Check for NOVU_SECRET_KEY
+    if (!ENV_CONFIG.NOVU_SECRET_KEY) {
+      missingVars.push('NOVU_SECRET_KEY');
     }
     if (!ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER)
       missingVars.push('NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER');
@@ -327,7 +326,7 @@ export const ENV_HELPERS = {
       hasQStash: Boolean(ENV_CONFIG.QSTASH_TOKEN),
       hasEmail: Boolean(ENV_CONFIG.RESEND_API_KEY),
       hasNovu: Boolean(
-        ENV_CONFIG.NOVU_SECRET_KEY || ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
+        ENV_CONFIG.NOVU_SECRET_KEY && ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
       ),
       hasPostHog: posthogValidation.isValid,
       hasPostHogAPI: Boolean(ENV_CONFIG.POSTHOG_API_KEY && ENV_CONFIG.POSTHOG_PROJECT_ID),

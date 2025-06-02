@@ -43,8 +43,6 @@ Required variables in your `.env.local`:
 ```env
 # Required: Novu API Authentication
 NOVU_SECRET_KEY=novu_secret_key_here
-# OR
-NOVU_API_KEY=novu_api_key_here
 
 # Required: Application Identifier
 NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER=app_identifier_here

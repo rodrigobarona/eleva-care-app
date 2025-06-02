@@ -1,5 +1,6 @@
 import { ENV_CONFIG } from '@/config/env';
-import { Novu } from '@novu/node';
+import { getLocalizedWorkflowId } from '@/config/novu';
+import { Novu } from '@novu/api';
 import { createHmac } from 'crypto';
 
 // Initialize Novu defensively - handle missing secret key during build
@@ -7,8 +8,9 @@ let novu: Novu | null = null;
 
 try {
   if (ENV_CONFIG.NOVU_SECRET_KEY) {
-    novu = new Novu(ENV_CONFIG.NOVU_SECRET_KEY, {
-      backendUrl: 'https://eu.api.novu.co',
+    novu = new Novu({
+      secretKey: ENV_CONFIG.NOVU_SECRET_KEY,
+      serverURL: ENV_CONFIG.NOVU_BASE_URL || 'https://eu.api.novu.co',
     });
   } else {
     console.warn('[Novu] Secret key not available, some functionality will be limited');
@@ -98,7 +100,80 @@ export function getSecureSubscriberData(subscriberId: string) {
 }
 
 /**
+ * Helper function to normalize locale for Novu workflow IDs
+ * Maps common locale formats to our supported locales
+ *
+ * @param locale - Locale string (e.g., 'en-US', 'pt-PT', 'pt-BR', 'es-ES')
+ * @returns Normalized locale for workflow ID (e.g., 'en', 'pt', 'br', 'es')
+ */
+export function normalizeLocaleForWorkflow(locale?: string): string {
+  if (!locale) return 'en';
+
+  const normalizedLocale = locale.toLowerCase();
+
+  // Map specific locales to our workflow locales
+  const localeMap: Record<string, string> = {
+    en: 'en',
+    'en-us': 'en',
+    'en-gb': 'en',
+    pt: 'pt',
+    'pt-pt': 'pt',
+    'pt-br': 'br',
+    es: 'es',
+    'es-es': 'es',
+    'es-mx': 'es',
+    'es-ar': 'es',
+    br: 'br', // Direct Brazilian Portuguese
+  };
+
+  return localeMap[normalizedLocale] || 'en';
+}
+
+/**
+ * Trigger a localized workflow with enhanced error handling and type safety
+ *
+ * @param baseWorkflowId - The base Novu workflow identifier (without locale suffix)
+ * @param payload - Notification payload data (type-safe)
+ * @param subscriberId - Target subscriber ID
+ * @param locale - User's locale (optional, defaults to 'en')
+ * @returns Promise resolving to the trigger result or null on failure
+ */
+export async function triggerLocalizedWorkflow(
+  baseWorkflowId: string,
+  payload: NovuPayload,
+  subscriberId: string,
+  locale?: string,
+) {
+  if (!novu) {
+    console.warn(`[Novu] Cannot trigger workflow ${baseWorkflowId}: Novu not initialized`);
+    return null;
+  }
+
+  try {
+    const normalizedLocale = normalizeLocaleForWorkflow(locale);
+    const workflowId = getLocalizedWorkflowId(baseWorkflowId, normalizedLocale);
+
+    const result = await novu.trigger({
+      workflowId,
+      to: {
+        subscriberId,
+      },
+      payload,
+    });
+
+    console.log(
+      `[Novu] Successfully triggered localized workflow ${workflowId} for subscriber ${subscriberId} (locale: ${normalizedLocale})`,
+    );
+    return result;
+  } catch (error) {
+    console.error(`[Novu] Failed to trigger localized workflow ${baseWorkflowId}:`, error);
+    return null;
+  }
+}
+
+/**
  * Trigger a workflow with enhanced error handling and type safety
+ * (Legacy method for backward compatibility)
  *
  * @param workflowId - The Novu workflow identifier
  * @param payload - Notification payload data (type-safe)
@@ -116,7 +191,8 @@ export async function triggerWorkflow(
   }
 
   try {
-    const result = await novu.trigger(workflowId, {
+    const result = await novu.trigger({
+      workflowId,
       to: {
         subscriberId,
       },
@@ -173,7 +249,8 @@ export async function createOrUpdateNovuSubscriber(data: SubscriberData) {
   }
 
   try {
-    await novu!.subscribers.identify(data.subscriberId, {
+    await novu!.subscribers.create({
+      subscriberId: data.subscriberId,
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
@@ -196,11 +273,12 @@ export async function createOrUpdateNovuSubscriber(data: SubscriberData) {
 }
 
 /**
- * Trigger marketplace payment received notification
+ * Trigger marketplace payment received notification (localized)
  */
 export async function triggerPaymentReceivedNotification(
   subscriberId: string,
   payload: PayoutNotificationPayload,
+  locale?: string,
 ) {
   if (!isNovuAvailable()) {
     console.warn('Novu not available - skipping payment notification for:', subscriberId);
@@ -208,11 +286,8 @@ export async function triggerPaymentReceivedNotification(
   }
 
   try {
-    await novu!.trigger('marketplace-payment-received', {
-      to: { subscriberId },
-      payload,
-    });
-    console.log(`Payment received notification sent to: ${subscriberId}`);
+    await triggerLocalizedWorkflow('marketplace-payment-received', payload, subscriberId, locale);
+    console.log(`Payment received notification sent to: ${subscriberId} (locale: ${locale})`);
   } catch (error) {
     console.error('Error sending payment notification:', error);
     throw error;
@@ -220,11 +295,12 @@ export async function triggerPaymentReceivedNotification(
 }
 
 /**
- * Trigger appointment reminder notification
+ * Trigger appointment reminder notification (localized)
  */
 export async function triggerAppointmentReminder(
   subscriberId: string,
   payload: AppointmentReminderPayload,
+  locale?: string,
 ) {
   if (!isNovuAvailable()) {
     console.warn('Novu not available - skipping appointment reminder for:', subscriberId);
@@ -232,13 +308,139 @@ export async function triggerAppointmentReminder(
   }
 
   try {
-    await novu!.trigger('appointment-reminder-24hr', {
-      to: { subscriberId },
-      payload,
-    });
-    console.log(`Appointment reminder sent to: ${subscriberId}`);
+    await triggerLocalizedWorkflow('appointment-reminder-24hr', payload, subscriberId, locale);
+    console.log(`Appointment reminder sent to: ${subscriberId} (locale: ${locale})`);
   } catch (error) {
     console.error('Error sending appointment reminder:', error);
+    throw error;
+  }
+}
+
+/**
+ * Trigger welcome workflow for new users (localized)
+ */
+export async function triggerWelcomeWorkflow(
+  subscriberId: string,
+  payload: {
+    userName: string;
+    firstName: string;
+    profileUrl?: string;
+  },
+  locale?: string,
+) {
+  if (!isNovuAvailable()) {
+    console.warn('Novu not available - skipping welcome notification for:', subscriberId);
+    return;
+  }
+
+  try {
+    await triggerLocalizedWorkflow(
+      'user-welcome',
+      {
+        ...payload,
+        profileUrl: payload.profileUrl || '/profile',
+      },
+      subscriberId,
+      locale,
+    );
+    console.log(`Welcome notification sent to: ${subscriberId} (locale: ${locale})`);
+  } catch (error) {
+    console.error('Error sending welcome notification:', error);
+    throw error;
+  }
+}
+
+/**
+ * Trigger payment success workflow (localized)
+ */
+export async function triggerPaymentSuccessWorkflow(
+  subscriberId: string,
+  payload: {
+    amount: string;
+    planName: string;
+    paymentDate: string;
+    transactionId: string;
+  },
+  locale?: string,
+) {
+  if (!isNovuAvailable()) {
+    console.warn('Novu not available - skipping payment success notification for:', subscriberId);
+    return;
+  }
+
+  try {
+    await triggerLocalizedWorkflow('payment-success', payload, subscriberId, locale);
+    console.log(`Payment success notification sent to: ${subscriberId} (locale: ${locale})`);
+  } catch (error) {
+    console.error('Error sending payment success notification:', error);
+    throw error;
+  }
+}
+
+/**
+ * Trigger payment failed workflow (localized)
+ */
+export async function triggerPaymentFailedWorkflow(
+  subscriberId: string,
+  payload: {
+    amount: string;
+    reason: string;
+    billingUrl?: string;
+  },
+  locale?: string,
+) {
+  if (!isNovuAvailable()) {
+    console.warn('Novu not available - skipping payment failed notification for:', subscriberId);
+    return;
+  }
+
+  try {
+    await triggerLocalizedWorkflow(
+      'payment-failed',
+      {
+        ...payload,
+        billingUrl: payload.billingUrl || '/billing',
+      },
+      subscriberId,
+      locale,
+    );
+    console.log(`Payment failed notification sent to: ${subscriberId} (locale: ${locale})`);
+  } catch (error) {
+    console.error('Error sending payment failed notification:', error);
+    throw error;
+  }
+}
+
+/**
+ * Trigger expert onboarding complete workflow (localized)
+ */
+export async function triggerExpertOnboardingCompleteWorkflow(
+  subscriberId: string,
+  payload: {
+    expertName: string;
+    specialization: string;
+    dashboardUrl?: string;
+  },
+  locale?: string,
+) {
+  if (!isNovuAvailable()) {
+    console.warn('Novu not available - skipping expert onboarding notification for:', subscriberId);
+    return;
+  }
+
+  try {
+    await triggerLocalizedWorkflow(
+      'expert-onboarding-complete',
+      {
+        ...payload,
+        dashboardUrl: payload.dashboardUrl || '/dashboard',
+      },
+      subscriberId,
+      locale,
+    );
+    console.log(`Expert onboarding notification sent to: ${subscriberId} (locale: ${locale})`);
+  } catch (error) {
+    console.error('Error sending expert onboarding notification:', error);
     throw error;
   }
 }
@@ -261,7 +463,8 @@ export async function triggerPayoutSetupReminder(
   }
 
   try {
-    await novu!.trigger('expert-payout-setup-reminder', {
+    await novu!.trigger({
+      workflowId: 'expert-payout-setup-reminder',
       to: { subscriberId },
       payload,
     });
@@ -293,7 +496,8 @@ export async function triggerNewBookingExpert(
   }
 
   try {
-    await novu!.trigger('new-booking-expert', {
+    await novu!.trigger({
+      workflowId: 'new-booking-expert',
       to: { subscriberId },
       payload,
     });

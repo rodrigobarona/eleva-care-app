@@ -336,6 +336,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     path.startsWith('/_next') ||
     path.startsWith('/api/webhooks/') ||
     path.startsWith('/api/cron/') ||
+    path.startsWith('/api/novu/') ||
     path.startsWith('/api/qstash/') ||
     path.startsWith('/api/internal/') ||
     path.startsWith('/api/healthcheck') ||

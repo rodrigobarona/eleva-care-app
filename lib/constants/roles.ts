@@ -92,6 +92,7 @@ export const EXPERT_ROUTES = [
 
 export const SPECIAL_AUTH_ROUTES = [
   '/api/cron(.*)', // Cron jobs (requires API key)
+  '/api/novu(.*)', // Novu bridge endpoint (requires Novu authentication)
 
   // Explicit cron job paths - added for direct access by UpStash
   '/api/cron/check-upcoming-payouts',

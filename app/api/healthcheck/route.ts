@@ -1,11 +1,17 @@
 import { ENV_CONFIG, ENV_HELPERS } from '@/config/env';
-import { healthCheckFailureWorkflow } from '@/config/novu';
+import { Novu } from '@novu/api';
 import { NextResponse } from 'next/server';
 import { PostHog } from 'posthog-node';
 
 // Initialize PostHog client
 const posthog = new PostHog(ENV_CONFIG.NEXT_PUBLIC_POSTHOG_KEY, {
   host: ENV_CONFIG.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
+});
+
+// Initialize Novu client
+const novu = new Novu({
+  secretKey: ENV_CONFIG.NOVU_SECRET_KEY,
+  serverURL: ENV_CONFIG.NOVU_BASE_URL || 'https://eu.api.novu.co',
 });
 
 // Add route segment config
@@ -76,20 +82,17 @@ async function trackHealthCheck(data: HealthCheckData, isError = false) {
  */
 async function notifyHealthCheckFailure(data: HealthCheckData) {
   try {
-    await healthCheckFailureWorkflow.trigger({
-      to: ENV_CONFIG.NOVU_ADMIN_SUBSCRIBER_ID,
+    await novu.trigger({
+      workflowId: 'health-check-failure',
+      to: { subscriberId: ENV_CONFIG.NOVU_ADMIN_SUBSCRIBER_ID },
       payload: {
         status: data.status,
-        error: data.error,
+        error: data.error || 'Unknown health check failure',
         timestamp: data.timestamp,
         environment: data.environment,
         version: data.version,
-        nodeVersion: data.nodeVersion,
         memory: data.memory,
-        uptime: data.uptime,
-        platform: data.platform,
-        arch: data.arch,
-        config: data.config,
+        monitoringUrl: '/admin/monitoring',
       },
     });
   } catch (error) {

@@ -1,6 +1,17 @@
 import { workflows } from '@/config/novu';
 import { serve } from '@novu/framework/next';
 
-// Export the handlers for the Novu framework
-// The serve function automatically handles GET, POST, and OPTIONS methods
-export const { GET, POST, OPTIONS } = serve({ workflows });
+/**
+ * Novu Bridge Endpoint
+ *
+ * This endpoint serves as a bridge between Novu Cloud and our application.
+ * It handles incoming webhook requests and manages notification workflows.
+ */
+
+// Create route handlers for Novu bridge
+const { GET, POST } = serve({
+  workflows,
+});
+
+// Export route handlers for Next.js API routes
+export { GET, POST };

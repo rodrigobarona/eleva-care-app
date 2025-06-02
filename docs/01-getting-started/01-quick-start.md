@@ -61,7 +61,7 @@ STRIPE_SECRET_KEY="sk_..."
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_..."
 
 # Notifications (Novu)
-NOVU_API_KEY="..."
+NOVU_SECRET_KEY="..."
 NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER="..."
 
 # Caching (Redis)
