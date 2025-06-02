@@ -464,6 +464,25 @@
     "recentLogin": {
       "subject": "New login detected",
       "body": "We detected a new login to your account from {location} at {timestamp}."
+    },
+    "expertOnboardingComplete": {
+      "subject": "Expert setup complete!",
+      "body": "Congratulations {expertName}! Your expert profile is now live. You can start receiving bookings from clients.",
+      "email": {
+        "subject": "Welcome to the Eleva Care Expert Network!",
+        "title": "Congratulations, {expertName}!",
+        "greeting": "Your expert profile is now active on Eleva Care.",
+        "body": "Your expert profile is now active on Eleva Care.",
+        "specialization": "Specialization: {specialization}",
+        "nextStepsTitle": "You can now:",
+        "nextSteps": [
+          "Receive client bookings",
+          "Manage your availability",
+          "Track your earnings",
+          "Build your client base"
+        ],
+        "cta": "Go to Dashboard"
+      }
     }
   }
 }

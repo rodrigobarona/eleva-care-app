@@ -463,6 +463,25 @@
     "recentLogin": {
       "subject": "Novo login detectado",
       "body": "Detectamos um novo login na sua conta de {location} às {timestamp}."
+    },
+    "expertOnboardingComplete": {
+      "subject": "Configuração de especialista concluída!",
+      "body": "Parabéns {expertName}! Seu perfil de especialista está agora ativo. Você pode começar a receber agendamentos de clientes.",
+      "email": {
+        "subject": "Bem-vindo à Rede de Especialistas da Eleva Care!",
+        "title": "Parabéns, {expertName}!",
+        "greeting": "Seu perfil de especialista está agora ativo na Eleva Care.",
+        "body": "Seu perfil de especialista está agora ativo na Eleva Care.",
+        "specialization": "Especialização: {specialization}",
+        "nextStepsTitle": "Agora você pode:",
+        "nextSteps": [
+          "Receber agendamentos de clientes",
+          "Gerenciar sua disponibilidade",
+          "Acompanhar seus ganhos",
+          "Construir sua base de clientes"
+        ],
+        "cta": "Ir para o Painel"
+      }
     }
   }
 }

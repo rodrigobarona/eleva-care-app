@@ -313,6 +313,7 @@ export const marketplacePayoutProcessedWorkflow = workflow(
   },
 );
 
+// Marketplace Connect Account Status Workflow with XSS protection
 export const marketplaceConnectAccountStatusWorkflow = workflow(
   'marketplace-connect-status',
   async ({ payload, step }) => {
@@ -323,12 +324,12 @@ export const marketplaceConnectAccountStatusWorkflow = workflow(
 
     if (payload.requiresAction) {
       await step.email('connect-status-email', async () => ({
-        subject: payload.title,
+        subject: escapeHtml(payload.title),
         body: `
-          <h2>${payload.title}</h2>
-          <p>${payload.message}</p>
-          ${payload.actionRequired ? `<p><strong>Action Required:</strong> ${payload.actionRequired}</p>` : ''}
-          <p><a href="${payload.actionUrl || '/account/connect'}">Complete Setup</a></p>
+          <h2>${escapeHtml(payload.title)}</h2>
+          <p>${escapeHtml(payload.message)}</p>
+          ${payload.actionRequired ? `<p><strong>Action Required:</strong> ${escapeHtml(payload.actionRequired)}</p>` : ''}
+          <p><a href="${String(payload.actionUrl || '/account/connect')}">Complete Setup</a></p>
         `,
       }));
     }
@@ -344,29 +345,19 @@ export const marketplaceConnectAccountStatusWorkflow = workflow(
   },
 );
 
-// Clerk-specific workflows
+// Clerk-specific workflows with localization
 export const userCreatedWorkflow = workflow(
   'user-created',
   async ({ payload, step }) => {
-    await step.inApp('welcome-new-user', async () => ({
-      subject: `Welcome to Eleva Care, ${payload.firstName || 'there'}!`,
-      body: `Thank you for joining Eleva Care. Complete your profile to get started with personalized healthcare recommendations.`,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('welcome', locale, payload);
 
+    await step.inApp('welcome-new-user', async () => content);
+
+    const emailContent = await getLocalizedContent('welcome', locale, payload, 'email');
     await step.email('welcome-email', async () => ({
-      subject: 'Welcome to Eleva Care!',
-      body: `
-        <h2>Welcome to Eleva Care!</h2>
-        <p>Hi ${payload.firstName || 'there'},</p>
-        <p>Thank you for joining our healthcare platform. We're excited to help you on your wellness journey.</p>
-        <h3>Next Steps:</h3>
-        <ul>
-          <li>Complete your profile</li>
-          <li>Browse available experts</li>
-          <li>Book your first consultation</li>
-        </ul>
-        <p><a href="/profile">Complete Your Profile</a></p>
-      `,
+      subject: emailContent.subject,
+      body: emailContent.body,
     }));
   },
   {
@@ -375,6 +366,8 @@ export const userCreatedWorkflow = workflow(
       lastName: z.string().optional(),
       email: z.string().email(),
       clerkUserId: z.string(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );
@@ -398,36 +391,32 @@ export const recentLoginWorkflow = workflow(
   },
 );
 
-// Expert-specific workflows
+// Expert-specific workflows with localization
 export const expertOnboardingCompleteWorkflow = workflow(
   'expert-onboarding-complete',
   async ({ payload, step }) => {
-    await step.inApp('onboarding-complete', async () => ({
-      subject: 'Expert setup complete!',
-      body: `Congratulations ${payload.expertName}! Your expert profile is now live. You can start receiving bookings from clients.`,
-    }));
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('expertOnboardingComplete', locale, payload);
 
+    await step.inApp('onboarding-complete', async () => content);
+
+    const emailContent = await getLocalizedContent(
+      'expertOnboardingComplete',
+      locale,
+      payload,
+      'email',
+    );
     await step.email('expert-welcome-email', async () => ({
-      subject: 'Welcome to the Eleva Care Expert Network!',
-      body: `
-        <h2>Congratulations, ${payload.expertName}!</h2>
-        <p>Your expert profile is now active on Eleva Care.</p>
-        ${payload.specialization ? `<p><strong>Specialization:</strong> ${payload.specialization}</p>` : ''}
-        <h3>You can now:</h3>
-        <ul>
-          <li>Receive client bookings</li>
-          <li>Manage your availability</li>
-          <li>Track your earnings</li>
-          <li>Build your client base</li>
-        </ul>
-        <p><a href="/dashboard">Go to Dashboard</a></p>
-      `,
+      subject: emailContent.subject,
+      body: emailContent.body,
     }));
   },
   {
     payloadSchema: z.object({
       expertName: z.string(),
       specialization: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
     }),
   },
 );

@@ -66,7 +66,8 @@ Our documentation follows a **hierarchical priority-based system** designed for 
 ├── notifications/
 │   ├── 01-novu-integration.md         # Notification system
 │   ├── 02-notification-workflows.md   # Workflow definitions
-│   └── 03-stripe-novu-integration.md  # Payment notifications
+│   ├── 03-stripe-novu-integration.md  # Payment notifications
+│   └── 04-novu-localization-security-fixes.md # i18n & XSS fixes
 ├── authentication/
 │   ├── 01-clerk-configuration.md      # Auth system setup
 │   ├── 02-role-management.md          # Role-based access
