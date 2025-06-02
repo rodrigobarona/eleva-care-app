@@ -8,6 +8,7 @@
  */
 // Load environment variables first
 import * as dotenv from 'dotenv';
+import { pathToFileURL } from 'node:url';
 
 import { qstash } from '../config/qstash';
 import { isQStashAvailable } from '../lib/qstash-config';
@@ -22,8 +23,8 @@ console.log(`QSTASH_TOKEN exists: ${!!process.env.QSTASH_TOKEN}`);
 console.log(`QSTASH_CURRENT_SIGNING_KEY exists: ${!!process.env.QSTASH_CURRENT_SIGNING_KEY}`);
 console.log(`QSTASH_NEXT_SIGNING_KEY exists: ${!!process.env.QSTASH_NEXT_SIGNING_KEY}`);
 
-// Ensure this runs as a script
-if (import.meta.url.startsWith('file:')) {
+// Ensure this runs as a script using a more reliable check
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main()
     .then(() => process.exit(0))
     .catch((error) => {
