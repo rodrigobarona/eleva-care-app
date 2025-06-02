@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Application Overview",
+    "id": 190819,
+    "url": "https://eu.i.posthog.com/project/38164/dashboard/190819",
+    "insights": 4
+  },
+  {
+    "name": "Health Check Monitoring",
+    "id": 190820,
+    "url": "https://eu.i.posthog.com/project/38164/dashboard/190820",
+    "insights": 3
+  },
+  {
+    "name": "User Experience",
+    "id": 190821,
+    "url": "https://eu.i.posthog.com/project/38164/dashboard/190821",
+    "insights": 3
+  },
+  {
+    "name": "Business Intelligence",
+    "id": 190822,
+    "url": "https://eu.i.posthog.com/project/38164/dashboard/190822",
+    "insights": 4
+  },
+  {
+    "name": "Technical Performance",
+    "id": 190823,
+    "url": "https://eu.i.posthog.com/project/38164/dashboard/190823",
+    "insights": 4
+  }
+]
