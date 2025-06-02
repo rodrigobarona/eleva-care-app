@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       node-version: ${{ steps.setup.outputs.node-version }}
-      pnpm-version: ${{ steps.setup.outputs.pnpm-version }}
+      pnpm-version: ${{ steps.pnpm-version.outputs.version }}
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
