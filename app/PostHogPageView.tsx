@@ -83,19 +83,23 @@ function PostHogPageView(): null {
     // Track performance metrics
     if (typeof window !== 'undefined' && window.performance) {
       // Wait for page to be fully loaded
-      setTimeout(() => {
+      setTimeout(async () => {
         const navigation = performance.getEntriesByType(
           'navigation',
         )[0] as PerformanceNavigationTiming;
         if (navigation) {
+          // Await async performance metrics to get actual values
+          const largestContentfulPaint = await getLargestContentfulPaint();
+          const cumulativeLayoutShift = await getCumulativeLayoutShift();
+
           posthog.capture('page_performance', {
             pathname: pathname,
             load_time: navigation.loadEventEnd - navigation.loadEventStart,
             dom_content_loaded:
               navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
             first_paint: getFirstPaint(),
-            largest_contentful_paint: getLargestContentfulPaint(),
-            cumulative_layout_shift: getCumulativeLayoutShift(),
+            largest_contentful_paint: largestContentfulPaint,
+            cumulative_layout_shift: cumulativeLayoutShift,
           });
         }
       }, 1000);
