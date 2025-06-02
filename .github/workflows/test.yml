@@ -250,10 +250,13 @@ jobs:
       - name: 🔒 Run security audit
         run: pnpm audit --audit-level moderate
 
+      - name: 🔍 Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+
       - name: 🔍 Run CodeQL analysis
         uses: github/codeql-action/analyze@v3
-        with:
-          languages: typescript
 
   test-summary:
     name: 📋 Test Summary
