@@ -9,7 +9,6 @@ import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
 import { IdempotencyCache, RateLimitCache } from '@/lib/redis';
 import { getOrCreateStripeCustomer } from '@/lib/stripe';
-import { getAuth } from '@clerk/nextjs/server';
 import { and, eq, gt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -277,25 +276,70 @@ export async function POST(request: NextRequest) {
   console.log('Starting payment intent creation process');
 
   try {
-    // **AUTHENTICATION: Verify user is authenticated**
-    const { userId } = getAuth(request);
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // Parse request body first to get expert's clerkUserId
+    const body = await request.json();
+    console.log('Request body received:', {
+      eventId: body.eventId,
+      hasPrice: !!body.price,
+      hasMeetingData: !!body.meetingData,
+      username: body.username,
+      eventSlug: body.eventSlug,
+      requiresApproval: !!body.requiresApproval,
+      clerkUserId: body.clerkUserId,
+    });
+
+    const {
+      eventId,
+      clerkUserId,
+      price,
+      meetingData,
+      username,
+      eventSlug,
+      requiresApproval = false,
+    } = body;
+
+    // Validate required fields
+    if (!clerkUserId) {
+      console.warn('Missing clerkUserId (expert user ID)');
+      return NextResponse.json({ error: 'Missing expert user ID' }, { status: 400 });
     }
 
-    // **RATE LIMITING: Apply payment-specific rate limits**
+    if (!price || !meetingData?.guestEmail) {
+      console.warn('Missing required fields:', {
+        hasPrice: !!price,
+        hasGuestEmail: !!meetingData?.guestEmail,
+      });
+      return NextResponse.json(
+        {
+          message: 'Missing required fields: price and guest email are required',
+        },
+        { status: 400 },
+      );
+    }
+
+    if (!meetingData?.startTime) {
+      console.warn('Missing startTime in meeting data');
+      return NextResponse.json({ message: 'Missing required field: startTime' }, { status: 400 });
+    }
+
+    // **RATE LIMITING: Apply payment-specific rate limits using guest email instead of userId**
     const forwarded = request.headers.get('x-forwarded-for');
     const clientIP =
       forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip') || 'unknown';
 
-    const rateLimitResult = await checkPaymentRateLimits(userId, clientIP);
+    // Use guest email as identifier for rate limiting since guests aren't authenticated
+    const guestIdentifier = `guest:${meetingData.guestEmail}`;
+    const rateLimitResult = await checkPaymentRateLimits(guestIdentifier, clientIP);
 
     if (!rateLimitResult.allowed) {
-      console.log(`Payment rate limit exceeded for user ${userId} (IP: ${clientIP}):`, {
-        reason: rateLimitResult.reason,
-        limit: rateLimitResult.limit,
-        resetTime: rateLimitResult.resetTime,
-      });
+      console.log(
+        `Payment rate limit exceeded for guest ${meetingData.guestEmail} (IP: ${clientIP}):`,
+        {
+          reason: rateLimitResult.reason,
+          limit: rateLimitResult.limit,
+          resetTime: rateLimitResult.resetTime,
+        },
+      );
 
       return NextResponse.json(
         {
@@ -332,40 +376,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Parse request body
-    const body = await request.json();
-    console.log('Request body received:', {
-      eventId: body.eventId,
-      hasPrice: !!body.price,
-      hasMeetingData: !!body.meetingData,
-      username: body.username,
-      eventSlug: body.eventSlug,
-      requiresApproval: !!body.requiresApproval,
-    });
-
-    const { eventId, price, meetingData, username, eventSlug, requiresApproval = false } = body;
-
-    // Validate required fields
-    if (!price || !meetingData?.guestEmail) {
-      console.warn('Missing required fields:', {
-        hasPrice: !!price,
-        hasGuestEmail: !!meetingData?.guestEmail,
-      });
-      return NextResponse.json(
-        {
-          message: 'Missing required fields: price and guest email are required',
-        },
-        { status: 400 },
-      );
-    }
-
-    if (!meetingData?.startTime) {
-      console.warn('Missing startTime in meeting data');
-      return NextResponse.json({ message: 'Missing required field: startTime' }, { status: 400 });
-    }
-
     // **RECORD RATE LIMIT ATTEMPT: Only after validating request**
-    await recordPaymentRateLimitAttempts(userId, clientIP);
+    await recordPaymentRateLimitAttempts(guestIdentifier, clientIP);
 
     // Extract locale for translations
     const locale = meetingData.locale || 'en';
