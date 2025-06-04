@@ -24,15 +24,7 @@ import { createMeeting } from '@/server/actions/meetings';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { format, startOfDay } from 'date-fns';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
-import {
-  AlertCircle,
-  CalendarIcon,
-  CheckCircle2,
-  Clock,
-  CreditCard,
-  Globe,
-  Loader2,
-} from 'lucide-react';
+import { CalendarIcon, Clock, Globe, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import {
   parseAsIsoDate,
@@ -44,7 +36,6 @@ import {
 import { Suspense } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
-import { toast } from 'sonner';
 import type { z } from 'zod';
 
 interface BlockedDate {
@@ -134,12 +125,6 @@ const Step2Content = React.memo<Step2ContentProps>(
     const totalDuration = eventDuration + beforeEventBuffer + afterEventBuffer;
     const hasBufferTime = beforeEventBuffer > 0 || afterEventBuffer > 0;
 
-    // **ENHANCED: Track button loading state separately for immediate feedback**
-    const [isButtonLoading, setIsButtonLoading] = React.useState(false);
-    const [paymentProgress, setPaymentProgress] = React.useState<
-      'idle' | 'validating' | 'creating' | 'redirecting'
-    >('idle');
-
     // Memoize updateURLOnBlur with proper dependencies
     const updateURLOnBlur = React.useCallback(() => {
       const name = form.getValues('guestName')?.trim();
@@ -153,98 +138,6 @@ const Step2Content = React.memo<Step2ContentProps>(
         setQueryStates((prev) => ({ ...prev, ...updates }));
       }
     }, [form, setQueryStates]);
-
-    // **ENHANCED: Smart button text and state management**
-    const getButtonState = () => {
-      const isLoading = isSubmitting || isProcessingRef.current || isButtonLoading;
-
-      if (price === 0) {
-        return {
-          text: isLoading ? 'Scheduling...' : 'Schedule Meeting',
-          icon: isLoading ? Loader2 : CheckCircle2,
-          disabled: isLoading,
-        };
-      }
-
-      // For paid sessions
-      switch (paymentProgress) {
-        case 'validating':
-          return {
-            text: 'Validating Details...',
-            icon: Loader2,
-            disabled: true,
-          };
-        case 'creating':
-          return {
-            text: 'Creating Secure Checkout...',
-            icon: Loader2,
-            disabled: true,
-          };
-        case 'redirecting':
-          return {
-            text: 'Redirecting to Payment...',
-            icon: Loader2,
-            disabled: true,
-          };
-        default:
-          return {
-            text: isLoading ? 'Processing...' : 'Continue to Payment',
-            icon: isLoading ? Loader2 : CreditCard,
-            disabled: isLoading,
-          };
-      }
-    };
-
-    // **ENHANCED: Optimized button click handler with immediate feedback**
-    const handleButtonClick = React.useCallback(async () => {
-      // **IMMEDIATE FEEDBACK: Show loading state instantly**
-      setIsButtonLoading(true);
-      setPaymentProgress('validating');
-
-      try {
-        // **VALIDATION PHASE**
-        const formData = form.getValues();
-        if (!formData.guestName?.trim() || !formData.guestEmail?.trim()) {
-          toast.error('Please fill in all required fields', {
-            description: 'Name and email are required to proceed',
-          });
-          return;
-        }
-
-        // **EMAIL VALIDATION**
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(formData.guestEmail)) {
-          toast.error('Please enter a valid email address');
-          form.setFocus('guestEmail');
-          return;
-        }
-
-        // **PAYMENT CREATION PHASE**
-        setPaymentProgress('creating');
-
-        // **OPTIMIZED: Call handleNextStep with enhanced progress tracking**
-        await handleNextStep('3');
-      } catch (error) {
-        console.error('Button click error:', error);
-        toast.error('Something went wrong', {
-          description: 'Please try again or contact support if the issue persists',
-        });
-      } finally {
-        // **CLEANUP: Reset loading states**
-        setIsButtonLoading(false);
-        setPaymentProgress('idle');
-      }
-    }, [form, handleNextStep]);
-
-    // **RESPONSIVE DESIGN: Update progress from parent state**
-    React.useEffect(() => {
-      if (isProcessingRef.current && paymentProgress === 'creating') {
-        setPaymentProgress('redirecting');
-      }
-    }, [isProcessingRef, paymentProgress]); // isProcessingRef is included as per React docs - refs have stable identities
-
-    const buttonState = getButtonState();
-    const IconComponent = buttonState.icon;
 
     return (
       <div className="rounded-lg border p-6">
@@ -299,7 +192,7 @@ const Step2Content = React.memo<Step2ContentProps>(
             name="guestName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="font-semibold">Your Name *</FormLabel>
+                <FormLabel className="font-semibold">Your Name</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="Enter your full name"
@@ -308,7 +201,6 @@ const Step2Content = React.memo<Step2ContentProps>(
                       field.onBlur();
                       updateURLOnBlur();
                     }}
-                    className={form.formState.errors.guestName ? 'border-red-500' : ''}
                   />
                 </FormControl>
                 <FormMessage />
@@ -320,7 +212,7 @@ const Step2Content = React.memo<Step2ContentProps>(
             name="guestEmail"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="font-semibold">Your Email *</FormLabel>
+                <FormLabel className="font-semibold">Your Email</FormLabel>
                 <FormControl>
                   <Input
                     type="email"
@@ -330,7 +222,6 @@ const Step2Content = React.memo<Step2ContentProps>(
                       field.onBlur();
                       updateURLOnBlur();
                     }}
-                    className={form.formState.errors.guestEmail ? 'border-red-500' : ''}
                   />
                 </FormControl>
                 <FormMessage />
@@ -356,61 +247,27 @@ const Step2Content = React.memo<Step2ContentProps>(
           />
         </div>
 
-        {/* **ENHANCED ERROR DISPLAY** */}
-        {form.formState.errors.root && (
-          <div className="mt-4 flex items-center gap-2 rounded-md bg-red-50 p-3 text-red-700">
-            <AlertCircle className="h-4 w-4" />
-            <span className="text-sm">{form.formState.errors.root.message}</span>
-          </div>
-        )}
-
         <div className="mt-6 flex justify-between">
           <Button
             type="button"
             variant="outline"
             onClick={() => transitionToStep('1')}
-            disabled={buttonState.disabled}
+            disabled={isSubmitting || isProcessingRef.current}
           >
             Back
           </Button>
-
-          {/* **ENHANCED PAYMENT BUTTON** */}
           <Button
             type="button"
-            onClick={handleButtonClick}
-            disabled={buttonState.disabled}
-            className={`relative min-w-[180px] ${
-              price > 0
-                ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-                : ''
-            }`}
-            size="lg"
+            onClick={() => handleNextStep('3')}
+            disabled={isSubmitting || isProcessingRef.current}
+            className="relative"
           >
-            <IconComponent
-              className={`mr-2 h-4 w-4 ${buttonState.disabled ? 'animate-spin' : ''}`}
-            />
-            {buttonState.text}
-
-            {/* **PROGRESS INDICATOR** */}
-            {buttonState.disabled && (
-              <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black bg-opacity-20">
-                <div className="flex items-center gap-2 text-white">
-                  <div className="h-1 w-1 animate-pulse rounded-full bg-white" />
-                  <div className="h-1 w-1 animate-pulse rounded-full bg-white delay-100" />
-                  <div className="h-1 w-1 animate-pulse rounded-full bg-white delay-200" />
-                </div>
-              </div>
+            {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
+            {(isSubmitting || isProcessingRef.current) && (
+              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
             )}
           </Button>
         </div>
-
-        {/* **PAYMENT SECURITY NOTICE** */}
-        {price > 0 && !buttonState.disabled && (
-          <div className="mt-4 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-            <CreditCard className="h-3 w-3" />
-            <span>Secured by Stripe • SSL Encrypted</span>
-          </div>
-        )}
       </div>
     );
   },
@@ -608,11 +465,7 @@ export function MeetingFormContent({
 
     // **VALIDATION: Ensure required data is present**
     if (!formValues.guestEmail || !formValues.startTime) {
-      const error = 'Missing required form data';
-      toast.error('Form data incomplete', {
-        description: 'Please ensure all required fields are filled',
-      });
-      throw new Error(error);
+      throw new Error('Missing required form data');
     }
 
     // **REDIS-BASED DUPLICATE PREVENTION: Generate cache key**
@@ -626,9 +479,6 @@ export function MeetingFormContent({
     const isAlreadyProcessing = await FormCache.isProcessing(formCacheKey);
     if (isAlreadyProcessing) {
       console.log('🚫 Form submission already in progress (Redis cache) - blocking duplicate');
-      toast.warning('Payment already in progress', {
-        description: 'Please wait while we process your previous request',
-      });
       return null;
     }
 
@@ -642,12 +492,6 @@ export function MeetingFormContent({
     isProcessingRef.current = true;
     forceRender(); // Force re-render to show loading state
     setIsCreatingCheckout(true);
-
-    // **PROGRESS NOTIFICATION**
-    toast.loading('Creating secure checkout...', {
-      id: 'payment-creation',
-      description: 'Please wait while we prepare your payment',
-    });
 
     try {
       // **REDIS: Mark as processing in distributed cache**
@@ -667,10 +511,7 @@ export function MeetingFormContent({
 
       console.log('🚀 Creating payment intent with Redis cache key:', formCacheKey);
 
-      // **ENHANCED API CALL WITH TIMEOUT**
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
-
+      // Create payment intent using the new enhanced endpoint
       const response = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: {
@@ -700,50 +541,23 @@ export function MeetingFormContent({
           // **IDEMPOTENCY: Include request key in payload**
           requestKey,
         }),
-        signal: controller.signal,
       });
-
-      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-
-        // **ENHANCED ERROR HANDLING**
-        const errorMessage = errorData.error || 'Failed to create payment intent';
-
-        // Show toast error for checkout failures
-        toast.error('Payment setup failed', {
-          description: errorMessage,
-        });
-
-        form.setError('root', {
-          message: errorMessage,
-        });
-
-        throw new Error(errorData.error || errorMessage);
+        throw new Error(errorData.error || 'Failed to create payment intent');
       }
 
       const { url } = await response.json();
 
       if (!url) {
-        const error = 'No checkout URL received from server';
-        toast.error('Payment setup failed', {
-          id: 'payment-creation',
-          description: 'Unable to create checkout session. Please try again',
-        });
-        throw new Error(error);
+        throw new Error('No checkout URL received from server');
       }
 
       console.log('✅ Payment intent created successfully');
 
       // **REDIS: Mark as completed**
       await FormCache.markCompleted(formCacheKey);
-
-      // **SUCCESS NOTIFICATION**
-      toast.success('Checkout ready!', {
-        id: 'payment-creation',
-        description: 'Redirecting to secure payment...',
-      });
 
       setCheckoutUrl(url);
       return url;
@@ -753,35 +567,10 @@ export function MeetingFormContent({
       // **ERROR HANDLING: Mark as failed in Redis and reset state**
       await FormCache.markFailed(formCacheKey);
 
-      // **ENHANCED ERROR MESSAGING**
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          toast.error('Request timeout', {
-            id: 'payment-creation',
-            description: 'The request took too long. Please check your connection and try again',
-          });
-        } else {
-          // Show error toast for payment creation failures
-          toast.error('Payment setup failed', {
-            id: 'payment-creation',
-            description: error.message || 'An unexpected error occurred. Please try again',
-          });
-        }
-
-        form.setError('root', {
-          message: error.message,
-        });
-      } else {
-        toast.error('Unknown error', {
-          id: 'payment-creation',
-          description: 'An unexpected error occurred. Please try again or contact support',
-        });
-
-        form.setError('root', {
-          message: 'There was an error creating your payment.',
-        });
-      }
-
+      form.setError('root', {
+        message:
+          error instanceof Error ? error.message : 'There was an error creating your payment.',
+      });
       return null;
     } finally {
       // **CLEANUP: Always reset processing state**
@@ -933,33 +722,15 @@ export function MeetingFormContent({
       // **CRITICAL: Prevent double submissions using ref**
       if (isProcessingRef.current) {
         console.log('🚫 Payment flow already in progress - blocking duplicate');
-        toast.warning('Payment in progress', {
-          description: 'Please wait while we process your payment',
-        });
         return;
       }
 
       // For free sessions, handle differently
       if (price === 0) {
         try {
-          // **ENHANCED: Show progress for free sessions too**
-          toast.loading('Scheduling your meeting...', {
-            id: 'free-booking',
-            description: 'Creating your appointment',
-          });
-
           await form.handleSubmit(onSubmit)();
-
-          toast.success('Meeting scheduled!', {
-            id: 'free-booking',
-            description: 'Redirecting to confirmation page',
-          });
         } catch (error) {
           console.error('Error submitting form:', error);
-          toast.error('Scheduling failed', {
-            id: 'free-booking',
-            description: 'Please try again or contact support',
-          });
           form.setError('root', {
             message: 'Failed to process request',
           });
@@ -973,64 +744,26 @@ export function MeetingFormContent({
       forceRender(); // Update UI immediately
 
       try {
-        // **PERFORMANCE OPTIMIZATION: Start checkout creation immediately**
-        console.log('🚀 Starting checkout creation process...');
-
         // Get or create checkout URL
         const url = await createPaymentIntent();
 
         if (url) {
           console.log('🚀 Redirecting to checkout:', url);
 
-          // **ENHANCED: Show redirect notification**
-          toast.loading('Redirecting to payment...', {
-            id: 'redirect-notification',
-            description: 'You will be redirected to Stripe in a moment',
-          });
+          // **OPTIMIZED: Redirect immediately without transitioning to step 3**
+          // This reduces delay and provides a smoother user experience
+          console.log('Performing immediate redirect to Stripe checkout...');
+          window.location.href = url;
 
-          // **OPTIMIZED: Minimal delay for better UX**
-          setTimeout(() => {
-            window.location.href = url;
-          }, 500); // 500ms delay to show feedback, then redirect
-
-          // **FALLBACK: If redirect doesn't work after 3 seconds**
-          setTimeout(() => {
-            if (window.location.href === window.location.href) {
-              toast.error('Redirect failed', {
-                id: 'redirect-notification',
-                description: 'Please click here to continue to payment',
-                action: {
-                  label: 'Continue to Payment',
-                  onClick: () => {
-                    window.open(url, '_blank');
-                  },
-                },
-              });
-
-              // Reset states to allow retry
-              isProcessingRef.current = false;
-              setIsSubmitting(false);
-              forceRender();
-            }
-          }, 3000);
-
+          // The redirect will happen immediately, so we don't need to update UI further
           return;
         } else {
           throw new Error('Failed to get checkout URL');
         }
       } catch (error) {
         console.error('❌ Checkout flow error:', error);
-
-        // **ENHANCED ERROR HANDLING**
-        const errorMessage = error instanceof Error ? error.message : 'Failed to process request';
-
-        // Show toast error for checkout failures
-        toast.error('Payment setup failed', {
-          description: errorMessage,
-        });
-
         form.setError('root', {
-          message: errorMessage,
+          message: 'Failed to process request',
         });
 
         // **ERROR RECOVERY: Reset both processing flags**
