@@ -744,20 +744,19 @@ export function MeetingFormContent({
       forceRender(); // Update UI immediately
 
       try {
-        // First move to step 3 immediately to show loading
-        transitionToStep('3');
-
-        // Then get or create checkout URL
+        // Get or create checkout URL
         const url = await createPaymentIntent();
 
         if (url) {
           console.log('🚀 Redirecting to checkout:', url);
-          // Keep loading state active until navigation
-          if (url.startsWith('/') || url.startsWith(window.location.origin)) {
-            router.push(url);
-          } else {
-            window.location.href = url;
-          }
+
+          // **OPTIMIZED: Redirect immediately without transitioning to step 3**
+          // This reduces delay and provides a smoother user experience
+          console.log('Performing immediate redirect to Stripe checkout...');
+          window.location.href = url;
+
+          // The redirect will happen immediately, so we don't need to update UI further
+          return;
         } else {
           throw new Error('Failed to get checkout URL');
         }
@@ -767,14 +766,13 @@ export function MeetingFormContent({
           message: 'Failed to process request',
         });
 
-        // **ERROR RECOVERY: Go back to step 2 on error**
-        transitionToStep('2');
+        // **ERROR RECOVERY: Reset both processing flags**
         isProcessingRef.current = false;
         setIsSubmitting(false);
         forceRender();
       }
     },
-    [form, price, createPaymentIntent, onSubmit, router, transitionToStep, forceRender],
+    [form, price, createPaymentIntent, onSubmit, transitionToStep, forceRender],
   );
 
   // Initialize first available date only once
