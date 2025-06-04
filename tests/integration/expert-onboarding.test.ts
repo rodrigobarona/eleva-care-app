@@ -1,8 +1,7 @@
 // Import Jest globals first
-import { clerkClient } from '@clerk/nextjs/server';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+
 // Import dependencies for assertions
-import { revalidatePath } from 'next/cache';
 
 // Import our mocks
 import {
@@ -15,11 +14,11 @@ import {
 
 // Mock modules
 jest.mock('@clerk/nextjs/server', () => ({
-  currentUser: jest.fn().mockResolvedValue(mockUser),
+  currentUser: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue(mockUser),
   clerkClient: {
     users: {
-      updateUser: jest.fn().mockResolvedValue(mockUser),
-      getUser: jest.fn().mockResolvedValue(mockUser),
+      updateUser: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue(mockUser),
+      getUser: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue(mockUser),
     },
   },
 }));
@@ -66,9 +65,9 @@ describe('Expert Onboarding Flow', () => {
     const stepResult = await mockMarkStepComplete('profile');
 
     // Assert - Verify that the step was marked complete
-    expect(profileResult.success).toBe(true);
-    expect(stepResult.success).toBe(true);
-    expect(stepResult.setupStatus.profile).toBe(true);
+    expect((profileResult as any).success).toBe(true);
+    expect((stepResult as any).success).toBe(true);
+    expect((stepResult as any).setupStatus.profile).toBe(true);
 
     // Verify functions were called with correct parameters
     expect(mockUpdateProfile).toHaveBeenCalledWith(profileData);
@@ -77,7 +76,7 @@ describe('Expert Onboarding Flow', () => {
 
   it('should prevent publishing a profile until all required steps are complete', async () => {
     // Arrange - Make sure some steps are incomplete
-    mockCheckExpertSetupStatus.mockResolvedValueOnce({
+    (mockCheckExpertSetupStatus as any).mockResolvedValueOnce({
       success: true,
       setupStatus: {
         profile: true,
@@ -94,11 +93,11 @@ describe('Expert Onboarding Flow', () => {
     const result = await mockToggleProfilePublication();
 
     // Assert - Verify that publishing was prevented
-    expect(result.success).toBe(false);
-    expect(result.message).toContain('Cannot publish profile');
+    expect((result as any).success).toBe(false);
+    expect((result as any).message).toContain('Cannot publish profile');
     // Based on our defaultSetupStatus in the mock implementation, availability is in incompleteSteps
-    expect(result.incompleteSteps).toContain('availability');
-    expect(result.incompleteSteps).toContain('identity');
+    expect((result as any).incompleteSteps).toContain('availability');
+    expect((result as any).incompleteSteps).toContain('identity');
   });
 
   it('should validate required information for each onboarding step', async () => {
@@ -139,16 +138,11 @@ describe('Expert Onboarding Flow', () => {
       google_account: false,
     };
 
-    mockCheckExpertSetupStatus.mockResolvedValueOnce({
+    (mockCheckExpertSetupStatus as any).mockResolvedValueOnce({
       success: true,
       setupStatus: initialSetupStatus,
       isPublished: false,
     });
-
-    // Calculate expected progress
-    const totalSteps = Object.keys(initialSetupStatus).length;
-    const completedSteps = Object.values(initialSetupStatus).filter(Boolean).length;
-    const expectedProgress = Math.round((completedSteps / totalSteps) * 100);
 
     // Mock a progress calculation function
     const calculateProgress = (setupStatus: Record<string, boolean>) => {
@@ -159,23 +153,16 @@ describe('Expert Onboarding Flow', () => {
 
     // Act - Get current setup status and calculate progress
     const result = await mockCheckExpertSetupStatus();
-    const progress = calculateProgress(result.setupStatus);
+    const progress = calculateProgress((result as any).setupStatus);
 
     // Assert - Verify progress calculation is correct (2/6 steps = 33%)
-    expect(result.success).toBe(true);
+    expect((result as any).success).toBe(true);
     expect(progress).toBe(33);
   });
 
   it('should allow publishing profile when all steps are complete', async () => {
     // Arrange - Override the default mock to make all steps complete
-    const allCompleteSetupStatus = {
-      profile: true,
-      events: true,
-      availability: true,
-      identity: true,
-      payment: true,
-      google_account: true,
-    };
+    // All steps will be complete based on mock implementation
 
     // Override the mock implementation for this test only
     mockToggleProfilePublication.mockImplementationOnce(() => {
@@ -190,8 +177,8 @@ describe('Expert Onboarding Flow', () => {
     const result = await mockToggleProfilePublication();
 
     // Assert - Verify that publishing succeeded
-    expect(result.success).toBe(true);
-    expect(result.message).toContain('Profile published successfully');
-    expect(result.isPublished).toBe(true);
+    expect((result as any).success).toBe(true);
+    expect((result as any).message).toContain('Profile published successfully');
+    expect((result as any).isPublished).toBe(true);
   });
 });

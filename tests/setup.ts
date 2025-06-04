@@ -30,22 +30,22 @@ Object.defineProperty(global, 'Request', {
   value: class MockRequest {
     constructor(
       public url: string,
-      public init?: any,
+      public init?: unknown,
     ) {
       this.headers = {
         get: (name: string) => {
-          const headers = this.init?.headers || {};
-          return headers[name] || null;
+          const headers = (this.init as Record<string, unknown>)?.headers || {};
+          return (headers as Record<string, unknown>)[name] || null;
         },
       };
     }
     async text() {
-      return this.init?.body || '{}';
+      return String((this.init as Record<string, unknown>)?.body || '{}');
     }
     async json() {
       return JSON.parse(await this.text());
     }
-    headers: any;
+    headers: Record<string, unknown>;
   },
   writable: true,
 });
@@ -53,7 +53,7 @@ Object.defineProperty(global, 'Request', {
 Object.defineProperty(global, 'Response', {
   value: class MockResponse {
     constructor(
-      public body?: any,
+      public body?: unknown,
       public init?: ResponseInit,
     ) {
       this.status = init?.status || 200;
@@ -63,7 +63,7 @@ Object.defineProperty(global, 'Response', {
     }
     status: number;
 
-    static json(data: any, init?: ResponseInit) {
+    static json(data: unknown, init?: ResponseInit) {
       return new MockResponse(data, init);
     }
   },
@@ -72,16 +72,26 @@ Object.defineProperty(global, 'Response', {
 
 // Mock NextResponse specifically for Next.js
 jest.mock('next/server', () => ({
-  NextRequest: jest.fn().mockImplementation((url: string, init?: any) => {
-    return new (global as any).Request(url, init);
+  NextRequest: jest.fn().mockImplementation((...args: unknown[]) => {
+    const [url, init] = args;
+    return new (
+      global as unknown as { Request: new (url: string, init?: unknown) => unknown }
+    ).Request(url as string, init);
   }),
   NextResponse: {
-    json: (data: any, init?: ResponseInit) => {
-      return new (global as any).Response(data, init);
+    json: (data: unknown, init?: ResponseInit) => {
+      return new (
+        global as unknown as { Response: new (data: unknown, init?: ResponseInit) => unknown }
+      ).Response(data, init);
     },
-    next: () => new (global as any).Response(null, { status: 200 }),
+    next: () =>
+      new (
+        global as unknown as { Response: new (data: unknown, init?: ResponseInit) => unknown }
+      ).Response(null, { status: 200 }),
     redirect: (url: string) =>
-      new (global as any).Response(null, { status: 302, headers: { Location: url } }),
+      new (
+        global as unknown as { Response: new (data: unknown, init?: ResponseInit) => unknown }
+      ).Response(null, { status: 302, headers: { Location: url } }),
   },
 }));
 
@@ -244,7 +254,7 @@ jest.mock('@clerk/nextjs/server', () => ({
     userId: 'user_123',
     orgId: null,
     getToken: jest.fn().mockResolvedValue('mock-token' as never),
-  }),
+  } as never),
 }));
 
 // Add comprehensive Clerk auth mock
@@ -258,7 +268,7 @@ jest.mock('@clerk/nextjs', () => ({
       role: ['community_expert'],
     },
     getToken: jest.fn().mockResolvedValue('mock-token' as never),
-  }),
+  } as never),
   ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
   useAuth: jest.fn().mockReturnValue({
     isLoaded: true,

@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-// Create mock functions
-const mockStripeSessionCreate = jest.fn();
-const mockGetOrCreateStripeCustomer = jest.fn();
-const mockDbEventFind = jest.fn();
-const mockDbSlotReservationFind = jest.fn();
+// Create mock functions with explicit typing
+const mockStripeSessionCreate = jest.fn<(...args: any[]) => Promise<{ id: string; url: string }>>();
+const mockGetOrCreateStripeCustomer = jest.fn<(...args: any[]) => Promise<string>>();
+const mockDbEventFind = jest.fn<(...args: any[]) => Promise<any>>();
+const mockDbSlotReservationFind = jest.fn<(...args: any[]) => Promise<any>>();
 
 // Mock dependencies
 jest.mock('@/drizzle/db', () => ({
@@ -23,15 +23,15 @@ jest.mock('@/drizzle/db', () => ({
 jest.mock('@/lib/stripe', () => ({
   getBaseUrl: jest.fn(() => 'https://example.com'),
   getOrCreateStripeCustomer: () => mockGetOrCreateStripeCustomer(),
-  withRetry: jest.fn((fn) => fn()),
-  calculateApplicationFee: jest.fn((price) => Math.round(price * 0.15)),
+  withRetry: jest.fn((fn: () => void) => fn()),
+  calculateApplicationFee: jest.fn((price: number) => Math.round(price * 0.15)),
 }));
 
 jest.mock('stripe', () => {
   return jest.fn(() => ({
     checkout: {
       sessions: {
-        create: (...args) => mockStripeSessionCreate(...args),
+        create: (...args: any[]) => mockStripeSessionCreate(...args),
       },
     },
   }));
@@ -39,7 +39,7 @@ jest.mock('stripe', () => {
 
 jest.mock('next/server', () => ({
   NextResponse: {
-    json: jest.fn((data, options) => ({ data, options })),
+    json: jest.fn((data: any, options: any) => ({ data, options })),
   },
 }));
 

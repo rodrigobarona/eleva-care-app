@@ -1,26 +1,19 @@
 import { ProfilePublishToggle } from '@/components/organisms/ProfilePublishToggle';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 
 // Create a properly configured jest mock function before mocking the module
-const mockToggleProfilePublication = jest.fn();
+const mockToggleProfilePublication = jest.fn<(...args: any[]) => Promise<any>>();
+const mockCheckExpertSetupStatus = jest.fn<(...args: any[]) => Promise<any>>();
 
-// Mock the server action with the correct function name
+// Mock the server actions
 jest.mock('@/server/actions/expert-profile', () => ({
   toggleProfilePublication: mockToggleProfilePublication,
 }));
 
-// Mock the React Testing Library
-jest.mock('@testing-library/react', () => ({
-  render: jest.fn(),
-  screen: {
-    getByText: jest.fn(),
-    getByRole: jest.fn(),
-  },
-  fireEvent: {
-    click: jest.fn(),
-  },
-  waitFor: jest.fn((callback) => callback()),
+jest.mock('@/server/actions/expert-setup', () => ({
+  checkExpertSetupStatus: mockCheckExpertSetupStatus,
 }));
 
 // Mock toast notification
@@ -31,148 +24,123 @@ jest.mock('sonner', () => ({
   },
 }));
 
-// Import the mocked modules after mocking
-const { render, screen, fireEvent, waitFor } = require('@testing-library/react');
-const { toast } = require('sonner');
-
 describe('ProfilePublishToggle', () => {
   const mockProps = {
-    isPublished: false,
-    userId: 'user_123',
-    completedSetup: true,
+    initialPublishedStatus: false,
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Set up mock implementations
-    mockToggleProfilePublication.mockResolvedValue({
+    // Set up default mock implementations
+    (mockToggleProfilePublication as any).mockResolvedValue({
       success: true,
       isPublished: true,
+      message: 'Profile published successfully',
     });
 
-    // Mock screen methods
-    screen.getByText.mockImplementation((text) => ({ textContent: text }));
-    screen.getByRole.mockImplementation((role) => ({
-      role,
-      checked: mockProps.isPublished,
-      disabled: !mockProps.completedSetup,
-    }));
+    (mockCheckExpertSetupStatus as any).mockResolvedValue({
+      setupStatus: {
+        profile: true,
+        events: true,
+        availability: true,
+        identity: true,
+        payment: true,
+      },
+    });
   });
 
-  it('tests toggle behavior when publishing', async () => {
-    // Skip actual rendering and mock what would happen
+  it('should render with correct initial state when not published', () => {
     render(<ProfilePublishToggle {...mockProps} />);
 
-    // Simulate finding elements
-    screen.getByText.mockReturnValueOnce(true); // "Profile visibility"
-    screen.getByText.mockReturnValueOnce(true); // "Private"
+    // Check if the component renders without crashing
+    expect(screen.getByText('Profile Not Published')).toBeTruthy();
 
-    // Simulate clicking the toggle
-    const mockToggle = { checked: false, role: 'switch' };
-    screen.getByRole.mockReturnValue(mockToggle);
-    fireEvent.click(mockToggle);
-
-    // Simulate what happens when the toggle is clicked
-    // Call the mocked function manually to simulate the component's behavior
-    await mockToggleProfilePublication();
-
-    // Mock loading state
-    screen.getByText.mockReturnValueOnce(true); // "Publishing..."
-
-    // Since we're manually calling the function, we know it was called
-    expect(mockToggleProfilePublication).toHaveBeenCalled();
-
-    // Trigger toast manually to simulate successful toggle
-    toast.success('Profile published successfully!');
-
-    // Check success toast
-    expect(toast.success).toHaveBeenCalledWith('Profile published successfully!');
+    // Check if the switch is not checked
+    const toggle = screen.getByRole('switch');
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
   });
 
-  it('tests toggle behavior when unpublishing', async () => {
-    // Set props for published state
-    const publishedProps = { ...mockProps, isPublished: true };
+  it('should show correct text when published', () => {
+    const publishedProps = { initialPublishedStatus: true };
 
-    // Reset mock for unpublishing
-    mockToggleProfilePublication.mockResolvedValue({
-      success: true,
-      isPublished: false,
-    });
-
-    // Skip actual rendering and mock what would happen
     render(<ProfilePublishToggle {...publishedProps} />);
 
-    // Simulate clicking the toggle
-    const mockToggle = { checked: true, role: 'switch' };
-    screen.getByRole.mockReturnValue(mockToggle);
-    fireEvent.click(mockToggle);
+    expect(screen.getByText('Profile Published')).toBeTruthy();
 
-    // Manually call the function
-    await mockToggleProfilePublication();
-
-    // Trigger toast manually
-    toast.success('Profile set to private');
-
-    // Check server action was called
-    expect(mockToggleProfilePublication).toHaveBeenCalled();
-
-    // Check success toast
-    expect(toast.success).toHaveBeenCalledWith('Profile set to private');
+    // Check if the switch is checked
+    const toggle = screen.getByRole('switch');
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
   });
 
-  it('tests error handling', async () => {
-    // Set the mock to return an error
-    mockToggleProfilePublication.mockResolvedValue({
-      success: false,
-      message: 'Failed to update profile',
-    });
-
-    // Skip actual rendering and mock what would happen
+  it('should show a dialog when toggle is clicked', async () => {
     render(<ProfilePublishToggle {...mockProps} />);
 
-    // Simulate clicking the toggle
-    const mockToggle = { checked: false, role: 'switch' };
-    screen.getByRole.mockReturnValue(mockToggle);
-    fireEvent.click(mockToggle);
+    const toggle = screen.getByRole('switch');
 
-    // Manually call the function
-    const result = await mockToggleProfilePublication();
-
-    // Manually trigger toast based on the result
-    if (!result.success) {
-      toast.error(result.message);
-    }
-
-    // Check error toast
-    expect(toast.error).toHaveBeenCalledWith('Failed to update profile');
-  });
-
-  it('verifies toggle is disabled when setup is incomplete', () => {
-    // Set props for incomplete setup
-    const incompleteSetupProps = { ...mockProps, completedSetup: false };
-
-    // Skip actual rendering and mock what would happen
-    render(<ProfilePublishToggle {...incompleteSetupProps} />);
-
-    // Simulate toggle with disabled state
-    const mockToggle = { disabled: true, role: 'switch' };
-    screen.getByRole.mockReturnValue(mockToggle);
-
-    // Verify the toggle is disabled
-    expect(mockToggle.disabled).toBe(true);
-
-    // Mock finding warning text
-    screen.getByText.mockImplementation((regex) => {
-      return (
-        regex &&
-        typeof regex.test === 'function' &&
-        regex.test('Please complete your profile setup first')
-      );
+    await act(async () => {
+      fireEvent.click(toggle);
+      // Wait for async operations to complete
+      await new Promise((resolve) => setTimeout(resolve, 200));
     });
 
-    // Check for warning text
-    const warningText = screen.getByText(/complete your profile setup/i);
-    expect(warningText).toBeTruthy();
+    // Should show some kind of dialog (either publish or incomplete)
+    // We don't care which one, just that a dialog appears
+    const dialog = screen.getByRole('alertdialog');
+    expect(dialog).toBeTruthy();
+  });
+
+  it('should show incomplete steps dialog when setup is not complete', async () => {
+    // Mock incomplete setup
+    (mockCheckExpertSetupStatus as any).mockResolvedValue({
+      setupStatus: {
+        profile: true,
+        events: false,
+        availability: false,
+        identity: true,
+        payment: false,
+      },
+    });
+
+    render(<ProfilePublishToggle {...mockProps} />);
+
+    const toggle = screen.getByRole('switch');
+
+    await act(async () => {
+      fireEvent.click(toggle);
+      // Wait for async operations
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    });
+
+    // Should show the incomplete steps dialog
+    expect(screen.getByText('Complete All Steps First')).toBeTruthy();
+    expect(screen.getByText('Create at least one service')).toBeTruthy();
+  });
+
+  it('should show unpublish dialog when currently published', async () => {
+    const publishedProps = { initialPublishedStatus: true };
+
+    render(<ProfilePublishToggle {...publishedProps} />);
+
+    const toggle = screen.getByRole('switch');
+
+    await act(async () => {
+      fireEvent.click(toggle);
+      // Wait for dialog to appear
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    });
+
+    // Should show the unpublish confirmation dialog
+    expect(screen.getByText('Unpublish Your Expert Profile')).toBeTruthy();
+  });
+
+  it('should verify mock functions are properly set up', () => {
+    // This test verifies that our mocks are set up correctly
+    expect(typeof mockCheckExpertSetupStatus).toBe('function');
+    expect(typeof mockToggleProfilePublication).toBe('function');
+
+    // Test that we can call the mocks directly
+    expect(() => mockCheckExpertSetupStatus()).not.toThrow();
+    expect(() => mockToggleProfilePublication()).not.toThrow();
   });
 });

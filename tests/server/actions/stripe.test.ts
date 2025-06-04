@@ -4,16 +4,16 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 // Define mocks before importing modules that use them
 const mockStripe = {
   customers: {
-    create: jest.fn(),
-    update: jest.fn(),
-    search: jest.fn(),
+    create: jest.fn<(...args: any[]) => Promise<any>>(),
+    update: jest.fn<(...args: any[]) => Promise<any>>(),
+    search: jest.fn<(...args: any[]) => Promise<any>>(),
   },
   paymentMethods: {
-    list: jest.fn(),
+    list: jest.fn<(...args: any[]) => Promise<any>>(),
   },
 };
 
-const mockWithRetry = jest.fn((fn) => fn());
+const mockWithRetry = jest.fn<(fn: () => any) => any>((fn) => fn());
 
 // Mock the stripe module
 jest.mock('@/lib/stripe', () => ({
@@ -46,8 +46,8 @@ async function createOrUpdateStripeCustomer({
         metadata: { clerkUserId },
       });
       return {
-        customerId: customer.id,
-        email: customer.email,
+        customerId: (customer as any).id,
+        email: (customer as any).email,
       };
     } else {
       // Create new customer
@@ -57,11 +57,11 @@ async function createOrUpdateStripeCustomer({
         metadata: { clerkUserId },
       });
       return {
-        customerId: customer.id,
-        email: customer.email,
+        customerId: (customer as any).id,
+        email: (customer as any).email,
       };
     }
-  } catch (error) {
+  } catch {
     throw new Error('Stripe API error');
   }
 }
@@ -72,8 +72,8 @@ async function getCustomerPaymentMethods(customerId: string) {
       customer: customerId,
       type: 'card',
     });
-    return response.data;
-  } catch (error) {
+    return (response as any).data;
+  } catch {
     throw new Error('Stripe API error');
   }
 }
@@ -92,7 +92,7 @@ describe('Stripe Actions', () => {
 
     it('should create a new customer when no stripeCustomerId is provided', async () => {
       const mockCustomer = { id: 'cus_new123', email: mockCustomerData.email };
-      mockStripe.customers.create.mockResolvedValue(mockCustomer);
+      (mockStripe.customers.create as any).mockResolvedValue(mockCustomer);
 
       const result = await createOrUpdateStripeCustomer(mockCustomerData);
 
@@ -110,7 +110,7 @@ describe('Stripe Actions', () => {
     it('should update an existing customer when stripeCustomerId is provided', async () => {
       const stripeCustomerId = 'cus_existing123';
       const mockCustomer = { id: stripeCustomerId, email: mockCustomerData.email };
-      mockStripe.customers.update.mockResolvedValue(mockCustomer);
+      (mockStripe.customers.update as any).mockResolvedValue(mockCustomer);
 
       const result = await createOrUpdateStripeCustomer({
         ...mockCustomerData,
@@ -130,7 +130,7 @@ describe('Stripe Actions', () => {
 
     it('should handle errors gracefully', async () => {
       const error = new Error('Stripe API error');
-      mockStripe.customers.create.mockRejectedValue(error);
+      (mockStripe.customers.create as any).mockRejectedValue(error);
 
       await expect(createOrUpdateStripeCustomer(mockCustomerData)).rejects.toThrow(
         'Stripe API error',
@@ -148,7 +148,7 @@ describe('Stripe Actions', () => {
         ],
       };
 
-      mockStripe.paymentMethods.list.mockResolvedValue(mockPaymentMethods);
+      (mockStripe.paymentMethods.list as any).mockResolvedValue(mockPaymentMethods);
 
       const result = await getCustomerPaymentMethods(customerId);
 
@@ -161,7 +161,7 @@ describe('Stripe Actions', () => {
 
     it('should return an empty array if no payment methods are found', async () => {
       const customerId = 'cus_123';
-      mockStripe.paymentMethods.list.mockResolvedValue({ data: [] });
+      (mockStripe.paymentMethods.list as any).mockResolvedValue({ data: [] });
 
       const result = await getCustomerPaymentMethods(customerId);
 
@@ -171,7 +171,7 @@ describe('Stripe Actions', () => {
     it('should handle errors gracefully', async () => {
       const customerId = 'cus_123';
       const error = new Error('Stripe API error');
-      mockStripe.paymentMethods.list.mockRejectedValue(error);
+      (mockStripe.paymentMethods.list as any).mockRejectedValue(error);
 
       await expect(getCustomerPaymentMethods(customerId)).rejects.toThrow('Stripe API error');
     });

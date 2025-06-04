@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
-// Import next cache for testing
-import { revalidatePath } from 'next/cache';
 
 import { mockUser } from './expert-setup-mocks';
 
@@ -9,7 +7,7 @@ jest.mock('@/drizzle/db', () => ({
   db: {
     query: {
       ScheduleTable: {
-        findFirst: jest.fn().mockResolvedValue({
+        findFirst: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
           id: 'schedule_123',
           clerkUserId: 'user_123',
           timezone: 'America/New_York',
@@ -18,7 +16,7 @@ jest.mock('@/drizzle/db', () => ({
         }),
       },
       AvailabilityTable: {
-        findMany: jest.fn().mockResolvedValue([
+        findMany: jest.fn<(...args: any[]) => Promise<any[]>>().mockResolvedValue([
           {
             id: 'availability_1',
             scheduleId: 'schedule_123',
@@ -40,12 +38,14 @@ jest.mock('@/drizzle/db', () => ({
         ]),
       },
       EventTable: {
-        findMany: jest.fn().mockResolvedValue([]),
+        findMany: jest.fn<(...args: any[]) => Promise<any[]>>().mockResolvedValue([]),
       },
     },
     insert: jest.fn().mockReturnValue({
       values: jest.fn().mockReturnThis(),
-      returning: jest.fn().mockResolvedValue([{ id: 'availability_3' }]),
+      returning: jest
+        .fn<(...args: any[]) => Promise<any[]>>()
+        .mockResolvedValue([{ id: 'availability_3' }]),
     }),
     update: jest.fn().mockReturnValue({
       set: jest.fn().mockReturnThis(),
@@ -56,18 +56,20 @@ jest.mock('@/drizzle/db', () => ({
       where: jest.fn().mockReturnThis(),
       returning: jest.fn(),
     }),
-    transaction: jest.fn().mockImplementation(async (callback) => {
-      return await callback(jest.fn());
-    }),
+    transaction: jest
+      .fn<(...args: any[]) => Promise<any>>()
+      .mockImplementation(async (callback) => {
+        return await callback(jest.fn());
+      }),
   },
 }));
 
 // Mock clerk
 jest.mock('@clerk/nextjs/server', () => ({
-  currentUser: jest.fn().mockResolvedValue(mockUser),
+  currentUser: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue(mockUser),
   clerkClient: {
     users: {
-      updateUser: jest.fn().mockResolvedValue(mockUser),
+      updateUser: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue(mockUser),
     },
   },
 }));
@@ -86,7 +88,7 @@ jest.mock('date-fns', () => ({
 }));
 
 // Create mock functions for our server actions
-const mockGetAvailabilities = jest.fn().mockResolvedValue({
+const mockGetAvailabilities = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   availabilities: [
     {
@@ -104,7 +106,7 @@ const mockGetAvailabilities = jest.fn().mockResolvedValue({
   ],
 });
 
-const mockUpdateAvailability = jest.fn().mockResolvedValue({
+const mockUpdateAvailability = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   availability: {
     id: 'availability_1',
@@ -114,7 +116,7 @@ const mockUpdateAvailability = jest.fn().mockResolvedValue({
   },
 });
 
-const mockCreateAvailability = jest.fn().mockResolvedValue({
+const mockCreateAvailability = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   availability: {
     id: 'availability_3',
@@ -124,12 +126,13 @@ const mockCreateAvailability = jest.fn().mockResolvedValue({
   },
 });
 
-const mockDeleteAvailability = jest.fn().mockResolvedValue({
+const mockDeleteAvailability = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   deletedId: 'availability_2',
 });
 
-const mockGetScheduleByUserId = jest.fn().mockResolvedValue({
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const mockGetScheduleByUserId = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   schedule: {
     id: 'schedule_123',
@@ -137,23 +140,13 @@ const mockGetScheduleByUserId = jest.fn().mockResolvedValue({
   },
 });
 
-const mockUpdateSchedule = jest.fn().mockResolvedValue({
+const mockUpdateSchedule = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   schedule: {
     id: 'schedule_123',
     timezone: 'Europe/London',
   },
 });
-
-// Create a mock module manually instead of relying on path resolution
-const availabilityActions = {
-  getAvailabilities: mockGetAvailabilities,
-  updateAvailability: mockUpdateAvailability,
-  createAvailability: mockCreateAvailability,
-  deleteAvailability: mockDeleteAvailability,
-  getScheduleByUserId: mockGetScheduleByUserId,
-  updateSchedule: mockUpdateSchedule,
-};
 
 describe('Availability Management', () => {
   beforeEach(() => {

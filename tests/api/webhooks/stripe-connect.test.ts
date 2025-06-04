@@ -1,7 +1,6 @@
 import { POST } from '@/app/api/webhooks/stripe-connect/route';
 // Import mocked modules using ES6 syntax
 import { db } from '@/drizzle/db';
-import { markStepCompleteForUser } from '@/server/actions/expert-setup';
 import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 

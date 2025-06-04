@@ -6,7 +6,13 @@ describe('Utility Functions', () => {
     it('should merge class names correctly', () => {
       expect(cn('class1', 'class2')).toBe('class1 class2');
       expect(cn('class1', undefined, 'class2')).toBe('class1 class2');
-      expect(cn('class1', false && 'class2', true && 'class3')).toBe('class1 class3');
+
+      // Test with conditional classes using variables
+      const shouldAddClass2 = false;
+      const shouldAddClass3 = true;
+      expect(cn('class1', shouldAddClass2 && 'class2', shouldAddClass3 && 'class3')).toBe(
+        'class1 class3',
+      );
 
       // Test with conditional classes
       const isActive = true;
@@ -36,14 +42,23 @@ describe('Utility Functions', () => {
 
     it('should handle arrays', () => {
       expect(cn(['class1', 'class2'])).toBe('class1 class2');
-      expect(cn(['class1', false && 'class2', true && 'class3'])).toBe('class1 class3');
+
+      // Test with conditional array items using variables
+      const includeClass2 = false;
+      const includeClass3 = true;
+      expect(cn(['class1', includeClass2 && 'class2', includeClass3 && 'class3'])).toBe(
+        'class1 class3',
+      );
     });
 
     it('should handle empty or falsy inputs', () => {
       expect(cn('')).toBe('');
       expect(cn(null)).toBe('');
       expect(cn(undefined)).toBe('');
-      expect(cn(false && 'class')).toBe('');
+
+      // Test with conditional using variable
+      const shouldIncludeClass = false;
+      expect(cn(shouldIncludeClass && 'class')).toBe('');
     });
   });
 });

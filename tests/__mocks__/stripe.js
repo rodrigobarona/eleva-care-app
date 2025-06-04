@@ -1,5 +1,7 @@
 // Mock for Stripe module
-const stripeMock = (apiKey) => {
+import { jest } from '@jest/globals';
+
+const stripeMock = () => {
   return {
     // Products API
     products: {

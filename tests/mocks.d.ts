@@ -2,18 +2,18 @@
 declare namespace NodeJS {
   interface Global {
     __mocks: {
-      db: any;
-      clerkUser: any;
-      clerkUsers: any;
+      db: unknown;
+      clerkUser: unknown;
+      clerkUsers: unknown;
     };
   }
 }
 
 // Override the jest.fn type for our needs
 declare namespace jest {
-  interface MockInstance<T = any, Y extends any[] = any[]> {
-    mockResolvedValue(value: any): this;
-    mockImplementation(fn: (...args: any[]) => any): this;
-    mockReturnValue(value: any): this;
+  interface MockInstance {
+    mockResolvedValue(value: unknown): this;
+    mockImplementation(fn: (...args: unknown[]) => unknown): this;
+    mockReturnValue(value: unknown): this;
   }
 }

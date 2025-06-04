@@ -259,7 +259,7 @@ describe('Stripe Main Webhook Handler', () => {
 
     it('should process checkout.session.completed event successfully', async () => {
       // Setup no existing meeting
-      (db.query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
+      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
 
       try {
         const response = await POST(mockRequest);
@@ -274,7 +274,7 @@ describe('Stripe Main Webhook Handler', () => {
 
     it('should skip processing when meeting already exists', async () => {
       // Setup existing meeting
-      (db.query.MeetingTable.findFirst as jest.Mock).mockResolvedValue({
+      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
         stripeSessionId: 'cs_test_123',
       });
@@ -288,7 +288,7 @@ describe('Stripe Main Webhook Handler', () => {
     });
 
     it('should handle double booking with refund', async () => {
-      (db.query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
+      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
 
       (createMeeting as jest.Mock).mockResolvedValue({
         error: 'Slot already booked',
@@ -307,7 +307,7 @@ describe('Stripe Main Webhook Handler', () => {
     });
 
     it('should skip refund if already exists', async () => {
-      (db.query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
+      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
 
       (createMeeting as jest.Mock).mockResolvedValue({
         error: 'Slot already booked',
@@ -442,7 +442,7 @@ describe('Stripe Main Webhook Handler', () => {
         },
       });
 
-      (db.query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
+      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
       (createMeeting as jest.Mock).mockRejectedValue(new Error('Meeting creation failed'));
 
       try {
@@ -473,7 +473,9 @@ describe('Stripe Main Webhook Handler', () => {
         },
       });
 
-      (db.query.MeetingTable.findFirst as jest.Mock).mockRejectedValue(new Error('Database error'));
+      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockRejectedValue(
+        new Error('Database error'),
+      );
 
       try {
         const response = await POST(mockRequest);
@@ -503,7 +505,7 @@ describe('Stripe Main Webhook Handler', () => {
         },
       });
 
-      (db.query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
+      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
       (ensureFullUserSynchronization as jest.Mock).mockRejectedValue(new Error('Sync failed'));
 
       try {
@@ -546,7 +548,7 @@ describe('Stripe Main Webhook Handler', () => {
           },
         });
 
-        (db.query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
+        ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
         (createMeeting as jest.Mock).mockClear();
 
         try {

@@ -2,7 +2,6 @@ import { EventTable, MeetingTable } from '@/drizzle/schema';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { logAuditEvent } from '@/lib/logAuditEvent';
 import { createMeeting } from '@/server/actions/meetings';
-import { createCalendarEvent } from '@/server/googleCalendar';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { addMinutes } from 'date-fns';
 import type { InferSelectModel } from 'drizzle-orm';
@@ -94,10 +93,10 @@ const mockDb = {
   db: {
     query: {
       MeetingTable: {
-        findFirst: jest.fn() as jest.Mock,
+        findFirst: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
       },
       EventTable: {
-        findFirst: jest.fn() as jest.Mock,
+        findFirst: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
       },
     },
     insert: jest.fn() as jest.Mock,
@@ -106,10 +105,10 @@ const mockDb = {
 
 jest.mock('@/drizzle/db', () => mockDb);
 jest.mock('@/lib/getValidTimesFromSchedule', () => ({
-  getValidTimesFromSchedule: jest.fn() as jest.Mock,
+  getValidTimesFromSchedule: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
 }));
 jest.mock('@/lib/logAuditEvent', () => ({
-  logAuditEvent: jest.fn() as jest.Mock,
+  logAuditEvent: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
 }));
 jest.mock('next/headers', () => ({
   headers: () =>
@@ -184,23 +183,23 @@ describe('Meeting Actions', () => {
   };
 
   // Add a consoleSpy variable to track mocking of console methods
-  let consoleSpy: jest.SpyInstance;
+  let consoleSpy: ReturnType<typeof jest.spyOn>;
 
   beforeEach(() => {
     jest.clearAllMocks();
 
     // Mock console.error to suppress error messages in test output
-    consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     // Mock database queries with default values
-    mockDb.db.query.MeetingTable.findFirst.mockResolvedValue(null);
-    mockDb.db.query.EventTable.findFirst.mockResolvedValue(mockEvent);
-    (getValidTimesFromSchedule as jest.Mock).mockResolvedValue([mockDate]);
+    (mockDb.db.query.MeetingTable.findFirst as any).mockResolvedValue(null);
+    (mockDb.db.query.EventTable.findFirst as any).mockResolvedValue(mockEvent);
+    (getValidTimesFromSchedule as any).mockResolvedValue([mockDate]);
 
     // Mock database insert
     const mockInsert = {
       values: jest.fn().mockReturnThis(),
-      returning: jest.fn().mockResolvedValue([mockMeeting]),
+      returning: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue([mockMeeting]),
     };
     mockDb.db.insert.mockReturnValue(mockInsert);
   });
@@ -213,10 +212,10 @@ describe('Meeting Actions', () => {
   describe('createMeeting', () => {
     it('should successfully create a meeting with valid data', async () => {
       // Mock the EventTable.findFirst to return the event
-      mockDb.db.query.EventTable.findFirst.mockResolvedValueOnce(mockEvent);
+      (mockDb.db.query.EventTable.findFirst as any).mockResolvedValueOnce(mockEvent);
 
       // Use jest.spyOn to monitor console.log calls without hiding them (but keep errors hidden)
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
 
       try {
         const result = await createMeeting(validMeetingData);
@@ -239,10 +238,10 @@ describe('Meeting Actions', () => {
 
     it('should return existing meeting if duplicate booking is found', async () => {
       // Mock the EventTable.findFirst to return the event
-      mockDb.db.query.EventTable.findFirst.mockResolvedValueOnce(mockEvent);
+      (mockDb.db.query.EventTable.findFirst as any).mockResolvedValueOnce(mockEvent);
 
       // Mock MeetingTable.findFirst to return an existing meeting
-      mockDb.db.query.MeetingTable.findFirst.mockResolvedValueOnce(mockMeeting);
+      (mockDb.db.query.MeetingTable.findFirst as any).mockResolvedValueOnce(mockMeeting);
 
       const result = await createMeeting(validMeetingData);
 
@@ -258,10 +257,10 @@ describe('Meeting Actions', () => {
 
     it('handles conflicting bookings', async () => {
       // Mock the EventTable.findFirst to return the event
-      mockDb.db.query.EventTable.findFirst.mockResolvedValueOnce(mockEvent);
+      (mockDb.db.query.EventTable.findFirst as any).mockResolvedValueOnce(mockEvent);
 
       // Initial findFirst returns null (no duplicate)
-      mockDb.db.query.MeetingTable.findFirst
+      (mockDb.db.query.MeetingTable.findFirst as any)
         .mockResolvedValueOnce(null)
         // Second call (for conflict check) returns a meeting, indicating conflict
         .mockResolvedValueOnce(mockMeeting);
@@ -274,7 +273,7 @@ describe('Meeting Actions', () => {
     });
 
     it('should handle inactive or non-existent events', async () => {
-      mockDb.db.query.EventTable.findFirst.mockResolvedValue(null);
+      (mockDb.db.query.EventTable.findFirst as any).mockResolvedValue(null);
 
       const result = await createMeeting(validMeetingData);
       expect(result).toEqual({
@@ -284,7 +283,7 @@ describe('Meeting Actions', () => {
     });
 
     it('should handle invalid time slots', async () => {
-      (getValidTimesFromSchedule as jest.Mock).mockResolvedValue([]);
+      (getValidTimesFromSchedule as any).mockResolvedValue([]);
 
       const result = await createMeeting(validMeetingData);
       expect(result).toEqual({

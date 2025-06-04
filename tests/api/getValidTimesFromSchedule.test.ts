@@ -24,7 +24,7 @@ describe('getValidTimesFromSchedule - Critical Scheduling Logic', () => {
     // Setup comprehensive mock for database queries
     (mockDb.query as any) = {
       ScheduleTable: {
-        findFirst: jest.fn().mockResolvedValue({
+        findFirst: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
           id: 'schedule_123',
           clerkUserId: mockUserId,
           timezone: 'UTC',
@@ -40,10 +40,10 @@ describe('getValidTimesFromSchedule - Critical Scheduling Logic', () => {
         }),
       },
       SlotReservationTable: {
-        findMany: jest.fn().mockResolvedValue([]),
+        findMany: jest.fn<(...args: any[]) => Promise<any[]>>().mockResolvedValue([]),
       },
       schedulingSettings: {
-        findFirst: jest.fn().mockResolvedValue({
+        findFirst: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
           minimumNotice: 0, // No minimum notice for testing
           beforeEventBuffer: 15,
           afterEventBuffer: 15,
