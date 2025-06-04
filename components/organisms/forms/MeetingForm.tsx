@@ -462,7 +462,6 @@ export function MeetingFormContent({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isCalendarSynced, setIsCalendarSynced] = React.useState(true);
   const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
-  const [isPrefetching, setIsPrefetching] = React.useState(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = React.useState(false);
 
   // **CRITICAL: Use ref for immediate duplicate prevention**
@@ -598,12 +597,6 @@ export function MeetingFormContent({
 
   // Function to create or get payment intent
   const createPaymentIntent = React.useCallback(async () => {
-    // Don't recreate if already fetched
-    if (checkoutUrl) {
-      console.log('✅ Using existing checkout URL');
-      return checkoutUrl;
-    }
-
     const formValues = form.getValues();
 
     // **VALIDATION: Ensure required data is present**
@@ -635,7 +628,7 @@ export function MeetingFormContent({
     // **CRITICAL: Use both ref and Redis for immediate + distributed protection**
     if (isProcessingRef.current) {
       console.log('🚫 Payment intent creation already in progress (ref) - blocking duplicate');
-      return checkoutUrl;
+      return null;
     }
 
     // **IMMEDIATE STATE UPDATE: Set processing flag using ref**
@@ -745,7 +738,6 @@ export function MeetingFormContent({
         description: 'Redirecting to secure payment...',
       });
 
-      setCheckoutUrl(url);
       return url;
     } catch (error) {
       console.error('❌ Payment creation error:', error);
@@ -790,7 +782,6 @@ export function MeetingFormContent({
       forceRender(); // Force re-render to update UI
     }
   }, [
-    checkoutUrl,
     clerkUserId,
     eventId,
     eventSlug,
@@ -840,7 +831,7 @@ export function MeetingFormContent({
           return;
         }
 
-        // For paid meetings, generate checkout URL first
+        // **STRIPE BEST PRACTICE: Create payment intent only on actual form submission**
         const checkoutUrl = await createPaymentIntent();
         if (checkoutUrl) {
           setCheckoutUrl(checkoutUrl);
@@ -875,51 +866,6 @@ export function MeetingFormContent({
       isSubmitting,
     ],
   );
-
-  // Prefetch checkout URL when step 2 is filled out - use watched values
-  const watchedGuestName = useWatch({ control: form.control, name: 'guestName' });
-  const watchedGuestEmail = useWatch({ control: form.control, name: 'guestEmail' });
-
-  React.useEffect(() => {
-    // Only prefetch if we're on step 2, have complete valid form data, price > 0, and not already fetched
-    const hasCompletedForm =
-      watchedGuestName?.length > 2 &&
-      watchedGuestEmail?.length > 5 &&
-      watchedGuestEmail.includes('@');
-
-    const canPrefetch =
-      currentStep === '2' && hasCompletedForm && price > 0 && !checkoutUrl && !isPrefetching;
-
-    if (canPrefetch) {
-      // Prefetch with a longer delay to avoid interfering with user typing
-      const timer = setTimeout(() => {
-        // Don't show UI indication during prefetch - do it silently
-        setIsPrefetching(true);
-        createPaymentIntent()
-          .then(() => {
-            // Successfully prefetched
-            console.log('Checkout URL prefetched successfully');
-          })
-          .catch((error) => {
-            // Prefetch failed, but we don't need to show an error to the user
-            console.error('Prefetch failed:', error);
-          })
-          .finally(() => {
-            setIsPrefetching(false);
-          });
-      }, 3000); // 3-second delay after user completes form
-
-      return () => clearTimeout(timer);
-    }
-  }, [
-    currentStep,
-    watchedGuestName,
-    watchedGuestEmail,
-    price,
-    checkoutUrl,
-    isPrefetching,
-    createPaymentIntent,
-  ]);
 
   // Handle next step with improved checkout flow
   const handleNextStep = React.useCallback(
@@ -973,10 +919,10 @@ export function MeetingFormContent({
       forceRender(); // Update UI immediately
 
       try {
-        // **PERFORMANCE OPTIMIZATION: Start checkout creation immediately**
+        // **STRIPE BEST PRACTICE: Create checkout only when user actually clicks payment button**
         console.log('🚀 Starting checkout creation process...');
 
-        // Get or create checkout URL
+        // Create checkout URL on-demand
         const url = await createPaymentIntent();
 
         if (url) {
