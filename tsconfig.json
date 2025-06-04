@@ -28,7 +28,7 @@
     "allowArbitraryExtensions": true
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "**/*.json"],
-  "exclude": ["node_modules", "tests/**/*"],
+  "exclude": ["node_modules"],
   "ts-node": {
     "compilerOptions": {
       "module": "CommonJS"

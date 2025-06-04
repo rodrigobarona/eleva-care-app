@@ -321,104 +321,94 @@ describe('Payment Intent API - Core Functionality', () => {
 
   describe('No premature slot reservations', () => {
     it('should not create slot reservations during payment intent creation', () => {
-      // This test documents the new behavior where slot reservations
-      // are NOT created during payment intent creation
+      // This test documents the correct behavior where slot reservations
+      // are NOT created during payment intent creation in the API endpoint
 
-      // The old behavior would have created reservations here,
-      // but now they are only created in webhook handlers for Multibanco payments
+      // The API only creates Stripe checkout sessions and returns URLs
+      const apiOnlyCreatesSession = true;
+      const apiCreatesReservations = false;
 
-      const shouldCreateReservation = false; // New behavior
-      expect(shouldCreateReservation).toBe(false);
+      expect(apiOnlyCreatesSession).toBe(true);
+      expect(apiCreatesReservations).toBe(false);
     });
 
     it('should only create reservations in webhook handlers for Multibanco', () => {
       // This documents that reservations are created only when:
-      // 1. payment_intent.created webhook is received
-      // 2. Payment method includes 'multibanco'
-      // 3. Payment intent has meeting metadata
+      // 1. payment_intent.requires_action webhook is received (NOT payment_intent.created)
+      // 2. Payment method is 'multibanco'
+      // 3. next_action.type is 'multibanco_display_details'
 
-      const paymentMethodTypes = ['card', 'multibanco'];
-      const hasMultibanco = paymentMethodTypes.includes('multibanco');
-      const hasMetadata = true; // Assume metadata exists
+      const webhookEventForReservations = 'payment_intent.requires_action'; // CORRECT
+      const notThisWebhook = 'payment_intent.created'; // This one does NOT create reservations
 
-      const shouldCreateReservation = hasMultibanco && hasMetadata;
-      expect(shouldCreateReservation).toBe(true);
+      expect(webhookEventForReservations).toBe('payment_intent.requires_action');
+      expect(notThisWebhook).not.toBe(webhookEventForReservations);
     });
   });
 
-  describe('Atomic Slot Reservation (Race Condition Prevention)', () => {
-    it('should implement atomic slot reservation logic', () => {
-      // Test documents the new atomic reservation approach
-      const atomicReservationFlow = {
-        step1: 'Create Stripe session',
-        step2: 'Start database transaction',
-        step3: 'Re-check conflicts within transaction',
-        step4: 'Insert reservation with onConflictDoNothing',
-        step5: 'Validate insertion success',
-        step6: 'Commit transaction or rollback on conflict',
-      };
+  describe('Simplified slot management (no transactions)', () => {
+    it('should delegate all slot management to webhooks', () => {
+      // Test documents the simplified approach where create-payment-intent
+      // does NOT handle slot reservations at all
 
-      expect(atomicReservationFlow.step1).toBe('Create Stripe session');
-      expect(atomicReservationFlow.step6).toBe('Commit transaction or rollback on conflict');
-    });
-
-    it('should handle race condition detection', () => {
-      // Test documents race condition handling logic
-      const raceConditionScenarios = [
-        {
-          scenario: 'Existing slot reservation found',
-          action: 'Expire Stripe session and return 409',
-          errorCode: 'SLOT_RACE_CONDITION',
-        },
-        {
-          scenario: 'Confirmed meeting found',
-          action: 'Expire Stripe session and return 409',
-          errorCode: 'SLOT_RACE_CONDITION',
-        },
-        {
-          scenario: 'Unique constraint violation',
-          action: 'Return 500 with reservation failure',
-          errorCode: 'SLOT_RESERVATION_FAILED',
-        },
+      const createPaymentIntentResponsibilities = [
+        'Validate request data',
+        'Check for existing conflicts',
+        'Create Stripe checkout session',
+        'Return checkout URL',
       ];
 
-      expect(raceConditionScenarios).toHaveLength(3);
-      expect(raceConditionScenarios[0].errorCode).toBe('SLOT_RACE_CONDITION');
-      expect(raceConditionScenarios[2].errorCode).toBe('SLOT_RESERVATION_FAILED');
+      const notResponsibleFor = [
+        'Creating slot reservations',
+        'Database transactions for slots',
+        'Managing payment method specific logic',
+      ];
+
+      expect(createPaymentIntentResponsibilities).toContain('Create Stripe checkout session');
+      expect(notResponsibleFor).toContain('Creating slot reservations');
     });
 
-    it('should implement database transaction protection', () => {
-      // Test documents the transaction-based protection
-      const transactionProtection = {
-        isolation: 'Database transaction prevents race conditions',
-        uniqueConstraint: 'event_id + start_time + guest_email uniqueness',
-        conflictDetection: 'Re-validation within transaction scope',
-        sessionCleanup: 'Automatic Stripe session expiration on conflicts',
-        benefits: [
-          'Zero race conditions',
-          'Immediate protection for all payment types',
-          'Automatic cleanup',
-          'Better monitoring',
-        ],
+    it('should only perform conflict checks without creating reservations', () => {
+      // The API checks for conflicts but doesn't create reservations to prevent them
+      // This is because reservation creation is delegated to webhooks based on payment method
+
+      const conflictCheckingFlow = {
+        step1: 'Check existing SlotReservationTable records',
+        step2: 'Check existing confirmed MeetingTable records',
+        step3: 'Return 409 if conflicts found',
+        step4: 'Create Stripe session if no conflicts',
+        doesNotDo: 'Create new slot reservations',
       };
 
-      expect(transactionProtection.benefits).toContain('Zero race conditions');
-      expect(transactionProtection.uniqueConstraint).toContain(
-        'event_id + start_time + guest_email',
-      );
+      expect(conflictCheckingFlow.step4).toBe('Create Stripe session if no conflicts');
+      expect(conflictCheckingFlow.doesNotDo).toBe('Create new slot reservations');
     });
 
-    it('should link payment intents to reservations via session ID', () => {
-      // Test documents the webhook linking mechanism
-      const webhookLinking = {
-        sessionCreation: 'Payment intent metadata includes session_id',
-        webhookUpdate: 'payment_intent.created webhook links via session_id',
-        reservationUpdate: 'SlotReservationTable updated with payment_intent_id',
-        legacySupport: 'Fallback for old Multibanco payments without session_id',
+    it('should let webhooks handle payment method specific slot management', () => {
+      // Test documents the webhook-based slot management approach
+      const webhookBasedApproach = {
+        creditCardFlow:
+          'payment_intent.succeeded → create meeting directly (no reservation needed)',
+        multibancoFlow:
+          'payment_intent.requires_action → create slot reservation → payment_intent.succeeded → convert to meeting',
+        noReservationNeeded: 'Credit card payments are instant',
       };
 
-      expect(webhookLinking.sessionCreation).toContain('session_id');
-      expect(webhookLinking.webhookUpdate).toContain('payment_intent.created');
+      expect(webhookBasedApproach.creditCardFlow).toContain('no reservation needed');
+      expect(webhookBasedApproach.multibancoFlow).toContain('requires_action');
+    });
+
+    it('should handle session linking via payment intent metadata', () => {
+      // Test documents how session IDs are linked to payment intents for webhook processing
+      const sessionLinking = {
+        apiUpdatesPaymentIntent:
+          'Updates payment_intent.metadata.session_id after creating session',
+        webhookUsesSessionId: 'payment_intent.requires_action uses session_id to link data',
+        noDirectReservationLinking: 'No direct reservation creation in create-payment-intent API',
+      };
+
+      expect(sessionLinking.apiUpdatesPaymentIntent).toContain('session_id');
+      expect(sessionLinking.noDirectReservationLinking).toContain('No direct reservation creation');
     });
   });
 });

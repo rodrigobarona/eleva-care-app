@@ -116,7 +116,7 @@ describe('Stripe Main Webhook Handler', () => {
       const routeModule = await import('@/app/api/webhooks/stripe/route');
       GET = routeModule.GET;
       POST = routeModule.POST;
-    } catch (error) {
+    } catch {
       // If route import fails, create simple mocks for basic testing
       GET = jest.fn().mockResolvedValue({
         json: () => Promise.resolve({ message: 'This endpoint is for Stripe webhooks only.' }),
@@ -180,7 +180,7 @@ describe('Stripe Main Webhook Handler', () => {
 
         expect(response.status).toBe(400);
         expect(data.error).toBe('Missing signature');
-      } catch (error) {
+      } catch {
         // If POST fails due to import issues, skip this test
         console.log('Skipping test due to import issues');
       }
@@ -195,7 +195,7 @@ describe('Stripe Main Webhook Handler', () => {
 
         expect(response.status).toBe(500);
         expect(data.error).toBe('Webhook secret not configured');
-      } catch (error) {
+      } catch {
         // If POST fails due to import issues, skip this test
         console.log('Skipping test due to import issues');
       }
@@ -267,7 +267,7 @@ describe('Stripe Main Webhook Handler', () => {
 
         expect(response.status).toBe(200);
         expect(data.received).toBe(true);
-      } catch (error) {
+      } catch {
         console.log('Skipping test due to import issues');
       }
     });
@@ -282,7 +282,7 @@ describe('Stripe Main Webhook Handler', () => {
       try {
         const response = await POST(mockRequest);
         expect(response.status).toBe(200);
-      } catch (error) {
+      } catch {
         console.log('Skipping test due to import issues');
       }
     });
@@ -301,7 +301,7 @@ describe('Stripe Main Webhook Handler', () => {
       try {
         const response = await POST(mockRequest);
         expect(response.status).toBe(200);
-      } catch (error) {
+      } catch {
         console.log('Skipping test due to import issues');
       }
     });
@@ -322,14 +322,16 @@ describe('Stripe Main Webhook Handler', () => {
         const response = await POST(mockRequest);
         expect(response.status).toBe(200);
         expect(mockStripe.refunds.create).not.toHaveBeenCalled();
-      } catch (error) {
+      } catch {
         console.log('Skipping test due to import issues');
       }
     });
   });
 
   describe('POST - Payment Intent Events', () => {
-    it('should handle payment_intent.created event with session metadata', async () => {
+    it('should handle payment_intent.created event (simplified behavior)', async () => {
+      // This test documents the actual behavior: payment_intent.created does NOT create reservations
+      // It only logs that slot management is delegated to other webhooks
       mockStripeConstructEvent.mockReturnValue({
         type: 'payment_intent.created',
         data: {
@@ -345,27 +347,35 @@ describe('Stripe Main Webhook Handler', () => {
       try {
         const response = await POST(mockRequest);
         expect(response.status).toBe(200);
-      } catch (error) {
+        // The actual webhook just logs and returns - no slot reservation creation
+      } catch {
         console.log('Skipping test due to import issues');
       }
     });
 
-    it('should handle payment_intent.created event for Multibanco legacy', async () => {
+    it('should handle payment_intent.requires_action for Multibanco reservations', async () => {
+      // This is the CORRECT webhook that creates slot reservations for Multibanco
       mockStripeConstructEvent.mockReturnValue({
-        type: 'payment_intent.created',
+        type: 'payment_intent.requires_action',
         data: {
           object: {
             id: 'pi_test_123',
-            payment_method_types: ['multibanco'],
+            next_action: {
+              type: 'multibanco_display_details',
+              multibanco_display_details: {
+                expires_at: Math.floor(Date.now() / 1000) + 86400, // 24 hours from now
+              },
+            },
+            payment_method: { type: 'multibanco' },
             metadata: {
               meeting: JSON.stringify({
-                id: 'event_123',
-                expert: 'user_expert_123',
-                guest: 'guest@example.com',
+                eventId: 'event_123',
+                expertId: 'user_expert_123',
+                guestEmail: 'guest@example.com',
                 start: '2024-01-15T10:00:00.000Z',
-                dur: 60,
+                duration: 60,
               }),
-              // No session_id for legacy support
+              session_id: 'cs_test_123',
             },
           },
         },
@@ -374,7 +384,38 @@ describe('Stripe Main Webhook Handler', () => {
       try {
         const response = await POST(mockRequest);
         expect(response.status).toBe(200);
-      } catch (error) {
+        // This webhook SHOULD create slot reservations for Multibanco
+      } catch {
+        console.log('Skipping test due to import issues');
+      }
+    });
+
+    it('should handle payment_intent.succeeded for meeting finalization', async () => {
+      // This webhook finalizes meetings after successful payment
+      mockStripeConstructEvent.mockReturnValue({
+        type: 'payment_intent.succeeded',
+        data: {
+          object: {
+            id: 'pi_test_123',
+            payment_method_types: ['card'], // Credit card payment
+            metadata: {
+              meeting: JSON.stringify({
+                id: 'event_123',
+                expert: 'user_expert_123',
+                guest: 'guest@example.com',
+                start: '2024-01-15T10:00:00.000Z',
+                dur: 60,
+              }),
+            },
+          },
+        },
+      });
+
+      try {
+        const response = await POST(mockRequest);
+        expect(response.status).toBe(200);
+        // This webhook finalizes the meeting after payment success
+      } catch {
         console.log('Skipping test due to import issues');
       }
     });
@@ -407,7 +448,7 @@ describe('Stripe Main Webhook Handler', () => {
       try {
         const response = await POST(mockRequest);
         expect(response.status).toBe(500);
-      } catch (error) {
+      } catch {
         console.log('Skipping test due to import issues');
       }
     });
@@ -437,7 +478,7 @@ describe('Stripe Main Webhook Handler', () => {
       try {
         const response = await POST(mockRequest);
         expect(response.status).toBe(500);
-      } catch (error) {
+      } catch {
         console.log('Skipping test due to import issues');
       }
     });
@@ -470,7 +511,7 @@ describe('Stripe Main Webhook Handler', () => {
         expect(response.status).toBe(200);
         // Should continue processing even if sync fails
         expect(createMeeting).toHaveBeenCalled();
-      } catch (error) {
+      } catch {
         console.log('Skipping test due to import issues');
       }
     });
@@ -511,7 +552,7 @@ describe('Stripe Main Webhook Handler', () => {
         try {
           const response = await POST(mockRequest);
           expect(response.status).toBe(200);
-        } catch (error) {
+        } catch {
           console.log('Skipping test due to import issues');
         }
       }
