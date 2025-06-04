@@ -606,29 +606,40 @@ export async function POST(request: NextRequest) {
     const hoursUntilMeeting = (meetingDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
     const daysUntilMeeting = hoursUntilMeeting / 24;
 
-    // Determine payment methods and expiration time based on meeting timing
+    // Determine payment methods and expiration based on timing
     let paymentMethodTypes: string[];
-    let paymentExpiresAt: Date;
+    let checkoutExpiresAt: Date; // Renamed for clarity - this is for Stripe Checkout Session
+
+    /*
+     * EXPIRATION LOGIC EXPLANATION:
+     *
+     * 1. Stripe Checkout Session: Must expire within 24 hours (Stripe's hard limit)
+     * 2. Multibanco Payment Voucher: Has 7-day expiration (handled automatically by Stripe)
+     * 3. Slot Reservation: Created by webhook, expires in 7 days (our business logic)
+     *
+     * The checkout session expiration is different from payment completion deadlines!
+     */
 
     if (daysUntilMeeting <= 8) {
-      // Meeting is within 8 days - CREDIT CARD ONLY for instant confirmation
+      // Meeting is ≤ 8 days away - Only allow Card payments
       paymentMethodTypes = ['card'];
 
-      // Payment must complete within 30 minutes for near-term bookings
-      paymentExpiresAt = new Date(currentTime.getTime() + 30 * 60 * 1000);
+      // Standard checkout session expiration (1 hour)
+      checkoutExpiresAt = new Date(currentTime.getTime() + 60 * 60 * 1000);
 
       console.log(
-        `⚡ Quick booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card only, 30min to pay`,
+        `⚡ Immediate booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card only, expires in 1 hour`,
       );
     } else {
       // Meeting is > 8 days away - Allow both Card and Multibanco
       paymentMethodTypes = ['card', 'multibanco'];
 
-      // Payment can take up to 7 days to complete (Multibanco policy)
-      paymentExpiresAt = new Date(currentTime.getTime() + 7 * 24 * 60 * 60 * 1000);
+      // Checkout session expires in 24 hours (Stripe's maximum)
+      // Note: Multibanco voucher will have 7-day expiration automatically from Stripe
+      checkoutExpiresAt = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000);
 
       console.log(
-        `🕒 Advance booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card + Multibanco, 7 days to pay`,
+        `🕒 Advance booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card + Multibanco, checkout expires in 24h`,
       );
     }
 
@@ -689,7 +700,7 @@ export async function POST(request: NextRequest) {
       cancel_url: `${baseUrl}/${locale}/${username}/${eventSlug}`,
       customer: customerId,
       customer_creation: customerId ? undefined : 'always',
-      expires_at: Math.floor(paymentExpiresAt.getTime() / 1000),
+      expires_at: Math.floor(checkoutExpiresAt.getTime() / 1000),
       allow_promotion_codes: true,
       // Enhanced tax handling
       automatic_tax: {

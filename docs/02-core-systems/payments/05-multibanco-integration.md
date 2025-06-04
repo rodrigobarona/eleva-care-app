@@ -30,6 +30,23 @@ This document outlines the complete internationalization (i18n) implementation f
 1. **`MultibancoBookingPending.tsx`** - Initial booking confirmation with payment instructions
 2. **`MultibancoPaymentReminder.tsx`** - Payment reminder emails (gentle and urgent)
 
+### Payment Flow Integration
+
+The Multibanco integration works seamlessly with the existing payment flow:
+
+1. **Advance Bookings (>8 days)**: Checkout offers both Card and Multibanco options
+2. **Near-term Bookings (≤8 days)**: Only Card payments to ensure immediate confirmation
+
+### Critical Expiration Logic
+
+**Important Fix (June 2025)**: The system correctly handles different expiration timelines:
+
+- **Stripe Checkout Session**: 24 hours maximum (Stripe's hard limit)
+- **Multibanco Payment Voucher**: 7 days (handled automatically by Stripe)
+- **Slot Reservation**: 7 days (our business logic, created by webhook)
+
+Previously, there was a bug where the system tried to set 7-day expiration on Stripe Checkout Sessions, which caused the error: `"The expires_at timestamp must be less than 24 hours from Checkout Session creation."` This has been resolved by correctly separating checkout session expiration from payment completion deadlines.
+
 ## 🔧 Implementation Details
 
 ### Translation Files Structure
