@@ -622,16 +622,13 @@ export function MeetingFormContent({
       toast.warning('Payment already in progress', {
         description: 'Please wait while we process your previous request',
       });
-      throw new Error('Payment already in progress');
+      return null;
     }
 
-    // **CRITICAL: Use ref for immediate protection but allow retry after timeout**
+    // **CRITICAL: Use both ref and Redis for immediate + distributed protection**
     if (isProcessingRef.current) {
       console.log('🚫 Payment intent creation already in progress (ref) - blocking duplicate');
-      toast.info('Please wait...', {
-        description: 'Your payment is being processed',
-      });
-      throw new Error('Payment processing in progress');
+      return null;
     }
 
     // **IMMEDIATE STATE UPDATE: Set processing flag using ref**
@@ -741,7 +738,7 @@ export function MeetingFormContent({
         description: 'Redirecting to secure payment...',
       });
 
-      return url; // **STRIPE BEST PRACTICE: Return URL immediately after creation**
+      return url;
     } catch (error) {
       console.error('❌ Payment creation error:', error);
 
@@ -777,8 +774,7 @@ export function MeetingFormContent({
         });
       }
 
-      // **Re-throw error instead of returning null for better error handling**
-      throw error;
+      return null;
     } finally {
       // **CLEANUP: Always reset processing state**
       isProcessingRef.current = false;
@@ -786,7 +782,6 @@ export function MeetingFormContent({
       forceRender(); // Force re-render to update UI
     }
   }, [
-    // **OPTIMIZED: Removed checkoutUrl dependency to prevent caching**
     clerkUserId,
     eventId,
     eventSlug,
@@ -930,65 +925,54 @@ export function MeetingFormContent({
         // Create checkout URL on-demand
         const url = await createPaymentIntent();
 
-        console.log('🚀 Redirecting to checkout:', url);
+        if (url) {
+          console.log('🚀 Redirecting to checkout:', url);
 
-        // **ENHANCED: Show redirect notification**
-        toast.loading('Redirecting to payment...', {
-          id: 'redirect-notification',
-          description: 'You will be redirected to Stripe in a moment',
-        });
+          // **ENHANCED: Show redirect notification**
+          toast.loading('Redirecting to payment...', {
+            id: 'redirect-notification',
+            description: 'You will be redirected to Stripe in a moment',
+          });
 
-        // **OPTIMIZED: Minimal delay for better UX**
-        setTimeout(() => {
-          window.location.href = url;
-        }, 500); // 500ms delay to show feedback, then redirect
+          // **OPTIMIZED: Minimal delay for better UX**
+          setTimeout(() => {
+            window.location.href = url;
+          }, 500); // 500ms delay to show feedback, then redirect
 
-        // **FALLBACK: If redirect doesn't work after 3 seconds**
-        setTimeout(() => {
-          if (window.location.href === window.location.href) {
-            toast.error('Redirect failed', {
-              id: 'redirect-notification',
-              description: 'Please click here to continue to payment',
-              action: {
-                label: 'Continue to Payment',
-                onClick: () => {
-                  window.open(url, '_blank');
+          // **FALLBACK: If redirect doesn't work after 3 seconds**
+          setTimeout(() => {
+            if (window.location.href === window.location.href) {
+              toast.error('Redirect failed', {
+                id: 'redirect-notification',
+                description: 'Please click here to continue to payment',
+                action: {
+                  label: 'Continue to Payment',
+                  onClick: () => {
+                    window.open(url, '_blank');
+                  },
                 },
-              },
-            });
+              });
 
-            // Reset states to allow retry
-            isProcessingRef.current = false;
-            setIsSubmitting(false);
-            forceRender();
-          }
-        }, 3000);
+              // Reset states to allow retry
+              isProcessingRef.current = false;
+              setIsSubmitting(false);
+              forceRender();
+            }
+          }, 3000);
+
+          return;
+        } else {
+          throw new Error('Failed to get checkout URL');
+        }
       } catch (error) {
         console.error('❌ Checkout flow error:', error);
 
-        // **ENHANCED ERROR HANDLING: Check for specific error types**
-        let errorMessage = 'Failed to process request';
-        let userMessage = 'Please try again or contact support if the issue persists';
-
-        if (error instanceof Error) {
-          errorMessage = error.message;
-
-          // Handle specific error cases
-          if (error.message.includes('Payment already in progress')) {
-            userMessage =
-              'A payment is already being processed. Please wait a moment and try again.';
-          } else if (error.message.includes('Payment processing in progress')) {
-            userMessage = 'Your payment is being processed. Please wait for the redirect.';
-          } else if (error.message.includes('timeout')) {
-            userMessage = 'The request took too long. Please check your connection and try again.';
-          } else if (error.message.includes('Form data incomplete')) {
-            userMessage = 'Please ensure all required fields are filled correctly.';
-          }
-        }
+        // **ENHANCED ERROR HANDLING**
+        const errorMessage = error instanceof Error ? error.message : 'Failed to process request';
 
         // Show toast error for checkout failures
         toast.error('Payment setup failed', {
-          description: userMessage,
+          description: errorMessage,
         });
 
         form.setError('root', {
