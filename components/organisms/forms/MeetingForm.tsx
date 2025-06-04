@@ -461,6 +461,8 @@ export function MeetingFormContent({
   const use24Hour = false;
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [isCalendarSynced, setIsCalendarSynced] = React.useState(true);
+  const [checkoutUrl, setCheckoutUrl] = React.useState<string | null>(null);
+  const [isPrefetching, setIsPrefetching] = React.useState(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = React.useState(false);
 
   // **CRITICAL: Use ref for immediate duplicate prevention**
@@ -594,8 +596,14 @@ export function MeetingFormContent({
     [setQueryStates, form, queryStates.date, queryStates.time],
   );
 
-  // **STRIPE BEST PRACTICE: Create payment intent only on button click (no prefetching)**
+  // Function to create or get payment intent
   const createPaymentIntent = React.useCallback(async () => {
+    // Don't recreate if already fetched
+    if (checkoutUrl) {
+      console.log('✅ Using existing checkout URL');
+      return checkoutUrl;
+    }
+
     const formValues = form.getValues();
 
     // **VALIDATION: Ensure required data is present**
@@ -621,16 +629,13 @@ export function MeetingFormContent({
       toast.warning('Payment already in progress', {
         description: 'Please wait while we process your previous request',
       });
-      throw new Error('Payment already in progress');
+      return null;
     }
 
-    // **CRITICAL: Use ref for immediate protection**
+    // **CRITICAL: Use both ref and Redis for immediate + distributed protection**
     if (isProcessingRef.current) {
       console.log('🚫 Payment intent creation already in progress (ref) - blocking duplicate');
-      toast.info('Please wait...', {
-        description: 'Your payment is being processed',
-      });
-      throw new Error('Payment processing in progress');
+      return checkoutUrl;
     }
 
     // **IMMEDIATE STATE UPDATE: Set processing flag using ref**
@@ -740,7 +745,8 @@ export function MeetingFormContent({
         description: 'Redirecting to secure payment...',
       });
 
-      return url; // **STRIPE BEST PRACTICE: Return URL directly without caching**
+      setCheckoutUrl(url);
+      return url;
     } catch (error) {
       console.error('❌ Payment creation error:', error);
 
@@ -776,8 +782,7 @@ export function MeetingFormContent({
         });
       }
 
-      // **Re-throw error for proper error handling**
-      throw error;
+      return null;
     } finally {
       // **CLEANUP: Always reset processing state**
       isProcessingRef.current = false;
@@ -785,6 +790,7 @@ export function MeetingFormContent({
       forceRender(); // Force re-render to update UI
     }
   }, [
+    checkoutUrl,
     clerkUserId,
     eventId,
     eventSlug,
@@ -837,6 +843,7 @@ export function MeetingFormContent({
         // For paid meetings, generate checkout URL first
         const checkoutUrl = await createPaymentIntent();
         if (checkoutUrl) {
+          setCheckoutUrl(checkoutUrl);
           transitionToStep('3');
           return;
         }
@@ -868,6 +875,51 @@ export function MeetingFormContent({
       isSubmitting,
     ],
   );
+
+  // Prefetch checkout URL when step 2 is filled out - use watched values
+  const watchedGuestName = useWatch({ control: form.control, name: 'guestName' });
+  const watchedGuestEmail = useWatch({ control: form.control, name: 'guestEmail' });
+
+  React.useEffect(() => {
+    // Only prefetch if we're on step 2, have complete valid form data, price > 0, and not already fetched
+    const hasCompletedForm =
+      watchedGuestName?.length > 2 &&
+      watchedGuestEmail?.length > 5 &&
+      watchedGuestEmail.includes('@');
+
+    const canPrefetch =
+      currentStep === '2' && hasCompletedForm && price > 0 && !checkoutUrl && !isPrefetching;
+
+    if (canPrefetch) {
+      // Prefetch with a longer delay to avoid interfering with user typing
+      const timer = setTimeout(() => {
+        // Don't show UI indication during prefetch - do it silently
+        setIsPrefetching(true);
+        createPaymentIntent()
+          .then(() => {
+            // Successfully prefetched
+            console.log('Checkout URL prefetched successfully');
+          })
+          .catch((error) => {
+            // Prefetch failed, but we don't need to show an error to the user
+            console.error('Prefetch failed:', error);
+          })
+          .finally(() => {
+            setIsPrefetching(false);
+          });
+      }, 3000); // 3-second delay after user completes form
+
+      return () => clearTimeout(timer);
+    }
+  }, [
+    currentStep,
+    watchedGuestName,
+    watchedGuestEmail,
+    price,
+    checkoutUrl,
+    isPrefetching,
+    createPaymentIntent,
+  ]);
 
   // Handle next step with improved checkout flow
   const handleNextStep = React.useCallback(
@@ -921,71 +973,60 @@ export function MeetingFormContent({
       forceRender(); // Update UI immediately
 
       try {
-        // **STRIPE BEST PRACTICE: Create checkout only when user clicks payment button**
+        // **PERFORMANCE OPTIMIZATION: Start checkout creation immediately**
         console.log('🚀 Starting checkout creation process...');
 
-        // Create fresh checkout URL on-demand
+        // Get or create checkout URL
         const url = await createPaymentIntent();
 
-        console.log('🚀 Redirecting to checkout:', url);
+        if (url) {
+          console.log('🚀 Redirecting to checkout:', url);
 
-        // **ENHANCED: Show redirect notification**
-        toast.loading('Redirecting to payment...', {
-          id: 'redirect-notification',
-          description: 'You will be redirected to Stripe in a moment',
-        });
+          // **ENHANCED: Show redirect notification**
+          toast.loading('Redirecting to payment...', {
+            id: 'redirect-notification',
+            description: 'You will be redirected to Stripe in a moment',
+          });
 
-        // **OPTIMIZED: Minimal delay for better UX**
-        setTimeout(() => {
-          window.location.href = url;
-        }, 500); // 500ms delay to show feedback, then redirect
+          // **OPTIMIZED: Minimal delay for better UX**
+          setTimeout(() => {
+            window.location.href = url;
+          }, 500); // 500ms delay to show feedback, then redirect
 
-        // **FALLBACK: If redirect doesn't work after 3 seconds**
-        setTimeout(() => {
-          if (window.location.href === window.location.href) {
-            toast.error('Redirect failed', {
-              id: 'redirect-notification',
-              description: 'Please click here to continue to payment',
-              action: {
-                label: 'Continue to Payment',
-                onClick: () => {
-                  window.open(url, '_blank');
+          // **FALLBACK: If redirect doesn't work after 3 seconds**
+          setTimeout(() => {
+            if (window.location.href === window.location.href) {
+              toast.error('Redirect failed', {
+                id: 'redirect-notification',
+                description: 'Please click here to continue to payment',
+                action: {
+                  label: 'Continue to Payment',
+                  onClick: () => {
+                    window.open(url, '_blank');
+                  },
                 },
-              },
-            });
+              });
 
-            // Reset states to allow retry
-            isProcessingRef.current = false;
-            setIsSubmitting(false);
-            forceRender();
-          }
-        }, 3000);
+              // Reset states to allow retry
+              isProcessingRef.current = false;
+              setIsSubmitting(false);
+              forceRender();
+            }
+          }, 3000);
+
+          return;
+        } else {
+          throw new Error('Failed to get checkout URL');
+        }
       } catch (error) {
         console.error('❌ Checkout flow error:', error);
 
-        // **ENHANCED ERROR HANDLING: Check for specific error types**
-        let errorMessage = 'Failed to process request';
-        let userMessage = 'Please try again or contact support if the issue persists';
-
-        if (error instanceof Error) {
-          errorMessage = error.message;
-
-          // Handle specific error cases
-          if (error.message.includes('Payment already in progress')) {
-            userMessage =
-              'A payment is already being processed. Please wait a moment and try again.';
-          } else if (error.message.includes('Payment processing in progress')) {
-            userMessage = 'Your payment is being processed. Please wait for the redirect.';
-          } else if (error.message.includes('timeout') || error.message.includes('AbortError')) {
-            userMessage = 'The request took too long. Please check your connection and try again.';
-          } else if (error.message.includes('Form data incomplete')) {
-            userMessage = 'Please ensure all required fields are filled correctly.';
-          }
-        }
+        // **ENHANCED ERROR HANDLING**
+        const errorMessage = error instanceof Error ? error.message : 'Failed to process request';
 
         // Show toast error for checkout failures
         toast.error('Payment setup failed', {
-          description: userMessage,
+          description: errorMessage,
         });
 
         form.setError('root', {
@@ -1160,7 +1201,9 @@ export function MeetingFormContent({
         <p className="mt-4 text-lg font-medium">
           {isCreatingCheckout || isProcessingRef.current
             ? 'Creating secure checkout...'
-            : 'Preparing checkout...'}
+            : checkoutUrl
+              ? 'Redirecting to payment...'
+              : 'Preparing checkout...'}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
           Please do not close this window or navigate away
