@@ -1113,8 +1113,64 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
     if (voucherExpiresAtTimestamp) {
       const voucherExpiresAtDate = new Date(voucherExpiresAtTimestamp * 1000); // Convert to JS Date (milliseconds)
       console.log(
-        `Multibanco payment intent ${paymentIntent.id} requires action. Voucher expires at: ${voucherExpiresAtDate.toISOString()}`,
+        `🏧 Multibanco payment intent ${paymentIntent.id} requires action. Voucher expires at: ${voucherExpiresAtDate.toISOString()}`,
       );
+
+      // **CRITICAL: Create slot reservation for Multibanco payments**
+      // Since these take time to process, we need to reserve the slot
+      try {
+        if (paymentIntent.metadata?.meeting) {
+          const meetingData = JSON.parse(paymentIntent.metadata.meeting);
+
+          console.log(`🔒 Creating slot reservation for Multibanco payment: ${paymentIntent.id}`);
+
+          // Create slot reservation for Multibanco payment
+          const slotReservation = await db
+            .insert(SlotReservationTable)
+            .values({
+              eventId: meetingData.eventId,
+              clerkUserId: meetingData.expertId,
+              guestEmail: meetingData.guestEmail,
+              startTime: new Date(meetingData.start),
+              endTime: new Date(
+                new Date(meetingData.start).getTime() + meetingData.duration * 60 * 1000,
+              ),
+              expiresAt: voucherExpiresAtDate, // Use Multibanco voucher expiry
+              stripePaymentIntentId: paymentIntent.id,
+              stripeSessionId: paymentIntent.metadata?.session_id || null,
+            })
+            .onConflictDoNothing({
+              target: [
+                SlotReservationTable.eventId,
+                SlotReservationTable.startTime,
+                SlotReservationTable.guestEmail,
+              ],
+            })
+            .returning({ id: SlotReservationTable.id });
+
+          if (slotReservation.length > 0) {
+            console.log(`✅ Slot reservation created for Multibanco payment: ${paymentIntent.id}`, {
+              reservationId: slotReservation[0].id,
+              guestEmail: meetingData.guestEmail,
+              expiresAt: voucherExpiresAtDate.toISOString(),
+            });
+          } else {
+            console.warn(
+              `⚠️ Slot reservation not created (possible conflict) for Multibanco payment: ${paymentIntent.id}`,
+            );
+          }
+        } else {
+          console.warn(
+            `⚠️ No meeting metadata found for Multibanco payment intent: ${paymentIntent.id}`,
+          );
+        }
+      } catch (reservationError) {
+        console.error(
+          `❌ Failed to create slot reservation for Multibanco payment ${paymentIntent.id}:`,
+          reservationError,
+        );
+        // Don't fail the webhook - this is not critical for payment processing
+      }
 
       try {
         // Retrieve the corresponding meeting

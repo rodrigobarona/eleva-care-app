@@ -53,19 +53,6 @@ const PAYMENT_RATE_LIMITS = {
  */
 async function checkPaymentRateLimits(userId: string, clientIP: string) {
   try {
-    // **TEMPORARY: Disable rate limiting due to Redis filter issue**
-    // TODO: Fix RateLimitCache implementation to handle array filtering properly
-    console.log('Rate limiting temporarily disabled due to Redis implementation issue');
-    return {
-      allowed: true,
-      limits: {
-        user: { remaining: 100, resetTime: Date.now() + 900000, totalHits: 0 },
-        userDaily: { remaining: 20, resetTime: Date.now() + 86400000, totalHits: 0 },
-        ip: { remaining: 20, resetTime: Date.now() + 900000, totalHits: 0 },
-        global: { remaining: 1000, resetTime: Date.now() + 60000, totalHits: 0 },
-      },
-    };
-
     // Layer 1: User-based rate limiting (strictest - 15 minute window)
     const userLimit = await RateLimitCache.checkRateLimit(
       `payment:user:${userId}`,
@@ -185,10 +172,6 @@ async function checkPaymentRateLimits(userId: string, clientIP: string) {
  */
 async function recordPaymentRateLimitAttempts(userId: string, clientIP: string) {
   try {
-    // **TEMPORARY: Disable rate limiting recording due to Redis filter issue**
-    console.log('Rate limiting recording temporarily disabled due to Redis implementation issue');
-    return;
-
     await Promise.all([
       RateLimitCache.recordAttempt(
         `payment:user:${userId}`,
@@ -791,151 +774,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // **CRITICAL: Create slot reservation immediately after session creation to prevent race conditions**
-    // Since Neon HTTP driver doesn't support transactions, we'll use a simpler approach
-    try {
-      const endTime = new Date(
-        appointmentStartTime.getTime() + event.durationInMinutes * 60 * 1000,
-      );
-
-      // First, do a final check for conflicts before creating reservation
-      const conflictCheck = await db.query.SlotReservationTable.findFirst({
-        where: and(
-          eq(SlotReservationTable.eventId, eventId),
-          eq(SlotReservationTable.startTime, appointmentStartTime),
-          gt(SlotReservationTable.expiresAt, new Date()),
-        ),
-      });
-
-      // Also check for confirmed meetings
-      const meetingConflictCheck = await db.query.MeetingTable.findFirst({
-        where: and(
-          eq(MeetingTable.eventId, eventId),
-          eq(MeetingTable.startTime, appointmentStartTime),
-          eq(MeetingTable.stripePaymentStatus, 'succeeded'),
-        ),
-      });
-
-      if (conflictCheck || meetingConflictCheck) {
-        // If conflict detected, expire the Stripe session and fail
-        try {
-          await stripe.checkout.sessions.expire(session.id);
-          console.log('Expired Stripe session due to conflict detected:', session.id);
-        } catch (expireError) {
-          console.error('Failed to expire Stripe session after conflict:', expireError);
-        }
-
-        const conflictType = conflictCheck ? 'slot reservation' : 'confirmed meeting';
-        const conflictEmail = conflictCheck?.guestEmail || meetingConflictCheck?.guestEmail;
-
-        console.log(
-          `Conflict detected: ${conflictType} exists for this slot (user: ${conflictEmail})`,
-        );
-
-        return NextResponse.json(
-          {
-            error: `This time slot was just booked by another user. Please choose a different time.`,
-            code: 'SLOT_RACE_CONDITION',
-            details: {
-              conflictType,
-              conflictUser: conflictEmail,
-            },
-          },
-          { status: 409 },
-        );
-      }
-
-      // Create slot reservation with conflict handling
-      const slotReservation = await db
-        .insert(SlotReservationTable)
-        .values({
-          eventId: eventId,
-          clerkUserId: event.clerkUserId,
-          guestEmail: meetingData.guestEmail,
-          startTime: appointmentStartTime,
-          endTime: endTime,
-          expiresAt: paymentExpiresAt,
-          stripeSessionId: session.id,
-          stripePaymentIntentId: null, // Will be updated when payment intent is created
-        })
-        .onConflictDoNothing({
-          target: [
-            SlotReservationTable.eventId,
-            SlotReservationTable.startTime,
-            SlotReservationTable.guestEmail,
-          ],
-        })
-        .returning({ id: SlotReservationTable.id });
-
-      // Check if the insert was successful (not conflicted)
-      if (slotReservation.length === 0) {
-        console.warn('Unique constraint violation detected during slot reservation');
-
-        // Expire the Stripe session since we couldn't reserve
-        try {
-          await stripe.checkout.sessions.expire(session.id);
-          console.log('Expired Stripe session due to unique constraint violation:', session.id);
-        } catch (expireError) {
-          console.error('Failed to expire Stripe session after constraint violation:', expireError);
-        }
-
-        return NextResponse.json(
-          {
-            error:
-              'This time slot was just booked by another user. Please choose a different time.',
-            code: 'SLOT_CONSTRAINT_VIOLATION',
-          },
-          { status: 409 },
-        );
-      }
-
-      console.log('✅ Slot reservation created successfully:', {
-        reservationId: slotReservation[0].id,
-        sessionId: session.id,
-        guestEmail: meetingData.guestEmail,
-        startTime: appointmentStartTime.toISOString(),
-        expiresAt: paymentExpiresAt.toISOString(),
-      });
-
-      console.log(
-        '🔒 Slot reserved successfully - using conflict-safe approach without transactions',
-      );
-    } catch (reservationError) {
-      console.error('Failed to create slot reservation:', reservationError);
-
-      // If we can't reserve the slot, we should not allow the user to proceed
-      // Expire the Stripe session since the slot cannot be reserved
-      try {
-        await stripe.checkout.sessions.expire(session.id);
-        console.log('Expired Stripe session due to reservation failure:', session.id);
-      } catch (expireError) {
-        console.error('Failed to expire Stripe session after reservation failure:', expireError);
-      }
-
-      // Return appropriate error based on the reservation failure
-      if (
-        reservationError instanceof Error &&
-        (reservationError.message.includes('Race condition detected') ||
-          reservationError.message.includes('unique constraint'))
-      ) {
-        return NextResponse.json(
-          {
-            error:
-              'This time slot was just booked by another user. Please choose a different time.',
-            code: 'SLOT_RACE_CONDITION',
-          },
-          { status: 409 },
-        );
-      }
-
-      return NextResponse.json(
-        {
-          error: 'Failed to reserve the time slot. Please try again.',
-          code: 'SLOT_RESERVATION_FAILED',
-        },
-        { status: 500 },
-      );
-    }
+    console.log('✅ Checkout session created successfully - no slot reservation needed');
+    console.log('📝 Slot management will be handled by webhooks based on payment method');
 
     // **IDEMPOTENCY: Cache the successful result**
     if (idempotencyKey && session.url) {
