@@ -1,6 +1,6 @@
 # Políticas de Pago
 
-_Fecha de Entrada en Vigor:_ 29 de mayo de 2025
+_Fecha de Entrada en Vigor:_ 3 de junio de 2025
 
 Estas Políticas de Pago rigen todas las transacciones financieras realizadas a través de la plataforma **Eleva.care**. Al utilizar nuestros servicios de pago, acepta estar sujeto a estas políticas además de nuestros Términos y Condiciones.
 
@@ -15,21 +15,29 @@ Eleva.care acepta varios métodos de pago, incluyendo:
 
 ### 2.1 Restricciones de Ventana de Pago
 
-- **Citas dentro de 72 horas**: Los pagos Multibanco **no están disponibles** para citas programadas dentro de 72 horas del momento actual
-- **Citas más allá de 72 horas**: Los pagos Multibanco son aceptados con términos especiales descritos a continuación
+- **Citas dentro de 8 días**: Los pagos Multibanco **no están disponibles** para citas programadas dentro de 8 días del momento actual
+- **Citas con 8+ días de anticipación**: Los pagos Multibanco son aceptados con términos especiales descritos a continuación
 
 ### 2.2 Sistema de Reserva de Horario
 
-Al pagar con Multibanco para citas programadas con más de 72 horas de anticipación:
+Al pagar con Multibanco para citas programadas con 8 o más días de anticipación:
 
-- Su horario de cita está **reservado por 24 horas** desde el momento de la reserva.
-- Tiene **24 horas** para completar el pago Multibanco
-- Si no se recibe el pago dentro de este período, la reserva será cancelada automáticamente.
-- Recibirá un correo electrónico de confirmación una vez que el pago haya sido procesado.
+- Su horario de cita está **reservado por 7 días** desde el momento de la reserva
+- Tiene **7 días completos** para completar el pago Multibanco
+- Si no se recibe el pago dentro de 7 días, la reserva de horario expira y queda disponible para otros pacientes
 
-### 2.3 Procesamiento de Pago Tardío
+### 2.3 Sistema de Recordatorios de Pago
 
-Si un pago Multibanco se procesa después del período de reserva de 24 horas:
+Para ayudar a asegurar que no pierda su fecha límite de pago:
+
+- **Recordatorio del Día 3**: Email amigable de recordatorio con 4 días restantes para pagar
+- **Recordatorio del Día 6**: Aviso final urgente con 1 día restante para pagar
+- **Instrucciones de Pago**: Cada recordatorio incluye todos los detalles e instrucciones de pago Multibanco
+- **Métodos de Pago**: Pague vía cajero automático, banca online, o MB WAY (si es compatible con su banco)
+
+### 2.4 Procesamiento de Pago Tardío
+
+Si un pago Multibanco se procesa después del período de reserva de 7 días:
 
 - El sistema verifica automáticamente conflictos de citas
 - Si el horario de la cita ya no está disponible o entra en conflicto con los requisitos de disponibilidad del especialista, se procesará un **reembolso parcial**
@@ -70,65 +78,95 @@ En casos de errores del sistema o circunstancias especiales:
 - Proporcione su referencia de pago y detalles de la reserva
 - Nuestro equipo revisará y resolverá el problema dentro de 2 días hábiles
 
-## 4. Procesamiento de Pagos de Especialistas
+## 4. Guía de Selección de Método de Pago
 
-### 4.1 Transferencias de Pago
+### 4.1 Pagos con Tarjeta (Inmediato)
+
+**Mejor para:**
+
+- Citas dentro de 8 días
+- Confirmación inmediata necesaria
+- Reservas de último momento
+
+**Beneficios:**
+
+- Procesamiento instantáneo de pago
+- Acceso inmediato al enlace de reunión
+- Sin estrés por fecha límite de pago
+
+### 4.2 Pagos Multibanco (Ventana de 7 Días)
+
+**Mejor para:**
+
+- Citas planificadas con mucha anticipación (8+ días)
+- Residentes portugueses que prefieren métodos de pago locales
+- Aquellos cómodos con pago diferido
+
+**Requisitos:**
+
+- La cita debe programarse con 8+ días de anticipación
+- El pago debe completarse dentro de 7 días
+- Acceso a cajero automático, banca online, o MB WAY
+
+## 5. Procesamiento de Pagos de Especialistas
+
+### 5.1 Transferencias de Pago
 
 - Los pagos de especialistas se procesan después de la finalización exitosa de la cita
 - El cronograma de transferencia varía según la configuración del especialista y los requisitos bancarios locales
 - Todas las transferencias cumplen con las políticas de Stripe Connect y regulaciones locales
 
-### 4.2 Resolución de Disputas
+### 5.2 Resolución de Disputas
 
 - Las disputas de pago se manejan a través del proceso de resolución de disputas de Stripe
 - Los especialistas son notificados inmediatamente de cualquier disputa de pago
 - Se puede requerir documentación y evidencia para la resolución de disputas
 
-## 5. Moneda y Precios
+## 6. Moneda y Precios
 
-### 5.1 Moneda Base
+### 6.1 Moneda Base
 
 - Todos los precios se muestran en Euros (EUR)
 - La conversión de moneda puede aplicarse para pagos internacionales
 - Las tasas de cambio son determinadas por los procesadores de pago al momento de la transacción
 
-### 5.2 Cambios de Precios
+### 6.2 Cambios de Precios
 
 - Los precios de las citas se fijan al momento de la reserva
 - No se aplicarán cargos adicionales después de la confirmación de la reserva
 - Los impuestos y tarifas están incluidos en el precio mostrado
 
-## 6. Seguridad de Pagos
+## 7. Seguridad de Pagos
 
-### 6.1 Protección de Datos
+### 7.1 Protección de Datos
 
 - Todos los datos de pago se procesan de forma segura a través de Stripe
 - No almacenamos detalles de tarjetas de pago en nuestros servidores
 - Todas las transacciones están encriptadas y cumplen con los estándares PCI DSS
 
-### 6.2 Prevención de Fraude
+### 7.2 Prevención de Fraude
 
 - Los sistemas automatizados de detección de fraude están implementados
 - Las transacciones sospechosas pueden ser retrasadas o rechazadas
 - Se puede requerir verificación adicional para transacciones de alto valor
 
-## 7. Pagos Fallidos
+## 8. Pagos Fallidos
 
-### 7.1 Fallas de Pago
+### 8.1 Fallas de Pago
 
 - Los pagos fallidos resultan en la cancelación automática de la cita
 - Los pacientes son notificados inmediatamente por email
 - Se pueden hacer nuevas reservas con métodos de pago válidos
 
-### 7.2 Política de Reintento
+### 8.2 Política de Reintento
 
 - Los reintentos automáticos de pago no se realizan
 - Los pacientes deben iniciar nuevos intentos de pago manualmente
 - Múltiples intentos fallidos pueden resultar en restricciones temporales de reserva
 
-## 8. Soporte al Cliente
+## 9. Soporte al Cliente
 
-### 8.1 Problemas de Pago
+### 9.1 Problemas de Pago
 
 Para preguntas o problemas relacionados con pagos:
 
@@ -136,17 +174,17 @@ Para preguntas o problemas relacionados con pagos:
 - Tiempo de respuesta: Dentro de 24 horas
 - Disponible en múltiples idiomas (Inglés, Portugués, Español, Portugués Brasileño)
 
-### 8.2 Solicitudes de Reembolso
+### 9.2 Solicitudes de Reembolso
 
 - Las solicitudes de reembolso deben enviarse dentro de 7 días de la transacción original
 - Los reembolsos por emergencia médica se consideran caso por caso
 - Las políticas de cancelación se aplican según se describe en nuestros Términos y Condiciones
 
-## 9. Actualizaciones de Políticas
+## 10. Actualizaciones de Políticas
 
 Estas políticas de pago pueden actualizarse periódicamente. Los usuarios serán notificados de cambios significativos por email y notificaciones de la plataforma. El uso continuo de la plataforma constituye aceptación de las políticas actualizadas.
 
-## 10. Cumplimiento Legal
+## 11. Cumplimiento Legal
 
 Estas políticas cumplen con:
 

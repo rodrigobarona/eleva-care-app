@@ -1,6 +1,6 @@
 # Políticas de Pagamento
 
-_Data de Entrada em Vigor:_ 29 de maio de 2025
+_Data de Entrada em Vigor:_ 3 de junho de 2025
 
 Estas Políticas de Pagamento regem todas as transações financeiras conduzidas através da plataforma **Eleva.care**. Ao utilizar os nossos serviços de pagamento, concorda em estar vinculado a estas políticas, para além dos nossos Termos e Condições.
 
@@ -15,20 +15,29 @@ A Eleva.care aceita vários métodos de pagamento, incluindo:
 
 ### 2.1 Restrições de Janela de Pagamento
 
-- **Consultas dentro de 72 horas**: Pagamentos Multibanco **não estão disponíveis** para consultas marcadas dentro de 72 horas do momento atual
-- **Consultas além de 72 horas**: Pagamentos Multibanco são aceites com termos especiais descritos abaixo
+- **Consultas dentro de 8 dias**: Pagamentos Multibanco **não estão disponíveis** para consultas marcadas dentro de 8 dias do momento atual
+- **Consultas com 8+ dias de antecedência**: Pagamentos Multibanco são aceites com termos especiais descritos abaixo
 
 ### 2.2 Sistema de Reserva de Horário
 
-Ao pagar com Multibanco para consultas marcadas com mais de 72 horas de antecedência:
+Ao pagar com Multibanco para consultas marcadas com 8 ou mais dias de antecedência:
 
-- O seu horário de consulta é **reservado por 24 horas** a partir do momento da marcação
-- Tem **24 horas** para completar o pagamento Multibanco
-- Se o pagamento não for recebido dentro de 24 horas, a reserva de horário expira e fica disponível para outros pacientes
+- O seu horário de consulta é **reservado por 7 dias** a partir do momento da marcação
+- Tem **7 dias completos** para completar o pagamento Multibanco
+- Se o pagamento não for recebido dentro de 7 dias, a reserva de horário expira e fica disponível para outros pacientes
 
-### 2.3 Processamento de Pagamento Tardio
+### 2.3 Sistema de Lembretes de Pagamento
 
-Se um pagamento Multibanco for processado após o período de reserva de 24 horas:
+Para ajudar a garantir que não perde o prazo de pagamento:
+
+- **Lembrete do 3º Dia**: Email amigável de lembrete com 4 dias restantes para pagar
+- **Lembrete do 6º Dia**: Aviso final urgente com 1 dia restante para pagar
+- **Instruções de Pagamento**: Cada lembrete inclui todos os detalhes e instruções de pagamento Multibanco
+- **Métodos de Pagamento**: Pague via Multibanco (ATM), homebanking, ou MB WAY (se suportado pelo seu banco)
+
+### 2.4 Processamento de Pagamento Tardio
+
+Se um pagamento Multibanco for processado após o período de reserva de 7 dias:
 
 - O sistema verifica automaticamente conflitos de consulta
 - Se o horário da consulta já não estiver disponível ou conflituar com os requisitos de disponibilidade do especialista, será processado um **reembolso parcial**
@@ -69,65 +78,95 @@ Em casos de erros do sistema ou circunstâncias especiais:
 - Forneça a sua referência de pagamento e detalhes da marcação
 - A nossa equipa irá rever e resolver a questão dentro de 2 dias úteis
 
-## 4. Processamento de Pagamentos de Especialistas
+## 4. Guia de Seleção de Método de Pagamento
 
-### 4.1 Transferências de Pagamento
+### 4.1 Pagamentos por Cartão (Imediato)
+
+**Melhor para:**
+
+- Consultas dentro de 8 dias
+- Confirmação imediata necessária
+- Marcações de última hora
+
+**Benefícios:**
+
+- Processamento instantâneo de pagamento
+- Acesso imediato ao link da reunião
+- Sem stress de prazo de pagamento
+
+### 4.2 Pagamentos Multibanco (Janela de 7 Dias)
+
+**Melhor para:**
+
+- Consultas planeadas com muita antecedência (8+ dias)
+- Residentes portugueses que preferem métodos de pagamento locais
+- Aqueles que se sentem confortáveis com pagamento diferido
+
+**Requisitos:**
+
+- A consulta deve ser marcada com 8+ dias de antecedência
+- O pagamento deve ser concluído dentro de 7 dias
+- Acesso a Multibanco (ATM), homebanking, ou MB WAY
+
+## 5. Processamento de Pagamentos de Especialistas
+
+### 5.1 Transferências de Pagamento
 
 - Pagamentos de especialistas são processados após conclusão bem-sucedida da consulta
 - O cronograma de transferência varia conforme as definições do especialista e requisitos bancários locais
 - Todas as transferências cumprem as políticas do Stripe Connect e regulamentações locais
 
-### 4.2 Resolução de Disputas
+### 5.2 Resolução de Disputas
 
 - Disputas de pagamento são tratadas através do processo de resolução de disputas do Stripe
 - Especialistas são notificados imediatamente de quaisquer disputas de pagamento
 - Documentação e evidências podem ser necessárias para resolução de disputas
 
-## 5. Moeda e Preços
+## 6. Moeda e Preços
 
-### 5.1 Moeda Base
+### 6.1 Moeda Base
 
 - Todos os preços são apresentados em Euros (EUR)
 - Conversão de moeda pode aplicar-se para pagamentos internacionais
 - Taxas de câmbio são determinadas pelos processadores de pagamento no momento da transação
 
-### 5.2 Alterações de Preços
+### 6.2 Alterações de Preços
 
 - Preços de consultas são fixados no momento da marcação
 - Não serão aplicadas taxas adicionais após confirmação da marcação
 - Impostos e taxas estão incluídos no preço apresentado
 
-## 6. Segurança de Pagamentos
+## 7. Segurança de Pagamentos
 
-### 6.1 Proteção de Dados
+### 7.1 Proteção de Dados
 
 - Todos os dados de pagamento são processados de forma segura através do Stripe
 - Não armazenamos detalhes de cartões de pagamento nos nossos servidores
 - Todas as transações são encriptadas e cumprem os padrões PCI DSS
 
-### 6.2 Prevenção de Fraude
+### 7.2 Prevenção de Fraude
 
 - Sistemas automatizados de deteção de fraude estão implementados
 - Transações suspeitas podem ser atrasadas ou recusadas
 - Verificação adicional pode ser necessária para transações de alto valor
 
-## 7. Pagamentos Falhados
+## 8. Pagamentos Falhados
 
-### 7.1 Falhas de Pagamento
+### 8.1 Falhas de Pagamento
 
 - Pagamentos falhados resultam no cancelamento automático da consulta
 - Pacientes são notificados imediatamente por email
 - Novas marcações podem ser feitas com métodos de pagamento válidos
 
-### 7.2 Política de Repetição
+### 8.2 Política de Repetição
 
 - Repetições automáticas de pagamento não são realizadas
 - Pacientes devem iniciar novas tentativas de pagamento manualmente
 - Múltiplas tentativas falhadas podem resultar em restrições temporárias de marcação
 
-## 8. Apoio ao Cliente
+## 9. Apoio ao Cliente
 
-### 8.1 Questões de Pagamento
+### 9.1 Questões de Pagamento
 
 Para questões ou problemas relacionados com pagamentos:
 
@@ -135,17 +174,17 @@ Para questões ou problemas relacionados com pagamentos:
 - Tempo de resposta: Dentro de 24 horas
 - Disponível em múltiplos idiomas (Inglês, Português, Espanhol, Português Brasileiro)
 
-### 8.2 Pedidos de Reembolso
+### 9.2 Pedidos de Reembolso
 
 - Pedidos de reembolso devem ser submetidos dentro de 7 dias da transação original
 - Reembolsos por emergência médica são considerados caso a caso
 - Políticas de cancelamento aplicam-se conforme descritas nos nossos Termos e Condições
 
-## 9. Atualizações de Políticas
+## 10. Atualizações de Políticas
 
 Estas políticas de pagamento podem ser atualizadas periodicamente. Os utilizadores serão notificados de alterações significativas por email e notificações da plataforma. O uso continuado da plataforma constitui aceitação das políticas atualizadas.
 
-## 10. Conformidade Legal
+## 11. Conformidade Legal
 
 Estas políticas cumprem:
 

@@ -438,7 +438,7 @@ class GoogleCalendarService {
       // Send the expert notification
       const expertEmailResult = await sendEmail({
         to: calendarUser.primaryEmailAddress.emailAddress,
-        subject: `New Booking: ${eventSummary}`,
+        subject: expertEmailContent.subject,
         html: expertEmailContent.html,
         text: expertEmailContent.text,
       });
@@ -472,7 +472,7 @@ class GoogleCalendarService {
 
       const clientEmailResult = await sendEmail({
         to: guestEmail,
-        subject: `Appointment Confirmation: ${eventSummary}`,
+        subject: clientEmailContent.subject,
         html: clientEmailContent.html,
         text: clientEmailContent.text,
       });

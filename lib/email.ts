@@ -1,5 +1,6 @@
 'use server';
 
+import { getTranslations } from 'next-intl/server';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -129,7 +130,7 @@ function generatePlainTextFromHTML(html: string): string {
  * @param params.meetLink Optional Google Meet link for virtual appointments
  * @param params.notes Optional notes from the client
  * @param params.locale Optional locale code for email language (e.g., 'en', 'es', 'pt', 'br')
- * @returns Object containing HTML and plain text versions of the email
+ * @returns Object containing HTML, plain text, and translated subject
  */
 export async function generateAppointmentEmail(params: {
   expertName: string;
@@ -142,18 +143,26 @@ export async function generateAppointmentEmail(params: {
   meetLink?: string;
   notes?: string;
   locale?: string; // Locale code for multilingual emails ('en', 'es', 'pt', 'br')
-}): Promise<{ html: string; text: string }> {
+}): Promise<{ html: string; text: string; subject: string }> {
   // Import dynamically to avoid JSX in server component issues
   const { default: AppointmentConfirmation } = await import(
     '@/components/emails/AppointmentConfirmation'
   );
   const { render } = await import('@react-email/render');
 
+  const locale = params.locale || 'en';
+
+  // Get the translated subject
+  const t = await getTranslations({
+    locale,
+    namespace: 'notifications.appointmentConfirmation',
+  });
+
   // Ensure locale is passed to the AppointmentConfirmation component
   const renderedHtml = await render(
-    AppointmentConfirmation({
+    await AppointmentConfirmation({
       ...params,
-      locale: params.locale || 'en', // Default to English if not provided
+      locale, // Default to English if not provided
     }),
   );
 
@@ -163,5 +172,6 @@ export async function generateAppointmentEmail(params: {
   return {
     html: renderedHtml,
     text: plainText,
+    subject: t('subject'),
   };
 }

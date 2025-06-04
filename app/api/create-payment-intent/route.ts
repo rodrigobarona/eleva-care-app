@@ -604,30 +604,31 @@ export async function POST(request: NextRequest) {
     const meetingDate = new Date(meetingData.startTime);
     const currentTime = new Date();
     const hoursUntilMeeting = (meetingDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60);
+    const daysUntilMeeting = hoursUntilMeeting / 24;
 
     // Determine payment methods and expiration time based on meeting timing
     let paymentMethodTypes: string[];
     let paymentExpiresAt: Date;
 
-    if (hoursUntilMeeting <= 72) {
-      // Meeting is within 72 hours - CREDIT CARD ONLY for instant confirmation
+    if (daysUntilMeeting <= 8) {
+      // Meeting is within 8 days - CREDIT CARD ONLY for instant confirmation
       paymentMethodTypes = ['card'];
 
-      // Payment must complete within 30 minutes
+      // Payment must complete within 30 minutes for near-term bookings
       paymentExpiresAt = new Date(currentTime.getTime() + 30 * 60 * 1000);
 
       console.log(
-        `⚡ Quick booking: Meeting in ${hoursUntilMeeting.toFixed(1)}h - Card only, 30min to pay`,
+        `⚡ Quick booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card only, 30min to pay`,
       );
     } else {
-      // Meeting is > 72 hours away - Allow both Card and Multibanco
+      // Meeting is > 8 days away - Allow both Card and Multibanco
       paymentMethodTypes = ['card', 'multibanco'];
 
-      // Payment can take up to 24 hours to complete (Multibanco minimum)
-      paymentExpiresAt = new Date(currentTime.getTime() + 24 * 60 * 60 * 1000);
+      // Payment can take up to 7 days to complete (Multibanco policy)
+      paymentExpiresAt = new Date(currentTime.getTime() + 7 * 24 * 60 * 60 * 1000);
 
       console.log(
-        `🕒 Advance booking: Meeting in ${hoursUntilMeeting.toFixed(1)}h - Card + Multibanco, 24h to pay`,
+        `🕒 Advance booking: Meeting in ${daysUntilMeeting.toFixed(1)} days - Card + Multibanco, 7 days to pay`,
       );
     }
 
@@ -705,7 +706,7 @@ export async function POST(request: NextRequest) {
         terms_of_service: 'required',
       },
       // Add notice about Multibanco availability based on appointment timing
-      ...(hoursUntilMeeting > 72 &&
+      ...(daysUntilMeeting > 8 &&
         paymentMethodTypes.includes('multibanco') && {
           custom_text: {
             submit: {
@@ -716,8 +717,8 @@ export async function POST(request: NextRequest) {
             },
           },
         }),
-      // For appointments within 72 hours (no Multibanco), still show terms
-      ...(hoursUntilMeeting <= 72 && {
+      // For appointments within 8 days (no Multibanco), still show terms
+      ...(daysUntilMeeting <= 8 && {
         custom_text: {
           terms_of_service_acceptance: {
             message: t('termsOfService', { termsUrl, paymentPoliciesUrl }),

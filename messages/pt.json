@@ -482,6 +482,144 @@
         ],
         "cta": "Ir para o Painel"
       }
+    },
+    "multibancoBookingPending": {
+      "subject": "Marcação Confirmada - Pagamento Requerido via Multibanco",
+      "email": {
+        "preview": "A sua marcação está confirmada - Pagamento Requerido via Multibanco",
+        "title": "Marcação Confirmada - Pagamento Requerido",
+        "greeting": "Caro/a {customerName},",
+        "bookingConfirmedText": "A sua marcação foi confirmada e o seu horário de consulta está reservado.",
+        "paymentRequired": "Pagamento Requerido via Multibanco",
+        "paymentInstructions": "Para completar a sua marcação, por favor pague usando Multibanco com os detalhes abaixo:",
+        "entity": "Entidade",
+        "reference": "Referência",
+        "amount": "Valor",
+        "expiresAt": "O pagamento deve ser concluído até",
+        "appointmentDetails": "Detalhes da Consulta",
+        "service": "Serviço",
+        "expert": "Especialista",
+        "date": "Data",
+        "time": "Hora",
+        "duration": "Duração",
+        "minutes": "minutos",
+        "customerNotes": "As Suas Notas",
+        "paymentMethods": "Como Pagar com Multibanco:",
+        "method1": "1. Homebanking: Aceda à sua conta bancária e selecione \"Pagamentos\" ou \"Multibanco\"",
+        "method2": "2. ATM: Insira o seu cartão, selecione \"Outras Operações\" → \"Pagamentos\" → \"Serviços Públicos\"",
+        "method3": "3. Introduza os números da Entidade e Referência acima, confirme o valor",
+        "viewVoucher": "Ver Comprovativo de Pagamento",
+        "meetingAccess": "Acesso à Reunião",
+        "meetingAccessText": "Quando o seu pagamento for confirmado, receberá outro email com o link da reunião e detalhes de acesso.",
+        "important": "Importante",
+        "importantText": "O seu horário de consulta está reservado por 7 dias. Se o pagamento não for recebido até à data de expiração acima, a sua reserva será cancelada.",
+        "questions": "Dúvidas?",
+        "questionsText": "Se tiver alguma dúvida sobre a sua marcação ou pagamento, por favor contacte a nossa equipa de apoio.",
+        "thankYou": "Obrigado por escolher a Eleva Care!",
+        "team": "A Equipa Eleva Care"
+      }
+    },
+    "multibancoPaymentReminder": {
+      "subject": {
+        "gentle": "Lembrete Amigável: Complete o Seu Pagamento Multibanco",
+        "urgent": "URGENTE: Pagamento Requerido - Apenas 1 Dia Restante!"
+      },
+      "email": {
+        "preview": {
+          "gentle": "Lembrete Amigável: Complete o Seu Pagamento Multibanco",
+          "urgent": "URGENTE: Pagamento Requerido - Apenas 1 Dia Restante!"
+        },
+        "title": {
+          "gentle": "💙 Lembrete Amigável: Complete o Seu Pagamento",
+          "urgent": "⚠️ URGENTE: Pagamento Requerido - Lembrete Final"
+        },
+        "greeting": "Caro/a {customerName},",
+        "reminderNotice": "Apenas um lembrete amigável de que tem um pagamento Multibanco pendente para a sua próxima consulta.",
+        "timeRemaining": "Ainda tem bastante tempo para completar o seu pagamento.",
+        "urgentNotice": "Este é o seu LEMBRETE FINAL para completar o seu pagamento Multibanco.",
+        "expiryWarning": "A sua reserva expirará em menos de 24 horas se o pagamento não for recebido.",
+        "paymentRequired": "Complete o Seu Pagamento Multibanco",
+        "instructions": {
+          "gentle": "Pode pagar a qualquer momento usando os detalhes Multibanco abaixo:",
+          "urgent": "Use os detalhes Multibanco abaixo para completar o seu pagamento imediatamente:"
+        },
+        "entity": "Entidade",
+        "reference": "Referência",
+        "amount": "Valor",
+        "expiresAt": "O pagamento expira em",
+        "appointmentDetails": "A Sua Consulta Reservada",
+        "service": "Serviço",
+        "expert": "Especialista",
+        "date": "Data",
+        "time": "Hora",
+        "duration": "Duração",
+        "minutes": "minutos",
+        "customerNotes": "As Suas Notas Originais",
+        "paymentMethods": {
+          "gentle": "Opções de Pagamento (Escolha Qualquer Uma):",
+          "urgent": "Como Pagar (Escolha Qualquer Uma):"
+        },
+        "method1": {
+          "gentle": "1. 🏧 ATM: Mais conveniente - disponível 24/7",
+          "urgent": "1. 🏧 ATM: Insira o cartão → \"Outras Operações\" → \"Pagamentos\" → \"Serviços Públicos\""
+        },
+        "method2": {
+          "gentle": "2. 💻 Homebanking: Rápido e seguro a partir de casa",
+          "urgent": "2. 💻 Homebanking: Aceda → \"Pagamentos\" → \"Multibanco\" → Introduza os detalhes"
+        },
+        "method3": {
+          "gentle": "3. 📱 MB WAY: Se suportado pelo seu banco",
+          "urgent": "3. 📱 MB WAY: Se suportado pelo seu banco"
+        },
+        "viewVoucher": "🎫 Ver Comprovativo de Pagamento",
+        "noWorries": "Sem pressa!",
+        "noWorriesText": "Ainda tem vários dias para completar o seu pagamento. Apenas queríamos ter a certeza de que não se esqueceu!",
+        "consequences": "O que acontece se não pagar?",
+        "consequencesText": "O seu horário de consulta será automaticamente libertado e ficará disponível para outros clientes. Teria de remarcar completamente.",
+        "support": {
+          "gentle": "Dúvidas?",
+          "urgent": "Precisa de Ajuda?"
+        },
+        "supportText": {
+          "gentle": "Sinta-se à vontade para nos contactar se tiver alguma dúvida sobre o processo de pagamento.",
+          "urgent": "Contacte a nossa equipa de apoio imediatamente se precisar de assistência com o seu pagamento."
+        },
+        "thankYou": {
+          "gentle": "Obrigado por escolher a Eleva Care!",
+          "urgent": "Não deixe a sua consulta escapar!"
+        },
+        "team": "A Equipa Eleva Care",
+        "daysRemaining": "Tem {daysRemaining} dias restantes para completar o seu pagamento."
+      }
+    },
+    "appointmentConfirmation": {
+      "subject": "A sua consulta na Eleva Care foi confirmada",
+      "email": {
+        "preview": "Sua consulta na Eleva.care foi confirmada",
+        "appointmentConfirmed": "Sua consulta foi confirmada",
+        "dearExpert": "Caro(a) {expertName}",
+        "newAppointmentWith": "Você tem uma nova consulta com {clientName} para {eventTitle}. Adicionamos isso ao seu calendário.",
+        "appointmentDetails": "Detalhes da Consulta:",
+        "type": "Tipo:",
+        "client": "Cliente:",
+        "date": "Data:",
+        "time": "Hora:",
+        "timezone": "Fuso Horário:",
+        "duration": "Duração:",
+        "videoMeeting": "Reunião por Vídeo: Um link do Google Meet é fornecido abaixo",
+        "clientNotes": "Notas do Cliente:",
+        "joinGoogleMeet": "Entrar no Google Meet",
+        "clickToJoin": "Clique no botão acima para entrar na reunião no horário agendado",
+        "addedToGoogleCalendar": "Esta consulta foi adicionada ao seu Google Calendar com os seguintes lembretes:",
+        "calendarReminders": "Lembretes de Calendário:",
+        "emailReminder1Hour": "Lembrete por e-mail 1 hora antes",
+        "emailReminder15Min": "Lembrete por e-mail 15 minutos antes",
+        "popupReminder5Min": "Lembrete pop-up 5 minutos antes",
+        "thankYou": "Obrigado por usar a Eleva.care.",
+        "bestRegards": "Atenciosamente,",
+        "team": "A Equipa Eleva.care",
+        "allRightsReserved": "Todos os direitos reservados."
+      }
     }
   }
 }

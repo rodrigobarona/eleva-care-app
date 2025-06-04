@@ -483,6 +483,144 @@
         ],
         "cta": "Go to Dashboard"
       }
+    },
+    "multibancoBookingPending": {
+      "subject": "Booking Confirmed - Payment Required via Multibanco",
+      "email": {
+        "preview": "Your booking is confirmed - Payment Required via Multibanco",
+        "title": "Booking Confirmed - Payment Required",
+        "greeting": "Dear {customerName},",
+        "bookingConfirmedText": "Your booking has been confirmed and your appointment slot is reserved.",
+        "paymentRequired": "Payment Required via Multibanco",
+        "paymentInstructions": "To complete your booking, please pay using Multibanco with the details below:",
+        "entity": "Entity",
+        "reference": "Reference",
+        "amount": "Amount",
+        "expiresAt": "Payment must be completed by",
+        "appointmentDetails": "Appointment Details",
+        "service": "Service",
+        "expert": "Expert",
+        "date": "Date",
+        "time": "Time",
+        "duration": "Duration",
+        "minutes": "minutes",
+        "customerNotes": "Your Notes",
+        "paymentMethods": "How to Pay with Multibanco:",
+        "method1": "1. Online Banking: Log into your bank account and select \"Payments\" or \"Multibanco\"",
+        "method2": "2. ATM: Insert your card, select \"Other Operations\" → \"Payments\" → \"Public Services\"",
+        "method3": "3. Enter the Entity and Reference numbers above, confirm the amount",
+        "viewVoucher": "View Payment Voucher",
+        "meetingAccess": "Meeting Access",
+        "meetingAccessText": "Once your payment is confirmed, you will receive another email with your meeting link and access details.",
+        "important": "Important",
+        "importantText": "Your appointment slot is reserved for 7 days. If payment is not received by the expiry date above, your reservation will be cancelled.",
+        "questions": "Questions?",
+        "questionsText": "If you have any questions about your booking or payment, please contact our support team.",
+        "thankYou": "Thank you for choosing Eleva Care!",
+        "team": "The Eleva Care Team"
+      }
+    },
+    "multibancoPaymentReminder": {
+      "subject": {
+        "gentle": "Friendly Reminder: Complete Your Multibanco Payment",
+        "urgent": "URGENT: Payment Required - Only 1 Day Left!"
+      },
+      "email": {
+        "preview": {
+          "gentle": "Friendly Reminder: Complete Your Multibanco Payment",
+          "urgent": "URGENT: Payment Required - Only 1 Day Left!"
+        },
+        "title": {
+          "gentle": "💙 Friendly Reminder: Complete Your Payment",
+          "urgent": "⚠️ URGENT: Payment Required - Final Reminder"
+        },
+        "greeting": "Dear {customerName},",
+        "reminderNotice": "Just a friendly reminder that you have a Multibanco payment pending for your upcoming appointment.",
+        "timeRemaining": "You still have plenty of time to complete your payment.",
+        "urgentNotice": "This is your FINAL REMINDER to complete your Multibanco payment.",
+        "expiryWarning": "Your reservation will expire in less than 24 hours if payment is not received.",
+        "paymentRequired": "Complete Your Multibanco Payment",
+        "instructions": {
+          "gentle": "You can pay anytime using the Multibanco details below:",
+          "urgent": "Use the Multibanco details below to complete your payment immediately:"
+        },
+        "entity": "Entity",
+        "reference": "Reference",
+        "amount": "Amount",
+        "expiresAt": "Payment expires at",
+        "appointmentDetails": "Your Reserved Appointment",
+        "service": "Service",
+        "expert": "Expert",
+        "date": "Date",
+        "time": "Time",
+        "duration": "Duration",
+        "minutes": "minutes",
+        "customerNotes": "Your Original Notes",
+        "paymentMethods": {
+          "gentle": "Payment Options (Choose Any):",
+          "urgent": "How to Pay (Choose Any):"
+        },
+        "method1": {
+          "gentle": "1. 🏧 ATM: Most convenient - available 24/7",
+          "urgent": "1. 🏧 ATM: Insert card → \"Other Operations\" → \"Payments\" → \"Public Services\""
+        },
+        "method2": {
+          "gentle": "2. 💻 Online Banking: Quick and secure from home",
+          "urgent": "2. 💻 Online Banking: Login → \"Payments\" → \"Multibanco\" → Enter details"
+        },
+        "method3": {
+          "gentle": "3. 📱 MB WAY: If supported by your bank",
+          "urgent": "3. 📱 MB WAY: If supported by your bank"
+        },
+        "viewVoucher": "🎫 View Payment Voucher",
+        "noWorries": "No rush!",
+        "noWorriesText": "You have several days left to complete your payment. We just wanted to make sure you didn't forget!",
+        "consequences": "What happens if you don't pay?",
+        "consequencesText": "Your appointment slot will be automatically released and made available to other customers. You would need to rebook completely.",
+        "support": {
+          "gentle": "Questions?",
+          "urgent": "Need Help?"
+        },
+        "supportText": {
+          "gentle": "Feel free to contact us if you have any questions about the payment process.",
+          "urgent": "Contact our support team immediately if you need assistance with your payment."
+        },
+        "thankYou": {
+          "gentle": "Thank you for choosing Eleva Care!",
+          "urgent": "Don't let your appointment slip away!"
+        },
+        "team": "The Eleva Care Team",
+        "daysRemaining": "You have {daysRemaining} days remaining to complete your payment."
+      }
+    },
+    "appointmentConfirmation": {
+      "subject": "Your Eleva Care appointment has been confirmed",
+      "email": {
+        "preview": "Your Eleva.care appointment has been confirmed",
+        "appointmentConfirmed": "Your appointment has been confirmed",
+        "dearExpert": "Dear {expertName}",
+        "newAppointmentWith": "You have a new appointment with {clientName} for {eventTitle}. We've added this to your calendar.",
+        "appointmentDetails": "Appointment Details:",
+        "type": "Type:",
+        "client": "Client:",
+        "date": "Date:",
+        "time": "Time:",
+        "timezone": "Timezone:",
+        "duration": "Duration:",
+        "videoMeeting": "Video Meeting: A Google Meet link is provided below",
+        "clientNotes": "Client Notes:",
+        "joinGoogleMeet": "Join Google Meet",
+        "clickToJoin": "Click the button above to join the meeting at the scheduled time",
+        "addedToGoogleCalendar": "This appointment has been added to your Google Calendar with the following reminders:",
+        "calendarReminders": "Calendar Reminders:",
+        "emailReminder1Hour": "Email reminder 1 hour before",
+        "emailReminder15Min": "Email reminder 15 minutes before",
+        "popupReminder5Min": "Popup reminder 5 minutes before",
+        "thankYou": "Thank you for using Eleva.care.",
+        "bestRegards": "Best regards,",
+        "team": "The Eleva.care Team",
+        "allRightsReserved": "All rights reserved."
+      }
     }
   }
 }

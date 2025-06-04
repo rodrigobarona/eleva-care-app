@@ -68,6 +68,11 @@ const SCHEDULE_CONFIGS = [
     endpoint: '/api/cron/appointment-reminders',
     schedule: { cron: '0 9 * * *' }, // Daily at 9 AM
   },
+  {
+    name: 'send-payment-reminders',
+    endpoint: '/api/cron/send-payment-reminders',
+    schedule: { cron: '0 */6 * * *' }, // Every 6 hours (at minute 0)
+  },
 ];
 
 interface ScheduleResult {

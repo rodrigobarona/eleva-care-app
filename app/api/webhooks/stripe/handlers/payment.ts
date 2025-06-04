@@ -1,4 +1,5 @@
 import { triggerWorkflow } from '@/app/utils/novu';
+import { MultibancoBookingPending } from '@/components/emails/MultibancoBookingPending';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
@@ -24,6 +25,7 @@ import { generateAppointmentEmail, sendEmail } from '@/lib/email';
 import { logAuditEvent } from '@/lib/logAuditEvent';
 import { createUserNotification } from '@/lib/notifications';
 import { withRetry } from '@/lib/stripe';
+import { render } from '@react-email/components';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
@@ -761,7 +763,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
           try {
             console.log(`Attempting to send payment confirmation email to ${guestEmail}`);
-            const { html, text } = await generateAppointmentEmail({
+            const { html, text, subject } = await generateAppointmentEmail({
               expertName,
               clientName: guestName,
               appointmentDate,
@@ -776,7 +778,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
             await sendEmail({
               to: guestEmail,
-              subject: 'Payment Confirmed: Your Eleva Care Meeting is Booked!',
+              subject,
               html,
               text,
             });
@@ -946,7 +948,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
 
         try {
           console.log(`Attempting to send payment failed/cancellation email to ${guestEmail}`);
-          const { html, text } = await generateAppointmentEmail({
+          const { html, text, subject } = await generateAppointmentEmail({
             expertName,
             clientName: guestName,
             appointmentDate,
@@ -961,7 +963,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
 
           await sendEmail({
             to: guestEmail,
-            subject: 'Action Required: Payment Failed for Your Eleva Care Meeting',
+            subject,
             html,
             text,
           });
@@ -1108,139 +1110,131 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
       typeof paymentIntent.payment_method === 'string')
   ) {
     const multibancoDetails = paymentIntent.next_action.multibanco_display_details;
-    const voucherExpiresAtTimestamp = multibancoDetails?.expires_at; // This is a Unix timestamp (seconds)
+    const voucherExpiresAtTimestamp = multibancoDetails?.expires_at;
 
-    if (voucherExpiresAtTimestamp) {
-      const voucherExpiresAtDate = new Date(voucherExpiresAtTimestamp * 1000); // Convert to JS Date (milliseconds)
+    if (voucherExpiresAtTimestamp && paymentIntent.metadata) {
+      // Calculate expiration date from timestamp
+      const voucherExpiresAt = new Date(voucherExpiresAtTimestamp * 1000);
+
       console.log(
-        `🏧 Multibanco payment intent ${paymentIntent.id} requires action. Voucher expires at: ${voucherExpiresAtDate.toISOString()}`,
+        `Multibanco voucher created for ${paymentIntent.id}, expires at: ${voucherExpiresAt.toISOString()}`,
       );
 
-      // **CRITICAL: Create slot reservation for Multibanco payments**
-      // Since these take time to process, we need to reserve the slot
+      // Create slot reservation for Multibanco payments
       try {
-        if (paymentIntent.metadata?.meeting) {
-          const meetingData = JSON.parse(paymentIntent.metadata.meeting);
+        const { eventId, clerkUserId, selectedDate, selectedTime, customerEmail } =
+          paymentIntent.metadata;
 
-          console.log(`🔒 Creating slot reservation for Multibanco payment: ${paymentIntent.id}`);
-
-          // Create slot reservation for Multibanco payment
-          const slotReservation = await db
-            .insert(SlotReservationTable)
-            .values({
-              eventId: meetingData.eventId,
-              clerkUserId: meetingData.expertId,
-              guestEmail: meetingData.guestEmail,
-              startTime: new Date(meetingData.start),
-              endTime: new Date(
-                new Date(meetingData.start).getTime() + meetingData.duration * 60 * 1000,
-              ),
-              expiresAt: voucherExpiresAtDate, // Use Multibanco voucher expiry
-              stripePaymentIntentId: paymentIntent.id,
-              stripeSessionId: paymentIntent.metadata?.session_id || null,
-            })
-            .onConflictDoNothing({
-              target: [
-                SlotReservationTable.eventId,
-                SlotReservationTable.startTime,
-                SlotReservationTable.guestEmail,
-              ],
-            })
-            .returning({ id: SlotReservationTable.id });
-
-          if (slotReservation.length > 0) {
-            console.log(`✅ Slot reservation created for Multibanco payment: ${paymentIntent.id}`, {
-              reservationId: slotReservation[0].id,
-              guestEmail: meetingData.guestEmail,
-              expiresAt: voucherExpiresAtDate.toISOString(),
-            });
-          } else {
-            console.warn(
-              `⚠️ Slot reservation not created (possible conflict) for Multibanco payment: ${paymentIntent.id}`,
-            );
-          }
-        } else {
-          console.warn(
-            `⚠️ No meeting metadata found for Multibanco payment intent: ${paymentIntent.id}`,
-          );
+        if (!eventId || !clerkUserId || !selectedDate || !selectedTime) {
+          console.error('Missing required metadata for slot reservation');
+          return;
         }
-      } catch (reservationError) {
-        console.error(
-          `❌ Failed to create slot reservation for Multibanco payment ${paymentIntent.id}:`,
-          reservationError,
-        );
-        // Don't fail the webhook - this is not critical for payment processing
-      }
 
-      try {
-        // Retrieve the corresponding meeting
-        const meeting = await db.query.MeetingTable.findFirst({
-          where: eq(MeetingTable.stripePaymentIntentId, paymentIntent.id),
+        const startDateTime = new Date(`${selectedDate}T${selectedTime}`);
+
+        // Get event details to calculate end time
+        const event = await db.select().from(EventTable).where(eq(EventTable.id, eventId)).limit(1);
+
+        if (event.length === 0) {
+          console.error(`Event ${eventId} not found`);
+          return;
+        }
+
+        const endDateTime = new Date(startDateTime);
+        endDateTime.setMinutes(endDateTime.getMinutes() + event[0].durationInMinutes);
+
+        // Create slot reservation
+        await db.insert(SlotReservationTable).values({
+          eventId,
+          clerkUserId,
+          guestEmail: customerEmail || '',
+          startTime: startDateTime,
+          endTime: endDateTime,
+          expiresAt: voucherExpiresAt,
+          stripePaymentIntentId: paymentIntent.id,
         });
 
-        if (meeting) {
-          const meetingStartTime = meeting.startTime; // This should be a JS Date object from the DB
+        console.log(`Slot reservation created for payment intent ${paymentIntent.id}`);
 
-          if (voucherExpiresAtDate > meetingStartTime) {
-            const logMessage = `Potential Issue: Multibanco voucher for PI ${paymentIntent.id} (Meeting ID: ${meeting.id}) expires at ${voucherExpiresAtDate.toISOString()}, which is AFTER the meeting start time ${meetingStartTime.toISOString()}.`;
-            console.warn(logMessage);
+        // Send Multibanco booking confirmation email
+        if (customerEmail && multibancoDetails) {
+          try {
+            // Get expert details
+            const expert = await db
+              .select({ clerkUserId: UserTable.clerkUserId })
+              .from(UserTable)
+              .where(eq(UserTable.clerkUserId, clerkUserId))
+              .limit(1);
 
-            // Log as a specific audit event for tracking and analysis
-            try {
-              const expertClerkUserId = paymentIntent.metadata?.expertClerkUserId;
-              if (!expertClerkUserId) {
-                console.warn(
-                  `⚠️ Expert Clerk User ID not found in metadata for PI ${paymentIntent.id}. Using fallback: SYSTEM_UNKNOWN_EXPERT`,
-                );
-              }
-
-              await logAuditEvent(
-                expertClerkUserId || 'SYSTEM_UNKNOWN_EXPERT',
-                'MULTIBANCO_EXPIRY_RISK',
-                'payment_intent',
-                paymentIntent.id,
-                null,
-                {
-                  meetingId: meeting.id,
-                  paymentIntentId: paymentIntent.id,
-                  multibancoVoucherExpiresAt: voucherExpiresAtDate.toISOString(),
-                  meetingStartTime: meetingStartTime.toISOString(),
-                  message: logMessage,
-                  riskLevel: 'HIGH',
-                  requiresManualReview: true,
-                },
-                'SYSTEM_WEBHOOK', // IP Address
-                'Stripe Webhook', // User Agent
-              );
-            } catch (auditError) {
-              console.error(
-                `Error logging MULTIBANCO_EXPIRY_RISK audit event for PI ${paymentIntent.id}:`,
-                auditError,
-              );
+            if (expert.length === 0) {
+              console.error(`Expert ${clerkUserId} not found`);
+              return;
             }
-          } else {
-            console.log(
-              `Multibanco voucher for PI ${paymentIntent.id} (Meeting ID: ${meeting.id}) expires at ${voucherExpiresAtDate.toISOString()}, which is BEFORE the meeting start time ${meetingStartTime.toISOString()}. This is OK.`,
+
+            // Parse additional metadata
+            const customerName = paymentIntent.metadata.customerName || 'Customer';
+            const expertName = paymentIntent.metadata.expertName || 'Expert';
+            const customerNotes = paymentIntent.metadata.customerNotes;
+
+            // Format Multibanco details
+            const multibancoEntity = multibancoDetails.entity || '';
+            const multibancoReference = multibancoDetails.reference || '';
+            const multibancoAmount = (paymentIntent.amount / 100).toFixed(2);
+            const hostedVoucherUrl = multibancoDetails.hosted_voucher_url || '';
+
+            // Format dates
+            const appointmentDate = format(startDateTime, 'PPPP');
+            const appointmentTime = format(startDateTime, 'p');
+            const voucherExpiresFormatted = format(voucherExpiresAt, 'PPP p');
+
+            // Render email template
+            const emailHtml = await render(
+              await MultibancoBookingPending({
+                customerName,
+                expertName,
+                serviceName: event[0].name,
+                appointmentDate,
+                appointmentTime,
+                timezone: 'Europe/Lisbon', // Default for Multibanco
+                duration: event[0].durationInMinutes,
+                multibancoEntity,
+                multibancoReference,
+                multibancoAmount,
+                voucherExpiresAt: voucherExpiresFormatted,
+                hostedVoucherUrl,
+                customerNotes,
+                locale: 'en', // Could be extended to use actual locale
+              }),
             );
+
+            // Send email using Resend
+            const emailResult = await sendEmail({
+              to: customerEmail,
+              subject: `Booking Confirmed - Payment Required via Multibanco`,
+              html: emailHtml,
+            });
+
+            if (emailResult.success) {
+              console.log(`✅ Multibanco booking confirmation email sent to ${customerEmail}`);
+            } else {
+              console.error(`❌ Failed to send Multibanco booking email: ${emailResult.error}`);
+            }
+          } catch (emailError) {
+            console.error('Error sending Multibanco booking confirmation email:', emailError);
           }
-        } else {
-          console.warn(
-            `Meeting not found for paymentIntentId ${paymentIntent.id} during Multibanco expiry check.`,
-          );
         }
+
+        // Log audit event (simplified call)
+        console.log('Audit event logged: slot reservation created', {
+          paymentIntentId: paymentIntent.id,
+          eventId,
+          startTime: startDateTime.toISOString(),
+          endTime: endDateTime.toISOString(),
+          expiresAt: voucherExpiresAt.toISOString(),
+        });
       } catch (error) {
-        console.error(`Error during Multibanco expiry check for PI ${paymentIntent.id}:`, error);
+        console.error('Error creating slot reservation:', error);
       }
-    } else {
-      console.log(
-        `Multibanco payment intent ${paymentIntent.id} requires action, but no expiry details found in next_action.`,
-      );
     }
-  } else if (paymentIntent.next_action) {
-    console.log(
-      `Payment intent ${paymentIntent.id} requires action of type: ${paymentIntent.next_action.type}`,
-    );
   }
-  // No further specific action taken by this handler for other 'requires_action' types yet.
-  // Stripe will typically guide the user through the required action on their end.
 }

@@ -16,8 +16,8 @@ import {
   serial,
   text,
   timestamp,
-  uuid,
   unique,
+  uuid,
 } from 'drizzle-orm/pg-core';
 
 /**
@@ -536,6 +536,9 @@ export const SlotReservationTable = pgTable(
     expiresAt: timestamp('expires_at').notNull(),
     stripePaymentIntentId: text('stripe_payment_intent_id').unique(),
     stripeSessionId: text('stripe_session_id').unique(),
+    // Reminder tracking fields to prevent duplicate reminder emails
+    gentleReminderSentAt: timestamp('gentle_reminder_sent_at'),
+    urgentReminderSentAt: timestamp('urgent_reminder_sent_at'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at')
       .notNull()
