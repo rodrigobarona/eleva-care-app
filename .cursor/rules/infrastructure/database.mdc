@@ -1,0 +1,257 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Database and Schema Patterns
+
+## Schema Organization
+
+```
+drizzle/
+├── schema.ts        # Main schema definitions
+├── migrations/      # Database migrations
+├── analysis.ts      # Analytics queries
+├── db.ts           # Database connection
+├── auditDb.ts      # Audit database connection
+└── auditSchema.ts  # Audit schema definitions
+```
+
+## Schema Definitions
+
+### 1. Base Schema Types
+```typescript
+// schema/base.ts
+export const baseColumns = {
+  id: text("id").primaryKey(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+};
+```
+
+### 2. Entity Schemas
+```typescript
+// schema/meetings.ts
+export const meetings = pgTable("meetings", {
+  ...baseColumns,
+  expertId: text("expert_id").notNull(),
+  clientId: text("client_id").notNull(),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  status: text("status", { enum: ["scheduled", "completed", "cancelled"] }).notNull(),
+});
+
+// schema/profile.ts
+export const profiles = pgTable("profiles", {
+  ...baseColumns,
+  userId: text("user_id").notNull().unique(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  role: text("role", { enum: ["expert", "client"] }).notNull(),
+});
+```
+
+## Database Operations
+
+### 1. Query Patterns
+```typescript
+// lib/db/queries.ts
+export async function getMeetingsByExpert(expertId: string) {
+  return db
+    .select()
+    .from(meetings)
+    .where(eq(meetings.expertId, expertId))
+    .orderBy(desc(meetings.startTime));
+}
+
+export async function getUpcomingMeetings(userId: string) {
+  return db
+    .select()
+    .from(meetings)
+    .where(
+      and(
+        eq(meetings.status, "scheduled"),
+        or(
+          eq(meetings.expertId, userId),
+          eq(meetings.clientId, userId)
+        ),
+        gt(meetings.startTime, new Date())
+      )
+    )
+    .orderBy(asc(meetings.startTime));
+}
+```
+
+### 2. Mutation Patterns
+```typescript
+// lib/db/mutations.ts
+export async function createMeeting(data: NewMeeting) {
+  return db.transaction(async (tx) => {
+    const meeting = await tx
+      .insert(meetings)
+      .values(data)
+      .returning();
+      
+    await tx
+      .insert(auditLogs)
+      .values({
+        entityType: "meeting",
+        entityId: meeting[0].id,
+        action: "create",
+        userId: data.createdBy,
+      });
+      
+    return meeting[0];
+  });
+}
+```
+
+## Migration Patterns
+
+### 1. Migration Structure
+```typescript
+// drizzle/migrations/0001_initial.ts
+import { sql } from "drizzle-orm";
+
+export async function up(db: Database) {
+  await db.schema
+    .createTable("meetings")
+    .execute();
+    
+  await db.schema
+    .createIndex("meetings_expert_id_idx")
+    .on("meetings")
+    .column("expert_id")
+    .execute();
+}
+
+export async function down(db: Database) {
+  await db.schema
+    .dropTable("meetings")
+    .execute();
+}
+```
+
+### 2. Migration Best Practices
+1. Always make migrations reversible
+2. Add appropriate indexes
+3. Handle data migrations
+4. Test migrations thoroughly
+
+## Audit Logging
+
+### 1. Audit Schema
+```typescript
+// drizzle/auditSchema.ts
+export const auditLogs = pgTable("audit_logs", {
+  ...baseColumns,
+  entityType: text("entity_type").notNull(),
+  entityId: text("entity_id").notNull(),
+  action: text("action").notNull(),
+  userId: text("user_id").notNull(),
+  details: jsonb("details"),
+});
+```
+
+### 2. Audit Logging Pattern
+```typescript
+// lib/logAuditEvent.ts
+export async function logAuditEvent({
+  entityType,
+  entityId,
+  action,
+  userId,
+  details,
+}: AuditEvent) {
+  return auditDb
+    .insert(auditLogs)
+    .values({
+      entityType,
+      entityId,
+      action,
+      userId,
+      details,
+    });
+}
+```
+
+## Best Practices
+
+### 1. Schema Design
+- Use appropriate column types
+- Implement proper constraints
+- Add necessary indexes
+- Follow naming conventions
+
+### 2. Query Optimization
+- Use proper indexes
+- Avoid N+1 queries
+- Implement pagination
+- Monitor query performance
+
+### 3. Data Integrity
+- Use transactions when needed
+- Implement proper constraints
+- Handle race conditions
+- Validate data properly
+
+### 4. Security
+- Use parameterized queries
+- Implement row-level security
+- Handle sensitive data properly
+- Monitor database access
+
+## Testing Guidelines
+
+### 1. Schema Tests
+```typescript
+describe("Meeting Schema", () => {
+  it("validates meeting data", () => {
+    const meeting = NewMeetingSchema.parse({
+      expertId: "exp_123",
+      clientId: "cli_123",
+      startTime: new Date(),
+      endTime: new Date(),
+    });
+    expect(meeting).toBeDefined();
+  });
+});
+```
+
+### 2. Query Tests
+```typescript
+describe("Meeting Queries", () => {
+  it("gets upcoming meetings", async () => {
+    const meetings = await getUpcomingMeetings("user_123");
+    expect(meetings).toHaveLength(1);
+    expect(meetings[0].status).toBe("scheduled");
+  });
+});
+```
+
+## Monitoring and Performance
+
+### 1. Query Monitoring
+```typescript
+export async function monitorQuery<T>(
+  name: string,
+  query: () => Promise<T>
+): Promise<T> {
+  const start = performance.now();
+  try {
+    return await query();
+  } finally {
+    const duration = performance.now() - start;
+    // Log query metrics
+    console.log(`Query ${name} took ${duration}ms`);
+  }
+}
+```
+
+### 2. Performance Optimization
+- Use appropriate indexes
+- Monitor query performance
+- Implement caching where needed
+- Use connection pooling
+- Optimize large queries
+- Monitor database load

@@ -1,0 +1,169 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Next.js App Router and Internationalization Patterns
+
+## Directory Structure
+
+```
+app/
+├── [locale]/           # Locale-specific routes
+├── (private)/         # Private/authenticated routes
+├── api/               # API routes
+├── utils/             # App-specific utilities
+└── data/             # Static data and content
+```
+
+## Route Groups
+
+### Private Routes
+```typescript
+// app/(private)/layout.tsx
+import { auth } from "@clerk/nextjs";
+import { redirect } from "next/navigation";
+
+export default async function PrivateLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { userId } = auth();
+  if (!userId) redirect("/sign-in");
+  
+  return <>{children}</>;
+}
+```
+
+### Internationalization
+
+1. **Locale Detection**
+```typescript
+// app/i18n.ts
+import { match } from '@formatjs/intl-localematcher';
+import Negotiator from 'negotiator';
+
+export const locales = ['en', 'es', 'pt'];
+export const defaultLocale = 'en';
+
+export function getLocale(headers: Headers): string {
+  const languages = new Negotiator({ headers }).languages();
+  return match(languages, locales, defaultLocale);
+}
+```
+
+2. **Dictionary Loading**
+```typescript
+// app/[locale]/dictionaries.ts
+export async function getDictionary(locale: string) {
+  return (await import(`./dictionaries/${locale}.json`)).default;
+}
+```
+
+## Metadata
+
+### Dynamic Metadata
+```typescript
+// app/[locale]/layout.tsx
+export async function generateMetadata({
+  params: { locale }
+}: {
+  params: { locale: string }
+}) {
+  const t = await getDictionary(locale);
+  
+  return {
+    title: t.metadata.title,
+    description: t.metadata.description,
+  };
+}
+```
+
+## Best Practices
+
+1. **Route Organization**
+   - Use route groups for logical separation
+   - Keep authentication in layouts
+   - Implement proper loading states
+   - Handle errors at route level
+
+2. **Internationalization**
+   - Use server-side locale detection
+   - Implement proper fallbacks
+   - Support RTL languages
+   - Handle date/number formatting
+
+3. **Performance**
+   - Use streaming where possible
+   - Implement proper caching
+   - Handle loading states
+   - Use proper error boundaries
+
+4. **SEO**
+   - Implement proper metadata
+   - Handle dynamic routes
+   - Support multiple languages
+   - Implement proper sitemaps
+
+## Common Patterns
+
+1. **Authentication Flow**
+```typescript
+// app/(private)/profile/page.tsx
+import { auth } from "@clerk/nextjs";
+
+export default async function ProfilePage() {
+  const { userId } = auth();
+  const user = await getUser(userId);
+  
+  return <ProfileView user={user} />;
+}
+```
+
+2. **API Routes**
+```typescript
+// app/api/[locale]/route.ts
+import { NextResponse } from "next/server";
+import { getDictionary } from "@/app/[locale]/dictionaries";
+
+export async function GET(
+  request: Request,
+  { params: { locale } }: { params: { locale: string } }
+) {
+  const dictionary = await getDictionary(locale);
+  return NextResponse.json(dictionary);
+}
+```
+
+3. **Error Handling**
+```typescript
+// app/[locale]/error.tsx
+'use client';
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error;
+  reset: () => void;
+}) {
+  return (
+    <div>
+      <h2>Something went wrong!</h2>
+      <button onClick={reset}>Try again</button>
+    </div>
+  );
+}
+```
+
+## Validation Rules
+
+1. Always implement proper error boundaries
+2. Use proper loading states
+3. Handle authentication in layouts
+4. Implement proper internationalization
+5. Use proper metadata
+6. Handle SEO properly
+7. Use proper caching strategies
+8. Implement proper streaming where possible

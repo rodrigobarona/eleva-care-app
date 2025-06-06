@@ -526,17 +526,25 @@ await db.transaction(async (tx) => {
   }
 
   // Create reservation with conflict handling
-  const reservation = await tx.insert(SlotReservationTable).values({
-    eventId,
-    clerkUserId,
-    guestEmail,
-    startTime,
-    endTime,
-    expiresAt,
-    stripeSessionId: sessionId,
-  }).onConflictDoNothing({
-    target: [SlotReservationTable.eventId, SlotReservationTable.startTime, SlotReservationTable.guestEmail],
-  }).returning({ id: SlotReservationTable.id });
+  const reservation = await tx
+    .insert(SlotReservationTable)
+    .values({
+      eventId,
+      clerkUserId,
+      guestEmail,
+      startTime,
+      endTime,
+      expiresAt,
+      stripeSessionId: sessionId,
+    })
+    .onConflictDoNothing({
+      target: [
+        SlotReservationTable.eventId,
+        SlotReservationTable.startTime,
+        SlotReservationTable.guestEmail,
+      ],
+    })
+    .returning({ id: SlotReservationTable.id });
 
   // Validate insertion success
   if (reservation.length === 0) {
@@ -558,6 +566,7 @@ await db.insert(SlotReservationTable).values({...}); // Race condition!
 ```
 
 **Implementation Checklist**:
+
 - ✅ Wrap check + insert in `db.transaction()`
 - ✅ Use `onConflictDoNothing()` with unique constraint targeting
 - ✅ Validate insertion success (check returned array length)

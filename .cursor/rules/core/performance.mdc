@@ -1,0 +1,141 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Performance Optimization Guidelines
+
+## 1. Server Components Optimization
+
+### Use Server Components by Default
+```typescript
+// Good: Server Component
+export default async function ExpertList() {
+  const experts = await getExperts();
+  return <ExpertListView experts={experts} />;
+}
+
+// Bad: Unnecessary Client Component
+'use client';
+export default function ExpertList() {
+  const { data: experts } = useQuery(['experts']);
+  return <ExpertListView experts={experts} />;
+}
+```
+
+## 2. Image Optimization
+
+### Next.js Image Component
+```typescript
+// Good: Optimized Image
+import Image from 'next/image';
+
+export function Avatar({ src }) {
+  return (
+    <Image
+      src={src}
+      width={64}
+      height={64}
+      alt="User avatar"
+      placeholder="blur"
+    />
+  );
+}
+```
+
+## 3. Route Optimization
+
+### Route Segments
+- Use route groups for code organization
+- Implement parallel routes for complex layouts
+- Use loading.tsx for streaming
+
+## 4. Data Fetching
+
+### Parallel Data Fetching
+```typescript
+// Good: Parallel requests
+const [user, posts] = await Promise.all([
+  getUser(userId),
+  getUserPosts(userId),
+]);
+
+// Bad: Sequential requests
+const user = await getUser(userId);
+const posts = await getUserPosts(userId);
+```
+
+## 5. Bundle Optimization
+
+### Dynamic Imports
+```typescript
+// Good: Dynamic import
+const Chart = dynamic(() => import('@/components/Chart'), {
+  loading: () => <ChartSkeleton />,
+});
+```
+
+## 6. Caching Strategy
+
+### Route Cache
+```typescript
+// Good: Route segment config
+export const revalidate = 3600; // Revalidate every hour
+
+// Good: Dynamic cache control
+export async function generateMetadata() {
+  const data = await getData();
+  return {
+    headers: {
+      'Cache-Control': 'max-age=3600',
+    },
+  };
+}
+```
+
+## 7. Database Optimization
+
+### Query Optimization
+```typescript
+// Good: Optimized query
+const result = await db
+  .select({
+    id: experts.id,
+    name: experts.name,
+  })
+  .from(experts)
+  .where(eq(experts.status, 'active'))
+  .limit(10);
+
+// Bad: Over-fetching
+const result = await db
+  .select()
+  .from(experts)
+  .where(eq(experts.status, 'active'));
+```
+
+## Best Practices
+
+1. **Component Level**
+   - Use Server Components where possible
+   - Implement proper code splitting
+   - Optimize images and media
+   - Minimize client-side JavaScript
+
+2. **Data Level**
+   - Implement proper caching
+   - Use parallel data fetching
+   - Optimize database queries
+   - Implement pagination
+
+3. **Build Level**
+   - Minimize bundle size
+   - Enable compression
+   - Use production builds
+   - Monitor performance metrics
+
+4. **Monitoring**
+   - Track Core Web Vitals
+   - Monitor server response times
+   - Track client-side performance
+   - Set up alerts for degradation
