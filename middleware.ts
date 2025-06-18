@@ -514,6 +514,26 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return NextResponse.next();
   }
 
+  // Handle Novu routes
+  if (path.startsWith('/api/novu')) {
+    console.log('🔔 Novu route detected:', path);
+    const novuSecretKey = req.headers.get('authorization')?.replace('Bearer ', '');
+
+    if (novuSecretKey === process.env.NOVU_SECRET_KEY) {
+      console.log('✅ Valid Novu secret key, allowing access');
+      return NextResponse.next();
+    }
+
+    console.log('❌ Invalid or missing Novu secret key');
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+  }
+
   // Beyond this point, authentication is required
   const { userId } = await auth();
 

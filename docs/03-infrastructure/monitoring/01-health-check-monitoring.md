@@ -96,7 +96,7 @@ POSTHOG_API_KEY=your_posthog_api_key
 POSTHOG_HOST=https://app.posthog.com  # Or your self-hosted instance URL
 
 # Novu Configuration
-NOVU_API_KEY=your_novu_api_key
+NOVU_SECRET_KEY=your_novu_secret_key
 NOVU_ADMIN_SUBSCRIBER_ID=admin  # The subscriber ID to receive notifications
 ```
 

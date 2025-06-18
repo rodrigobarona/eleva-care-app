@@ -11,7 +11,6 @@
 
 // Environment variables (also defined in config/env.ts)
 const NOVU_SECRET_KEY = process.env.NOVU_SECRET_KEY;
-const NOVU_API_KEY = process.env.NOVU_API_KEY;
 const NOVU_BASE_URL = process.env.NOVU_BASE_URL || 'https://eu.api.novu.co';
 const NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER = process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER;
 
@@ -25,14 +24,13 @@ async function testConnection() {
     `  NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER: ${NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER || '❌ Not set'}`,
   );
   console.log(`  NOVU_SECRET_KEY: ${NOVU_SECRET_KEY ? '✅ Set (hidden)' : '❌ Not set'}`);
-  console.log(`  NOVU_API_KEY: ${NOVU_API_KEY ? '✅ Set (hidden)' : '❌ Not set'}\n`);
 
-  const apiKey = NOVU_SECRET_KEY || NOVU_API_KEY;
+  const apiKey = NOVU_SECRET_KEY;
 
   if (!apiKey || !NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) {
     console.error('❌ Missing required environment variables');
     console.log('\nRequired variables:');
-    console.log('  NOVU_SECRET_KEY=novu_secret_key_here (or NOVU_API_KEY)');
+    console.log('  NOVU_SECRET_KEY=novu_secret_key_here');
     console.log('  NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER=app_identifier_here');
     console.log('\nSee docs/02-core-systems/notifications/ for setup details');
     process.exit(1);
@@ -164,7 +162,7 @@ async function testConnection() {
 async function checkPermissions() {
   console.log('🔐 Checking API permissions...\n');
 
-  const apiKey = NOVU_SECRET_KEY || NOVU_API_KEY;
+  const apiKey = NOVU_SECRET_KEY;
 
   const endpoints = [
     { name: 'Organizations', endpoint: 'organizations/me', method: 'GET' },

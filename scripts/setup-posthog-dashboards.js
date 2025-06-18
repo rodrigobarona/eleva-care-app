@@ -41,283 +41,448 @@ async function postHogAPI(endpoint, method = 'GET', data = null) {
   const response = await fetch(url, options);
 
   if (!response.ok) {
-    throw new Error(`PostHog API error: ${response.status} ${response.statusText}`);
+    const errorText = await response.text();
+    throw new Error(`PostHog API error: ${response.status} ${response.statusText} - ${errorText}`);
   }
 
   return response.json();
 }
 
-// Dashboard configurations
+// Updated dashboard configurations with legacy filter structures that the PostHog API expects
 const dashboards = [
   {
     name: 'Application Overview',
     description: 'High-level application health and usage metrics',
-    tiles: [
+    insights: [
       {
         name: 'Daily Active Users',
-        query: {
-          kind: 'EventsQuery',
-          select: ['count(distinct(person_id))'],
-          event: '$pageview',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: '$pageview',
+              name: '$pageview',
+              type: 'events',
+              order: 0,
+              math: 'dau',
+            },
+          ],
           interval: 'day',
-          dateRange: { date_from: '-30d' },
+          date_from: '-30d',
+          date_to: null,
         },
-        layout: { x: 0, y: 0, w: 6, h: 4 },
       },
       {
-        name: 'Page Views by Route Type',
-        query: {
-          kind: 'EventsQuery',
-          select: ['count()'],
-          event: '$pageview',
-          breakdowns: ['properties.route_type'],
+        name: 'Total Page Views',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: '$pageview',
+              name: '$pageview',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
           interval: 'day',
-          dateRange: { date_from: '-7d' },
+          date_from: '-7d',
+          date_to: null,
         },
-        layout: { x: 6, y: 0, w: 6, h: 4 },
       },
       {
-        name: 'User Authentication Rate',
-        query: {
-          kind: 'EventsQuery',
-          select: ['count()'],
-          event: '$pageview',
-          breakdowns: ['properties.user_authenticated'],
+        name: 'Weekly Active Users',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: '$pageview',
+              name: '$pageview',
+              type: 'events',
+              order: 0,
+              math: 'weekly_active',
+            },
+          ],
           interval: 'day',
-          dateRange: { date_from: '-7d' },
+          date_from: '-30d',
+          date_to: null,
         },
-        layout: { x: 0, y: 4, w: 6, h: 4 },
       },
       {
-        name: 'Error Rate Trends',
-        query: {
-          kind: 'EventsQuery',
-          select: ['count()'],
-          event: 'javascript_error',
+        name: 'Error Events',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: '$exception',
+              name: '$exception',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
           interval: 'hour',
-          dateRange: { date_from: '-24h' },
+          date_from: '-24h',
+          date_to: null,
         },
-        layout: { x: 6, y: 4, w: 6, h: 4 },
       },
     ],
   },
   {
     name: 'Health Check Monitoring',
     description: 'System health and infrastructure monitoring',
-    tiles: [
+    insights: [
       {
-        name: 'Health Check Success Rate',
-        query: {
-          kind: 'EventsQuery',
-          select: ['count()'],
-          event: ['health_check_success', 'health_check_failed'],
-          breakdowns: ['event'],
+        name: 'Health Check Success',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: 'health_check_success',
+              name: 'health_check_success',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
           interval: 'hour',
-          dateRange: { date_from: '-24h' },
+          date_from: '-24h',
+          date_to: null,
         },
-        layout: { x: 0, y: 0, w: 8, h: 4 },
       },
       {
-        name: 'Memory Usage Distribution',
-        query: {
-          kind: 'EventsQuery',
-          select: ['avg(toFloat64(properties.memory.percentage))'],
-          event: ['health_check_success', 'health_check_failed'],
+        name: 'Health Check Failures',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: 'health_check_failed',
+              name: 'health_check_failed',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
           interval: 'hour',
-          dateRange: { date_from: '-24h' },
+          date_from: '-24h',
+          date_to: null,
         },
-        layout: { x: 8, y: 0, w: 4, h: 4 },
       },
       {
-        name: 'Environment Health Status',
-        query: {
-          kind: 'EventsQuery',
-          select: ['count()'],
-          event: ['health_check_success', 'health_check_failed'],
-          breakdowns: ['properties.environment', 'event'],
-          dateRange: { date_from: '-24h' },
+        name: 'System Uptime',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: 'health_check_success',
+              name: 'health_check_success',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
+          interval: 'hour',
+          date_from: '-24h',
+          date_to: null,
         },
-        layout: { x: 0, y: 4, w: 12, h: 4 },
       },
     ],
   },
   {
     name: 'User Experience',
     description: 'User behavior and experience optimization',
-    tiles: [
+    insights: [
       {
-        name: 'Page Load Performance',
-        query: {
-          kind: 'EventsQuery',
-          select: ['avg(toFloat64(properties.load_time))'],
-          event: 'page_performance',
-          breakdowns: ['properties.pathname'],
-          dateRange: { date_from: '-7d' },
-        },
-        layout: { x: 0, y: 0, w: 8, h: 4 },
-      },
-      {
-        name: 'User Journey Flow',
-        query: {
-          kind: 'FunnelsQuery',
-          series: [
-            { event: '$pageview', name: 'Page View' },
-            { event: 'user_signed_in', name: 'Sign In' },
-            { event: 'business_appointment_booked', name: 'Booking' },
+        name: 'Page Performance Events',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: 'page_performance',
+              name: 'page_performance',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
           ],
-          dateRange: { date_from: '-30d' },
+          date_from: '-7d',
+          date_to: null,
         },
-        layout: { x: 8, y: 0, w: 4, h: 4 },
       },
       {
-        name: 'Feature Flag Exposure',
-        query: {
-          kind: 'EventsQuery',
-          select: ['count()'],
-          event: 'feature_flag_exposure',
-          breakdowns: ['properties.flag_key', 'properties.flag_value'],
-          dateRange: { date_from: '-7d' },
+        name: 'User Journey Funnel',
+        filters: {
+          insight: 'FUNNELS',
+          events: [
+            {
+              id: '$pageview',
+              name: 'Page View',
+              type: 'events',
+              order: 0,
+            },
+            {
+              id: 'user_signed_in',
+              name: 'Sign In',
+              type: 'events',
+              order: 1,
+            },
+            {
+              id: 'business_appointment_booked',
+              name: 'Booking',
+              type: 'events',
+              order: 2,
+            },
+          ],
+          date_from: '-30d',
+          date_to: null,
         },
-        layout: { x: 0, y: 4, w: 12, h: 4 },
+      },
+      {
+        name: 'Feature Flag Events',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: '$feature_flag_called',
+              name: '$feature_flag_called',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
+          date_from: '-7d',
+          date_to: null,
+        },
       },
     ],
   },
   {
     name: 'Business Intelligence',
     description: 'Business metrics and revenue optimization',
-    tiles: [
+    insights: [
       {
         name: 'Conversion Funnel',
-        query: {
-          kind: 'FunnelsQuery',
-          series: [
-            { event: '$pageview', name: 'Page Visit' },
-            { event: 'business_expert_contacted', name: 'Expert Contact' },
-            { event: 'business_appointment_booked', name: 'Appointment' },
-            { event: 'business_payment_completed', name: 'Payment' },
+        filters: {
+          insight: 'FUNNELS',
+          events: [
+            {
+              id: '$pageview',
+              name: 'Page Visit',
+              type: 'events',
+              order: 0,
+            },
+            {
+              id: 'business_expert_contacted',
+              name: 'Expert Contact',
+              type: 'events',
+              order: 1,
+            },
+            {
+              id: 'business_appointment_booked',
+              name: 'Appointment',
+              type: 'events',
+              order: 2,
+            },
+            {
+              id: 'business_payment_completed',
+              name: 'Payment',
+              type: 'events',
+              order: 3,
+            },
           ],
-          dateRange: { date_from: '-30d' },
+          date_from: '-30d',
+          date_to: null,
         },
-        layout: { x: 0, y: 0, w: 12, h: 6 },
       },
       {
-        name: 'Business Events Trends',
-        query: {
-          kind: 'EventsQuery',
-          select: ['count()'],
-          event: [
-            'business_appointment_booked',
-            'business_payment_completed',
-            'business_expert_contacted',
+        name: 'Appointment Bookings',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: 'business_appointment_booked',
+              name: 'business_appointment_booked',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
           ],
-          breakdowns: ['event'],
           interval: 'day',
-          dateRange: { date_from: '-30d' },
+          date_from: '-30d',
+          date_to: null,
         },
-        layout: { x: 0, y: 6, w: 8, h: 4 },
       },
       {
-        name: 'Revenue Metrics',
-        query: {
-          kind: 'EventsQuery',
-          select: ['sum(toFloat64(properties.amount))'],
-          event: 'business_payment_completed',
+        name: 'Payment Completions',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: 'business_payment_completed',
+              name: 'business_payment_completed',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
           interval: 'day',
-          dateRange: { date_from: '-30d' },
+          date_from: '-30d',
+          date_to: null,
         },
-        layout: { x: 8, y: 6, w: 4, h: 4 },
+      },
+      {
+        name: 'Expert Contacts',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: 'business_expert_contacted',
+              name: 'business_expert_contacted',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
+          interval: 'day',
+          date_from: '-30d',
+          date_to: null,
+        },
       },
     ],
   },
   {
     name: 'Technical Performance',
     description: 'Application performance and error monitoring',
-    tiles: [
+    insights: [
       {
-        name: 'JavaScript Error Rate by Page',
-        query: {
-          kind: 'EventsQuery',
-          select: ['count()'],
-          event: 'javascript_error',
-          breakdowns: ['properties.pathname'],
-          dateRange: { date_from: '-7d' },
+        name: 'JavaScript Errors',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: '$exception',
+              name: '$exception',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
+          date_from: '-7d',
+          date_to: null,
         },
-        layout: { x: 0, y: 0, w: 8, h: 4 },
       },
       {
-        name: 'API Performance',
-        query: {
-          kind: 'EventsQuery',
-          select: ['avg(toFloat64(properties.value))'],
-          event: 'performance_metric',
-          filters: [{ key: 'properties.metric', operator: 'exact', value: 'api_call_time' }],
-          breakdowns: ['properties.endpoint'],
-          dateRange: { date_from: '-24h' },
+        name: 'API Calls',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: 'api_call',
+              name: 'api_call',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
+          date_from: '-24h',
+          date_to: null,
         },
-        layout: { x: 8, y: 0, w: 4, h: 4 },
       },
       {
-        name: 'Core Web Vitals',
-        query: {
-          kind: 'EventsQuery',
-          select: ['percentile(toFloat64(properties.load_time), 0.95)'],
-          event: 'page_performance',
+        name: 'Page Performance',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: 'page_performance',
+              name: 'page_performance',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
           interval: 'hour',
-          dateRange: { date_from: '-24h' },
+          date_from: '-24h',
+          date_to: null,
         },
-        layout: { x: 0, y: 4, w: 6, h: 4 },
       },
       {
-        name: 'Error Types Distribution',
-        query: {
-          kind: 'EventsQuery',
-          select: ['count()'],
-          event: ['javascript_error', 'unhandled_promise_rejection', 'react_error_boundary'],
-          breakdowns: ['event'],
-          dateRange: { date_from: '-7d' },
+        name: 'Error Rate Trend',
+        filters: {
+          insight: 'TRENDS',
+          events: [
+            {
+              id: '$exception',
+              name: '$exception',
+              type: 'events',
+              order: 0,
+              math: 'total',
+            },
+          ],
+          interval: 'hour',
+          date_from: '-24h',
+          date_to: null,
         },
-        layout: { x: 6, y: 4, w: 6, h: 4 },
       },
     ],
   },
 ];
 
-// Create dashboard
+// Create insights first, then dashboard
+async function createInsight(insightConfig) {
+  console.log(`  📈 Creating insight: ${insightConfig.name}`);
+
+  try {
+    const insight = await postHogAPI('insights/', 'POST', {
+      name: insightConfig.name,
+      filters: insightConfig.filters,
+      description: `Insight for ${insightConfig.name}`,
+    });
+
+    console.log(`  ✅ Insight created with ID: ${insight.id}`);
+    return insight;
+  } catch (error) {
+    console.error(`  ❌ Error creating insight "${insightConfig.name}":`, error.message);
+    throw error;
+  }
+}
+
+// Create dashboard and add insights to it
 async function createDashboard(dashboardConfig) {
   console.log(`📊 Creating dashboard: ${dashboardConfig.name}`);
 
   try {
-    // Create the dashboard
+    // Create the dashboard first
     const dashboard = await postHogAPI('dashboards/', 'POST', {
       name: dashboardConfig.name,
       description: dashboardConfig.description,
       pinned: true,
-      creation_mode: 'template',
     });
 
     console.log(`✅ Dashboard created with ID: ${dashboard.id}`);
 
-    // Create tiles for the dashboard
-    for (const tile of dashboardConfig.tiles) {
-      console.log(`  📈 Adding tile: ${tile.name}`);
+    // Create insights and add them to the dashboard
+    const createdInsights = [];
+    for (const insightConfig of dashboardConfig.insights) {
+      const insight = await createInsight(insightConfig);
 
-      const insight = await postHogAPI('insights/', 'POST', {
-        name: tile.name,
-        query: tile.query,
-        dashboards: [dashboard.id],
-      });
-
-      // Add tile to dashboard with layout
-      await postHogAPI(`dashboards/${dashboard.id}/tiles/`, 'POST', {
-        insight: insight.id,
-        layouts: {
-          sm: tile.layout,
-        },
-      });
+      // Add insight to dashboard by updating the insight's dashboards array
+      try {
+        await postHogAPI(`insights/${insight.id}/`, 'PATCH', {
+          dashboards: [dashboard.id],
+        });
+        console.log(`  📌 Added insight "${insight.name}" to dashboard`);
+        createdInsights.push(insight);
+      } catch (error) {
+        console.warn(`  ⚠️ Warning: Could not add insight to dashboard: ${error.message}`);
+        // Continue with other insights
+      }
     }
 
-    console.log(`✅ Dashboard "${dashboardConfig.name}" setup complete\n`);
-    return dashboard;
+    console.log(
+      `✅ Dashboard "${dashboardConfig.name}" setup complete with ${createdInsights.length} insights\n`,
+    );
+    return { dashboard, insights: createdInsights };
   } catch (error) {
     console.error(`❌ Error creating dashboard "${dashboardConfig.name}":`, error.message);
     throw error;
@@ -332,21 +497,24 @@ async function setupDashboards() {
     const createdDashboards = [];
 
     for (const dashboardConfig of dashboards) {
-      const dashboard = await createDashboard(dashboardConfig);
-      createdDashboards.push(dashboard);
+      const result = await createDashboard(dashboardConfig);
+      createdDashboards.push(result);
     }
 
     console.log('🎉 All dashboards created successfully!');
     console.log('\nCreated dashboards:');
-    createdDashboards.forEach((d) => {
+    createdDashboards.forEach((result) => {
+      const d = result.dashboard;
       console.log(`  - ${d.name}: ${POSTHOG_HOST}/project/${POSTHOG_PROJECT_ID}/dashboard/${d.id}`);
+      console.log(`    Insights: ${result.insights.length}`);
     });
 
     // Save dashboard URLs to a file
-    const dashboardUrls = createdDashboards.map((d) => ({
-      name: d.name,
-      id: d.id,
-      url: `${POSTHOG_HOST}/project/${POSTHOG_PROJECT_ID}/dashboard/${d.id}`,
+    const dashboardUrls = createdDashboards.map((result) => ({
+      name: result.dashboard.name,
+      id: result.dashboard.id,
+      url: `${POSTHOG_HOST}/project/${POSTHOG_PROJECT_ID}/dashboard/${result.dashboard.id}`,
+      insights: result.insights.length,
     }));
 
     fs.writeFileSync(
@@ -355,8 +523,17 @@ async function setupDashboards() {
     );
 
     console.log('\n📝 Dashboard URLs saved to docs/posthog-dashboard-urls.json');
+    console.log(
+      '🎯 Total insights created:',
+      createdDashboards.reduce((sum, d) => sum + d.insights.length, 0),
+    );
   } catch (error) {
     console.error('❌ Setup failed:', error.message);
+    console.log('\n🔧 Troubleshooting:');
+    console.log('1. Check your PostHog API key has dashboard and insight permissions');
+    console.log('2. Verify your project ID is correct');
+    console.log('3. Ensure your PostHog instance URL is correct');
+    console.log('4. Check if you have network access to PostHog');
     process.exit(1);
   }
 }
@@ -366,4 +543,4 @@ if (require.main === module) {
   setupDashboards();
 }
 
-module.exports = { setupDashboards, createDashboard, postHogAPI };
+module.exports = { setupDashboards, createDashboard, createInsight, postHogAPI };
