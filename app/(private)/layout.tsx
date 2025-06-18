@@ -32,7 +32,7 @@ export default async function PrivateLayout({ children }: PrivateLayoutProps) {
             <AppBreadcrumb />
           </div>
         </header>
-        <div className="flex flex-1 flex-col gap-4 overflow-y-auto rounded-xl bg-white p-4 pt-0">
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto rounded-b-xl bg-white p-4 pt-0">
           {children}
         </div>
       </SidebarInset>
