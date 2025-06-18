@@ -1,72 +1,156 @@
-# Clerk v6 (Core 2) Configuration Guide
+# Clerk Core 2 (v6) Configuration Guide
 
-This document outlines the proper configuration for Clerk v6 (Core 2) in our application.
+This document outlines the proper configuration for Clerk Core 2 (v6) in our application, including OAuth integration fixes.
 
 ## Environment Variables
 
-In Clerk v6, the redirection URL handling has changed. Here are the updated environment variables to use:
+In Clerk Core 2, the redirection URL handling has changed significantly. Here are the updated environment variables to use:
 
-```
-# Deprecated (Clerk v5)
-NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/dashboard"
-NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/dashboard"
+### Required Variables
 
-# Recommended (Clerk v6 Core 2)
+```env
+# Authentication (Clerk Core 2)
+CLERK_SECRET_KEY=your_clerk_secret_key
+CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
+CLERK_WEBHOOK_SECRET=your_webhook_secret
+
+# Clerk Core 2 Redirect URLs (Required for proper OAuth handling)
 NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL="/dashboard"
 NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL="/dashboard"
+NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
+NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
+NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL="/"
+
+# Optional Force Redirect URLs (use with caution - interrupts user flow)
+NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL=""
+NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL=""
 ```
 
-## Provider Configuration
+### Key Changes from Core 1
 
-In your `ClerkProvider` component, use environment variables for all URLs:
+1. **Removed Dashboard Path Configuration**: Redirect URLs can no longer be configured in the Clerk Dashboard
+2. **New Environment Variables**: Force and fallback redirect URLs replace the deprecated `afterSignXUrl` pattern
+3. **Improved OAuth Handling**: External account connections use the `AuthenticateWithRedirectCallback` component
 
-```tsx
-<ClerkProvider
-  signInFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}
-  signUpFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL}
-  signInUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}
-  signUpUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}
->
-  {children}
-</ClerkProvider>
+## OAuth Configuration
+
+### Google Account Integration
+
+The OAuth flow has been completely rewritten for Core 2:
+
+#### Before (Core 1 - Deprecated):
+
+```javascript
+// ❌ DEPRECATED - Don't use
+window.Clerk.authenticateWithRedirect({
+  strategy: 'oauth_google',
+  redirectUrl: callbackUrl,
+});
 ```
 
-This approach keeps all URLs configured in your environment files, allowing for easier maintenance and different configurations across environments.
+#### After (Core 2 - Current):
 
-## How Redirection Works in Clerk v6
+```javascript
+// ✅ CORRECT - Core 2 approach
+const externalAccount = await user.createExternalAccount({
+  strategy: 'oauth_google',
+  redirectUrl: callbackUrl, // camelCase in Core 2
+});
 
-The redirection after authentication follows this order of precedence:
-
-1. The `redirect_url` query parameter in the callback URL takes highest priority
-2. The `signInFallbackRedirectUrl` prop in `ClerkProvider` (or equivalent env var) is used as fallback
-3. If neither is specified, Clerk will redirect to the root path `/`
-
-## SSO Callback Handling
-
-The SSO callback is handled by Clerk's `AuthenticateWithRedirectCallback` component:
-
-```tsx
-export default function SSOCallback() {
-  return <AuthenticateWithRedirectCallback />;
+if (externalAccount?.verification?.externalVerificationRedirectURL) {
+  window.location.href = externalAccount.verification.externalVerificationRedirectURL.toString();
 }
 ```
 
-This component automatically uses the redirection configuration from the `ClerkProvider`.
+### Callback Page Implementation
 
-## Common Issues and Solutions
+Use the `AuthenticateWithRedirectCallback` component properly:
 
-- **Issue**: Users redirected to homepage instead of dashboard after SSO login
+```jsx
+import { AuthenticateWithRedirectCallback } from '@clerk/nextjs';
 
-  - **Solution**: Ensure `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL` is set to `/dashboard` in your environment variables
+export default function CallbackPage() {
+  return (
+    <AuthenticateWithRedirectCallback
+      signInFallbackRedirectUrl="/account/security"
+      signUpFallbackRedirectUrl="/account/security"
+    />
+  );
+}
+```
 
-- **Issue**: Client-side redirection not working
+## Password Management
 
-  - **Solution**: Check browser console for errors; ensure environment variables are properly set and accessible to the client
+Core 2 has updated password management requirements:
 
-- **Issue**: Random redirects to sign-in page while already authenticated
-  - **Solution**: Ensure your middleware is correctly configured and not redirecting authenticated users
+### Password Updates
 
-## Additional Resources
+```javascript
+// ✅ Core 2 - requires currentPassword for existing users
+await user.updatePassword({
+  currentPassword: 'current_password',
+  newPassword: 'new_password',
+  signOutOfOtherSessions: true, // Recommended for security
+});
 
-- [Clerk Core 2 Migration Guide](https://clerk.com/docs/upgrade-guides/core-2)
-- [Clerk Redirect URLs Documentation](https://clerk.com/docs/references/javascript/clerk/redirect-urls)
+// ❌ DEPRECATED - Core 1 pattern
+await user.update({ password: 'new_password' });
+```
+
+## Troubleshooting OAuth Issues
+
+### Common Issues and Solutions
+
+1. **"API Key not found" Error**
+
+   - Ensure `CLERK_SECRET_KEY` and `CLERK_PUBLISHABLE_KEY` are set
+   - Verify the keys are from the correct Clerk instance/environment
+
+2. **Redirect URL Mismatch**
+
+   - Check that callback URLs match exactly in Clerk Dashboard
+   - Ensure protocol (http/https) matches between development and production
+   - Format: `https://yourdomain.com/account/security/callback`
+
+3. **OAuth Flow Stuck in Loading**
+
+   - Verify `AuthenticateWithRedirectCallback` is implemented correctly
+   - Check browser network tab for failed requests
+   - Ensure fallback redirect URLs are configured
+
+4. **External Account Creation Fails**
+   - Verify Google OAuth is enabled in Clerk Dashboard
+   - Check that `redirectUrl` parameter uses camelCase (Core 2)
+   - Ensure the callback URL is whitelisted
+
+### Debug Configuration
+
+Add this to check your Core 2 setup:
+
+```javascript
+console.log('Clerk Core 2 Config:', {
+  callbackUrl: `${window.location.origin}/account/security/callback`,
+  fallbackRedirectUrl: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL,
+  signInUrl: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,
+  environment: process.env.NODE_ENV,
+});
+```
+
+## Migration Checklist
+
+- [ ] Update environment variables to Core 2 format
+- [ ] Replace deprecated `afterSignXUrl` with `signXFallbackRedirectUrl`
+- [ ] Update OAuth callback to use `AuthenticateWithRedirectCallback`
+- [ ] Fix external account creation to use `redirectUrl` (camelCase)
+- [ ] Update password management to use `updatePassword()` method
+- [ ] Remove global Clerk object dependencies
+- [ ] Test OAuth flow end-to-end
+
+## Security Considerations
+
+1. **Force Redirect URLs**: Use sparingly as they interrupt user flow
+2. **Fallback Redirect URLs**: Safer option that respects user navigation context
+3. **Sign Out of Other Sessions**: Enable when changing passwords for security
+4. **Callback URL Validation**: Ensure callback URLs are properly whitelisted in production
+
+For additional support, see the [official Clerk Core 2 upgrade guide](https://clerk.com/docs/upgrade-guides/core-2).

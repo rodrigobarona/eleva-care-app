@@ -5,6 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/atoms/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/molecules/alert-dialog';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -20,19 +30,8 @@ import { useRouter } from 'next/navigation';
 import React, { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
-// Define types for Clerk global object
-declare global {
-  interface Window {
-    Clerk?: {
-      client: {
-        authenticateWithRedirect: (params: {
-          strategy: string;
-          redirectUrl: string;
-        }) => Promise<void>;
-      };
-    };
-  }
-}
+// Clerk Core 2 (v6) - Using proper component-based OAuth handling
+// No need for global Clerk object declarations
 
 // Add this helper function at the top level of your file
 const formatLastSeen = (date: Date) => {
@@ -78,6 +77,11 @@ export default function SecurityPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
+  const [accountToDisconnect, setAccountToDisconnect] = useState<{
+    id: string;
+    email: string;
+  } | null>(null);
 
   const loadSessions = useCallback(async () => {
     if (!user || !isUserLoaded) return;
@@ -95,6 +99,31 @@ export default function SecurityPage() {
   React.useEffect(() => {
     loadSessions();
   }, [loadSessions]);
+
+  // Detect OAuth success and show success message
+  React.useEffect(() => {
+    // Check if user just returned from OAuth callback
+    const urlParams = new URLSearchParams(window.location.search);
+    const fromOAuth = sessionStorage.getItem('oauth_return_url');
+
+    if (fromOAuth === '/account/security' || urlParams.get('oauth_success') === 'true') {
+      // Clear the OAuth return URL
+      sessionStorage.removeItem('oauth_return_url');
+
+      // Show success message after a short delay to ensure UI is ready
+      setTimeout(() => {
+        toast.success('Google account connected successfully!', {
+          duration: 4000,
+        });
+      }, 1000);
+
+      // Clean URL if it has oauth_success parameter
+      if (urlParams.get('oauth_success')) {
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, newUrl);
+      }
+    }
+  }, []);
 
   // Calculate password strength whenever password changes
   React.useEffect(() => {
@@ -254,16 +283,27 @@ export default function SecurityPage() {
     }
   };
 
-  const handleDisconnectAccount = async (accountId: string) => {
+  const handleInitiateDisconnect = (accountId: string, email: string) => {
+    setAccountToDisconnect({ id: accountId, email });
+    setShowDisconnectDialog(true);
+  };
+
+  const handleConfirmDisconnect = async () => {
+    if (!accountToDisconnect) return;
+
     try {
       setIsLoading(true);
-      const account = user?.externalAccounts.find((acc) => acc.id === accountId);
+      setShowDisconnectDialog(false);
+
+      const account = user?.externalAccounts.find((acc) => acc.id === accountToDisconnect.id);
       const googleEmail = account?.emailAddress;
 
       // Disconnect the account using the destroy() method
-      const accountToDisconnect = user?.externalAccounts.find((acc) => acc.id === accountId);
-      if (accountToDisconnect) {
-        await accountToDisconnect.destroy();
+      const accountToDestroy = user?.externalAccounts.find(
+        (acc) => acc.id === accountToDisconnect.id,
+      );
+      if (accountToDestroy) {
+        await accountToDestroy.destroy();
       }
 
       // Find and remove the email if it's not the primary email
@@ -297,7 +337,7 @@ export default function SecurityPage() {
         new CustomEvent('google-account-disconnected', {
           detail: {
             timestamp: new Date().toISOString(),
-            accountId,
+            accountId: accountToDisconnect.id,
             email: googleEmail,
           },
         }),
@@ -306,11 +346,6 @@ export default function SecurityPage() {
       toast.success(
         `Successfully disconnected Google account${googleEmail ? ` (${googleEmail})` : ''}`,
       );
-
-      // Force a reload after a short delay to ensure all changes are reflected
-      setTimeout(() => {
-        window.location.href = '/account/security';
-      }, 1500);
     } catch (error) {
       console.error('Error disconnecting account:', error);
       toast.error('Failed to disconnect account. Please try again.');
@@ -364,86 +399,68 @@ export default function SecurityPage() {
         sessionStorage.setItem('is_expert_oauth_flow', 'true');
       }
 
-      // IMPORTANT: Store the return URL to handle proper redirection
+      // Store the return URL to handle proper redirection
       sessionStorage.setItem('oauth_return_url', '/account/security');
 
       // Create a callback URL for the OAuth flow - must match what's configured in Clerk dashboard
       const callbackUrl = `${window.location.origin}/account/security/callback`;
 
+      // Debug logging
+      console.log('🔧 OAuth Debug Info:', {
+        callbackUrl,
+        baseUrl: window.location.origin,
+        environment: process.env.NODE_ENV,
+      });
+
       // Show loading toast
       toast.loading('Connecting to Google...', { id: 'google-connect' });
 
-      // Generate a PKCE code verifier and challenge for enhanced security
-      const codeVerifier = Array.from(
-        { length: 64 },
-        () =>
-          'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~'[
-            Math.floor(Math.random() * 66)
-          ],
-      ).join('');
+      try {
+        // Use the correct Clerk Core 2 method to create external account
+        const externalAccount = await user.createExternalAccount({
+          strategy: 'oauth_google',
+          redirectUrl: callbackUrl, // Core 2 uses 'redirectUrl' (camelCase)
+        });
 
-      // Store the code verifier in session storage to be used in the callback
-      sessionStorage.setItem('oauth_code_verifier', codeVerifier);
+        console.log('✅ External account creation response:', {
+          hasVerification: !!externalAccount?.verification,
+          hasRedirectURL: !!externalAccount?.verification?.externalVerificationRedirectURL,
+          redirectURL: externalAccount?.verification?.externalVerificationRedirectURL?.toString(),
+        });
 
-      // Use the standard createExternalAccount method to start the OAuth flow
-      // Note: scopes and verification parameters are now configured in Clerk Dashboard
-      const externalAccount = await user.createExternalAccount({
-        strategy: 'oauth_google',
-        redirectUrl: callbackUrl,
-      });
+        if (externalAccount?.verification?.externalVerificationRedirectURL) {
+          // Dismiss loading toast
+          toast.dismiss('google-connect');
 
-      if (externalAccount?.verification?.externalVerificationRedirectURL) {
-        // Dismiss loading toast
-        toast.dismiss('google-connect');
+          // Navigate to the OAuth URL - Core 2 handles this automatically
+          window.location.href =
+            externalAccount.verification.externalVerificationRedirectURL.toString();
+        } else {
+          throw new Error('No verification URL provided by Clerk');
+        }
+      } catch (createAccountError) {
+        console.error('❌ Error creating external account:', createAccountError);
+        throw createAccountError;
+      }
+    } catch (error) {
+      console.error('❌ Error connecting account:', error);
 
-        // Add parameters to enhance security and UX
-        const redirectUrl = new URL(externalAccount.verification.externalVerificationRedirectURL);
-
-        // Force Google to show the account selector, even if user is already logged in
-        redirectUrl.searchParams.append('prompt', 'select_account');
-
-        // Navigate to the OAuth URL
-        window.location.href = redirectUrl.toString();
-      } else {
-        throw new Error('No verification URL provided');
+      // Provide more specific error messages
+      let errorMessage = 'Failed to connect account';
+      if (error instanceof Error) {
+        if (error.message.includes('redirect')) {
+          errorMessage =
+            'OAuth redirect URL mismatch. Please check your Clerk Dashboard configuration.';
+        } else if (error.message.includes('verification')) {
+          errorMessage = 'OAuth verification failed. Please try again.';
+        } else if (error.message.includes('already_connected')) {
+          errorMessage = 'This Google account is already connected to another user.';
+        } else {
+          errorMessage = `Connection failed: ${error.message}`;
+        }
       }
 
-      // Add a custom function to automatically update metadata after connection
-      window.addEventListener(
-        'google-account-connected',
-        async function onConnected(event) {
-          console.log('Detected Google account connection event:', event);
-          try {
-            // Remove the listener to prevent duplicate handling
-            window.removeEventListener('google-account-connected', onConnected);
-
-            // Update the metadata directly in addition to the server check
-            if (user?.unsafeMetadata) {
-              const expertSetup = {
-                ...((user.unsafeMetadata.expertSetup as Record<string, boolean>) || {}),
-              };
-              expertSetup.google_account = true;
-
-              await user.update({
-                unsafeMetadata: {
-                  ...user.unsafeMetadata,
-                  expertSetup,
-                },
-              });
-              console.log('Updated Google account connection status in metadata');
-            }
-          } catch (updateError) {
-            console.error('Error updating metadata after Google connection:', updateError);
-          }
-        },
-        { once: true },
-      ); // Ensure it only runs once
-    } catch (error) {
-      console.error('Error connecting account:', error);
-      toast.error(
-        `Failed to connect account: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        { id: 'google-connect' },
-      );
+      toast.error(errorMessage, { id: 'google-connect' });
       setIsConnectingAccount(false);
     }
   };
@@ -827,7 +844,7 @@ export default function SecurityPage() {
                   </div>
                   <Button
                     variant="outline"
-                    onClick={() => handleDisconnectAccount(account.id)}
+                    onClick={() => handleInitiateDisconnect(account.id, account.emailAddress)}
                     disabled={isLoading}
                   >
                     {isLoading ? 'Disconnecting...' : 'Disconnect'}
@@ -838,6 +855,66 @@ export default function SecurityPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Google Account Disconnect Confirmation Dialog */}
+      <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Disconnect Google Account?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  You are about to disconnect your Google account{' '}
+                  <span className="font-semibold">{accountToDisconnect?.email}</span>.
+                </p>
+                <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-4">
+                  <div className="flex items-start space-x-3">
+                    <svg
+                      className="mt-0.5 h-5 w-5 flex-shrink-0 text-yellow-600"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <div>
+                      <h4 className="text-sm font-semibold text-yellow-800">
+                        This will affect your calendar availability
+                      </h4>
+                      <div className="mt-2 text-sm text-yellow-700">
+                        <ul className="list-inside list-disc space-y-1">
+                          <li>You won&apos;t be able to show available time slots for bookings</li>
+                          <li>
+                            Existing calendar meetings will remain but new ones cannot be created
+                          </li>
+                          <li>Your expert profile may become unavailable for appointments</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  You can reconnect your Google account at any time to restore calendar
+                  functionality.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDisconnect}
+              disabled={isLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isLoading ? 'Disconnecting...' : 'Disconnect Account'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Add User ID section */}
       <Card>
