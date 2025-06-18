@@ -402,8 +402,8 @@ export default function SecurityPage() {
       // Store the return URL to handle proper redirection
       sessionStorage.setItem('oauth_return_url', '/account/security');
 
-      // Create a callback URL for the OAuth flow - must match what's configured in Clerk dashboard
-      const callbackUrl = `${window.location.origin}/account/security/callback`;
+      // Redirect directly to security page with success parameter - no separate callback needed
+      const callbackUrl = `${window.location.origin}/account/security?oauth_success=true`;
 
       // Debug logging
       console.log('🔧 OAuth Debug Info:', {
