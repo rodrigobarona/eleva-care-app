@@ -63,7 +63,19 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
         dashboardUrl: '/account/billing',
       };
 
-      await triggerWorkflow('marketplace-payout-processed', payload, subscriber.subscriberId);
+      await triggerWorkflow({
+        workflowId: 'marketplace-payout-processed',
+        to: subscriber,
+        payload,
+        actor: {
+          subscriberId: 'system',
+          data: {
+            source: 'stripe-webhook',
+            payoutId: payout.id,
+            timestamp: new Date().toISOString(),
+          },
+        },
+      });
       console.log('✅ Marketplace payout notification sent via Novu');
     } catch (novuError) {
       console.error('❌ Failed to trigger marketplace payout notification:', novuError);
@@ -120,7 +132,19 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
         actionUrl: '/account/connect',
       };
 
-      await triggerWorkflow('marketplace-connect-status', payload, subscriber.subscriberId);
+      await triggerWorkflow({
+        workflowId: 'marketplace-connect-status',
+        to: subscriber,
+        payload,
+        actor: {
+          subscriberId: 'system',
+          data: {
+            source: 'stripe-webhook',
+            accountId: user.id,
+            timestamp: new Date().toISOString(),
+          },
+        },
+      });
       console.log('✅ Marketplace payout failure notification sent via Novu');
     } catch (novuError) {
       console.error('❌ Failed to trigger marketplace payout failure notification:', novuError);

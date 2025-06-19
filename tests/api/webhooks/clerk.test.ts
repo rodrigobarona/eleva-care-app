@@ -125,13 +125,18 @@ const createWebhookHandler = () => {
   const handleWebhookEvent = async (event: any) => {
     const workflow = await workflowBuilder(event);
     if (!workflow) {
+      console.log(`Unsupported event type: ${event.type}`);
       return;
     }
 
     const subscriber = await subscriberBuilder(event);
     const payload = await payloadBuilder(event);
 
-    await triggerWorkflow(workflow, payload, subscriber.subscriberId);
+    await triggerWorkflow({
+      workflowId: workflow,
+      to: subscriber,
+      payload,
+    });
   };
 
   return async (request: NextRequest) => {
@@ -362,12 +367,16 @@ describe('Clerk Webhook Handler', () => {
       expect(response.status).toBe(200);
       expect(data.message).toBe('Webhook received');
       expect(triggerWorkflow).toHaveBeenCalledWith(
-        'user-created',
         expect.objectContaining({
-          eventType: 'user.created',
-          timestamp: expect.any(Number),
+          workflowId: 'user-created',
+          payload: expect.objectContaining({
+            eventType: 'user.created',
+            timestamp: expect.any(Number),
+          }),
+          to: expect.objectContaining({
+            subscriberId: 'user_123',
+          }),
         }),
-        'user_123',
       );
     });
 
@@ -386,9 +395,12 @@ describe('Clerk Webhook Handler', () => {
 
       expect(response.status).toBe(200);
       expect(triggerWorkflow).toHaveBeenCalledWith(
-        'recent-login-v2',
-        expect.any(Object),
-        'user_123',
+        expect.objectContaining({
+          workflowId: 'recent-login-v2',
+          to: expect.objectContaining({
+            subscriberId: 'user_123',
+          }),
+        }),
       );
     });
 
@@ -407,9 +419,12 @@ describe('Clerk Webhook Handler', () => {
 
       expect(response.status).toBe(200);
       expect(triggerWorkflow).toHaveBeenCalledWith(
-        'user-profile-updated',
-        expect.any(Object),
-        'user_123',
+        expect.objectContaining({
+          workflowId: 'user-profile-updated',
+          to: expect.objectContaining({
+            subscriberId: 'user_123',
+          }),
+        }),
       );
     });
 
@@ -429,9 +444,12 @@ describe('Clerk Webhook Handler', () => {
 
       expect(response.status).toBe(200);
       expect(triggerWorkflow).toHaveBeenCalledWith(
-        'auth-magic-link-login',
-        expect.any(Object),
-        'user_123',
+        expect.objectContaining({
+          workflowId: 'auth-magic-link-login',
+          to: expect.objectContaining({
+            subscriberId: 'user_123',
+          }),
+        }),
       );
     });
 
@@ -451,9 +469,12 @@ describe('Clerk Webhook Handler', () => {
 
       expect(response.status).toBe(200);
       expect(triggerWorkflow).toHaveBeenCalledWith(
-        'verification-code-v2',
-        expect.any(Object),
-        'user_123',
+        expect.objectContaining({
+          workflowId: 'verification-code-v2',
+          to: expect.objectContaining({
+            subscriberId: 'user_123',
+          }),
+        }),
       );
     });
 
@@ -473,9 +494,12 @@ describe('Clerk Webhook Handler', () => {
 
       expect(response.status).toBe(200);
       expect(triggerWorkflow).toHaveBeenCalledWith(
-        'email-unknown-email-type',
-        expect.any(Object),
-        'user_123',
+        expect.objectContaining({
+          workflowId: 'email-unknown-email-type',
+          to: expect.objectContaining({
+            subscriberId: 'user_123',
+          }),
+        }),
       );
     });
 
@@ -585,7 +609,14 @@ describe('Clerk Webhook Handler', () => {
 
       await POST(mockRequest);
 
-      expect(triggerWorkflow).toHaveBeenCalledWith('user-created', expect.any(Object), 'user_123');
+      expect(triggerWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflowId: 'user-created',
+          to: expect.objectContaining({
+            subscriberId: 'user_123',
+          }),
+        }),
+      );
     });
 
     it('should handle missing optional user fields', async () => {
@@ -599,7 +630,14 @@ describe('Clerk Webhook Handler', () => {
 
       await POST(mockRequest);
 
-      expect(triggerWorkflow).toHaveBeenCalledWith('user-created', expect.any(Object), 'user_123');
+      expect(triggerWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflowId: 'user-created',
+          to: expect.objectContaining({
+            subscriberId: 'user_123',
+          }),
+        }),
+      );
     });
 
     it('should use to_email_address fallback when email_addresses is missing', async () => {
@@ -614,7 +652,14 @@ describe('Clerk Webhook Handler', () => {
 
       await POST(mockRequest);
 
-      expect(triggerWorkflow).toHaveBeenCalledWith('user-created', expect.any(Object), 'user_123');
+      expect(triggerWorkflow).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workflowId: 'user-created',
+          to: expect.objectContaining({
+            subscriberId: 'user_123',
+          }),
+        }),
+      );
     });
   });
 
@@ -637,23 +682,27 @@ describe('Clerk Webhook Handler', () => {
       await POST(mockRequest);
 
       expect(triggerWorkflow).toHaveBeenCalledWith(
-        'user-created',
         expect.objectContaining({
-          id: 'user_123',
-          first_name: 'John',
-          valid_string: 'test',
-          valid_number: 42,
-          valid_boolean: true,
-          valid_object: { nested: 'value' },
-          eventType: 'user.created',
-          timestamp: expect.any(Number),
+          workflowId: 'user-created',
+          payload: expect.objectContaining({
+            id: 'user_123',
+            first_name: 'John',
+            valid_string: 'test',
+            valid_number: 42,
+            valid_boolean: true,
+            valid_object: { nested: 'value' },
+            eventType: 'user.created',
+            timestamp: expect.any(Number),
+          }),
+          to: expect.objectContaining({
+            subscriberId: 'user_123',
+          }),
         }),
-        'user_123',
       );
 
       // Ensure cleaned data doesn't include null/undefined values
       const triggerCall = (triggerWorkflow as jest.Mock).mock.calls[0];
-      const payload = triggerCall[1];
+      const payload = triggerCall[0].payload;
       expect(payload).not.toHaveProperty('last_name');
       expect(payload).not.toHaveProperty('some_undefined_field');
     });

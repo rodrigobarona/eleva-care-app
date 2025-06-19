@@ -125,7 +125,19 @@ export async function handleAccountUpdated(account: Stripe.Account) {
                 detailsSubmitted: account.details_submitted,
               };
 
-              await triggerWorkflow('marketplace-connect-status', payload, subscriber.subscriberId);
+              await triggerWorkflow({
+                workflowId: 'marketplace-connect-status',
+                to: subscriber,
+                payload,
+                actor: {
+                  subscriberId: 'system',
+                  data: {
+                    source: 'stripe-webhook',
+                    accountId: account.id,
+                    timestamp: new Date().toISOString(),
+                  },
+                },
+              });
               console.log('✅ Novu workflow triggered for Connect account update');
             } catch (novuError) {
               console.error('❌ Failed to trigger Novu workflow:', novuError);

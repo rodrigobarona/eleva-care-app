@@ -697,7 +697,19 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               dashboardUrl: '/account/billing',
             };
 
-            await triggerWorkflow('marketplace-payment-received', payload, subscriber.subscriberId);
+            await triggerWorkflow({
+              workflowId: 'marketplace-payment-received',
+              to: subscriber,
+              payload,
+              actor: {
+                subscriberId: 'system',
+                data: {
+                  source: 'stripe-webhook',
+                  paymentIntentId: paymentIntent.id,
+                  timestamp: new Date().toISOString(),
+                },
+              },
+            });
             console.log('✅ Marketplace payment notification sent via Novu');
           }
         } catch (novuError) {

@@ -41,157 +41,165 @@ export async function POST(request: NextRequest) {
   console.log('📥 Received Clerk webhook request');
 
   // Get headers from the request
-  const headersList = request.headers;
-  const svixId = headersList.get('svix-id');
-  const svixTimestamp = headersList.get('svix-timestamp');
-  const svixSignature = headersList.get('svix-signature');
-
-  // Log headers for debugging
-  console.log('📋 Webhook headers:', {
-    'svix-id': svixId,
-    'svix-timestamp': svixTimestamp,
-    'svix-signature': svixSignature?.substring(0, 10) + '...',
-  });
+  const svixId = request.headers.get('svix-id');
+  const svixTimestamp = request.headers.get('svix-timestamp');
+  const svixSignature = request.headers.get('svix-signature');
 
   if (!svixId || !svixTimestamp || !svixSignature) {
     console.error('❌ Missing required Svix headers');
-    return NextResponse.json({ error: 'Missing required Svix headers' }, { status: 400 });
+    return NextResponse.json({ error: 'Missing required headers' }, { status: 400 });
   }
 
-  if (!ENV_CONFIG.CLERK_WEBHOOK_SECRET) {
-    console.error('❌ Missing CLERK_WEBHOOK_SECRET environment variable');
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
-  }
+  const payload = await request.text();
+  const body = JSON.stringify(JSON.parse(payload));
 
-  let payload: string;
+  // Create new Svix instance
+  const wh = new Webhook(ENV_CONFIG.CLERK_WEBHOOK_SECRET);
+
+  let evt: WebhookEvent;
+
+  // Verify the payload against the headers
   try {
-    payload = await request.text();
-  } catch (err) {
-    console.error('❌ Error reading request body:', err);
-    return NextResponse.json({ error: 'Error reading request body' }, { status: 400 });
-  }
-
-  let event: WebhookEvent;
-  try {
-    const webhook = new Webhook(ENV_CONFIG.CLERK_WEBHOOK_SECRET);
-    event = webhook.verify(payload, {
+    evt = wh.verify(body, {
       'svix-id': svixId,
       'svix-timestamp': svixTimestamp,
       'svix-signature': svixSignature,
     }) as WebhookEvent;
   } catch (err) {
-    console.error('❌ Error verifying webhook signature:', err);
-    return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
+    console.error('❌ Error verifying webhook:', err);
+    return NextResponse.json({ error: 'Error verifying webhook' }, { status: 400 });
   }
 
-  console.log(`📨 Webhook verified: ${event.type} for user ${event.data.id}`);
-
-  // Handle Google account connection for experts
-  if (event.type === 'user.updated') {
-    const userData = event.data as UserJSON;
-    const externalAccounts = userData.external_accounts || [];
-    const googleAccounts = externalAccounts.filter((account) => account.provider === 'google');
-
-    if (googleAccounts.length > 0) {
-      console.log(`🔍 Google account detected for user ${userData.id}`);
-      try {
-        const result = await handleGoogleAccountConnection();
-        if (result.success) {
-          console.log(`✅ Expert setup updated for user ${userData.id}`);
-        } else {
-          console.warn(`⚠️ Expert setup update failed:`, result.error);
-        }
-      } catch (err) {
-        console.error(`❌ Error in expert setup:`, err);
-      }
-    }
-  }
+  console.log(`✅ Verified webhook with event type: ${evt.type}`);
 
   try {
-    await handleWebhookEvent(event);
-    return NextResponse.json({ success: true, eventType: event.type }, { status: 200 });
-  } catch (err) {
-    console.error('❌ Error processing webhook:', err);
-    return NextResponse.json({ error: 'Error processing webhook' }, { status: 500 });
+    // Handle the webhook event
+    await handleWebhookEvent(evt);
+
+    return NextResponse.json({ success: true, eventType: evt.type }, { status: 200 });
+  } catch (error) {
+    console.error('❌ Error processing webhook event:', error);
+    return NextResponse.json({ error: 'Error processing webhook event' }, { status: 500 });
   }
 }
 
+/**
+ * Handle the verified webhook event
+ */
 const handleWebhookEvent = async (event: WebhookEvent) => {
-  const workflow = await workflowBuilder(event);
-  if (!workflow) {
-    console.log(`Unsupported Clerk event type: ${event.type}`);
+  const workflowId = await workflowBuilder(event);
+  if (!workflowId) {
+    console.log(`ℹ️ Unsupported event type: ${event.type}`);
     return;
   }
 
-  try {
-    const subscriber = await subscriberBuilder(event);
-    const payload = await payloadBuilder(event);
+  const subscriber = await subscriberBuilder(event);
+  const payload = await payloadBuilder(event);
 
-    console.log('Triggering Clerk workflow:', {
-      workflow,
-      subscriberId: subscriber.subscriberId,
-      eventType: event.type,
-    });
+  console.log('🚀 Triggering Novu workflow:', {
+    workflowId,
+    subscriberId: subscriber.subscriberId,
+    eventType: event.type,
+  });
 
-    await triggerWorkflow(workflow, payload, subscriber.subscriberId);
-  } catch (error) {
-    console.error('Error handling Clerk webhook event:', error);
-    throw error;
+  // Use the new trigger function with modern API
+  const result = await triggerWorkflow({
+    workflowId,
+    to: subscriber,
+    payload,
+    // Add actor information for audit trails
+    actor: {
+      subscriberId: 'system',
+      data: {
+        source: 'clerk-webhook',
+        eventType: event.type,
+        timestamp: new Date().toISOString(),
+      },
+    },
+  });
+
+  if (result) {
+    console.log('✅ Successfully triggered Novu workflow');
+  } else {
+    console.warn('⚠️ Failed to trigger Novu workflow');
+  }
+
+  // Handle special cases that require additional processing
+  if (event.type === 'user.created' && event.data) {
+    await handleGoogleAccountConnection();
   }
 };
 
+/**
+ * Build the workflow ID from the event
+ */
 async function workflowBuilder(event: WebhookEvent): Promise<string | undefined> {
-  if (!EVENT_TO_WORKFLOW_MAPPINGS[event.type as keyof typeof EVENT_TO_WORKFLOW_MAPPINGS]) {
+  const eventMapping =
+    EVENT_TO_WORKFLOW_MAPPINGS[event.type as keyof typeof EVENT_TO_WORKFLOW_MAPPINGS];
+
+  if (!eventMapping) {
     return undefined;
   }
 
-  if (event.type === 'email.created' && event.data.slug) {
+  // Handle email events with sub-types
+  if (event.type === 'email.created' && event.data?.slug) {
     const emailMappings = EVENT_TO_WORKFLOW_MAPPINGS['email.created'];
     const emailSlug = event.data.slug as keyof typeof emailMappings;
     return emailMappings[emailSlug] || `email-${String(emailSlug).replace(/_/g, '-')}`;
   }
 
-  return EVENT_TO_WORKFLOW_MAPPINGS[
-    event.type as keyof typeof EVENT_TO_WORKFLOW_MAPPINGS
-  ] as string;
+  return eventMapping as string;
 }
 
-async function subscriberBuilder(response: WebhookEvent) {
-  const userData = response.data as UserJSON;
+/**
+ * Build subscriber data from the webhook event
+ */
+async function subscriberBuilder(event: WebhookEvent) {
+  const userData = event.data as UserJSON;
 
   if (!userData.id) {
-    throw new Error('Missing subscriber ID from Clerk webhook data');
+    throw new Error('Missing subscriber ID from webhook data');
   }
 
+  // Type assertion for user_id field that might exist in some events
+  const userDataWithId = userData as UserJSON & { user_id?: string; to_email_address?: string };
+
   return {
-    subscriberId: userData.id,
+    subscriberId: userDataWithId.user_id ?? userData.id,
     firstName: userData.first_name ?? undefined,
     lastName: userData.last_name ?? undefined,
     email:
-      userData.email_addresses?.[0]?.email_address ??
-      (userData as UserJSON & { to_email_address?: string }).to_email_address ??
-      undefined,
+      userData.email_addresses?.[0]?.email_address ?? userDataWithId.to_email_address ?? undefined,
     phone: userData.phone_numbers?.[0]?.phone_number ?? undefined,
     locale: 'en_US',
     avatar: userData.image_url ?? undefined,
     data: {
-      clerkUserId: userData.id,
+      clerkUserId: userDataWithId.user_id ?? userData.id,
       username: userData.username ?? '',
-      role: (userData.public_metadata as { role?: string })?.role ?? 'user',
+      createdAt: userData.created_at || 0,
+      updatedAt: userData.updated_at || 0,
+      lastSignInAt: userData.last_sign_in_at || 0,
     },
   };
 }
 
-async function payloadBuilder(response: WebhookEvent) {
+/**
+ * Build payload data from the webhook event
+ */
+async function payloadBuilder(event: WebhookEvent) {
   // Clean the payload to remove null values and ensure type compatibility
-  const data = response.data as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  const cleanedData: Record<string, string | number | boolean | Record<string, unknown>> = {};
+  const cleanedData: Record<
+    string,
+    string | number | boolean | Record<string, unknown> | string[] | undefined
+  > = {};
 
-  // Copy non-null values from data
-  for (const [key, value] of Object.entries(data)) {
+  // Process each field from event.data and filter out null values
+  for (const [key, value] of Object.entries(event.data)) {
     if (value !== null && value !== undefined) {
       if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
         cleanedData[key] = value;
+      } else if (Array.isArray(value)) {
+        cleanedData[key] = value as string[];
       } else if (typeof value === 'object') {
         cleanedData[key] = value as Record<string, unknown>;
       }
@@ -200,7 +208,8 @@ async function payloadBuilder(response: WebhookEvent) {
 
   return {
     ...cleanedData,
-    eventType: response.type,
-    timestamp: Date.now(),
+    eventType: event.type,
+    timestamp: new Date().toISOString(),
+    source: 'clerk',
   };
 }
