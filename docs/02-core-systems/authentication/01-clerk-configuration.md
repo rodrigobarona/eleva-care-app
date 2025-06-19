@@ -12,7 +12,7 @@ In Clerk Core 2, the redirection URL handling has changed significantly. Here ar
 # Authentication (Clerk Core 2)
 CLERK_SECRET_KEY=your_clerk_secret_key
 CLERK_PUBLISHABLE_KEY=your_clerk_publishable_key
-CLERK_WEBHOOK_SECRET=your_webhook_secret
+CLERK_WEBHOOK_SIGNING_SECRET=your_webhook_secret
 
 # Clerk Core 2 Redirect URLs (Required for proper OAuth handling)
 NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL="/dashboard"
