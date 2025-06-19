@@ -7,7 +7,7 @@ if [[ $BRANCH == feat/* || $BRANCH == fix/* || $BRANCH == chore/* ]]; then
   
   # Only run the important, up-to-date tests
   echo "🔍 Running critical API and webhook tests..."
-  npx jest tests/api/create-payment-intent.test.ts tests/api/webhooks/ --passWithNoTests
+  pnpm exec jest tests/api/create-payment-intent.test.ts tests/api/webhooks/ --passWithNoTests
   
   echo "✅ Critical tests completed!"
 else

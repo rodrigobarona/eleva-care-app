@@ -35,7 +35,7 @@
     "test:e2e": "jest tests/e2e",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
-    "prepare": "husky install",
+    "prepare": "husky",
     "setup:posthog-dashboards": "node -r dotenv/config scripts/setup-posthog-dashboards.js",
     "posthog:dashboards": "npm run setup:posthog-dashboards",
     "test:posthog": "node -r dotenv/config scripts/test-posthog-connection.js",
@@ -222,11 +222,5 @@
     "*.{js,jsx,json,css,md}": [
       "prettier --write"
     ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged",
-      "pre-push": "pnpm test"
-    }
   }
 }
