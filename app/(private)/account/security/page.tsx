@@ -88,6 +88,11 @@ const getDaysSincePasswordUpdate = (lastUpdated: string): string => {
   return `${diffDays} days ago`;
 };
 
+/**
+ * Renders the Security Settings page, allowing users to manage their password, connected devices, Google account integrations, user ID, and account deletion.
+ *
+ * This component provides UI and logic for password management (including setting, changing, and displaying password status), viewing and managing active device sessions, connecting or disconnecting Google accounts, copying the user ID, and permanently deleting the account. It integrates with Clerk authentication and session management, handles expert-specific metadata updates, and provides user feedback through notifications and dialogs.
+ */
 export default function SecurityPage() {
   const router = useRouter();
   const { isLoaded: isUserLoaded, user } = useUser();
