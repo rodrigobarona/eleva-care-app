@@ -1,9 +1,18 @@
 import { handleGoogleAccountConnection } from '@/server/actions/expert-setup';
 import { WebhookEvent } from '@clerk/nextjs/server';
 import { verifyWebhook } from '@clerk/nextjs/webhooks';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
+
+// Webhook signing secret from Clerk Dashboard
+const webhookSecret = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
+
+if (!webhookSecret) {
+  throw new Error(
+    'Please add CLERK_WEBHOOK_SIGNING_SECRET from Clerk Dashboard to .env or .env.local',
+  );
+}
 
 type ClerkEventType =
   | 'email.created'
@@ -107,10 +116,20 @@ async function handleClerkEvent(evt: WebhookEvent) {
 export async function POST(req: NextRequest) {
   try {
     const evt = await verifyWebhook(req);
+
+    // Do something with payload
+    // For this guide, log payload to console
+    const { id } = evt.data;
+    const eventType = evt.type;
+    console.log(`Received webhook with ID ${id} and event type of ${eventType}`);
+    console.log('Webhook payload:', evt.data);
+
+    // Process the webhook
     await handleClerkEvent(evt);
-    return NextResponse.json({ message: 'Webhook processed successfully' }, { status: 200 });
-  } catch (error) {
-    console.error('Error processing webhook:', error);
-    return NextResponse.json({ error: 'Error processing webhook' }, { status: 400 });
+
+    return new Response('Webhook received', { status: 200 });
+  } catch (err) {
+    console.error('Error verifying webhook:', err);
+    return new Response('Error verifying webhook', { status: 400 });
   }
 }
