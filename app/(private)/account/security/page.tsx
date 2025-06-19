@@ -157,10 +157,8 @@ export default function SecurityPage() {
 
           if (result.success) {
             console.log('✅ Google account connection status updated in expert metadata');
-            // Force a page reload to reflect the changes in the UI
-            setTimeout(() => {
-              window.location.reload();
-            }, 1500);
+            // The UI will automatically update when user.unsafeMetadata changes
+            // No need for page reload in React
           } else {
             console.error('❌ Failed to update Google account connection status:', result.error);
           }
@@ -595,16 +593,16 @@ export default function SecurityPage() {
                           <p className="text-sm text-eleva-neutral-900/70">
                             Your account is secured with a password.
                             {user?.passwordEnabled &&
-                              user?.unsafeMetadata?.passwordLastUpdated &&
-                              typeof user.unsafeMetadata.passwordLastUpdated === 'string' && (
-                                <span className="ml-1">
-                                  Last updated{' '}
-                                  {getDaysSincePasswordUpdate(
-                                    user.unsafeMetadata.passwordLastUpdated,
-                                  )}
-                                  .
-                                </span>
-                              )}
+                            user?.unsafeMetadata?.passwordLastUpdated &&
+                            typeof user.unsafeMetadata.passwordLastUpdated === 'string' ? (
+                              <span className="ml-1">
+                                Last updated{' '}
+                                {getDaysSincePasswordUpdate(
+                                  user.unsafeMetadata.passwordLastUpdated,
+                                )}
+                                .
+                              </span>
+                            ) : null}
                           </p>
                           <TooltipProvider>
                             <Tooltip>
