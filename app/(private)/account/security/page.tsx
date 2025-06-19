@@ -1,9 +1,9 @@
 'use client';
 
 import { Button } from '@/components/atoms/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Input } from '@/components/atoms/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
+import { Separator } from '@/components/atoms/separator';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -466,23 +466,28 @@ export default function SecurityPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div>
-        <h3 className="text-lg font-medium">Security Settings</h3>
-        <p className="text-sm text-muted-foreground">
-          Manage your password and security preferences.
+        <h1 className="font-regular font-serif text-3xl tracking-tight text-eleva-primary">
+          Security Settings
+        </h1>
+        <p className="mt-2 text-sm leading-6 text-eleva-neutral-900/70">
+          Manage your password, connected accounts, and security preferences for your account.
         </p>
       </div>
 
       {/* Password Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Password</CardTitle>
-          <CardDescription>
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div className="space-y-1">
+          <h3 className="font-regular font-serif text-xl tracking-tight text-eleva-primary">
+            Password
+          </h3>
+          <p className="text-sm leading-6 text-eleva-neutral-900/70">
             Change your password or reset it if you&apos;ve forgotten it.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+
+        <div className="lg:col-span-2">
           {user?.passwordEnabled ? (
             <div>
               {!showChangePasswordForm ? (
@@ -762,16 +767,23 @@ export default function SecurityPage() {
               )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      <Separator className="bg-eleva-neutral-200" />
 
       {/* Connected Devices Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Connected Devices</CardTitle>
-          <CardDescription>Devices that are currently signed in to your account.</CardDescription>
-        </CardHeader>
-        <CardContent>
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div className="space-y-1">
+          <h3 className="font-regular font-serif text-xl tracking-tight text-eleva-primary">
+            Connected Devices
+          </h3>
+          <p className="text-sm leading-6 text-eleva-neutral-900/70">
+            Devices that are currently signed in to your account.
+          </p>
+        </div>
+
+        <div className="lg:col-span-2">
           <div className="space-y-4">
             {devices.map((device) => (
               <div
@@ -805,18 +817,23 @@ export default function SecurityPage() {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      <Separator className="bg-eleva-neutral-200" />
 
       {/* Connected Accounts Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Connected Accounts</CardTitle>
-          <CardDescription>
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div className="space-y-1">
+          <h3 className="font-regular font-serif text-xl tracking-tight text-eleva-primary">
+            Connected Accounts
+          </h3>
+          <p className="text-sm leading-6 text-eleva-neutral-900/70">
             Manage your connected social accounts and login methods.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+
+        <div className="lg:col-span-2">
           <div className="space-y-4">
             {connectedAccounts.length === 0 ? (
               <div className="flex flex-col items-start gap-4">
@@ -853,8 +870,10 @@ export default function SecurityPage() {
               ))
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
+
+      <Separator className="bg-eleva-neutral-200" />
 
       {/* Google Account Disconnect Confirmation Dialog */}
       <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
@@ -916,27 +935,46 @@ export default function SecurityPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Add User ID section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Your User ID</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-x-2 rounded-md bg-muted p-3">
-            <code className="text-sm">{user?.id}</code>
-            <Button variant="ghost" size="sm" onClick={copyUserId} className="ml-auto">
+      {/* User ID section */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div className="space-y-1">
+          <h3 className="font-regular font-serif text-xl tracking-tight text-eleva-primary">
+            Your User ID
+          </h3>
+          <p className="text-sm leading-6 text-eleva-neutral-900/70">
+            Your unique identifier for API access and support requests.
+          </p>
+        </div>
+
+        <div className="lg:col-span-2">
+          <div className="flex items-center gap-x-2 rounded-lg border border-eleva-neutral-200 bg-eleva-neutral-100/50 p-3">
+            <code className="font-mono text-sm text-eleva-neutral-900">{user?.id}</code>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={copyUserId}
+              className="ml-auto text-eleva-neutral-900/60 hover:text-eleva-primary"
+            >
               <Copy className="h-4 w-4" />
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Add Delete Account section */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Delete Account</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <Separator className="bg-eleva-neutral-200" />
+
+      {/* Delete Account section */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div className="space-y-1">
+          <h3 className="font-regular font-serif text-xl tracking-tight text-eleva-primary">
+            Delete Account
+          </h3>
+          <p className="text-sm leading-6 text-eleva-neutral-900/70">
+            Permanently delete your account and all associated data.
+          </p>
+        </div>
+
+        <div className="lg:col-span-2">
           <fieldset className="rounded-lg border-2 border-destructive/20 p-4">
             <p className="mb-4 text-sm text-muted-foreground">
               Permanently delete your workspace, custom domain, and all associated links + their
@@ -998,8 +1036,8 @@ export default function SecurityPage() {
               </DialogContent>
             </Dialog>
           </fieldset>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
