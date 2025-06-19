@@ -339,7 +339,8 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     path.startsWith('/api/qstash/') ||
     path.startsWith('/api/internal/') ||
     path.startsWith('/api/healthcheck') ||
-    path.startsWith('/api/create-payment-intent')
+    path.startsWith('/api/create-payment-intent') ||
+    path === '/api/novu'
   ) {
     console.log(`📁 Static/internal route, skipping: ${path}`);
     return NextResponse.next();

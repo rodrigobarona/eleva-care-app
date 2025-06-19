@@ -1,7 +1,7 @@
 'use client';
 
 import { useNovuInboxProps } from '@/hooks/use-secure-novu';
-import { useNotifications } from '@novu/react';
+import { Inbox, useNotifications } from '@novu/react';
 import { AlertCircle, Bell, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -61,15 +61,25 @@ export function SecureNovuInbox({ className = '' }: SecureNovuInboxProps) {
   // Render secure Novu Inbox
   return (
     <div className={className}>
-      <div className="rounded-lg border p-4">
-        <div className="text-sm text-muted-foreground">
-          Novu Inbox Component
-          <br />
-          Subscriber: {subscriberId}
-          <br />
-          Hash: {subscriberHash?.substring(0, 8)}...
-          <br />
-          <span className="text-xs text-green-600">✓ HMAC Authenticated</span>
+      <div className="space-y-4">
+        {/* Debug Info */}
+        <div className="rounded-lg border bg-muted/50 p-3">
+          <div className="text-xs text-muted-foreground">
+            <span className="text-green-600">✓ HMAC Authenticated</span> | Subscriber:{' '}
+            {subscriberId?.substring(0, 8)}... | Hash: {subscriberHash?.substring(0, 8)}...
+          </div>
+        </div>
+
+        {/* Novu Inbox Component */}
+        <div className="min-h-[400px]">
+          <Inbox
+            applicationIdentifier={applicationIdentifier}
+            subscriberId={subscriberId}
+            subscriberHash={subscriberHash}
+            backendUrl="https://eu.api.novu.co"
+            socketUrl="https://eu.ws.novu.co"
+            open={true}
+          />
         </div>
       </div>
     </div>

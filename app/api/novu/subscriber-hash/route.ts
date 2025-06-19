@@ -1,4 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
+import { auth } from '@clerk/nextjs/server';
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -6,21 +7,16 @@ import { NextRequest, NextResponse } from 'next/server';
  * GET endpoint: Returns secure subscriber data with HMAC hash
  * This endpoint generates a secure hash for Novu authentication
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
-    // Get user ID from query params or headers (for testing)
-    const { searchParams } = new URL(request.url);
-    const manualSubscriberId = searchParams.get('subscriberId');
-
-    // For now, use manual subscriber ID if provided (for testing)
-    // In production, this should get the actual authenticated user
-    const userId = manualSubscriberId || 'test-user';
+    // Get authenticated user from Clerk
+    const { userId } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Use the userId as subscriberId
+    // Use the authenticated userId as subscriberId
     const subscriberId = userId;
 
     // Generate HMAC hash for secure authentication

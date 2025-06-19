@@ -621,6 +621,39 @@
         "team": "The Eleva.care Team",
         "allRightsReserved": "All rights reserved."
       }
+    },
+    "expertSetupStep": {
+      "subject": "Expert Setup: {stepName} Complete",
+      "body": "Hi {expertName}, you've successfully completed the {stepName} step in your expert setup process."
+    },
+    "expertSetupProgress": {
+      "subject": "Expert Setup Progress: {setupProgress}% Complete",
+      "body": "Hi {expertName}, your expert setup is {setupProgress}% complete. You've completed {completedSteps} and have {remainingSteps} remaining steps.",
+      "email": {
+        "subject": "Your Expert Setup Progress - {setupProgress}% Complete",
+        "title": "Setup Progress Update",
+        "greeting": "Hi {expertName},",
+        "body": "Great progress on your expert setup! You're {setupProgress}% complete.",
+        "nextStep": "Next step: {nextStep}",
+        "cta": "Continue Setup"
+      }
+    },
+    "expertIdentityVerification": {
+      "subject": "Identity Verification: {status}",
+      "body": "Hi {expertName}, your identity verification status has been updated: {status}. {message}",
+      "email": {
+        "subject": "Identity Verification Update - {status}",
+        "title": "Identity Verification Update",
+        "greeting": "Hi {expertName},",
+        "body": "Your identity verification status has been updated.",
+        "status": "Status: {status}",
+        "message": "{message}",
+        "cta": "View Details"
+      }
+    },
+    "expertGoogleAccount": {
+      "subject": "Google Account: {status}",
+      "body": "Hi {expertName}, your Google account connection status: {status}. {message}"
     }
   }
 }

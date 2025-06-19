@@ -573,8 +573,28 @@ export const expertSetupProgressWorkflow = workflow(
     const locale = getLocale(payload);
 
     // Parse the stringified steps for use in content (with safety checks)
-    const completedSteps = payload.completedSteps ? JSON.parse(String(payload.completedSteps)) : [];
-    const remainingSteps = payload.remainingSteps ? JSON.parse(String(payload.remainingSteps)) : [];
+    let completedSteps = [];
+    let remainingSteps = [];
+
+    try {
+      completedSteps =
+        payload.completedSteps && payload.completedSteps !== 'undefined'
+          ? JSON.parse(String(payload.completedSteps))
+          : [];
+    } catch {
+      console.warn('Failed to parse completedSteps:', payload.completedSteps);
+      completedSteps = [];
+    }
+
+    try {
+      remainingSteps =
+        payload.remainingSteps && payload.remainingSteps !== 'undefined'
+          ? JSON.parse(String(payload.remainingSteps))
+          : [];
+    } catch {
+      console.warn('Failed to parse remainingSteps:', payload.remainingSteps);
+      remainingSteps = [];
+    }
 
     const contentPayload = {
       ...payload,
