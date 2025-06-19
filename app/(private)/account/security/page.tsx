@@ -36,7 +36,7 @@ import { useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
 import { Copy, Info, Laptop, Mail, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 // Clerk Core 2 (v6) - Using proper component-based OAuth handling
@@ -147,6 +147,20 @@ export default function SecurityPage() {
     id: string;
     email: string;
   } | null>(null);
+  // 🔧 FIX: Force refresh function using the same pattern as callback page
+  const forceRefresh = useCallback(async () => {
+    try {
+      // Use the same server action as the callback page to update expert setup
+      await handleGoogleAccountConnection();
+
+      // Reload user to get fresh metadata
+      if (user) {
+        await user.reload();
+      }
+    } catch (error) {
+      console.error('Error refreshing Google account status:', error);
+    }
+  }, [user]);
 
   const loadSessions = useCallback(async () => {
     if (!user || !isUserLoaded) return;
@@ -196,8 +210,30 @@ export default function SecurityPage() {
 
           if (result.success) {
             console.log('✅ Google account connection status updated in expert metadata');
-            // The UI will automatically update when user.unsafeMetadata changes
-            // No need for page reload in React
+
+            // 🔧 FIX: Reload user data to reflect server-side metadata changes
+            // This is crucial because Clerk's useUser() doesn't auto-refresh after server action changes
+            if (user) {
+              console.log('🔄 Reloading user data to reflect metadata changes...');
+              await user.reload();
+              console.log('✅ User data reloaded successfully');
+
+              // 🔧 ADDITIONAL FIX: Force re-render by updating state variables
+              // This ensures the UI reflects the updated metadata immediately
+              setIsConnectingAccount(false); // Reset connection state to trigger re-render
+              await forceRefresh(); // Force component re-render to pick up new user data
+
+              // Dispatch event to notify other components about the Google account connection
+              window.dispatchEvent(
+                new CustomEvent('google-account-connected', {
+                  detail: {
+                    timestamp: new Date().toISOString(),
+                    expertSetup: result.data,
+                    userMetadata: user.unsafeMetadata,
+                  },
+                }),
+              );
+            }
           } else {
             console.error('❌ Failed to update Google account connection status:', result.error);
           }
@@ -222,7 +258,7 @@ export default function SecurityPage() {
         window.history.replaceState({}, document.title, newUrl);
       }
     }
-  }, [user]);
+  }, [user, forceRefresh]);
 
   // Calculate password strength whenever password changes
   React.useEffect(() => {
@@ -374,8 +410,10 @@ export default function SecurityPage() {
     }
   };
 
-  const connectedAccounts =
-    user?.externalAccounts?.filter((account) => account.provider.includes('google')) || [];
+  // 🔧 FIX: Memoize connected accounts
+  const connectedAccounts = useMemo(() => {
+    return user?.externalAccounts?.filter((account) => account.provider.includes('google')) || [];
+  }, [user?.externalAccounts]);
 
   const copyUserId = () => {
     navigator.clipboard.writeText(user?.id || '');
@@ -446,6 +484,9 @@ export default function SecurityPage() {
 
       // Update expert setup status from server
       await checkExpertSetupStatus();
+
+      // 🔧 FIX: Force UI refresh after disconnect
+      await forceRefresh();
 
       // Dispatch the disconnection event
       window.dispatchEvent(
@@ -1046,7 +1087,10 @@ export default function SecurityPage() {
           <div className="space-y-4">
             {connectedAccounts.length === 0 ? (
               <div className="flex flex-col items-start gap-4">
-                <p className="text-sm text-muted-foreground">No connected accounts found.</p>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground">No connected accounts found.</p>
+                  {/* 🔧 FIX: Show expert setup status for debugging */}
+                </div>
                 <Button
                   variant="outline"
                   onClick={() => handleConnectAccount()}
