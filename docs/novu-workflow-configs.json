@@ -4,6 +4,7 @@
     "identifier": "user-welcome",
     "id": "683d471cba5916254d924f4b",
     "critical": true,
+    "channels": ["inApp", "email"],
     "dashboardUrl": "https://web.novu.co/workflows/683d471cba5916254d924f4b"
   },
   {
@@ -11,6 +12,7 @@
     "identifier": "payment-success",
     "id": "683d471de6c6c2dbca9c7ea6",
     "critical": true,
+    "channels": ["inApp"],
     "dashboardUrl": "https://web.novu.co/workflows/683d471de6c6c2dbca9c7ea6"
   },
   {
@@ -18,6 +20,7 @@
     "identifier": "payment-failed",
     "id": "683d471eba5916254d924fb1",
     "critical": true,
+    "channels": ["inApp"],
     "dashboardUrl": "https://web.novu.co/workflows/683d471eba5916254d924fb1"
   },
   {
@@ -25,6 +28,7 @@
     "identifier": "appointment-reminder-24hr",
     "id": "683d471ea466ec9b60623c70",
     "critical": true,
+    "channels": ["inApp", "email"],
     "dashboardUrl": "https://web.novu.co/workflows/683d471ea466ec9b60623c70"
   },
   {
@@ -32,6 +36,7 @@
     "identifier": "expert-onboarding-complete",
     "id": "683d471f99e4295e5c090559",
     "critical": true,
+    "channels": ["inApp", "email"],
     "dashboardUrl": "https://web.novu.co/workflows/683d471f99e4295e5c090559"
   },
   {
@@ -39,6 +44,70 @@
     "identifier": "health-check-failure",
     "id": "683d471f10a49b6d0c28cebf",
     "critical": true,
+    "channels": ["inApp"],
     "dashboardUrl": "https://web.novu.co/workflows/683d471f10a49b6d0c28cebf"
+  },
+  {
+    "name": "Account Verification Workflow",
+    "identifier": "account-verification",
+    "critical": true,
+    "channels": ["inApp"],
+    "dashboardUrl": "https://web.novu.co/workflows/account-verification"
+  },
+  {
+    "name": "Security Alert Workflow",
+    "identifier": "security-alert",
+    "critical": true,
+    "channels": ["inApp"],
+    "dashboardUrl": "https://web.novu.co/workflows/security-alert"
+  },
+  {
+    "name": "Stripe Account Update Workflow",
+    "identifier": "stripe-account-update",
+    "critical": true,
+    "channels": ["inApp"],
+    "dashboardUrl": "https://web.novu.co/workflows/stripe-account-update"
+  },
+  {
+    "name": "Stripe Payout Workflow",
+    "identifier": "stripe-payout",
+    "critical": true,
+    "channels": ["inApp"],
+    "dashboardUrl": "https://web.novu.co/workflows/stripe-payout"
+  },
+  {
+    "name": "Marketplace Payment Received Workflow",
+    "identifier": "marketplace-payment-received",
+    "critical": true,
+    "channels": ["inApp", "email"],
+    "dashboardUrl": "https://web.novu.co/workflows/marketplace-payment-received"
+  },
+  {
+    "name": "Marketplace Payout Processed Workflow",
+    "identifier": "marketplace-payout-processed",
+    "critical": true,
+    "channels": ["inApp", "email"],
+    "dashboardUrl": "https://web.novu.co/workflows/marketplace-payout-processed"
+  },
+  {
+    "name": "User Created Workflow",
+    "identifier": "user-created",
+    "critical": true,
+    "channels": ["inApp", "email"],
+    "dashboardUrl": "https://web.novu.co/workflows/user-created"
+  },
+  {
+    "name": "Recent Login Workflow",
+    "identifier": "recent-login-v2",
+    "critical": true,
+    "channels": ["inApp"],
+    "dashboardUrl": "https://web.novu.co/workflows/recent-login-v2"
+  },
+  {
+    "name": "Expert Payout Setup Reminder Workflow",
+    "identifier": "expert-payout-setup-reminder",
+    "critical": true,
+    "channels": ["inApp", "email"],
+    "dashboardUrl": "https://web.novu.co/workflows/expert-payout-setup-reminder"
   }
 ]
