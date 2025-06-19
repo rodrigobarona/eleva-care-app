@@ -1,6 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
 import { Novu } from '@novu/node';
-import { createHmac } from 'crypto';
 
 // Initialize Novu defensively - handle missing secret key during build
 let novu: Novu | null = null;
@@ -63,18 +62,34 @@ function isNovuAvailable(): boolean {
 }
 
 /**
- * Generate HMAC hash for subscriber authentication
+ * Generate HMAC hash for subscriber authentication (Web Crypto API)
  * This prevents unauthorized access to notification feeds
  *
  * @param subscriberId - Unique identifier for the subscriber (usually Clerk user ID)
  * @returns HMAC hash for secure authentication
  */
-export function generateSubscriberHash(subscriberId: string): string {
+export async function generateSubscriberHash(subscriberId: string): Promise<string> {
   if (!ENV_CONFIG.NOVU_SECRET_KEY) {
     throw new Error('NOVU_SECRET_KEY is required for HMAC authentication');
   }
 
-  return createHmac('sha256', ENV_CONFIG.NOVU_SECRET_KEY).update(subscriberId).digest('hex');
+  // Use Web Crypto API instead of Node.js crypto for Edge Runtime compatibility
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(ENV_CONFIG.NOVU_SECRET_KEY);
+  const messageData = encoder.encode(subscriberId);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+  const hashArray = Array.from(new Uint8Array(signature));
+
+  return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -84,9 +99,9 @@ export function generateSubscriberHash(subscriberId: string): string {
  * @param subscriberId - Unique identifier for the subscriber
  * @returns Object containing subscriber ID and hash for secure authentication
  */
-export function getSecureSubscriberData(subscriberId: string) {
+export async function getSecureSubscriberData(subscriberId: string) {
   try {
-    const subscriberHash = generateSubscriberHash(subscriberId);
+    const subscriberHash = await generateSubscriberHash(subscriberId);
     return {
       subscriberId,
       subscriberHash,

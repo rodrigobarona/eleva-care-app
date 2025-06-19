@@ -36,7 +36,6 @@ const EVENT_TO_WORKFLOW_MAPPINGS = {
 
 // Explicitly export allowed HTTP methods
 export const dynamic = 'force-dynamic';
-export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
   console.log('📥 Received Clerk webhook request');
