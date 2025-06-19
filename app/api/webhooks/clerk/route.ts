@@ -2,7 +2,6 @@ import { triggerWorkflow } from '@/app/utils/novu';
 import { ENV_CONFIG } from '@/config/env';
 import { handleGoogleAccountConnection } from '@/server/actions/expert-setup';
 import { UserJSON, WebhookEvent } from '@clerk/nextjs/server';
-import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { Webhook } from 'svix';
 
@@ -35,70 +34,87 @@ const EVENT_TO_WORKFLOW_MAPPINGS = {
   },
 } as const;
 
+// Explicitly export allowed HTTP methods
+export const dynamic = 'force-dynamic';
+export const runtime = 'edge';
+
 export async function POST(request: NextRequest) {
-  const headerPayload = await headers();
-  const svixId = headerPayload.get('svix-id');
-  const svixTimestamp = headerPayload.get('svix-timestamp');
-  const svixSignature = headerPayload.get('svix-signature');
+  console.log('📥 Received Clerk webhook request');
+
+  // Get headers from the request
+  const headersList = request.headers;
+  const svixId = headersList.get('svix-id');
+  const svixTimestamp = headersList.get('svix-timestamp');
+  const svixSignature = headersList.get('svix-signature');
+
+  // Log headers for debugging
+  console.log('📋 Webhook headers:', {
+    'svix-id': svixId,
+    'svix-timestamp': svixTimestamp,
+    'svix-signature': svixSignature?.substring(0, 10) + '...',
+  });
 
   if (!svixId || !svixTimestamp || !svixSignature) {
-    return NextResponse.json({ error: 'Missing Clerk webhook headers' }, { status: 400 });
+    console.error('❌ Missing required Svix headers');
+    return NextResponse.json({ error: 'Missing required Svix headers' }, { status: 400 });
   }
 
   if (!ENV_CONFIG.CLERK_WEBHOOK_SECRET) {
-    console.error('Missing CLERK_WEBHOOK_SIGNING_SECRET');
+    console.error('❌ Missing CLERK_WEBHOOK_SECRET environment variable');
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
   }
 
-  const payload = await request.text();
-
-  const webhook = new Webhook(ENV_CONFIG.CLERK_WEBHOOK_SECRET);
+  let payload: string;
+  try {
+    payload = await request.text();
+  } catch (err) {
+    console.error('❌ Error reading request body:', err);
+    return NextResponse.json({ error: 'Error reading request body' }, { status: 400 });
+  }
 
   let event: WebhookEvent;
-
   try {
+    const webhook = new Webhook(ENV_CONFIG.CLERK_WEBHOOK_SECRET);
     event = webhook.verify(payload, {
       'svix-id': svixId,
       'svix-timestamp': svixTimestamp,
       'svix-signature': svixSignature,
     }) as WebhookEvent;
-  } catch (error) {
-    console.error('Error verifying Clerk webhook:', error);
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  } catch (err) {
+    console.error('❌ Error verifying webhook signature:', err);
+    return NextResponse.json({ error: 'Invalid webhook signature' }, { status: 401 });
   }
 
-  console.log(`📨 Webhook received: ${event.type} for user ${event.data.id}`);
+  console.log(`📨 Webhook verified: ${event.type} for user ${event.data.id}`);
 
   // Handle Google account connection for experts
   if (event.type === 'user.updated') {
     const userData = event.data as UserJSON;
-
-    // Check if user has external accounts and specifically Google accounts
     const externalAccounts = userData.external_accounts || [];
     const googleAccounts = externalAccounts.filter((account) => account.provider === 'google');
 
     if (googleAccounts.length > 0) {
-      console.log(`🔍 Google account detected for user ${userData.id}, updating expert setup...`);
-
+      console.log(`🔍 Google account detected for user ${userData.id}`);
       try {
-        // Update expert setup metadata via our server action
         const result = await handleGoogleAccountConnection();
-
         if (result.success) {
-          console.log(`✅ Expert setup updated successfully for user ${userData.id}`);
+          console.log(`✅ Expert setup updated for user ${userData.id}`);
         } else {
-          console.warn(`⚠️ Failed to update expert setup for user ${userData.id}:`, result.error);
+          console.warn(`⚠️ Expert setup update failed:`, result.error);
         }
-      } catch (error) {
-        console.error(`❌ Error updating expert setup for user ${userData.id}:`, error);
+      } catch (err) {
+        console.error(`❌ Error in expert setup:`, err);
       }
     }
   }
 
-  // Continue with existing webhook handling
-  await handleWebhookEvent(event);
-
-  return NextResponse.json({ message: 'Webhook received' }, { status: 200 });
+  try {
+    await handleWebhookEvent(event);
+    return NextResponse.json({ success: true, eventType: event.type }, { status: 200 });
+  } catch (err) {
+    console.error('❌ Error processing webhook:', err);
+    return NextResponse.json({ error: 'Error processing webhook' }, { status: 500 });
+  }
 }
 
 const handleWebhookEvent = async (event: WebhookEvent) => {
