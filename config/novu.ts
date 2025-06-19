@@ -546,6 +546,122 @@ export const expertProfileActionRequiredWorkflow = workflow(
   },
 );
 
+// Expert Setup Workflows
+export const expertSetupStepCompleteWorkflow = workflow(
+  'expert-setup-step-complete',
+  async ({ payload, step }) => {
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('expertSetupStep', locale, payload);
+
+    await step.inApp('setup-step-complete', async () => content);
+  },
+  {
+    payloadSchema: z.object({
+      expertName: z.string(),
+      stepName: z.string(),
+      nextStep: z.string().optional(),
+      setupProgress: z.number(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
+    }),
+  },
+);
+
+export const expertSetupProgressWorkflow = workflow(
+  'expert-setup-progress',
+  async ({ payload, step }) => {
+    const locale = getLocale(payload);
+
+    // Parse the stringified steps for use in content
+    const completedSteps = JSON.parse(payload.completedSteps);
+    const remainingSteps = JSON.parse(payload.remainingSteps);
+
+    const contentPayload = {
+      ...payload,
+      completedSteps,
+      remainingSteps,
+    };
+
+    const content = await getLocalizedContent('expertSetupProgress', locale, contentPayload);
+    await step.inApp('setup-progress', async () => content);
+
+    const emailContent = await getLocalizedContent(
+      'expertSetupProgress',
+      locale,
+      contentPayload,
+      'email',
+    );
+    await step.email('setup-progress-email', async () => ({
+      subject: emailContent.subject,
+      body: emailContent.body,
+    }));
+  },
+  {
+    payloadSchema: z.object({
+      expertName: z.string(),
+      completedSteps: z.string(), // JSON stringified array
+      remainingSteps: z.string(), // JSON stringified array
+      setupProgress: z.number(),
+      nextStep: z.string().optional(),
+      setupUrl: z.string(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
+    }),
+  },
+);
+
+export const expertIdentityVerificationWorkflow = workflow(
+  'expert-identity-verification',
+  async ({ payload, step }) => {
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('expertIdentityVerification', locale, payload);
+
+    await step.inApp('identity-verification', async () => content);
+
+    const emailContent = await getLocalizedContent(
+      'expertIdentityVerification',
+      locale,
+      payload,
+      'email',
+    );
+    await step.email('identity-verification-email', async () => ({
+      subject: emailContent.subject,
+      body: emailContent.body,
+    }));
+  },
+  {
+    payloadSchema: z.object({
+      expertName: z.string(),
+      status: z.string(),
+      verificationId: z.string().optional(),
+      verificationUrl: z.string().optional(),
+      message: z.string(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
+    }),
+  },
+);
+
+export const expertGoogleAccountWorkflow = workflow(
+  'expert-google-account',
+  async ({ payload, step }) => {
+    const locale = getLocale(payload);
+    const content = await getLocalizedContent('expertGoogleAccount', locale, payload);
+
+    await step.inApp('google-account-status', async () => content);
+  },
+  {
+    payloadSchema: z.object({
+      expertName: z.string(),
+      status: z.string(),
+      message: z.string(),
+      setupUrl: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
+    }),
+  },
+);
+
 export const newBookingExpertWorkflow = workflow(
   'new-booking-expert',
   async ({ payload, step }) => {
@@ -691,5 +807,10 @@ export const workflows = [
   expertPayoutSetupReminderWorkflow,
   expertProfileActionRequiredWorkflow,
   newBookingExpertWorkflow,
+  // Expert Setup Workflows
+  expertSetupStepCompleteWorkflow,
+  expertSetupProgressWorkflow,
+  expertIdentityVerificationWorkflow,
+  expertGoogleAccountWorkflow,
   healthCheckFailureWorkflow,
 ];

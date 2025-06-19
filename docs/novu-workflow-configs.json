@@ -109,5 +109,33 @@
     "critical": true,
     "channels": ["inApp", "email"],
     "dashboardUrl": "https://web.novu.co/workflows/expert-payout-setup-reminder"
+  },
+  {
+    "name": "Expert Setup Step Complete Workflow",
+    "identifier": "expert-setup-step-complete",
+    "critical": true,
+    "channels": ["inApp"],
+    "dashboardUrl": "https://web.novu.co/workflows/expert-setup-step-complete"
+  },
+  {
+    "name": "Expert Setup Progress Workflow",
+    "identifier": "expert-setup-progress",
+    "critical": true,
+    "channels": ["inApp", "email"],
+    "dashboardUrl": "https://web.novu.co/workflows/expert-setup-progress"
+  },
+  {
+    "name": "Expert Identity Verification Workflow",
+    "identifier": "expert-identity-verification",
+    "critical": true,
+    "channels": ["inApp", "email"],
+    "dashboardUrl": "https://web.novu.co/workflows/expert-identity-verification"
+  },
+  {
+    "name": "Expert Google Account Connection Workflow",
+    "identifier": "expert-google-account",
+    "critical": true,
+    "channels": ["inApp"],
+    "dashboardUrl": "https://web.novu.co/workflows/expert-google-account"
   }
 ]
