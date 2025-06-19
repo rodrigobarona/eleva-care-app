@@ -59,7 +59,7 @@ importers:
         version: 1.2.0(zod@3.24.3)
       '@novu/framework':
         specifier: ^2.6.7
-        version: 2.6.7(next@15.3.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.24.3)
+        version: 2.6.7(next@15.3.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod-to-json-schema@3.24.5(zod@3.24.3))(zod@3.24.3)
       '@novu/nextjs':
         specifier: ^3.5.0
         version: 3.5.0(next@15.3.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -333,6 +333,9 @@ importers:
       zod:
         specifier: ^3.24.3
         version: 3.24.3
+      zod-to-json-schema:
+        specifier: ^3.24.5
+        version: 3.24.5(zod@3.24.3)
     devDependencies:
       '@eslint/compat':
         specifier: ^1.2.8
@@ -6938,6 +6941,11 @@ packages:
     resolution: {integrity: sha512-rVksvsnNCdJ/ohGc6xgPwyN8eheCxsiLM8mxuE/t/mOVqJewPuO1miLpTHQiRgTKCLexL4MeAFVagts7HmNZ2Q==}
     engines: {node: '>=10'}
 
+  zod-to-json-schema@3.24.5:
+    resolution: {integrity: sha512-/AuWwMP+YqiPbsJx5D6TfgRTc4kTLjsh5SOcd4bLsfUg2RcEXrFMJl1DGgdHy2aCfsIA/cr/1JM0xcB2GZji8g==}
+    peerDependencies:
+      zod: ^3.24.1
+
   zod@3.24.3:
     resolution: {integrity: sha512-HhY1oqzWCQWuUqvBFnsyrtZRhyPeR7SUGv+C4+MsisMuVfSPx8HpwWqH8tRahSlt6M3PiFAcoeFhZAqIXTxoSg==}
 
@@ -8094,7 +8102,7 @@ snapshots:
     dependencies:
       zod: 3.24.3
 
-  '@novu/framework@2.6.7(next@15.3.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod@3.24.3)':
+  '@novu/framework@2.6.7(next@15.3.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(zod-to-json-schema@3.24.5(zod@3.24.3))(zod@3.24.3)':
     dependencies:
       ajv: 8.17.1
       ajv-formats: 2.1.1(ajv@8.17.1)
@@ -8108,6 +8116,7 @@ snapshots:
     optionalDependencies:
       next: 15.3.3(@babel/core@7.26.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       zod: 3.24.3
+      zod-to-json-schema: 3.24.5(zod@3.24.3)
     transitivePeerDependencies:
       - encoding
 
@@ -14140,6 +14149,10 @@ snapshots:
   yn@3.1.1: {}
 
   yocto-queue@0.1.0: {}
+
+  zod-to-json-schema@3.24.5(zod@3.24.3):
+    dependencies:
+      zod: 3.24.3
 
   zod@3.24.3: {}
 

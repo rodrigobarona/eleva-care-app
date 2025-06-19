@@ -6,7 +6,7 @@
  * Run with: node -r dotenv/config scripts/test-novu-framework.js
  * or: npm run test:novu-framework
  */
-import fetch from 'node-fetch';
+const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 // Environment variables
 const NOVU_SECRET_KEY = process.env.NOVU_SECRET_KEY;

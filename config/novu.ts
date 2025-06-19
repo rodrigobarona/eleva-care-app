@@ -572,9 +572,9 @@ export const expertSetupProgressWorkflow = workflow(
   async ({ payload, step }) => {
     const locale = getLocale(payload);
 
-    // Parse the stringified steps for use in content
-    const completedSteps = JSON.parse(payload.completedSteps);
-    const remainingSteps = JSON.parse(payload.remainingSteps);
+    // Parse the stringified steps for use in content (with safety checks)
+    const completedSteps = payload.completedSteps ? JSON.parse(String(payload.completedSteps)) : [];
+    const remainingSteps = payload.remainingSteps ? JSON.parse(String(payload.remainingSteps)) : [];
 
     const contentPayload = {
       ...payload,
