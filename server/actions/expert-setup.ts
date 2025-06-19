@@ -423,8 +423,11 @@ export async function checkSetupSequence() {
 }
 
 /**
- * Handle Google Account Connection
- * Updates the expert setup status after a successful Google OAuth connection
+ * Marks the Google account connection step as complete for the current authenticated expert user after verifying a connected and verified Google account.
+ *
+ * Returns a success result if the user is authenticated, has an expert role, and has at least one verified Google account connected. Updates the user's expert setup metadata and overall setup completion status.
+ *
+ * @returns An action result indicating success or failure, with `data` set to `true` if the step was marked complete.
  */
 export async function handleGoogleAccountConnection(): Promise<ActionResult<boolean>> {
   try {
