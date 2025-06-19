@@ -46,6 +46,8 @@
     "test:novu": "node -r dotenv/config scripts/test-novu-connection.js",
     "test:novu-permissions": "node -r dotenv/config scripts/test-novu-connection.js --permissions",
     "analyze": "ANALYZE=true pnpm build",
+    "analyze:server": "ANALYZE=true BUNDLE_ANALYZE=server pnpm build",
+    "analyze:browser": "ANALYZE=true BUNDLE_ANALYZE=browser pnpm build",
     "build:analyze": "cross-env ANALYZE=true pnpm build",
     "build:debug": "NODE_OPTIONS='--inspect' pnpm build",
     "build:profile": "pnpm build --profile",
