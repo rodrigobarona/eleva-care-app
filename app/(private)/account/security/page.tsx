@@ -183,7 +183,7 @@ export default function SecurityPage() {
         window.history.replaceState({}, document.title, newUrl);
       }
     }
-  }, []);
+  }, [user?.publicMetadata?.role]);
 
   // Calculate password strength whenever password changes
   React.useEffect(() => {
