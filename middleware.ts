@@ -639,6 +639,7 @@ export const config = {
     // - api/internal/   (internal services communication)
     // - api/healthcheck (health monitoring endpoints)
     // - api/create-payment-intent (payment processing endpoint)
-    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/create-payment-intent).*)',
+    // - api/novu        (Novu Framework bridge endpoint)
+    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/create-payment-intent|api/novu).*)',
   ],
 };

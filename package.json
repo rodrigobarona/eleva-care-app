@@ -45,6 +45,7 @@
     "novu:workflows": "npm run setup:novu-workflows",
     "test:novu": "node -r dotenv/config scripts/test-novu-connection.js",
     "test:novu-permissions": "node -r dotenv/config scripts/test-novu-connection.js --permissions",
+    "test:novu-framework": "node -r dotenv/config scripts/test-novu-framework.js",
     "novu:sync": "npx novu@latest sync --bridge-url $NOVU_BRIDGE_URL --secret-key $NOVU_SECRET_KEY --api-url $NOVU_BASE_URL",
     "analyze": "ANALYZE=true pnpm build",
     "analyze:server": "ANALYZE=true BUNDLE_ANALYZE=server pnpm build",

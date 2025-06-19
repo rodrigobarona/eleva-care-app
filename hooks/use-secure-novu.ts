@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 interface SecureSubscriberData {
   subscriberId: string;
   subscriberHash: string;
+  applicationIdentifier: string;
 }
 
 interface UseSecureNovuResult {
@@ -50,7 +51,10 @@ export function useSecureNovu(): UseSecureNovuResult {
 
       const result = await response.json();
 
-      if (result.success && result.data) {
+      // Handle both wrapped and direct response formats
+      if (result.subscriberId) {
+        setSubscriberData(result);
+      } else if (result.success && result.data) {
         setSubscriberData(result.data);
       } else {
         throw new Error('Invalid response format');
@@ -85,9 +89,12 @@ export function useNovuInboxProps() {
 
   return {
     // Props for Novu Inbox component
-    applicationIdentifier: process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
+    applicationIdentifier:
+      subscriberData?.applicationIdentifier || process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
     subscriberId: subscriberData?.subscriberId,
     subscriberHash: subscriberData?.subscriberHash,
+    apiUrl: 'https://eu.api.novu.co',
+    socketUrl: 'https://eu.ws.novu.co',
 
     // State management
     isReady: !isLoading && !error && !!subscriberData,

@@ -173,6 +173,8 @@ function NovuWrapper({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  console.log('[Novu] Provider initialized for user:', user.id);
+
   return (
     <NovuProvider
       subscriberId={user.id}
@@ -181,7 +183,7 @@ function NovuWrapper({ children }: { children: React.ReactNode }) {
       <ReactNovuProvider
         applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
         subscriberId={user.id}
-        backendUrl="https://eu.api.novu.co"
+        apiUrl="https://eu.api.novu.co"
         socketUrl="https://eu.ws.novu.co"
       >
         {children}
