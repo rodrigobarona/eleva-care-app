@@ -44,7 +44,12 @@
     "setup:novu-workflows": "node -r dotenv/config scripts/setup-novu-workflows.js",
     "novu:workflows": "npm run setup:novu-workflows",
     "test:novu": "node -r dotenv/config scripts/test-novu-connection.js",
-    "test:novu-permissions": "node -r dotenv/config scripts/test-novu-connection.js --permissions"
+    "test:novu-permissions": "node -r dotenv/config scripts/test-novu-connection.js --permissions",
+    "analyze": "ANALYZE=true pnpm build",
+    "build:analyze": "cross-env ANALYZE=true pnpm build",
+    "build:debug": "NODE_OPTIONS='--inspect' pnpm build",
+    "build:profile": "pnpm build --profile",
+    "build:memory": "pnpm build --experimental-debug-memory-usage"
   },
   "dependencies": {
     "@clerk/elements": "^0.23.18",
@@ -146,6 +151,7 @@
     "react-hook-form": "^7.56.1",
     "react-markdown": "^9.1.0",
     "resend": "^4.4.1",
+    "sharp": "^0.34.2",
     "sonner": "^2.0.3",
     "stripe": "^17.7.0",
     "svix": "^1.66.0",
@@ -160,6 +166,7 @@
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.25.1",
     "@jest/globals": "^29.7.0",
+    "@next/bundle-analyzer": "^15.3.4",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.3",
@@ -172,6 +179,7 @@
     "@types/react-dom": "19.0.4",
     "@typescript-eslint/eslint-plugin": "^8.31.0",
     "@typescript-eslint/parser": "^8.31.0",
+    "cross-env": "^7.0.3",
     "drizzle-kit": "^0.26.2",
     "eslint": "^9.25.1",
     "eslint-config-prettier": "^9.1.0",
