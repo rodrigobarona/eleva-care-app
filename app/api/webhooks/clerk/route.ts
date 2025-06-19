@@ -1,5 +1,6 @@
 import { triggerWorkflow } from '@/app/utils/novu';
 import { ENV_CONFIG } from '@/config/env';
+import { handleGoogleAccountConnection } from '@/server/actions/expert-setup';
 import { UserJSON, WebhookEvent } from '@clerk/nextjs/server';
 import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
@@ -44,14 +45,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Missing Clerk webhook headers' }, { status: 400 });
   }
 
-  if (!ENV_CONFIG.CLERK_SECRET_KEY) {
-    console.error('Missing CLERK_SIGNING_SECRET');
+  if (!ENV_CONFIG.CLERK_WEBHOOK_SECRET) {
+    console.error('Missing CLERK_WEBHOOK_SIGNING_SECRET');
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
   }
 
   const payload = await request.text();
 
-  const webhook = new Webhook(ENV_CONFIG.CLERK_SECRET_KEY);
+  const webhook = new Webhook(ENV_CONFIG.CLERK_WEBHOOK_SECRET);
 
   let event: WebhookEvent;
 
@@ -66,6 +67,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
+  console.log(`📨 Webhook received: ${event.type} for user ${event.data.id}`);
+
+  // Handle Google account connection for experts
+  if (event.type === 'user.updated') {
+    const userData = event.data as UserJSON;
+
+    // Check if user has external accounts and specifically Google accounts
+    const externalAccounts = userData.external_accounts || [];
+    const googleAccounts = externalAccounts.filter((account) => account.provider === 'google');
+
+    if (googleAccounts.length > 0) {
+      console.log(`🔍 Google account detected for user ${userData.id}, updating expert setup...`);
+
+      try {
+        // Update expert setup metadata via our server action
+        const result = await handleGoogleAccountConnection();
+
+        if (result.success) {
+          console.log(`✅ Expert setup updated successfully for user ${userData.id}`);
+        } else {
+          console.warn(`⚠️ Failed to update expert setup for user ${userData.id}:`, result.error);
+        }
+      } catch (error) {
+        console.error(`❌ Error updating expert setup for user ${userData.id}:`, error);
+      }
+    }
+  }
+
+  // Continue with existing webhook handling
   await handleWebhookEvent(event);
 
   return NextResponse.json({ message: 'Webhook received' }, { status: 200 });

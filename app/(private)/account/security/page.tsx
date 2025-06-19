@@ -28,10 +28,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import {
-  checkExpertSetupStatus,
-  handleGoogleAccountConnection,
-} from '@/server/actions/expert-setup';
+import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
 import { Copy, Info, Laptop, Mail, Smartphone } from 'lucide-react';
@@ -147,18 +144,19 @@ export default function SecurityPage() {
     id: string;
     email: string;
   } | null>(null);
-  // 🔧 FIX: Force refresh function using the same pattern as callback page
+  // 🔧 FIX: Force refresh function to reload user data
   const forceRefresh = useCallback(async () => {
     try {
-      // Use the same server action as the callback page to update expert setup
-      await handleGoogleAccountConnection();
+      console.log('🔄 Force refreshing user data...');
 
       // Reload user to get fresh metadata
       if (user) {
         await user.reload();
+        console.log('✅ User data reloaded successfully');
+        console.log('📊 Current expertSetup metadata:', user.unsafeMetadata?.expertSetup);
       }
     } catch (error) {
-      console.error('Error refreshing Google account status:', error);
+      console.error('Error refreshing user data:', error);
     }
   }, [user]);
 
@@ -205,38 +203,24 @@ export default function SecurityPage() {
             return;
           }
 
-          const result = await handleGoogleAccountConnection();
-          console.log('🔍 handleGoogleAccountConnection result:', result);
+          console.log('🔄 OAuth completed, checking connection status...');
 
-          if (result.success) {
-            console.log('✅ Google account connection status updated in expert metadata');
-
-            // 🔧 FIX: Reload user data to reflect server-side metadata changes
-            // This is crucial because Clerk's useUser() doesn't auto-refresh after server action changes
-            if (user) {
-              console.log('🔄 Reloading user data to reflect metadata changes...');
-              await user.reload();
-              console.log('✅ User data reloaded successfully');
-
-              // 🔧 ADDITIONAL FIX: Force re-render by updating state variables
-              // This ensures the UI reflects the updated metadata immediately
-              setIsConnectingAccount(false); // Reset connection state to trigger re-render
-              await forceRefresh(); // Force component re-render to pick up new user data
-
-              // Dispatch event to notify other components about the Google account connection
-              window.dispatchEvent(
-                new CustomEvent('google-account-connected', {
-                  detail: {
-                    timestamp: new Date().toISOString(),
-                    expertSetup: result.data,
-                    userMetadata: user.unsafeMetadata,
-                  },
-                }),
-              );
-            }
-          } else {
-            console.error('❌ Failed to update Google account connection status:', result.error);
+          // The webhook will handle updating the expert setup metadata
+          // We just need to refresh user data to see the updated metadata
+          if (user) {
+            await user.reload();
+            console.log('✅ User data reloaded after OAuth');
           }
+
+          // Dispatch event to notify other components about the Google account connection
+          window.dispatchEvent(
+            new CustomEvent('google-account-connected', {
+              detail: {
+                timestamp: new Date().toISOString(),
+                userMetadata: user?.unsafeMetadata,
+              },
+            }),
+          );
         } catch (error) {
           console.error('❌ Error updating Google account connection status:', error);
         }

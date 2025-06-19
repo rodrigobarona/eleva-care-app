@@ -439,11 +439,18 @@ export async function handleGoogleAccountConnection(): Promise<ActionResult<bool
       };
     }
 
+    console.log(`🔍 Checking Google account connection for user ${userId}`);
+
     // Get the current user to check for external accounts and roles
     const clerk = await clerkClient();
     const user = await clerk.users.getUser(userId);
 
-    console.log(`🔍 Checking Google account connection for user ${userId}`);
+    if (!user) {
+      return {
+        success: false,
+        error: 'User not found',
+      };
+    }
 
     // Check if user has an expert role first
     const isExpert = hasExpertRole(user);
@@ -458,23 +465,12 @@ export async function handleGoogleAccountConnection(): Promise<ActionResult<bool
     // Check if user has a Google external account
     const googleAccounts = user.externalAccounts.filter((account) => account.provider === 'google');
 
-    console.log(
-      `🔍 Found ${googleAccounts.length} Google account(s):`,
-      googleAccounts.map((acc) => ({
-        id: acc.id,
-        email: acc.emailAddress,
-        verified: acc.verification?.status === 'verified',
-      })),
-    );
+    console.log(`🔍 Found ${googleAccounts.length} Google account(s) for user ${userId}`);
 
-    const hasVerifiedGoogleAccount = googleAccounts.some(
-      (account) => account.verification?.status === 'verified',
-    );
-
-    if (!hasVerifiedGoogleAccount) {
+    if (googleAccounts.length === 0) {
       return {
         success: false,
-        error: 'No verified Google account found',
+        error: 'No Google accounts found',
       };
     }
 
@@ -496,7 +492,6 @@ export async function handleGoogleAccountConnection(): Promise<ActionResult<bool
     });
 
     console.log(`✅ Updated Google account connection status for expert user ${userId}`);
-    console.log(`📊 Expert setup status:`, expertSetup);
 
     // Check if all steps are completed and update setupComplete flag
     await updateSetupCompleteFlag(userId, expertSetup);
