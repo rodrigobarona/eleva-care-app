@@ -5,6 +5,12 @@ import { Input } from '@/components/atoms/input';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
 import { Separator } from '@/components/atoms/separator';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/atoms/tooltip';
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -28,7 +34,7 @@ import {
 } from '@/server/actions/expert-setup';
 import { useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
-import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
+import { Copy, Info, Laptop, Mail, Smartphone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useState } from 'react';
 import { toast } from 'sonner';
@@ -60,6 +66,18 @@ const formatLastSeen = (date: Date) => {
   }
 
   return `${date.toLocaleDateString()} at ${timeString}`;
+};
+
+// Helper function to calculate days since password update
+const getDaysSincePasswordUpdate = (lastUpdated: string): string => {
+  const updateDate = new Date(lastUpdated);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - updateDate.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return '1 day ago';
+  return `${diffDays} days ago`;
 };
 
 export default function SecurityPage() {
@@ -233,6 +251,14 @@ export default function SecurityPage() {
         newPassword: password,
       });
 
+      // Update the password last updated timestamp in metadata
+      await user?.update({
+        unsafeMetadata: {
+          ...user.unsafeMetadata,
+          passwordLastUpdated: new Date().toISOString(),
+        },
+      });
+
       toast.success('Password set successfully');
       setPassword('');
       setShowPasswordForm(false);
@@ -261,6 +287,14 @@ export default function SecurityPage() {
         currentPassword: currentPassword,
         newPassword: password,
         signOutOfOtherSessions: true,
+      });
+
+      // Update the password last updated timestamp in metadata
+      await user?.update({
+        unsafeMetadata: {
+          ...user.unsafeMetadata,
+          passwordLastUpdated: new Date().toISOString(),
+        },
       });
 
       toast.success('Password updated successfully');
@@ -511,11 +545,105 @@ export default function SecurityPage() {
           {user?.passwordEnabled ? (
             <div>
               {!showChangePasswordForm ? (
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">Password is set</span>
-                  <Button onClick={handleInitiatePasswordChange} disabled={isSettingPassword}>
-                    {isSettingPassword ? 'Processing...' : 'Change Password'}
-                  </Button>
+                <div className="rounded-lg border border-eleva-neutral-200 p-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start space-x-4">
+                      <div className="rounded-full bg-green-100 p-2">
+                        <svg
+                          className="h-5 w-5 text-green-600"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          strokeWidth={2}
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-base font-medium text-eleva-primary">
+                          Password is Active
+                        </h4>
+                        <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
+                          <p className="text-sm text-eleva-neutral-900/70">
+                            Your account is secured with a password.
+                            {user?.passwordEnabled &&
+                              user?.unsafeMetadata?.passwordLastUpdated &&
+                              typeof user.unsafeMetadata.passwordLastUpdated === 'string' && (
+                                <span className="ml-1">
+                                  Last updated{' '}
+                                  {getDaysSincePasswordUpdate(
+                                    String(user.unsafeMetadata.passwordLastUpdated),
+                                  )}
+                                  .
+                                </span>
+                              )}
+                          </p>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Info className="h-4 w-4 flex-shrink-0 cursor-help text-eleva-neutral-900/50 hover:text-eleva-primary" />
+                              </TooltipTrigger>
+                              <TooltipContent
+                                side="bottom"
+                                sideOffset={5}
+                                className="max-w-xs sm:max-w-sm"
+                                avoidCollisions={true}
+                              >
+                                <p className="text-xs">
+                                  We recommend changing your password every 90 days and using a
+                                  unique password that you don&apos;t use elsewhere.
+                                </p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs text-eleva-neutral-900/60">
+                          <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-1 text-blue-700">
+                            <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path
+                                fillRule="evenodd"
+                                d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Encrypted
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-green-700">
+                            <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            Secure
+                          </span>
+                          <span className="inline-flex items-center rounded-full bg-gray-50 px-2 py-1 text-gray-700">
+                            <svg className="mr-1 h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path
+                                fillRule="evenodd"
+                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                            meets requirements
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={handleInitiatePasswordChange}
+                      disabled={isSettingPassword}
+                      variant="outline"
+                      className="ml-4"
+                    >
+                      {isSettingPassword ? 'Processing...' : 'Change Password'}
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <form onSubmit={handleChangePassword} className="space-y-4">
