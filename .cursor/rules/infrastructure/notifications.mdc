@@ -9,20 +9,23 @@ This rule provides guidelines for implementing and maintaining Novu notification
 
 ## Package Usage
 
-### ✅ Current Packages (January 2025)
+### ✅ Current Packages (June 2025)
 - `@novu/framework@2.6.7` - Use for server-side workflow definitions only (see config/novu.ts)
-- `@novu/node@2.6.6` - Use for triggering events and subscriber management (see app/utils/novu.ts) 
+- `@novu/api@1.2.0` - Use for triggering events and subscriber management (see app/utils/novu.ts) 
 - `@novu/nextjs@3.5.0` - Use for frontend Inbox components
+- `@novu/react@3.5.0` - Use for React components
 
-### ❌ Avoid
+### ❌ Avoid (Deprecated)
+- `@novu/node` - ⚠️ **DEPRECATED March 2025** - Use `@novu/api` instead
 - `@novu/headless` (deprecated, removed)
 - Direct API calls without using the SDK
-- Using `@novu/framework` for triggering events (use `@novu/node` instead)
+- Using `@novu/framework` for triggering events (use `@novu/api` instead)
 
-> **Important Clarification:**
+> **Important Migration Notes:**
 > - **Workflow definitions**: Use `@novu/framework` in `config/novu.ts`
-> - **Event triggering & subscribers**: Use `@novu/node` in `app/utils/novu.ts`
-> - **Frontend components**: Use `@novu/nextjs` for Inbox components
+> - **Event triggering & subscribers**: Use `@novu/api` in `app/utils/novu.ts` (migrated from @novu/node)
+> - **Frontend components**: Use `@novu/nextjs` and `@novu/react` for Inbox components
+> - **Scripts**: Updated to use `@novu/api` instead of deprecated `@novu/node`
 
 ## Implementation Guidelines
 

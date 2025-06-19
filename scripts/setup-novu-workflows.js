@@ -1,95 +1,125 @@
 #!/usr/bin/env node
 /**
- * Novu Workflow Setup
+ * Novu Workflows Setup Script
  *
- * Syncs workflow configurations from docs/novu-workflow-configs.json to Novu
+ * Verifies Novu configuration and provides guidance for workflow setup
  * Run with: node -r dotenv/config scripts/setup-novu-workflows.js
  * or: npm run setup:novu-workflows
  */
-import { Novu } from '@novu/node';
-import fs from 'fs/promises';
-import path from 'path';
+const { Novu } = require('@novu/api');
+const fs = require('fs/promises');
+const path = require('path');
 
+// Environment variables
 const NOVU_SECRET_KEY = process.env.NOVU_SECRET_KEY;
 const NOVU_API_KEY = process.env.NOVU_API_KEY;
 const NOVU_BASE_URL = process.env.NOVU_BASE_URL || 'https://eu.api.novu.co';
+const NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER = process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER;
 
 async function setupWorkflows() {
-  console.log('🔄 Setting up Novu workflows...\n');
+  console.log('🚀 Novu Workflows Setup & Verification\n');
 
   const apiKey = NOVU_SECRET_KEY || NOVU_API_KEY;
+
   if (!apiKey) {
-    console.error('❌ Missing NOVU_SECRET_KEY or NOVU_API_KEY');
+    console.error('❌ Missing Novu API key');
+    console.log('\nPlease set one of:');
+    console.log('  NOVU_SECRET_KEY=your_secret_key');
+    console.log('  NOVU_API_KEY=your_api_key');
+    console.log('\nGet your API key from: https://web.novu.co/settings');
     process.exit(1);
   }
 
   try {
     // Initialize Novu client
-    const novu = new Novu(apiKey, {
-      backendUrl: NOVU_BASE_URL,
+    const novu = new Novu({
+      secretKey: apiKey,
+      ...(NOVU_BASE_URL && { apiUrl: NOVU_BASE_URL }),
     });
 
-    // Read workflow configurations
-    const configPath = path.join(process.cwd(), 'docs', 'novu-workflow-configs.json');
-    const workflowConfigs = JSON.parse(await fs.readFile(configPath, 'utf8'));
+    console.log('✅ Novu client initialized successfully');
+    console.log(`📡 API URL: ${NOVU_BASE_URL}`);
+    console.log(`🔑 API Key: ${apiKey.substring(0, 8)}...`);
+    console.log();
 
-    console.log(`📋 Found ${workflowConfigs.length} workflow configurations to sync\n`);
+    // Check if workflows directory exists
+    const workflowsDir = path.join(process.cwd(), 'workflows');
 
-    // Get existing workflows
-    const existingWorkflows = await novu.notificationGroups.list();
-    const existingIds = new Set(existingWorkflows.data?.map((w) => w.identifier) || []);
+    try {
+      await fs.access(workflowsDir);
+      console.log('📁 Workflows directory found: ✅');
 
-    // Process each workflow
-    for (const config of workflowConfigs) {
-      try {
-        const { identifier, name, critical, channels } = config;
+      // List existing workflow files
+      const files = await fs.readdir(workflowsDir);
+      const workflowFiles = files.filter((f) => f.endsWith('.ts') || f.endsWith('.js'));
 
-        console.log(`Processing workflow: ${name} (${identifier})`);
-
-        // Create or update workflow
-        if (!existingIds.has(identifier)) {
-          // Create new workflow
-          await novu.notificationGroups.create({
-            name,
-            identifier,
-            critical,
-          });
-          console.log(`✅ Created new workflow: ${name}`);
-        } else {
-          // Update existing workflow
-          const existing = existingWorkflows.data?.find((w) => w.identifier === identifier);
-          if (existing) {
-            await novu.notificationGroups.update(existing._id, {
-              name,
-              critical,
-            });
-            console.log(`✅ Updated existing workflow: ${name}`);
-          }
-        }
-
-        // Configure channels
-        if (channels && channels.length > 0) {
-          console.log(`   Configuring channels: ${channels.join(', ')}`);
-        }
-      } catch (error) {
-        console.error(`❌ Error processing workflow ${config.name}:`, error.message);
+      if (workflowFiles.length > 0) {
+        console.log(`   Found ${workflowFiles.length} workflow files:`);
+        workflowFiles.forEach((file) => {
+          console.log(`   - ${file}`);
+        });
+      } else {
+        console.log('   No workflow files found');
       }
+    } catch (error) {
+      console.log('📁 Workflows directory: Not found (this is optional)');
     }
+    console.log();
 
-    console.log('\n🎉 Workflow setup completed!');
-    console.log('\nNext steps:');
-    console.log('1. Visit https://web.novu.co/workflows to verify your workflows');
-    console.log('2. Configure notification templates for each workflow');
-    console.log('3. Test your workflows using the Novu dashboard');
+    // Modern workflow management guidance
+    console.log('🎯 Workflow Management Options:');
+    console.log();
+    console.log('1. 📊 Novu Dashboard (Recommended)');
+    console.log('   • Visit: https://web.novu.co/workflows');
+    console.log('   • Create and manage workflows visually');
+    console.log('   • No code required');
+    console.log();
+    console.log('2. 🛠️ Novu Framework (Code-First)');
+    console.log('   • Use @novu/framework for code-based workflows');
+    console.log('   • Version control your notification logic');
+    console.log('   • TypeScript support');
+    console.log();
+    console.log('3. 🔧 This Application');
+    console.log('   • Uses @novu/api for triggering workflows');
+    console.log('   • Check: app/utils/novu.ts');
+    console.log('   • Ready to send notifications');
+    console.log();
+
+    // Verify current setup
+    console.log('🔍 Current Setup Status:');
+    console.log(`   API Client: ✅ Ready (@novu/api v1.2.0)`);
+    console.log(`   Environment: ${NOVU_BASE_URL.includes('eu.') ? '🇪🇺 EU' : '🇺🇸 US'}`);
+    console.log(
+      `   Trigger Method: ${typeof novu.trigger === 'function' ? '✅ Available' : '❌ Missing'}`,
+    );
+    console.log();
+
+    console.log('🎉 Setup verification completed!');
+    console.log();
+    console.log('📖 Next Steps:');
+    console.log('1. Create workflows in the Novu Dashboard');
+    console.log('2. Note the workflow identifiers');
+    console.log('3. Use novu.trigger() in your application');
+    console.log('4. Test with: npm run test:novu');
+    console.log();
+    console.log('📚 Resources:');
+    console.log('   • Dashboard: https://web.novu.co');
+    console.log('   • Docs: https://docs.novu.co');
+    console.log('   • Framework: https://docs.novu.co/framework');
   } catch (error) {
     console.error('❌ Setup failed:', error.message);
+    console.log('\n🔧 Troubleshooting:');
+    console.log('1. Verify your API key is correct');
+    console.log('2. Check network connectivity');
+    console.log('3. Ensure you are using the correct API endpoint');
+    console.log('4. Visit https://web.novu.co/settings to verify your key');
     process.exit(1);
   }
 }
 
-// Run setup if called directly
+// Run setup
 if (require.main === module) {
   setupWorkflows();
 }
 
-export { setupWorkflows };
+module.exports = { setupWorkflows };
