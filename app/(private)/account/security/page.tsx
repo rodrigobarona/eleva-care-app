@@ -28,7 +28,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
+import {
+  checkExpertSetupStatus,
+  syncGoogleAccountConnectionStatus,
+} from '@/server/actions/expert-setup';
 import { useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
 import { Copy, Info, Laptop, Mail, Smartphone } from 'lucide-react';
@@ -205,8 +208,17 @@ export default function SecurityPage() {
 
           console.log('🔄 OAuth completed, checking connection status...');
 
-          // The webhook will handle updating the expert setup metadata
-          // We just need to refresh user data to see the updated metadata
+          // Manually sync the Google account connection status as a fallback
+          // This ensures the metadata is updated even if webhooks are delayed
+          const syncResult = await syncGoogleAccountConnectionStatus();
+
+          if (syncResult.success) {
+            console.log('✅ Google account connection status synced successfully');
+          } else {
+            console.warn('⚠️ Failed to sync Google account status:', syncResult.error);
+          }
+
+          // Also reload user data to ensure UI reflects the latest state
           if (user) {
             await user.reload();
             console.log('✅ User data reloaded after OAuth');

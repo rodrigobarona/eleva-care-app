@@ -1,107 +1,141 @@
-import { handleGoogleAccountConnection } from '@/server/actions/expert-setup';
-import { WebhookEvent } from '@clerk/nextjs/server';
+import { updateSetupStepForUser } from '@/server/actions/expert-setup';
+import { UserJSON, WebhookEvent } from '@clerk/nextjs/server';
 import { verifyWebhook } from '@clerk/nextjs/webhooks';
 import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
-// Webhook signing secret from Clerk Dashboard
-const webhookSecret = process.env.CLERK_WEBHOOK_SIGNING_SECRET;
+// Type for a user with external accounts that we can safely check
+type UserWithExternalAccounts = UserJSON & {
+  external_accounts: Array<{
+    provider: string;
+    verification: {
+      status: string;
+    };
+  }>;
+};
 
-if (!webhookSecret) {
-  throw new Error(
-    'Please add CLERK_WEBHOOK_SIGNING_SECRET from Clerk Dashboard to .env or .env.local',
+/**
+ * Check if a user has a verified Google external account from webhook payload
+ * @param user - The user object from webhook payload
+ * @returns boolean indicating if the user has a verified Google account
+ */
+function hasVerifiedGoogleAccount(user: UserWithExternalAccounts): boolean {
+  return user.external_accounts.some(
+    (account) => account.provider === 'oauth_google' && account.verification?.status === 'verified',
   );
 }
 
-type ClerkEventType =
-  | 'email.created'
-  | 'organization.created'
-  | 'organization.deleted'
-  | 'organization.updated'
-  | 'organizationDomain.created'
-  | 'organizationDomain.deleted'
-  | 'organizationDomain.updated'
-  | 'organizationInvitation.accepted'
-  | 'organizationInvitation.created'
-  | 'organizationInvitation.revoked'
-  | 'organizationMembership.created'
-  | 'organizationMembership.deleted'
-  | 'organizationMembership.updated'
-  | 'permission.created'
-  | 'permission.deleted'
-  | 'permission.updated'
-  | 'role.created'
-  | 'role.deleted'
-  | 'role.updated'
-  | 'session.created'
-  | 'session.ended'
-  | 'session.pending'
-  | 'session.removed'
-  | 'session.revoked'
-  | 'sms.created'
-  | 'user.created'
-  | 'user.deleted'
-  | 'user.updated'
-  | 'waitlistEntry.created'
-  | 'waitlistEntry.updated';
+/**
+ * Check if a user has an expert role from webhook payload
+ * @param user - The user object from webhook payload
+ * @returns boolean indicating if the user has an expert role
+ */
+function hasExpertRole(user: UserJSON): boolean {
+  const roles = Array.isArray(user.public_metadata?.role)
+    ? (user.public_metadata.role as string[])
+    : [user.public_metadata?.role as string];
 
+  return roles.some((role: string) => role === 'community_expert' || role === 'top_expert');
+}
+
+/**
+ * Handle Google account connection updates for expert users
+ * This function works with webhook payload data instead of auth() context
+ * @param user - The user object from webhook payload
+ * @returns Promise<boolean> indicating if the update was successful
+ */
+async function handleGoogleAccountConnectionFromWebhook(
+  user: UserWithExternalAccounts,
+): Promise<boolean> {
+  try {
+    console.log(`🔍 Processing Google account connection for user ${user.id} from webhook`);
+
+    // Check if user has an expert role first
+    const isExpert = hasExpertRole(user);
+    if (!isExpert) {
+      console.log(`ℹ️ User ${user.id} is not an expert, skipping expert setup metadata update`);
+      return false;
+    }
+
+    // Check if user has a verified Google external account
+    const hasVerifiedGoogle = hasVerifiedGoogleAccount(user);
+
+    console.log(`🔍 User ${user.id} has ${hasVerifiedGoogle ? 'a' : 'no'} verified Google account`);
+
+    // Get current expert setup data from user metadata
+    const currentSetup = (user.unsafe_metadata?.expertSetup as Record<string, boolean>) || {};
+    const currentGoogleStatus = currentSetup.google_account === true;
+
+    // Only update if the status has changed
+    if (currentGoogleStatus !== hasVerifiedGoogle) {
+      console.log(
+        `📝 Updating Google account connection status from ${currentGoogleStatus} to ${hasVerifiedGoogle} for expert user ${user.id}`,
+      );
+
+      // Use the webhook-friendly function to update the step status
+      const result = await updateSetupStepForUser('google_account', user.id, hasVerifiedGoogle);
+
+      if (result.success) {
+        console.log(
+          `✅ Successfully updated Google account connection status to ${hasVerifiedGoogle} for expert user ${user.id}`,
+        );
+        return true;
+      } else {
+        console.error(
+          `❌ Failed to update Google account status for user ${user.id}:`,
+          result.error,
+        );
+        return false;
+      }
+    } else {
+      console.log(`ℹ️ Google account status already up to date for user ${user.id}`);
+      return true;
+    }
+  } catch (error) {
+    console.error('Error handling Google account connection from webhook:', error);
+    return false;
+  }
+}
+
+/**
+ * Handle different types of Clerk webhook events
+ * @param evt - The verified webhook event
+ */
 async function handleClerkEvent(evt: WebhookEvent) {
-  const eventType = evt.type as ClerkEventType;
+  const eventType = evt.type;
   const { id } = evt.data;
 
   console.log(`Processing ${eventType} event for ID: ${id}`);
 
   try {
     switch (eventType) {
-      // User events
       case 'user.created':
-        // Handle new user creation
         console.log('New user created:', id);
+        // For new users, we might want to initialize their expert setup
         break;
 
       case 'user.updated':
-        // Handle user updates (including Google account changes)
         console.log('User updated:', id);
-        await handleGoogleAccountConnection();
+
+        // Handle Google account connection updates for expert users
+        if (evt.data && typeof evt.data === 'object' && 'external_accounts' in evt.data) {
+          const user = evt.data as UserWithExternalAccounts;
+          await handleGoogleAccountConnectionFromWebhook(user);
+        }
         break;
 
       case 'user.deleted':
-        // Handle user deletion
         console.log('User deleted:', id);
         break;
 
-      // Organization events
-      case 'organization.created':
-      case 'organization.updated':
-      case 'organization.deleted':
-        console.log(`Organization ${eventType.split('.')[1]}:`, id);
-        break;
-
-      // Organization membership events
-      case 'organizationMembership.created':
-      case 'organizationMembership.updated':
-      case 'organizationMembership.deleted':
-        console.log(`Organization membership ${eventType.split('.')[1]}:`, id);
-        break;
-
-      // Organization invitation events
-      case 'organizationInvitation.created':
-      case 'organizationInvitation.accepted':
-      case 'organizationInvitation.revoked':
-        console.log(`Organization invitation ${eventType.split('.')[1]}:`, id);
-        break;
-
-      // Session events
       case 'session.created':
       case 'session.ended':
-      case 'session.pending':
       case 'session.removed':
       case 'session.revoked':
         console.log(`Session ${eventType.split('.')[1]}:`, id);
         break;
 
-      // Other events
       default:
         console.log(`Received ${eventType} event:`, id);
     }
@@ -115,10 +149,10 @@ async function handleClerkEvent(evt: WebhookEvent) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Verify the webhook using Clerk's official method
     const evt = await verifyWebhook(req);
 
-    // Do something with payload
-    // For this guide, log payload to console
+    // Log the webhook details
     const { id } = evt.data;
     const eventType = evt.type;
     console.log(`Received webhook with ID ${id} and event type of ${eventType}`);
