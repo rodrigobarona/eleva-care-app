@@ -134,9 +134,33 @@ export default function SecurityPage() {
       // Update the user metadata to mark Google account as connected
       const updateGoogleAccountStatus = async () => {
         try {
+          console.log('🔍 Starting Google account status update for expert...');
+
+          // Check current user role first
+          const userRoles = Array.isArray(user?.publicMetadata?.role)
+            ? (user.publicMetadata.role as string[])
+            : [user?.publicMetadata?.role as string];
+
+          const isExpert = userRoles.some(
+            (role: string) => role === 'community_expert' || role === 'top_expert',
+          );
+
+          console.log('🔍 User roles:', userRoles, 'Is expert:', isExpert);
+
+          if (!isExpert) {
+            console.log('ℹ️ User is not an expert, skipping expert setup metadata update');
+            return;
+          }
+
           const result = await handleGoogleAccountConnection();
+          console.log('🔍 handleGoogleAccountConnection result:', result);
+
           if (result.success) {
-            console.log('✅ Google account connection status updated in metadata');
+            console.log('✅ Google account connection status updated in expert metadata');
+            // Force a page reload to reflect the changes in the UI
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
           } else {
             console.error('❌ Failed to update Google account connection status:', result.error);
           }
@@ -576,7 +600,7 @@ export default function SecurityPage() {
                                 <span className="ml-1">
                                   Last updated{' '}
                                   {getDaysSincePasswordUpdate(
-                                    String(user.unsafeMetadata.passwordLastUpdated),
+                                    user.unsafeMetadata.passwordLastUpdated,
                                   )}
                                   .
                                 </span>
