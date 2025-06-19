@@ -196,24 +196,8 @@ export default function SecurityPage() {
 
           if (result.success) {
             console.log('✅ Google account connection status updated in expert metadata');
-
-            // 🔧 FIX: Reload user data to reflect server-side metadata changes
-            // This is crucial because Clerk's useUser() doesn't auto-refresh after external account changes
-            if (user) {
-              console.log('🔄 Reloading user data to reflect metadata changes...');
-              await user.reload();
-              console.log('✅ User data reloaded successfully');
-
-              // Dispatch event to notify other components about the Google account connection
-              window.dispatchEvent(
-                new CustomEvent('google-account-connected', {
-                  detail: {
-                    timestamp: new Date().toISOString(),
-                    status: 'connected',
-                  },
-                }),
-              );
-            }
+            // The UI will automatically update when user.unsafeMetadata changes
+            // No need for page reload in React
           } else {
             console.error('❌ Failed to update Google account connection status:', result.error);
           }
@@ -462,13 +446,6 @@ export default function SecurityPage() {
 
       // Update expert setup status from server
       await checkExpertSetupStatus();
-
-      // 🔧 FIX: Reload user data to reflect the disconnection changes
-      if (user) {
-        console.log('🔄 Reloading user data after Google account disconnection...');
-        await user.reload();
-        console.log('✅ User data reloaded after disconnection');
-      }
 
       // Dispatch the disconnection event
       window.dispatchEvent(
