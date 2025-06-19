@@ -1,9 +1,9 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { EventTable, ProfileTable, ScheduleTable, UserTable } from '@/drizzle/schema';
-import { clerkClient, currentUser } from '@clerk/nextjs/server';
-import { count, eq } from 'drizzle-orm';
+import { UserTable } from '@/drizzle/schema';
+import { auth, clerkClient, currentUser } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
 import { fixInconsistentMetadata } from './fixes';
@@ -15,6 +15,13 @@ export type ExpertSetupStep =
   | 'identity'
   | 'payment'
   | 'google_account';
+
+// Action result type for consistent return patterns
+type ActionResult<T = void> = {
+  success: boolean;
+  error?: string;
+  data?: T;
+};
 
 // Helper function to check if a user has an expert role
 function hasExpertRole(user: { publicMetadata?: Record<string, unknown> }): boolean {
@@ -411,6 +418,68 @@ export async function checkSetupSequence() {
     return {
       success: false,
       error: 'Failed to check setup sequence',
+    };
+  }
+}
+
+/**
+ * Handle Google Account Connection
+ * Updates the expert setup status after a successful Google OAuth connection
+ */
+export async function handleGoogleAccountConnection(): Promise<ActionResult<boolean>> {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return {
+        success: false,
+        error: 'User not authenticated',
+      };
+    }
+
+    // Get the current user to check for external accounts
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
+
+    // Check if user has a Google external account
+    const hasGoogleAccount = user.externalAccounts.some(
+      (account) => account.provider === 'google' && account.verification?.status === 'verified',
+    );
+
+    if (!hasGoogleAccount) {
+      return {
+        success: false,
+        error: 'No verified Google account found',
+      };
+    }
+
+    // Update the metadata to mark Google account as connected
+    const currentMetadata = user.unsafeMetadata as {
+      expertSetup?: Record<ExpertSetupStep, boolean>;
+    };
+
+    const expertSetup = {
+      ...(currentMetadata?.expertSetup || {}),
+      google_account: true,
+    };
+
+    await clerk.users.updateUser(userId, {
+      unsafeMetadata: {
+        ...currentMetadata,
+        expertSetup,
+      },
+    });
+
+    console.log(`✅ Updated Google account connection status for user ${userId}`);
+
+    return {
+      success: true,
+      data: true,
+    };
+  } catch (error) {
+    console.error('Error handling Google account connection:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update Google account status',
     };
   }
 }

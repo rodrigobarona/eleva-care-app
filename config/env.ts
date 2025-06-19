@@ -23,6 +23,19 @@ export const ENV_CONFIG = {
   CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY || '',
   CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET || '',
 
+  // Clerk Core 2 (v6) Redirect URLs - Use proper naming convention
+  NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL:
+    process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL || '/dashboard',
+  NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL:
+    process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL || '/dashboard',
+  NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL:
+    process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FORCE_REDIRECT_URL || '',
+  NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL:
+    process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FORCE_REDIRECT_URL || '',
+  NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || '/sign-in',
+  NEXT_PUBLIC_CLERK_SIGN_UP_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || '/sign-up',
+  NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL || '/',
+
   // Stripe Configuration
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
   STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY || '',
@@ -123,13 +136,23 @@ export const ENV_VALIDATORS = {
     const missingVars: string[] = [];
 
     if (!ENV_CONFIG.CLERK_SECRET_KEY) missingVars.push('CLERK_SECRET_KEY');
+    if (!ENV_CONFIG.CLERK_PUBLISHABLE_KEY) missingVars.push('CLERK_PUBLISHABLE_KEY');
+
+    // Clerk v6 redirect URLs are optional but recommended for proper OAuth handling
+    const optionalVars: string[] = [];
+    if (!ENV_CONFIG.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL)
+      optionalVars.push('NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL');
+    if (!ENV_CONFIG.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL)
+      optionalVars.push('NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL');
 
     return {
       isValid: missingVars.length === 0,
       message:
         missingVars.length > 0
           ? `Missing authentication environment variables: ${missingVars.join(', ')}`
-          : 'Authentication configuration is valid',
+          : optionalVars.length > 0
+            ? `Authentication configuration is valid. Optional variables for better OAuth handling: ${optionalVars.join(', ')}`
+            : 'Authentication configuration is valid',
       missingVars,
     };
   },
