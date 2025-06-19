@@ -44,11 +44,12 @@ export default getRequestConfig(async ({ requestLocale }) => {
     console.log(`[request.ts] Using file locale: ${fileLocale}`);
   }
 
-  // Load messages from JSON files
+  // Load messages from JSON files with dynamic imports for better code splitting
   let messages: MessageObject;
   try {
-    // Use the file locale for import
-    messages = (await import(`@/messages/${fileLocale}.json`)).default;
+    // Use dynamic import() for better code splitting - only load the needed locale
+    const messageModule = await import(`@/messages/${fileLocale}.json`);
+    messages = messageModule.default;
 
     if (process.env.NODE_ENV !== 'production') {
       console.log(
@@ -62,7 +63,8 @@ export default getRequestConfig(async ({ requestLocale }) => {
     );
     // Fallback to English if locale not found
     try {
-      messages = (await import('@/messages/en.json')).default;
+      const fallbackModule = await import('@/messages/en.json');
+      messages = fallbackModule.default;
       if (process.env.NODE_ENV !== 'production') {
         console.log(`[request.ts] Falling back to 'en' messages.`);
       }

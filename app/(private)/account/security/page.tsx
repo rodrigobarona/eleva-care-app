@@ -22,7 +22,10 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
+import {
+  checkExpertSetupStatus,
+  handleGoogleAccountConnection,
+} from '@/server/actions/expert-setup';
 import { useSession, useUser } from '@clerk/nextjs';
 import type { SessionWithActivitiesResource } from '@clerk/types';
 import { Copy, Laptop, Mail, Smartphone } from 'lucide-react';
@@ -110,12 +113,29 @@ export default function SecurityPage() {
       // Clear the OAuth return URL
       sessionStorage.removeItem('oauth_return_url');
 
-      // Show success message after a short delay to ensure UI is ready
-      setTimeout(() => {
-        toast.success('Google account connected successfully!', {
-          duration: 4000,
-        });
-      }, 1000);
+      // Update the user metadata to mark Google account as connected
+      const updateGoogleAccountStatus = async () => {
+        try {
+          const result = await handleGoogleAccountConnection();
+          if (result.success) {
+            console.log('✅ Google account connection status updated in metadata');
+          } else {
+            console.error('❌ Failed to update Google account connection status:', result.error);
+          }
+        } catch (error) {
+          console.error('❌ Error updating Google account connection status:', error);
+        }
+      };
+
+      // Update metadata first, then show success message
+      updateGoogleAccountStatus().finally(() => {
+        // Show success message after a short delay to ensure UI is ready
+        setTimeout(() => {
+          toast.success('Google account connected successfully!', {
+            duration: 4000,
+          });
+        }, 1000);
+      });
 
       // Clean URL if it has oauth_success parameter
       if (urlParams.get('oauth_success')) {
