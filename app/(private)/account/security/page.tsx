@@ -68,6 +68,39 @@ const formatLastSeen = (date: Date) => {
   return `${date.toLocaleDateString()} at ${timeString}`;
 };
 
+// Expert role constants for type safety and maintainability
+const EXPERT_ROLES = ['community_expert', 'top_expert'] as const;
+type ExpertRole = (typeof EXPERT_ROLES)[number];
+
+// Type-safe helper function to extract user roles
+const getUserRoles = (
+  user: { publicMetadata?: { role?: unknown } } | null | undefined,
+): string[] => {
+  if (!user?.publicMetadata?.role) return [];
+
+  const role = user.publicMetadata.role;
+
+  // Handle array of roles
+  if (Array.isArray(role)) {
+    return role.filter((r): r is string => typeof r === 'string');
+  }
+
+  // Handle single role
+  if (typeof role === 'string') {
+    return [role];
+  }
+
+  return [];
+};
+
+// Type-safe helper function to check if user has expert role
+const checkExpertRole = (
+  user: { publicMetadata?: { role?: unknown } } | null | undefined,
+): boolean => {
+  const userRoles = getUserRoles(user);
+  return userRoles.some((role): role is ExpertRole => EXPERT_ROLES.includes(role as ExpertRole));
+};
+
 // Helper function to calculate days since password update
 const getDaysSincePasswordUpdate = (lastUpdated: string): string => {
   const updateDate = new Date(lastUpdated);
@@ -136,14 +169,9 @@ export default function SecurityPage() {
         try {
           console.log('🔍 Starting Google account status update for expert...');
 
-          // Check current user role first
-          const userRoles = Array.isArray(user?.publicMetadata?.role)
-            ? (user.publicMetadata.role as string[])
-            : [user?.publicMetadata?.role as string];
-
-          const isExpert = userRoles.some(
-            (role: string) => role === 'community_expert' || role === 'top_expert',
-          );
+          // Check current user role first using type-safe helper
+          const userRoles = getUserRoles(user);
+          const isExpert = checkExpertRole(user);
 
           console.log('🔍 User roles:', userRoles, 'Is expert:', isExpert);
 
