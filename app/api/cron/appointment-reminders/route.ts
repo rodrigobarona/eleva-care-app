@@ -1,4 +1,4 @@
-import { triggerAppointmentReminder } from '@/app/utils/novu';
+import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, UserTable } from '@/drizzle/schema';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
@@ -156,14 +156,20 @@ async function handler() {
           appointment.expertLocale,
         );
 
-        await triggerAppointmentReminder(appointment.expertClerkId, {
-          userName: appointment.expertName,
-          expertName: appointment.customerName, // From expert's perspective, the customer is the "other person"
-          appointmentDate: expertDateTime.datePart,
-          appointmentTime: expertDateTime.timePart,
-          appointmentType: appointment.appointmentType,
-          timeUntilAppointment: expertTimeUntil,
-          meetingLink: appointment.meetingUrl,
+        await triggerWorkflow({
+          workflowId: 'appointment-reminder-24hr',
+          to: {
+            subscriberId: appointment.expertClerkId,
+          },
+          payload: {
+            userName: appointment.expertName,
+            expertName: appointment.customerName, // From expert's perspective, the customer is the "other person"
+            appointmentDate: expertDateTime.datePart,
+            appointmentTime: expertDateTime.timePart,
+            appointmentType: appointment.appointmentType,
+            timeUntilAppointment: expertTimeUntil,
+            meetingLink: appointment.meetingUrl,
+          },
         });
 
         console.log(`✅ Reminder sent to expert: ${appointment.expertClerkId}`);

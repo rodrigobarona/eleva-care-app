@@ -102,33 +102,29 @@ export async function handleAccountUpdated(account: Stripe.Account) {
 
             // Also trigger Novu workflow for enhanced marketplace notifications
             try {
-              const subscriber = {
-                subscriberId: user.clerkUserId,
-                email: user.email || 'no-email@eleva.care',
-                firstName: user.firstName || '',
-                lastName: user.lastName || '',
-                data: {
-                  stripeAccountId: account.id,
-                  role: 'expert', // Connect accounts are for experts
-                },
-              };
-
-              const payload = {
-                title: getConnectAccountStatusTitle(account),
-                message: getAccountUpdateMessage(account),
-                requiresAction: !account.charges_enabled || !account.payouts_enabled,
-                actionRequired: getActionRequired(account),
-                actionUrl: '/account/connect',
-                accountId: account.id,
-                chargesEnabled: account.charges_enabled,
-                payoutsEnabled: account.payouts_enabled,
-                detailsSubmitted: account.details_submitted,
-              };
-
               await triggerWorkflow({
                 workflowId: 'marketplace-connect-status',
-                to: subscriber,
-                payload,
+                to: {
+                  subscriberId: user.clerkUserId,
+                  email: user.email || 'no-email@eleva.care',
+                  firstName: user.firstName || '',
+                  lastName: user.lastName || '',
+                  data: {
+                    stripeAccountId: account.id,
+                    role: 'expert',
+                  },
+                },
+                payload: {
+                  title: getConnectAccountStatusTitle(account),
+                  message: getAccountUpdateMessage(account),
+                  requiresAction: !account.charges_enabled || !account.payouts_enabled ? 1 : 0,
+                  actionRequired: getActionRequired(account) || '',
+                  actionUrl: '/account/connect',
+                  accountId: account.id,
+                  chargesEnabled: account.charges_enabled ? 1 : 0,
+                  payoutsEnabled: account.payouts_enabled ? 1 : 0,
+                  detailsSubmitted: account.details_submitted ? 1 : 0,
+                },
                 actor: {
                   subscriberId: 'system',
                   data: {

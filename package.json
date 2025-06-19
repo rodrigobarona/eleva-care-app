@@ -71,7 +71,6 @@
     "@novu/api": "^1.2.0",
     "@novu/framework": "^2.6.7",
     "@novu/nextjs": "^3.5.0",
-    "@novu/node": "^2.6.6",
     "@novu/react": "^3.5.0",
     "@paralleldrive/cuid2": "^2.2.2",
     "@radix-ui/react-accordion": "^1.2.8",

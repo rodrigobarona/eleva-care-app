@@ -43,18 +43,6 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
 
     // Trigger Novu workflow for payout notification
     try {
-      const subscriber = {
-        subscriberId: user.clerkUserId,
-        email: user.email || 'no-email@eleva.care',
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        data: {
-          payoutId: payout.id,
-          connectAccountId: destinationAccountId,
-          role: 'expert',
-        },
-      };
-
       const payload = {
         amount,
         payoutId: payout.id,
@@ -65,7 +53,16 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
 
       await triggerWorkflow({
         workflowId: 'marketplace-payout-processed',
-        to: subscriber,
+        to: {
+          subscriberId: user.clerkUserId,
+          email: user.email || 'no-email@eleva.care',
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          data: {
+            stripeAccountId: typeof payout.destination === 'string' ? payout.destination : '',
+            role: 'expert',
+          },
+        },
         payload,
         actor: {
           subscriberId: 'system',
@@ -112,18 +109,6 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
 
     // Trigger Novu workflow for payout failure notification
     try {
-      const subscriber = {
-        subscriberId: user.clerkUserId,
-        email: user.email || 'no-email@eleva.care',
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        data: {
-          payoutId: payout.id,
-          connectAccountId: destinationAccountId,
-          role: 'expert',
-        },
-      };
-
       const payload = {
         title: 'Payout Failed',
         message: `Your payout of €${amount} has failed. Reason: ${failureReason}. Please check your bank account details and contact support if needed.`,
@@ -134,13 +119,22 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
 
       await triggerWorkflow({
         workflowId: 'marketplace-connect-status',
-        to: subscriber,
+        to: {
+          subscriberId: user.clerkUserId,
+          email: user.email || 'no-email@eleva.care',
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+          data: {
+            stripeAccountId: destinationAccountId || '',
+            role: 'expert',
+          },
+        },
         payload,
         actor: {
           subscriberId: 'system',
           data: {
             source: 'stripe-webhook',
-            accountId: user.id,
+            payoutId: payout.id,
             timestamp: new Date().toISOString(),
           },
         },

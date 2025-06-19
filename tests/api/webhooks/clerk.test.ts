@@ -1,4 +1,4 @@
-import { triggerWorkflow } from '@/app/utils/novu';
+import { triggerWorkflow, TriggerWorkflowOptions } from '@/app/utils/novu';
 import { ENV_CONFIG } from '@/config/env';
 import { NextRequest, NextResponse } from 'next/server';
 import { Webhook } from 'svix';
@@ -39,105 +39,106 @@ jest.mock('next/server', () => ({
 
 // Recreate the essential webhook handler logic for testing
 const createWebhookHandler = () => {
-  const EVENT_TO_WORKFLOW_MAPPINGS = {
-    'session.created': 'recent-login-v2',
-    'user.created': 'user-created',
-    'user.updated': 'user-profile-updated',
-    'email.created': {
-      magic_link_sign_in: 'auth-magic-link-login',
-      magic_link_sign_up: 'auth-magic-link-registration',
-      magic_link_user_profile: 'profile-magic-link-update',
-      organization_invitation: 'organization-invitation-v2',
-      organization_invitation_accepted: 'org-member-joined',
-      passkey_added: 'security-passkey-created',
-      passkey_removed: 'security-passkey-deleted',
-      password_changed: 'security-password-updated',
-      password_removed: 'security-password-deleted',
-      primary_email_address_changed: 'profile-email-updated',
-      reset_password_code: 'reset-password-code-v2',
-      verification_code: 'verification-code-v2',
-      waitlist_confirmation: 'waitlist-signup-confirmed',
-      waitlist_invitation: 'waitlist-access-granted',
-      invitation: 'user-invitation',
-    },
-  } as const;
-
-  const workflowBuilder = async (event: any) => {
-    if (!EVENT_TO_WORKFLOW_MAPPINGS[event.type as keyof typeof EVENT_TO_WORKFLOW_MAPPINGS]) {
-      return undefined;
-    }
-
-    if (event.type === 'email.created' && event.data.slug) {
-      const emailMappings = EVENT_TO_WORKFLOW_MAPPINGS['email.created'];
-      const emailSlug = event.data.slug as keyof typeof emailMappings;
-      return emailMappings[emailSlug] || `email-${String(emailSlug).replace(/_/g, '-')}`;
-    }
-
-    return EVENT_TO_WORKFLOW_MAPPINGS[
-      event.type as keyof typeof EVENT_TO_WORKFLOW_MAPPINGS
-    ] as string;
-  };
-
-  const subscriberBuilder = async (response: any) => {
-    const userData = response.data;
-
-    if (!userData.id) {
-      throw new Error('Missing subscriber ID from Clerk webhook data');
-    }
-
-    return {
-      subscriberId: userData.id,
-      firstName: userData.first_name ?? undefined,
-      lastName: userData.last_name ?? undefined,
-      email: userData.email_addresses?.[0]?.email_address ?? userData.to_email_address ?? undefined,
-      phone: userData.phone_numbers?.[0]?.phone_number ?? undefined,
-      locale: 'en_US',
-      avatar: userData.image_url ?? undefined,
-      data: {
-        clerkUserId: userData.id,
-        username: userData.username ?? '',
-        role: userData.public_metadata?.role ?? 'user',
-      },
-    };
-  };
-
-  const payloadBuilder = async (response: any) => {
-    const data = response.data;
-    const cleanedData: Record<string, string | number | boolean | Record<string, unknown>> = {};
-
-    for (const [key, value] of Object.entries(data)) {
-      if (value !== null && value !== undefined) {
-        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-          cleanedData[key] = value;
-        } else if (typeof value === 'object') {
-          cleanedData[key] = value as Record<string, unknown>;
-        }
-      }
-    }
-
-    return {
-      ...cleanedData,
-      eventType: response.type,
-      timestamp: Date.now(),
-    };
-  };
-
   const handleWebhookEvent = async (event: any) => {
-    const workflow = await workflowBuilder(event);
-    if (!workflow) {
-      console.log(`Unsupported event type: ${event.type}`);
+    const workflowId = getWorkflowId(event);
+    if (!workflowId) {
+      console.log(`No workflow mapped for event type: ${event.type}`);
       return;
     }
 
-    const subscriber = await subscriberBuilder(event);
-    const payload = await payloadBuilder(event);
+    const subscriber = buildSubscriber(event);
+    const payload = buildPayload(event);
 
     await triggerWorkflow({
-      workflowId: workflow,
+      workflowId,
       to: subscriber,
       payload,
     });
   };
+
+  // Real implementation matching the webhook handler
+  function getWorkflowId(event: any): string | null {
+    const EVENT_TO_WORKFLOW_MAPPINGS = {
+      'session.created': 'recent-login-v2',
+      'user.created': 'user-created',
+      'user.updated': 'user-profile-updated',
+      'email.created': {
+        magic_link_sign_in: 'auth-magic-link-login',
+        magic_link_sign_up: 'auth-magic-link-registration',
+        magic_link_user_profile: 'auth-magic-link-profile-update',
+        organization_invitation: 'organization-invitation',
+        organization_invitation_accepted: 'org-member-joined',
+        passkey_added: 'security-passkey-created',
+        passkey_removed: 'security-passkey-deleted',
+        password_changed: 'security-password-updated',
+        password_removed: 'security-password-deleted',
+        primary_email_address_changed: 'profile-email-updated',
+        reset_password_code: 'reset-password-code-v2',
+        verification_code: 'verification-code-v2',
+        waitlist_confirmation: 'waitlist-signup-confirmed',
+        waitlist_invitation: 'waitlist-access-granted',
+        invitation: 'user-invitation',
+      },
+    } as const;
+
+    const eventType = event.type;
+    const eventData = event.data as unknown as Record<string, unknown>;
+
+    // Handle email.created events with slug-based routing
+    if (eventType === 'email.created' && eventData.slug) {
+      const emailMappings = EVENT_TO_WORKFLOW_MAPPINGS['email.created'];
+      const slug = eventData.slug as string;
+      return emailMappings[slug as keyof typeof emailMappings] || `email-${slug}`;
+    }
+
+    // Handle other events
+    const mapping =
+      EVENT_TO_WORKFLOW_MAPPINGS[eventType as keyof typeof EVENT_TO_WORKFLOW_MAPPINGS];
+    return typeof mapping === 'string' ? mapping : null;
+  }
+
+  function buildSubscriber(event: any): TriggerWorkflowOptions['to'] {
+    const userData = event.data;
+    const userDataWithId = userData as any & { user_id?: string; to_email_address?: string };
+
+    if (!userData.id && !userDataWithId.user_id) {
+      throw new Error('Missing subscriber ID from webhook data');
+    }
+
+    return {
+      subscriberId: userDataWithId.user_id || userData.id,
+      firstName: userData.first_name || undefined,
+      lastName: userData.last_name || undefined,
+      email: userData.email_addresses?.[0]?.email_address || userDataWithId.to_email_address,
+      phone: userData.phone_numbers?.[0]?.phone_number || undefined,
+      avatar: userData.image_url || undefined,
+      data: {
+        clerkUserId: userDataWithId.user_id || userData.id,
+        username: userData.username || '',
+      },
+    };
+  }
+
+  function buildPayload(event: any) {
+    const cleanPayload: Record<string, string | number | boolean | null | undefined> = {
+      eventType: event.type,
+      timestamp: Date.now(),
+    };
+
+    // Convert event data to unknown first, then to Record
+    const eventData = event.data as unknown as Record<string, unknown>;
+
+    // Copy relevant data fields
+    for (const [key, value] of Object.entries(eventData)) {
+      if (value !== null && value !== undefined) {
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          cleanPayload[key] = value;
+        }
+      }
+    }
+
+    return cleanPayload;
+  }
 
   return async (request: NextRequest) => {
     try {
@@ -495,7 +496,7 @@ describe('Clerk Webhook Handler', () => {
       expect(response.status).toBe(200);
       expect(triggerWorkflow).toHaveBeenCalledWith(
         expect.objectContaining({
-          workflowId: 'email-unknown-email-type',
+          workflowId: 'email-unknown_email_type',
           to: expect.objectContaining({
             subscriberId: 'user_123',
           }),
@@ -690,7 +691,7 @@ describe('Clerk Webhook Handler', () => {
             valid_string: 'test',
             valid_number: 42,
             valid_boolean: true,
-            valid_object: { nested: 'value' },
+            // Note: valid_object is filtered out since buildPayload only includes primitives
             eventType: 'user.created',
             timestamp: expect.any(Number),
           }),

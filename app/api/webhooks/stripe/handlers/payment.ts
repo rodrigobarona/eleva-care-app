@@ -669,23 +669,12 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
         // Also trigger Novu marketplace workflow for enhanced notifications
         try {
-          const expertUser = await db.query.UserTable.findFirst({
+          const user = await db.query.UserTable.findFirst({
             where: eq(UserTable.clerkUserId, transfer.expertClerkUserId),
-            columns: { firstName: true, lastName: true, email: true },
+            columns: { clerkUserId: true, firstName: true, lastName: true, email: true },
           });
 
-          if (expertUser) {
-            const subscriber = {
-              subscriberId: transfer.expertClerkUserId,
-              email: expertUser.email || 'no-email@eleva.care',
-              firstName: expertUser.firstName || '',
-              lastName: expertUser.lastName || '',
-              data: {
-                transferId: transfer.id,
-                role: 'expert',
-              },
-            };
-
+          if (user) {
             const sessionDate = format(meeting.startTime, 'EEEE, MMMM d, yyyy');
             const amount = (transfer.amount / 100).toFixed(2); // Convert cents to euros
 
@@ -699,7 +688,16 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
             await triggerWorkflow({
               workflowId: 'marketplace-payment-received',
-              to: subscriber,
+              to: {
+                subscriberId: user.clerkUserId,
+                email: user.email || 'no-email@eleva.care',
+                firstName: user.firstName || '',
+                lastName: user.lastName || '',
+                data: {
+                  paymentIntentId: paymentIntent.id,
+                  role: 'expert',
+                },
+              },
               payload,
               actor: {
                 subscriberId: 'system',
