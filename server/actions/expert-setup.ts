@@ -436,16 +436,39 @@ export async function handleGoogleAccountConnection(): Promise<ActionResult<bool
       };
     }
 
-    // Get the current user to check for external accounts
+    // Get the current user to check for external accounts and roles
     const clerk = await clerkClient();
     const user = await clerk.users.getUser(userId);
 
+    console.log(`🔍 Checking Google account connection for user ${userId}`);
+
+    // Check if user has an expert role first
+    const isExpert = hasExpertRole(user);
+    if (!isExpert) {
+      console.log(`ℹ️ User ${userId} is not an expert, skipping expert setup metadata update`);
+      return {
+        success: false,
+        error: 'User is not an expert',
+      };
+    }
+
     // Check if user has a Google external account
-    const hasGoogleAccount = user.externalAccounts.some(
-      (account) => account.provider === 'google' && account.verification?.status === 'verified',
+    const googleAccounts = user.externalAccounts.filter((account) => account.provider === 'google');
+
+    console.log(
+      `🔍 Found ${googleAccounts.length} Google account(s):`,
+      googleAccounts.map((acc) => ({
+        id: acc.id,
+        email: acc.emailAddress,
+        verified: acc.verification?.status === 'verified',
+      })),
     );
 
-    if (!hasGoogleAccount) {
+    const hasVerifiedGoogleAccount = googleAccounts.some(
+      (account) => account.verification?.status === 'verified',
+    );
+
+    if (!hasVerifiedGoogleAccount) {
       return {
         success: false,
         error: 'No verified Google account found',
@@ -469,7 +492,11 @@ export async function handleGoogleAccountConnection(): Promise<ActionResult<bool
       },
     });
 
-    console.log(`✅ Updated Google account connection status for user ${userId}`);
+    console.log(`✅ Updated Google account connection status for expert user ${userId}`);
+    console.log(`📊 Expert setup status:`, expertSetup);
+
+    // Check if all steps are completed and update setupComplete flag
+    await updateSetupCompleteFlag(userId, expertSetup);
 
     return {
       success: true,
