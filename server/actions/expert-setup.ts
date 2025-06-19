@@ -423,11 +423,11 @@ export async function checkSetupSequence() {
 }
 
 /**
- * Marks the Google account connection step as complete for the current authenticated expert user after verifying a connected and verified Google account.
+ * Marks the Google account connection step as complete or incomplete for the current authenticated expert user after verifying Google account status.
  *
- * Returns a success result if the user is authenticated, has an expert role, and has at least one verified Google account connected. Updates the user's expert setup metadata and overall setup completion status.
+ * Returns a success result if the user is authenticated, has an expert role, and the Google account status was properly updated.
  *
- * @returns An action result indicating success or failure, with `data` set to `true` if the step was marked complete.
+ * @returns An action result indicating success or failure, with `data` set to `true` if the step was updated.
  */
 export async function handleGoogleAccountConnection(): Promise<ActionResult<boolean>> {
   try {
@@ -462,39 +462,44 @@ export async function handleGoogleAccountConnection(): Promise<ActionResult<bool
       };
     }
 
-    // Check if user has a Google external account
-    const googleAccounts = user.externalAccounts.filter((account) => account.provider === 'google');
+    // Check if user has a verified Google external account
+    const hasVerifiedGoogleAccount = user.externalAccounts.some(
+      (account) => account.provider === 'google' && account.verification?.status === 'verified',
+    );
 
-    console.log(`🔍 Found ${googleAccounts.length} Google account(s) for user ${userId}`);
+    console.log(
+      `🔍 User ${userId} has ${hasVerifiedGoogleAccount ? 'a' : 'no'} verified Google account`,
+    );
 
-    if (googleAccounts.length === 0) {
-      return {
-        success: false,
-        error: 'No Google accounts found',
-      };
-    }
-
-    // Update the metadata to mark Google account as connected
+    // Get current metadata
     const currentMetadata = user.unsafeMetadata as {
       expertSetup?: Record<ExpertSetupStep, boolean>;
     };
 
+    // Update the expertSetup metadata
     const expertSetup = {
       ...(currentMetadata?.expertSetup || {}),
-      google_account: true,
+      google_account: hasVerifiedGoogleAccount,
     };
 
-    await clerk.users.updateUser(userId, {
-      unsafeMetadata: {
-        ...currentMetadata,
-        expertSetup,
-      },
-    });
+    // Only update if the status has changed
+    if (currentMetadata?.expertSetup?.google_account !== hasVerifiedGoogleAccount) {
+      await clerk.users.updateUser(userId, {
+        unsafeMetadata: {
+          ...currentMetadata,
+          expertSetup,
+        },
+      });
 
-    console.log(`✅ Updated Google account connection status for expert user ${userId}`);
+      console.log(
+        `✅ Updated Google account connection status to ${hasVerifiedGoogleAccount} for expert user ${userId}`,
+      );
 
-    // Check if all steps are completed and update setupComplete flag
-    await updateSetupCompleteFlag(userId, expertSetup);
+      // Check if all steps are completed and update setupComplete flag
+      await updateSetupCompleteFlag(userId, expertSetup);
+    } else {
+      console.log(`ℹ️ Google account status already up to date for user ${userId}`);
+    }
 
     return {
       success: true,

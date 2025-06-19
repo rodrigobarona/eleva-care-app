@@ -78,6 +78,29 @@ export async function POST(request: NextRequest) {
  * Process the verified webhook event
  */
 async function handleWebhookEvent(event: WebhookEvent) {
+  // Handle Google account connection for user.updated events
+  if (event.type === 'user.updated') {
+    const userData = event.data as UserJSON;
+
+    // Check if user has any Google accounts
+    const hasGoogleAccount = userData.external_accounts?.some(
+      (account) =>
+        account.provider === 'oauth_google' && account.verification?.status === 'verified',
+    );
+
+    // Get current expertSetup status
+    const expertSetup = (userData.unsafe_metadata?.expertSetup || {}) as Record<string, boolean>;
+
+    // Only trigger update if the Google account status is different
+    if (expertSetup.google_account !== hasGoogleAccount) {
+      console.log(
+        `🔄 Updating Google account status to ${hasGoogleAccount} for user ${userData.id}`,
+      );
+      await handleGoogleAccountConnection();
+    }
+  }
+
+  // Continue with normal workflow processing
   const workflowId = getWorkflowId(event);
   if (!workflowId) {
     console.log(`No workflow mapped for event type: ${event.type}`);
@@ -93,7 +116,7 @@ async function handleWebhookEvent(event: WebhookEvent) {
     payload,
   });
 
-  // Handle special cases
+  // Handle user creation separately
   if (event.type === 'user.created') {
     await handleGoogleAccountConnection();
   }
