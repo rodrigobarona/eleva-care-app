@@ -68,6 +68,14 @@ const formatLastSeen = (date: Date) => {
   return `${date.toLocaleDateString()} at ${timeString}`;
 };
 
+
+
+/**
+ * Renders the Security Settings page, allowing users to manage passwords, connected devices, Google account integrations, user ID, and account deletion.
+ *
+ * This component provides interfaces for changing or setting a password, viewing and managing active device sessions, connecting or disconnecting Google accounts, copying the user ID, and permanently deleting the account. It integrates with Clerk for authentication and session management, and displays real-time feedback for all actions.
+ */
+
 // Helper function to calculate days since password update
 const getDaysSincePasswordUpdate = (lastUpdated: string): string => {
   const updateDate = new Date(lastUpdated);
