@@ -980,7 +980,7 @@ Timestamp: ${payload.timestamp}`,
   },
 );
 
-// Export all workflows
+// Export all workflows (temporarily limited to 20 for free plan)
 export const workflows = [
   welcomeWorkflow,
   accountVerificationWorkflow,
@@ -992,25 +992,25 @@ export const workflows = [
   // Marketplace workflows
   marketplacePaymentReceivedWorkflow,
   marketplacePayoutProcessedWorkflow,
-  marketplaceConnectAccountStatusWorkflow,
+  // marketplaceConnectAccountStatusWorkflow, // Temporarily disabled - exceeds free plan limit
   // Clerk workflows
   userCreatedWorkflow,
-  recentLoginWorkflow,
+  // recentLoginWorkflow, // Temporarily disabled - exceeds free plan limit
   expertOnboardingCompleteWorkflow,
   appointmentReminderWorkflow,
   appointmentCancelledWorkflow,
   // Expert Business Workflows
   expertPayoutSetupReminderWorkflow,
-  expertProfileActionRequiredWorkflow,
+  // expertProfileActionRequiredWorkflow, // Temporarily disabled - exceeds free plan limit
   newBookingExpertWorkflow,
   // Expert Setup Workflows
   expertSetupStepCompleteWorkflow,
-  expertSetupProgressWorkflow,
+  // expertSetupProgressWorkflow, // Temporarily disabled - exceeds free plan limit
   expertIdentityVerificationWorkflow,
-  expertGoogleAccountWorkflow,
-  // Email Template Workflows (using existing React Email templates)
+  // expertGoogleAccountWorkflow, // Temporarily disabled - exceeds free plan limit
+  // Email Template Workflows (using existing React Email templates) - CORE FEATURES
   appointmentConfirmationWorkflow,
   multibancoBookingPendingWorkflow,
   multibancoPaymentReminderWorkflow,
-  healthCheckFailureWorkflow,
+  // healthCheckFailureWorkflow, // Temporarily disabled - exceeds free plan limit
 ];
