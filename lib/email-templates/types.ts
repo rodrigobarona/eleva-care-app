@@ -3,8 +3,9 @@
 
 /**
  * Supported languages for internationalization
+ * Matches the locales available in /messages folder
  */
-export type SupportedLocale = 'en' | 'es' | 'pt' | 'fr' | 'de' | 'ar' | 'he';
+export type SupportedLocale = 'en' | 'es' | 'pt' | 'br';
 
 /**
  * User roles for template personalization
@@ -43,6 +44,16 @@ export type EmailComponentType =
   | 'security-alert';
 
 /**
+ * Email component variants for styling
+ */
+export type EmailVariant = 'default' | 'minimal' | 'branded';
+
+/**
+ * Theme preference for email components
+ */
+export type EmailTheme = 'light' | 'dark' | 'auto';
+
+/**
  * Accessibility properties for WCAG 2.1 AA compliance
  */
 export interface A11yProps {
@@ -53,6 +64,92 @@ export interface A11yProps {
   tabIndex?: number;
   highContrast?: boolean;
   semanticLevel?: 1 | 2 | 3 | 4 | 5 | 6;
+}
+
+/**
+ * Custom link configuration
+ */
+export interface CustomLink {
+  label: string;
+  url: string;
+  ariaLabel?: string;
+  openInNewTab?: boolean;
+}
+
+/**
+ * User context for personalization
+ */
+export interface UserContext {
+  displayName?: string;
+  email?: string;
+  role?: UserRole;
+  preferences?: {
+    language?: SupportedLocale;
+    timezone?: string;
+    theme?: EmailTheme;
+  };
+}
+
+/**
+ * User preferences for email handling
+ */
+export interface UserPreferences {
+  unsubscribeUrl?: string;
+  managePreferencesUrl?: string;
+  language?: SupportedLocale;
+  emailFrequency?: 'immediate' | 'daily' | 'weekly' | 'monthly';
+}
+
+/**
+ * Regulatory and compliance information
+ */
+export interface RegulatoryInfo {
+  showHIPAACompliance?: boolean;
+  showGDPRCompliance?: boolean;
+  showSOC2Compliance?: boolean;
+  customComplianceText?: string;
+}
+
+/**
+ * Email Header Component Props
+ */
+export interface EmailHeaderProps {
+  variant?: EmailVariant;
+  showLogo?: boolean;
+  showNavigation?: boolean;
+  userContext?: UserContext;
+  theme?: EmailTheme;
+  language?: SupportedLocale;
+  customization?: {
+    containerStyles?: Record<string, string>;
+    logoStyles?: Record<string, string>;
+    logoImageStyles?: Record<string, string>;
+    userContextStyles?: Record<string, string>;
+    navigationStyles?: Record<string, string>;
+  };
+  skipLinkTarget?: string;
+}
+
+/**
+ * Email Footer Component Props
+ */
+export interface EmailFooterProps {
+  variant?: EmailVariant;
+  showLogo?: boolean;
+  showSocialLinks?: boolean;
+  showUnsubscribe?: boolean;
+  showContactInfo?: boolean;
+  customLinks?: CustomLink[];
+  language?: SupportedLocale;
+  theme?: EmailTheme;
+  userPreferences?: UserPreferences;
+  regulatoryInfo?: RegulatoryInfo;
+  customization?: {
+    containerStyles?: Record<string, string>;
+    logoStyles?: Record<string, string>;
+    copyrightStyles?: Record<string, string>;
+    unsubscribeStyles?: Record<string, string>;
+  };
 }
 
 /**

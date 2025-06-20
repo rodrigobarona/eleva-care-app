@@ -1,297 +1,195 @@
-import { Img, Link, Section, Text } from '@react-email/components';
+import { Column, Container, Img, Link, Row, Section } from '@react-email/components';
 import React from 'react';
 
-import { emailDesignTokens } from '../design-tokens';
-import { SupportedLocale } from '../types';
+import { darkModeTokens, emailDesignTokens } from '../design-tokens';
+import { EmailHeaderProps } from '../types';
 
-interface EmailHeaderProps {
-  brandName: string;
-  logoUrl?: string;
-  logoAlt?: string;
-  locale: SupportedLocale;
-  darkMode?: boolean;
-  highContrast?: boolean;
-  rtl?: boolean;
-  showNavigation?: boolean;
-  userContext?: {
-    name: string;
-    role: 'patient' | 'expert' | 'admin';
-  };
+interface LogoVariant {
+  src: string;
+  alt: string;
+  description: string;
 }
 
 /**
- * Email Header Component
- * Provides consistent branding and navigation for all email templates
+ * Get appropriate logo variant based on context and theme
+ * Following React Email best practices for image optimization
  */
-export const EmailHeader: React.FC<EmailHeaderProps> = ({
-  brandName,
-  logoUrl,
-  logoAlt,
-  locale,
-  darkMode = false,
-  highContrast = false,
-  rtl = false,
+function getLogoVariant(theme: 'light' | 'dark' | 'auto' = 'auto'): LogoVariant {
+  // Base URL for production vs development
+  const baseURL =
+    process.env.NODE_ENV === 'production'
+      ? process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care'
+      : '';
+
+  const logoVariants = {
+    light: {
+      src: `${baseURL}/eleva-mark-color.png`,
+      alt: 'Eleva Care Logo',
+      description: 'Colored Eleva Care wellness logomark for light backgrounds',
+    },
+    dark: {
+      src: `${baseURL}/eleva-mark-white.png`,
+      alt: 'Eleva Care Logo',
+      description: 'White Eleva Care wellness logomark for dark backgrounds',
+    },
+    contrast: {
+      src: `${baseURL}/eleva-mark-black.png`,
+      alt: 'Eleva Care Logo',
+      description: 'High contrast black Eleva Care wellness logomark',
+    },
+  };
+
+  // Auto-select based on theme
+  if (theme === 'dark') return logoVariants.dark;
+  if (theme === 'auto') return logoVariants.light; // Default to color for auto
+  return logoVariants.light;
+}
+
+/**
+ * Email Header Component with Eleva Care branding
+ * Supports multiple themes, languages, and accessibility features
+ */
+export function EmailHeader({
+  variant = 'default',
+  showLogo = true,
   showNavigation = false,
-  userContext,
-}) => {
-  const tokens = emailDesignTokens;
+  theme = 'light',
+  customization = {},
+  userContext = {},
+}: EmailHeaderProps) {
+  // Note: locale is prepared for future translation integration
+  // const locale = normalizeLocale(language) as SupportedLocale;
+  const logo = getLogoVariant(theme);
+  const isDark = theme === 'dark';
+  const tokens = isDark ? darkModeTokens : emailDesignTokens;
 
-  // Default logo URL - you can replace this with your actual logo
-  const defaultLogoUrl = `${process.env.NEXT_PUBLIC_APP_URL}/images/email-logo.png`;
-  const finalLogoUrl = logoUrl || defaultLogoUrl;
-  const finalLogoAlt = logoAlt || `${brandName} logo`;
+  // Variant-specific styling
+  const variantStyles = {
+    default: {
+      backgroundColor: tokens.colors?.neutral?.[50] || '#F7F9F9',
+      borderBottom: `2px solid ${tokens.colors?.neutral?.[200] || '#D1D1D1'}`,
+    },
+    minimal: {
+      backgroundColor: 'transparent',
+      borderBottom: 'none',
+    },
+    branded: {
+      backgroundColor: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
+      borderBottom: `3px solid ${tokens.colors?.brand?.['eleva-secondary'] || '#E29578'}`,
+    },
+  } as const;
 
-  // Localized text
-  const getLocalizedText = (locale: SupportedLocale) => {
-    const translations = {
-      en: {
-        goToWebsite: 'Go to website',
-        dashboard: 'Dashboard',
-        appointments: 'Appointments',
-        profile: 'Profile',
-        support: 'Support',
-      },
-      es: {
-        goToWebsite: 'Ir al sitio web',
-        dashboard: 'Panel',
-        appointments: 'Citas',
-        profile: 'Perfil',
-        support: 'Soporte',
-      },
-      pt: {
-        goToWebsite: 'Ir para o site',
-        dashboard: 'Painel',
-        appointments: 'Consultas',
-        profile: 'Perfil',
-        support: 'Suporte',
-      },
-      fr: {
-        goToWebsite: 'Aller au site',
-        dashboard: 'Tableau de bord',
-        appointments: 'Rendez-vous',
-        profile: 'Profil',
-        support: 'Support',
-      },
-      de: {
-        goToWebsite: 'Zur Website',
-        dashboard: 'Dashboard',
-        appointments: 'Termine',
-        profile: 'Profil',
-        support: 'Support',
-      },
-      ar: {
-        goToWebsite: 'اذهب إلى الموقع',
-        dashboard: 'لوحة القيادة',
-        appointments: 'المواعيد',
-        profile: 'الملف الشخصي',
-        support: 'الدعم',
-      },
-      he: {
-        goToWebsite: 'עבור לאתר',
-        dashboard: 'לוח בקרה',
-        appointments: 'פגישות',
-        profile: 'פרופיל',
-        support: 'תמיכה',
-      },
-    };
-
-    return translations[locale] || translations.en;
-  };
-
-  const t = getLocalizedText(locale);
-
-  // Header styles
-  const headerStyles: React.CSSProperties = {
-    backgroundColor: darkMode ? tokens.colors.neutral[100] : '#FFFFFF',
-    borderBottom: `1px solid ${darkMode ? tokens.colors.neutral[200] : tokens.colors.neutral[200]}`,
-    padding: tokens.spacing.lg,
-    textAlign: rtl ? 'right' : 'left',
-  };
-
-  const logoStyles: React.CSSProperties = {
-    height: '40px',
-    width: 'auto',
-    maxWidth: '200px',
-  };
-
-  const brandTextStyles: React.CSSProperties = {
-    color: highContrast ? tokens.colors.neutral[900] : tokens.colors.brand['health-primary'],
-    fontSize: tokens.typography.sizes['2xl'],
-    fontWeight: tokens.typography.weights.bold,
-    margin: '0',
-    textDecoration: 'none',
-  };
-
-  const navigationStyles: React.CSSProperties = {
-    marginTop: tokens.spacing.md,
-    borderTop: `1px solid ${tokens.colors.neutral[200]}`,
-    paddingTop: tokens.spacing.md,
-  };
-
-  const navLinkStyles: React.CSSProperties = {
-    color: darkMode ? tokens.colors.neutral[700] : tokens.colors.neutral[600],
-    fontSize: tokens.typography.sizes.sm,
-    textDecoration: 'none',
-    marginRight: rtl ? '0' : tokens.spacing.md,
-    marginLeft: rtl ? tokens.spacing.md : '0',
-    padding: `${tokens.spacing.sm} ${tokens.spacing.md}`,
-    borderRadius: tokens.borderRadius.sm,
-  };
-
-  const userContextStyles: React.CSSProperties = {
-    color: tokens.colors.neutral[600],
-    fontSize: tokens.typography.sizes.sm,
-    margin: '0',
-    marginTop: tokens.spacing.sm,
-  };
+  const styles = variantStyles[variant || 'default'];
 
   return (
     <Section
-      style={headerStyles}
-      className={`email-header ${darkMode ? 'dark-mode-bg' : ''} ${highContrast ? 'high-contrast' : ''}`}
-      role="banner"
-      aria-label="Email header"
+      style={{
+        ...styles,
+        padding: '20px 0',
+        width: '100%',
+        ...customization?.containerStyles,
+      }}
     >
-      {/* Logo and Brand */}
-      <div
+      <Container
         style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: rtl ? 'flex-end' : 'flex-start',
+          maxWidth: '600px',
+          margin: '0 auto',
+          padding: '0 20px',
         }}
       >
-        {finalLogoUrl ? (
-          <Link
-            href={process.env.NEXT_PUBLIC_APP_URL}
-            style={{ textDecoration: 'none' }}
-            aria-label={t.goToWebsite}
+        <Row>
+          <Column
+            style={{
+              textAlign: 'left' as const,
+              verticalAlign: 'middle' as const,
+            }}
           >
-            <Img src={finalLogoUrl} alt={finalLogoAlt} style={logoStyles} className="email-logo" />
-          </Link>
-        ) : (
-          <Link
-            href={process.env.NEXT_PUBLIC_APP_URL}
-            style={brandTextStyles}
-            aria-label={t.goToWebsite}
-            className={highContrast ? 'high-contrast-text' : ''}
+            {showLogo && (
+              <Link
+                href={process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care'}
+                style={{
+                  display: 'inline-block',
+                  textDecoration: 'none',
+                }}
+              >
+                <Img
+                  src={logo.src}
+                  alt={logo.alt}
+                  width="40"
+                  height="40"
+                  style={{
+                    display: 'block',
+                    outline: 'none',
+                    border: 'none',
+                    textDecoration: 'none',
+                    verticalAlign: 'middle',
+                    maxWidth: '40px',
+                    height: 'auto',
+                    ...customization?.logoStyles,
+                  }}
+                  title={logo.description}
+                />
+              </Link>
+            )}
+          </Column>
+
+          <Column
+            style={{
+              textAlign: 'right' as const,
+              verticalAlign: 'middle' as const,
+            }}
           >
-            {brandName}
-          </Link>
-        )}
+            {/* User context display */}
+            {userContext?.displayName && (
+              <div
+                style={{
+                  fontSize: tokens.typography?.sizes?.sm || '14px',
+                  color: tokens.colors?.neutral?.[600] || '#4B5563',
+                  fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                  ...customization?.userContextStyles,
+                }}
+              >
+                {userContext.displayName}
+              </div>
+            )}
 
-        {/* User Context */}
-        {userContext && (
-          <div style={{ marginLeft: rtl ? '0' : 'auto', marginRight: rtl ? 'auto' : '0' }}>
-            <Text style={userContextStyles}>
-              {userContext.role === 'patient' &&
-                (locale === 'en'
-                  ? 'Patient'
-                  : locale === 'es'
-                    ? 'Paciente'
-                    : locale === 'pt'
-                      ? 'Paciente'
-                      : locale === 'fr'
-                        ? 'Patient'
-                        : locale === 'de'
-                          ? 'Patient'
-                          : locale === 'ar'
-                            ? 'مريض'
-                            : locale === 'he'
-                              ? 'מטופל'
-                              : 'Patient')}
-              : {userContext.name}
-            </Text>
-          </div>
-        )}
-      </div>
-
-      {/* Navigation Links */}
-      {showNavigation && (
-        <nav style={navigationStyles} role="navigation" aria-label="Email navigation">
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
-            <Link
-              href={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard`}
-              style={navLinkStyles}
-              className="email-nav-link"
-              aria-label={t.dashboard}
-            >
-              {t.dashboard}
-            </Link>
-
-            <Link
-              href={`${process.env.NEXT_PUBLIC_APP_URL}/appointments`}
-              style={navLinkStyles}
-              className="email-nav-link"
-              aria-label={t.appointments}
-            >
-              {t.appointments}
-            </Link>
-
-            <Link
-              href={`${process.env.NEXT_PUBLIC_APP_URL}/profile`}
-              style={navLinkStyles}
-              className="email-nav-link"
-              aria-label={t.profile}
-            >
-              {t.profile}
-            </Link>
-
-            <Link
-              href={`${process.env.NEXT_PUBLIC_APP_URL}/support`}
-              style={navLinkStyles}
-              className="email-nav-link"
-              aria-label={t.support}
-            >
-              {t.support}
-            </Link>
-          </div>
-        </nav>
-      )}
-
-      {/* Accessibility enhancements */}
-      <style>{`
-        .email-logo:hover {
-          opacity: 0.8;
-          transition: opacity 0.2s ease;
-        }
-        
-        .email-nav-link:hover {
-          background-color: ${tokens.colors.neutral[100]};
-          color: ${tokens.colors.brand['health-primary']};
-          transition: all 0.2s ease;
-        }
-        
-        .email-nav-link:focus {
-          outline: 2px solid ${tokens.colors.brand['health-primary']};
-          outline-offset: 2px;
-        }
-        
-        /* High contrast mode specific styles */
-        .high-contrast .email-nav-link {
-          border: 1px solid ${tokens.colors.neutral[900]};
-          color: ${tokens.colors.neutral[900]} !important;
-        }
-        
-        .high-contrast .email-nav-link:hover {
-          background-color: ${tokens.colors.neutral[900]};
-          color: #FFFFFF !important;
-        }
-        
-        /* Mobile responsive adjustments */
-        @media screen and (max-width: 600px) {
-          .email-header {
-            padding: ${tokens.spacing.md} !important;
-          }
-          
-          .email-nav-link {
-            margin-bottom: ${tokens.spacing.sm} !important;
-            display: block !important;
-            text-align: center !important;
-          }
-        }
-      `}</style>
+            {/* Optional navigation for specific email types */}
+            {showNavigation && (
+              <div
+                style={{
+                  fontSize: tokens.typography?.sizes?.sm || '14px',
+                  ...customization?.navigationStyles,
+                }}
+              >
+                <Link
+                  href={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard`}
+                  style={{
+                    color: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
+                    textDecoration: 'none',
+                    marginLeft: '15px',
+                    fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                  }}
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href={`${process.env.NEXT_PUBLIC_APP_URL}/support`}
+                  style={{
+                    color: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
+                    textDecoration: 'none',
+                    marginLeft: '15px',
+                    fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                  }}
+                >
+                  Support
+                </Link>
+              </div>
+            )}
+          </Column>
+        </Row>
+      </Container>
     </Section>
   );
-};
+}
 
 export default EmailHeader;
