@@ -1,4 +1,4 @@
-import { accountVerificationWorkflow, securityAlertWorkflow, welcomeWorkflow } from '@/config/novu';
+import { securityAuthWorkflow, userLifecycleWorkflow } from '@/config/novu';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
   NOTIFICATION_TYPE_SECURITY_ALERT,
@@ -29,9 +29,10 @@ export async function createUserNotification(params: CreateNotificationParams): 
     // Map notification type to workflow and trigger
     switch (type) {
       case NOTIFICATION_TYPE_VERIFICATION_HELP:
-        await accountVerificationWorkflow.trigger({
+        await securityAuthWorkflow.trigger({
           to: userId,
           payload: {
+            eventType: 'account-verification',
             userId,
             verificationUrl: (data.verificationUrl as string) || undefined,
             ...data,
@@ -40,9 +41,10 @@ export async function createUserNotification(params: CreateNotificationParams): 
         break;
 
       case NOTIFICATION_TYPE_ACCOUNT_UPDATE:
-        await welcomeWorkflow.trigger({
+        await userLifecycleWorkflow.trigger({
           to: userId,
           payload: {
+            eventType: 'welcome',
             userName: (data.userName as string) || 'User',
             ...data,
           },
@@ -50,22 +52,26 @@ export async function createUserNotification(params: CreateNotificationParams): 
         break;
 
       case NOTIFICATION_TYPE_SECURITY_ALERT:
-        await securityAlertWorkflow.trigger({
+        await securityAuthWorkflow.trigger({
           to: userId,
           payload: {
-            message: (data.message as string) || 'Security alert notification',
+            eventType: 'security-alert',
+            userId,
             alertType: (data.alertType as string) || undefined,
+            message: (data.message as string) || 'Security alert notification',
             ...data,
           },
         });
         break;
 
       case NOTIFICATION_TYPE_SYSTEM_MESSAGE:
-        await securityAlertWorkflow.trigger({
+        await securityAuthWorkflow.trigger({
           to: userId,
           payload: {
-            message: (data.message as string) || 'System message',
+            eventType: 'security-alert',
+            userId,
             alertType: 'system',
+            message: (data.message as string) || 'System message',
             ...data,
           },
         });

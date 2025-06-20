@@ -187,7 +187,6 @@ export const securityAuthWorkflow = workflow(
       alertType: z.string().optional(),
       verificationUrl: z.string().optional(),
       deviceInfo: z.string().optional(),
-      message: z.string().optional(),
       locale: z.string().optional(),
       country: z.string().optional(),
     }),

@@ -1,5 +1,5 @@
 import { ENV_CONFIG, ENV_HELPERS } from '@/config/env';
-import { healthCheckFailureWorkflow } from '@/config/novu';
+import { systemHealthWorkflow } from '@/config/novu';
 import { NextResponse } from 'next/server';
 import { PostHog } from 'posthog-node';
 
@@ -76,20 +76,15 @@ async function trackHealthCheck(data: HealthCheckData, isError = false) {
  */
 async function notifyHealthCheckFailure(data: HealthCheckData) {
   try {
-    await healthCheckFailureWorkflow.trigger({
+    await systemHealthWorkflow.trigger({
       to: ENV_CONFIG.NOVU_ADMIN_SUBSCRIBER_ID,
       payload: {
+        eventType: 'health-check-failure',
         status: data.status,
         error: data.error,
         timestamp: data.timestamp,
         environment: data.environment,
-        version: data.version,
-        nodeVersion: data.nodeVersion,
         memory: data.memory,
-        uptime: data.uptime,
-        platform: data.platform,
-        arch: data.arch,
-        config: data.config,
       },
     });
   } catch (error) {
