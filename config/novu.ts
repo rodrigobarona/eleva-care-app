@@ -1,3 +1,4 @@
+import { elevaEmailService } from '@/lib/novu-email-service';
 import { workflow } from '@novu/framework';
 import { z } from 'zod';
 
@@ -711,6 +712,181 @@ export const newBookingExpertWorkflow = workflow(
   },
 );
 
+// New workflows using existing React Email templates
+export const appointmentConfirmationWorkflow = workflow(
+  'appointment-confirmation',
+  async ({ payload, step }) => {
+    const locale = getLocale(payload);
+
+    // In-app notification
+    await step.inApp('appointment-confirmed', async () => ({
+      subject: `Appointment confirmed with ${payload.expertName}`,
+      body: `Your appointment for ${payload.eventTitle} is confirmed for ${payload.appointmentDate} at ${payload.appointmentTime}.`,
+    }));
+
+    // Email using existing beautiful AppointmentConfirmation template
+    await step.email('appointment-confirmation-email', async () => {
+      const emailBody = await elevaEmailService.renderAppointmentConfirmation({
+        expertName: payload.expertName,
+        clientName: payload.clientName,
+        appointmentDate: payload.appointmentDate,
+        appointmentTime: payload.appointmentTime,
+        timezone: payload.timezone,
+        appointmentDuration: payload.appointmentDuration,
+        eventTitle: payload.eventTitle,
+        meetLink: payload.meetLink,
+        notes: payload.notes,
+        locale: String(locale),
+      });
+
+      return {
+        subject: `Appointment Confirmed - ${payload.eventTitle}`,
+        body: emailBody,
+      };
+    });
+  },
+  {
+    payloadSchema: z.object({
+      expertName: z.string(),
+      clientName: z.string(),
+      appointmentDate: z.string(),
+      appointmentTime: z.string(),
+      timezone: z.string(),
+      appointmentDuration: z.string(),
+      eventTitle: z.string(),
+      meetLink: z.string().optional(),
+      notes: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
+    }),
+  },
+);
+
+export const multibancoBookingPendingWorkflow = workflow(
+  'multibanco-booking-pending',
+  async ({ payload, step }) => {
+    const locale = getLocale(payload);
+
+    // In-app notification
+    await step.inApp('booking-payment-pending', async () => ({
+      subject: `Payment required for your booking with ${payload.expertName}`,
+      body: `Complete your payment using Multibanco to confirm your appointment. Reference: ${payload.multibancoReference}`,
+    }));
+
+    // Email using existing beautiful MultibancoBookingPending template
+    await step.email('multibanco-booking-email', async () => {
+      const emailBody = await elevaEmailService.renderMultibancoBookingPending({
+        customerName: payload.customerName,
+        expertName: payload.expertName,
+        serviceName: payload.serviceName,
+        appointmentDate: payload.appointmentDate,
+        appointmentTime: payload.appointmentTime,
+        timezone: payload.timezone,
+        duration: payload.duration,
+        multibancoEntity: payload.multibancoEntity,
+        multibancoReference: payload.multibancoReference,
+        multibancoAmount: payload.multibancoAmount,
+        voucherExpiresAt: payload.voucherExpiresAt,
+        hostedVoucherUrl: payload.hostedVoucherUrl,
+        customerNotes: payload.customerNotes,
+        locale: String(locale),
+      });
+
+      return {
+        subject: `Payment Required - ${payload.serviceName} Booking`,
+        body: emailBody,
+      };
+    });
+  },
+  {
+    payloadSchema: z.object({
+      customerName: z.string(),
+      expertName: z.string(),
+      serviceName: z.string(),
+      appointmentDate: z.string(),
+      appointmentTime: z.string(),
+      timezone: z.string(),
+      duration: z.number(),
+      multibancoEntity: z.string(),
+      multibancoReference: z.string(),
+      multibancoAmount: z.string(),
+      voucherExpiresAt: z.string(),
+      hostedVoucherUrl: z.string(),
+      customerNotes: z.string().optional(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
+    }),
+  },
+);
+
+export const multibancoPaymentReminderWorkflow = workflow(
+  'multibanco-payment-reminder',
+  async ({ payload, step }) => {
+    const locale = getLocale(payload);
+    const isUrgent = payload.reminderType === 'urgent';
+
+    // In-app notification with urgency
+    await step.inApp('payment-reminder', async () => ({
+      subject: isUrgent
+        ? `⚠️ Urgent: Payment expires in ${payload.daysRemaining} days`
+        : `Payment reminder for your booking`,
+      body: isUrgent
+        ? `Your Multibanco payment will expire soon! Complete payment to secure your appointment with ${payload.expertName}.`
+        : `Don't forget to complete your payment for the appointment with ${payload.expertName}.`,
+    }));
+
+    // Email using existing beautiful MultibancoPaymentReminder template
+    await step.email('multibanco-reminder-email', async () => {
+      const emailBody = await elevaEmailService.renderMultibancoPaymentReminder({
+        customerName: payload.customerName,
+        expertName: payload.expertName,
+        serviceName: payload.serviceName,
+        appointmentDate: payload.appointmentDate,
+        appointmentTime: payload.appointmentTime,
+        timezone: payload.timezone,
+        duration: payload.duration,
+        multibancoEntity: payload.multibancoEntity,
+        multibancoReference: payload.multibancoReference,
+        multibancoAmount: payload.multibancoAmount,
+        voucherExpiresAt: payload.voucherExpiresAt,
+        hostedVoucherUrl: payload.hostedVoucherUrl,
+        customerNotes: payload.customerNotes,
+        reminderType: payload.reminderType,
+        daysRemaining: payload.daysRemaining,
+        locale: String(locale),
+      });
+
+      return {
+        subject: isUrgent
+          ? `⚠️ Urgent: Payment expires in ${payload.daysRemaining} days - ${payload.serviceName}`
+          : `Payment Reminder - ${payload.serviceName} Booking`,
+        body: emailBody,
+      };
+    });
+  },
+  {
+    payloadSchema: z.object({
+      customerName: z.string(),
+      expertName: z.string(),
+      serviceName: z.string(),
+      appointmentDate: z.string(),
+      appointmentTime: z.string(),
+      timezone: z.string(),
+      duration: z.number(),
+      multibancoEntity: z.string(),
+      multibancoReference: z.string(),
+      multibancoAmount: z.string(),
+      voucherExpiresAt: z.string(),
+      hostedVoucherUrl: z.string(),
+      customerNotes: z.string().optional(),
+      reminderType: z.enum(['gentle', 'urgent']),
+      daysRemaining: z.number(),
+      locale: z.string().optional(),
+      country: z.string().optional(),
+    }),
+  },
+);
+
 // Health Check Failure Workflow
 export const healthCheckFailureWorkflow = workflow(
   'health-check-failure',
@@ -832,5 +1008,9 @@ export const workflows = [
   expertSetupProgressWorkflow,
   expertIdentityVerificationWorkflow,
   expertGoogleAccountWorkflow,
+  // Email Template Workflows (using existing React Email templates)
+  appointmentConfirmationWorkflow,
+  multibancoBookingPendingWorkflow,
+  multibancoPaymentReminderWorkflow,
   healthCheckFailureWorkflow,
 ];

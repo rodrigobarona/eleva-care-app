@@ -1,3 +1,8 @@
+import {
+  buildNovuSubscriberFromClerk,
+  getWorkflowFromClerkEvent,
+  triggerNovuWorkflow,
+} from '@/lib/novu-utils';
 import { updateSetupStepForUser } from '@/server/actions/expert-setup';
 import { UserJSON, WebhookEvent } from '@clerk/nextjs/server';
 import { verifyWebhook } from '@clerk/nextjs/webhooks';
@@ -109,6 +114,7 @@ async function handleClerkEvent(evt: WebhookEvent) {
   console.log(`Processing ${eventType} event for ID: ${id}`);
 
   try {
+    // Handle existing business logic
     switch (eventType) {
       case 'user.created':
         console.log('New user created:', id);
@@ -140,10 +146,54 @@ async function handleClerkEvent(evt: WebhookEvent) {
         console.log(`Received ${eventType} event:`, id);
     }
 
+    // 🔔 NEW: Trigger Novu notification workflows
+    await triggerNovuNotificationFromClerkEvent(evt);
+
     return true;
   } catch (error) {
     console.error(`Error processing ${eventType} event:`, error);
     throw error;
+  }
+}
+
+/**
+ * Trigger Novu notification workflows based on Clerk events
+ * @param evt - The verified webhook event
+ */
+async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
+  try {
+    // Check if we have a workflow mapped for this event
+    const workflowId = getWorkflowFromClerkEvent(evt.type, evt.data);
+
+    if (!workflowId) {
+      console.log(`🔕 No Novu workflow mapped for Clerk event: ${evt.type}`);
+      return;
+    }
+
+    // Build subscriber data from Clerk user data
+    const subscriber = buildNovuSubscriberFromClerk(evt.data);
+
+    // Create payload with event data
+    const payload = {
+      eventType: evt.type,
+      eventId: evt.data.id,
+      eventData: evt.data,
+      timestamp: Date.now(),
+      source: 'clerk_webhook',
+    };
+
+    // Trigger the Novu workflow
+    console.log(`🔔 Triggering Novu workflow '${workflowId}' for Clerk event '${evt.type}'`);
+    const result = await triggerNovuWorkflow(workflowId, subscriber, payload);
+
+    if (result.success) {
+      console.log(`✅ Successfully triggered Novu workflow for Clerk event: ${evt.type}`);
+    } else {
+      console.error(`❌ Failed to trigger Novu workflow for Clerk event:`, result.error);
+    }
+  } catch (error) {
+    console.error('Error triggering Novu notification from Clerk event:', error);
+    // Don't throw - we don't want Novu failures to break webhook processing
   }
 }
 

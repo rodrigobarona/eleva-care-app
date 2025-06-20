@@ -11,6 +11,11 @@ import {
   STRIPE_PAYMENT_STATUS_UNPAID,
 } from '@/lib/constants/payment-statuses';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
+import {
+  buildNovuSubscriberFromStripe,
+  getWorkflowFromStripeEvent,
+  triggerNovuWorkflow,
+} from '@/lib/novu-utils';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { eq } from 'drizzle-orm';
@@ -660,6 +665,80 @@ const mapPaymentStatus = (stripeStatus: string, sessionId?: string): PaymentStat
 };
 
 /**
+ * Trigger Novu notification workflows based on Stripe events
+ * @param event - The verified Stripe webhook event
+ */
+async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
+  try {
+    // Check if we have a workflow mapped for this event
+    const workflowId = getWorkflowFromStripeEvent(event.type);
+
+    if (!workflowId) {
+      console.log(`🔕 No Novu workflow mapped for Stripe event: ${event.type}`);
+      return;
+    }
+
+    // Get customer information for most events
+    let customerId: string | undefined;
+    let customer: Stripe.Customer | undefined;
+
+    // Extract customer ID from different event types
+    if ('customer' in event.data.object && typeof event.data.object.customer === 'string') {
+      customerId = event.data.object.customer;
+    } else if ('charges' in event.data.object && event.data.object.charges?.data?.[0]?.customer) {
+      customerId = event.data.object.charges.data[0].customer as string;
+    } else if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+      customerId = session.customer as string;
+    }
+
+    // Retrieve customer data if we have a customer ID
+    if (customerId) {
+      try {
+        customer = (await stripe.customers.retrieve(customerId)) as Stripe.Customer;
+      } catch (error) {
+        console.warn(`Could not retrieve customer ${customerId} for Novu notification:`, error);
+      }
+    }
+
+    // If we don't have customer data, skip the notification
+    if (!customer || !customerId) {
+      console.log(
+        `🔕 No customer data available for Stripe event: ${event.type}, skipping Novu notification`,
+      );
+      return;
+    }
+
+    // Build subscriber data from Stripe customer
+    const subscriber = buildNovuSubscriberFromStripe(customer);
+
+    // Create payload with event data
+    const payload = {
+      eventType: event.type,
+      eventId: event.id,
+      eventData: event.data.object,
+      timestamp: Date.now(),
+      source: 'stripe_webhook',
+      amount: 'amount' in event.data.object ? event.data.object.amount : undefined,
+      currency: 'currency' in event.data.object ? event.data.object.currency : undefined,
+    };
+
+    // Trigger the Novu workflow
+    console.log(`🔔 Triggering Novu workflow '${workflowId}' for Stripe event '${event.type}'`);
+    const result = await triggerNovuWorkflow(workflowId, subscriber, payload);
+
+    if (result.success) {
+      console.log(`✅ Successfully triggered Novu workflow for Stripe event: ${event.type}`);
+    } else {
+      console.error(`❌ Failed to trigger Novu workflow for Stripe event:`, result.error);
+    }
+  } catch (error) {
+    console.error('Error triggering Novu notification from Stripe event:', error);
+    // Don't throw - we don't want Novu failures to break webhook processing
+  }
+}
+
+/**
  * Handles webhook events from Stripe for identity verification and Connect accounts
  *
  * @param request The incoming request from Stripe
@@ -772,6 +851,9 @@ export async function POST(request: NextRequest) {
       default:
         console.log(`Unhandled event type: ${event.type}`);
     }
+
+    // 🔔 NEW: Trigger Novu notification workflows after processing the event
+    await triggerNovuNotificationFromStripeEvent(event);
 
     return NextResponse.json({ received: true });
   } catch (error) {
