@@ -1,5 +1,6 @@
 import {
   buildNovuSubscriberFromClerk,
+  type ClerkEventData,
   getWorkflowFromClerkEvent,
   triggerNovuWorkflow,
 } from '@/lib/novu-utils';
@@ -163,7 +164,7 @@ async function handleClerkEvent(evt: WebhookEvent) {
 async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
   try {
     // Check if we have a workflow mapped for this event
-    const workflowId = getWorkflowFromClerkEvent(evt.type, evt.data);
+    const workflowId = getWorkflowFromClerkEvent(evt.type, evt.data as unknown as ClerkEventData);
 
     if (!workflowId) {
       console.log(`🔕 No Novu workflow mapped for Clerk event: ${evt.type}`);
@@ -171,7 +172,7 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
     }
 
     // Build subscriber data from Clerk user data
-    const subscriber = buildNovuSubscriberFromClerk(evt.data);
+    const subscriber = buildNovuSubscriberFromClerk(evt.data as UserJSON);
 
     // Create payload with event data
     const payload = {

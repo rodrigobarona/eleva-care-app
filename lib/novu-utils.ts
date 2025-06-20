@@ -43,13 +43,13 @@ export async function triggerNovuWorkflow(
 
 interface ClerkUser {
   id: string;
-  first_name?: string;
-  last_name?: string;
+  first_name?: string | null;
+  last_name?: string | null;
   email_addresses?: Array<{ email_address: string }>;
   email?: string;
   phone_numbers?: Array<{ phone_number: string }>;
   image_url?: string;
-  username?: string;
+  username?: string | null;
   public_metadata?: Record<string, unknown>;
   unsafe_metadata?: Record<string, unknown>;
 }
@@ -62,27 +62,27 @@ interface ClerkUser {
 export function buildNovuSubscriberFromClerk(user: ClerkUser): SubscriberPayloadDto {
   return {
     subscriberId: user.id,
-    firstName: user.first_name || undefined,
-    lastName: user.last_name || undefined,
+    firstName: user.first_name ?? undefined,
+    lastName: user.last_name ?? undefined,
     email: user.email_addresses?.[0]?.email_address || user.email || undefined,
     phone: user.phone_numbers?.[0]?.phone_number || undefined,
     locale: 'en_US', // Can be enhanced with user preferences
     avatar: user.image_url || undefined,
     data: {
       clerkUserId: user.id,
-      username: user.username || '',
-      publicMetadata: user.public_metadata || {},
-      unsafeMetadata: user.unsafe_metadata || {},
+      username: user.username ?? '',
+      hasPublicMetadata: Boolean(user.public_metadata),
+      hasUnsafeMetadata: Boolean(user.unsafe_metadata),
     },
   };
 }
 
 interface StripeCustomer {
   id: string;
-  name?: string;
-  email?: string;
-  phone?: string;
-  preferred_locales?: string[];
+  name?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  preferred_locales?: string[] | null;
   metadata?: Record<string, string>;
 }
 
@@ -93,19 +93,19 @@ interface StripeCustomer {
  */
 export function buildNovuSubscriberFromStripe(customer: StripeCustomer): SubscriberPayloadDto {
   // Split the full name into first and last name
-  const [firstName = '', lastName = ''] = (customer.name || '').split(' ');
+  const [firstName = '', lastName = ''] = (customer.name ?? '').split(' ');
 
   return {
     subscriberId: customer.id,
-    email: customer.email || undefined,
+    email: customer.email ?? undefined,
     firstName: firstName || undefined,
     lastName: lastName || undefined,
-    phone: customer.phone || undefined,
+    phone: customer.phone ?? undefined,
     locale: customer.preferred_locales?.[0] || 'en',
     avatar: undefined, // Stripe doesn't provide avatar
     data: {
       stripeCustomerId: customer.id,
-      customerMetadata: customer.metadata || {},
+      hasCustomerMetadata: Boolean(customer.metadata && Object.keys(customer.metadata).length > 0),
     },
   };
 }
@@ -158,8 +158,9 @@ export const STRIPE_EVENT_TO_WORKFLOW_MAPPINGS = {
   'capability.updated': 'expert-capability-updated',
 } as const;
 
-interface ClerkEventData {
+export interface ClerkEventData {
   slug?: string;
+  id?: string;
   [key: string]: unknown;
 }
 

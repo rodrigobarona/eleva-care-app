@@ -685,7 +685,14 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
     // Extract customer ID from different event types
     if ('customer' in event.data.object && typeof event.data.object.customer === 'string') {
       customerId = event.data.object.customer;
-    } else if ('charges' in event.data.object && event.data.object.charges?.data?.[0]?.customer) {
+    } else if (
+      'charges' in event.data.object &&
+      event.data.object.charges &&
+      typeof event.data.object.charges === 'object' &&
+      'data' in event.data.object.charges &&
+      Array.isArray(event.data.object.charges.data) &&
+      event.data.object.charges.data[0]?.customer
+    ) {
       customerId = event.data.object.charges.data[0].customer as string;
     } else if (event.type === 'checkout.session.completed') {
       const session = event.data.object as Stripe.Checkout.Session;

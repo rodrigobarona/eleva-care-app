@@ -1,5 +1,5 @@
 // Import existing email templates directly as React components
-import AppointmentConfirmation from '@/components/emails/AppointmentConfirmation';
+import { default as AppointmentConfirmation } from '@/components/emails/AppointmentConfirmation';
 import { MultibancoBookingPending } from '@/components/emails/MultibancoBookingPending';
 import { MultibancoPaymentReminder } from '@/components/emails/MultibancoPaymentReminder';
 import { generateAppointmentEmail, sendEmail } from '@/lib/email';
