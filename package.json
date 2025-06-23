@@ -54,7 +54,14 @@
     "build:analyze": "cross-env ANALYZE=true pnpm build",
     "build:debug": "NODE_OPTIONS='--inspect' pnpm build",
     "build:profile": "pnpm build --profile",
-    "build:memory": "pnpm build --experimental-debug-memory-usage"
+    "build:memory": "pnpm build --experimental-debug-memory-usage",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:studio": "drizzle-kit studio",
+    "type-check": "tsc --noEmit",
+    "test:email": "node scripts/test-email-templates.js",
+    "email:dev": "email dev",
+    "email:export": "email export"
   },
   "dependencies": {
     "@clerk/elements": "^0.23.18",
