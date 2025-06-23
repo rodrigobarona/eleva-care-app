@@ -1,11 +1,76 @@
 // Import our email template components
 import { BaseEmailTemplate } from '@/lib/email-templates/components/BaseEmailTemplate';
 import { render } from '@react-email/render';
+import DOMPurify from 'isomorphic-dompurify';
 import { NextRequest, NextResponse } from 'next/server';
 import React from 'react';
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+/**
+ * Sanitize HTML content to prevent XSS attacks
+ * Uses DOMPurify with email-safe configuration
+ */
+function sanitizeEmailHTML(html: string): string {
+  return DOMPurify.sanitize(html, {
+    // Allow common email HTML elements and attributes
+    ALLOWED_TAGS: [
+      'div',
+      'p',
+      'h1',
+      'h2',
+      'h3',
+      'h4',
+      'h5',
+      'h6',
+      'span',
+      'strong',
+      'b',
+      'em',
+      'i',
+      'u',
+      'br',
+      'ul',
+      'ol',
+      'li',
+      'a',
+      'img',
+      'table',
+      'tr',
+      'td',
+      'th',
+      'thead',
+      'tbody',
+      'tfoot',
+    ],
+    ALLOWED_ATTR: [
+      'style',
+      'href',
+      'src',
+      'alt',
+      'title',
+      'target',
+      'width',
+      'height',
+      'class',
+      'id',
+      'border',
+      'cellpadding',
+      'cellspacing',
+      'align',
+      'valign',
+    ],
+    // Allow data URLs for inline images (common in emails)
+    ALLOW_DATA_ATTR: false,
+    // Keep mailto: links
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
+    // Remove dangerous attributes
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
+    // Strip scripts and other dangerous elements
+    FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input'],
+  });
+}
 
 // Type definitions for email content structure
 type LocalizedContent = {
@@ -501,7 +566,7 @@ export async function GET(request: NextRequest) {
       variant: config.variant,
     };
 
-    // Create the email component with proper children prop structure
+    // Create the email component with proper children prop structure and sanitized HTML
     const EmailComponent = () =>
       React.createElement(
         BaseEmailTemplate,
@@ -511,7 +576,7 @@ export async function GET(request: NextRequest) {
           renderOptions: renderOptions,
         },
         React.createElement('div', {
-          dangerouslySetInnerHTML: { __html: body },
+          dangerouslySetInnerHTML: { __html: sanitizeEmailHTML(body) },
         }),
       );
 
@@ -600,7 +665,7 @@ export async function POST(request: NextRequest) {
       variant,
     };
 
-    // Create the email component with custom content and proper children prop structure
+    // Create the email component with custom content and proper children prop structure with sanitized HTML
     const EmailComponent = () =>
       React.createElement(
         BaseEmailTemplate,
@@ -610,7 +675,7 @@ export async function POST(request: NextRequest) {
           renderOptions: renderOptions,
         },
         React.createElement('div', {
-          dangerouslySetInnerHTML: { __html: content },
+          dangerouslySetInnerHTML: { __html: sanitizeEmailHTML(content) },
         }),
       );
 
