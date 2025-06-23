@@ -1,6 +1,10 @@
 import { Heading, Text } from '@react-email/components';
 import React from 'react';
 
+import { emailDesignTokens, getTypographyScale } from '../../design-tokens';
+import type { SupportedLocale } from '../../types';
+import { normalizeLocale, translateEmail } from '../../utils/translations';
+
 interface GenericNotificationProps {
   title?: string;
   message?: string;
@@ -11,53 +15,97 @@ interface GenericNotificationProps {
 /**
  * Generic Notification Template
  * Fallback template for when specific templates are not available
+ * Fully integrated with design tokens and translation system
+ *
+ * @example
+ * // Basic usage
+ * <GenericNotification title="Welcome" message="Hello!" locale="es" />
+ *
+ * @example
+ * // With user personalization
+ * <GenericNotification
+ *   title="Account Update"
+ *   message="Your profile has been updated"
+ *   userName="Maria"
+ *   locale="pt"
+ * />
  */
-export const GenericNotification: React.FC<GenericNotificationProps> = ({
+export const GenericNotification: React.FC<GenericNotificationProps> = async ({
   title = 'Notification',
   message = 'You have a new notification from Eleva.care',
   userName,
   locale = 'en',
 }) => {
-  const greeting = userName ? `Hello ${userName},` : 'Hello,';
+  // Normalize locale to supported format
+  const normalizedLocale: SupportedLocale = normalizeLocale(locale);
+
+  // Get translations using existing translation keys
+  const thankYouText = await translateEmail(
+    normalizedLocale,
+    'notifications.appointmentConfirmation.thankYou',
+    {},
+  );
+  const teamText = await translateEmail(
+    normalizedLocale,
+    'notifications.appointmentConfirmation.team',
+    {},
+  );
+
+  // Create a simple greeting based on userName
+  const greetingText = userName
+    ? `Hi ${userName},` // Simple greeting - could be enhanced with locale-specific translations if needed
+    : 'Hello,';
 
   return (
     <>
-      <Heading className="mb-4 text-xl font-bold text-gray-800">{title}</Heading>
+      <Heading
+        style={{
+          ...getTypographyScale('xl', 'heading'),
+          color: emailDesignTokens.colors.neutral[800],
+          marginBottom: emailDesignTokens.spacing.md,
+          fontWeight: emailDesignTokens.typography.weights.bold,
+        }}
+      >
+        {title}
+      </Heading>
 
-      <Text className="mb-4 text-base text-gray-700">{greeting}</Text>
-
-      <Text className="mb-4 text-base text-gray-700">{message}</Text>
-
-      <Text className="text-base text-gray-700">
-        {locale === 'pt'
-          ? 'Obrigado por usar a Eleva.care!'
-          : locale === 'es'
-            ? '¡Gracias por usar Eleva.care!'
-            : locale === 'fr'
-              ? "Merci d'utiliser Eleva.care!"
-              : locale === 'de'
-                ? 'Vielen Dank für die Nutzung von Eleva.care!'
-                : locale === 'ar'
-                  ? 'شكراً لاستخدام Eleva.care!'
-                  : locale === 'he'
-                    ? 'תודה שאתם משתמשים ב-Eleva.care!'
-                    : 'Thank you for using Eleva.care!'}
+      <Text
+        style={{
+          ...getTypographyScale('base'),
+          color: emailDesignTokens.colors.neutral[700],
+          marginBottom: emailDesignTokens.spacing.md,
+        }}
+      >
+        {greetingText}
       </Text>
 
-      <Text className="mt-6 text-sm text-gray-500">
-        {locale === 'pt'
-          ? 'Equipe Eleva.care'
-          : locale === 'es'
-            ? 'Equipo Eleva.care'
-            : locale === 'fr'
-              ? 'Équipe Eleva.care'
-              : locale === 'de'
-                ? 'Eleva.care Team'
-                : locale === 'ar'
-                  ? 'فريق Eleva.care'
-                  : locale === 'he'
-                    ? 'צוות Eleva.care'
-                    : 'The Eleva.care Team'}
+      <Text
+        style={{
+          ...getTypographyScale('base'),
+          color: emailDesignTokens.colors.neutral[700],
+          marginBottom: emailDesignTokens.spacing.md,
+        }}
+      >
+        {message}
+      </Text>
+
+      <Text
+        style={{
+          ...getTypographyScale('base'),
+          color: emailDesignTokens.colors.neutral[700],
+        }}
+      >
+        {thankYouText}
+      </Text>
+
+      <Text
+        style={{
+          ...getTypographyScale('sm'),
+          color: emailDesignTokens.colors.neutral[500],
+          marginTop: emailDesignTokens.spacing.lg,
+        }}
+      >
+        {teamText}
       </Text>
     </>
   );
