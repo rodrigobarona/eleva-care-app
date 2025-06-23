@@ -2,7 +2,7 @@ import { render } from '@react-email/render';
 import React from 'react';
 
 import { BaseEmailTemplate } from '../components/BaseEmailTemplate';
-import {
+import type {
   EmailAnalytics,
   EmailRenderOptions,
   SupportedLocale,
@@ -10,6 +10,126 @@ import {
   TemplateSelector,
   ValidationResult,
 } from '../types';
+
+/**
+ * Safe expression evaluator that only supports whitelisted operations
+ * Prevents code injection while supporting template condition evaluation
+ */
+function safeEvaluateExpression(expression: string, context: Record<string, unknown>): boolean {
+  try {
+    // Remove all whitespace to normalize the expression
+    const normalized = expression.replace(/\s+/g, ' ').trim();
+
+    // Whitelist of allowed operations and patterns
+    const allowedOperators = ['===', '!==', '==', '!=', '>', '<', '>=', '<=', '&&', '||'];
+
+    // Simple pattern matching for basic conditions
+    // Support patterns like: variable === "value", variable > number, etc.
+
+    // Handle simple equality/inequality checks
+    for (const operator of allowedOperators) {
+      if (normalized.includes(operator)) {
+        const parts = normalized.split(operator).map((p) => p.trim());
+        if (parts.length === 2) {
+          const [left, right] = parts;
+
+          // Get left operand value
+          const leftValue = getContextValue(left, context);
+          // Get right operand value
+          const rightValue = parseValue(right, context);
+
+          // Safely perform comparison
+          return performSafeComparison(leftValue, rightValue, operator);
+        }
+      }
+    }
+
+    // Handle boolean context values directly
+    if (Object.prototype.hasOwnProperty.call(context, normalized)) {
+      const value = context[normalized];
+      return Boolean(value);
+    }
+
+    // If no pattern matches, return false for safety
+    console.warn(`Unsupported expression pattern: ${expression}`);
+    return false;
+  } catch (error) {
+    console.warn(`Failed to safely evaluate expression: ${expression}`, error);
+    return false;
+  }
+}
+
+/**
+ * Get value from context safely
+ */
+function getContextValue(key: string, context: Record<string, unknown>): unknown {
+  // Remove quotes if present
+  const cleanKey = key.replace(/['"]/g, '');
+  return context[cleanKey];
+}
+
+/**
+ * Parse a value from string, considering context variables
+ */
+function parseValue(value: string, context: Record<string, unknown>): unknown {
+  const trimmed = value.trim();
+
+  // Handle string literals
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    return trimmed.slice(1, -1);
+  }
+
+  // Handle numbers
+  if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
+    return parseFloat(trimmed);
+  }
+
+  // Handle booleans
+  if (trimmed === 'true') return true;
+  if (trimmed === 'false') return false;
+
+  // Handle context variables
+  if (Object.prototype.hasOwnProperty.call(context, trimmed)) {
+    return context[trimmed];
+  }
+
+  // Default to string value
+  return trimmed;
+}
+
+/**
+ * Perform safe comparison between two values
+ */
+function performSafeComparison(left: unknown, right: unknown, operator: string): boolean {
+  switch (operator) {
+    case '===':
+      return left === right;
+    case '!==':
+      return left !== right;
+    case '==':
+      return left == right;
+    case '!=':
+      return left != right;
+    case '>':
+      return Number(left) > Number(right);
+    case '<':
+      return Number(left) < Number(right);
+    case '>=':
+      return Number(left) >= Number(right);
+    case '<=':
+      return Number(left) <= Number(right);
+    case '&&':
+      return Boolean(left) && Boolean(right);
+    case '||':
+      return Boolean(left) || Boolean(right);
+    default:
+      console.warn(`Unsupported operator: ${operator}`);
+      return false;
+  }
+}
 
 /**
  * Email Template Engine
@@ -305,7 +425,7 @@ export class EmailTemplateEngine {
   }
 
   /**
-   * Evaluate personalization condition
+   * Evaluate personalization condition using safe expression evaluator
    */
   private evaluateCondition(
     condition: string,
@@ -322,19 +442,9 @@ export class EmailTemplateEngine {
         highContrast: options.highContrast,
       };
 
-      // Replace template variables in condition
-      let evaluableCondition = condition;
-      Object.entries(context).forEach(([key, value]) => {
-        const regex = new RegExp(`\\b${key}\\b`, 'g');
-        if (typeof value === 'string') {
-          evaluableCondition = evaluableCondition.replace(regex, `"${value}"`);
-        } else {
-          evaluableCondition = evaluableCondition.replace(regex, String(value));
-        }
-      });
-
-      // Use Function constructor for safe evaluation
-      return new Function('return ' + evaluableCondition)();
+      // Use safe expression evaluator directly without string replacement
+      // The evaluator will handle context variable resolution safely
+      return safeEvaluateExpression(condition, context);
     } catch (error) {
       console.warn(`Failed to evaluate condition: ${condition}`, error);
       return false;
@@ -473,11 +583,11 @@ export class EmailTemplateEngine {
       result.performance.renderTime = renderTime;
       result.performance.size = Buffer.byteLength(html, 'utf8');
 
-      // Basic validation checks
-      if (!html.includes('<!DOCTYPE html') && !html.includes('<html')) {
+      // Basic validation checks - HTML should contain BOTH DOCTYPE and html tag
+      if (!html.includes('<!DOCTYPE html') || !html.includes('<html')) {
         result.errors.push({
           type: 'structure',
-          message: 'Invalid HTML structure',
+          message: 'Missing DOCTYPE or html tag',
           severity: 'error',
         });
         result.isValid = false;
