@@ -29,6 +29,11 @@ const withMDX = createMDX({
 const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts');
 
 const config: NextConfig = {
+  // Environment variables to be injected at build time
+  env: {
+    BUILD_DATE: new Date().toISOString(),
+  },
+
   images: {
     remotePatterns: [
       {

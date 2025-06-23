@@ -94,7 +94,7 @@ export const validateEmailData = (
   const errors: string[] = [];
 
   // Basic validation rules
-  if (!data.subject && typeof data.subject !== 'string') {
+  if (!data.subject || typeof data.subject !== 'string') {
     errors.push('Subject is required and must be a string');
   }
 
@@ -262,7 +262,8 @@ export const defaultEmailConfig = {
 
 // Version info
 export const VERSION = '1.0.0';
-export const BUILD_DATE = new Date().toISOString();
+// Build date should be injected at build time, not runtime
+export const BUILD_DATE = process.env.BUILD_DATE || 'development';
 
 // Export everything as default for convenience
 const emailTemplateInfrastructure = {
