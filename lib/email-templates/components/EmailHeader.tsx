@@ -11,8 +11,12 @@ interface LogoVariant {
 }
 
 /**
- * Get appropriate logo variant based on context and theme
- * Following React Email best practices for image optimization
+ * Returns the appropriate Eleva Care logo variant object based on the specified theme.
+ *
+ * Selects a colored, white, or high-contrast black logo for use in email templates, optimizing for light or dark backgrounds.
+ *
+ * @param theme - The color theme to determine which logo variant to use ('light', 'dark', or 'auto')
+ * @returns A logo variant object containing the image source, alt text, and description
  */
 function getLogoVariant(theme: 'light' | 'dark' | 'auto' = 'auto'): LogoVariant {
   // Base URL for production vs development
@@ -46,8 +50,17 @@ function getLogoVariant(theme: 'light' | 'dark' | 'auto' = 'auto'): LogoVariant 
 }
 
 /**
- * Email Header Component with Eleva Care branding
- * Supports multiple themes, languages, and accessibility features
+ * Renders an email header with Eleva Care branding, supporting multiple visual variants, themes, and customizable styles.
+ *
+ * Displays a logo, optional user context, and navigation links based on provided props. The header adapts its appearance for light or dark themes and allows style overrides for container, logo, user context, and navigation elements.
+ *
+ * @param variant - Visual style variant of the header ('default', 'minimal', or 'branded')
+ * @param showLogo - Whether to display the Eleva Care logo
+ * @param showNavigation - Whether to display navigation links (Dashboard, Support)
+ * @param theme - Color theme for the header ('light', 'dark', or 'auto')
+ * @param customization - Optional style overrides for header elements
+ * @param userContext - Optional user information to display (e.g., display name)
+ * @returns A React element representing the styled email header
  */
 export function EmailHeader({
   variant = 'default',

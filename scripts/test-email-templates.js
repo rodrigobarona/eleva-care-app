@@ -213,7 +213,9 @@ const EMAIL_CONTENT = {
 };
 
 /**
- * Generate test email content based on scenario
+ * Generates localized subject, preheader, and HTML body content for a test email scenario.
+ * @param {Object} scenario - The test scenario specifying email type, locale, and user role.
+ * @return {Object} An object containing the subject, preheader, and HTML content for the email.
  */
 function generateEmailContent(scenario) {
   const contentType = getContentType(scenario.name);
@@ -227,7 +229,9 @@ function generateEmailContent(scenario) {
 }
 
 /**
- * Determine content type from scenario name
+ * Returns the email content type based on keywords found in the scenario name.
+ * @param {string} scenarioName - The name of the test scenario.
+ * @return {string} The determined content type, such as 'welcome', 'expert', 'appointment', 'admin', 'payment', 'bounce', or 'spam'.
  */
 function getContentType(scenarioName) {
   if (scenarioName.includes('Welcome')) return 'welcome';
@@ -241,7 +245,13 @@ function getContentType(scenarioName) {
 }
 
 /**
- * Generate email body content with realistic data
+ * Generates localized HTML email body content for a given scenario, content type, and locale.
+ * Returns a string containing the appropriate HTML template with realistic user data and dynamic values based on the scenario.
+ * Falls back to English or the default welcome template if the specified content type or locale is unavailable.
+ * @param {Object} scenario - The test scenario, including userRole and other properties.
+ * @param {string} contentType - The type of email content (e.g., 'welcome', 'expert', 'appointment').
+ * @param {string} locale - The locale code for localization (e.g., 'en', 'es', 'pt', 'br').
+ * @return {string} The generated HTML email body content.
  */
 function generateBodyContent(scenario, contentType, locale) {
   const userNames = {
@@ -451,7 +461,11 @@ function generateBodyContent(scenario, contentType, locale) {
 }
 
 /**
- * Create a test email component
+ * Generates a React component for a test email based on the provided scenario.
+ * 
+ * The returned component wraps the base email template with localized subject, preheader, and HTML body content tailored to the scenario's user role, locale, theme, and variant.
+ * @param {Object} scenario - The test scenario specifying email content, user role, locale, theme, and variant.
+ * @return {Function} A React component representing the test email.
  */
 function createTestEmail(scenario) {
   const emailContent = generateEmailContent(scenario);
@@ -484,7 +498,13 @@ function createTestEmail(scenario) {
 }
 
 /**
- * Send a single test email
+ * Sends a single test email for the specified scenario using the Resend API.
+ *
+ * Generates localized email content and renders the appropriate template variant based on the scenario's configuration. Sends the email to the designated test address, simulating delivery, bounce, or spam outcomes as needed. Returns an object indicating success or failure, along with relevant details.
+ *
+ * @param {Object} scenario - The test scenario configuration, including name, locale, userRole, theme, variant, and test address type.
+ * @param {number} index - The index of the scenario in the test sequence, used for logging and unique identification.
+ * @return {Promise<Object>} Result object containing success status, scenario name, and either the email ID or error information.
  */
 async function sendTestEmail(scenario, index) {
   try {
@@ -537,7 +557,9 @@ async function sendTestEmail(scenario, index) {
 }
 
 /**
- * Main testing function
+ * Runs all configured email template test scenarios using Resend's test addresses, sending emails sequentially and logging results.
+ *
+ * Validates environment setup, executes each test scenario with delays to respect rate limits, summarizes successes and failures, and provides guidance for reviewing test outcomes. Exits the process with a status code indicating overall success or failure.
  */
 async function runEmailTests() {
   console.log('\n🎨 Eleva Care Email Template Testing System');

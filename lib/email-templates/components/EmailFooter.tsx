@@ -6,7 +6,10 @@ import { CustomLink, EmailFooterProps, SupportedLocale } from '../types';
 import { normalizeLocale } from '../utils/translations';
 
 /**
- * Get appropriate footer logo variant
+ * Returns the URL of the Eleva Care footer logo image based on the specified theme.
+ *
+ * @param theme - The visual theme for which to select the logo variant ('light', 'dark', or 'auto'). Defaults to 'auto'.
+ * @returns The URL of the appropriate logo image for the given theme.
  */
 function getFooterLogoVariant(theme: 'light' | 'dark' | 'auto' = 'auto') {
   const baseURL =
@@ -25,8 +28,9 @@ function getFooterLogoVariant(theme: 'light' | 'dark' | 'auto' = 'auto') {
 }
 
 /**
- * Email Footer Component with Eleva Care branding
- * Includes legal compliance, unsubscribe, and contact information
+ * Renders a customizable email footer with Eleva Care branding, supporting multiple themes, languages, and layout variants.
+ *
+ * Displays company logo, legal links, contact information, social links, unsubscribe option, and custom links, with localization and theming based on provided props.
  */
 export function EmailFooter({
   variant = 'default',

@@ -22,16 +22,9 @@ type EmailContentType = {
 };
 
 /**
- * GET /api/test-email - Send a test email with predefined templates
+ * Handles GET requests to send a test email using predefined, localized templates.
  *
- * Query Parameters:
- * - to: Email address (default: 'delivered@resend.dev')
- * - locale: Language (en|es|pt|br, default: 'en')
- * - userRole: User role (patient|expert|admin, default: 'patient')
- * - darkMode: Enable dark mode (true|false, default: false)
- * - highContrast: Enable high contrast (true|false, default: false)
- * - variant: Template variant (default|minimal|branded, default: 'default')
- * - type: Email type (welcome|expert|appointment|payment, default: 'welcome')
+ * Selects an email template based on query parameters for recipient, locale, user role, dark mode, high contrast, template variant, and email type. Renders the email using a React component and sends it via the Resend API. Returns a JSON response indicating success or failure, along with relevant metadata.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -573,7 +566,9 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST /api/test-email - Send a test email with custom content
+ * Handles POST requests to send a custom test email using the Resend service.
+ *
+ * Expects a JSON body with optional fields for recipient, subject, HTML content, locale, user role, dark mode, high contrast, and template variant. Renders the provided content within a base email template and sends the email with tracking headers and tags. Returns a JSON response indicating success or failure, including configuration details and a dashboard URL on success.
  */
 export async function POST(request: NextRequest) {
   try {

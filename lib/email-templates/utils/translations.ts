@@ -9,7 +9,12 @@ type TranslationKey = string;
 type TranslationParams = Record<string, string | number>;
 
 /**
- * Load translations from the messages folder
+ * Asynchronously loads translation data for the specified locale from the messages folder.
+ *
+ * If loading fails, falls back to English translations. Returns an empty object if both the requested locale and English translations are unavailable.
+ *
+ * @param locale - The locale code to load translations for
+ * @returns An object containing translation key-value pairs for the locale
  */
 async function loadTranslations(locale: SupportedLocale): Promise<Record<string, unknown>> {
   try {
@@ -29,7 +34,11 @@ async function loadTranslations(locale: SupportedLocale): Promise<Record<string,
 }
 
 /**
- * Get nested translation value using dot notation
+ * Retrieves a nested string value from an object using a dot-separated path.
+ *
+ * @param obj - The object to search within
+ * @param path - Dot-separated string representing the nested key path (e.g., "notifications.welcome.subject")
+ * @returns The string value at the specified path, or undefined if not found
  */
 function getNestedValue(obj: Record<string, unknown>, path: string): string | undefined {
   return path.split('.').reduce((current: unknown, key: string): unknown => {
@@ -40,7 +49,13 @@ function getNestedValue(obj: Record<string, unknown>, path: string): string | un
 }
 
 /**
- * Replace placeholders in translation strings
+ * Replaces placeholders in the form `{key}` within a template string using values from the provided parameters.
+ *
+ * If a placeholder key is not found in the parameters, the placeholder remains unchanged.
+ *
+ * @param template - The template string containing placeholders
+ * @param params - An object mapping placeholder keys to their replacement values
+ * @returns The template string with placeholders replaced by corresponding parameter values
  */
 function replacePlaceholders(template: string, params: TranslationParams = {}): string {
   return template.replace(/\{(\w+)\}/g, (match, key) => {
@@ -49,7 +64,14 @@ function replacePlaceholders(template: string, params: TranslationParams = {}): 
 }
 
 /**
- * Main translation function for email templates
+ * Retrieves a translated email template string for the specified locale and key, replacing placeholders with provided parameters.
+ *
+ * If the translation is missing for the given locale, falls back to English. If still unavailable, returns the key itself.
+ *
+ * @param locale - The target locale for translation
+ * @param key - The dot-separated key identifying the translation string
+ * @param params - Optional parameters to replace placeholders in the translation
+ * @returns The translated and formatted string, or the key if no translation is found
  */
 export async function translateEmail(
   locale: SupportedLocale,
@@ -74,7 +96,9 @@ export async function translateEmail(
 }
 
 /**
- * Get email-specific translations for headers and footers
+ * Retrieves a set of localized strings and metadata for email headers, footers, and notifications.
+ *
+ * Returns an object containing translated values for common email elements, legal terms, social links, language metadata, and the full notifications translations for the specified locale.
  */
 export async function getEmailTranslations(locale: SupportedLocale) {
   const translations = await loadTranslations(locale);
@@ -106,7 +130,12 @@ export async function getEmailTranslations(locale: SupportedLocale) {
 }
 
 /**
- * Determine locale from various inputs
+ * Normalizes a locale input string to a supported locale code.
+ *
+ * Converts various locale representations to one of the supported locale codes: 'en', 'es', 'pt', or 'br'. Defaults to 'en' if the input is missing or unrecognized.
+ *
+ * @param input - The locale string to normalize
+ * @returns The normalized supported locale code
  */
 export function normalizeLocale(input?: string): SupportedLocale {
   if (!input) return 'en';
@@ -124,7 +153,14 @@ export function normalizeLocale(input?: string): SupportedLocale {
 }
 
 /**
- * Get locale-specific date formatting
+ * Formats a Date object into a locale-specific string for email content.
+ *
+ * Uses the appropriate locale conventions for date and time formatting, with optional overrides.
+ *
+ * @param date - The date to format
+ * @param locale - The supported locale code
+ * @param options - Optional formatting options to override defaults
+ * @returns The formatted date string
  */
 export function formatEmailDate(
   date: Date,
@@ -151,7 +187,12 @@ export function formatEmailDate(
 }
 
 /**
- * Get locale-specific currency formatting
+ * Formats a numeric amount as a currency string according to the specified locale.
+ *
+ * @param amount - The monetary value to format
+ * @param locale - The supported locale code for formatting
+ * @param currency - The ISO 4217 currency code to use (defaults to 'EUR')
+ * @returns The formatted currency string for the given locale and currency
  */
 export function formatEmailCurrency(
   amount: number,

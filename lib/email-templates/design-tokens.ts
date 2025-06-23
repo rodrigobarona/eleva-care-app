@@ -249,7 +249,14 @@ export const a11yUtilities = {
 };
 
 /**
- * Utility function to get color with contrast ratio
+ * Returns the preferred color for use on a given background, assuming it meets contrast requirements.
+ *
+ * This function does not perform actual contrast calculations; it simply returns the provided preferred color.
+ *
+ * @param background - The background color value
+ * @param preferredColor - The color to use if it is assumed to be contrast-compliant
+ * @param _fallbackColor - Unused; reserved for future fallback logic
+ * @returns The preferred color
  */
 export function getContrastCompliantColor(
   background: string,
@@ -262,7 +269,11 @@ export function getContrastCompliantColor(
 }
 
 /**
- * Utility function to get typography scale
+ * Returns typography styles for a given size and font family.
+ *
+ * @param size - The typography size key to retrieve (e.g., 'sm', 'lg')
+ * @param family - The font family key to use ('primary', 'heading', or 'mono'). Defaults to 'primary'.
+ * @returns An object containing `fontSize`, `lineHeight`, and `fontFamily` for the specified typography scale.
  */
 export function getTypographyScale(
   size: keyof typeof emailDesignTokens.typography.sizes,
@@ -276,7 +287,10 @@ export function getTypographyScale(
 }
 
 /**
- * Utility function to get spacing value
+ * Returns the spacing value for the specified size key from the design tokens.
+ *
+ * @param size - The spacing size key to retrieve (e.g., 'xs', 'md', 'xl')
+ * @returns The corresponding spacing value as a string (e.g., '16px')
  */
 export function getSpacing(size: keyof typeof emailDesignTokens.spacing): string {
   return emailDesignTokens.spacing[size];
