@@ -5,14 +5,14 @@ import { darkModeTokens, emailDesignTokens } from '../design-tokens';
 import { CustomLink, EmailFooterProps, SupportedLocale } from '../types';
 import { normalizeLocale } from '../utils/translations';
 
+// Centralized URL configuration
+const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care';
+
 /**
  * Get appropriate footer logo variant
  */
 function getFooterLogoVariant(theme: 'light' | 'dark' | 'auto' = 'auto') {
-  const baseURL =
-    process.env.NODE_ENV === 'production'
-      ? process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care'
-      : '';
+  const baseURL = process.env.NODE_ENV === 'production' ? DEFAULT_BASE_URL : '';
 
   // For footer, typically use a more subdued version
   const variants = {
@@ -65,7 +65,7 @@ export function EmailFooter({
   const styles = variantStyles[variant as keyof typeof variantStyles] || variantStyles.default;
 
   // Base URLs
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || DEFAULT_BASE_URL;
   const unsubscribeUrl = userPreferences.unsubscribeUrl || `${baseUrl}/unsubscribe`;
 
   // Default translations (fallback if translation system fails)
