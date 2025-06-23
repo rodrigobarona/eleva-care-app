@@ -249,16 +249,140 @@ export const a11yUtilities = {
 };
 
 /**
- * Utility function to get color with contrast ratio
+ * Utility function to convert hex color to RGB values
+ */
+function hexToRgb(hex: string): { r: number; g: number; b: number } | null {
+  if (!hex || typeof hex !== 'string') {
+    return null;
+  }
+
+  // Remove # if present
+  const cleanHex = hex.replace('#', '');
+
+  // Handle 3-character hex codes
+  if (cleanHex.length === 3) {
+    const match = /^([a-f\d])([a-f\d])([a-f\d])$/i.exec(cleanHex);
+    if (!match) return null;
+
+    return {
+      r: parseInt(match[1] + match[1], 16),
+      g: parseInt(match[2] + match[2], 16),
+      b: parseInt(match[3] + match[3], 16),
+    };
+  }
+
+  // Handle 6-character hex codes
+  if (cleanHex.length === 6) {
+    const match = /^([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(cleanHex);
+    if (!match) return null;
+
+    return {
+      r: parseInt(match[1], 16),
+      g: parseInt(match[2], 16),
+      b: parseInt(match[3], 16),
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Calculate relative luminance of a color according to WCAG 2.1
+ * https://www.w3.org/WAI/WCAG21/Understanding/contrast-minimum.html
+ */
+function getRelativeLuminance(r: number, g: number, b: number): number {
+  // Normalize RGB values to 0-1 range
+  const rs = r / 255;
+  const gs = g / 255;
+  const bs = b / 255;
+
+  // Apply gamma correction
+  const rLinear = rs <= 0.03928 ? rs / 12.92 : Math.pow((rs + 0.055) / 1.055, 2.4);
+  const gLinear = gs <= 0.03928 ? gs / 12.92 : Math.pow((gs + 0.055) / 1.055, 2.4);
+  const bLinear = bs <= 0.03928 ? bs / 12.92 : Math.pow((bs + 0.055) / 1.055, 2.4);
+
+  // Calculate relative luminance using WCAG formula
+  return 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear;
+}
+
+/**
+ * Calculate WCAG contrast ratio between two colors
+ * Returns a value between 1 and 21
+ */
+function calculateContrastRatio(color1: string, color2: string): number {
+  // Parse colors to RGB
+  const rgb1 = hexToRgb(color1);
+  const rgb2 = hexToRgb(color2);
+
+  // Return default ratio if parsing fails
+  if (!rgb1 || !rgb2) {
+    console.warn(`Failed to parse colors for contrast calculation: ${color1}, ${color2}`);
+    return 4.5; // Assume minimum compliance
+  }
+
+  // Calculate relative luminance
+  const l1 = getRelativeLuminance(rgb1.r, rgb1.g, rgb1.b);
+  const l2 = getRelativeLuminance(rgb2.r, rgb2.g, rgb2.b);
+
+  // Calculate contrast ratio (lighter color / darker color)
+  const lighter = Math.max(l1, l2);
+  const darker = Math.min(l1, l2);
+
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+/**
+ * Utility function to get color with WCAG contrast compliance
+ * Ensures the returned color meets accessibility standards
  */
 export function getContrastCompliantColor(
   background: string,
   preferredColor: string,
-  _fallbackColor: string,
+  fallbackColor: string,
+  minContrastRatio: number = 4.5, // WCAG AA standard for normal text
 ): string {
-  // In a real implementation, you would calculate the contrast ratio
-  // For now, return the preferred color (assuming it's already compliant)
-  return preferredColor;
+  try {
+    // Validate input colors first
+    const bgRgb = hexToRgb(background);
+    const prefRgb = hexToRgb(preferredColor);
+    const fallRgb = hexToRgb(fallbackColor);
+
+    // If any color is invalid, log warning and return fallback
+    if (!bgRgb || !prefRgb || !fallRgb) {
+      console.warn(
+        `Invalid color format detected. Background: ${background}, ` +
+          `Preferred: ${preferredColor}, Fallback: ${fallbackColor}`,
+      );
+      return fallbackColor;
+    }
+
+    // Calculate contrast ratio between background and preferred color
+    const contrastRatio = calculateContrastRatio(background, preferredColor);
+
+    // Return preferred color if it meets the minimum contrast requirement
+    if (contrastRatio >= minContrastRatio) {
+      return preferredColor;
+    }
+
+    // Check if fallback color meets the requirement
+    const fallbackContrastRatio = calculateContrastRatio(background, fallbackColor);
+    if (fallbackContrastRatio >= minContrastRatio) {
+      return fallbackColor;
+    }
+
+    // If neither meets the requirement, log a warning and return fallback
+    console.warn(
+      `Neither preferred (${contrastRatio.toFixed(2)}) nor fallback (${fallbackContrastRatio.toFixed(2)}) ` +
+        `colors meet the minimum contrast ratio of ${minContrastRatio} against background ${background}. ` +
+        `Using fallback color: ${fallbackColor}`,
+    );
+
+    return fallbackColor;
+  } catch (error) {
+    console.error('Error calculating contrast ratio:', error);
+    // Return fallback color on any error
+    return fallbackColor;
+  }
 }
 
 /**
