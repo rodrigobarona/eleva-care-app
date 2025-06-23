@@ -88,8 +88,8 @@ export const BaseEmailTemplate: React.FC<BaseEmailTemplateProps> = ({
     fontFamily: tokens.typography.families.primary,
     fontSize: tokens.typography.sizes.base,
     lineHeight: tokens.typography.lineHeights.normal,
-    color: darkMode ? tokens.colors.neutral[800] : tokens.colors.neutral[800],
-    backgroundColor: darkMode ? tokens.colors.neutral[50] : '#FFFFFF',
+    color: darkMode ? tokens.colors.neutral[100] : tokens.colors.neutral[800],
+    backgroundColor: darkMode ? tokens.colors.neutral[900] : '#FFFFFF',
     direction: rtl ? 'rtl' : 'ltr',
     textAlign: rtl ? 'right' : 'left',
     ...style,
@@ -187,10 +187,10 @@ export const BaseEmailTemplate: React.FC<BaseEmailTemplateProps> = ({
           /* Dark mode support */
           @media (prefers-color-scheme: dark) {
             .dark-mode-bg {
-              background-color: ${darkMode ? tokens.colors.neutral[50] : '#FFFFFF'} !important;
+              background-color: ${darkMode ? tokens.colors.neutral[900] : '#FFFFFF'} !important;
             }
             .dark-mode-text {
-              color: ${darkMode ? tokens.colors.neutral[800] : tokens.colors.neutral[800]} !important;
+              color: ${darkMode ? tokens.colors.neutral[100] : tokens.colors.neutral[800]} !important;
             }
           }
           
@@ -275,7 +275,7 @@ export const BaseEmailTemplate: React.FC<BaseEmailTemplateProps> = ({
               id="main-content"
               className={`mobile-padding rounded-lg bg-white shadow-md ${darkMode ? 'dark-mode-bg' : ''}`}
               style={{
-                backgroundColor: darkMode ? tokens.colors.neutral[100] : '#FFFFFF',
+                backgroundColor: darkMode ? tokens.colors.neutral[800] : '#FFFFFF',
                 borderRadius: tokens.borderRadius.lg,
                 padding: tokens.spacing.lg,
                 marginTop: tokens.spacing.md,
