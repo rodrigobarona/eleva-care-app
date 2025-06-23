@@ -1,9 +1,8 @@
+import { emailDesignTokens, getTypographyScale } from '@/lib/email-templates/design-tokens';
+import type { SupportedLocale } from '@/lib/email-templates/types';
+import { normalizeLocale, translateEmail } from '@/lib/email-templates/utils/translations';
 import { Heading, Text } from '@react-email/components';
 import React from 'react';
-
-import { emailDesignTokens, getTypographyScale } from '../../design-tokens';
-import type { SupportedLocale } from '../../types';
-import { normalizeLocale, translateEmail } from '../../utils/translations';
 
 interface GenericNotificationProps {
   title?: string;
