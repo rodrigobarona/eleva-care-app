@@ -12,7 +12,7 @@ import { EmailFooter } from './EmailFooter';
 import { EmailHeader } from './EmailHeader';
 
 interface BaseEmailTemplateProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   subject: string;
   preheader?: string;
   renderOptions?: EmailRenderOptions;

@@ -7,17 +7,31 @@ import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+// Type definitions for email content structure
+type LocalizedContent = {
+  en: string;
+  es: string;
+  pt: string;
+  br: string;
+};
+
+type EmailContentType = {
+  subject: LocalizedContent;
+  preheader: LocalizedContent;
+  body: LocalizedContent;
+};
+
 /**
- * GET /api/test-email - Send a test email using Resend
+ * GET /api/test-email - Send a test email with predefined templates
  *
- * Query parameters:
- * - to: recipient email (defaults to delivered@resend.dev)
- * - locale: language code (en, es, pt, br)
- * - userRole: user role (patient, expert, admin)
- * - darkMode: boolean for dark theme
- * - highContrast: boolean for high contrast
- * - variant: template variant (default, minimal, branded)
- * - type: email type (welcome, expert, appointment, admin, payment)
+ * Query Parameters:
+ * - to: Email address (default: 'delivered@resend.dev')
+ * - locale: Language (en|es|pt|br, default: 'en')
+ * - userRole: User role (patient|expert|admin, default: 'patient')
+ * - darkMode: Enable dark mode (true|false, default: false)
+ * - highContrast: Enable high contrast (true|false, default: false)
+ * - variant: Template variant (default|minimal|branded, default: 'default')
+ * - type: Email type (welcome|expert|appointment|payment, default: 'welcome')
  */
 export async function GET(request: NextRequest) {
   try {
@@ -34,20 +48,20 @@ export async function GET(request: NextRequest) {
       type: searchParams.get('type') || 'welcome',
     };
 
-    // Email content templates
-    const emailContent = {
+    // Email content templates with proper typing
+    const emailContent: Record<string, EmailContentType> = {
       welcome: {
         subject: {
-          en: '🎉 Welcome to Eleva Care!',
-          es: '🎉 ¡Bienvenido a Eleva Care!',
-          pt: '🎉 Bem-vindo ao Eleva Care!',
-          br: '🎉 Bem-vindo ao Eleva Care!',
+          en: 'Welcome to Eleva Care - Your Health Journey Begins',
+          es: 'Bienvenido a Eleva Care - Tu Viaje de Salud Comienza',
+          pt: 'Bem-vindo ao Eleva Care - Sua Jornada de Saúde Começa',
+          br: 'Bem-vindo ao Eleva Care - Sua Jornada de Saúde Começa',
         },
         preheader: {
-          en: 'Your healthcare journey starts here',
-          es: 'Tu viaje de salud comienza aquí',
-          pt: 'A sua jornada de saúde começa aqui',
-          br: 'Sua jornada de saúde começa aqui',
+          en: 'Get started with personalized healthcare from trusted experts',
+          es: 'Comienza con atención médica personalizada de expertos de confianza',
+          pt: 'Comece com cuidados de saúde personalizados de especialistas confiáveis',
+          br: 'Comece com cuidados de saúde personalizados de especialistas confiáveis',
         },
         body: {
           en: `
@@ -70,9 +84,79 @@ export async function GET(request: NextRequest) {
                 </a>
               </p>
               <p style="color: #666; font-size: 14px; margin-top: 32px;">
-                🧪 This is a test email sent via Resend API.<br/>
-                📧 Template: ${config.variant} | 🌐 Locale: ${config.locale} | 👤 Role: ${config.userRole}<br/>
-                🎨 Theme: ${config.darkMode ? 'Dark' : 'Light'}${config.highContrast ? ' + High Contrast' : ''}
+                🧪 This is a test email sent via Resend API.
+              </p>
+            </div>
+          `,
+          es: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">¡Bienvenido a Eleva Care!</h1>
+              <p style="font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
+                Nos emociona tenerte en nuestra comunidad de excelencia en salud. Tu viaje hacia una mejor salud comienza aquí.
+              </p>
+              <div style="background: #F7F9F9; padding: 24px; border-radius: 8px; margin: 24px 0;">
+                <h3 style="color: #006D77; margin-bottom: 12px;">¿Qué sigue?</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                  <li>Completa tu perfil de salud</li>
+                  <li>Explora nuestros profesionales de salud expertos</li>
+                  <li>Programa tu primera consulta</li>
+                </ul>
+              </div>
+              <p style="margin-bottom: 24px;">
+                <a href="https://eleva-care.com/dashboard" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Comenzar →
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este es un correo de prueba enviado vía Resend API.
+              </p>
+            </div>
+          `,
+          pt: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Bem-vindo ao Eleva Care!</h1>
+              <p style="font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
+                Estamos entusiasmados por tê-lo na nossa comunidade de excelência em saúde. A sua jornada para uma melhor saúde começa aqui.
+              </p>
+              <div style="background: #F7F9F9; padding: 24px; border-radius: 8px; margin: 24px 0;">
+                <h3 style="color: #006D77; margin-bottom: 12px;">O que vem a seguir?</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                  <li>Complete o seu perfil de saúde</li>
+                  <li>Explore os nossos profissionais de saúde especialistas</li>
+                  <li>Agende a sua primeira consulta</li>
+                </ul>
+              </div>
+              <p style="margin-bottom: 24px;">
+                <a href="https://eleva-care.com/dashboard" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Começar →
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este é um email de teste enviado via Resend API.
+              </p>
+            </div>
+          `,
+          br: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Bem-vindo ao Eleva Care!</h1>
+              <p style="font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
+                Estamos empolgados em tê-lo em nossa comunidade de excelência em saúde. Sua jornada para uma melhor saúde começa aqui.
+              </p>
+              <div style="background: #F7F9F9; padding: 24px; border-radius: 8px; margin: 24px 0;">
+                <h3 style="color: #006D77; margin-bottom: 12px;">O que vem a seguir?</h3>
+                <ul style="margin: 0; padding-left: 20px;">
+                  <li>Complete seu perfil de saúde</li>
+                  <li>Navegue pelos nossos profissionais de saúde especialistas</li>
+                  <li>Agende sua primeira consulta</li>
+                </ul>
+              </div>
+              <p style="margin-bottom: 24px;">
+                <a href="https://eleva-care.com/dashboard" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Começar →
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este é um email de teste enviado via Resend API.
               </p>
             </div>
           `,
@@ -80,16 +164,16 @@ export async function GET(request: NextRequest) {
       },
       expert: {
         subject: {
-          en: '👨‍⚕️ New Patient Consultation Request',
-          es: '👨‍⚕️ Nueva Solicitud de Consulta',
-          pt: '👨‍⚕️ Nova Solicitação de Consulta',
-          br: '👨‍⚕️ Nova Solicitação de Consulta',
+          en: 'New Patient Consultation Request - Eleva Care',
+          es: 'Nueva Solicitud de Consulta de Paciente - Eleva Care',
+          pt: 'Nova Solicitação de Consulta de Paciente - Eleva Care',
+          br: 'Nova Solicitação de Consulta de Paciente - Eleva Care',
         },
         preheader: {
-          en: 'A patient has requested your expertise',
-          es: 'Un paciente ha solicitado tu experiencia',
-          pt: 'Um paciente solicitou a sua expertise',
-          br: 'Um paciente solicitou sua expertise',
+          en: 'A patient has requested a consultation with you',
+          es: 'Un paciente ha solicitado una consulta contigo',
+          pt: 'Um paciente solicitou uma consulta consigo',
+          br: 'Um paciente solicitou uma consulta com você',
         },
         body: {
           en: `
@@ -105,7 +189,7 @@ export async function GET(request: NextRequest) {
               <p>The patient has specifically requested your expertise based on your specialization in stress management and mental wellness.</p>
               <p style="margin-bottom: 24px;">
                 <a href="https://eleva-care.com/expert/consultations" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                  View Request →
+                  Review Request →
                 </a>
               </p>
               <p style="color: #666; font-size: 14px; margin-top: 32px;">
@@ -113,20 +197,83 @@ export async function GET(request: NextRequest) {
               </p>
             </div>
           `,
+          es: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Nueva Solicitud de Consulta</h1>
+              <div style="background: #E0FBFC; border-left: 4px solid #006D77; padding: 20px; margin: 20px 0;">
+                <h3 style="margin-top: 0;">Detalles del Paciente:</h3>
+                <p><strong>Nombre:</strong> Sarah Johnson</p>
+                <p><strong>Edad:</strong> 34</p>
+                <p><strong>Condición:</strong> Consulta de manejo de estrés</p>
+                <p><strong>Fecha Preferida:</strong> Mañana, 10:00 AM</p>
+              </div>
+              <p>El paciente ha solicitado específicamente tu experiencia basándose en tu especialización en manejo de estrés y bienestar mental.</p>
+              <p style="margin-bottom: 24px;">
+                <a href="https://eleva-care.com/expert/consultations" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Revisar Solicitud →
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este es un correo de prueba enviado vía Resend API.
+              </p>
+            </div>
+          `,
+          pt: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Nova Solicitação de Consulta</h1>
+              <div style="background: #E0FBFC; border-left: 4px solid #006D77; padding: 20px; margin: 20px 0;">
+                <h3 style="margin-top: 0;">Detalhes do Paciente:</h3>
+                <p><strong>Nome:</strong> Sarah Johnson</p>
+                <p><strong>Idade:</strong> 34</p>
+                <p><strong>Condição:</strong> Consulta de gestão de stress</p>
+                <p><strong>Data Preferida:</strong> Amanhã, 10:00</p>
+              </div>
+              <p>O paciente solicitou especificamente a sua experiência com base na sua especialização em gestão de stress e bem-estar mental.</p>
+              <p style="margin-bottom: 24px;">
+                <a href="https://eleva-care.com/expert/consultations" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Revisar Solicitação →
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este é um email de teste enviado via Resend API.
+              </p>
+            </div>
+          `,
+          br: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Nova Solicitação de Consulta</h1>
+              <div style="background: #E0FBFC; border-left: 4px solid #006D77; padding: 20px; margin: 20px 0;">
+                <h3 style="margin-top: 0;">Detalhes do Paciente:</h3>
+                <p><strong>Nome:</strong> Sarah Johnson</p>
+                <p><strong>Idade:</strong> 34</p>
+                <p><strong>Condição:</strong> Consulta de gerenciamento de estresse</p>
+                <p><strong>Data Preferida:</strong> Amanhã, 10:00</p>
+              </div>
+              <p>O paciente solicitou especificamente sua experiência com base em sua especialização em gerenciamento de estresse e bem-estar mental.</p>
+              <p style="margin-bottom: 24px;">
+                <a href="https://eleva-care.com/expert/consultations" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Revisar Solicitação →
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este é um email de teste enviado via Resend API.
+              </p>
+            </div>
+          `,
         },
       },
       appointment: {
         subject: {
-          en: '📅 Appointment Reminder - Tomorrow at 10:00 AM',
-          es: '📅 Recordatorio de Cita - Mañana a las 10:00',
-          pt: '📅 Lembrete de Consulta - Amanhã às 10:00',
-          br: '📅 Lembrete de Consulta - Amanhã às 10:00',
+          en: 'Appointment Reminder - Tomorrow at 10:00 AM',
+          es: 'Recordatorio de Cita - Mañana a las 10:00 AM',
+          pt: 'Lembrete de Consulta - Amanhã às 10:00',
+          br: 'Lembrete de Consulta - Amanhã às 10:00',
         },
         preheader: {
-          en: 'Your consultation with Dr. Silva is tomorrow',
-          es: 'Tu consulta con Dr. Silva es mañana',
-          pt: 'A sua consulta com Dr. Silva é amanhã',
-          br: 'Sua consulta com Dr. Silva é amanhã',
+          en: 'Your consultation with Dr. Maria Silva is tomorrow',
+          es: 'Tu consulta con la Dra. Maria Silva es mañana',
+          pt: 'A sua consulta com a Dr.ª Maria Silva é amanhã',
+          br: 'Sua consulta com a Dra. Maria Silva é amanhã',
         },
         body: {
           en: `
@@ -141,14 +288,17 @@ export async function GET(request: NextRequest) {
               </div>
               <h3>Preparation Tips:</h3>
               <ul>
-                <li>Test your camera and microphone 10 minutes before</li>
                 <li>Find a quiet, private space</li>
+                <li>Test your camera and microphone</li>
+                <li>Prepare any questions you want to ask</li>
                 <li>Have your health records ready</li>
-                <li>Prepare any questions you'd like to discuss</li>
               </ul>
               <p style="margin-bottom: 24px;">
-                <a href="https://eleva-care.com/appointments/join" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-                  Join Consultation →
+                <a href="https://eleva-care.com/appointments/join" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-right: 10px;">
+                  Join Meeting →
+                </a>
+                <a href="https://eleva-care.com/appointments/reschedule" style="background: #E29578; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Reschedule
                 </a>
               </p>
               <p style="color: #666; font-size: 14px; margin-top: 32px;">
@@ -156,18 +306,108 @@ export async function GET(request: NextRequest) {
               </p>
             </div>
           `,
+          es: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Recordatorio de Cita</h1>
+              <div style="background: linear-gradient(135deg, #FFD23F, #F0C814); padding: 24px; border-radius: 12px; margin: 24px 0; color: #333;">
+                <h3 style="margin-top: 0; color: #333;">📅 Mañana a las 10:00 AM</h3>
+                <p style="margin: 8px 0; color: #333;"><strong>Especialista:</strong> Dra. Maria Silva</p>
+                <p style="margin: 8px 0; color: #333;"><strong>Especialización:</strong> Salud Mental y Bienestar</p>
+                <p style="margin: 8px 0; color: #333;"><strong>Duración:</strong> 45 minutos</p>
+                <p style="margin: 8px 0; color: #333;"><strong>Tipo:</strong> Consulta por video</p>
+              </div>
+              <h3>Consejos de Preparación:</h3>
+              <ul>
+                <li>Encuentra un espacio silencioso y privado</li>
+                <li>Prueba tu cámara y micrófono</li>
+                <li>Prepara cualquier pregunta que quieras hacer</li>
+                <li>Ten tus registros de salud listos</li>
+              </ul>
+              <p style="margin-bottom: 24px;">
+                <a href="https://eleva-care.com/appointments/join" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-right: 10px;">
+                  Unirse a la Reunión →
+                </a>
+                <a href="https://eleva-care.com/appointments/reschedule" style="background: #E29578; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Reprogramar
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este es un correo de prueba enviado vía Resend API.
+              </p>
+            </div>
+          `,
+          pt: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Lembrete de Consulta</h1>
+              <div style="background: linear-gradient(135deg, #FFD23F, #F0C814); padding: 24px; border-radius: 12px; margin: 24px 0; color: #333;">
+                <h3 style="margin-top: 0; color: #333;">📅 Amanhã às 10:00</h3>
+                <p style="margin: 8px 0; color: #333;"><strong>Especialista:</strong> Dr.ª Maria Silva</p>
+                <p style="margin: 8px 0; color: #333;"><strong>Especialização:</strong> Saúde Mental e Bem-estar</p>
+                <p style="margin: 8px 0; color: #333;"><strong>Duração:</strong> 45 minutos</p>
+                <p style="margin: 8px 0; color: #333;"><strong>Tipo:</strong> Consulta por vídeo</p>
+              </div>
+              <h3>Dicas de Preparação:</h3>
+              <ul>
+                <li>Encontre um espaço silencioso e privado</li>
+                <li>Teste a sua câmara e microfone</li>
+                <li>Prepare quaisquer perguntas que queira fazer</li>
+                <li>Tenha os seus registos de saúde prontos</li>
+              </ul>
+              <p style="margin-bottom: 24px;">
+                <a href="https://eleva-care.com/appointments/join" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-right: 10px;">
+                  Entrar na Reunião →
+                </a>
+                <a href="https://eleva-care.com/appointments/reschedule" style="background: #E29578; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Reagendar
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este é um email de teste enviado via Resend API.
+              </p>
+            </div>
+          `,
+          br: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Lembrete de Consulta</h1>
+              <div style="background: linear-gradient(135deg, #FFD23F, #F0C814); padding: 24px; border-radius: 12px; margin: 24px 0; color: #333;">
+                <h3 style="margin-top: 0; color: #333;">📅 Amanhã às 10:00</h3>
+                <p style="margin: 8px 0; color: #333;"><strong>Especialista:</strong> Dra. Maria Silva</p>
+                <p style="margin: 8px 0; color: #333;"><strong>Especialização:</strong> Saúde Mental e Bem-estar</p>
+                <p style="margin: 8px 0; color: #333;"><strong>Duração:</strong> 45 minutos</p>
+                <p style="margin: 8px 0; color: #333;"><strong>Tipo:</strong> Consulta por vídeo</p>
+              </div>
+              <h3>Dicas de Preparação:</h3>
+              <ul>
+                <li>Encontre um espaço silencioso e privado</li>
+                <li>Teste sua câmera e microfone</li>
+                <li>Prepare qualquer pergunta que queira fazer</li>
+                <li>Tenha seus registros de saúde prontos</li>
+              </ul>
+              <p style="margin-bottom: 24px;">
+                <a href="https://eleva-care.com/appointments/join" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-right: 10px;">
+                  Entrar na Reunião →
+                </a>
+                <a href="https://eleva-care.com/appointments/reschedule" style="background: #E29578; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                  Reagendar
+                </a>
+              </p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este é um email de teste enviado via Resend API.
+              </p>
+            </div>
+          `,
         },
       },
       payment: {
         subject: {
-          en: '💳 Payment Confirmation - €45.00',
-          es: '💳 Confirmación de Pago - €45.00',
-          pt: '💳 Confirmação de Pagamento - €45.00',
-          br: '💳 Confirmação de Pagamento - €45.00',
+          en: 'Payment Confirmation - Eleva Care',
+          es: 'Confirmación de Pago - Eleva Care',
+          pt: 'Confirmação de Pagamento - Eleva Care',
+          br: 'Confirmação de Pagamento - Eleva Care',
         },
         preheader: {
-          en: 'Your payment was processed successfully',
-          es: 'Tu pago fue procesado exitosamente',
+          en: 'Your payment has been processed successfully',
+          es: 'Tu pago ha sido procesado exitosamente',
           pt: 'O seu pagamento foi processado com sucesso',
           br: 'Seu pagamento foi processado com sucesso',
         },
@@ -186,6 +426,57 @@ export async function GET(request: NextRequest) {
               <p>Your consultation is now confirmed. You'll receive a calendar invitation shortly.</p>
               <p style="color: #666; font-size: 14px; margin-top: 32px;">
                 🧪 This is a test email sent via Resend API.
+              </p>
+            </div>
+          `,
+          es: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 24px; margin-bottom: 16px;">Pago Confirmado</h1>
+              <div style="background: #E8F5E8; border-left: 4px solid #28A745; padding: 20px; margin: 20px 0;">
+                <h3 style="color: #28A745; margin-top: 0;">✅ Transacción Exitosa</h3>
+                <p><strong>Cantidad:</strong> €45.00</p>
+                <p><strong>Servicio:</strong> Consulta de Salud Mental</p>
+                <p><strong>Especialista:</strong> Dra. Maria Silva</p>
+                <p><strong>ID de Transacción:</strong> TXN-2024-001234</p>
+                <p><strong>Fecha:</strong> ${new Date().toLocaleDateString()}</p>
+              </div>
+              <p>Tu consulta está ahora confirmada. Recibirás una invitación de calendario pronto.</p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este es un correo de prueba enviado vía Resend API.
+              </p>
+            </div>
+          `,
+          pt: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 24px; margin-bottom: 16px;">Pagamento Confirmado</h1>
+              <div style="background: #E8F5E8; border-left: 4px solid #28A745; padding: 20px; margin: 20px 0;">
+                <h3 style="color: #28A745; margin-top: 0;">✅ Transação Bem-sucedida</h3>
+                <p><strong>Quantia:</strong> €45.00</p>
+                <p><strong>Serviço:</strong> Consulta de Saúde Mental</p>
+                <p><strong>Especialista:</strong> Dr.ª Maria Silva</p>
+                <p><strong>ID da Transação:</strong> TXN-2024-001234</p>
+                <p><strong>Data:</strong> ${new Date().toLocaleDateString()}</p>
+              </div>
+              <p>A sua consulta está agora confirmada. Receberá um convite de calendário em breve.</p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este é um email de teste enviado via Resend API.
+              </p>
+            </div>
+          `,
+          br: `
+            <div style="padding: 32px 0;">
+              <h1 style="color: #006D77; font-size: 24px; margin-bottom: 16px;">Pagamento Confirmado</h1>
+              <div style="background: #E8F5E8; border-left: 4px solid #28A745; padding: 20px; margin: 20px 0;">
+                <h3 style="color: #28A745; margin-top: 0;">✅ Transação Bem-sucedida</h3>
+                <p><strong>Valor:</strong> €45.00</p>
+                <p><strong>Serviço:</strong> Consulta de Saúde Mental</p>
+                <p><strong>Especialista:</strong> Dra. Maria Silva</p>
+                <p><strong>ID da Transação:</strong> TXN-2024-001234</p>
+                <p><strong>Data:</strong> ${new Date().toLocaleDateString()}</p>
+              </div>
+              <p>Sua consulta está agora confirmada. Você receberá um convite de calendário em breve.</p>
+              <p style="color: #666; font-size: 14px; margin-top: 32px;">
+                🧪 Este é um email de teste enviado via Resend API.
               </p>
             </div>
           `,
@@ -210,7 +501,7 @@ export async function GET(request: NextRequest) {
       variant: config.variant,
     };
 
-    // Create the email component
+    // Create the email component with proper children prop structure
     const EmailComponent = () =>
       React.createElement(
         BaseEmailTemplate,
@@ -225,7 +516,7 @@ export async function GET(request: NextRequest) {
       );
 
     // Render the React component to HTML
-    const html = render(React.createElement(EmailComponent));
+    const html = await render(React.createElement(EmailComponent));
 
     // Send via Resend
     const response = await resend.emails.send({
@@ -263,7 +554,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      emailId: response.data.id,
+      emailId: response.data?.id,
       config,
       message: `Test email sent successfully to ${config.to}`,
       dashboardUrl: 'https://resend.com/emails',
@@ -309,7 +600,7 @@ export async function POST(request: NextRequest) {
       variant,
     };
 
-    // Create the email component with custom content
+    // Create the email component with custom content and proper children prop structure
     const EmailComponent = () =>
       React.createElement(
         BaseEmailTemplate,
@@ -324,7 +615,7 @@ export async function POST(request: NextRequest) {
       );
 
     // Render the React component to HTML
-    const html = render(React.createElement(EmailComponent));
+    const html = await render(React.createElement(EmailComponent));
 
     // Send via Resend
     const response = await resend.emails.send({
@@ -361,7 +652,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      emailId: response.data.id,
+      emailId: response.data?.id,
       config: { to, subject, locale, userRole, darkMode, highContrast, variant },
       message: `Custom test email sent successfully to ${to}`,
       dashboardUrl: 'https://resend.com/emails',
