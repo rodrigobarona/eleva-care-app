@@ -3,7 +3,7 @@ import React from 'react';
 
 import { darkModeTokens, emailDesignTokens } from '../design-tokens';
 import { CustomLink, EmailFooterProps, SupportedLocale } from '../types';
-import { getEmailTranslations, normalizeLocale } from '../utils/translations';
+import { normalizeLocale } from '../utils/translations';
 
 // Centralized URL configuration
 const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care';
@@ -77,25 +77,44 @@ export function EmailFooter({
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || DEFAULT_BASE_URL;
   const unsubscribeUrl = userPreferences.unsubscribeUrl || `${baseUrl}/unsubscribe`;
 
-  // Use the translation system with fallbacks
-  const [texts, setTexts] = React.useState({
-    unsubscribe: 'Unsubscribe',
-    privacyPolicy: 'Privacy Policy',
-    termsOfService: 'Terms of Service',
-    contactUs: 'Contact Us',
-    allRightsReserved: 'All rights reserved',
-    followUs: 'Follow us',
-  });
+  // Synchronous translation loading for server-side rendering
+  // Static translations by locale to avoid dynamic imports and support email rendering
+  const staticTranslations = {
+    en: {
+      unsubscribe: 'Unsubscribe',
+      privacyPolicy: 'Privacy Policy',
+      termsOfService: 'Terms of Service',
+      contactUs: 'Contact Us',
+      allRightsReserved: 'All rights reserved',
+      followUs: 'Follow us',
+    },
+    es: {
+      unsubscribe: 'Cancelar suscripción',
+      privacyPolicy: 'Política de Privacidad',
+      termsOfService: 'Términos de Servicio',
+      contactUs: 'Contáctanos',
+      allRightsReserved: 'Todos los derechos reservados',
+      followUs: 'Síguenos',
+    },
+    pt: {
+      unsubscribe: 'Cancelar subscrição',
+      privacyPolicy: 'Política de Privacidade',
+      termsOfService: 'Termos de Serviço',
+      contactUs: 'Contacte-nos',
+      allRightsReserved: 'Todos os direitos reservados',
+      followUs: 'Siga-nos',
+    },
+    'pt-BR': {
+      unsubscribe: 'Cancelar inscrição',
+      privacyPolicy: 'Política de Privacidade',
+      termsOfService: 'Termos de Serviço',
+      contactUs: 'Entre em contato',
+      allRightsReserved: 'Todos os direitos reservados',
+      followUs: 'Siga-nos',
+    },
+  } as const;
 
-  // Load translations asynchronously
-  React.useEffect(() => {
-    getEmailTranslations(locale)
-      .then(setTexts)
-      .catch(() => {
-        // Keep default fallbacks if translation loading fails
-        console.warn(`Failed to load translations for locale: ${locale}, using fallbacks`);
-      });
-  }, [locale]);
+  const texts = staticTranslations[locale] || staticTranslations.en;
 
   return (
     <Section
