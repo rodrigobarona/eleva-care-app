@@ -36,6 +36,7 @@ function sanitizeEmailHTML(html: string): string {
       'em',
       'i',
       'u',
+      'br',
       'ul',
       'ol',
       'li',
