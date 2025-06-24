@@ -61,27 +61,38 @@ async function testNovuFramework() {
 
     console.log();
 
-    // Test 2: Check workflow discovery
+    // Test 2: Check workflow discovery (GET request for Novu Framework)
     console.log('🔍 Test 2: Workflow discovery');
     try {
       const discoveryUrl = `${BASE_URL}/api/novu`;
       const discoveryResponse = await fetch(discoveryUrl, {
-        method: 'POST',
+        method: 'GET',
         headers: {
-          'Content-Type': 'application/json',
-          'Novu-Signature': 'test-signature',
+          Accept: 'application/json',
+          Authorization: `Bearer ${NOVU_SECRET_KEY}`,
         },
-        body: JSON.stringify({
-          action: 'discover',
-        }),
       });
 
       console.log(`   Discovery status: ${discoveryResponse.status}`);
 
       if (discoveryResponse.ok) {
+        const discoveryData = await discoveryResponse.text();
         console.log('   ✅ Workflow discovery successful');
+        console.log(`   Response preview: ${discoveryData.substring(0, 200)}...`);
+
+        // Try to parse JSON to see workflow structure
+        try {
+          const jsonData = JSON.parse(discoveryData);
+          if (jsonData.workflows) {
+            console.log(`   📊 Found ${jsonData.workflows.length} workflows`);
+          }
+        } catch (parseError) {
+          console.log('   📄 Response is not JSON (might be HTML or other format)');
+        }
       } else {
+        const errorText = await discoveryResponse.text();
         console.log('   ⚠️ Workflow discovery returned non-200 status');
+        console.log(`   Error: ${errorText.substring(0, 200)}...`);
       }
     } catch (error) {
       console.log(`   ❌ Workflow discovery failed: ${error.message}`);
@@ -89,15 +100,55 @@ async function testNovuFramework() {
 
     console.log();
 
-    // Test 3: Check middleware configuration
-    console.log('🔍 Test 3: Middleware configuration');
+    // Test 3: Test webhook endpoint (POST request)
+    console.log('🔍 Test 3: Webhook endpoint test');
+    try {
+      const webhookUrl = `${BASE_URL}/api/novu`;
+
+      // Create a test webhook payload that Novu Framework expects
+      const testPayload = {
+        workflowId: 'user-lifecycle',
+        subscriberId: 'test-subscriber',
+        payload: {
+          eventType: 'welcome',
+          userName: 'Test User',
+          email: 'test@example.com',
+        },
+      };
+
+      const webhookResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${NOVU_SECRET_KEY}`,
+        },
+        body: JSON.stringify(testPayload),
+      });
+
+      console.log(`   Webhook status: ${webhookResponse.status}`);
+
+      if (webhookResponse.ok) {
+        console.log('   ✅ Webhook endpoint accepts POST requests');
+      } else {
+        const errorText = await webhookResponse.text();
+        console.log('   ⚠️ Webhook endpoint returned non-200 status');
+        console.log(`   Response: ${errorText.substring(0, 200)}...`);
+      }
+    } catch (error) {
+      console.log(`   ❌ Webhook test failed: ${error.message}`);
+    }
+
+    console.log();
+
+    // Test 4: Check middleware configuration
+    console.log('🔍 Test 4: Middleware configuration');
     console.log('   ✅ /api/novu should be excluded from authentication middleware');
     console.log('   📝 Check middleware.ts for proper exclusion pattern');
 
     console.log();
 
-    // Test 4: Environment configuration
-    console.log('🔍 Test 4: Environment configuration');
+    // Test 5: Environment configuration
+    console.log('🔍 Test 5: Environment configuration');
     console.log('   ✅ NOVU_SECRET_KEY is configured');
     console.log('   ✅ NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER is configured');
     console.log('   📍 Using EU region endpoints by default');
