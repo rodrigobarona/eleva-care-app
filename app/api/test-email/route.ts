@@ -201,6 +201,44 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // Validate request body
+    if (!body || typeof body !== 'object') {
+      return NextResponse.json({ success: false, error: 'Invalid request body' }, { status: 400 });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (body.to && !emailRegex.test(body.to)) {
+      return NextResponse.json({ success: false, error: 'Invalid email format' }, { status: 400 });
+    }
+
+    // Validate locale
+    const validLocales = ['en', 'es', 'pt', 'pt-BR'];
+    if (body.locale && !validLocales.includes(body.locale)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid locale. Must be one of: en, es, pt, pt-BR' },
+        { status: 400 },
+      );
+    }
+
+    // Validate userRole
+    const validUserRoles = ['patient', 'expert', 'admin'];
+    if (body.userRole && !validUserRoles.includes(body.userRole)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid userRole. Must be one of: patient, expert, admin' },
+        { status: 400 },
+      );
+    }
+
+    // Validate variant
+    const validVariants = ['default', 'minimal', 'branded'];
+    if (body.variant && !validVariants.includes(body.variant)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid variant. Must be one of: default, minimal, branded' },
+        { status: 400 },
+      );
+    }
+
     const {
       to = 'delivered@resend.dev',
       subject = 'Test Email from Eleva Care',
