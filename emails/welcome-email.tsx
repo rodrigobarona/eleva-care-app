@@ -1,20 +1,8 @@
-// Email Templates Preview Index
-// This file is used by React Email's preview server to display templates
-// Welcome Email Template
-// Generic Notification Template
-import GenericNotification from '../lib/email-templates/templates/generic/GenericNotification';
+import * as React from 'react';
+
 import { WelcomeEmail } from '../lib/email-templates/templates/WelcomeEmail';
 
-// Export all email templates for the React Email preview server
-export { WelcomeEmail };
-export { GenericNotification };
-
-// Example: You can add more templates here as you create them
-// export { default as PasswordResetEmail } from '../lib/email-templates/templates/PasswordResetEmail';
-// export { default as AppointmentConfirmationEmail } from '../lib/email-templates/templates/AppointmentConfirmationEmail';
-
-// For preview purposes, you can also export component props examples
-export const WelcomeEmailPreview = () => {
+export default function WelcomeEmailTemplate() {
   return (
     <WelcomeEmail
       userName="Dr. Sarah Johnson"
@@ -54,16 +42,38 @@ export const WelcomeEmailPreview = () => {
       theme="light"
     />
   );
-};
+}
 
-export const GenericNotificationPreview = () => {
-  return (
-    <GenericNotification
-      title="Appointment Reminder"
-      message="Your appointment with Dr. Smith is scheduled for tomorrow at 2:00 PM."
-      actionUrl="/appointments/123"
-      actionText="View Appointment"
-      userName="John Doe"
-    />
-  );
+// Define preview props for React Email
+WelcomeEmailTemplate.PreviewProps = {
+  userName: 'Dr. Sarah Johnson',
+  dashboardUrl: '/dashboard',
+  nextSteps: [
+    {
+      title: 'Complete your health profile',
+      description: 'Help us personalize your care experience',
+      actionUrl: '/profile/complete',
+      actionText: 'Complete Profile',
+    },
+    {
+      title: 'Browse expert providers',
+      description: 'Find healthcare professionals that match your needs',
+      actionUrl: '/providers',
+      actionText: 'View Providers',
+    },
+    {
+      title: 'Schedule your first consultation',
+      description: 'Book a convenient time with your preferred provider',
+      actionUrl: '/book',
+      actionText: 'Schedule Now',
+    },
+  ],
+  customization: {
+    socialLinks: [
+      { platform: 'twitter', url: 'https://twitter.com/elevacare', label: 'Twitter' },
+      { platform: 'linkedin', url: 'https://linkedin.com/company/elevacare', label: 'LinkedIn' },
+    ],
+  },
+  language: 'en',
+  theme: 'light',
 };

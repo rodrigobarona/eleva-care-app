@@ -179,7 +179,6 @@ function isPrivateRoute(request: NextRequest): boolean {
     path.startsWith('/appointments') ||
     path.startsWith('/booking') ||
     path.startsWith('/admin') ||
-    path.startsWith('/dev') ||
     // Add all API routes to skip i18n middleware
     path.startsWith('/api/')
   );
@@ -253,7 +252,6 @@ function isUsernameRoute(path: string): boolean {
       'sign-up',
       'unauthorized',
       'onboarding',
-      'dev', // Add dev directory to reserved paths
       ...locales,
     ].includes(segment);
 
@@ -294,7 +292,6 @@ function isUsernameRoute(path: string): boolean {
         'sign-up',
         'unauthorized',
         'onboarding',
-        'dev', // Add dev directory to reserved paths for locale-prefixed routes
       ].includes(segments[1]);
 
     return !isReservedFirstSegment && !isReservedSecondSegment;
