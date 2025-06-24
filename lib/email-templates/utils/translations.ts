@@ -115,7 +115,7 @@ export function normalizeLocale(input?: string): SupportedLocale {
 
   // Handle specific cases - prioritize pt-BR for Brazilian Portuguese
   // Support backward compatibility for legacy 'br' locale
-  if (lower.includes('br') || lower === 'pt-br' || lower === 'br') return 'pt-BR';
+  if (lower === 'pt-br' || lower === 'br') return 'pt-BR';
   if (lower.startsWith('pt')) return 'pt';
   if (lower.startsWith('es')) return 'es';
   if (lower.startsWith('en')) return 'en';
