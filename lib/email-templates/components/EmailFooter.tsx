@@ -3,7 +3,7 @@ import React from 'react';
 
 import { darkModeTokens, emailDesignTokens } from '../design-tokens';
 import { CustomLink, EmailFooterProps, SupportedLocale } from '../types';
-import { normalizeLocale } from '../utils/translations';
+import { getEmailTranslations, normalizeLocale } from '../utils/translations';
 
 // Centralized URL configuration
 const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care';
@@ -40,12 +40,20 @@ export function EmailFooter({
   userPreferences = {},
   customization = {},
   customLinks = [],
+  companyName,
+  tagline,
+  supportEmail,
 }: EmailFooterProps) {
   const locale = normalizeLocale(language) as SupportedLocale;
   const logoSrc = getFooterLogoVariant(theme);
   const isDark = theme === 'dark';
   const tokens = isDark ? darkModeTokens : emailDesignTokens;
   const currentYear = new Date().getFullYear();
+
+  // Configurable company information with fallbacks
+  const finalCompanyName = companyName || process.env.COMPANY_NAME || 'Eleva Care';
+  const finalTagline = tagline || process.env.COMPANY_TAGLINE || "Expert care for women's health";
+  const finalSupportEmail = supportEmail || process.env.SUPPORT_EMAIL || 'support@eleva.care';
 
   // Variant-specific styling
   const variantStyles = {
@@ -69,43 +77,25 @@ export function EmailFooter({
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || DEFAULT_BASE_URL;
   const unsubscribeUrl = userPreferences.unsubscribeUrl || `${baseUrl}/unsubscribe`;
 
-  // Default translations (fallback if translation system fails)
-  const defaultTexts = {
-    en: {
-      unsubscribe: 'Unsubscribe',
-      privacyPolicy: 'Privacy Policy',
-      termsOfService: 'Terms of Service',
-      contactUs: 'Contact Us',
-      allRightsReserved: 'All rights reserved',
-      followUs: 'Follow us',
-    },
-    es: {
-      unsubscribe: 'Cancelar suscripción',
-      privacyPolicy: 'Política de Privacidad',
-      termsOfService: 'Términos de Servicio',
-      contactUs: 'Contáctanos',
-      allRightsReserved: 'Todos los derechos reservados',
-      followUs: 'Síguenos',
-    },
-    pt: {
-      unsubscribe: 'Cancelar subscrição',
-      privacyPolicy: 'Política de Privacidade',
-      termsOfService: 'Termos de Serviço',
-      contactUs: 'Contacte-nos',
-      allRightsReserved: 'Todos os direitos reservados',
-      followUs: 'Siga-nos',
-    },
-    'pt-BR': {
-      unsubscribe: 'Cancelar inscrição',
-      privacyPolicy: 'Política de Privacidade',
-      termsOfService: 'Termos de Serviço',
-      contactUs: 'Entre em contato',
-      allRightsReserved: 'Todos os direitos reservados',
-      followUs: 'Siga-nos',
-    },
-  };
+  // Use the translation system with fallbacks
+  const [texts, setTexts] = React.useState({
+    unsubscribe: 'Unsubscribe',
+    privacyPolicy: 'Privacy Policy',
+    termsOfService: 'Terms of Service',
+    contactUs: 'Contact Us',
+    allRightsReserved: 'All rights reserved',
+    followUs: 'Follow us',
+  });
 
-  const texts = defaultTexts[locale] || defaultTexts.en;
+  // Load translations asynchronously
+  React.useEffect(() => {
+    getEmailTranslations(locale)
+      .then(setTexts)
+      .catch(() => {
+        // Keep default fallbacks if translation loading fails
+        console.warn(`Failed to load translations for locale: ${locale}, using fallbacks`);
+      });
+  }, [locale]);
 
   return (
     <Section
@@ -157,7 +147,7 @@ export function EmailFooter({
                 fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
               }}
             >
-              Eleva Care
+              {finalCompanyName}
             </Text>
 
             <Text
@@ -169,7 +159,7 @@ export function EmailFooter({
                 fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
               }}
             >
-              Expert care for women&apos;s health
+              {finalTagline}
             </Text>
 
             {showContactInfo && (
@@ -182,13 +172,13 @@ export function EmailFooter({
                 }}
               >
                 <Link
-                  href="mailto:support@eleva.care"
+                  href={`mailto:${finalSupportEmail}`}
                   style={{
                     color: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
                     textDecoration: 'none',
                   }}
                 >
-                  support@eleva.care
+                  {finalSupportEmail}
                 </Link>
               </Text>
             )}
@@ -308,7 +298,7 @@ export function EmailFooter({
                 ...customization?.copyrightStyles,
               }}
             >
-              © {currentYear} Eleva Care. {texts.allRightsReserved}.
+              © {currentYear} {finalCompanyName}. {texts.allRightsReserved}.
             </Text>
           </Column>
 

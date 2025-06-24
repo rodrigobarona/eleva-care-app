@@ -154,6 +154,9 @@ export interface EmailFooterProps {
   theme?: EmailTheme;
   userPreferences?: UserPreferences;
   regulatoryInfo?: RegulatoryInfo;
+  companyName?: string;
+  tagline?: string;
+  supportEmail?: string;
   customization?: {
     containerStyles?: Record<string, string>;
     logoStyles?: Record<string, string>;
