@@ -59,87 +59,232 @@ lib/email-templates/
 
 ## 🚀 Quick Start
 
-### Basic Usage
+### 1. Start the Development Server
 
-```typescript
-import { createEmailRenderOptions, emailTemplateEngine } from '@/lib/email-templates';
+```bash
+# Start your Next.js app
+pnpm dev
 
-// Render an email template
-const options = createEmailRenderOptions('en', 'patient');
-const { html, text, subject } = await emailTemplateEngine.renderTemplate(
-  'appointment-confirmation',
+# Your app will be available at http://localhost:3000
+```
+
+### 2. Access Email Development Tools
+
+Navigate to: **http://localhost:3000/dev/emails**
+
+This page provides:
+
+- **Live Preview**: See exactly how your emails will look
+- **HTML/Text View**: Inspect the generated code
+- **Test Email Sending**: Send emails to real inboxes
+- **Template Selection**: Switch between different email templates
+
+## 📧 Available Preview Methods
+
+### Method 1: In-App Preview (Recommended)
+
+- Go to `http://localhost:3000/dev/emails`
+- Select your template from the sidebar
+- Use the "Preview" tab to see the visual result
+- Switch to "HTML" or "Text" tabs to see the code
+
+### Method 2: React Email CLI
+
+```bash
+# Start React Email preview server
+pnpm email:preview
+
+# Opens at http://localhost:3001
+```
+
+### Method 3: Download HTML
+
+- In the development page, click "Download HTML"
+- Open the file in your browser
+- Or send it to colleagues for review
+
+## 🧪 Testing Email Delivery
+
+### Send Test Emails
+
+1. **In the Development Page**:
+
+   - Enter your email address in the "Test Email" section
+   - Click "Send Test Email"
+   - Check your inbox (and spam folder)
+
+2. **Using the API Directly**:
+   ```bash
+   curl -X POST http://localhost:3000/api/dev/send-test-email \
+     -H "Content-Type: application/json" \
+     -d '{
+       "to": "your-email@example.com",
+       "template": "welcome",
+       "userName": "Test User"
+     }'
+   ```
+
+### Email Service Configuration
+
+The system supports multiple email backends:
+
+**Option 1: Resend (Recommended)**
+
+```env
+RESEND_API_KEY=re_your_api_key
+EMAIL_FROM=noreply@eleva.care
+```
+
+**Option 2: No Email Service (Development)**
+
+- Emails will be logged to console
+- HTML preview will be returned in API response
+
+## 🎨 Creating New Templates
+
+### 1. Create the Template Component
+
+```tsx
+// lib/email-templates/templates/YourNewEmail.tsx
+import { Body, Container, Head, Html, Preview, Section, Text } from '@react-email/components';
+
+import { EmailFooter } from '../components/EmailFooter';
+import { EmailHeader } from '../components/EmailHeader';
+
+export function YourNewEmail({ userName = 'User' }) {
+  return (
+    <Html>
+      <Head />
+      <Preview>Your email preview text</Preview>
+      <Body>
+        <Container>
+          <EmailHeader variant="minimal" />
+
+          <Section>
+            <Text>Hello {userName}!</Text>
+            {/* Your email content */}
+          </Section>
+
+          <EmailFooter />
+        </Container>
+      </Body>
+    </Html>
+  );
+}
+```
+
+### 2. Add to Preview System
+
+Update `emails/index.tsx`:
+
+```tsx
+export { default as YourNewEmail } from '../lib/email-templates/templates/YourNewEmail';
+```
+
+Update `app/dev/emails/page.tsx`:
+
+```tsx
+const emailTemplates: EmailTemplate[] = [
+  // ... existing templates
   {
-    expertName: 'Dr. Silva',
-    clientName: 'João Santos',
-    appointmentDate: 'Monday, June 24, 2024',
-    appointmentTime: '10:30 AM - 11:30 AM',
-    timezone: 'Europe/Lisbon',
+    name: 'Your New Email',
+    component: YourNewEmail,
+    props: {
+      userName: 'Test User',
+      // ... other props
+    },
   },
-  options,
-);
+];
 ```
 
-### With Accessibility Options
+### 3. Add to API Endpoint
 
-```typescript
-const accessibleOptions = createEmailRenderOptions('en', 'patient', {
-  highContrast: true,
-  darkMode: false,
-  rtl: false,
-});
+Update `app/api/dev/send-test-email/route.ts`:
 
-const result = await emailTemplateEngine.renderTemplate(
-  'payment-confirmation',
-  { amount: '50.00', customerName: 'Maria' },
-  accessibleOptions,
-);
+```tsx
+import YourNewEmail from '../../../../lib/email-templates/templates/YourNewEmail';
+
+// In the switch statement:
+case 'your-new-email':
+  EmailComponent = YourNewEmail;
+  subject = 'Your Subject Here';
+  break;
 ```
 
-### Eleva Care Logo Usage
+## 🎯 Best Practices
 
-The email templates automatically use the correct Eleva Care logo based on the theme:
+### Email Design
 
-- **Light mode**: `/eleva-logo-color.png` (Beautiful teal logo with wellness icon)
-- **Dark mode**: `/eleva-logo-white.png` (White version for dark backgrounds)
-- **High contrast**: `/eleva-logo-black.png` (Black version for maximum contrast)
+- **Use System Colors**: Leverage `emailDesignTokens` for consistent branding
+- **Mobile First**: Test on mobile devices and small screens
+- **Accessibility**: Include alt text for images and proper heading hierarchy
+- **Email Client Testing**: Test in Gmail, Outlook, Apple Mail, etc.
 
-```typescript
-// Header logo is automatically selected based on theme
-const headerProps = {
-  brandName: 'Eleva Care',
-  locale: 'en',
-  darkMode: false, // Will use color logo
-  highContrast: false,
-};
+### Development Workflow
 
-// Footer logo (optional)
-const footerProps = {
-  companyName: 'Eleva Care',
-  year: 2024,
-  locale: 'en',
-  showFooterLogo: true, // Enable footer logo
-};
-```
+1. **Design First**: Create the template with static content
+2. **Preview**: Use the development page to see visual results
+3. **Test Sending**: Send to real email addresses
+4. **Iterate**: Refine based on how it looks in actual email clients
+5. **Cross-client Testing**: Test in multiple email clients
 
-### Multi-language Support
+### Performance
 
-```typescript
-// Portuguese template
-const ptOptions = createEmailRenderOptions('pt', 'patient');
-const ptResult = await emailTemplateEngine.renderTemplate(
-  'appointment-reminder',
-  { expertName: 'Dr. Silva', time: '14:30' },
-  ptOptions,
-);
+- **Optimize Images**: Use absolute URLs and appropriate sizes
+- **Inline Styles**: React Email handles this automatically
+- **Keep it Lightweight**: Aim for under 100KB total size
 
-// Arabic template (RTL automatically enabled)
-const arOptions = createEmailRenderOptions('ar', 'patient');
-const arResult = await emailTemplateEngine.renderTemplate(
-  'user-welcome',
-  { userName: 'أحمد' },
-  arOptions,
-);
-```
+## 🔧 Troubleshooting
+
+### Email Not Sending
+
+1. Check your `RESEND_API_KEY` in `.env.local`
+2. Verify the "from" email domain is configured in Resend
+3. Check the console for error messages
+4. Ensure you're not in production mode
+
+### Preview Not Loading
+
+1. Restart the development server
+2. Check for TypeScript errors in the template
+3. Verify all imports are correct
+4. Check browser console for JavaScript errors
+
+### Styling Issues
+
+1. Use inline styles or React Email components
+2. Avoid external CSS files
+3. Test in the actual email development page
+4. Remember email clients have limited CSS support
+
+## 📱 Mobile Testing
+
+Email templates are automatically responsive, but you should test:
+
+1. **Desktop**: Full preview in development page
+2. **Mobile**: Resize browser window or use developer tools
+3. **Real Devices**: Send test emails to your phone
+4. **Email Apps**: Test in Gmail app, Apple Mail, Outlook mobile
+
+## 🚀 Production Deployment
+
+Before deploying:
+
+1. **Remove Development Routes**: The `/dev/emails` page and API are automatically disabled in production
+2. **Environment Variables**: Ensure production email service credentials are set
+3. **Test in Staging**: Send test emails in your staging environment
+4. **Monitor**: Set up logging for email delivery tracking
+
+## 📚 Additional Resources
+
+- [React Email Documentation](https://react.email/docs)
+- [Email Client CSS Support](https://www.campaignmonitor.com/css/)
+- [Email Accessibility Guidelines](https://www.emailonacid.com/blog/article/email-development/email-accessibility-in-2017/)
+- [Resend Documentation](https://resend.com/docs)
+
+---
+
+Need help? Check the console logs or reach out to the development team!
 
 ## 🏗️ Architecture
 

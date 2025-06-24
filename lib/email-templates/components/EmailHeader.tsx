@@ -63,19 +63,22 @@ export function EmailHeader({
   const isDark = theme === 'dark';
   const tokens = isDark ? darkModeTokens : emailDesignTokens;
 
-  // Variant-specific styling
+  // Variant-specific styling with modern improvements
   const variantStyles = {
     default: {
-      backgroundColor: tokens.colors?.neutral?.[50] || '#F7F9F9',
-      borderBottom: `2px solid ${tokens.colors?.neutral?.[200] || '#D1D1D1'}`,
+      backgroundColor: '#FFFFFF',
+      borderBottom: `1px solid ${tokens.colors?.neutral?.[100] || '#F3F4F6'}`,
+      padding: '24px 0',
     },
     minimal: {
       backgroundColor: 'transparent',
       borderBottom: 'none',
+      padding: '16px 0',
     },
     branded: {
       backgroundColor: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
-      borderBottom: `3px solid ${tokens.colors?.brand?.['eleva-secondary'] || '#E29578'}`,
+      borderBottom: 'none',
+      padding: '24px 0',
     },
   } as const;
 
@@ -85,7 +88,6 @@ export function EmailHeader({
     <Section
       style={{
         ...styles,
-        padding: '20px 0',
         width: '100%',
         ...customization?.containerStyles,
       }}
@@ -94,7 +96,7 @@ export function EmailHeader({
         style={{
           maxWidth: '600px',
           margin: '0 auto',
-          padding: '0 20px',
+          padding: '0 24px',
         }}
       >
         <Row>
@@ -102,6 +104,7 @@ export function EmailHeader({
             style={{
               textAlign: 'left' as const,
               verticalAlign: 'middle' as const,
+              paddingRight: '16px',
             }}
           >
             {showLogo && (
@@ -125,6 +128,7 @@ export function EmailHeader({
                     verticalAlign: 'middle',
                     maxWidth: '120px',
                     height: 'auto',
+                    borderRadius: '4px',
                     ...customization?.logoStyles,
                   }}
                   title={logo.description}
@@ -139,13 +143,18 @@ export function EmailHeader({
               verticalAlign: 'middle' as const,
             }}
           >
-            {/* User context display */}
+            {/* User context display with modern styling */}
             {userContext?.displayName && (
               <div
                 style={{
                   fontSize: tokens.typography?.sizes?.sm || '14px',
-                  color: tokens.colors?.neutral?.[600] || '#4B5563',
+                  color:
+                    variant === 'branded'
+                      ? 'rgba(255, 255, 255, 0.9)'
+                      : tokens.colors?.neutral?.[600] || '#6B7280',
                   fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                  fontWeight: '500',
+                  letterSpacing: '-0.025em',
                   ...customization?.userContextStyles,
                 }}
               >
@@ -153,21 +162,35 @@ export function EmailHeader({
               </div>
             )}
 
-            {/* Optional navigation for specific email types */}
+            {/* Optional navigation with modern button styling */}
             {showNavigation && (
               <div
                 style={{
                   fontSize: tokens.typography?.sizes?.sm || '14px',
+                  marginTop: userContext?.displayName ? '8px' : '0',
                   ...customization?.navigationStyles,
                 }}
               >
                 <Link
                   href={`${DEFAULT_BASE_URL}/dashboard`}
                   style={{
-                    color: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
+                    color:
+                      variant === 'branded'
+                        ? 'rgba(255, 255, 255, 0.9)'
+                        : tokens.colors?.brand?.['eleva-primary'] || '#006D77',
                     textDecoration: 'none',
-                    marginLeft: '15px',
+                    marginRight: '16px',
                     fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                    fontWeight: '500',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    backgroundColor:
+                      variant === 'branded' ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                    border:
+                      variant === 'branded'
+                        ? '1px solid rgba(255, 255, 255, 0.2)'
+                        : `1px solid ${tokens.colors?.neutral?.[200] || '#E5E7EB'}`,
+                    transition: 'all 0.2s ease',
                   }}
                 >
                   Dashboard
@@ -175,10 +198,14 @@ export function EmailHeader({
                 <Link
                   href={`${DEFAULT_BASE_URL}/support`}
                   style={{
-                    color: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
+                    color:
+                      variant === 'branded'
+                        ? 'rgba(255, 255, 255, 0.9)'
+                        : tokens.colors?.neutral?.[600] || '#6B7280',
                     textDecoration: 'none',
-                    marginLeft: '15px',
                     fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                    fontWeight: '500',
+                    fontSize: '14px',
                   }}
                 >
                   Support

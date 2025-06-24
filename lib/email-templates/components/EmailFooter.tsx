@@ -55,11 +55,11 @@ export function EmailFooter({
   const finalTagline = tagline || process.env.COMPANY_TAGLINE || "Expert care for women's health";
   const finalSupportEmail = supportEmail || process.env.SUPPORT_EMAIL || 'support@eleva.care';
 
-  // Variant-specific styling
+  // Variant-specific styling with modern improvements
   const variantStyles = {
     default: {
-      backgroundColor: tokens.colors?.neutral?.[50] || '#F7F9F9',
-      borderTop: `1px solid ${tokens.colors?.neutral?.[200] || '#D1D1D1'}`,
+      backgroundColor: '#FAFBFC',
+      borderTop: `1px solid ${tokens.colors?.neutral?.[100] || '#F3F4F6'}`,
     },
     minimal: {
       backgroundColor: 'transparent',
@@ -67,11 +67,13 @@ export function EmailFooter({
     },
     branded: {
       backgroundColor: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
-      borderTop: `2px solid ${tokens.colors?.brand?.['eleva-secondary'] || '#E29578'}`,
+      borderTop: 'none',
     },
   } satisfies Record<string, React.CSSProperties>;
 
   const styles = variantStyles[variant];
+  const isMinimal = variant === 'minimal';
+  const isBranded = variant === 'branded';
 
   // Base URLs
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || DEFAULT_BASE_URL;
@@ -116,12 +118,22 @@ export function EmailFooter({
 
   const texts = staticTranslations[locale] || staticTranslations.en;
 
+  // Modern color scheme
+  const textColors = {
+    primary: isBranded ? 'rgba(255, 255, 255, 0.95)' : tokens.colors?.neutral?.[700] || '#374151',
+    secondary: isBranded ? 'rgba(255, 255, 255, 0.8)' : tokens.colors?.neutral?.[500] || '#6B7280',
+    muted: isBranded ? 'rgba(255, 255, 255, 0.6)' : tokens.colors?.neutral?.[400] || '#9CA3AF',
+    link: isBranded
+      ? 'rgba(255, 255, 255, 0.9)'
+      : tokens.colors?.brand?.['eleva-primary'] || '#006D77',
+  };
+
   return (
     <Section
       style={{
         ...styles,
-        padding: '30px 0',
-        marginTop: '40px',
+        padding: isMinimal ? '24px 0' : '40px 0 32px 0',
+        marginTop: isMinimal ? '24px' : '40px',
         ...customization?.containerStyles,
       }}
     >
@@ -129,43 +141,48 @@ export function EmailFooter({
         style={{
           maxWidth: '600px',
           margin: '0 auto',
-          padding: '0 20px',
+          padding: '0 24px',
         }}
       >
-        {/* Main Footer Content */}
+        {/* Main Footer Content with improved layout */}
         <Row>
           {/* Logo and Company Info */}
           <Column
             style={{
-              width: '50%',
+              width: '60%',
               verticalAlign: 'top' as const,
+              paddingRight: '24px',
             }}
           >
             {showLogo && (
-              <Img
-                src={logoSrc}
-                alt="Eleva Care"
-                width="100"
-                height="26"
-                style={{
-                  display: 'block',
-                  marginBottom: '15px',
-                  outline: 'none',
-                  border: 'none',
-                  maxWidth: '100px',
-                  height: 'auto',
-                  ...customization?.logoStyles,
-                }}
-              />
+              <div style={{ marginBottom: '20px' }}>
+                <Img
+                  src={logoSrc}
+                  alt="Eleva Care"
+                  width="100"
+                  height="26"
+                  style={{
+                    display: 'block',
+                    outline: 'none',
+                    border: 'none',
+                    maxWidth: '100px',
+                    height: 'auto',
+                    borderRadius: '4px',
+                    ...customization?.logoStyles,
+                  }}
+                />
+              </div>
             )}
 
             <Text
               style={{
-                margin: '0 0 10px 0',
-                fontSize: tokens.typography?.sizes?.sm || '14px',
-                lineHeight: '1.4',
-                color: tokens.colors?.neutral?.[600] || '#4B5563',
+                margin: '0 0 8px 0',
+                fontSize: '16px',
+                lineHeight: '1.5',
+                color: textColors.primary,
                 fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                fontWeight: '600',
+                letterSpacing: '-0.025em',
               }}
             >
               {finalCompanyName}
@@ -173,11 +190,12 @@ export function EmailFooter({
 
             <Text
               style={{
-                margin: '0 0 15px 0',
-                fontSize: tokens.typography?.sizes?.xs || '12px',
-                lineHeight: '1.4',
-                color: tokens.colors?.neutral?.[500] || '#6B7280',
+                margin: '0 0 16px 0',
+                fontSize: '14px',
+                lineHeight: '1.6',
+                color: textColors.secondary,
                 fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                fontWeight: '400',
               }}
             >
               {finalTagline}
@@ -187,16 +205,21 @@ export function EmailFooter({
               <Text
                 style={{
                   margin: '0',
-                  fontSize: tokens.typography?.sizes?.xs || '12px',
-                  color: tokens.colors?.neutral?.[500] || '#6B7280',
+                  fontSize: '14px',
+                  color: textColors.secondary,
                   fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
                 }}
               >
                 <Link
                   href={`mailto:${finalSupportEmail}`}
                   style={{
-                    color: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
+                    color: textColors.link,
                     textDecoration: 'none',
+                    fontWeight: '500',
+                    borderBottom: isBranded
+                      ? 'none'
+                      : `1px solid ${tokens.colors?.neutral?.[200] || '#E5E7EB'}`,
+                    paddingBottom: '1px',
                   }}
                 >
                   {finalSupportEmail}
@@ -208,21 +231,23 @@ export function EmailFooter({
           {/* Links and Actions */}
           <Column
             style={{
-              width: '50%',
+              width: '40%',
               verticalAlign: 'top' as const,
               textAlign: 'right' as const,
             }}
           >
-            {/* Legal Links */}
-            <div style={{ marginBottom: '15px' }}>
+            {/* Legal Links with modern spacing */}
+            <div style={{ marginBottom: '20px' }}>
               <Link
                 href={`${baseUrl}/legal/privacy`}
                 style={{
-                  fontSize: tokens.typography?.sizes?.xs || '12px',
-                  color: tokens.colors?.neutral?.[600] || '#4B5563',
+                  display: 'block',
+                  fontSize: '13px',
+                  color: textColors.secondary,
                   textDecoration: 'none',
                   fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
-                  marginLeft: '15px',
+                  marginBottom: '8px',
+                  fontWeight: '500',
                 }}
               >
                 {texts.privacyPolicy}
@@ -230,11 +255,13 @@ export function EmailFooter({
               <Link
                 href={`${baseUrl}/legal/terms`}
                 style={{
-                  fontSize: tokens.typography?.sizes?.xs || '12px',
-                  color: tokens.colors?.neutral?.[600] || '#4B5563',
+                  display: 'block',
+                  fontSize: '13px',
+                  color: textColors.secondary,
                   textDecoration: 'none',
                   fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
-                  marginLeft: '15px',
+                  marginBottom: '8px',
+                  fontWeight: '500',
                 }}
               >
                 {texts.termsOfService}
@@ -242,80 +269,98 @@ export function EmailFooter({
             </div>
 
             {/* Custom links */}
-            {customLinks.map((link: CustomLink, index: number) => (
-              <Link
-                key={index}
-                href={link.url}
-                style={{
-                  display: 'block',
-                  fontSize: tokens.typography?.sizes?.xs || '12px',
-                  color: tokens.colors?.neutral?.[600] || '#4B5563',
-                  textDecoration: 'none',
-                  marginBottom: '5px',
-                  fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
-                }}
-              >
-                {link.label}
-              </Link>
-            ))}
-
-            {/* Social Links */}
-            {showSocialLinks && customization?.socialLinks?.length && (
-              <div style={{ marginTop: '15px' }}>
-                <Text
-                  style={{
-                    fontSize: tokens.typography?.sizes?.xs || '12px',
-                    color: tokens.colors?.neutral?.[500] || '#6B7280',
-                    margin: '0 0 10px 0',
-                    fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
-                  }}
-                >
-                  {texts.followUs}
-                </Text>
-                {customization.socialLinks.map((link, index) => (
+            {customLinks.length > 0 && (
+              <div style={{ marginBottom: '20px' }}>
+                {customLinks.map((link: CustomLink, index: number) => (
                   <Link
                     key={index}
                     href={link.url}
                     style={{
-                      fontSize: tokens.typography?.sizes?.xs || '12px',
-                      color: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
+                      display: 'block',
+                      fontSize: '13px',
+                      color: textColors.secondary,
                       textDecoration: 'none',
-                      marginRight: '15px',
+                      marginBottom: '8px',
                       fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                      fontWeight: '500',
                     }}
                   >
-                    {link.label || link.platform}
+                    {link.label}
                   </Link>
                 ))}
+              </div>
+            )}
+
+            {/* Social Links with modern styling */}
+            {showSocialLinks && customization?.socialLinks?.length && (
+              <div style={{ marginBottom: '20px' }}>
+                <Text
+                  style={{
+                    fontSize: '13px',
+                    color: textColors.muted,
+                    margin: '0 0 12px 0',
+                    fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                    fontWeight: '500',
+                    letterSpacing: '0.025em',
+                    textTransform: 'uppercase' as const,
+                  }}
+                >
+                  {texts.followUs}
+                </Text>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  {customization.socialLinks.map((link, index) => (
+                    <Link
+                      key={index}
+                      href={link.url}
+                      style={{
+                        fontSize: '13px',
+                        color: textColors.link,
+                        textDecoration: 'none',
+                        fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                        fontWeight: '500',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        backgroundColor: isBranded ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                        border: isBranded
+                          ? 'none'
+                          : `1px solid ${tokens.colors?.neutral?.[200] || '#E5E7EB'}`,
+                      }}
+                    >
+                      {link.label || link.platform}
+                    </Link>
+                  ))}
+                </div>
               </div>
             )}
           </Column>
         </Row>
 
-        {/* Divider */}
+        {/* Divider with subtle styling */}
         <Hr
           style={{
             border: 'none',
-            borderTop: `1px solid ${tokens.colors?.neutral?.[200] || '#D1D1D1'}`,
-            margin: '25px 0 20px 0',
+            borderTop: `1px solid ${isBranded ? 'rgba(255, 255, 255, 0.2)' : tokens.colors?.neutral?.[100] || '#F3F4F6'}`,
+            margin: '32px 0 24px 0',
             width: '100%',
           }}
         />
 
-        {/* Bottom Row */}
+        {/* Bottom Row with modern layout */}
         <Row>
           <Column
             style={{
               width: '70%',
               textAlign: 'left' as const,
+              verticalAlign: 'middle' as const,
             }}
           >
             <Text
               style={{
                 margin: '0',
-                fontSize: tokens.typography?.sizes?.xs || '12px',
-                color: tokens.colors?.neutral?.[500] || '#6B7280',
+                fontSize: '12px',
+                color: textColors.muted,
                 fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                lineHeight: '1.5',
                 ...customization?.copyrightStyles,
               }}
             >
@@ -327,16 +372,22 @@ export function EmailFooter({
             style={{
               width: '30%',
               textAlign: 'right' as const,
+              verticalAlign: 'middle' as const,
             }}
           >
             {showUnsubscribe && (
               <Link
                 href={unsubscribeUrl}
                 style={{
-                  fontSize: tokens.typography?.sizes?.xs || '12px',
-                  color: tokens.colors?.neutral?.[500] || '#6B7280',
-                  textDecoration: 'underline',
+                  fontSize: '12px',
+                  color: textColors.muted,
+                  textDecoration: 'none',
                   fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                  fontWeight: '500',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  border: `1px solid ${isBranded ? 'rgba(255, 255, 255, 0.2)' : tokens.colors?.neutral?.[200] || '#E5E7EB'}`,
+                  backgroundColor: isBranded ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
                   ...customization?.unsubscribeStyles,
                 }}
               >

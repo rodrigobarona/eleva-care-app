@@ -252,6 +252,7 @@ function isUsernameRoute(path: string): boolean {
       'sign-up',
       'unauthorized',
       'onboarding',
+      'dev', // Add dev directory to reserved paths
       ...locales,
     ].includes(segment);
 
@@ -273,6 +274,7 @@ function isUsernameRoute(path: string): boolean {
       'sign-up',
       'unauthorized',
       'onboarding',
+      'dev', // Add dev directory to reserved paths
     ].includes(segments[0]);
 
     // Skip locale-prefixed reserved paths like /en/dashboard
@@ -291,6 +293,7 @@ function isUsernameRoute(path: string): boolean {
         'sign-up',
         'unauthorized',
         'onboarding',
+        'dev', // Add dev directory to reserved paths for locale-prefixed routes
       ].includes(segments[1]);
 
     return !isReservedFirstSegment && !isReservedSecondSegment;
@@ -627,6 +630,8 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
 /**
  * Configure which paths the middleware runs on
  * This matches everything except static files and Next.js internals
+ * Note: Development routes like /dev/* are handled in the middleware logic
+ * through the isUsernameRoute function, not excluded here.
  */
 export const config = {
   matcher: [
