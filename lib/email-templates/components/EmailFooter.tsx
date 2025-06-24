@@ -60,9 +60,9 @@ export function EmailFooter({
       backgroundColor: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
       borderTop: `2px solid ${tokens.colors?.brand?.['eleva-secondary'] || '#E29578'}`,
     },
-  } as const;
+  } satisfies Record<string, React.CSSProperties>;
 
-  const styles = variantStyles[variant as keyof typeof variantStyles] || variantStyles.default;
+  const styles = variantStyles[variant];
 
   // Base URLs
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || DEFAULT_BASE_URL;
