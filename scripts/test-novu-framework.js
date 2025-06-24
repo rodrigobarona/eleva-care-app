@@ -86,7 +86,7 @@ async function testNovuFramework() {
           if (jsonData.workflows) {
             console.log(`   📊 Found ${jsonData.workflows.length} workflows`);
           }
-        } catch (parseError) {
+        } catch {
           console.log('   📄 Response is not JSON (might be HTML or other format)');
         }
       } else {
