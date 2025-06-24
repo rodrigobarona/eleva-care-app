@@ -249,7 +249,7 @@ export function EmailFooter({
             ))}
 
             {/* Social Links */}
-            {showSocialLinks && (
+            {showSocialLinks && customization?.socialLinks?.length && (
               <div style={{ marginTop: '15px' }}>
                 <Text
                   style={{
@@ -261,7 +261,21 @@ export function EmailFooter({
                 >
                   {texts.followUs}
                 </Text>
-                {/* Add social links as needed */}
+                {customization.socialLinks.map((link, index) => (
+                  <Link
+                    key={index}
+                    href={link.url}
+                    style={{
+                      fontSize: tokens.typography?.sizes?.xs || '12px',
+                      color: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
+                      textDecoration: 'none',
+                      marginRight: '15px',
+                      fontFamily: tokens.typography?.families?.primary || 'DM Sans, sans-serif',
+                    }}
+                  >
+                    {link.label || link.platform}
+                  </Link>
+                ))}
               </div>
             )}
           </Column>

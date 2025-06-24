@@ -131,6 +131,16 @@ export interface EmailHeaderProps {
 }
 
 /**
+ * Social media link configuration
+ */
+export interface SocialLink {
+  platform: string;
+  url: string;
+  label?: string;
+  iconUrl?: string;
+}
+
+/**
  * Email Footer Component Props
  */
 export interface EmailFooterProps {
@@ -149,6 +159,7 @@ export interface EmailFooterProps {
     logoStyles?: Record<string, string>;
     copyrightStyles?: Record<string, string>;
     unsubscribeStyles?: Record<string, string>;
+    socialLinks?: SocialLink[];
   };
 }
 
