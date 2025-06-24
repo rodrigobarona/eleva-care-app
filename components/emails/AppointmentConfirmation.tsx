@@ -1,3 +1,6 @@
+import { EmailFooter } from '@/lib/email-templates/components/EmailFooter';
+import { EmailHeader } from '@/lib/email-templates/components/EmailHeader';
+import { normalizeLocale } from '@/lib/email-templates/utils/translations';
 import {
   Body,
   Button,
@@ -46,15 +49,25 @@ export const AppointmentConfirmation = async ({
     namespace: 'notifications.appointmentConfirmation.email',
   });
 
+  // Normalize locale to SupportedLocale type
+  const normalizedLocale = normalizeLocale(locale);
+
   return (
     <Html>
       <Head />
       <Preview>{t('preview')}</Preview>
       <Tailwind>
         <Body className="bg-gray-100 py-[40px] font-sans">
+          {/* Email Header */}
+          <EmailHeader
+            variant="default"
+            showLogo={true}
+            theme="light"
+            userContext={{ displayName: expertName }}
+          />
+
           <Container className="mx-auto max-w-[600px] rounded-[8px] bg-white p-[24px]">
             <Section>
-              <Text className="text-center text-[24px] font-bold text-[#4F46E5]">Eleva.care</Text>
               <Heading className="my-[24px] text-center text-[20px] font-bold text-gray-800">
                 {t('appointmentConfirmed')}
               </Heading>
@@ -149,15 +162,18 @@ export const AppointmentConfirmation = async ({
                 {t('team')}
               </Text>
             </Section>
-
-            <Hr className="my-[24px] border-t border-gray-300" />
-
-            <Section>
-              <Text className="text-center text-[12px] text-gray-500">
-                © {new Date().getFullYear()} Eleva.care. {t('allRightsReserved')}
-              </Text>
-            </Section>
           </Container>
+
+          {/* Email Footer */}
+          <EmailFooter
+            variant="default"
+            showLogo={true}
+            showSocialLinks={false}
+            showUnsubscribe={true}
+            showContactInfo={true}
+            language={normalizedLocale}
+            theme="light"
+          />
         </Body>
       </Tailwind>
     </Html>

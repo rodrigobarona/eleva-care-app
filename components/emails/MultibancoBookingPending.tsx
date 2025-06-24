@@ -1,3 +1,6 @@
+import { EmailFooter } from '@/lib/email-templates/components/EmailFooter';
+import { EmailHeader } from '@/lib/email-templates/components/EmailHeader';
+import { normalizeLocale } from '@/lib/email-templates/utils/translations';
 import {
   Body,
   Button,
@@ -53,12 +56,23 @@ export const MultibancoBookingPending = async ({
     namespace: 'notifications.multibancoBookingPending.email',
   });
 
+  // Normalize locale to SupportedLocale type
+  const normalizedLocale = normalizeLocale(locale);
+
   return (
     <Html>
       <Head />
       <Preview>{t('preview')}</Preview>
       <Tailwind>
         <Body className="mx-auto my-auto bg-white font-sans">
+          {/* Email Header */}
+          <EmailHeader
+            variant="default"
+            showLogo={true}
+            theme="light"
+            userContext={{ displayName: customerName }}
+          />
+
           <Container className="mx-auto my-[40px] w-[465px] rounded border border-solid border-[#eaeaea] p-[20px]">
             <Section className="mt-[32px]">
               <Heading className="mx-0 my-[30px] p-0 text-center text-[24px] font-normal text-black">
@@ -198,6 +212,17 @@ export const MultibancoBookingPending = async ({
 
             <Text className="text-[14px] leading-[24px] text-black">{t('team')}</Text>
           </Container>
+
+          {/* Email Footer */}
+          <EmailFooter
+            variant="default"
+            showLogo={true}
+            showSocialLinks={false}
+            showUnsubscribe={true}
+            showContactInfo={true}
+            language={normalizedLocale}
+            theme="light"
+          />
         </Body>
       </Tailwind>
     </Html>

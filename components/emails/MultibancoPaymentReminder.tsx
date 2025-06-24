@@ -1,3 +1,6 @@
+import { EmailFooter } from '@/lib/email-templates/components/EmailFooter';
+import { EmailHeader } from '@/lib/email-templates/components/EmailHeader';
+import { normalizeLocale } from '@/lib/email-templates/utils/translations';
 import {
   Body,
   Button,
@@ -49,13 +52,15 @@ export const MultibancoPaymentReminder = async ({
   hostedVoucherUrl,
   customerNotes,
   reminderType,
-  daysRemaining,
+  daysRemaining: _daysRemaining,
   locale = 'en',
 }: MultibancoPaymentReminderProps) => {
   const t = await getTranslations({
     locale,
     namespace: 'notifications.multibancoPaymentReminder.email',
   });
+
+  const normalizedLocale = normalizeLocale(locale);
 
   const isUrgent = reminderType === 'urgent';
 
@@ -65,6 +70,14 @@ export const MultibancoPaymentReminder = async ({
       <Preview>{t(`preview.${reminderType}`)}</Preview>
       <Tailwind>
         <Body className="mx-auto my-auto bg-white font-sans">
+          {/* Email Header */}
+          <EmailHeader
+            variant="default"
+            showLogo={true}
+            theme="light"
+            userContext={{ displayName: customerName }}
+          />
+
           <Container className="mx-auto my-[40px] w-[465px] rounded border border-solid border-[#eaeaea] p-[20px]">
             {/* Header with urgency indicator */}
             <Section className="mt-[32px]">
@@ -92,10 +105,7 @@ export const MultibancoPaymentReminder = async ({
             ) : (
               <>
                 <Text className="text-[14px] leading-[24px] text-black">{t('reminderNotice')}</Text>
-                <Text className="text-[14px] leading-[24px] text-black">
-                  {t('timeRemaining')}{' '}
-                  <Text className="font-bold">{t('daysRemaining', { daysRemaining })}</Text>
-                </Text>
+                <Text className="text-[14px] leading-[24px] text-black">{t('timeRemaining')}</Text>
               </>
             )}
 
@@ -199,23 +209,14 @@ export const MultibancoPaymentReminder = async ({
 
             <Hr className="mx-0 my-[26px] w-full border border-solid border-[#eaeaea]" />
 
-            {/* Conditional bottom section based on urgency */}
-            {isUrgent ? (
-              <Section className="my-[20px] rounded-[8px] border border-solid border-[#ffc107] bg-[#fffbf0] p-[15px]">
-                <Text className="m-0 mb-[5px] text-[14px] font-semibold text-[#856404]">
-                  {t('consequences')}
+            {/* Urgency-based CTA section */}
+            {isUrgent && (
+              <Section className="my-[20px] rounded-[8px] border border-solid border-[#dc3545] bg-[#fff5f5] p-[15px] text-center">
+                <Text className="m-0 mb-[5px] text-[16px] font-bold text-[#dc3545]">
+                  ⚠️ {t('consequences')}
                 </Text>
-                <Text className="m-0 text-[12px] leading-[18px] text-[#856404]">
+                <Text className="m-0 text-[12px] leading-[18px] text-black">
                   {t('consequencesText')}
-                </Text>
-              </Section>
-            ) : (
-              <Section className="my-[20px] rounded-[8px] border border-solid border-[#28a745] bg-[#f8fff9] p-[15px]">
-                <Text className="m-0 mb-[5px] text-[14px] font-semibold text-[#155724]">
-                  {t('noWorries')}
-                </Text>
-                <Text className="m-0 text-[12px] leading-[18px] text-[#155724]">
-                  {t('noWorriesText')}
                 </Text>
               </Section>
             )}
@@ -237,6 +238,17 @@ export const MultibancoPaymentReminder = async ({
             </Text>
             <Text className="text-[14px] leading-[24px] text-black">{t('team')}</Text>
           </Container>
+
+          {/* Email Footer */}
+          <EmailFooter
+            variant="default"
+            showLogo={true}
+            showSocialLinks={false}
+            showUnsubscribe={true}
+            showContactInfo={true}
+            language={normalizedLocale}
+            theme="light"
+          />
         </Body>
       </Tailwind>
     </Html>
