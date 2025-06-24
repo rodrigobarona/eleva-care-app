@@ -84,7 +84,7 @@ All templates support four locales:
 - `en` - English
 - `es` - Spanish
 - `pt` - Portuguese (Portugal)
-- `br` - Portuguese (Brazil)
+- `pt-BR` - Portuguese (Brazil)
 
 Each template must include translations for all locales.
 
