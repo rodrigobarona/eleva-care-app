@@ -162,24 +162,151 @@ function performSafeComparison(left: unknown, right: unknown, operator: string):
 }
 
 /**
+ * Cache entry with timestamp for TTL management
+ */
+interface CacheEntry<T> {
+  value: T;
+  timestamp: number;
+  accessCount: number;
+}
+
+/**
  * Email Template Engine
  * Central service for managing email template rendering, validation, and delivery
  * Implements Cal.com-inspired patterns with Eleva Care enhancements
  */
 export class EmailTemplateEngine {
-  private templateCache: Map<string, React.ComponentType<Record<string, unknown>>> = new Map();
-  private validationCache: Map<string, ValidationResult> = new Map();
+  private readonly MAX_CACHE_SIZE = Number(process.env.EMAIL_TEMPLATE_CACHE_SIZE) || 1000;
+  private readonly CACHE_TTL_MS = Number(process.env.EMAIL_TEMPLATE_CACHE_TTL_MS) || 1000 * 60 * 30; // 30 minutes
+
+  private templateCache: Map<string, CacheEntry<React.ComponentType<Record<string, unknown>>>> =
+    new Map();
+  private validationCache: Map<string, CacheEntry<ValidationResult>> = new Map();
   private analytics: Map<string, EmailAnalytics> = new Map();
   private templateConfigs: Map<string, TemplateConfig> = new Map();
 
+  // Validation limits - configurable
+  private validationLimits = {
+    maxSizeBytes: Number(process.env.EMAIL_MAX_SIZE_BYTES) || 102400, // 100KB
+    maxRenderTimeMs: Number(process.env.EMAIL_MAX_RENDER_TIME_MS) || 1000, // 1 second
+  };
+
   constructor() {
-    this.initializeTemplateConfigs();
+    this.loadTemplateConfigs();
+
+    // Set up periodic cache cleanup
+    setInterval(() => {
+      this.cleanupExpiredCache();
+    }, this.CACHE_TTL_MS / 2); // Cleanup every 15 minutes
   }
 
   /**
-   * Initialize template configurations for different workflows
+   * Clean up expired cache entries and enforce size limits
    */
-  private initializeTemplateConfigs(): void {
+  private cleanupExpiredCache(): void {
+    const now = Date.now();
+
+    // Clean up template cache
+    this.cleanupCacheMap(this.templateCache, now);
+
+    // Clean up validation cache
+    this.cleanupCacheMap(this.validationCache, now);
+  }
+
+  /**
+   * Generic cache cleanup with LRU eviction and TTL
+   */
+  private cleanupCacheMap<T>(cache: Map<string, CacheEntry<T>>, now: number): void {
+    // Remove expired entries
+    for (const [key, entry] of cache.entries()) {
+      if (now - entry.timestamp > this.CACHE_TTL_MS) {
+        cache.delete(key);
+      }
+    }
+
+    // Enforce size limit with LRU eviction
+    if (cache.size > this.MAX_CACHE_SIZE) {
+      const entries = Array.from(cache.entries());
+      // Sort by access count (least recently used first)
+      entries.sort((a, b) => a[1].accessCount - b[1].accessCount);
+
+      // Remove oldest entries
+      const toRemove = cache.size - this.MAX_CACHE_SIZE;
+      for (let i = 0; i < toRemove; i++) {
+        cache.delete(entries[i][0]);
+      }
+    }
+  }
+
+  /**
+   * Get cached value and update access statistics
+   */
+  private getCachedValue<T>(cache: Map<string, CacheEntry<T>>, key: string): T | undefined {
+    const entry = cache.get(key);
+    if (entry) {
+      // Update access count for LRU
+      entry.accessCount++;
+      return entry.value;
+    }
+    return undefined;
+  }
+
+  /**
+   * Set cached value with timestamp
+   */
+  private setCachedValue<T>(cache: Map<string, CacheEntry<T>>, key: string, value: T): void {
+    const entry: CacheEntry<T> = {
+      value,
+      timestamp: Date.now(),
+      accessCount: 1,
+    };
+    cache.set(key, entry);
+  }
+
+  /**
+   * Load template configurations from external source or initialize defaults
+   */
+  private async loadTemplateConfigs(): Promise<void> {
+    try {
+      // Try to load from external configuration file first
+      const externalConfigs = await this.loadConfigsFromExternal();
+      if (externalConfigs && externalConfigs.length > 0) {
+        externalConfigs.forEach((config) => {
+          this.templateConfigs.set(config.workflowId, config);
+        });
+        return;
+      }
+    } catch (error) {
+      console.warn('Failed to load external template configs, using defaults:', error);
+    }
+
+    // Fallback to default configurations
+    this.initializeDefaultTemplateConfigs();
+  }
+
+  /**
+   * Load template configurations from external source
+   */
+  private async loadConfigsFromExternal(): Promise<TemplateConfig[]> {
+    try {
+      // Try loading from environment-specified path or default
+      const configPath = process.env.EMAIL_TEMPLATE_CONFIG_PATH || './config/email-templates.json';
+      const configModule = await import(configPath);
+      return configModule.default || configModule;
+    } catch (error) {
+      // External config not available, will fallback to defaults
+      console.debug(
+        'External template config not found, using defaults:',
+        error instanceof Error ? error.message : String(error),
+      );
+      return [];
+    }
+  }
+
+  /**
+   * Initialize default template configurations for different workflows
+   */
+  private initializeDefaultTemplateConfigs(): void {
     // Appointment workflow configuration
     this.templateConfigs.set('appointmentWorkflow', {
       workflowId: 'appointmentWorkflow',
@@ -337,11 +464,11 @@ export class EmailTemplateEngine {
   ): Promise<{ html: string; text: string; subject: string }> {
     try {
       // Get cached template component or load it
-      let TemplateComponent = this.templateCache.get(templateId);
+      let TemplateComponent = this.getCachedValue(this.templateCache, templateId);
 
       if (!TemplateComponent) {
         TemplateComponent = await this.loadTemplate(templateId);
-        this.templateCache.set(templateId, TemplateComponent);
+        this.setCachedValue(this.templateCache, templateId, TemplateComponent);
       }
 
       // Apply personalization rules
@@ -378,14 +505,21 @@ export class EmailTemplateEngine {
   }
 
   /**
-   * Load template component dynamically
+   * Get template mapping from external source or use defaults
    */
-  private async loadTemplate(
-    templateId: string,
-  ): Promise<React.ComponentType<Record<string, unknown>>> {
+  private async getTemplateMapping(): Promise<Record<string, string>> {
     try {
-      // Map template IDs to component paths
-      const templateMap: Record<string, string> = {
+      const mappingPath =
+        process.env.EMAIL_TEMPLATE_MAPPING_PATH || './config/template-mapping.json';
+      const mappingModule = await import(mappingPath);
+      return mappingModule.default || mappingModule;
+    } catch (error) {
+      // Return default mapping if external mapping not available
+      console.debug(
+        'External template mapping not found, using defaults:',
+        error instanceof Error ? error.message : String(error),
+      );
+      return {
         'appointment-confirmation': '../templates/appointment/AppointmentConfirmation',
         'appointment-reminder': '../templates/appointment/AppointmentReminder',
         'appointment-cancelled': '../templates/appointment/AppointmentCancelled',
@@ -395,6 +529,18 @@ export class EmailTemplateEngine {
         'payment-failed-notice': '../templates/payment/PaymentFailed',
         'generic-notification': '../templates/generic/GenericNotification',
       };
+    }
+  }
+
+  /**
+   * Load template component dynamically
+   */
+  private async loadTemplate(
+    templateId: string,
+  ): Promise<React.ComponentType<Record<string, unknown>>> {
+    try {
+      // Get template mapping
+      const templateMap = await this.getTemplateMapping();
 
       const componentPath = templateMap[templateId];
       if (!componentPath) {
@@ -580,8 +726,9 @@ export class EmailTemplateEngine {
   ): Promise<ValidationResult> {
     const cacheKey = `${templateId}-${JSON.stringify(data)}`;
 
-    if (this.validationCache.has(cacheKey)) {
-      return this.validationCache.get(cacheKey)!;
+    const cachedResult = this.getCachedValue(this.validationCache, cacheKey);
+    if (cachedResult) {
+      return cachedResult;
     }
 
     const startTime = Date.now();
@@ -624,21 +771,19 @@ export class EmailTemplateEngine {
       }
 
       // Size validation
-      if (result.performance.size > 102400) {
-        // 100KB limit
+      if (result.performance.size > this.validationLimits.maxSizeBytes) {
         result.errors.push({
           type: 'performance',
-          message: 'Email size exceeds 100KB limit',
+          message: `Email size exceeds ${this.validationLimits.maxSizeBytes / 1024}KB limit`,
           severity: 'warning',
         });
       }
 
       // Render time validation
-      if (renderTime > 1000) {
-        // 1 second limit
+      if (renderTime > this.validationLimits.maxRenderTimeMs) {
         result.errors.push({
           type: 'performance',
-          message: 'Template render time exceeds 1 second',
+          message: `Template render time exceeds ${this.validationLimits.maxRenderTimeMs}ms`,
           severity: 'warning',
         });
       }
@@ -669,7 +814,7 @@ export class EmailTemplateEngine {
       });
     }
 
-    this.validationCache.set(cacheKey, result);
+    this.setCachedValue(this.validationCache, cacheKey, result);
     return result;
   }
 
@@ -721,11 +866,17 @@ export class EmailTemplateEngine {
   }
 
   /**
-   * Clear caches
+   * Clear caches with optional partial cleanup
    */
-  public clearCaches(): void {
-    this.templateCache.clear();
-    this.validationCache.clear();
+  public clearCaches(force: boolean = false): void {
+    if (force) {
+      // Full cache clear
+      this.templateCache.clear();
+      this.validationCache.clear();
+    } else {
+      // Intelligent cleanup - remove expired entries only
+      this.cleanupExpiredCache();
+    }
   }
 
   /**
