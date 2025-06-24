@@ -21,18 +21,20 @@ function safeEvaluateExpression(expression: string, context: Record<string, unkn
     const normalized = expression.replace(/\s+/g, ' ').trim();
 
     // Whitelist of allowed operations and patterns
-    const allowedOperators = ['===', '!==', '==', '!=', '>', '<', '>=', '<=', '&&', '||'];
+    // Order matters: longer operators first to avoid precedence issues (>= before >, !== before !=)
+    const allowedOperators = ['===', '!==', '>=', '<=', '==', '!=', '>', '<', '&&', '||'];
 
     // Simple pattern matching for basic conditions
     // Support patterns like: variable === "value", variable > number, etc.
 
     // Handle simple equality/inequality checks
     for (const operator of allowedOperators) {
-      if (normalized.includes(operator)) {
-        const parts = normalized.split(operator).map((p) => p.trim());
-        if (parts.length === 2) {
-          const [left, right] = parts;
+      const operatorIndex = findOperatorOutsideQuotes(normalized, operator);
+      if (operatorIndex !== -1) {
+        const left = normalized.substring(0, operatorIndex).trim();
+        const right = normalized.substring(operatorIndex + operator.length).trim();
 
+        if (left && right) {
           // Get left operand value
           const leftValue = getContextValue(left, context);
           // Get right operand value
@@ -57,6 +59,34 @@ function safeEvaluateExpression(expression: string, context: Record<string, unkn
     console.warn(`Failed to safely evaluate expression: ${expression}`, error);
     return false;
   }
+}
+
+/**
+ * Find operator outside of quoted strings to avoid parsing operators within string literals
+ */
+function findOperatorOutsideQuotes(expression: string, operator: string): number {
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+
+  for (let i = 0; i <= expression.length - operator.length; i++) {
+    const char = expression[i];
+
+    // Track quote state
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+    } else if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+    }
+
+    // Check for operator only if not inside quotes
+    if (!inSingleQuote && !inDoubleQuote) {
+      if (expression.substring(i, i + operator.length) === operator) {
+        return i;
+      }
+    }
+  }
+
+  return -1;
 }
 
 /**
