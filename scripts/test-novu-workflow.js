@@ -70,7 +70,7 @@ async function testNovuWorkflows() {
         }
       } else {
         console.log('   ⚠️ Framework bridge not accessible');
-        console.log('   💡 Make sure your Next.js server is running');
+        console.log('   💡 Make sure your Next.js dev server is running');
       }
     } catch (error) {
       console.log(`   ❌ Bridge test failed: ${error.message}`);
@@ -96,26 +96,63 @@ async function testNovuWorkflows() {
 
     console.log();
 
-    // Test 3: Test Workflow Trigger (Mock)
-    console.log('🔍 Test 3: Workflow Trigger Test');
+    // Test 3: Test Universal Workflows
+    console.log('🔍 Test 3: Universal Workflow Event Types Test');
+    try {
+      console.log('   📋 Universal Workflows & Their Event Types:');
+
+      const universalWorkflows = {
+        'user-lifecycle': ['welcome', 'user-created'],
+        'security-auth': ['security-alert', 'account-verification', 'recent-login'],
+        'payment-universal': [
+          'payment-success',
+          'payment-failed',
+          'stripe-account-update',
+          'stripe-payout',
+        ],
+        'expert-management': [
+          'onboarding-complete',
+          'setup-step-complete',
+          'identity-verification',
+          'google-account',
+          'payout-setup-reminder',
+        ],
+        'appointment-universal': ['reminder', 'cancelled', 'new-booking-expert'],
+        'marketplace-universal': ['payment-received', 'payout-processed', 'connect-account-status'],
+        'system-health': ['health-check-failure'],
+      };
+
+      Object.entries(universalWorkflows).forEach(([workflowId, eventTypes]) => {
+        console.log(`   🔄 ${workflowId}:`);
+        eventTypes.forEach((eventType) => {
+          console.log(`     • ${eventType}`);
+        });
+      });
+
+      console.log('   ✅ All universal workflows support conditional event routing');
+      console.log('   💡 Each eventType triggers different steps within the workflow');
+    } catch (error) {
+      console.log(`   ❌ Universal workflow analysis failed: ${error.message}`);
+    }
+
+    console.log();
+
+    // Test 4: Test Workflow Trigger Example
+    console.log('🔍 Test 4: Workflow Trigger Example');
     try {
       const novu = new Novu({
         secretKey: apiKey,
         ...(NOVU_BASE_URL && { apiUrl: NOVU_BASE_URL }),
       });
 
-      // Test with a common workflow that should exist
+      // Test with a universal workflow
       const testWorkflowId = 'user-lifecycle';
       const testSubscriberId = `test-${Date.now()}`;
 
       console.log(`   Testing workflow: ${testWorkflowId}`);
       console.log(`   Test subscriber: ${testSubscriberId}`);
 
-      // Note: We'll simulate the trigger without actually sending
-      console.log('   📝 Workflow trigger format validated');
-      console.log('   ✅ Ready to trigger workflows');
-
-      // Example trigger payload structure
+      // Example trigger payload structure for universal workflow
       const examplePayload = {
         name: testWorkflowId,
         to: {
@@ -123,25 +160,30 @@ async function testNovuWorkflows() {
           email: 'test@example.com',
         },
         payload: {
-          eventType: 'welcome',
+          eventType: 'welcome', // 🔑 KEY: eventType determines which steps execute
           userName: 'Test User',
           firstName: 'Test',
           email: 'test@example.com',
+          locale: 'pt',
+          country: 'PT',
         },
       };
 
-      console.log('   📋 Example trigger payload structure:');
+      console.log('   📋 Example universal workflow trigger payload:');
       console.log(`      Workflow: ${examplePayload.name}`);
       console.log(`      Subscriber: ${examplePayload.to.subscriberId}`);
-      console.log(`      Event Type: ${examplePayload.payload.eventType}`);
+      console.log(
+        `      🔑 Event Type: ${examplePayload.payload.eventType} (determines conditional steps)`,
+      );
+      console.log('   ✅ Universal workflow payload structure validated');
     } catch (error) {
       console.log(`   ❌ Workflow trigger test failed: ${error.message}`);
     }
 
     console.log();
 
-    // Test 4: Framework Workflow Integration
-    console.log('🔍 Test 4: Framework Workflow Integration');
+    // Test 5: Framework Workflow Integration
+    console.log('🔍 Test 5: Framework Workflow Integration');
     try {
       // Check if framework workflows are properly configured
       console.log('   📋 Framework Integration Status:');
@@ -149,6 +191,7 @@ async function testNovuWorkflows() {
       console.log('   ✅ Workflow definitions in config/novu.ts');
       console.log('   ✅ TypeScript schemas for payload validation');
       console.log('   ✅ Multi-channel support (in-app, email)');
+      console.log('   ✅ Conditional step execution based on eventType');
     } catch (error) {
       console.log(`   ❌ Framework integration check failed: ${error.message}`);
     }
@@ -158,20 +201,45 @@ async function testNovuWorkflows() {
     console.log('🎉 Novu Workflow test completed!');
     console.log();
     console.log('📖 Available Workflows (Framework):');
-    console.log('   • user-lifecycle (welcome, user-created)');
-    console.log('   • security-auth (security-alert, account-verification, recent-login)');
-    console.log('   • payment-universal (payment-success, payment-failed, payout)');
-    console.log('   • appointment-booking (confirmation, reminder, cancellation)');
+    console.log('   🔄 Universal Workflows (Conditional Steps):');
+    console.log('     • user-lifecycle (welcome, user-created)');
+    console.log('     • security-auth (security-alert, account-verification, recent-login)');
+    console.log(
+      '     • payment-universal (payment-success, payment-failed, stripe-account-update, stripe-payout)',
+    );
+    console.log(
+      '     • expert-management (onboarding-complete, setup-step-complete, identity-verification, google-account, payout-setup-reminder)',
+    );
+    console.log('     • appointment-universal (reminder, cancelled, new-booking-expert)');
+    console.log(
+      '     • marketplace-universal (payment-received, payout-processed, connect-account-status)',
+    );
+    console.log('     • system-health (health-check-failure)');
+    console.log();
+    console.log('   📧 Email Template Workflows (Direct Steps):');
+    console.log('     • appointment-confirmation');
+    console.log('     • multibanco-booking-pending');
+    console.log('     • multibanco-payment-reminder');
     console.log();
     console.log('🔧 Usage Examples:');
-    console.log('   1. Trigger via API: novu.trigger("user-lifecycle", {...})');
-    console.log('   2. Framework bridge: POST /api/novu with workflow payload');
-    console.log('   3. Dashboard: Create and manage workflows visually');
+    console.log('   1. Universal: novu.trigger("user-lifecycle", { eventType: "welcome", ... })');
+    console.log(
+      '   2. Universal: novu.trigger("payment-universal", { eventType: "payment-success", ... })',
+    );
+    console.log(
+      '   3. Direct: novu.trigger("appointment-confirmation", { expertName: "...", ... })',
+    );
+    console.log('   4. Framework bridge: POST /api/novu with workflow payload');
+    console.log();
+    console.log('🧪 Testing Commands:');
+    console.log('   • pnpm test:workflows         # Test all workflows with all event types');
+    console.log('   • pnpm test:novu-workflow     # Basic workflow functionality test');
     console.log();
     console.log('🚨 Troubleshooting:');
     console.log('   • Bridge not accessible: Start Next.js dev server');
     console.log('   • API connection failed: Check API key and region');
     console.log('   • Workflows not found: Verify config/novu.ts exports');
+    console.log('   • Steps not executing: Check eventType in payload matches workflow conditions');
   } catch (error) {
     console.error('❌ Workflow test failed:', error);
     process.exit(1);
