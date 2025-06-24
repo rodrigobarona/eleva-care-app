@@ -98,7 +98,7 @@ export const validateEmailData = (
     errors.push('Subject is required and must be a string');
   }
 
-  if (data.subject && (data.subject as string).length > 100) {
+  if (data.subject && typeof data.subject === 'string' && data.subject.length > 100) {
     errors.push('Subject must be 100 characters or less');
   }
 
