@@ -94,14 +94,49 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
+    // Validate query parameters
+    const supportedLocales = ['en', 'es', 'pt', 'pt-BR'] as const;
+    const locale = searchParams.get('locale') || 'en';
+    if (!supportedLocales.includes(locale as (typeof supportedLocales)[number])) {
+      return NextResponse.json(
+        { success: false, error: `Unsupported locale: ${locale}` },
+        { status: 400 },
+      );
+    }
+
+    const supportedUserRoles = ['patient', 'expert', 'admin'] as const;
+    const userRole = searchParams.get('userRole') || 'patient';
+    if (!supportedUserRoles.includes(userRole as (typeof supportedUserRoles)[number])) {
+      return NextResponse.json(
+        { success: false, error: `Unsupported userRole: ${userRole}` },
+        { status: 400 },
+      );
+    }
+
+    const supportedVariants = ['default', 'minimal', 'branded'] as const;
+    const variant = searchParams.get('variant') || 'default';
+    if (!supportedVariants.includes(variant as (typeof supportedVariants)[number])) {
+      return NextResponse.json(
+        { success: false, error: `Unsupported variant: ${variant}` },
+        { status: 400 },
+      );
+    }
+
+    // Validate email format if provided
+    const to = searchParams.get('to') || 'delivered@resend.dev';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (to !== 'delivered@resend.dev' && !emailRegex.test(to)) {
+      return NextResponse.json({ success: false, error: 'Invalid email format' }, { status: 400 });
+    }
+
     // Parse query parameters with defaults
     const config = {
-      to: searchParams.get('to') || 'delivered@resend.dev',
-      locale: (searchParams.get('locale') || 'en') as 'en' | 'es' | 'pt' | 'pt-BR',
-      userRole: (searchParams.get('userRole') || 'patient') as 'patient' | 'expert' | 'admin',
+      to,
+      locale: locale as (typeof supportedLocales)[number],
+      userRole: userRole as (typeof supportedUserRoles)[number],
       darkMode: searchParams.get('darkMode') === 'true',
       highContrast: searchParams.get('highContrast') === 'true',
-      variant: (searchParams.get('variant') || 'default') as 'default' | 'minimal' | 'branded',
+      variant: variant as (typeof supportedVariants)[number],
       type: searchParams.get('type') || 'welcome',
     };
 
