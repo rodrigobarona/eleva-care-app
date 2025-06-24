@@ -11,6 +11,8 @@ const customJestConfig = {
   testEnvironment: 'jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    // Mock svix to avoid binary parsing issues
+    '^svix$': '<rootDir>/tests/__mocks__/svix.ts',
   },
   testPathIgnorePatterns: [
     '/node_modules/',
