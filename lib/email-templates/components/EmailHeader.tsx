@@ -4,6 +4,9 @@ import React from 'react';
 import { darkModeTokens, emailDesignTokens } from '../design-tokens';
 import { EmailHeaderProps } from '../types';
 
+// Centralized URL configuration (consistent with EmailFooter)
+const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care';
+
 interface LogoVariant {
   src: string;
   alt: string;
@@ -15,11 +18,8 @@ interface LogoVariant {
  * Following React Email best practices for image optimization
  */
 function getLogoVariant(theme: 'light' | 'dark' | 'auto' = 'auto'): LogoVariant {
-  // Base URL for production vs development
-  const baseURL =
-    process.env.NODE_ENV === 'production'
-      ? process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care'
-      : '';
+  // Always use absolute URLs for email clients - they don't support relative URLs
+  const baseURL = DEFAULT_BASE_URL;
 
   const logoVariants = {
     light: {
@@ -106,7 +106,7 @@ export function EmailHeader({
           >
             {showLogo && (
               <Link
-                href={process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care'}
+                href={DEFAULT_BASE_URL}
                 style={{
                   display: 'inline-block',
                   textDecoration: 'none',
@@ -162,7 +162,7 @@ export function EmailHeader({
                 }}
               >
                 <Link
-                  href={`${process.env.NEXT_PUBLIC_APP_URL}/dashboard`}
+                  href={`${DEFAULT_BASE_URL}/dashboard`}
                   style={{
                     color: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
                     textDecoration: 'none',
@@ -173,7 +173,7 @@ export function EmailHeader({
                   Dashboard
                 </Link>
                 <Link
-                  href={`${process.env.NEXT_PUBLIC_APP_URL}/support`}
+                  href={`${DEFAULT_BASE_URL}/support`}
                   style={{
                     color: tokens.colors?.brand?.['eleva-primary'] || '#006D77',
                     textDecoration: 'none',
