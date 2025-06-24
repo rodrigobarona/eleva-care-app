@@ -12,7 +12,8 @@ const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care
  * Get appropriate footer logo variant
  */
 function getFooterLogoVariant(theme: 'light' | 'dark' | 'auto' = 'auto') {
-  const baseURL = process.env.NODE_ENV === 'production' ? DEFAULT_BASE_URL : '';
+  // Always use absolute URLs for email clients - they don't support relative URLs
+  const baseURL = DEFAULT_BASE_URL;
 
   // For footer, typically use a more subdued version
   const variants = {
