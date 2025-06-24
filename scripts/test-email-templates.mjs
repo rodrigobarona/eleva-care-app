@@ -22,13 +22,17 @@ import { fileURLToPath } from 'url';
 
 // Import our email template components
 import { BaseEmailTemplate } from '../lib/email-templates/components/BaseEmailTemplate.tsx';
+import { EmailContent, getUserName } from './email-content-components.tsx';
 
 // Load environment variables
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '..', '.env.local') });
 
-// Initialize Resend client
+// Validate and initialize Resend client
+if (!process.env.RESEND_API_KEY) {
+  throw new Error('RESEND_API_KEY environment variable is not set');
+}
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Test configuration
@@ -455,6 +459,8 @@ function generateBodyContent(scenario, contentType, locale) {
  */
 function createTestEmail(scenario) {
   const emailContent = generateEmailContent(scenario);
+  const contentType = getContentType(scenario.name);
+  const userName = getUserName(scenario);
 
   const renderOptions = {
     locale: scenario.locale,
@@ -466,7 +472,7 @@ function createTestEmail(scenario) {
     variant: scenario.variant,
   };
 
-  // Create the email component
+  // Create the email component using React components instead of dangerouslySetInnerHTML
   const EmailComponent = () =>
     React.createElement(
       BaseEmailTemplate,
@@ -475,8 +481,10 @@ function createTestEmail(scenario) {
         preheader: emailContent.preheader,
         renderOptions: renderOptions,
       },
-      React.createElement('div', {
-        dangerouslySetInnerHTML: { __html: emailContent.content },
+      React.createElement(EmailContent, {
+        scenario: scenario,
+        contentType: contentType,
+        userName: userName,
       }),
     );
 
@@ -499,7 +507,7 @@ async function sendTestEmail(scenario, index) {
     const EmailComponent = createTestEmail(scenario);
 
     // Render the React component to HTML
-    const html = render(React.createElement(EmailComponent));
+    const html = await render(React.createElement(EmailComponent));
 
     // Send via Resend
     const response = await resend.emails.send({
@@ -528,11 +536,11 @@ async function sendTestEmail(scenario, index) {
       return { success: false, error: response.error, scenario: scenario.name };
     }
 
-    console.log(`   ✅ Sent successfully! Email ID: ${response.data.id}`);
-    return { success: true, emailId: response.data.id, scenario: scenario.name };
+    console.log(`   ✅ Sent successfully! Email ID: ${response.data?.id}`);
+    return { success: true, emailId: response.data?.id, scenario: scenario.name };
   } catch (error) {
-    console.error(`   ❌ Failed: ${error.message}`);
-    return { success: false, error: error.message, scenario: scenario.name };
+    console.error(`   ❌ Failed: ${error?.message || error}`);
+    return { success: false, error: error?.message || error, scenario: scenario.name };
   }
 }
 
