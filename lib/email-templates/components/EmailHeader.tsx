@@ -23,19 +23,19 @@ function getLogoVariant(theme: 'light' | 'dark' | 'auto' = 'auto'): LogoVariant 
 
   const logoVariants = {
     light: {
-      src: `${baseURL}/eleva-mark-color.png`,
+      src: `${baseURL}/eleva-logo-color.png`,
       alt: 'Eleva Care Logo',
-      description: 'Colored Eleva Care wellness logomark for light backgrounds',
+      description: 'Colored Eleva Care full logo for light backgrounds',
     },
     dark: {
-      src: `${baseURL}/eleva-mark-white.png`,
+      src: `${baseURL}/eleva-logo-white.png`,
       alt: 'Eleva Care Logo',
-      description: 'White Eleva Care wellness logomark for dark backgrounds',
+      description: 'White Eleva Care full logo for dark backgrounds',
     },
     contrast: {
-      src: `${baseURL}/eleva-mark-black.png`,
+      src: `${baseURL}/eleva-logo-black.png`,
       alt: 'Eleva Care Logo',
-      description: 'High contrast black Eleva Care wellness logomark',
+      description: 'High contrast black Eleva Care full logo',
     },
   };
 
@@ -115,15 +115,15 @@ export function EmailHeader({
                 <Img
                   src={logo.src}
                   alt={logo.alt}
-                  width="40"
-                  height="40"
+                  width="120"
+                  height="32"
                   style={{
                     display: 'block',
                     outline: 'none',
                     border: 'none',
                     textDecoration: 'none',
                     verticalAlign: 'middle',
-                    maxWidth: '40px',
+                    maxWidth: '120px',
                     height: 'auto',
                     ...customization?.logoStyles,
                   }}

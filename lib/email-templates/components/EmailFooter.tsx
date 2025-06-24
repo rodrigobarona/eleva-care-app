@@ -15,11 +15,11 @@ function getFooterLogoVariant(theme: 'light' | 'dark' | 'auto' = 'auto') {
   // Always use absolute URLs for email clients - they don't support relative URLs
   const baseURL = DEFAULT_BASE_URL;
 
-  // For footer, typically use a more subdued version
+  // For footer, use full logo in a more subdued style
   const variants = {
-    light: `${baseURL}/eleva-mark-color.png`, // Colored version for light backgrounds
-    dark: `${baseURL}/eleva-mark-white.png`, // White version for dark backgrounds
-    auto: `${baseURL}/eleva-mark-color.png`, // Default to colored
+    light: `${baseURL}/eleva-logo-color.png`, // Colored full logo for light backgrounds
+    dark: `${baseURL}/eleva-logo-white.png`, // White full logo for dark backgrounds
+    auto: `${baseURL}/eleva-logo-color.png`, // Default to colored
   };
 
   return variants[theme] || variants.light;
@@ -145,13 +145,15 @@ export function EmailFooter({
               <Img
                 src={logoSrc}
                 alt="Eleva Care"
-                width="32"
-                height="32"
+                width="100"
+                height="26"
                 style={{
                   display: 'block',
                   marginBottom: '15px',
                   outline: 'none',
                   border: 'none',
+                  maxWidth: '100px',
+                  height: 'auto',
                   ...customization?.logoStyles,
                 }}
               />
