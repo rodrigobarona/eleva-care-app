@@ -413,7 +413,7 @@ export default emailDesignTokens;
 
 export const emailInternationalization = {
   // Supported locales - matches /messages folder structure
-  supportedLocales: ['en', 'es', 'pt', 'br'] as const,
+  supportedLocales: ['en', 'es', 'pt', 'pt-BR'] as const,
 
   // Default locale
   defaultLocale: 'en' as const,
@@ -432,7 +432,7 @@ export const emailInternationalization = {
     en: /^en/i,
     es: /^es/i,
     pt: /^pt(-PT)?/i, // Portugal Portuguese
-    br: /^pt-BR/i, // Brazilian Portuguese
+    'pt-BR': /^pt-BR/i, // Brazilian Portuguese
   },
 
   // Date/time formatting preferences
@@ -440,6 +440,6 @@ export const emailInternationalization = {
     en: { locale: 'en-US', timezone: 'UTC' },
     es: { locale: 'es-ES', timezone: 'Europe/Madrid' },
     pt: { locale: 'pt-PT', timezone: 'Europe/Lisbon' },
-    br: { locale: 'pt-BR', timezone: 'America/Sao_Paulo' },
+    'pt-BR': { locale: 'pt-BR', timezone: 'America/Sao_Paulo' },
   },
 } as const;

@@ -94,7 +94,7 @@ export function EmailFooter({
       allRightsReserved: 'Todos os direitos reservados',
       followUs: 'Siga-nos',
     },
-    br: {
+    'pt-BR': {
       unsubscribe: 'Cancelar inscrição',
       privacyPolicy: 'Política de Privacidade',
       termsOfService: 'Termos de Serviço',

@@ -36,7 +36,7 @@ function sanitizeEmailHTML(html: string): string {
       'em',
       'i',
       'u',
-      'br',
+      'pt-BR',
       'ul',
       'ol',
       'li',
@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
     // Parse query parameters with defaults
     const config = {
       to: searchParams.get('to') || 'delivered@resend.dev',
-      locale: (searchParams.get('locale') || 'en') as 'en' | 'es' | 'pt' | 'br',
+      locale: (searchParams.get('locale') || 'en') as 'en' | 'es' | 'pt' | 'pt-BR',
       userRole: (searchParams.get('userRole') || 'patient') as 'patient' | 'expert' | 'admin',
       darkMode: searchParams.get('darkMode') === 'true',
       highContrast: searchParams.get('highContrast') === 'true',

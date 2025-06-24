@@ -5,13 +5,13 @@ export const paymentTemplate: EmailContentType = {
     en: 'Payment Confirmation - Eleva Care',
     es: 'Confirmación de Pago - Eleva Care',
     pt: 'Confirmação de Pagamento - Eleva Care',
-    br: 'Confirmação de Pagamento - Eleva Care',
+    'pt-BR': 'Confirmação de Pagamento - Eleva Care',
   },
   preheader: {
     en: 'Your payment has been processed successfully',
     es: 'Tu pago ha sido procesado exitosamente',
     pt: 'O seu pagamento foi processado com sucesso',
-    br: 'Seu pagamento foi processado com sucesso',
+    'pt-BR': 'Seu pagamento foi processado com sucesso',
   },
   body: {
     en: `
@@ -65,12 +65,12 @@ export const paymentTemplate: EmailContentType = {
         </p>
       </div>
     `,
-    br: `
+    'pt-BR': `
       <div style="padding: 32px 0;">
         <h1 style="color: #006D77; font-size: 24px; margin-bottom: 16px;">Pagamento Confirmado</h1>
         <div style="background: #E8F5E8; border-left: 4px solid #28A745; padding: 20px; margin: 20px 0;">
           <h3 style="color: #28A745; margin-top: 0;">✅ Transação Bem-sucedida</h3>
-          <p><strong>Valor:</strong> €45.00</p>
+          <p><strong>Quantia:</strong> €45.00</p>
           <p><strong>Serviço:</strong> Consulta de Saúde Mental</p>
           <p><strong>Especialista:</strong> Dra. Maria Silva</p>
           <p><strong>ID da Transação:</strong> TXN-2024-001234</p>

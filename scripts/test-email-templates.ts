@@ -27,7 +27,7 @@ import { EmailContent, getUserName } from './email-content-components.js';
 // TypeScript interfaces
 interface TestScenario {
   name: string;
-  locale: 'en' | 'es' | 'pt' | 'br';
+  locale: 'en' | 'es' | 'pt' | 'pt-BR';
   userRole: 'patient' | 'expert' | 'admin';
   darkMode: boolean;
   highContrast: boolean;
@@ -102,7 +102,7 @@ const TEST_CONFIG: {
     },
     {
       name: '♿ High Contrast - Admin Alert (Portuguese BR)',
-      locale: 'br',
+      locale: 'pt-BR',
       userRole: 'admin',
       darkMode: false,
       highContrast: true,
@@ -146,7 +146,7 @@ type LocalizedContent = {
   en: string;
   es: string;
   pt: string;
-  br: string;
+  'pt-BR': string;
 };
 
 type EmailTemplateContent = {
@@ -169,13 +169,13 @@ const EMAIL_CONTENT: Record<ContentTypeKey, EmailTemplateContent> = {
       en: '🎉 Welcome to Eleva Care!',
       es: '🎉 ¡Bienvenido a Eleva Care!',
       pt: '🎉 Bem-vindo ao Eleva Care!',
-      br: '🎉 Bem-vindo ao Eleva Care!',
+      'pt-BR': '🎉 Bem-vindo ao Eleva Care!',
     },
     preheader: {
       en: 'Your healthcare journey starts here',
       es: 'Tu viaje de salud comienza aquí',
       pt: 'A sua jornada de saúde começa aqui',
-      br: 'Sua jornada de saúde começa aqui',
+      'pt-BR': 'Sua jornada de saúde começa aqui',
     },
   },
   expert: {
@@ -183,13 +183,13 @@ const EMAIL_CONTENT: Record<ContentTypeKey, EmailTemplateContent> = {
       en: '👨‍⚕️ New Patient Consultation Request',
       es: '👨‍⚕️ Nueva Solicitud de Consulta',
       pt: '👨‍⚕️ Nova Solicitação de Consulta',
-      br: '👨‍⚕️ Nova Solicitação de Consulta',
+      'pt-BR': '👨‍⚕️ Nova Solicitação de Consulta',
     },
     preheader: {
       en: 'A patient has requested your expertise',
       es: 'Un paciente ha solicitado tu experiencia',
       pt: 'Um paciente solicitou a sua expertise',
-      br: 'Um paciente solicitou sua expertise',
+      'pt-BR': 'Um paciente solicitou sua expertise',
     },
   },
   appointment: {
@@ -197,13 +197,13 @@ const EMAIL_CONTENT: Record<ContentTypeKey, EmailTemplateContent> = {
       en: '📅 Appointment Reminder - Tomorrow at 10:00 AM',
       es: '📅 Recordatorio de Cita - Mañana a las 10:00',
       pt: '📅 Lembrete de Consulta - Amanhã às 10:00',
-      br: '📅 Lembrete de Consulta - Amanhã às 10:00',
+      'pt-BR': '📅 Lembrete de Consulta - Amanhã às 10:00',
     },
     preheader: {
       en: 'Your consultation with Dr. Silva is tomorrow',
       es: 'Tu consulta con Dr. Silva es mañana',
       pt: 'A sua consulta com Dr. Silva é amanhã',
-      br: 'Sua consulta com Dr. Silva é amanhã',
+      'pt-BR': 'Sua consulta com Dr. Silva é amanhã',
     },
   },
   admin: {
@@ -211,13 +211,13 @@ const EMAIL_CONTENT: Record<ContentTypeKey, EmailTemplateContent> = {
       en: '🔒 System Alert: High Contrast Mode Test',
       es: '🔒 Alerta del Sistema: Prueba de Alto Contraste',
       pt: '🔒 Alerta do Sistema: Teste de Alto Contraste',
-      br: '🔒 Alerta do Sistema: Teste de Alto Contraste',
+      'pt-BR': '🔒 Alerta do Sistema: Teste de Alto Contraste',
     },
     preheader: {
       en: 'Accessibility features working correctly',
       es: 'Funciones de accesibilidad funcionando correctamente',
       pt: 'Funcionalidades de acessibilidade a funcionar corretamente',
-      br: 'Funcionalidades de acessibilidade funcionando corretamente',
+      'pt-BR': 'Funcionalidades de acessibilidade funcionando corretamente',
     },
   },
   payment: {
@@ -225,13 +225,13 @@ const EMAIL_CONTENT: Record<ContentTypeKey, EmailTemplateContent> = {
       en: '💳 Payment Confirmation - €45.00',
       es: '💳 Confirmación de Pago - €45.00',
       pt: '💳 Confirmação de Pagamento - €45.00',
-      br: '💳 Confirmação de Pagamento - €45.00',
+      'pt-BR': '💳 Confirmação de Pagamento - €45.00',
     },
     preheader: {
       en: 'Your payment was processed successfully',
       es: 'Tu pago fue procesado exitosamente',
       pt: 'O seu pagamento foi processado com sucesso',
-      br: 'Seu pagamento foi processado com sucesso',
+      'pt-BR': 'Seu pagamento foi processado com sucesso',
     },
   },
   bounce: {
@@ -239,13 +239,13 @@ const EMAIL_CONTENT: Record<ContentTypeKey, EmailTemplateContent> = {
       en: '🧪 Test Email - Bounce Simulation',
       es: '🧪 Email de Prueba - Simulación de Rebote',
       pt: '🧪 Email de Teste - Simulação de Rejeição',
-      br: '🧪 Email de Teste - Simulação de Rejeição',
+      'pt-BR': '🧪 Email de Teste - Simulação de Rejeição',
     },
     preheader: {
       en: 'This email will bounce for testing purposes',
       es: 'Este email rebotará para propósitos de prueba',
       pt: 'Este email será rejeitado para fins de teste',
-      br: 'Este email será rejeitado para fins de teste',
+      'pt-BR': 'Este email será rejeitado para fins de teste',
     },
   },
   spam: {
@@ -253,13 +253,13 @@ const EMAIL_CONTENT: Record<ContentTypeKey, EmailTemplateContent> = {
       en: '🚨 Marketing Email - Spam Test',
       es: '🚨 Email de Marketing - Prueba de Spam',
       pt: '🚨 Email de Marketing - Teste de Spam',
-      br: '🚨 Email de Marketing - Teste de Spam',
+      'pt-BR': '🚨 Email de Marketing - Teste de Spam',
     },
     preheader: {
       en: 'This email will be marked as spam for testing',
       es: 'Este email será marcado como spam para pruebas',
       pt: 'Este email será marcado como spam para testes',
-      br: 'Este email será marcado como spam para testes',
+      'pt-BR': 'Este email será marcado como spam para testes',
     },
   },
 };
@@ -304,7 +304,7 @@ function generateBodyContent(
     en: { patient: 'John Doe', expert: 'Dr. Maria Silva', admin: 'Admin Team' },
     es: { patient: 'Juan Pérez', expert: 'Dra. Maria Silva', admin: 'Equipo Admin' },
     pt: { patient: 'João Silva', expert: 'Dra. Maria Silva', admin: 'Equipa Admin' },
-    br: { patient: 'João Silva', expert: 'Dra. Maria Silva', admin: 'Equipe Admin' },
+    'pt-BR': { patient: 'João Silva', expert: 'Dra. Maria Silva', admin: 'Equipe Admin' },
   };
 
   const userName = userNames[locale][scenario.userRole];
@@ -374,7 +374,7 @@ function generateBodyContent(
           </p>
         </div>
       `,
-      br: `
+      'pt-BR': `
         <div style="padding: 32px 0;">
           <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Bem-vindo ao Eleva Care, ${userName}!</h1>
           <p style="font-size: 16px; line-height: 1.6; margin-bottom: 16px;">

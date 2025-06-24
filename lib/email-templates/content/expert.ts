@@ -5,13 +5,13 @@ export const expertTemplate: EmailContentType = {
     en: 'New Patient Consultation Request - Eleva Care',
     es: 'Nueva Solicitud de Consulta de Paciente - Eleva Care',
     pt: 'Nova Solicitação de Consulta de Paciente - Eleva Care',
-    br: 'Nova Solicitação de Consulta de Paciente - Eleva Care',
+    'pt-BR': 'Nova Solicitação de Consulta de Paciente - Eleva Care',
   },
   preheader: {
     en: 'A patient has requested a consultation with you',
     es: 'Un paciente ha solicitado una consulta contigo',
     pt: 'Um paciente solicitou uma consulta consigo',
-    br: 'Um paciente solicitou uma consulta com você',
+    'pt-BR': 'Um paciente solicitou uma consulta com você',
   },
   body: {
     en: `
@@ -77,7 +77,7 @@ export const expertTemplate: EmailContentType = {
         </p>
       </div>
     `,
-    br: `
+    'pt-BR': `
       <div style="padding: 32px 0;">
         <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Nova Solicitação de Consulta</h1>
         <div style="background: #E0FBFC; border-left: 4px solid #006D77; padding: 20px; margin: 20px 0;">

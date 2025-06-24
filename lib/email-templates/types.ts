@@ -5,7 +5,7 @@
  * Supported languages for internationalization
  * Matches the locales available in /messages folder
  */
-export type SupportedLocale = 'en' | 'es' | 'pt' | 'br';
+export type SupportedLocale = 'en' | 'es' | 'pt' | 'pt-BR';
 
 /**
  * User roles for template personalization

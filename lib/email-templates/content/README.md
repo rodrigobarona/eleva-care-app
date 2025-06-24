@@ -39,19 +39,19 @@ export const reminderTemplate: EmailContentType = {
     en: 'Reminder: Your appointment is tomorrow',
     es: 'Recordatorio: Tu cita es mañana',
     pt: 'Lembrete: A sua consulta é amanhã',
-    br: 'Lembrete: Sua consulta é amanhã',
+    'pt-BR': 'Lembrete: Sua consulta é amanhã',
   },
   preheader: {
     en: "Don't forget about your upcoming consultation",
     es: 'No olvides tu próxima consulta',
     pt: 'Não se esqueça da sua próxima consulta',
-    br: 'Não esqueça da sua próxima consulta',
+    'pt-BR': 'Não esqueça da sua próxima consulta',
   },
   body: {
     en: '<div>Your appointment HTML content here...</div>',
     es: '<div>Contenido HTML de tu cita aquí...</div>',
     pt: '<div>Conteúdo HTML da sua consulta aqui...</div>',
-    br: '<div>Conteúdo HTML da sua consulta aqui...</div>',
+    'pt-BR': '<div>Conteúdo HTML da sua consulta aqui...</div>',
   },
 };
 ```

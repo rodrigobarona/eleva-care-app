@@ -3,15 +3,15 @@ import type { EmailContentType } from './types';
 export const appointmentTemplate: EmailContentType = {
   subject: {
     en: 'Appointment Reminder - Tomorrow at 10:00 AM',
-    es: 'Recordatorio de Cita - Mañana a las 10:00 AM',
+    es: 'Recordatorio de Cita - Mañana a las 10:00',
     pt: 'Lembrete de Consulta - Amanhã às 10:00',
-    br: 'Lembrete de Consulta - Amanhã às 10:00',
+    'pt-BR': 'Lembrete de Consulta - Amanhã às 10:00',
   },
   preheader: {
     en: 'Your consultation with Dr. Maria Silva is tomorrow',
     es: 'Tu consulta con la Dra. Maria Silva es mañana',
-    pt: 'A sua consulta com a Dr.ª Maria Silva é amanhã',
-    br: 'Sua consulta com a Dra. Maria Silva é amanhã',
+    pt: 'A sua consulta com a Dra. Maria Silva é amanhã',
+    'pt-BR': 'Sua consulta com a Dra. Maria Silva é amanhã',
   },
   body: {
     en: `
@@ -104,7 +104,7 @@ export const appointmentTemplate: EmailContentType = {
         </p>
       </div>
     `,
-    br: `
+    'pt-BR': `
       <div style="padding: 32px 0;">
         <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Lembrete de Consulta</h1>
         <div style="background: linear-gradient(135deg, #FFD23F, #F0C814); padding: 24px; border-radius: 12px; margin: 24px 0; color: #333;">
@@ -116,17 +116,14 @@ export const appointmentTemplate: EmailContentType = {
         </div>
         <h3>Dicas de Preparação:</h3>
         <ul>
+          <li>Teste sua câmera e microfone 10 minutos antes</li>
           <li>Encontre um espaço silencioso e privado</li>
-          <li>Teste sua câmera e microfone</li>
-          <li>Prepare qualquer pergunta que queira fazer</li>
           <li>Tenha seus registros de saúde prontos</li>
+          <li>Prepare quaisquer perguntas que gostaria de discutir</li>
         </ul>
         <p style="margin-bottom: 24px;">
-          <a href="https://eleva-care.com/appointments/join" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; margin-right: 10px;">
-            Entrar na Reunião →
-          </a>
-          <a href="https://eleva-care.com/appointments/reschedule" style="background: #E29578; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
-            Reagendar
+          <a href="https://eleva-care.com/appointments/join" style="background: #006D77; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Participar da Consulta →
           </a>
         </p>
         <p style="color: #666; font-size: 14px; margin-top: 32px;">

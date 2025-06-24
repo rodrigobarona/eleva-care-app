@@ -113,14 +113,26 @@ export function normalizeLocale(input?: string): SupportedLocale {
 
   const lower = input.toLowerCase();
 
-  // Handle specific cases
-  if (lower.includes('br') || lower === 'pt-br') return 'br';
+  // Handle specific cases - prioritize pt-BR for Brazilian Portuguese
+  // Support backward compatibility for legacy 'br' locale
+  if (lower.includes('br') || lower === 'pt-br' || lower === 'br') return 'pt-BR';
   if (lower.startsWith('pt')) return 'pt';
   if (lower.startsWith('es')) return 'es';
   if (lower.startsWith('en')) return 'en';
 
   // Default fallback
   return 'en';
+}
+
+/**
+ * Convert legacy locale codes to new BCP 47 format
+ * Provides backward compatibility
+ */
+export function convertLegacyLocale(locale: string): SupportedLocale {
+  // Handle legacy 'br' to 'pt-BR' conversion
+  if (locale === 'br') return 'pt-BR';
+
+  return normalizeLocale(locale);
 }
 
 /**
@@ -135,7 +147,7 @@ export function formatEmailDate(
     en: 'en-US',
     es: 'es-ES',
     pt: 'pt-PT',
-    br: 'pt-BR',
+    'pt-BR': 'pt-BR',
   };
 
   const defaultOptions: Intl.DateTimeFormatOptions = {
@@ -162,7 +174,7 @@ export function formatEmailCurrency(
     en: 'en-US',
     es: 'es-ES',
     pt: 'pt-PT',
-    br: 'pt-BR',
+    'pt-BR': 'pt-BR',
   };
 
   return new Intl.NumberFormat(localeMap[locale], {
@@ -175,6 +187,7 @@ const translationUtils = {
   translateEmail,
   getEmailTranslations,
   normalizeLocale,
+  convertLegacyLocale,
   formatEmailDate,
   formatEmailCurrency,
 };

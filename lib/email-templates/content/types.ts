@@ -3,7 +3,7 @@ export type LocalizedContent = {
   en: string;
   es: string;
   pt: string;
-  br: string;
+  'pt-BR': string;
 };
 
 export type EmailContentType = {

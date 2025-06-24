@@ -494,13 +494,13 @@ export class EmailTemplateEngine {
         en: 'Appointment Confirmed - {{date}} at {{time}}',
         es: 'Cita Confirmada - {{date}} a las {{time}}',
         pt: 'Consulta Confirmada - {{date}} às {{time}}',
-        br: 'Consulta Confirmada - {{date}} às {{time}}',
+        'pt-BR': 'Consulta Confirmada - {{date}} às {{time}}',
       },
       'payment-confirmation': {
         en: 'Payment Confirmed - €{{amount}}',
         es: 'Pago Confirmado - €{{amount}}',
         pt: 'Pagamento Confirmado - €{{amount}}',
-        br: 'Pagamento Confirmado - €{{amount}}',
+        'pt-BR': 'Pagamento Confirmado - €{{amount}}',
       },
     };
 

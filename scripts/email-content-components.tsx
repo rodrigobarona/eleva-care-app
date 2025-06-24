@@ -5,7 +5,7 @@ import React from 'react';
 interface EmailContentProps {
   scenario: {
     name: string;
-    locale: 'en' | 'es' | 'pt' | 'br';
+    locale: 'en' | 'es' | 'pt' | 'pt-BR';
     userRole: 'patient' | 'expert' | 'admin';
     darkMode: boolean;
     highContrast: boolean;
@@ -23,19 +23,20 @@ const localizedTexts = {
       en: 'Welcome to Eleva Care, {userName}!',
       es: '¡Bienvenido a Eleva Care, {userName}!',
       pt: 'Bem-vindo ao Eleva Care, {userName}!',
-      br: 'Bem-vindo ao Eleva Care, {userName}!',
+      'pt-BR': 'Bem-vindo ao Eleva Care, {userName}!',
     },
     intro: {
       en: "We're excited to have you join our community of healthcare excellence. Your journey to better health starts here.",
       es: 'Estamos emocionados de tenerte en nuestra comunidad de excelencia en salud. Tu viaje hacia una mejor salud comienza aquí.',
       pt: 'Estamos entusiasmados por tê-lo na nossa comunidade de excelência em saúde. A sua jornada para uma melhor saúde começa aqui.',
-      br: 'Estamos empolgados em tê-lo em nossa comunidade de excelência em saúde. Sua jornada para uma melhor saúde começa aqui.',
+      'pt-BR':
+        'Estamos empolgados em tê-lo em nossa comunidade de excelência em saúde. Sua jornada para uma melhor saúde começa aqui.',
     },
     whatsNext: {
       en: "What's Next?",
       es: '¿Qué sigue?',
       pt: 'O que se segue?',
-      br: 'O que vem a seguir?',
+      'pt-BR': 'O que vem a seguir?',
     },
     steps: {
       en: [
@@ -53,7 +54,7 @@ const localizedTexts = {
         'Explore os nossos especialistas em saúde',
         'Agende a sua primeira consulta',
       ],
-      br: [
+      'pt-BR': [
         'Complete seu perfil de saúde',
         'Explore nossos especialistas em saúde',
         'Agende sua primeira consulta',
@@ -63,7 +64,7 @@ const localizedTexts = {
       en: 'Get Started →',
       es: 'Comenzar →',
       pt: 'Começar →',
-      br: 'Começar →',
+      'pt-BR': 'Começar →',
     },
   },
   expert: {
@@ -71,25 +72,26 @@ const localizedTexts = {
       en: 'New Consultation Request',
       es: 'Nueva Solicitud de Consulta',
       pt: 'Nova Solicitação de Consulta',
-      br: 'Nova Solicitação de Consulta',
+      'pt-BR': 'Nova Solicitação de Consulta',
     },
     patientDetails: {
       en: 'Patient Details:',
       es: 'Detalles del Paciente:',
       pt: 'Detalhes do Paciente:',
-      br: 'Detalhes do Paciente:',
+      'pt-BR': 'Detalhes do Paciente:',
     },
     description: {
       en: 'The patient has specifically requested your expertise based on your specialization in stress management and mental wellness.',
       es: 'El paciente ha solicitado específicamente tu experiencia basada en tu especialización en manejo del estrés y bienestar mental.',
       pt: 'O paciente solicitou especificamente a sua expertise baseada na sua especialização em gestão de stress e bem-estar mental.',
-      br: 'O paciente solicitou especificamente sua expertise baseada em sua especialização em gestão de stress e bem-estar mental.',
+      'pt-BR':
+        'O paciente solicitou especificamente sua expertise baseada em sua especialização em gestão de stress e bem-estar mental.',
     },
     button: {
       en: 'View Request →',
       es: 'Ver Solicitud →',
       pt: 'Ver Solicitação →',
-      br: 'Ver Solicitação →',
+      'pt-BR': 'Ver Solicitação →',
     },
   },
   appointment: {
@@ -97,19 +99,19 @@ const localizedTexts = {
       en: 'Appointment Reminder',
       es: 'Recordatorio de Cita',
       pt: 'Lembrete de Consulta',
-      br: 'Lembrete de Consulta',
+      'pt-BR': 'Lembrete de Consulta',
     },
     tomorrow: {
       en: 'Tomorrow at 10:00 AM',
       es: 'Mañana a las 10:00',
       pt: 'Amanhã às 10:00',
-      br: 'Amanhã às 10:00',
+      'pt-BR': 'Amanhã às 10:00',
     },
     preparation: {
       en: 'Preparation Tips:',
       es: 'Consejos de Preparación:',
       pt: 'Dicas de Preparação:',
-      br: 'Dicas de Preparação:',
+      'pt-BR': 'Dicas de Preparação:',
     },
     tips: {
       en: [
@@ -130,7 +132,7 @@ const localizedTexts = {
         'Tenha os seus registos de saúde prontos',
         'Prepare qualquer pergunta que gostaria de discutir',
       ],
-      br: [
+      'pt-BR': [
         'Teste sua câmera e microfone 10 minutos antes',
         'Encontre um espaço silencioso e privado',
         'Tenha seus registros de saúde prontos',
@@ -141,7 +143,7 @@ const localizedTexts = {
       en: 'Join Consultation →',
       es: 'Unirse a la Consulta →',
       pt: 'Juntar-se à Consulta →',
-      br: 'Participar da Consulta →',
+      'pt-BR': 'Participar da Consulta →',
     },
   },
   admin: {
@@ -149,19 +151,20 @@ const localizedTexts = {
       en: 'System Alert: High Contrast Mode',
       es: 'Alerta del Sistema: Modo de Alto Contraste',
       pt: 'Alerta do Sistema: Modo de Alto Contraste',
-      br: 'Alerta do Sistema: Modo de Alto Contraste',
+      'pt-BR': 'Alerta do Sistema: Modo de Alto Contraste',
     },
     testResults: {
       en: 'Accessibility Test Results:',
       es: 'Resultados de Pruebas de Accesibilidad:',
       pt: 'Resultados dos Testes de Acessibilidade:',
-      br: 'Resultados dos Testes de Acessibilidade:',
+      'pt-BR': 'Resultados dos Testes de Acessibilidade:',
     },
     description: {
       en: 'This email demonstrates the high contrast accessibility features working correctly for users with visual impairments.',
       es: 'Este email demuestra las características de accesibilidad de alto contraste funcionando correctamente para usuarios con discapacidades visuales.',
       pt: 'Este email demonstra as características de acessibilidade de alto contraste a funcionar corretamente para utilizadores com deficiências visuais.',
-      br: 'Este email demonstra as características de acessibilidade de alto contraste funcionando corretamente para usuários com deficiências visuais.',
+      'pt-BR':
+        'Este email demonstra as características de acessibilidade de alto contraste funcionando corretamente para usuários com deficiências visuais.',
     },
   },
   payment: {
@@ -169,19 +172,20 @@ const localizedTexts = {
       en: 'Payment Confirmed',
       es: 'Pago Confirmado',
       pt: 'Pagamento Confirmado',
-      br: 'Pagamento Confirmado',
+      'pt-BR': 'Pagamento Confirmado',
     },
     success: {
       en: 'Transaction Successful',
       es: 'Transacción Exitosa',
       pt: 'Transação Bem-sucedida',
-      br: 'Transação Bem-sucedida',
+      'pt-BR': 'Transação Bem-sucedida',
     },
     description: {
       en: "Your consultation is now confirmed. You'll receive a calendar invitation shortly.",
       es: 'Tu consulta está ahora confirmada. Recibirás una invitación de calendario en breve.',
       pt: 'A sua consulta está agora confirmada. Receberá um convite de calendário em breve.',
-      br: 'Sua consulta está agora confirmada. Você receberá um convite de calendário em breve.',
+      'pt-BR':
+        'Sua consulta está agora confirmada. Você receberá um convite de calendário em breve.',
     },
   },
   bounce: {
@@ -189,13 +193,13 @@ const localizedTexts = {
       en: 'Bounce Test Email',
       es: 'Email de Prueba de Rebote',
       pt: 'Email de Teste de Rejeição',
-      br: 'Email de Teste de Rejeição',
+      'pt-BR': 'Email de Teste de Rejeição',
     },
     testing: {
       en: 'Testing Email Delivery',
       es: 'Probando Entrega de Email',
       pt: 'Testando Entrega de Email',
-      br: 'Testando Entrega de Email',
+      'pt-BR': 'Testando Entrega de Email',
     },
   },
   spam: {
@@ -203,13 +207,13 @@ const localizedTexts = {
       en: 'Marketing Email - Spam Test',
       es: 'Email de Marketing - Prueba de Spam',
       pt: 'Email de Marketing - Teste de Spam',
-      br: 'Email de Marketing - Teste de Spam',
+      'pt-BR': 'Email de Marketing - Teste de Spam',
     },
     simulation: {
       en: 'Spam Simulation',
       es: 'Simulación de Spam',
       pt: 'Simulação de Spam',
-      br: 'Simulação de Spam',
+      'pt-BR': 'Simulação de Spam',
     },
   },
 };
@@ -572,7 +576,7 @@ export const getUserName = (scenario: EmailContentProps['scenario']): string => 
     en: { patient: 'John Doe', expert: 'Dr. Maria Silva', admin: 'Admin Team' },
     es: { patient: 'Juan Pérez', expert: 'Dra. Maria Silva', admin: 'Equipo Admin' },
     pt: { patient: 'João Silva', expert: 'Dra. Maria Silva', admin: 'Equipa Admin' },
-    br: { patient: 'João Silva', expert: 'Dra. Maria Silva', admin: 'Equipe Admin' },
+    'pt-BR': { patient: 'João Silva', expert: 'Dra. Maria Silva', admin: 'Equipe Admin' },
   };
 
   return userNames[scenario.locale][scenario.userRole];

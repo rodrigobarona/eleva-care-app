@@ -246,7 +246,7 @@ export const previewEmail = async (
 // Export default configuration
 export const defaultEmailConfig = {
   designTokens: emailDesignTokens,
-  supportedLocales: ['en', 'es', 'pt', 'br'] as import('./types').SupportedLocale[],
+  supportedLocales: ['en', 'es', 'pt', 'pt-BR'] as import('./types').SupportedLocale[],
   defaultLocale: 'en' as import('./types').SupportedLocale,
   defaultUserRole: 'patient' as import('./types').UserRole,
   maxEmailSize: 102400, // 100KB

@@ -5,13 +5,13 @@ export const welcomeTemplate: EmailContentType = {
     en: 'Welcome to Eleva Care - Your Health Journey Begins',
     es: 'Bienvenido a Eleva Care - Tu Viaje de Salud Comienza',
     pt: 'Bem-vindo ao Eleva Care - Sua Jornada de Saúde Começa',
-    br: 'Bem-vindo ao Eleva Care - Sua Jornada de Saúde Começa',
+    'pt-BR': 'Bem-vindo ao Eleva Care - Sua Jornada de Saúde Começa',
   },
   preheader: {
     en: 'Get started with personalized healthcare from trusted experts',
     es: 'Comienza con atención médica personalizada de expertos de confianza',
     pt: 'Comece com cuidados de saúde personalizados de especialistas confiáveis',
-    br: 'Comece com cuidados de saúde personalizados de especialistas confiáveis',
+    'pt-BR': 'Comece com cuidados de saúde personalizados de especialistas confiáveis',
   },
   body: {
     en: `
@@ -86,7 +86,7 @@ export const welcomeTemplate: EmailContentType = {
         </p>
       </div>
     `,
-    br: `
+    'pt-BR': `
       <div style="padding: 32px 0;">
         <h1 style="color: #006D77; font-size: 28px; margin-bottom: 16px;">Bem-vindo ao Eleva Care!</h1>
         <p style="font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
