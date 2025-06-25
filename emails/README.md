@@ -1,237 +1,216 @@
 # Eleva Care Email Templates
 
-Centralized, organized email templates using React Email and shared components for consistent branding and user experience.
+Centralized email system using React Email with standardized header/footer components and consistent design system.
 
-## 📁 Structure
+## 📁 Organization
+
+All email templates are organized by topic for better maintainability and are now using our standardized `EmailLayout` component:
 
 ```
 emails/
-├── appointments/           # Appointment-related emails
-│   ├── appointment-confirmation.tsx
-│   └── appointment-reminder.tsx
-├── payments/              # Payment and billing emails
-│   ├── payment-confirmation.tsx
-│   ├── multibanco-booking-pending.tsx
-│   └── multibanco-payment-reminder.tsx
-├── users/                 # User lifecycle emails
-│   └── welcome-email.tsx
-├── experts/               # Expert/provider emails
-│   └── expert-notification.tsx
-├── notifications/         # General notification emails
-│   └── notification-email.tsx
-└── README.md             # This file
-
-components/emails/         # Shared email components
-├── EmailLayout.tsx        # Base layout wrapper
-├── EmailHeader.tsx        # Consistent header
-├── EmailFooter.tsx        # Legal-compliant footer
-├── EmailButton.tsx        # Branded buttons
-└── index.ts              # Component exports
+├── appointments/     # Appointment-related emails
+├── payments/         # Payment and billing emails
+├── users/           # User onboarding and account emails
+├── experts/         # Expert/provider notifications
+├── notifications/   # General notification emails
+└── README.md        # This file
 ```
 
-## 🧩 Shared Components
+## 🎨 Design System
 
-All email templates use shared components from `@/components/emails` for consistency:
+All templates now follow the **Eleva Care Design System** with consistent:
 
-### EmailLayout
+### Colors
 
-Base wrapper providing:
+- **Primary Teal**: `#006D77` - Main brand color for headings, buttons, and accents
+- **Secondary Light**: `#F0FDFF` - Light teal background for information sections
+- **Neutral Dark**: `#4A5568` - Body text color
+- **Neutral Light**: `#718096` - Secondary text and muted content
+- **Success Green**: `#D4EDDA` - Success messages and confirmations
+- **Warning Yellow**: `#FEF5E7` - Warning messages and alerts
+- **Error Red**: `#FED7D7` - Error messages and urgent alerts
 
-- Consistent HTML structure
-- Header/footer integration
-- Mobile responsiveness
-- Email client compatibility
-- Accessibility features
+### Typography
 
-### EmailHeader
+- **Font Family**: `system-ui, -apple-system, sans-serif` for optimal cross-platform rendering
+- **Headings**: 24-28px, weight 600, Eleva Care teal (#006D77)
+- **Body Text**: 16px, line-height 1.6, neutral dark (#4A5568)
+- **Secondary Text**: 14px, neutral light (#718096)
 
-- Eleva Care branding
-- Multiple variants (default, minimal, branded)
-- Theme support (light/dark)
-- Navigation options
+### Components
 
-### EmailFooter
+All templates use standardized shared components:
 
-- Legal compliance (privacy, terms)
-- Unsubscribe functionality
-- Contact information
-- Multi-language support
-
-### EmailButton
-
-- Consistent styling
-- Multiple variants (primary, secondary, outline, danger)
-- Size options (sm, md, lg)
-- Accessibility compliant
+- **EmailLayout**: Provides consistent header/footer wrapper
+- **EmailButton**: Branded buttons with multiple variants (primary, outline, danger)
+- **EmailHeader**: Multi-variant header with logo and navigation options
+- **EmailFooter**: Legal-compliant footer with contact info and links
 
 ## 🚀 Usage
 
-### Basic Template Structure
+### Template Structure
+
+All templates follow this standardized pattern:
 
 ```tsx
 import { EmailButton, EmailLayout } from '@/components/emails';
 import { Heading, Section, Text } from '@react-email/components';
 
-export default function MyEmailTemplate({ name = 'User' }) {
+export default function TemplateEmail(props) {
+  const subject = "Email Subject";
+  const previewText = "Preview text for inbox";
+
   return (
     <EmailLayout
-      subject="Welcome to Eleva Care"
-      previewText="Start your health journey with us"
+      subject={subject}
+      previewText={previewText}
       headerVariant="default"
       footerVariant="default"
     >
-      <Heading style={{ color: '#006D77', fontSize: '24px' }}>Hello {name}!</Heading>
+      <Heading style={{ color: '#006D77', fontSize: '28px', ... }}>
+        Template Title
+      </Heading>
 
-      <Text style={{ color: '#4a5568', fontSize: '16px' }}>Welcome to our platform...</Text>
+      <Text style={{ color: '#4A5568', fontSize: '16px', ... }}>
+        Email content
+      </Text>
 
-      <EmailButton href="https://eleva.care/dashboard" variant="primary">
-        Get Started
+      <EmailButton href="/action" variant="primary" size="lg">
+        Action Button
       </EmailButton>
     </EmailLayout>
   );
 }
 ```
 
-### Email Generation (lib/email.ts)
+### Available Templates
+
+#### Appointments
+
+- **appointment-confirmation**: Confirms scheduled appointments with meeting details
+- **appointment-reminder**: Reminds patients of upcoming appointments
+
+#### Payments
+
+- **payment-confirmation**: Confirms successful payment processing
+- **multibanco-booking-pending**: Notifies about pending Multibanco payments
+- **multibanco-payment-reminder**: Urgent reminders for expiring payments
+
+#### Users
+
+- **welcome-email**: Onboards new users with next steps and dashboard access
+
+#### Experts
+
+- **expert-notification**: Notifies healthcare providers of new requests
+
+#### Notifications
+
+- **notification-email**: Generic notification template for various use cases
+
+## 🛠️ Development
+
+### Prerequisites
+
+```bash
+pnpm install @react-email/components
+```
+
+### Local Development
+
+Run the React Email preview server:
+
+```bash
+pnpm email dev
+```
+
+Then visit `http://localhost:3000` to preview templates.
+
+### Creating New Templates
+
+1. **Choose the appropriate topic folder** (appointments, payments, users, etc.)
+2. **Use the EmailLayout wrapper** for consistent header/footer
+3. **Follow the design system colors and typography**
+4. **Include TypeScript interfaces** for props
+5. **Add PreviewProps** for development preview
+6. **Export from topic index file**
+
+Example new template:
 
 ```tsx
-// Generate appointment confirmation
-const { html, text, subject } = await generateAppointmentEmail({
-  expertName: 'Dr. Maria Santos',
-  clientName: 'João Silva',
-  appointmentDate: '2024-02-15',
-  appointmentTime: '10:00',
-  timezone: 'Europe/Lisbon',
-  // ... other params
-});
+// emails/appointments/new-template.tsx
+import { EmailButton, EmailLayout } from '@/components/emails';
+import { Heading, Text } from '@react-email/components';
 
-await sendEmail({
-  to: 'patient@example.com',
-  subject,
-  html,
-  text,
-});
+interface NewTemplateProps {
+  userName: string;
+  // ... other props
+}
+
+export default function NewTemplate({ userName }: NewTemplateProps) {
+  return (
+    <EmailLayout
+      subject="New Template"
+      previewText="Preview text"
+      headerVariant="default"
+      footerVariant="default"
+    >
+      <Heading style={{ color: '#006D77', fontSize: '28px' }}>Hello {userName}</Heading>
+      {/* Template content */}
+    </EmailLayout>
+  );
+}
+
+NewTemplate.PreviewProps = {
+  userName: 'John Doe',
+} as NewTemplateProps;
 ```
 
-## 🎨 Design System
+## 🎯 Best Practices
 
-### Colors
+### Accessibility & Compliance
 
-- **Primary**: `#006D77` (Eleva Care teal)
-- **Secondary**: `#F0FDFF` (Light teal)
-- **Text**: `#4a5568` (Dark gray)
-- **Muted**: `#718096` (Medium gray)
-- **Success**: `#28a745` (Green)
-- **Warning**: `#ffc107` (Yellow)
-- **Danger**: `#dc3545` (Red)
+- **High contrast ratios** following WCAG 2.1 guidelines
+- **Semantic HTML structure** with proper heading hierarchy
+- **Screen reader friendly** with appropriate alt text and ARIA labels
+- **Mobile responsive** design with proper viewport meta tags
+- **Email client compatibility** tested across major providers
 
-### Typography
+### Content Guidelines
 
-- **Font Family**: `system-ui, -apple-system, sans-serif`
-- **Headings**: 24px-28px, semi-bold
-- **Body**: 16px, regular
-- **Small**: 14px, regular
-- **Fine Print**: 12px, regular
+- **Clear subject lines** that indicate email purpose
+- **Descriptive preview text** for inbox scanning
+- **Action-oriented CTAs** with specific button text
+- **Personalization** using recipient names and context
+- **Professional tone** aligned with healthcare standards
 
-### Spacing
+### Technical Standards
 
-- **Small**: 8px
-- **Medium**: 16px
-- **Large**: 24px
-- **XL**: 32px
+- **TypeScript interfaces** for all props
+- **Consistent error handling** for missing props
+- **Preview props** for development testing
+- **Proper imports** from shared components
+- **Inline styles** for email client compatibility
 
-## 📧 Email Types
+## 🔧 Integration
 
-### Appointments
+Templates are integrated with the application through:
 
-- **Confirmation**: Appointment details with video call link
-- **Reminder**: Pre-appointment reminder with preparation checklist
+- **`lib/email.ts`**: Central email generation functions
+- **Resend API**: Email delivery service
+- **Booking flows**: Appointment confirmations and reminders
+- **Payment webhooks**: Payment status notifications
+- **User onboarding**: Welcome and notification emails
 
-### Payments
+All templates automatically work with existing integrations through the centralized email generation system.
 
-- **Confirmation**: Payment receipt with transaction details
-- **Multibanco Pending**: Payment instructions for Portuguese users
-- **Multibanco Reminder**: Urgent payment reminders
+## 📱 Testing
 
-### Users
+Test templates using:
 
-- **Welcome**: Onboarding email with next steps
+- **React Email preview**: Local development server
+- **Cross-client testing**: Gmail, Outlook, Apple Mail, etc.
+- **Mobile testing**: iOS Mail, Android Gmail
+- **Accessibility testing**: Screen readers and keyboard navigation
 
-### Experts
-
-- **Notifications**: Updates and alerts for healthcare providers
-
-### Notifications
-
-- **General**: System notifications and updates
-
-## 🔧 Development
-
-### Local Preview
-
-```bash
-# Start React Email preview server
-pnpm email dev
-
-# View at http://localhost:3000
-```
-
-### Testing
-
-```bash
-# Test email generation
-pnpm test:email
-
-# Send test emails
-node scripts/test-emails.js
-```
-
-### Adding New Templates
-
-1. **Create template** in appropriate topic folder
-2. **Use shared components** from `@/components/emails`
-3. **Add generation function** to `lib/email.ts`
-4. **Update imports** if needed
-5. **Test with React Email preview**
-
-### Best Practices
-
-- **Always use EmailLayout** as the base wrapper
-- **Consistent styling** with design system colors/fonts
-- **Mobile-first** responsive design
-- **Accessibility** - proper heading structure, alt text, color contrast
-- **Email client compatibility** - tested across major clients
-- **Localization ready** - support for multiple languages
-
-## 🌍 Internationalization
-
-Templates support multiple locales through:
-
-- Dynamic subject generation
-- Locale-aware date/time formatting
-- Currency formatting
-- RTL language support (future)
-
-## 📋 Migration Notes
-
-This organized structure replaces the previous scattered email system:
-
-- ✅ Consolidated from multiple directories
-- ✅ Eliminated duplication
-- ✅ Shared component architecture
-- ✅ Topic-based organization
-- ✅ React Email best practices
-
-## 🔗 Integration
-
-Templates integrate with:
-
-- **Resend** for email delivery
-- **Novu** for workflow automation (development)
-- **Next.js i18n** for translations
-- **Stripe** for payment receipts
-- **Google Calendar** for appointments
-
----
-
-For questions or contributions, contact the development team.
+The standardized EmailLayout ensures consistent rendering across all email clients and devices.
