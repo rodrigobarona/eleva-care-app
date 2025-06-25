@@ -118,6 +118,7 @@ function generatePlainTextFromHTML(html: string): string {
 
 /**
  * Generates HTML and plain text for an appointment confirmation email
+ * Now using the centralized React Email templates from /emails/
  *
  * @param params Parameters for the appointment email content
  * @param params.expertName The name of the expert for the appointment
@@ -144,9 +145,9 @@ export async function generateAppointmentEmail(params: {
   notes?: string;
   locale?: string; // Locale code for multilingual emails ('en', 'es', 'pt', 'br')
 }): Promise<{ html: string; text: string; subject: string }> {
-  // Import dynamically to avoid JSX in server component issues
-  const { default: AppointmentConfirmation } = await import(
-    '@/components/emails/AppointmentConfirmation'
+  // Import the React Email template from the organized /emails/ directory
+  const { default: AppointmentConfirmationTemplate } = await import(
+    '@/emails/appointments/appointment-confirmation'
   );
   const { render } = await import('@react-email/render');
 
@@ -158,11 +159,18 @@ export async function generateAppointmentEmail(params: {
     namespace: 'notifications.appointmentConfirmation',
   });
 
-  // Ensure locale is passed to the AppointmentConfirmation component
+  // Render the React Email template with the provided parameters
   const renderedHtml = await render(
-    await AppointmentConfirmation({
-      ...params,
-      locale, // Default to English if not provided
+    AppointmentConfirmationTemplate({
+      expertName: params.expertName,
+      clientName: params.clientName,
+      appointmentDate: params.appointmentDate,
+      appointmentTime: params.appointmentTime,
+      timezone: params.timezone,
+      appointmentDuration: params.appointmentDuration,
+      eventTitle: params.eventTitle,
+      meetLink: params.meetLink,
+      notes: params.notes,
     }),
   );
 
@@ -173,5 +181,210 @@ export async function generateAppointmentEmail(params: {
     html: renderedHtml,
     text: plainText,
     subject: t('subject'),
+  };
+}
+
+/**
+ * Generates HTML and plain text for a welcome email
+ * Uses the centralized React Email welcome template
+ */
+export async function generateWelcomeEmail(params: {
+  userName: string;
+  dashboardUrl?: string;
+  nextSteps?: Array<{
+    title: string;
+    description: string;
+    actionUrl: string;
+    actionText: string;
+  }>;
+  locale?: string;
+}): Promise<{ html: string; text: string; subject: string }> {
+  const { default: WelcomeEmailTemplate } = await import('@/emails/users/welcome-email');
+  const { render } = await import('@react-email/render');
+
+  const renderedHtml = await render(
+    WelcomeEmailTemplate({
+      userName: params.userName,
+      dashboardUrl: params.dashboardUrl || '/dashboard',
+      nextSteps: params.nextSteps,
+    }),
+  );
+
+  return {
+    html: renderedHtml,
+    text: generatePlainTextFromHTML(renderedHtml),
+    subject: `Welcome to Eleva Care, ${params.userName}!`,
+  };
+}
+
+/**
+ * Generates HTML and plain text for a Multibanco booking pending email
+ * Uses the centralized React Email Multibanco pending template
+ */
+export async function generateMultibancoBookingPendingEmail(params: {
+  customerName: string;
+  expertName: string;
+  serviceName: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  timezone?: string;
+  duration?: number;
+  multibancoEntity: string;
+  multibancoReference: string;
+  multibancoAmount: string;
+  voucherExpiresAt: string;
+  hostedVoucherUrl: string;
+  customerNotes?: string;
+  locale?: string;
+}): Promise<{ html: string; text: string; subject: string }> {
+  const { default: MultibancoBookingPendingTemplate } = await import(
+    '@/emails/payments/multibanco-booking-pending'
+  );
+  const { render } = await import('@react-email/render');
+
+  const renderedHtml = await render(
+    MultibancoBookingPendingTemplate({
+      customerName: params.customerName,
+      expertName: params.expertName,
+      serviceName: params.serviceName,
+      appointmentDate: params.appointmentDate,
+      appointmentTime: params.appointmentTime,
+      timezone: params.timezone || 'Europe/Lisbon',
+      duration: params.duration || 60,
+      multibancoEntity: params.multibancoEntity,
+      multibancoReference: params.multibancoReference,
+      multibancoAmount: params.multibancoAmount,
+      voucherExpiresAt: params.voucherExpiresAt,
+      hostedVoucherUrl: params.hostedVoucherUrl,
+      customerNotes: params.customerNotes,
+    }),
+  );
+
+  return {
+    html: renderedHtml,
+    text: generatePlainTextFromHTML(renderedHtml),
+    subject: `Multibanco Payment Pending - ${params.serviceName}`,
+  };
+}
+
+/**
+ * Generates HTML and plain text for a Multibanco payment reminder email
+ * Uses the centralized React Email Multibanco reminder template
+ */
+export async function generateMultibancoPaymentReminderEmail(params: {
+  customerName: string;
+  expertName: string;
+  serviceName: string;
+  appointmentDate: string;
+  appointmentTime: string;
+  timezone?: string;
+  duration?: number;
+  multibancoEntity: string;
+  multibancoReference: string;
+  multibancoAmount: string;
+  voucherExpiresAt: string;
+  hostedVoucherUrl: string;
+  customerNotes?: string;
+  reminderType?: string;
+  daysRemaining?: number;
+  locale?: string;
+}): Promise<{ html: string; text: string; subject: string }> {
+  const { default: MultibancoPaymentReminderTemplate } = await import(
+    '@/emails/payments/multibanco-payment-reminder'
+  );
+  const { render } = await import('@react-email/render');
+
+  const renderedHtml = await render(
+    MultibancoPaymentReminderTemplate({
+      customerName: params.customerName,
+      expertName: params.expertName,
+      serviceName: params.serviceName,
+      appointmentDate: params.appointmentDate,
+      appointmentTime: params.appointmentTime,
+      timezone: params.timezone || 'Europe/Lisbon',
+      duration: params.duration || 60,
+      multibancoEntity: params.multibancoEntity,
+      multibancoReference: params.multibancoReference,
+      multibancoAmount: params.multibancoAmount,
+      voucherExpiresAt: params.voucherExpiresAt,
+      hostedVoucherUrl: params.hostedVoucherUrl,
+      customerNotes: params.customerNotes,
+      reminderType: params.reminderType || 'urgent',
+      daysRemaining: params.daysRemaining || 1,
+    }),
+  );
+
+  return {
+    html: renderedHtml,
+    text: generatePlainTextFromHTML(renderedHtml),
+    subject: `Payment Reminder - ${params.serviceName}`,
+  };
+}
+
+/**
+ * Generates HTML and plain text for notification emails
+ * Uses the centralized React Email notification template
+ */
+export async function generateNotificationEmail(params: {
+  title: string;
+  message: string;
+  userName?: string;
+  actionUrl?: string;
+  actionText?: string;
+  locale?: string;
+}): Promise<{ html: string; text: string; subject: string }> {
+  const { default: NotificationEmailTemplate } = await import(
+    '@/emails/notifications/notification-email'
+  );
+  const { render } = await import('@react-email/render');
+
+  const renderedHtml = await render(
+    NotificationEmailTemplate({
+      title: params.title,
+      message: params.message,
+      userName: params.userName,
+      actionUrl: params.actionUrl,
+      actionText: params.actionText,
+    }),
+  );
+
+  return {
+    html: renderedHtml,
+    text: generatePlainTextFromHTML(renderedHtml),
+    subject: params.title, // Use the title as subject for general notifications
+  };
+}
+
+/**
+ * Generates HTML and plain text for expert notification emails
+ * Uses the centralized React Email expert notification template
+ */
+export async function generateExpertNotificationEmail(params: {
+  expertName: string;
+  notificationTitle: string;
+  notificationMessage: string;
+  actionUrl?: string;
+  actionText?: string;
+  locale?: string;
+}): Promise<{ html: string; text: string; subject: string }> {
+  const { default: ExpertNotificationTemplate } = await import(
+    '@/emails/experts/expert-notification'
+  );
+  const { render } = await import('@react-email/render');
+
+  const renderedHtml = await render(
+    ExpertNotificationTemplate({
+      expertName: params.expertName,
+      notificationTitle: params.notificationTitle,
+      notificationMessage: params.notificationMessage,
+      actionUrl: params.actionUrl,
+      actionText: params.actionText,
+    }),
+  );
+
+  return {
+    html: renderedHtml,
+    text: generatePlainTextFromHTML(renderedHtml),
+    subject: `Eleva Care - ${params.notificationTitle}`,
   };
 }
