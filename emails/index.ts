@@ -1,12 +1,24 @@
+// Internationalization utilities
+import * as React from 'react';
+
+import type { EmailContext, EmailTheme, EmailTranslations, SupportedLocale } from './utils/i18n';
+import {
+  commonEmailPaths,
+  createEmailContext,
+  emailThemes,
+  getEmailMessage,
+  loadEmailMessages,
+  useEmailTranslation,
+} from './utils/i18n';
+
 // Email Components
 export { EmailLayout } from '@/components/emails/EmailLayout';
 export { EmailHeader } from '@/components/emails/EmailHeader';
 export { EmailFooter } from '@/components/emails/EmailFooter';
 export { EmailButton } from '@/components/emails/EmailButton';
 
-// Internationalization utilities
-export type { SupportedLocale, EmailTheme, EmailContext, EmailTranslations } from './utils/i18n';
-
+// Re-export types and utilities
+export type { SupportedLocale, EmailTheme, EmailContext, EmailTranslations };
 export {
   emailThemes,
   loadEmailMessages,
@@ -14,32 +26,33 @@ export {
   createEmailContext,
   useEmailTranslation,
   commonEmailPaths,
-} from './utils/i18n';
+};
 
 // Novu workflow integration with i18n
-export type {
-  EmailTriggerData,
-  WelcomeEmailTriggerData,
-  AppointmentReminderTriggerData,
-  ExpertNotificationTriggerData,
-  PaymentConfirmationTriggerData,
-  MultibancoPaymentTriggerData,
-} from './utils/novu-i18n';
+// TODO: Implement Novu workflow integration
+// export type {
+//   EmailTriggerData,
+//   WelcomeEmailTriggerData,
+//   AppointmentReminderTriggerData,
+//   ExpertNotificationTriggerData,
+//   PaymentConfirmationTriggerData,
+//   MultibancoPaymentTriggerData,
+// } from './utils/novu-i18n';
 
-export {
-  EMAIL_WORKFLOWS,
-  triggerEmail,
-  triggerWelcomeEmail,
-  triggerAppointmentReminder,
-  triggerExpertNotification,
-  triggerPaymentConfirmation,
-  triggerMultibancoBookingPending,
-  triggerMultibancoPaymentReminder,
-  detectUserLocale,
-  detectUserTheme,
-  sendWelcomeEmailAuto,
-  novu,
-} from './utils/novu-i18n';
+// export {
+//   EMAIL_WORKFLOWS,
+//   triggerEmail,
+//   triggerWelcomeEmail,
+//   triggerAppointmentReminder,
+//   triggerExpertNotification,
+//   triggerPaymentConfirmation,
+//   triggerMultibancoBookingPending,
+//   triggerMultibancoPaymentReminder,
+//   detectUserLocale,
+//   detectUserTheme,
+//   sendWelcomeEmailAuto,
+//   novu,
+// } from './utils/novu-i18n';
 
 // Email Templates - Standard versions
 export { default as WelcomeEmailTemplate } from './users/welcome-email';
@@ -126,7 +139,7 @@ export async function createEmailWithI18n<T extends EmailTemplateProps>(
   // Create email context with translations and theme
   const emailContext = await createEmailContext(locale, theme);
 
-  return TemplateComponent({
+  return React.createElement(TemplateComponent, {
     ...(otherProps as T),
     locale,
     theme,

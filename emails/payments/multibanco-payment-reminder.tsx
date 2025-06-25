@@ -18,6 +18,7 @@ interface MultibancoPaymentReminderProps {
   customerNotes?: string;
   reminderType?: string;
   daysRemaining?: number;
+  locale?: string;
 }
 
 export default function MultibancoPaymentReminderTemplate({
@@ -36,6 +37,7 @@ export default function MultibancoPaymentReminderTemplate({
   customerNotes: _customerNotes = '',
   reminderType = 'urgent',
   daysRemaining = 1,
+  locale: _locale = 'en',
 }: MultibancoPaymentReminderProps) {
   const isUrgent = reminderType === 'urgent' || daysRemaining <= 1;
   const subject = `${isUrgent ? 'URGENT: ' : ''}Payment Reminder - Appointment with ${expertName}`;

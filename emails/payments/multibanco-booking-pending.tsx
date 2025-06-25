@@ -16,6 +16,7 @@ interface MultibancoBookingPendingProps {
   voucherExpiresAt?: string;
   hostedVoucherUrl?: string;
   customerNotes?: string;
+  locale?: string;
 }
 
 export default function MultibancoBookingPendingTemplate({
@@ -32,6 +33,7 @@ export default function MultibancoBookingPendingTemplate({
   voucherExpiresAt = '2024-02-12',
   hostedVoucherUrl = 'https://eleva.care/payment/voucher/123',
   customerNotes = 'First consultation - health check',
+  locale: _locale = 'en',
 }: MultibancoBookingPendingProps) {
   const subject = `Appointment with ${expertName} - Payment Pending via Multibanco`;
   const previewText = `Complete your booking with ${expertName} by paying via Multibanco`;

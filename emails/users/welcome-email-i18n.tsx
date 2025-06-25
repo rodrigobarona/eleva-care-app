@@ -33,9 +33,26 @@ export default function WelcomeEmailI18nTemplate({
   nextSteps,
 }: WelcomeEmailI18nProps) {
   // Always call useEmailTranslation with a fallback context to maintain hook order
-  const fallbackContext = {
+  const fallbackContext: EmailContext = {
     locale: 'en' as const,
-    theme: { colors: {} },
+    theme: {
+      mode: 'light' as const,
+      colors: {
+        primary: '#006D77',
+        secondary: '#F0FDFF',
+        background: '#FFFFFF',
+        surface: '#F8F9FA',
+        text: {
+          primary: '#2D3748',
+          secondary: '#4A5568',
+          muted: '#718096',
+        },
+        border: '#E2E8F0',
+        success: '#22C55E',
+        warning: '#F59E0B',
+        error: '#EF4444',
+      },
+    },
     messages: {},
   };
 

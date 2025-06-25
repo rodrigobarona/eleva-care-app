@@ -1,4 +1,8 @@
 // Email templates are now imported through the email service functions
+// Import email templates
+import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-confirmation';
+import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
+import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import { generateAppointmentEmail, sendEmail } from '@/lib/email';
 import { Novu } from '@novu/api';
 import { render } from '@react-email/render';
@@ -237,8 +241,18 @@ export class ElevaEmailService {
     notes?: string;
     locale?: string;
   }) {
-    // Since AppointmentConfirmation is async, we need to await it
-    const template = await AppointmentConfirmation(data);
+    // Render the appointment confirmation template
+    const template = AppointmentConfirmationTemplate({
+      expertName: data.expertName,
+      clientName: data.clientName,
+      appointmentDate: data.appointmentDate,
+      appointmentTime: data.appointmentTime,
+      timezone: data.timezone,
+      appointmentDuration: data.appointmentDuration,
+      eventTitle: data.eventTitle,
+      meetLink: data.meetLink,
+      notes: data.notes,
+    });
     return render(template);
   }
 
@@ -261,8 +275,8 @@ export class ElevaEmailService {
     customerNotes?: string;
     locale?: string;
   }) {
-    // Since MultibancoBookingPending is async, we need to await it
-    const template = await MultibancoBookingPending(data);
+    // Render the multibanco booking pending template
+    const template = MultibancoBookingPendingTemplate(data);
     return render(template);
   }
 
@@ -287,8 +301,8 @@ export class ElevaEmailService {
     daysRemaining: number;
     locale?: string;
   }) {
-    // Since MultibancoPaymentReminder is async, we need to await it
-    const template = await MultibancoPaymentReminder(data);
+    // Render the multibanco payment reminder template
+    const template = MultibancoPaymentReminderTemplate(data);
     return render(template);
   }
 
