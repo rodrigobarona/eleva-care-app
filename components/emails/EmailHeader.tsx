@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type { EmailContext } from '@/emails/utils/i18n';
 import { Column, Container, Img, Link, Row, Section } from '@react-email/components';
 
 export interface EmailHeaderProps {
@@ -6,6 +7,7 @@ export interface EmailHeaderProps {
   showLogo?: boolean;
   showNavigation?: boolean;
   theme?: 'light' | 'dark';
+  emailContext?: EmailContext;
   userContext?: {
     displayName?: string;
   };
@@ -22,6 +24,7 @@ export function EmailHeader({
   showLogo = true,
   showNavigation = false,
   theme = 'light',
+  emailContext,
   userContext,
 }: EmailHeaderProps) {
   const isDark = theme === 'dark';
@@ -31,11 +34,14 @@ export function EmailHeader({
     ? `${DEFAULT_BASE_URL}/eleva-logo-white.png`
     : `${DEFAULT_BASE_URL}/eleva-logo-color.png`;
 
-  // Variant-specific styles
+  // Use theme colors from emailContext if available
+  const themeColors = emailContext?.theme?.colors;
+
+  // Variant-specific styles with theme support
   const variantStyles = {
     default: {
-      backgroundColor: '#FFFFFF',
-      borderBottom: '1px solid #F3F4F6',
+      backgroundColor: themeColors?.background || '#FFFFFF',
+      borderBottom: `1px solid ${themeColors?.border || '#F3F4F6'}`,
       padding: '24px 0',
     },
     minimal: {
@@ -44,7 +50,7 @@ export function EmailHeader({
       padding: '16px 0',
     },
     branded: {
-      backgroundColor: '#006D77',
+      backgroundColor: themeColors?.primary || '#006D77',
       borderBottom: 'none',
       padding: '24px 0',
     },
@@ -52,7 +58,15 @@ export function EmailHeader({
 
   const styles = variantStyles[variant];
   const textColor =
-    variant === 'branded' ? 'rgba(255, 255, 255, 0.9)' : isDark ? '#E5E7EB' : '#374151';
+    variant === 'branded'
+      ? 'rgba(255, 255, 255, 0.9)'
+      : themeColors?.text.primary || (isDark ? '#E5E7EB' : '#374151');
+
+  // Navigation labels (could be internationalized)
+  const navLabels = {
+    dashboard: 'Dashboard',
+    support: 'Support',
+  };
 
   return (
     <Section style={styles}>
@@ -113,7 +127,7 @@ export function EmailHeader({
                     fontWeight: '500',
                   }}
                 >
-                  Dashboard
+                  {navLabels.dashboard}
                 </Link>
                 <Link
                   href={`${DEFAULT_BASE_URL}/support`}
@@ -124,7 +138,7 @@ export function EmailHeader({
                     fontWeight: '500',
                   }}
                 >
-                  Support
+                  {navLabels.support}
                 </Link>
               </div>
             )}

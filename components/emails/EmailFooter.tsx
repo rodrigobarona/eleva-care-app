@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type { EmailContext } from '@/emails/utils/i18n';
 import { Column, Container, Hr, Link, Row, Section, Text } from '@react-email/components';
 
 export interface EmailFooterProps {
@@ -8,6 +9,7 @@ export interface EmailFooterProps {
   showUnsubscribe?: boolean;
   showContactInfo?: boolean;
   theme?: 'light' | 'dark';
+  emailContext?: EmailContext;
   companyName?: string;
   tagline?: string;
   supportEmail?: string;
@@ -27,6 +29,7 @@ export function EmailFooter({
   showUnsubscribe = true,
   showContactInfo = true,
   theme: _theme = 'light',
+  emailContext,
   companyName = 'Eleva Care',
   tagline = "Expert care for women's health",
   supportEmail = 'support@eleva.care',
@@ -34,14 +37,17 @@ export function EmailFooter({
 }: EmailFooterProps) {
   const currentYear = new Date().getFullYear();
 
+  // Use theme colors from emailContext if available
+  const themeColors = emailContext?.theme?.colors;
+
   // Final unsubscribe URL with fallback
   const finalUnsubscribeUrl = unsubscribeUrl || `${DEFAULT_BASE_URL}/unsubscribe`;
 
-  // Variant-specific styling
+  // Variant-specific styling with theme support
   const variantStyles = {
     default: {
-      backgroundColor: '#FAFBFC',
-      borderTop: '1px solid #F3F4F6',
+      backgroundColor: themeColors?.surface || '#FAFBFC',
+      borderTop: `1px solid ${themeColors?.border || '#F3F4F6'}`,
       padding: '40px 0 32px 0',
       marginTop: '40px',
     },
@@ -52,7 +58,7 @@ export function EmailFooter({
       marginTop: '24px',
     },
     branded: {
-      backgroundColor: '#006D77',
+      backgroundColor: themeColors?.primary || '#006D77',
       borderTop: 'none',
       padding: '40px 0 32px 0',
       marginTop: '40px',
@@ -62,12 +68,20 @@ export function EmailFooter({
   const styles = variantStyles[variant];
   const isBranded = variant === 'branded';
 
-  // Text colors based on variant
+  // Text colors based on variant and theme
   const textColors = {
-    primary: isBranded ? 'rgba(255, 255, 255, 0.95)' : '#374151',
-    secondary: isBranded ? 'rgba(255, 255, 255, 0.8)' : '#6B7280',
-    muted: isBranded ? 'rgba(255, 255, 255, 0.6)' : '#9CA3AF',
-    link: isBranded ? 'rgba(255, 255, 255, 0.9)' : '#006D77',
+    primary: isBranded ? 'rgba(255, 255, 255, 0.95)' : themeColors?.text.primary || '#374151',
+    secondary: isBranded ? 'rgba(255, 255, 255, 0.8)' : themeColors?.text.secondary || '#6B7280',
+    muted: isBranded ? 'rgba(255, 255, 255, 0.6)' : themeColors?.text.muted || '#9CA3AF',
+    link: isBranded ? 'rgba(255, 255, 255, 0.9)' : themeColors?.primary || '#006D77',
+  };
+
+  // Footer labels (could be internationalized)
+  const footerLabels = {
+    privacyPolicy: 'Privacy Policy',
+    termsOfService: 'Terms of Service',
+    unsubscribe: 'Unsubscribe',
+    copyright: `© ${currentYear} ${companyName}. All rights reserved.`,
   };
 
   return (
@@ -159,7 +173,7 @@ export function EmailFooter({
                   fontWeight: '500',
                 }}
               >
-                Privacy Policy
+                {footerLabels.privacyPolicy}
               </Link>
               <Link
                 href={`${DEFAULT_BASE_URL}/legal/terms`}
@@ -173,7 +187,7 @@ export function EmailFooter({
                   fontWeight: '500',
                 }}
               >
-                Terms of Service
+                {footerLabels.termsOfService}
               </Link>
             </div>
           </Column>
@@ -183,7 +197,7 @@ export function EmailFooter({
         <Hr
           style={{
             border: 'none',
-            borderTop: `1px solid ${isBranded ? 'rgba(255, 255, 255, 0.2)' : '#F3F4F6'}`,
+            borderTop: `1px solid ${isBranded ? 'rgba(255, 255, 255, 0.2)' : themeColors?.border || '#F3F4F6'}`,
             margin: '32px 0 24px 0',
             width: '100%',
           }}
@@ -207,7 +221,7 @@ export function EmailFooter({
                 lineHeight: '1.5',
               }}
             >
-              © {currentYear} {companyName}. All rights reserved.
+              {footerLabels.copyright}
             </Text>
           </Column>
 
@@ -229,11 +243,11 @@ export function EmailFooter({
                   fontWeight: '500',
                   padding: '4px 8px',
                   borderRadius: '4px',
-                  border: `1px solid ${isBranded ? 'rgba(255, 255, 255, 0.2)' : '#E5E7EB'}`,
+                  border: `1px solid ${isBranded ? 'rgba(255, 255, 255, 0.2)' : themeColors?.border || '#E5E7EB'}`,
                   backgroundColor: isBranded ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
                 }}
               >
-                Unsubscribe
+                {footerLabels.unsubscribe}
               </Link>
             )}
           </Column>

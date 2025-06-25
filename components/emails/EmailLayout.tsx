@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type { EmailContext, SupportedLocale } from '@/emails/utils/i18n';
 import { Body, Container, Head, Html, Preview } from '@react-email/components';
 
 import { EmailFooter } from './EmailFooter';
@@ -11,6 +12,8 @@ export interface EmailLayoutProps {
   headerVariant?: 'default' | 'minimal' | 'branded';
   footerVariant?: 'default' | 'minimal' | 'branded';
   theme?: 'light' | 'dark';
+  locale?: SupportedLocale;
+  emailContext?: EmailContext;
   userContext?: {
     displayName?: string;
   };
@@ -27,12 +30,20 @@ export function EmailLayout({
   headerVariant = 'default',
   footerVariant = 'default',
   theme = 'light',
+  locale = 'en',
+  emailContext,
   userContext,
 }: EmailLayoutProps) {
   const isDark = theme === 'dark';
 
+  // Use theme colors from emailContext if available, otherwise fallback to defaults
+  const themeColors = emailContext?.theme?.colors || {
+    background: isDark ? '#1F2937' : '#F9FAFB',
+    surface: isDark ? '#374151' : '#FFFFFF',
+  };
+
   return (
-    <Html lang="en" dir="ltr">
+    <Html lang={locale} dir="ltr">
       <Head>
         <title>{subject}</title>
         <meta charSet="utf-8" />
@@ -46,7 +57,7 @@ export function EmailLayout({
 
       <Body
         style={{
-          backgroundColor: isDark ? '#1F2937' : '#F9FAFB',
+          backgroundColor: themeColors.background,
           fontFamily: 'system-ui, -apple-system, sans-serif',
           margin: 0,
           padding: '20px 0',
@@ -56,27 +67,32 @@ export function EmailLayout({
           style={{
             maxWidth: '600px',
             margin: '0 auto',
-            backgroundColor: isDark ? '#374151' : '#FFFFFF',
+            backgroundColor: themeColors.surface,
             borderRadius: '12px',
             overflow: 'hidden',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           }}
         >
           {/* Email Header */}
-          <EmailHeader variant={headerVariant} theme={theme} userContext={userContext} />
+          <EmailHeader
+            variant={headerVariant}
+            theme={theme}
+            emailContext={emailContext}
+            userContext={userContext}
+          />
 
           {/* Main Content */}
           <Container
             style={{
               padding: '32px 24px',
-              backgroundColor: isDark ? '#374151' : '#FFFFFF',
+              backgroundColor: themeColors.surface,
             }}
           >
             {children}
           </Container>
 
           {/* Email Footer */}
-          <EmailFooter variant={footerVariant} theme={theme} />
+          <EmailFooter variant={footerVariant} theme={theme} emailContext={emailContext} />
         </Container>
 
         {/* Global styles for email clients */}

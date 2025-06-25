@@ -1,18 +1,79 @@
 # Eleva Care Email Templates
 
-Centralized email system using React Email with standardized header/footer components and consistent design system.
+Centralized email system using React Email with standardized header/footer components, consistent design system, internationalization (i18n), and theme support.
+
+## 🌍 Internationalization & Themes
+
+The email system supports multiple languages and both light/dark themes:
+
+**Supported Languages:**
+
+- English (`en`)
+- Portuguese (`pt`)
+- Spanish (`es`)
+- Brazilian Portuguese (`br`)
+
+**Theme Support:**
+
+- Light theme (default) - Professional healthcare design
+- Dark theme - Enhanced accessibility and user preference
+
+**Usage Example:**
+
+```tsx
+import {
+  createWelcomeEmailI18n,
+  detectUserLocale,
+  detectUserTheme,
+  triggerWelcomeEmail,
+} from '@/emails';
+
+// Auto-detect user preferences and send email
+const locale = detectUserLocale(userPreferences, acceptLanguageHeader, countryCode);
+const theme = detectUserTheme(userPreferences, systemPreference);
+
+await triggerWelcomeEmail({
+  subscriberId: user.id,
+  email: user.email,
+  userName: user.name,
+  firstName: user.firstName,
+  locale,
+  theme,
+});
+```
+
+### Novu Integration
+
+All email templates support multilingual workflows through Novu:
+
+```tsx
+import { EMAIL_WORKFLOWS, sendWelcomeEmailAuto } from '@/emails';
+
+// Automatically detect user locale and theme
+await sendWelcomeEmailAuto(user.id, user.email, user.name, user.firstName, {
+  acceptLanguage: req.headers['accept-language'],
+  countryCode: user.countryCode,
+  userPreferences: user.preferences,
+});
+```
 
 ## 📁 Organization
 
-All email templates are organized by topic for better maintainability and are now using our standardized `EmailLayout` component:
+All email templates are organized by topic for better maintainability and are now using our standardized `EmailLayout` component with i18n support:
 
 ```
 emails/
 ├── appointments/     # Appointment-related emails
 ├── payments/         # Payment and billing emails
 ├── users/           # User onboarding and account emails
+│   ├── welcome-email.tsx         # Standard welcome email
+│   └── welcome-email-i18n.tsx    # Internationalized welcome email
 ├── experts/         # Expert/provider notifications
 ├── notifications/   # General notification emails
+├── utils/           # Email utilities and i18n system
+│   ├── i18n.ts      # Internationalization utilities
+│   └── novu-i18n.ts # Novu workflow integration with i18n
+├── index.ts         # Main exports with i18n support
 └── README.md        # This file
 ```
 
@@ -20,15 +81,26 @@ emails/
 
 All templates now follow the **Eleva Care Design System** with consistent:
 
-### Colors
+### Colors & Themes
+
+#### Light Theme (Default)
 
 - **Primary Teal**: `#006D77` - Main brand color for headings, buttons, and accents
 - **Secondary Light**: `#F0FDFF` - Light teal background for information sections
 - **Neutral Dark**: `#4A5568` - Body text color
 - **Neutral Light**: `#718096` - Secondary text and muted content
-- **Success Green**: `#D4EDDA` - Success messages and confirmations
-- **Warning Yellow**: `#FEF5E7` - Warning messages and alerts
-- **Error Red**: `#FED7D7` - Error messages and urgent alerts
+- **Success Green**: `#22C55E` - Success messages and confirmations
+- **Warning Yellow**: `#F59E0B` - Warning messages and alerts
+- **Error Red**: `#EF4444` - Error messages and urgent alerts
+
+#### Dark Theme
+
+- **Primary Teal**: `#00A8B8` - Enhanced contrast for dark backgrounds
+- **Secondary Dark**: `#1A2F33` - Dark teal background sections
+- **Light Text**: `#F7FAFC` - Primary text color
+- **Muted Light**: `#A0AEC0` - Secondary text color
+- **Dark Surface**: `#1E2832` - Background surfaces
+- **Dark Background**: `#0F1419` - Main background
 
 ### Typography
 
@@ -98,7 +170,8 @@ export default function TemplateEmail(props) {
 
 #### Users
 
-- **welcome-email**: Onboards new users with next steps and dashboard access
+- **welcome-email**: Standard onboarding email for new users
+- **welcome-email-i18n**: Internationalized welcome email with full i18n support
 
 #### Experts
 
@@ -107,6 +180,32 @@ export default function TemplateEmail(props) {
 #### Notifications
 
 - **notification-email**: Generic notification template for various use cases
+
+### Internationalized Templates
+
+All templates can be used with i18n support. The `*-i18n.tsx` versions provide:
+
+- **Automatic locale detection** from user preferences, headers, or country codes
+- **Theme-aware rendering** with light/dark mode support
+- **Fallback content** when translations are missing
+- **Message interpolation** with variables (e.g., `{userName}`, `{amount}`)
+- **RTL support** for future Arabic/Hebrew locales
+
+Example i18n template usage:
+
+```tsx
+import { createEmailContext, createWelcomeEmailI18n } from '@/emails';
+
+// Create email with specific locale and theme
+const emailContext = await createEmailContext('pt', 'dark');
+const emailComponent = await createWelcomeEmailI18n({
+  userName: 'Maria Silva',
+  firstName: 'Maria',
+  locale: 'pt',
+  theme: 'dark',
+  emailContext,
+});
+```
 
 ## 🛠️ Development
 
