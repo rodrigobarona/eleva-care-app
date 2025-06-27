@@ -1197,6 +1197,9 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
             const appointmentTime = format(startDateTime, 'p');
             const voucherExpiresFormatted = format(voucherExpiresAt, 'PPP p');
 
+            // Extract locale for internationalization
+            const locale = extractLocaleFromPaymentIntent(paymentIntent);
+
             // Render email template
             const emailHtml = await render(
               MultibancoBookingPendingTemplate({
@@ -1213,6 +1216,7 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
                 voucherExpiresAt: voucherExpiresFormatted,
                 hostedVoucherUrl,
                 customerNotes,
+                locale,
               }),
             );
 
