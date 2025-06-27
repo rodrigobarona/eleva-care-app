@@ -171,6 +171,7 @@ export async function generateAppointmentEmail(params: {
       eventTitle: params.eventTitle,
       meetLink: params.meetLink,
       notes: params.notes,
+      locale: params.locale,
     }),
   );
 
@@ -207,6 +208,7 @@ export async function generateWelcomeEmail(params: {
       userName: params.userName,
       dashboardUrl: params.dashboardUrl || '/dashboard',
       nextSteps: params.nextSteps,
+      locale: params.locale,
     }),
   );
 
@@ -257,6 +259,7 @@ export async function generateMultibancoBookingPendingEmail(params: {
       voucherExpiresAt: params.voucherExpiresAt,
       hostedVoucherUrl: params.hostedVoucherUrl,
       customerNotes: params.customerNotes,
+      locale: params.locale,
     }),
   );
 
@@ -311,6 +314,7 @@ export async function generateMultibancoPaymentReminderEmail(params: {
       customerNotes: params.customerNotes,
       reminderType: params.reminderType || 'urgent',
       daysRemaining: params.daysRemaining || 1,
+      locale: params.locale,
     }),
   );
 
@@ -345,6 +349,7 @@ export async function generateNotificationEmail(params: {
       userName: params.userName,
       actionUrl: params.actionUrl,
       actionText: params.actionText,
+      locale: params.locale,
     }),
   );
 
@@ -379,6 +384,7 @@ export async function generateExpertNotificationEmail(params: {
       notificationMessage: params.notificationMessage,
       actionUrl: params.actionUrl,
       actionText: params.actionText,
+      locale: params.locale,
     }),
   );
 
