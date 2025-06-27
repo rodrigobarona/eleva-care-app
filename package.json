@@ -3,7 +3,7 @@
   "version": "0.3.1",
   "private": true,
   "scripts": {
-    "dev": "NODE_NO_WARNINGS=1 next dev",
+    "dev": "NODE_NO_WARNINGS=1 next dev --port 3000",
     "build": "NODE_NO_WARNINGS=1 next build",
     "build:force": "NODE_NO_WARNINGS=1 NEXT_SKIP_TYPESCRIPT_CHECK=1 next build",
     "start": "NODE_NO_WARNINGS=1 next start",
@@ -63,7 +63,8 @@
     "type-check": "tsc --noEmit",
     "test:email": "tsx scripts/test-email-templates.mjs",
     "email:dev": "email dev",
-    "email:export": "email export"
+    "email:export": "email export --dir emails --outDir ./.react-email",
+    "email:preview": "email dev --dir emails --port 3001"
   },
   "dependencies": {
     "@clerk/elements": "^0.23.18",
@@ -105,7 +106,6 @@
     "@radix-ui/react-toggle": "^1.1.6",
     "@radix-ui/react-tooltip": "^1.2.4",
     "@react-email/components": "^0.0.35",
-    "@react-email/render": "^1.0.6",
     "@stripe/react-stripe-js": "^3.6.0",
     "@stripe/stripe-js": "^6.1.0",
     "@tanstack/react-table": "^8.21.3",
@@ -182,6 +182,7 @@
     "@eslint/js": "^9.25.1",
     "@jest/globals": "^29.7.0",
     "@next/bundle-analyzer": "^15.3.4",
+    "@react-email/render": "^1.0.6",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.3",
@@ -210,6 +211,7 @@
     "prettier": "^3.5.3",
     "prettier-plugin-organize-imports": "^4.1.0",
     "prettier-plugin-tailwindcss": "^0.6.11",
+    "react-email": "^4.0.17",
     "supertest": "^7.1.0",
     "tailwindcss": "^3.4.17",
     "ts-jest": "^29.3.2",

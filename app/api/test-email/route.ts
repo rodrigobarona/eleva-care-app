@@ -1,94 +1,22 @@
-// Import our email template components
-import { BaseEmailTemplate } from '@/lib/email-templates/components/BaseEmailTemplate';
-import { emailTemplates } from '@/lib/email-templates/content';
-import { render } from '@react-email/render';
-import DOMPurify from 'isomorphic-dompurify';
+// Import centralized email generation functions
+import {
+  generateAppointmentEmail,
+  generateExpertNotificationEmail,
+  generateMultibancoBookingPendingEmail,
+  generateMultibancoPaymentReminderEmail,
+  generateNotificationEmail,
+  generateWelcomeEmail,
+  sendEmail,
+} from '@/lib/email';
 import { NextRequest, NextResponse } from 'next/server';
-import React from 'react';
-import { Resend } from 'resend';
-
-// Validate API key before initializing Resend client
-if (!process.env.RESEND_API_KEY) {
-  throw new Error('RESEND_API_KEY environment variable is not set');
-}
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
- * Sanitize HTML content to prevent XSS attacks
- * Uses DOMPurify with email-safe configuration
- */
-function sanitizeEmailHTML(html: string): string {
-  return DOMPurify.sanitize(html, {
-    // Allow common email HTML elements and attributes
-    ALLOWED_TAGS: [
-      'div',
-      'p',
-      'h1',
-      'h2',
-      'h3',
-      'h4',
-      'h5',
-      'h6',
-      'span',
-      'strong',
-      'b',
-      'em',
-      'i',
-      'u',
-      'br',
-      'ul',
-      'ol',
-      'li',
-      'a',
-      'img',
-      'table',
-      'tr',
-      'td',
-      'th',
-      'thead',
-      'tbody',
-      'tfoot',
-    ],
-    ALLOWED_ATTR: [
-      'style',
-      'href',
-      'src',
-      'alt',
-      'title',
-      'target',
-      'width',
-      'height',
-      'class',
-      'id',
-      'border',
-      'cellpadding',
-      'cellspacing',
-      'align',
-      'valign',
-    ],
-    // Allow data URLs for inline images (common in emails)
-    ALLOW_DATA_ATTR: false,
-    // Keep mailto: links
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
-    // Remove dangerous attributes
-    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover'],
-    // Strip scripts and other dangerous elements
-    FORBID_TAGS: ['script', 'object', 'embed', 'form', 'input'],
-  });
-}
-
-/**
- * GET /api/test-email - Send a test email with predefined templates
+ * GET /api/test-email - Send a test email using centralized React Email templates
  *
  * Query Parameters:
  * - to: Email address (default: 'delivered@resend.dev')
  * - locale: Language (en|es|pt|br, default: 'en')
- * - userRole: User role (patient|expert|admin, default: 'patient')
- * - darkMode: Enable dark mode (true|false, default: false)
- * - highContrast: Enable high contrast (true|false, default: false)
- * - variant: Template variant (default|minimal|branded, default: 'default')
- * - type: Email type (welcome|expert|appointment|payment, default: 'welcome')
+ * - type: Email type (welcome|expert|appointment|payment|multibanco-pending|multibanco-reminder|notification, default: 'welcome')
  */
 export async function GET(request: NextRequest) {
   try {
@@ -104,24 +32,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const supportedUserRoles = ['patient', 'expert', 'admin'] as const;
-    const userRole = searchParams.get('userRole') || 'patient';
-    if (!supportedUserRoles.includes(userRole as (typeof supportedUserRoles)[number])) {
-      return NextResponse.json(
-        { success: false, error: `Unsupported userRole: ${userRole}` },
-        { status: 400 },
-      );
-    }
-
-    const supportedVariants = ['default', 'minimal', 'branded'] as const;
-    const variant = searchParams.get('variant') || 'default';
-    if (!supportedVariants.includes(variant as (typeof supportedVariants)[number])) {
-      return NextResponse.json(
-        { success: false, error: `Unsupported variant: ${variant}` },
-        { status: 400 },
-      );
-    }
-
     // Validate email format if provided
     const to = searchParams.get('to') || 'delivered@resend.dev';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -129,237 +39,220 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid email format' }, { status: 400 });
     }
 
-    // Parse query parameters with defaults
-    const config = {
+    const emailType = searchParams.get('type') || 'welcome';
+
+    // Generate email based on type using centralized functions
+    let emailContent: { html: string; text: string; subject: string };
+
+    switch (emailType) {
+      case 'welcome':
+        emailContent = await generateWelcomeEmail({
+          userName: 'Dr. João Silva',
+          dashboardUrl: '/dashboard',
+          nextSteps: [
+            {
+              title: 'Complete your health profile',
+              description:
+                'Help us personalize your care experience with detailed health information',
+              actionUrl: '/profile/complete',
+              actionText: 'Complete Profile',
+            },
+            {
+              title: 'Browse expert providers',
+              description:
+                'Find healthcare professionals that match your specific needs and preferences',
+              actionUrl: '/providers',
+              actionText: 'View Providers',
+            },
+          ],
+          locale,
+        });
+        break;
+
+      case 'appointment':
+        emailContent = await generateAppointmentEmail({
+          expertName: 'Dr. Maria Santos',
+          clientName: 'João Silva',
+          appointmentDate: 'Monday, February 19, 2024',
+          appointmentTime: '2:30 PM - 3:30 PM',
+          timezone: 'Europe/Lisbon',
+          appointmentDuration: '60 minutes',
+          eventTitle: 'Consulta de Cardiologia',
+          meetLink: 'https://meet.google.com/abc-defg-hij',
+          notes: 'First consultation - health check',
+          locale,
+        });
+        break;
+
+      case 'expert':
+        emailContent = await generateExpertNotificationEmail({
+          expertName: 'Dr. Maria Santos',
+          notificationTitle: 'New Appointment Request',
+          notificationMessage:
+            'You have received a new appointment request from João Silva for a cardiology consultation.',
+          actionUrl: '/dashboard/appointments',
+          actionText: 'View Appointments',
+          locale,
+        });
+        break;
+
+      case 'notification':
+        emailContent = await generateNotificationEmail({
+          title: 'Important Update',
+          message:
+            'Your account has been successfully verified. You can now access all features of the Eleva Care platform.',
+          userName: 'Dr. João Silva',
+          actionUrl: '/dashboard',
+          actionText: 'Go to Dashboard',
+          locale,
+        });
+        break;
+
+      case 'multibanco-pending':
+        emailContent = await generateMultibancoBookingPendingEmail({
+          customerName: 'João Silva',
+          expertName: 'Dr. Maria Santos',
+          serviceName: 'Consulta de Cardiologia',
+          appointmentDate: '2024-02-19',
+          appointmentTime: '14:30',
+          timezone: 'Europe/Lisbon',
+          duration: 60,
+          multibancoEntity: '12345',
+          multibancoReference: '987654321',
+          multibancoAmount: '75.00',
+          voucherExpiresAt: '2024-02-22',
+          hostedVoucherUrl: 'https://eleva.care/payment/voucher/123',
+          customerNotes: 'First consultation - health check',
+          locale,
+        });
+        break;
+
+      case 'multibanco-reminder':
+        emailContent = await generateMultibancoPaymentReminderEmail({
+          customerName: 'João Silva',
+          expertName: 'Dr. Maria Santos',
+          serviceName: 'Consulta de Cardiologia',
+          appointmentDate: '2024-02-19',
+          appointmentTime: '14:30',
+          timezone: 'Europe/Lisbon',
+          duration: 60,
+          multibancoEntity: '12345',
+          multibancoReference: '987654321',
+          multibancoAmount: '75.00',
+          voucherExpiresAt: '2024-02-20',
+          hostedVoucherUrl: 'https://eleva.care/payment/voucher/123',
+          customerNotes: 'Payment reminder - expires soon',
+          reminderType: 'urgent',
+          daysRemaining: 1,
+          locale,
+        });
+        break;
+
+      case 'payment':
+        // For now, use notification email for payment confirmations
+        emailContent = await generateNotificationEmail({
+          title: 'Payment Confirmation',
+          message:
+            'Your payment of €75.00 for the cardiology consultation has been successfully processed. Your appointment is confirmed.',
+          userName: 'João Silva',
+          actionUrl: '/dashboard/appointments',
+          actionText: 'View Appointment',
+          locale,
+        });
+        break;
+
+      default:
+        return NextResponse.json(
+          { success: false, error: `Unsupported email type: ${emailType}` },
+          { status: 400 },
+        );
+    }
+
+    // Send via the centralized sendEmail function
+    const response = await sendEmail({
       to,
-      locale: locale as (typeof supportedLocales)[number],
-      userRole: userRole as (typeof supportedUserRoles)[number],
-      darkMode: searchParams.get('darkMode') === 'true',
-      highContrast: searchParams.get('highContrast') === 'true',
-      variant: variant as (typeof supportedVariants)[number],
-      type: searchParams.get('type') || 'welcome',
-    };
-
-    // Get content for the specified type from extracted templates
-    const content =
-      emailTemplates[config.type as keyof typeof emailTemplates] || emailTemplates.welcome;
-    const subject = content.subject[config.locale] || content.subject.en;
-    const preheader = content.preheader[config.locale] || content.preheader.en;
-    const body = content.body[config.locale] || content.body.en;
-
-    // Render options for the email template
-    const renderOptions = {
-      locale: config.locale,
-      userRole: config.userRole,
-      rtl: false,
-      darkMode: config.darkMode,
-      highContrast: config.highContrast,
-      previewMode: false,
-      variant: config.variant,
-    };
-
-    // Create the email component with proper children prop structure and sanitized HTML
-    const EmailComponent = () =>
-      React.createElement(
-        BaseEmailTemplate,
-        {
-          subject: subject,
-          preheader: preheader,
-          renderOptions: renderOptions,
-        },
-        React.createElement('div', {
-          dangerouslySetInnerHTML: { __html: sanitizeEmailHTML(body) },
-        }),
-      );
-
-    // Render the React component to HTML
-    const html = await render(React.createElement(EmailComponent));
-
-    // Send via Resend
-    const response = await resend.emails.send({
-      from: 'Eleva Care Testing <testing@resend.dev>',
-      to: [config.to],
-      subject: `[TEST] ${subject}`,
-      html: html,
-      headers: {
-        'X-Test-Type': config.type,
-        'X-Template-Variant': config.variant,
-        'X-User-Role': config.userRole,
-        'X-Locale': config.locale,
-        'X-Entity-Ref-ID': `api-test-${Date.now()}`, // Prevent Gmail threading
-      },
-      tags: [
-        { name: 'environment', value: 'test' },
-        { name: 'source', value: 'api' },
-        { name: 'template-type', value: config.variant },
-        { name: 'user-role', value: config.userRole },
-        { name: 'locale', value: config.locale },
-        { name: 'email-type', value: config.type },
-      ],
+      subject: `[TEST] ${emailContent.subject}`,
+      html: emailContent.html,
+      text: emailContent.text,
     });
 
-    if (response.error) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: response.error.message,
-          config,
-        },
-        { status: 400 },
-      );
+    if (!response.success) {
+      return NextResponse.json({ success: false, error: response.error }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      emailId: response.data?.id,
-      config,
-      message: `Test email sent successfully to ${config.to}`,
-      dashboardUrl: 'https://resend.com/emails',
+      messageId: response.messageId,
+      emailType,
+      locale,
+      to,
+      subject: emailContent.subject,
     });
   } catch (error) {
-    console.error('Email test error:', error);
+    console.error('Test email error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        message: 'Failed to send test email',
-      },
+      { success: false, error: 'Failed to send test email' },
       { status: 500 },
     );
   }
 }
 
 /**
- * POST /api/test-email - Send a test email with custom content
+ * POST /api/test-email - Send a custom test email
+ *
+ * Body Parameters:
+ * - to: Email address
+ * - subject: Email subject
+ * - content: HTML content
+ * - locale: Language code
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    const { to, subject, content, locale = 'en' } = body;
 
-    // Validate request body
-    if (!body || typeof body !== 'object') {
-      return NextResponse.json({ success: false, error: 'Invalid request body' }, { status: 400 });
+    if (!to || !subject) {
+      return NextResponse.json(
+        { success: false, error: 'Missing required fields: to, subject' },
+        { status: 400 },
+      );
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (body.to && !emailRegex.test(body.to)) {
+    if (!emailRegex.test(to)) {
       return NextResponse.json({ success: false, error: 'Invalid email format' }, { status: 400 });
     }
 
-    // Validate locale
-    const validLocales = ['en', 'es', 'pt', 'pt-BR'];
-    if (body.locale && !validLocales.includes(body.locale)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid locale. Must be one of: en, es, pt, pt-BR' },
-        { status: 400 },
-      );
-    }
-
-    // Validate userRole
-    const validUserRoles = ['patient', 'expert', 'admin'];
-    if (body.userRole && !validUserRoles.includes(body.userRole)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid userRole. Must be one of: patient, expert, admin' },
-        { status: 400 },
-      );
-    }
-
-    // Validate variant
-    const validVariants = ['default', 'minimal', 'branded'];
-    if (body.variant && !validVariants.includes(body.variant)) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid variant. Must be one of: default, minimal, branded' },
-        { status: 400 },
-      );
-    }
-
-    const {
-      to = 'delivered@resend.dev',
-      subject = 'Test Email from Eleva Care',
-      content = '<h1>Hello from Eleva Care!</h1><p>This is a test email.</p>',
-      locale = 'en',
-      userRole = 'patient',
-      darkMode = false,
-      highContrast = false,
-      variant = 'default',
-    } = body;
-
-    const renderOptions = {
+    // Use notification email for custom content
+    const emailContent = await generateNotificationEmail({
+      title: subject,
+      message: content || 'Custom test email',
       locale,
-      userRole,
-      rtl: false,
-      darkMode,
-      highContrast,
-      previewMode: false,
-      variant,
-    };
-
-    // Create the email component with custom content and proper children prop structure with sanitized HTML
-    const EmailComponent = () =>
-      React.createElement(
-        BaseEmailTemplate,
-        {
-          subject: subject,
-          preheader: 'Custom test email',
-          renderOptions: renderOptions,
-        },
-        React.createElement('div', {
-          dangerouslySetInnerHTML: { __html: sanitizeEmailHTML(content) },
-        }),
-      );
-
-    // Render the React component to HTML
-    const html = await render(React.createElement(EmailComponent));
-
-    // Send via Resend
-    const response = await resend.emails.send({
-      from: 'Eleva Care Testing <testing@resend.dev>',
-      to: [to],
-      subject: `[TEST] ${subject}`,
-      html: html,
-      headers: {
-        'X-Test-Type': 'custom',
-        'X-Template-Variant': variant,
-        'X-User-Role': userRole,
-        'X-Locale': locale,
-        'X-Entity-Ref-ID': `api-custom-${Date.now()}`,
-      },
-      tags: [
-        { name: 'environment', value: 'test' },
-        { name: 'source', value: 'api-custom' },
-        { name: 'template-type', value: variant },
-        { name: 'user-role', value: userRole },
-        { name: 'locale', value: locale },
-      ],
     });
 
-    if (response.error) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: response.error.message,
-          config: { to, subject, locale, userRole, darkMode, highContrast, variant },
-        },
-        { status: 400 },
-      );
+    const response = await sendEmail({
+      to,
+      subject: `[TEST] ${subject}`,
+      html: emailContent.html,
+      text: emailContent.text,
+    });
+
+    if (!response.success) {
+      return NextResponse.json({ success: false, error: response.error }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
-      emailId: response.data?.id,
-      config: { to, subject, locale, userRole, darkMode, highContrast, variant },
-      message: `Custom test email sent successfully to ${to}`,
-      dashboardUrl: 'https://resend.com/emails',
+      messageId: response.messageId,
+      to,
+      subject,
+      locale,
     });
   } catch (error) {
-    console.error('Custom email test error:', error);
+    console.error('Custom test email error:', error);
     return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        message: 'Failed to send custom test email',
-      },
+      { success: false, error: 'Failed to send custom test email' },
       { status: 500 },
     );
   }
