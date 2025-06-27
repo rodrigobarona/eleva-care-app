@@ -14,6 +14,7 @@ interface PaymentConfirmationEmailProps {
   transactionId?: string;
   appointmentUrl?: string;
   receiptUrl?: string;
+  locale?: string;
 }
 
 export const PaymentConfirmationEmail = ({
@@ -28,6 +29,7 @@ export const PaymentConfirmationEmail = ({
   transactionId = 'TXN_123456789',
   appointmentUrl = 'https://eleva.care/appointments/123',
   receiptUrl = 'https://eleva.care/receipts/123',
+  locale = 'en-GB',
 }: PaymentConfirmationEmailProps) => {
   const subject = `Payment confirmed for your appointment with ${expertName}`;
   const previewText = `Your payment of ${currency} ${amount} has been successfully processed. Your appointment is confirmed.`;
@@ -152,7 +154,7 @@ export const PaymentConfirmationEmail = ({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Date:</strong> {new Date().toLocaleDateString('en-GB')}
+          <strong>Date:</strong> {new Date().toLocaleDateString(locale)}
         </Text>
       </Section>
 
