@@ -688,7 +688,7 @@ export class ElevaEmailService {
     }
 
     // Fallback to original implementation for backward compatibility
-    const template = AppointmentConfirmationTemplate({
+    const template = React.createElement(AppointmentConfirmationTemplate, {
       expertName: data.expertName,
       clientName: data.clientName,
       appointmentDate: data.appointmentDate,
@@ -746,7 +746,7 @@ export class ElevaEmailService {
     }
 
     // Fallback to original implementation for backward compatibility
-    const template = MultibancoBookingPendingTemplate(data);
+    const template = React.createElement(MultibancoBookingPendingTemplate, data);
     return render(template);
   }
 
@@ -796,7 +796,7 @@ export class ElevaEmailService {
     }
 
     // Fallback to original implementation for backward compatibility
-    const template = MultibancoPaymentReminderTemplate(data);
+    const template = React.createElement(MultibancoPaymentReminderTemplate, data);
     return render(template);
   }
 
