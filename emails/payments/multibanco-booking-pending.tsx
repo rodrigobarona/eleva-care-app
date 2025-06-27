@@ -33,10 +33,64 @@ export default function MultibancoBookingPendingTemplate({
   voucherExpiresAt = '2024-02-12',
   hostedVoucherUrl = 'https://eleva.care/payment/voucher/123',
   customerNotes = 'First consultation - health check',
-  locale: _locale = 'en',
+  locale = 'en',
 }: MultibancoBookingPendingProps) {
-  const subject = `Appointment with ${expertName} - Payment Pending via Multibanco`;
-  const previewText = `Complete your booking with ${expertName} by paying via Multibanco`;
+  // Internationalization support
+  const translations = {
+    en: {
+      subject: `Appointment with ${expertName} - Payment Pending via Multibanco`,
+      previewText: `Complete your booking with ${expertName} by paying via Multibanco`,
+      title: 'Payment Pending - Complete Your Booking',
+      greeting: 'Hello',
+      mainMessage: `We've reserved your appointment with <strong>${expertName}</strong> and are waiting for your payment confirmation via Multibanco.`,
+      appointmentDetails: 'Appointment Details',
+      paymentDetails: 'Multibanco Payment Details',
+      service: 'Service',
+      date: 'Date',
+      time: 'Time',
+      duration: 'Duration',
+      notes: 'Notes',
+      entity: 'Entity',
+      reference: 'Reference',
+      amount: 'Amount',
+      expires: 'Expires',
+      instructions:
+        'To complete your booking, please pay via Multibanco using the details above or visit your payment voucher:',
+      viewVoucher: 'View Payment Voucher',
+      support: `If you have any questions or need assistance, please don't hesitate to contact our support team.`,
+      minutes: 'minutes',
+    },
+    pt: {
+      subject: `Consulta com ${expertName} - Pagamento Pendente via Multibanco`,
+      previewText: `Complete a sua marcação com ${expertName} pagando via Multibanco`,
+      title: 'Pagamento Pendente - Complete a Sua Marcação',
+      greeting: 'Olá',
+      mainMessage: `Reservámos a sua consulta com <strong>${expertName}</strong> e aguardamos a confirmação do pagamento via Multibanco.`,
+      appointmentDetails: 'Detalhes da Consulta',
+      paymentDetails: 'Detalhes do Pagamento Multibanco',
+      service: 'Serviço',
+      date: 'Data',
+      time: 'Hora',
+      duration: 'Duração',
+      notes: 'Notas',
+      entity: 'Entidade',
+      reference: 'Referência',
+      amount: 'Valor',
+      expires: 'Expira',
+      instructions:
+        'Para completar a sua marcação, pague via Multibanco usando os detalhes acima ou visite o seu voucher de pagamento:',
+      viewVoucher: 'Ver Voucher de Pagamento',
+      support:
+        'Se tiver alguma dúvida ou precisar de ajuda, não hesite em contactar a nossa equipa de apoio.',
+      minutes: 'minutos',
+    },
+  };
+
+  // Get translations for the current locale, fallback to English
+  const t = translations[locale as keyof typeof translations] || translations.en;
+
+  const subject = t.subject;
+  const previewText = t.previewText;
 
   return (
     <EmailLayout
@@ -54,7 +108,7 @@ export default function MultibancoBookingPendingTemplate({
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
-        Payment Pending - Complete Your Booking
+        {t.title}
       </Heading>
 
       <Text
@@ -65,7 +119,7 @@ export default function MultibancoBookingPendingTemplate({
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
-        Hello {customerName},
+        {t.greeting} {customerName},
       </Text>
 
       <Text
@@ -76,10 +130,8 @@ export default function MultibancoBookingPendingTemplate({
           marginBottom: '24px',
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
-      >
-        We&apos;ve reserved your appointment with <strong>{expertName}</strong> and are waiting for
-        your payment confirmation via Multibanco.
-      </Text>
+        dangerouslySetInnerHTML={{ __html: t.mainMessage }}
+      />
 
       {/* Appointment Details */}
       <Section
@@ -100,7 +152,7 @@ export default function MultibancoBookingPendingTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          📅 Appointment Details
+          📅 {t.appointmentDetails}
         </Heading>
         <Text
           style={{
@@ -110,7 +162,7 @@ export default function MultibancoBookingPendingTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Service:</strong> {serviceName}
+          <strong>{t.service}:</strong> {serviceName}
         </Text>
         <Text
           style={{
@@ -120,7 +172,7 @@ export default function MultibancoBookingPendingTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Date:</strong> {appointmentDate}
+          <strong>{t.date}:</strong> {appointmentDate}
         </Text>
         <Text
           style={{
@@ -130,7 +182,7 @@ export default function MultibancoBookingPendingTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Time:</strong> {appointmentTime} ({timezone})
+          <strong>{t.time}:</strong> {appointmentTime} ({timezone})
         </Text>
         <Text
           style={{
@@ -140,7 +192,7 @@ export default function MultibancoBookingPendingTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Duration:</strong> {duration} minutes
+          <strong>{t.duration}:</strong> {duration} {t.minutes}
         </Text>
         {customerNotes && (
           <Text
@@ -151,7 +203,7 @@ export default function MultibancoBookingPendingTemplate({
               fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
           >
-            <strong>Notes:</strong> {customerNotes}
+            <strong>{t.notes}:</strong> {customerNotes}
           </Text>
         )}
       </Section>
@@ -175,7 +227,7 @@ export default function MultibancoBookingPendingTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          💳 Multibanco Payment Details
+          💳 {t.paymentDetails}
         </Heading>
         <Text
           style={{
@@ -185,7 +237,7 @@ export default function MultibancoBookingPendingTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Entity:</strong> {multibancoEntity}
+          <strong>{t.entity}:</strong> {multibancoEntity}
         </Text>
         <Text
           style={{
@@ -195,7 +247,7 @@ export default function MultibancoBookingPendingTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Reference:</strong> {multibancoReference}
+          <strong>{t.reference}:</strong> {multibancoReference}
         </Text>
         <Text
           style={{
@@ -205,7 +257,7 @@ export default function MultibancoBookingPendingTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Amount:</strong> €{multibancoAmount}
+          <strong>{t.amount}:</strong> €{multibancoAmount}
         </Text>
         <Text
           style={{
@@ -216,7 +268,7 @@ export default function MultibancoBookingPendingTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Expires:</strong> {voucherExpiresAt}
+          <strong>{t.expires}:</strong> {voucherExpiresAt}
         </Text>
       </Section>
 
@@ -229,13 +281,12 @@ export default function MultibancoBookingPendingTemplate({
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
-        To complete your booking, please pay via Multibanco using the details above or visit your
-        payment voucher:
+        {t.instructions}
       </Text>
 
       <Section style={{ textAlign: 'center', margin: '32px 0' }}>
         <EmailButton href={hostedVoucherUrl} variant="primary" size="lg">
-          View Payment Voucher
+          {t.viewVoucher}
         </EmailButton>
       </Section>
 
@@ -256,8 +307,7 @@ export default function MultibancoBookingPendingTemplate({
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
-        If you have any questions or need assistance, please don&apos;t hesitate to contact our
-        support team.
+        {t.support}
       </Text>
     </EmailLayout>
   );
