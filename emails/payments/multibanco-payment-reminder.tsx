@@ -34,14 +34,85 @@ export default function MultibancoPaymentReminderTemplate({
   multibancoAmount = '75.00',
   voucherExpiresAt = '2024-02-20',
   hostedVoucherUrl = 'https://eleva.care/payment/voucher/123',
-  customerNotes: _customerNotes = '',
+  customerNotes = '',
   reminderType = 'urgent',
   daysRemaining = 1,
-  locale: _locale = 'en',
+  locale = 'en',
 }: MultibancoPaymentReminderProps) {
   const isUrgent = reminderType === 'urgent' || daysRemaining <= 1;
-  const subject = `${isUrgent ? 'URGENT: ' : ''}Payment Reminder - Appointment with ${expertName}`;
-  const previewText = `${isUrgent ? 'URGENT: ' : ''}Your payment for the appointment with ${expertName} expires soon`;
+
+  // Internationalization support
+  const translations = {
+    en: {
+      urgent: 'URGENT',
+      subject: `Payment Reminder - Appointment with ${expertName}`,
+      subjectUrgent: `URGENT: Payment Reminder - Appointment with ${expertName}`,
+      previewText: `Your payment for the appointment with ${expertName} expires soon`,
+      previewTextUrgent: `URGENT: Your payment for the appointment with ${expertName} expires soon`,
+      title: `Payment Reminder - ${serviceName}`,
+      greeting: 'Hello',
+      reminderMessage: `This is a ${reminderType} reminder that your payment for the appointment with <strong>${expertName}</strong> is still pending and will expire soon.`,
+      urgentWarning: `⚠️ Don't lose your appointment! Payment expires in ${daysRemaining} day${daysRemaining !== 1 ? 's' : ''}.`,
+      appointmentDetails: 'Appointment Details',
+      paymentDetails: 'Multibanco Payment Details',
+      service: 'Service',
+      date: 'Date',
+      time: 'Time',
+      duration: 'Duration',
+      notes: 'Notes',
+      entity: 'Entity',
+      reference: 'Reference',
+      amount: 'Amount',
+      expires: 'Expires',
+      actionRequired:
+        "<strong>Action Required:</strong> Complete your payment now to secure your healthcare appointment. We're here to help if you need any assistance.",
+      payNowUrgent: '🚨 PAY NOW - EXPIRES SOON!',
+      completePayment: 'Complete Payment',
+      warningTitle: "What happens if I don't pay in time?",
+      warningText:
+        'If payment is not received by the expiration date, your appointment will be automatically cancelled and the time slot will become available to other patients.',
+      support: "Need help with payment? Contact our support team and we'll be happy to assist you.",
+      minutes: 'minutes',
+    },
+    pt: {
+      urgent: 'URGENTE',
+      subject: `Lembrete de Pagamento - Consulta com ${expertName}`,
+      subjectUrgent: `URGENTE: Lembrete de Pagamento - Consulta com ${expertName}`,
+      previewText: `O seu pagamento para a consulta com ${expertName} expira em breve`,
+      previewTextUrgent: `URGENTE: O seu pagamento para a consulta com ${expertName} expira em breve`,
+      title: `Lembrete de Pagamento - ${serviceName}`,
+      greeting: 'Olá',
+      reminderMessage: `Este é um lembrete ${reminderType === 'urgent' ? 'urgente' : 'gentil'} de que o seu pagamento para a consulta com <strong>${expertName}</strong> ainda está pendente e expirará em breve.`,
+      urgentWarning: `⚠️ Não perca a sua consulta! O pagamento expira em ${daysRemaining} dia${daysRemaining !== 1 ? 's' : ''}.`,
+      appointmentDetails: 'Detalhes da Consulta',
+      paymentDetails: 'Detalhes do Pagamento Multibanco',
+      service: 'Serviço',
+      date: 'Data',
+      time: 'Hora',
+      duration: 'Duração',
+      notes: 'Notas',
+      entity: 'Entidade',
+      reference: 'Referência',
+      amount: 'Valor',
+      expires: 'Expira',
+      actionRequired:
+        '<strong>Ação Necessária:</strong> Complete o seu pagamento agora para garantir a sua consulta. Estamos aqui para ajudar se precisar de assistência.',
+      payNowUrgent: '🚨 PAGAR AGORA - EXPIRA EM BREVE!',
+      completePayment: 'Completar Pagamento',
+      warningTitle: 'O que acontece se não pagar a tempo?',
+      warningText:
+        'Se o pagamento não for recebido até à data de expiração, a sua consulta será automaticamente cancelada e o horário ficará disponível para outros pacientes.',
+      support:
+        'Precisa de ajuda com o pagamento? Contacte a nossa equipa de apoio e ficaremos felizes em ajudá-lo.',
+      minutes: 'minutos',
+    },
+  };
+
+  // Get translations for the current locale, fallback to English
+  const t = translations[locale as keyof typeof translations] || translations.en;
+
+  const subject = isUrgent ? t.subjectUrgent : t.subject;
+  const previewText = isUrgent ? t.previewTextUrgent : t.previewText;
 
   return (
     <EmailLayout
@@ -70,8 +141,7 @@ export default function MultibancoPaymentReminderTemplate({
               fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
           >
-            ⚠️ Don&apos;t lose your appointment! Payment expires in {daysRemaining} day
-            {daysRemaining !== 1 ? 's' : ''}.
+            {t.urgentWarning}
           </Text>
         </Section>
       )}
@@ -85,7 +155,7 @@ export default function MultibancoPaymentReminderTemplate({
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
-        Payment Reminder - {serviceName}
+        {t.title}
       </Heading>
 
       <Text
@@ -96,7 +166,7 @@ export default function MultibancoPaymentReminderTemplate({
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
-        Hello {customerName},
+        {t.greeting} {customerName},
       </Text>
 
       <Text
@@ -107,10 +177,8 @@ export default function MultibancoPaymentReminderTemplate({
           marginBottom: '24px',
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
-      >
-        This is a {reminderType} reminder that your payment for the appointment with{' '}
-        <strong>{expertName}</strong> is still pending and will expire soon.
-      </Text>
+        dangerouslySetInnerHTML={{ __html: t.reminderMessage }}
+      />
 
       {/* Appointment Details */}
       <Section
@@ -131,7 +199,7 @@ export default function MultibancoPaymentReminderTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          📅 Appointment Details
+          📅 {t.appointmentDetails}
         </Heading>
         <Text
           style={{
@@ -141,7 +209,7 @@ export default function MultibancoPaymentReminderTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Service:</strong> {serviceName}
+          <strong>{t.service}:</strong> {serviceName}
         </Text>
         <Text
           style={{
@@ -151,7 +219,7 @@ export default function MultibancoPaymentReminderTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Date:</strong> {appointmentDate}
+          <strong>{t.date}:</strong> {appointmentDate}
         </Text>
         <Text
           style={{
@@ -161,7 +229,7 @@ export default function MultibancoPaymentReminderTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Time:</strong> {appointmentTime} ({timezone})
+          <strong>{t.time}:</strong> {appointmentTime} ({timezone})
         </Text>
         <Text
           style={{
@@ -171,8 +239,20 @@ export default function MultibancoPaymentReminderTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Duration:</strong> {duration} minutes
+          <strong>{t.duration}:</strong> {duration} {t.minutes}
         </Text>
+        {customerNotes && (
+          <Text
+            style={{
+              color: '#234E52',
+              margin: '8px 0',
+              fontSize: '16px',
+              fontFamily: 'system-ui, -apple-system, sans-serif',
+            }}
+          >
+            <strong>{t.notes}:</strong> {customerNotes}
+          </Text>
+        )}
       </Section>
 
       {/* Multibanco Payment Details */}
@@ -194,7 +274,7 @@ export default function MultibancoPaymentReminderTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          💳 Multibanco Payment Details
+          💳 {t.paymentDetails}
         </Heading>
         <Text
           style={{
@@ -204,7 +284,7 @@ export default function MultibancoPaymentReminderTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Entity:</strong> {multibancoEntity}
+          <strong>{t.entity}:</strong> {multibancoEntity}
         </Text>
         <Text
           style={{
@@ -214,7 +294,7 @@ export default function MultibancoPaymentReminderTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Reference:</strong> {multibancoReference}
+          <strong>{t.reference}:</strong> {multibancoReference}
         </Text>
         <Text
           style={{
@@ -224,7 +304,7 @@ export default function MultibancoPaymentReminderTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Amount:</strong> €{multibancoAmount}
+          <strong>{t.amount}:</strong> €{multibancoAmount}
         </Text>
         <Text
           style={{
@@ -235,7 +315,7 @@ export default function MultibancoPaymentReminderTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Expires:</strong> {voucherExpiresAt}
+          <strong>{t.expires}:</strong> {voucherExpiresAt}
         </Text>
       </Section>
 
@@ -247,14 +327,12 @@ export default function MultibancoPaymentReminderTemplate({
           marginBottom: '32px',
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
-      >
-        <strong>Action Required:</strong> Complete your payment now to secure your healthcare
-        appointment. We&apos;re here to help if you need any assistance.
-      </Text>
+        dangerouslySetInnerHTML={{ __html: t.actionRequired }}
+      />
 
       <Section style={{ textAlign: 'center', margin: '32px 0' }}>
         <EmailButton href={hostedVoucherUrl} variant={isUrgent ? 'danger' : 'primary'} size="lg">
-          {isUrgent ? '🚨 PAY NOW - EXPIRES SOON!' : 'Complete Payment'}
+          {isUrgent ? t.payNowUrgent : t.completePayment}
         </EmailButton>
       </Section>
 
@@ -277,10 +355,9 @@ export default function MultibancoPaymentReminderTemplate({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>What happens if I don&apos;t pay in time?</strong>
+          <strong>{t.warningTitle}</strong>
           <br />
-          If payment is not received by the expiration date, your appointment will be automatically
-          cancelled and the time slot will become available to other patients.
+          {t.warningText}
         </Text>
       </Section>
 
@@ -301,7 +378,7 @@ export default function MultibancoPaymentReminderTemplate({
           fontFamily: 'system-ui, -apple-system, sans-serif',
         }}
       >
-        Need help with payment? Contact our support team and we&apos;ll be happy to assist you.
+        {t.support}
       </Text>
     </EmailLayout>
   );
