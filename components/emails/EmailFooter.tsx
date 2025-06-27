@@ -144,6 +144,7 @@ export function EmailFooter({
                     textDecoration: 'none',
                     fontWeight: '500',
                   }}
+                  aria-label={`Contact support at ${supportEmail}`}
                 >
                   {supportEmail}
                 </Link>
@@ -172,6 +173,7 @@ export function EmailFooter({
                   marginBottom: '8px',
                   fontWeight: '500',
                 }}
+                aria-label="Privacy Policy"
               >
                 {footerLabels.privacyPolicy}
               </Link>
@@ -186,6 +188,7 @@ export function EmailFooter({
                   marginBottom: '8px',
                   fontWeight: '500',
                 }}
+                aria-label="Terms of Service"
               >
                 {footerLabels.termsOfService}
               </Link>
@@ -246,6 +249,7 @@ export function EmailFooter({
                   border: `1px solid ${isBranded ? 'rgba(255, 255, 255, 0.2)' : themeColors?.border || '#E5E7EB'}`,
                   backgroundColor: isBranded ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
                 }}
+                aria-label="Unsubscribe from email notifications"
               >
                 {footerLabels.unsubscribe}
               </Link>
