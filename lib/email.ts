@@ -203,6 +203,14 @@ export async function generateWelcomeEmail(params: {
   const { default: WelcomeEmailTemplate } = await import('@/emails/users/welcome-email');
   const { render } = await import('@react-email/render');
 
+  const locale = params.locale || 'en';
+
+  // Get the translated subject
+  const t = await getTranslations({
+    locale,
+    namespace: 'notifications.welcome',
+  });
+
   const renderedHtml = await render(
     WelcomeEmailTemplate({
       userName: params.userName,
@@ -215,7 +223,7 @@ export async function generateWelcomeEmail(params: {
   return {
     html: renderedHtml,
     text: generatePlainTextFromHTML(renderedHtml),
-    subject: `Welcome to Eleva Care, ${params.userName}!`,
+    subject: t('subject', { userName: params.userName }),
   };
 }
 
@@ -244,6 +252,14 @@ export async function generateMultibancoBookingPendingEmail(params: {
   );
   const { render } = await import('@react-email/render');
 
+  const locale = params.locale || 'en';
+
+  // Get the translated subject
+  const t = await getTranslations({
+    locale,
+    namespace: 'notifications.multibancoBookingPending',
+  });
+
   const renderedHtml = await render(
     MultibancoBookingPendingTemplate({
       customerName: params.customerName,
@@ -266,7 +282,7 @@ export async function generateMultibancoBookingPendingEmail(params: {
   return {
     html: renderedHtml,
     text: generatePlainTextFromHTML(renderedHtml),
-    subject: `Multibanco Payment Pending - ${params.serviceName}`,
+    subject: t('subject', { serviceName: params.serviceName }),
   };
 }
 
@@ -297,6 +313,16 @@ export async function generateMultibancoPaymentReminderEmail(params: {
   );
   const { render } = await import('@react-email/render');
 
+  const locale = params.locale || 'en';
+  const isUrgent =
+    params.reminderType === 'urgent' || (params.daysRemaining && params.daysRemaining <= 1);
+
+  // Get the translated subject
+  const t = await getTranslations({
+    locale,
+    namespace: 'notifications.multibancoPaymentReminder',
+  });
+
   const renderedHtml = await render(
     MultibancoPaymentReminderTemplate({
       customerName: params.customerName,
@@ -321,7 +347,7 @@ export async function generateMultibancoPaymentReminderEmail(params: {
   return {
     html: renderedHtml,
     text: generatePlainTextFromHTML(renderedHtml),
-    subject: `Payment Reminder - ${params.serviceName}`,
+    subject: t(isUrgent ? 'subjectUrgent' : 'subject', { serviceName: params.serviceName }),
   };
 }
 
@@ -342,6 +368,14 @@ export async function generateNotificationEmail(params: {
   );
   const { render } = await import('@react-email/render');
 
+  const locale = params.locale || 'en';
+
+  // Get the translated subject format
+  const t = await getTranslations({
+    locale,
+    namespace: 'notifications.general',
+  });
+
   const renderedHtml = await render(
     NotificationEmailTemplate({
       title: params.title,
@@ -356,7 +390,7 @@ export async function generateNotificationEmail(params: {
   return {
     html: renderedHtml,
     text: generatePlainTextFromHTML(renderedHtml),
-    subject: params.title, // Use the title as subject for general notifications
+    subject: t('subject', { title: params.title }),
   };
 }
 
@@ -377,6 +411,14 @@ export async function generateExpertNotificationEmail(params: {
   );
   const { render } = await import('@react-email/render');
 
+  const locale = params.locale || 'en';
+
+  // Get the translated subject
+  const t = await getTranslations({
+    locale,
+    namespace: 'notifications.expertNotification',
+  });
+
   const renderedHtml = await render(
     ExpertNotificationTemplate({
       expertName: params.expertName,
@@ -391,6 +433,6 @@ export async function generateExpertNotificationEmail(params: {
   return {
     html: renderedHtml,
     text: generatePlainTextFromHTML(renderedHtml),
-    subject: `Eleva Care - ${params.notificationTitle}`,
+    subject: t('subject', { notificationTitle: params.notificationTitle }),
   };
 }
