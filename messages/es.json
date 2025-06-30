@@ -620,6 +620,12 @@
         "team": "El Equipo de Eleva.care",
         "allRightsReserved": "Todos los derechos reservados."
       }
+    },
+    "general": {
+      "subject": "{title} - Eleva Care"
+    },
+    "expertNotification": {
+      "subject": "{notificationTitle} - Eleva Care"
     }
   }
 }

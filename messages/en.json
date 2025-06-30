@@ -654,6 +654,12 @@
     "expertGoogleAccount": {
       "subject": "Google Account: {status}",
       "body": "Hi {expertName}, your Google account connection status: {status}. {message}"
+    },
+    "general": {
+      "subject": "{title} - Eleva Care"
+    },
+    "expertNotification": {
+      "subject": "{notificationTitle} - Eleva Care"
     }
   }
 }

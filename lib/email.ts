@@ -347,7 +347,7 @@ export async function generateMultibancoPaymentReminderEmail(params: {
   return {
     html: renderedHtml,
     text: generatePlainTextFromHTML(renderedHtml),
-    subject: t(isUrgent ? 'subjectUrgent' : 'subject', { serviceName: params.serviceName }),
+    subject: t(isUrgent ? 'subject.urgent' : 'subject.gentle', { serviceName: params.serviceName }),
   };
 }
 
