@@ -1,6 +1,6 @@
-import { MultibancoPaymentReminder } from '@/components/emails/MultibancoPaymentReminder';
 import { db } from '@/drizzle/db';
 import { EventTable, SlotReservationTable, UserTable } from '@/drizzle/schema';
+import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import { sendEmail } from '@/lib/email';
 import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
 import { render } from '@react-email/components';
@@ -209,7 +209,7 @@ export async function GET(request: NextRequest) {
 
           // Render reminder email
           const emailHtml = await render(
-            await MultibancoPaymentReminder({
+            MultibancoPaymentReminderTemplate({
               customerName: 'Valued Customer', // Could be stored in reservation or retrieved from metadata
               expertName,
               serviceName: event.name,

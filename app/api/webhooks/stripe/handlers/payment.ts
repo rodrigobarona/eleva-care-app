@@ -1,5 +1,4 @@
 import { triggerWorkflow } from '@/app/utils/novu';
-import { MultibancoBookingPending } from '@/components/emails/MultibancoBookingPending';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
@@ -10,6 +9,7 @@ import {
   SlotReservationTable,
   UserTable,
 } from '@/drizzle/schema';
+import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
   NOTIFICATION_TYPE_SECURITY_ALERT,
@@ -1197,9 +1197,12 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
             const appointmentTime = format(startDateTime, 'p');
             const voucherExpiresFormatted = format(voucherExpiresAt, 'PPP p');
 
+            // Extract locale for internationalization
+            const locale = extractLocaleFromPaymentIntent(paymentIntent);
+
             // Render email template
             const emailHtml = await render(
-              await MultibancoBookingPending({
+              MultibancoBookingPendingTemplate({
                 customerName,
                 expertName,
                 serviceName: event[0].name,
@@ -1213,7 +1216,7 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
                 voucherExpiresAt: voucherExpiresFormatted,
                 hostedVoucherUrl,
                 customerNotes,
-                locale: 'en', // Could be extended to use actual locale
+                locale,
               }),
             );
 
