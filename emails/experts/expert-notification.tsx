@@ -8,6 +8,7 @@ interface ExpertNotificationEmailProps {
   notificationMessage?: string;
   actionUrl?: string;
   actionText?: string;
+  locale?: string;
 }
 
 export const ExpertNotificationEmail = ({

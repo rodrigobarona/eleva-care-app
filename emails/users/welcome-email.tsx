@@ -11,6 +11,7 @@ interface WelcomeEmailProps {
     actionUrl: string;
     actionText: string;
   }>;
+  locale?: string;
 }
 
 export default function WelcomeEmailTemplate({

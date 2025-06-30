@@ -8,6 +8,7 @@ interface NotificationEmailProps {
   userName?: string;
   actionUrl?: string;
   actionText?: string;
+  locale?: string;
 }
 
 export default function NotificationEmail({

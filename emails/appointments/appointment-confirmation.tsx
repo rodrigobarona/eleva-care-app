@@ -12,6 +12,7 @@ interface AppointmentConfirmationProps {
   eventTitle?: string;
   meetLink?: string;
   notes?: string;
+  locale?: string;
 }
 
 export default function AppointmentConfirmationTemplate({
