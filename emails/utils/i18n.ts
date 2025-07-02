@@ -1,4 +1,4 @@
-export type SupportedLocale = 'en' | 'pt' | 'es' | 'br';
+export type SupportedLocale = 'en' | 'pt' | 'es' | 'pt-BR';
 
 export interface EmailTheme {
   mode: 'light' | 'dark';
@@ -91,7 +91,7 @@ export async function loadEmailMessages(locale: SupportedLocale): Promise<EmailT
       case 'es':
         messages = (await import('../../messages/es.json')).default;
         break;
-      case 'br':
+      case 'pt-BR':
         messages = (await import('../../messages/br.json')).default;
         break;
       default:

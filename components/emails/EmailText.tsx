@@ -1,4 +1,3 @@
-import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Text } from '@react-email/text';
 import React from 'react';
 
@@ -10,7 +9,6 @@ interface EmailTextProps {
   align?: 'left' | 'center' | 'right';
   className?: string;
   style?: React.CSSProperties;
-  locale?: SupportedLocale;
   theme?: 'light' | 'dark';
   // Accessibility props
   role?: string;
@@ -69,13 +67,11 @@ export function EmailText({
   align = 'left',
   className,
   style = {},
-
   theme = 'light',
   role,
   ariaLabel,
   ariaDescribedBy,
   id,
-  ...props
 }: EmailTextProps) {
   const colors = theme === 'dark' ? darkThemeColors : lightThemeColors;
 
@@ -88,7 +84,6 @@ export function EmailText({
     margin: '0',
     padding: '0',
     fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-
     ...style,
   };
 
@@ -99,11 +94,14 @@ export function EmailText({
     id,
   };
 
-  return (
-    <Text style={textStyle} className={className} {...accessibilityProps} {...props}>
-      {children}
-    </Text>
-  );
+  // Only pass safe props to Text component
+  const safeProps = {
+    style: textStyle,
+    className,
+    ...accessibilityProps,
+  };
+
+  return <Text {...safeProps}>{children}</Text>;
 }
 
 export default EmailText;

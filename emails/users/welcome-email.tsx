@@ -33,12 +33,12 @@ export default function WelcomeEmailTemplate({
   ],
 }: WelcomeEmailProps) {
   const subject = `Welcome to Eleva Care, ${userName}!`;
-  const previewText = `Start your journey to better health with personalized expert care`;
+  const preheader = `Start your journey to better health with personalized expert care`;
 
   return (
     <EmailLayout
       subject={subject}
-      previewText={previewText}
+      preheader={preheader}
       headerVariant="branded"
       footerVariant="default"
     >

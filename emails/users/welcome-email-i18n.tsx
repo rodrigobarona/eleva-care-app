@@ -86,7 +86,7 @@ export default function WelcomeEmailI18nTemplate({
   };
 
   const subject = welcomeEmail.subject || `Welcome to Eleva Care, ${userName}!`;
-  const previewText =
+  const preheader =
     t('notifications.welcome.email.preview') || 'Start your journey to better health';
 
   // Default next steps if not provided via props or translations
@@ -108,7 +108,7 @@ export default function WelcomeEmailI18nTemplate({
   return (
     <EmailLayout
       subject={subject}
-      previewText={previewText}
+      preheader={preheader}
       headerVariant="branded"
       footerVariant="default"
       theme={theme}

@@ -28,12 +28,12 @@ export const AppointmentReminderEmail = ({
   cancelUrl = 'https://eleva.care/cancel/123',
 }: AppointmentReminderEmailProps) => {
   const subject = `Reminder: Your appointment with ${expertName} is tomorrow`;
-  const previewText = `Reminder: Your appointment with ${expertName} is tomorrow - ${appointmentType}`;
+  const preheader = `Reminder: Your appointment with ${expertName} is tomorrow - ${appointmentType}`;
 
   return (
     <EmailLayout
       subject={subject}
-      previewText={previewText}
+      preheader={preheader}
       headerVariant="default"
       footerVariant="default"
     >

@@ -8,9 +8,8 @@ export interface EmailHeaderProps {
   showNavigation?: boolean;
   theme?: 'light' | 'dark';
   emailContext?: EmailContext;
-  userContext?: {
-    displayName?: string;
-  };
+  userRole?: 'patient' | 'expert' | 'admin';
+  highContrast?: boolean;
 }
 
 const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care';
@@ -25,7 +24,8 @@ export function EmailHeader({
   showNavigation = false,
   theme = 'light',
   emailContext,
-  userContext,
+  userRole,
+  highContrast,
 }: EmailHeaderProps) {
   const isDark = theme === 'dark';
 
@@ -37,11 +37,23 @@ export function EmailHeader({
   // Use theme colors from emailContext if available
   const themeColors = emailContext?.theme?.colors;
 
+  // Adjust colors for high contrast mode
+  const colors = highContrast
+    ? {
+        background: isDark ? '#000000' : '#FFFFFF',
+        border: isDark ? '#FFFFFF' : '#000000',
+        primary: isDark ? '#FFFFFF' : '#000000',
+        text: {
+          primary: isDark ? '#FFFFFF' : '#000000',
+        },
+      }
+    : themeColors;
+
   // Variant-specific styles with theme support
   const variantStyles = {
     default: {
-      backgroundColor: themeColors?.background || '#FFFFFF',
-      borderBottom: `1px solid ${themeColors?.border || '#F3F4F6'}`,
+      backgroundColor: colors?.background || '#FFFFFF',
+      borderBottom: `1px solid ${colors?.border || '#F3F4F6'}`,
       padding: '24px 0',
     },
     minimal: {
@@ -50,7 +62,7 @@ export function EmailHeader({
       padding: '16px 0',
     },
     branded: {
-      backgroundColor: themeColors?.primary || '#006D77',
+      backgroundColor: colors?.primary || '#006D77',
       borderBottom: 'none',
       padding: '24px 0',
     },
@@ -60,7 +72,7 @@ export function EmailHeader({
   const textColor =
     variant === 'branded'
       ? 'rgba(255, 255, 255, 0.9)'
-      : themeColors?.text.primary || (isDark ? '#E5E7EB' : '#374151');
+      : colors?.text?.primary || (isDark ? '#E5E7EB' : '#374151');
 
   // Navigation labels (could be internationalized)
   const navLabels = {
@@ -102,7 +114,7 @@ export function EmailHeader({
           </Column>
 
           <Column style={{ textAlign: 'right', verticalAlign: 'middle' }}>
-            {userContext?.displayName && (
+            {userRole && (
               <div
                 style={{
                   fontSize: '14px',
@@ -111,7 +123,7 @@ export function EmailHeader({
                   fontWeight: '500',
                 }}
               >
-                {userContext.displayName}
+                {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
               </div>
             )}
 

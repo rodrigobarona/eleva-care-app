@@ -27,12 +27,12 @@ export default function AppointmentConfirmationTemplate({
   notes = 'First consultation - health check',
 }: AppointmentConfirmationProps) {
   const subject = `Appointment Confirmed: ${eventTitle} with ${expertName}`;
-  const previewText = `Your appointment with ${expertName} is confirmed for ${appointmentDate} at ${appointmentTime}`;
+  const preheader = `Your appointment with ${expertName} is confirmed for ${appointmentDate} at ${appointmentTime}`;
 
   return (
     <EmailLayout
       subject={subject}
-      previewText={previewText}
+      preheader={preheader}
       headerVariant="default"
       footerVariant="default"
     >

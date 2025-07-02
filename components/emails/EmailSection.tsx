@@ -1,4 +1,3 @@
-import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Section } from '@react-email/section';
 import React from 'react';
 
@@ -11,7 +10,6 @@ interface EmailSectionProps {
   maxWidth?: string;
   className?: string;
   style?: React.CSSProperties;
-  locale?: SupportedLocale;
   theme?: 'light' | 'dark';
   // Accessibility props
   role?: string;
@@ -92,7 +90,6 @@ export function EmailSection({
   ariaLabelledBy,
   id,
   responsive = true,
-  ...props
 }: EmailSectionProps) {
   const backgrounds = theme === 'dark' ? darkThemeBackgrounds : lightThemeBackgrounds;
   const variantConfig = sectionVariants[variant];
@@ -111,7 +108,7 @@ export function EmailSection({
 
     // Responsive email styles
     ...(responsive && {
-      '@media screen and (max-width: 600px)': {
+      '@media screen and (maxWidth: 600px)': {
         padding: paddingValues.sm,
         maxWidth: '100% !important',
       },
@@ -127,7 +124,7 @@ export function EmailSection({
   };
 
   return (
-    <Section style={sectionStyle} className={className} {...accessibilityProps} {...props}>
+    <Section style={sectionStyle} className={className} {...accessibilityProps}>
       {children}
     </Section>
   );

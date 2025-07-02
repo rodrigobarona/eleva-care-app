@@ -90,12 +90,12 @@ export default function MultibancoBookingPendingTemplate({
   const t = translations[locale as keyof typeof translations] || translations.en;
 
   const subject = t.subject;
-  const previewText = t.previewText;
+  const preheader = t.previewText;
 
   return (
     <EmailLayout
       subject={subject}
-      previewText={previewText}
+      preheader={preheader}
       headerVariant="default"
       footerVariant="default"
     >

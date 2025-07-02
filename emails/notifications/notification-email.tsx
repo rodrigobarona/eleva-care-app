@@ -20,12 +20,12 @@ export default function NotificationEmail({
 }: NotificationEmailProps) {
   const greeting = userName ? `Hi ${userName},` : 'Hello,';
   const subject = `${title} - Eleva Care`;
-  const previewText = `${title} - ${message.substring(0, 100)}...`;
+  const preheader = `${title} - ${message.substring(0, 100)}...`;
 
   return (
     <EmailLayout
       subject={subject}
-      previewText={previewText}
+      preheader={preheader}
       headerVariant="default"
       footerVariant="default"
     >

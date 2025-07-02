@@ -19,12 +19,12 @@ export const ExpertNotificationEmail = ({
   actionText = 'View Appointments',
 }: ExpertNotificationEmailProps) => {
   const subject = `${notificationTitle} - Eleva Care`;
-  const previewText = `${notificationTitle} - ${notificationMessage.substring(0, 100)}...`;
+  const preheader = `${notificationTitle} - ${notificationMessage.substring(0, 100)}...`;
 
   return (
     <EmailLayout
       subject={subject}
-      previewText={previewText}
+      preheader={preheader}
       headerVariant="default"
       footerVariant="default"
     >

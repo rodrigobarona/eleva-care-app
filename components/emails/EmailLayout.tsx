@@ -8,15 +8,15 @@ import { EmailHeader } from './EmailHeader';
 export interface EmailLayoutProps {
   children: React.ReactNode;
   subject: string;
-  previewText?: string;
+  preheader?: string;
   headerVariant?: 'default' | 'minimal' | 'branded';
   footerVariant?: 'default' | 'minimal' | 'branded';
   theme?: 'light' | 'dark';
   locale?: SupportedLocale;
   emailContext?: EmailContext;
-  userContext?: {
-    displayName?: string;
-  };
+  userRole?: 'patient' | 'expert' | 'admin';
+  darkMode?: boolean;
+  highContrast?: boolean;
 }
 
 /**
@@ -26,21 +26,31 @@ export interface EmailLayoutProps {
 export function EmailLayout({
   children,
   subject,
-  previewText,
+  preheader,
   headerVariant = 'default',
   footerVariant = 'default',
   theme = 'light',
   locale = 'en',
   emailContext,
-  userContext,
+  userRole,
+  darkMode,
+  highContrast,
 }: EmailLayoutProps) {
-  const isDark = theme === 'dark';
+  const isDark = darkMode || theme === 'dark';
 
   // Use theme colors from emailContext if available, otherwise fallback to defaults
   const themeColors = emailContext?.theme?.colors || {
     background: isDark ? '#1F2937' : '#F9FAFB',
     surface: isDark ? '#374151' : '#FFFFFF',
   };
+
+  // Adjust colors for high contrast mode
+  const colors = highContrast
+    ? {
+        background: isDark ? '#000000' : '#FFFFFF',
+        surface: isDark ? '#000000' : '#FFFFFF',
+      }
+    : themeColors;
 
   return (
     <Html lang={locale} dir="ltr">
@@ -53,11 +63,11 @@ export function EmailLayout({
         <meta name="format-detection" content="telephone=no,date=no,address=no,email=no" />
       </Head>
 
-      {previewText && <Preview>{previewText}</Preview>}
+      {preheader && <Preview>{preheader}</Preview>}
 
       <Body
         style={{
-          backgroundColor: themeColors.background,
+          backgroundColor: colors.background,
           fontFamily: 'system-ui, -apple-system, sans-serif',
           margin: 0,
           padding: '20px 0',
@@ -67,10 +77,10 @@ export function EmailLayout({
           style={{
             maxWidth: '600px',
             margin: '0 auto',
-            backgroundColor: themeColors.surface,
+            backgroundColor: colors.surface,
             borderRadius: '12px',
             overflow: 'hidden',
-            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+            boxShadow: highContrast ? 'none' : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           }}
         >
           {/* Email Header */}
@@ -78,14 +88,15 @@ export function EmailLayout({
             variant={headerVariant}
             theme={theme}
             emailContext={emailContext}
-            userContext={userContext}
+            userRole={userRole}
+            highContrast={highContrast}
           />
 
           {/* Main Content */}
           <Container
             style={{
               padding: '32px 24px',
-              backgroundColor: themeColors.surface,
+              backgroundColor: colors.surface,
             }}
           >
             {children}
@@ -123,7 +134,7 @@ export function EmailLayout({
           }
           
           /* Mobile responsive */
-          @media screen and (max-width: 600px) {
+          @media screen and (maxWidth: 600px) {
             .mobile-full-width {
               width: 100% !important;
               max-width: 100% !important;

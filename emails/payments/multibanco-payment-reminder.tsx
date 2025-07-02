@@ -112,12 +112,12 @@ export default function MultibancoPaymentReminderTemplate({
   const t = translations[locale as keyof typeof translations] || translations.en;
 
   const subject = isUrgent ? t.subjectUrgent : t.subject;
-  const previewText = isUrgent ? t.previewTextUrgent : t.previewText;
+  const preheader = isUrgent ? t.previewTextUrgent : t.previewText;
 
   return (
     <EmailLayout
       subject={subject}
-      previewText={previewText}
+      preheader={preheader}
       headerVariant="default"
       footerVariant="default"
     >

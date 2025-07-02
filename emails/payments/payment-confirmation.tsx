@@ -32,12 +32,12 @@ export const PaymentConfirmationEmail = ({
   locale = 'en-GB',
 }: PaymentConfirmationEmailProps) => {
   const subject = `Payment confirmed for your appointment with ${expertName}`;
-  const previewText = `Your payment of ${currency} ${amount} has been successfully processed. Your appointment is confirmed.`;
+  const preheader = `Your payment of ${currency} ${amount} has been successfully processed. Your appointment is confirmed.`;
 
   return (
     <EmailLayout
       subject={subject}
-      previewText={previewText}
+      preheader={preheader}
       headerVariant="default"
       footerVariant="default"
     >
