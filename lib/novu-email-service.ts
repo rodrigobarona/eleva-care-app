@@ -18,7 +18,7 @@ import React from 'react';
  * ✅ Multi-channel coordination (email + in-app notifications)
  * ✅ Localization support for multiple languages
  * ✅ Enhanced Novu workflow integration
- * ✅ Backward compatibility with existing templates
+
  *
  * USAGE EXAMPLES:
  *
@@ -687,7 +687,6 @@ export class ElevaEmailService {
       return result.html;
     }
 
-    // Fallback to original implementation for backward compatibility
     const template = React.createElement(AppointmentConfirmationTemplate, {
       expertName: data.expertName,
       clientName: data.clientName,
@@ -745,7 +744,6 @@ export class ElevaEmailService {
       return result.html;
     }
 
-    // Fallback to original implementation for backward compatibility
     const template = React.createElement(MultibancoBookingPendingTemplate, data);
     return render(template);
   }
@@ -795,7 +793,6 @@ export class ElevaEmailService {
       return result.html;
     }
 
-    // Fallback to original implementation for backward compatibility
     const template = React.createElement(MultibancoPaymentReminderTemplate, data);
     return render(template);
   }

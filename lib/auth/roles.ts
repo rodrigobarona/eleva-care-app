@@ -27,7 +27,7 @@ export type UserRoles = UserRole | UserRole[];
 
 export const ROLES = ALL_ROLES;
 
-// Re-export constants for backward compatibility
+// Role constants
 export {
   ROLE_USER,
   ROLE_TOP_EXPERT,
@@ -72,3 +72,21 @@ export async function updateUserRole(userId: string, roles: UserRoles): Promise<
     throw new Error(error.message || 'Failed to update role');
   }
 }
+
+export const ROLE_PERMISSIONS = {
+  [ROLE_ADMIN]: ['*'],
+  [ROLE_TOP_EXPERT]: ['manage_appointments', 'manage_own_availability'],
+  [ROLE_COMMUNITY_EXPERT]: ['manage_appointments', 'manage_own_availability'],
+  [ROLE_LECTURER]: ['manage_appointments', 'manage_own_availability'],
+  [ROLE_USER]: ['book_appointments', 'manage_own_profile'],
+} as const;
+
+// Role constants
+export const USER_ROLES = {
+  ADMIN: ROLE_ADMIN,
+  TOP_EXPERT: ROLE_TOP_EXPERT,
+  COMMUNITY_EXPERT: ROLE_COMMUNITY_EXPERT,
+  LECTURER: ROLE_LECTURER,
+  USER: ROLE_USER,
+  SUPERADMIN: ROLE_SUPERADMIN,
+} as const;

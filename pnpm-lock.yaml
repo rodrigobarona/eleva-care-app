@@ -126,12 +126,42 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.4
         version: 1.2.4(@types/react-dom@19.0.4(@types/react@19.0.10))(@types/react@19.0.10)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@react-email/column':
+        specifier: 0.0.13
+        version: 0.0.13(react@19.1.0)
       '@react-email/components':
         specifier: ^0.0.35
         version: 0.0.35(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@react-email/container':
+        specifier: 0.0.15
+        version: 0.0.15(react@19.1.0)
+      '@react-email/font':
+        specifier: 0.0.9
+        version: 0.0.9(react@19.1.0)
+      '@react-email/heading':
+        specifier: 0.0.15
+        version: 0.0.15(react@19.1.0)
+      '@react-email/hr':
+        specifier: 0.0.11
+        version: 0.0.11(react@19.1.0)
+      '@react-email/img':
+        specifier: 0.0.11
+        version: 0.0.11(react@19.1.0)
       '@react-email/render':
         specifier: ^1.0.6
         version: 1.0.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@react-email/row':
+        specifier: 0.0.12
+        version: 0.0.12(react@19.1.0)
+      '@react-email/section':
+        specifier: 0.0.16
+        version: 0.0.16(react@19.1.0)
+      '@react-email/tailwind':
+        specifier: 1.0.5
+        version: 1.0.5(react@19.1.0)
+      '@react-email/text':
+        specifier: 0.1.5
+        version: 0.1.5(react@19.1.0)
       '@stripe/react-stripe-js':
         specifier: ^3.6.0
         version: 3.6.0(@stripe/stripe-js@6.1.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -2477,8 +2507,20 @@ packages:
     peerDependencies:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
 
+  '@react-email/tailwind@1.0.5':
+    resolution: {integrity: sha512-BH00cZSeFfP9HiDASl+sPHi7Hh77W5nzDgdnxtsVr/m3uQD9g180UwxcE3PhOfx0vRdLzQUU8PtmvvDfbztKQg==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      react: ^18.0 || ^19.0 || ^19.0.0-rc
+
   '@react-email/text@0.1.1':
     resolution: {integrity: sha512-Zo9tSEzkO3fODLVH1yVhzVCiwETfeEL5wU93jXKWo2DHoMuiZ9Iabaso3T0D0UjhrCB1PBMeq2YiejqeToTyIQ==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      react: ^18.0 || ^19.0 || ^19.0.0-rc
+
+  '@react-email/text@0.1.5':
+    resolution: {integrity: sha512-o5PNHFSE085VMXayxH+SJ1LSOtGsTv+RpNKnTiJDrJUwoBu77G3PlKOsZZQHCNyD28WsQpl9v2WcJLbQudqwPg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
       react: ^18.0 || ^19.0 || ^19.0.0-rc
@@ -9139,7 +9181,15 @@ snapshots:
     dependencies:
       react: 19.1.0
 
+  '@react-email/tailwind@1.0.5(react@19.1.0)':
+    dependencies:
+      react: 19.1.0
+
   '@react-email/text@0.1.1(react@19.1.0)':
+    dependencies:
+      react: 19.1.0
+
+  '@react-email/text@0.1.5(react@19.1.0)':
     dependencies:
       react: 19.1.0
 
