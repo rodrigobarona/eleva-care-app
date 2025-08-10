@@ -267,7 +267,13 @@ const Step2Content = React.memo<Step2ContentProps>(
             disabled={isSubmitting || isProcessingRef.current}
             className="relative"
           >
-            {price > 0 ? 'Continue to Payment' : 'Schedule Meeting'}
+            {isSubmitting || isProcessingRef.current
+              ? price > 0
+                ? 'Creating Checkout...'
+                : 'Scheduling...'
+              : price > 0
+                ? 'Continue to Payment'
+                : 'Schedule Meeting'}
             {(isSubmitting || isProcessingRef.current) && (
               <Loader2 className="ml-2 h-4 w-4 animate-spin" />
             )}
@@ -512,15 +518,8 @@ export function MeetingFormContent({
       return null;
     }
 
-    // **CRITICAL: Use both ref and Redis for immediate + distributed protection**
-    if (isProcessingRef.current) {
-      console.log('🚫 Payment intent creation already in progress (ref) - blocking duplicate');
-      return checkoutUrl;
-    }
-
-    // **IMMEDIATE STATE UPDATE: Set processing flag using ref**
-    isProcessingRef.current = true;
-    forceRender(); // Force re-render to show loading state
+    // **REDIS-ONLY DUPLICATE PREVENTION: Don't interfere with handleNextStep's ref management**
+    // The ref is managed by handleNextStep, so we only use Redis for distributed protection
     setIsCreatingCheckout(true);
 
     try {
@@ -616,10 +615,8 @@ export function MeetingFormContent({
       });
       return null;
     } finally {
-      // **CLEANUP: Always reset processing state**
-      isProcessingRef.current = false;
+      // **CLEANUP: Only reset creation state, ref is managed by handleNextStep**
       setIsCreatingCheckout(false);
-      forceRender(); // Force re-render to update UI
     }
   }, [
     checkoutUrl,
@@ -777,6 +774,11 @@ export function MeetingFormContent({
 
       // For free sessions, handle differently
       if (price === 0) {
+        // **IMMEDIATE STATE UPDATE: Set processing flag for free sessions too**
+        isProcessingRef.current = true;
+        setIsSubmitting(true);
+        forceRender();
+
         try {
           // Get current form values and submit directly (bypasses handleSubmit race condition)
           // Form validation already done above
@@ -794,6 +796,45 @@ export function MeetingFormContent({
           forceRender();
         }
         return;
+      }
+
+      // **FIX: Check if we already have a checkout URL and redirect immediately**
+      if (checkoutUrl) {
+        console.log('✅ Using existing checkout URL for immediate redirect:', checkoutUrl);
+
+        // **IMMEDIATE STATE UPDATE: Set processing flag for existing checkout redirect**
+        isProcessingRef.current = true;
+        setIsSubmitting(true);
+        forceRender();
+
+        // **SECURITY: Validate existing URL before redirect**
+        try {
+          const urlObject = new URL(checkoutUrl);
+          if (!urlObject.hostname.includes('checkout.stripe.com')) {
+            throw new Error('Invalid existing checkout URL domain');
+          }
+          console.log('🚀 Redirecting to existing checkout:', checkoutUrl);
+
+          // **FIX: Add timeout fallback to reset state if redirect fails**
+          setTimeout(() => {
+            if (!document.hidden) {
+              console.log('⚠️ Existing checkout redirect timeout - resetting state');
+              isProcessingRef.current = false;
+              setIsSubmitting(false);
+              forceRender();
+            }
+          }, 3000);
+
+          window.location.href = checkoutUrl;
+          return;
+        } catch (urlError) {
+          console.error('❌ Invalid existing checkout URL:', checkoutUrl, urlError);
+          // Clear the invalid URL and reset state, then continue to create a new one
+          setCheckoutUrl(null);
+          isProcessingRef.current = false;
+          setIsSubmitting(false);
+          forceRender();
+        }
       }
 
       // **IMMEDIATE STATE UPDATE: Use ref for instant feedback**
@@ -827,6 +868,17 @@ export function MeetingFormContent({
           // **OPTIMIZED: Redirect immediately without transitioning to step 3**
           // This reduces delay and provides a smoother user experience
           console.log('Performing immediate redirect to Stripe checkout...');
+
+          // **FIX: Add timeout fallback to reset state if redirect fails**
+          setTimeout(() => {
+            if (!document.hidden) {
+              console.log('⚠️ Redirect timeout - resetting state');
+              isProcessingRef.current = false;
+              setIsSubmitting(false);
+              forceRender();
+            }
+          }, 3000);
+
           window.location.href = url;
 
           // The redirect will happen immediately, so we don't need to update UI further
@@ -846,7 +898,16 @@ export function MeetingFormContent({
         forceRender();
       }
     },
-    [form, price, createPaymentIntent, onSubmit, transitionToStep, forceRender],
+    [
+      form,
+      price,
+      createPaymentIntent,
+      onSubmit,
+      transitionToStep,
+      forceRender,
+      checkoutUrl,
+      setCheckoutUrl,
+    ],
   );
 
   // Initialize first available date only once
