@@ -51,11 +51,12 @@ const PAYMENT_RATE_LIMITS = {
  * Enhanced payment rate limiting with multi-layer protection
  * Implements stricter limits for financial operations
  */
-async function checkPaymentRateLimits(userId: string, clientIP: string) {
+async function checkPaymentRateLimits(userIdentifier: string, clientIP: string) {
   try {
     // Layer 1: User-based rate limiting (strictest - 15 minute window)
+    // userIdentifier can be either "userId" or "guest:email"
     const userLimit = await RateLimitCache.checkRateLimit(
-      `payment:user:${userId}`,
+      `payment:${userIdentifier}`, // This will create "payment:guest:email" or "payment:userId"
       PAYMENT_RATE_LIMITS.USER.maxAttempts,
       PAYMENT_RATE_LIMITS.USER.windowSeconds,
     );
@@ -73,7 +74,7 @@ async function checkPaymentRateLimits(userId: string, clientIP: string) {
 
     // Layer 2: Daily user limits (additional fraud protection)
     const userDailyLimit = await RateLimitCache.checkRateLimit(
-      `payment:user-daily:${userId}`,
+      `payment:daily:${userIdentifier}`, // Consistent naming: "payment:daily:guest:email" or "payment:daily:userId"
       PAYMENT_RATE_LIMITS.USER_DAILY.maxAttempts,
       PAYMENT_RATE_LIMITS.USER_DAILY.windowSeconds,
     );
@@ -170,15 +171,15 @@ async function checkPaymentRateLimits(userId: string, clientIP: string) {
 /**
  * Record payment rate limit attempts across all layers
  */
-async function recordPaymentRateLimitAttempts(userId: string, clientIP: string) {
+async function recordPaymentRateLimitAttempts(userIdentifier: string, clientIP: string) {
   try {
     await Promise.all([
       RateLimitCache.recordAttempt(
-        `payment:user:${userId}`,
+        `payment:${userIdentifier}`, // Consistent with checkPaymentRateLimits
         PAYMENT_RATE_LIMITS.USER.windowSeconds,
       ),
       RateLimitCache.recordAttempt(
-        `payment:user-daily:${userId}`,
+        `payment:daily:${userIdentifier}`, // Consistent with checkPaymentRateLimits
         PAYMENT_RATE_LIMITS.USER_DAILY.windowSeconds,
       ),
       RateLimitCache.recordAttempt(`payment:ip:${clientIP}`, PAYMENT_RATE_LIMITS.IP.windowSeconds),

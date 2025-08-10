@@ -778,14 +778,8 @@ export function MeetingFormContent({
       // For free sessions, handle differently
       if (price === 0) {
         try {
-          // **FIX: Check form validity first, then submit directly**
-          const isValid = await form.trigger(); // Validate all fields
-          if (!isValid) {
-            console.log('❌ Form validation failed for free session');
-            return;
-          }
-
           // Get current form values and submit directly (bypasses handleSubmit race condition)
+          // Form validation already done above
           const formValues = form.getValues();
           await onSubmit(formValues);
         } catch (error) {
