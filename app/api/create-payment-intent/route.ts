@@ -7,7 +7,7 @@ import {
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
-import { IdempotencyCache, RateLimitCache } from '@/lib/redis';
+import { FormCache, IdempotencyCache, RateLimitCache } from '@/lib/redis';
 import { getOrCreateStripeCustomer } from '@/lib/stripe';
 import { and, eq, gt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
@@ -375,6 +375,33 @@ export async function POST(request: NextRequest) {
         console.log(`🔄 Returning cached result for idempotency key: ${idempotencyKey}`);
         return NextResponse.json({ url: cachedResult.url });
       }
+    }
+
+    // **FORM CACHE: Additional duplicate prevention for form submissions**
+    if (meetingData?.guestEmail && meetingData?.startTime) {
+      const formCacheKey = FormCache.generateKey(
+        eventId,
+        meetingData.guestEmail,
+        meetingData.startTime,
+      );
+
+      // Check if this exact form submission is already being processed
+      const isAlreadyProcessing = await FormCache.isProcessing(formCacheKey);
+      if (isAlreadyProcessing) {
+        console.log('🚫 Form submission already in progress (FormCache) - blocking duplicate');
+        return NextResponse.json({ error: 'Request already in progress' }, { status: 429 });
+      }
+
+      // Mark this submission as processing
+      await FormCache.set(formCacheKey, {
+        eventId,
+        guestEmail: meetingData.guestEmail,
+        startTime: meetingData.startTime,
+        status: 'processing',
+        timestamp: Date.now(),
+      });
+
+      console.log('📝 Marked form submission as processing in FormCache:', formCacheKey);
     }
 
     // **RECORD RATE LIMIT ATTEMPT: Only after validating request**
@@ -798,6 +825,17 @@ export async function POST(request: NextRequest) {
       console.log(`💾 Cached result for idempotency key: ${idempotencyKey}`);
     }
 
+    // **FORM CACHE: Mark submission as completed**
+    if (meetingData?.guestEmail && meetingData?.startTime) {
+      const formCacheKey = FormCache.generateKey(
+        eventId,
+        meetingData.guestEmail,
+        meetingData.startTime,
+      );
+      await FormCache.markCompleted(formCacheKey);
+      console.log('✅ Marked form submission as completed in FormCache:', formCacheKey);
+    }
+
     return NextResponse.json({
       url: session.url,
     });
@@ -821,6 +859,21 @@ export async function POST(request: NextRequest) {
             }
           : undefined,
     });
+
+    // **FORM CACHE: Mark submission as failed**
+    if (meetingData?.guestEmail && meetingData?.startTime) {
+      try {
+        const formCacheKey = FormCache.generateKey(
+          eventId,
+          meetingData.guestEmail,
+          meetingData.startTime,
+        );
+        await FormCache.markFailed(formCacheKey);
+        console.log('❌ Marked form submission as failed in FormCache:', formCacheKey);
+      } catch (cacheError) {
+        console.error('Failed to mark FormCache as failed:', cacheError);
+      }
+    }
 
     return NextResponse.json(
       {

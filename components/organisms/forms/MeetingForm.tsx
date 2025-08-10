@@ -512,19 +512,16 @@ export function MeetingFormContent({
       throw new Error('Missing required form data');
     }
 
-    // **REDIS-BASED DUPLICATE PREVENTION: Generate cache key**
+    // **CLIENT-SIDE DUPLICATE PREVENTION: Generate cache key for server-side use only**
     const formCacheKey = FormCache.generateKey(
       eventId,
       formValues.guestEmail,
       formValues.startTime.toISOString(),
     );
 
-    // **CHECK: If this submission is already processing**
-    const isAlreadyProcessing = await FormCache.isProcessing(formCacheKey);
-    if (isAlreadyProcessing) {
-      console.log('🚫 Form submission already in progress (Redis cache) - blocking duplicate');
-      return null;
-    }
+    // **NOTE: FormCache.isProcessing() can't be called client-side (Redis is server-only)**
+    // Server-side duplicate prevention will be handled by the API endpoint
+    console.log('🔍 Generated cache key for server-side deduplication:', formCacheKey);
 
     // **UNIQUE REQUEST ID: Generate and track current request**
     const currentRequestId = generateRequestKey();
@@ -545,14 +542,8 @@ export function MeetingFormContent({
     setIsCreatingCheckout(true);
 
     try {
-      // **REDIS: Mark as processing in distributed cache**
-      await FormCache.set(formCacheKey, {
-        eventId,
-        guestEmail: formValues.guestEmail,
-        startTime: formValues.startTime.toISOString(),
-        status: 'processing',
-        timestamp: Date.now(),
-      });
+      // **NOTE: Redis operations moved to server-side API endpoint**
+      // The /api/create-payment-intent endpoint will handle FormCache operations
 
       // **IDEMPOTENCY: Use the current request ID for API deduplication**
       const requestKey = currentRequestId;
@@ -620,16 +611,13 @@ export function MeetingFormContent({
 
       console.log('✅ Payment intent created successfully');
 
-      // **REDIS: Mark as completed**
-      await FormCache.markCompleted(formCacheKey);
-
+      // **NOTE: FormCache.markCompleted() will be handled server-side**
       setCheckoutUrl(url);
       return url;
     } catch (error) {
       console.error('❌ Payment creation error:', error);
 
-      // **ERROR HANDLING: Mark as failed in Redis and reset state**
-      await FormCache.markFailed(formCacheKey);
+      // **ERROR HANDLING: Reset state (server handles FormCache.markFailed)**
 
       form.setError('root', {
         message:
