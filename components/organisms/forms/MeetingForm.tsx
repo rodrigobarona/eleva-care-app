@@ -346,6 +346,11 @@ export function MeetingFormContent({
   // **CRITICAL: Use ref for immediate duplicate prevention**
   const isProcessingRef = React.useRef(false);
 
+  // **CLIENT-SIDE DUPLICATE PREVENTION: Track request timestamps and IDs**
+  const lastRequestTimestamp = React.useRef<number>(0);
+  const activeRequestId = React.useRef<string | null>(null);
+  const requestCooldownMs = 2000; // 2 seconds minimum between requests
+
   // **PREVENT DUPLICATE REQUESTS: Force re-render when ref changes**
   const [, forceRender] = React.useReducer((x) => x + 1, 0);
 
@@ -421,7 +426,9 @@ export function MeetingFormContent({
   // **IDEMPOTENCY: Generate unique request key for deduplication**
   const generateRequestKey = React.useCallback(() => {
     const formValues = form.getValues();
-    return `${eventId}-${formValues.guestEmail}-${formValues.startTime?.toISOString()}-${Date.now()}`;
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substring(2, 15);
+    return `${eventId}-${formValues.guestEmail}-${formValues.startTime?.toISOString()}-${timestamp}-${random}`;
   }, [eventId, form]);
 
   // Function to check if a date is blocked
@@ -518,8 +525,22 @@ export function MeetingFormContent({
       return null;
     }
 
-    // **REDIS-ONLY DUPLICATE PREVENTION: Don't interfere with handleNextStep's ref management**
-    // The ref is managed by handleNextStep, so we only use Redis for distributed protection
+    // **UNIQUE REQUEST ID: Generate and track current request**
+    const currentRequestId = generateRequestKey();
+
+    // **CLIENT-SIDE REQUEST TRACKING: Prevent duplicate requests with same ID**
+    if (activeRequestId.current === currentRequestId) {
+      console.log('🚫 Same request already in progress - blocking duplicate');
+      return null;
+    }
+
+    if (activeRequestId.current !== null) {
+      console.log('🚫 Different request already active - blocking new request');
+      return null;
+    }
+
+    // **MARK REQUEST AS ACTIVE**
+    activeRequestId.current = currentRequestId;
     setIsCreatingCheckout(true);
 
     try {
@@ -532,8 +553,8 @@ export function MeetingFormContent({
         timestamp: Date.now(),
       });
 
-      // **IDEMPOTENCY: Generate request key for API deduplication**
-      const requestKey = generateRequestKey();
+      // **IDEMPOTENCY: Use the current request ID for API deduplication**
+      const requestKey = currentRequestId;
 
       // Get the locale for multilingual emails
       const userLocale = locale || 'en';
@@ -615,8 +636,9 @@ export function MeetingFormContent({
       });
       return null;
     } finally {
-      // **CLEANUP: Only reset creation state, ref is managed by handleNextStep**
+      // **CLEANUP: Reset creation state and clear active request ID**
       setIsCreatingCheckout(false);
+      activeRequestId.current = null;
     }
   }, [
     checkoutUrl,
@@ -759,11 +781,32 @@ export function MeetingFormContent({
         return;
       }
 
-      // **CRITICAL: Prevent double submissions using ref**
+      // **CRITICAL: Prevent double submissions using multiple mechanisms**
       if (isProcessingRef.current) {
         console.log('🚫 Payment flow already in progress - blocking duplicate');
         return;
       }
+
+      // **CLIENT-SIDE COOLDOWN: Prevent rapid successive clicks**
+      const now = Date.now();
+      const timeSinceLastRequest = now - lastRequestTimestamp.current;
+      if (timeSinceLastRequest < requestCooldownMs) {
+        const remainingMs = requestCooldownMs - timeSinceLastRequest;
+        console.log(`🚫 Request cooldown active - ${remainingMs}ms remaining`);
+
+        // **USER FEEDBACK: Show brief message for too-fast clicks**
+        form.setError('root', {
+          message: 'Please wait a moment before trying again...',
+        });
+
+        // **AUTO-CLEAR ERROR: Remove error message after cooldown**
+        setTimeout(() => {
+          form.clearErrors('root');
+        }, remainingMs);
+
+        return;
+      }
+      lastRequestTimestamp.current = now;
 
       // **FIX: Validate form before processing payment**
       const isValid = await form.trigger(); // Validate all fields
