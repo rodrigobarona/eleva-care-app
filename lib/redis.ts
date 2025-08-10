@@ -675,7 +675,27 @@ export const RateLimitCache = {
     try {
       // Get current attempts data
       const cached = await redisManager.get(cacheKey);
-      let attempts: number[] = cached ? JSON.parse(cached) : [];
+      let attempts: number[] = [];
+
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          // Validate that parsed data is an array of numbers
+          if (Array.isArray(parsed) && parsed.every((item) => typeof item === 'number')) {
+            attempts = parsed;
+          } else {
+            console.warn(`Invalid rate limit cache data for key ${cacheKey}, resetting:`, parsed);
+            // Reset corrupted cache entry
+            await redisManager.del(cacheKey);
+            attempts = [];
+          }
+        } catch (parseError) {
+          console.error(`Failed to parse rate limit cache data for key ${cacheKey}:`, parseError);
+          // Reset corrupted cache entry
+          await redisManager.del(cacheKey);
+          attempts = [];
+        }
+      }
 
       // Filter out attempts outside the current window
       attempts = attempts.filter((timestamp) => timestamp > windowStart);
@@ -721,7 +741,27 @@ export const RateLimitCache = {
     try {
       // Get current attempts
       const cached = await redisManager.get(cacheKey);
-      let attempts: number[] = cached ? JSON.parse(cached) : [];
+      let attempts: number[] = [];
+
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          // Validate that parsed data is an array of numbers
+          if (Array.isArray(parsed) && parsed.every((item) => typeof item === 'number')) {
+            attempts = parsed;
+          } else {
+            console.warn(`Invalid rate limit cache data for key ${cacheKey}, resetting:`, parsed);
+            // Reset corrupted cache entry
+            await redisManager.del(cacheKey);
+            attempts = [];
+          }
+        } catch (parseError) {
+          console.error(`Failed to parse rate limit cache data for key ${cacheKey}:`, parseError);
+          // Reset corrupted cache entry
+          await redisManager.del(cacheKey);
+          attempts = [];
+        }
+      }
 
       // Filter out old attempts and add new one
       attempts = attempts.filter((timestamp) => timestamp > windowStart);
@@ -825,7 +865,33 @@ export const NotificationQueueCache = {
     try {
       // Get current queue
       const cached = await redisManager.get(cacheKey);
-      const queue: QueuedNotification[] = cached ? JSON.parse(cached) : [];
+      let queue: QueuedNotification[] = [];
+
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          // Validate that parsed data is an array
+          if (Array.isArray(parsed)) {
+            queue = parsed;
+          } else {
+            console.warn(
+              `Invalid notification queue cache data for key ${cacheKey}, resetting:`,
+              parsed,
+            );
+            // Reset corrupted cache entry
+            await redisManager.del(cacheKey);
+            queue = [];
+          }
+        } catch (parseError) {
+          console.error(
+            `Failed to parse notification queue cache data for key ${cacheKey}:`,
+            parseError,
+          );
+          // Reset corrupted cache entry
+          await redisManager.del(cacheKey);
+          queue = [];
+        }
+      }
 
       // Add new notification
       queue.push(queueItem);
@@ -862,7 +928,19 @@ export const NotificationQueueCache = {
       const cached = await redisManager.get(cacheKey);
       if (!cached) return [];
 
-      const queue: QueuedNotification[] = JSON.parse(cached);
+      const parsed = JSON.parse(cached);
+      // Validate that parsed data is an array
+      if (!Array.isArray(parsed)) {
+        console.warn(
+          `Invalid notification queue cache data for key ${cacheKey}, resetting:`,
+          parsed,
+        );
+        // Reset corrupted cache entry
+        await redisManager.del(cacheKey);
+        return [];
+      }
+
+      const queue: QueuedNotification[] = parsed;
 
       // Filter notifications that are ready to be sent
       return queue.filter((item) => item.scheduledFor <= now).slice(0, limit);
@@ -882,7 +960,19 @@ export const NotificationQueueCache = {
       const cached = await redisManager.get(cacheKey);
       if (!cached) return;
 
-      let queue: QueuedNotification[] = JSON.parse(cached);
+      const parsed = JSON.parse(cached);
+      // Validate that parsed data is an array
+      if (!Array.isArray(parsed)) {
+        console.warn(
+          `Invalid notification queue cache data for key ${cacheKey}, resetting:`,
+          parsed,
+        );
+        // Reset corrupted cache entry
+        await redisManager.del(cacheKey);
+        return;
+      }
+
+      let queue: QueuedNotification[] = parsed;
 
       // Remove processed notifications
       queue = queue.filter((item) => !notificationIds.includes(item.id));
