@@ -378,8 +378,26 @@ export const FormCache = {
     ttlSeconds: number = FORM_DEFAULT_TTL_SECONDS,
   ): Promise<void> {
     const cacheKey = FORM_CACHE_PREFIX + key;
-    const value = JSON.stringify(formData);
-    await redisManager.set(cacheKey, value, ttlSeconds);
+
+    // Validate formData structure before stringifying
+    if (!formData || typeof formData !== 'object') {
+      console.error('Invalid formData provided to FormCache.set:', formData);
+      return;
+    }
+
+    // Ensure all required fields are present
+    const { eventId, guestEmail, startTime, status, timestamp } = formData;
+    if (!eventId || !guestEmail || !startTime || !status || !timestamp) {
+      console.error('Missing required fields in formData:', formData);
+      return;
+    }
+
+    try {
+      const value = JSON.stringify(formData);
+      await redisManager.set(cacheKey, value, ttlSeconds);
+    } catch (error) {
+      console.error('Failed to stringify formData for FormCache:', error, formData);
+    }
   },
 
   /**
@@ -397,9 +415,28 @@ export const FormCache = {
 
     if (cached) {
       try {
+        // Check if cached value is already an object (should not happen)
+        if (typeof cached === 'object') {
+          console.warn('Cached value is already an object, converting to JSON:', cached);
+          return cached as {
+            eventId: string;
+            guestEmail: string;
+            startTime: string;
+            status: 'processing' | 'completed' | 'failed';
+            timestamp: number;
+          };
+        }
+
+        // Ensure cached value is a string
+        if (typeof cached !== 'string') {
+          console.error('Cached value is not a string:', typeof cached, cached);
+          await redisManager.del(cacheKey);
+          return null;
+        }
+
         return JSON.parse(cached);
       } catch (error) {
-        console.error('Failed to parse cached form data:', error);
+        console.error('Failed to parse cached form data:', error, 'Raw cached value:', cached);
         // Clean up corrupted cache entry
         await redisManager.del(cacheKey);
       }
@@ -420,11 +457,17 @@ export const FormCache = {
    * Mark form submission as completed
    */
   async markCompleted(key: string): Promise<void> {
-    const cached = await FormCache.get(key);
-    if (cached) {
-      cached.status = 'completed';
-      cached.timestamp = Date.now();
-      await FormCache.set(key, cached);
+    try {
+      const cached = await FormCache.get(key);
+      if (cached) {
+        cached.status = 'completed';
+        cached.timestamp = Date.now();
+        await FormCache.set(key, cached);
+      } else {
+        console.warn('No cached data found to mark as completed for key:', key);
+      }
+    } catch (error) {
+      console.error('Error marking FormCache as completed:', error, 'Key:', key);
     }
   },
 
@@ -432,11 +475,17 @@ export const FormCache = {
    * Mark form submission as failed
    */
   async markFailed(key: string): Promise<void> {
-    const cached = await FormCache.get(key);
-    if (cached) {
-      cached.status = 'failed';
-      cached.timestamp = Date.now();
-      await FormCache.set(key, cached);
+    try {
+      const cached = await FormCache.get(key);
+      if (cached) {
+        cached.status = 'failed';
+        cached.timestamp = Date.now();
+        await FormCache.set(key, cached);
+      } else {
+        console.warn('No cached data found to mark as failed for key:', key);
+      }
+    } catch (error) {
+      console.error('Error marking FormCache as failed:', error, 'Key:', key);
     }
   },
 
