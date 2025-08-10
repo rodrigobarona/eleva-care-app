@@ -34,6 +34,7 @@ import {
   useQueryStates,
 } from 'nuqs';
 import { Suspense } from 'react';
+import { flushSync } from 'react-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import type { z } from 'zod';
@@ -819,8 +820,12 @@ export function MeetingFormContent({
       if (price === 0) {
         // **IMMEDIATE STATE UPDATE: Set processing flag for free sessions too**
         isProcessingRef.current = true;
-        setIsSubmitting(true);
-        forceRender();
+
+        // **CRITICAL: Force immediate synchronous state update for free sessions**
+        flushSync(() => {
+          setIsSubmitting(true);
+          forceRender();
+        });
 
         try {
           // Get current form values and submit directly (bypasses handleSubmit race condition)
@@ -841,14 +846,28 @@ export function MeetingFormContent({
         return;
       }
 
+      // **IMMEDIATE STATE UPDATE: Set processing flag FIRST for instant UI feedback**
+      isProcessingRef.current = true;
+
+      // **CRITICAL: Force immediate synchronous state update and re-render**
+      flushSync(() => {
+        setIsSubmitting(true);
+        forceRender();
+      });
+
+      console.log(
+        '🎯 UI state updated - isSubmitting:',
+        true,
+        'isProcessingRef:',
+        isProcessingRef.current,
+      );
+
+      // **FIX: Small delay to ensure UI updates are visible before async operations**
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       // **FIX: Check if we already have a checkout URL and redirect immediately**
       if (checkoutUrl) {
         console.log('✅ Using existing checkout URL for immediate redirect:', checkoutUrl);
-
-        // **IMMEDIATE STATE UPDATE: Set processing flag for existing checkout redirect**
-        isProcessingRef.current = true;
-        setIsSubmitting(true);
-        forceRender();
 
         // **SECURITY: Validate existing URL before redirect**
         try {
@@ -877,18 +896,9 @@ export function MeetingFormContent({
           isProcessingRef.current = false;
           setIsSubmitting(false);
           forceRender();
+          return;
         }
       }
-
-      // **IMMEDIATE STATE UPDATE: Use ref for instant feedback**
-      isProcessingRef.current = true;
-      setIsSubmitting(true);
-
-      // **FIX: Force immediate re-render to update button state**
-      forceRender(); // Update UI immediately
-
-      // **FIX: Small delay to ensure UI updates are visible**
-      await new Promise((resolve) => setTimeout(resolve, 50));
 
       try {
         // Get or create checkout URL
