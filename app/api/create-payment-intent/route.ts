@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
   console.log('Starting payment intent creation process');
 
   // Declare variables in function scope for access in catch block
-  let eventId: string;
+  let eventId: string = '';
   let meetingData:
     | {
         timezone?: string;
@@ -892,7 +892,7 @@ export async function POST(request: NextRequest) {
     });
 
     // **FORM CACHE: Mark submission as failed**
-    if (meetingData?.guestEmail && meetingData?.startTime) {
+    if (eventId && meetingData?.guestEmail && meetingData?.startTime) {
       try {
         const formCacheKey = FormCache.generateKey(
           eventId,
