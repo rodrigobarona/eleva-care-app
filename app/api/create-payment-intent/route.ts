@@ -783,7 +783,20 @@ export async function POST(request: NextRequest) {
         },
       }),
       // Enhanced customer information collection
-      locale: meetingData.locale || 'en',
+      locale: (() => {
+        const userLocale = meetingData.locale || 'en';
+        // Map our locales to valid Stripe locales
+        const localeMap: Record<string, Stripe.Checkout.SessionCreateParams.Locale> = {
+          en: 'en',
+          'pt-BR': 'pt-BR',
+          es: 'es',
+          fr: 'fr',
+          de: 'de',
+          it: 'it',
+          pt: 'pt-BR', // Map pt to pt-BR for Stripe
+        };
+        return localeMap[userLocale] || 'en';
+      })(),
       customer_update: {
         name: 'auto',
         address: 'auto',
