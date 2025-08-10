@@ -94,6 +94,7 @@ interface Step2ContentProps {
   isProcessingRef: React.MutableRefObject<boolean>;
   price: number;
   use24Hour: boolean;
+  debugButtonClick: (action: string) => void;
 }
 
 const Step2Content = React.memo<Step2ContentProps>(
@@ -111,6 +112,7 @@ const Step2Content = React.memo<Step2ContentProps>(
     isProcessingRef,
     price,
     use24Hour,
+    debugButtonClick,
   }) => {
     // Get values directly from form for display
     const currentDate = form.getValues('date');
@@ -258,7 +260,10 @@ const Step2Content = React.memo<Step2ContentProps>(
           </Button>
           <Button
             type="button"
-            onClick={() => handleNextStep('3')}
+            onClick={() => {
+              debugButtonClick('Continue to Payment clicked');
+              handleNextStep('3');
+            }}
             disabled={isSubmitting || isProcessingRef.current}
             className="relative"
           >
@@ -272,21 +277,31 @@ const Step2Content = React.memo<Step2ContentProps>(
     );
   },
   (prevProps, nextProps) => {
-    // Custom comparison function to prevent unnecessary re-renders
-    // Only re-render if specific props that affect the UI have changed
-    return (
-      prevProps.isSubmitting === nextProps.isSubmitting &&
-      prevProps.isProcessingRef.current === nextProps.isProcessingRef.current &&
-      prevProps.price === nextProps.price &&
-      prevProps.timezone === nextProps.timezone &&
-      prevProps.eventDuration === nextProps.eventDuration &&
-      prevProps.beforeEventBuffer === nextProps.beforeEventBuffer &&
-      prevProps.afterEventBuffer === nextProps.afterEventBuffer &&
-      prevProps.use24Hour === nextProps.use24Hour &&
-      prevProps.queryStates.date?.getTime() === nextProps.queryStates.date?.getTime() &&
-      prevProps.queryStates.time?.getTime() === nextProps.queryStates.time?.getTime() &&
-      prevProps.queryStates.timezone === nextProps.queryStates.timezone
-    );
+    // Custom comparison function - return true to SKIP re-render, false to re-render
+    // We need to re-render when processing state changes to update button states
+    const processingStateChanged =
+      prevProps.isSubmitting !== nextProps.isSubmitting ||
+      prevProps.isProcessingRef.current !== nextProps.isProcessingRef.current;
+
+    // Always re-render when processing state changes for immediate UI feedback
+    if (processingStateChanged) {
+      return false; // Force re-render for state changes
+    }
+
+    // For other props, only re-render if they actually changed
+    const propsChanged =
+      prevProps.price !== nextProps.price ||
+      prevProps.timezone !== nextProps.timezone ||
+      prevProps.eventDuration !== nextProps.eventDuration ||
+      prevProps.beforeEventBuffer !== nextProps.beforeEventBuffer ||
+      prevProps.afterEventBuffer !== nextProps.afterEventBuffer ||
+      prevProps.use24Hour !== nextProps.use24Hour ||
+      prevProps.queryStates.date?.getTime() !== nextProps.queryStates.date?.getTime() ||
+      prevProps.queryStates.time?.getTime() !== nextProps.queryStates.time?.getTime() ||
+      prevProps.queryStates.timezone !== nextProps.queryStates.timezone ||
+      prevProps.debugButtonClick !== nextProps.debugButtonClick;
+
+    return !propsChanged; // Skip re-render only if nothing important changed
   },
 );
 
@@ -327,6 +342,21 @@ export function MeetingFormContent({
 
   // **PREVENT DUPLICATE REQUESTS: Force re-render when ref changes**
   const [, forceRender] = React.useReducer((x) => x + 1, 0);
+
+  // **DEBUG: Add click debugging for troubleshooting**
+  const debugButtonClick = React.useCallback(
+    (action: string) => {
+      console.log(`🔍 Button click debug: ${action}`, {
+        isSubmitting,
+        isProcessingRef: isProcessingRef.current,
+        currentStep,
+        formValid: form.formState.isValid,
+        formErrors: form.formState.errors,
+        timestamp: new Date().toISOString(),
+      });
+    },
+    [isSubmitting, currentStep, form.formState.isValid, form.formState.errors],
+  );
 
   // Query state configuration
   const queryStateParsers = React.useMemo(
@@ -738,15 +768,36 @@ export function MeetingFormContent({
         return;
       }
 
+      // **FIX: Validate form before processing payment**
+      const isValid = await form.trigger(); // Validate all fields
+      if (!isValid) {
+        console.log('❌ Form validation failed for paid session');
+        return;
+      }
+
       // For free sessions, handle differently
       if (price === 0) {
         try {
-          await form.handleSubmit(onSubmit)();
+          // **FIX: Check form validity first, then submit directly**
+          const isValid = await form.trigger(); // Validate all fields
+          if (!isValid) {
+            console.log('❌ Form validation failed for free session');
+            return;
+          }
+
+          // Get current form values and submit directly (bypasses handleSubmit race condition)
+          const formValues = form.getValues();
+          await onSubmit(formValues);
         } catch (error) {
           console.error('Error submitting form:', error);
           form.setError('root', {
             message: 'Failed to process request',
           });
+        } finally {
+          // **CLEANUP: Always reset processing state for free sessions**
+          isProcessingRef.current = false;
+          setIsSubmitting(false);
+          forceRender();
         }
         return;
       }
@@ -754,7 +805,12 @@ export function MeetingFormContent({
       // **IMMEDIATE STATE UPDATE: Use ref for instant feedback**
       isProcessingRef.current = true;
       setIsSubmitting(true);
+
+      // **FIX: Force immediate re-render to update button state**
       forceRender(); // Update UI immediately
+
+      // **FIX: Small delay to ensure UI updates are visible**
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
       try {
         // Get or create checkout URL
@@ -1064,6 +1120,7 @@ export function MeetingFormContent({
                   isProcessingRef={isProcessingRef}
                   price={price}
                   use24Hour={use24Hour}
+                  debugButtonClick={debugButtonClick}
                 />
               )}
               {currentStep === '3' && <Step3Content />}
