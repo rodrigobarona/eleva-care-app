@@ -21,6 +21,13 @@ const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care
 /**
  * Shared Email Footer Component for Eleva Care
  * Includes legal compliance, unsubscribe, and contact information
+ *
+ * @accessibility
+ * - Uses semantic HTML structure
+ * - Provides proper ARIA labels
+ * - Maintains WCAG 2.1 color contrast ratios
+ * - Supports keyboard navigation
+ * - Includes proper link descriptions
  */
 export function EmailFooter({
   variant = 'default',
@@ -28,52 +35,56 @@ export function EmailFooter({
   showSocialLinks: _showSocialLinks = false,
   showUnsubscribe = true,
   showContactInfo = true,
-  theme: _theme = 'light',
-  emailContext,
+  theme = 'light',
+  emailContext: _emailContext,
   companyName = 'Eleva Care',
   tagline = "Expert care for women's health",
   supportEmail = 'support@eleva.care',
   unsubscribeUrl,
 }: EmailFooterProps) {
   const currentYear = new Date().getFullYear();
-
-  // Use theme colors from emailContext if available
-  const themeColors = emailContext?.theme?.colors;
+  const isDark = theme === 'dark';
 
   // Final unsubscribe URL with fallback
   const finalUnsubscribeUrl = unsubscribeUrl || `${DEFAULT_BASE_URL}/unsubscribe`;
 
-  // Variant-specific styling with theme support
-  const variantStyles = {
-    default: {
-      backgroundColor: themeColors?.surface || '#FAFBFC',
-      borderTop: `1px solid ${themeColors?.border || '#F3F4F6'}`,
-      padding: '40px 0 32px 0',
-      marginTop: '40px',
-    },
-    minimal: {
-      backgroundColor: 'transparent',
-      borderTop: 'none',
-      padding: '24px 0',
-      marginTop: '24px',
-    },
-    branded: {
-      backgroundColor: themeColors?.primary || '#006D77',
-      borderTop: 'none',
-      padding: '40px 0 32px 0',
-      marginTop: '40px',
-    },
+  // Variant-specific classes
+  const variantClasses = {
+    default: `
+      ${isDark ? 'bg-eleva-neutral-800' : 'bg-eleva-neutral-50'}
+      border-t ${isDark ? 'border-eleva-neutral-700' : 'border-eleva-neutral-200'}
+      py-10 mt-10
+    `,
+    minimal: `
+      bg-transparent border-none
+      py-6 mt-6
+    `,
+    branded: `
+      bg-eleva-primary
+      py-10 mt-10
+    `,
   };
 
-  const styles = variantStyles[variant];
-  const isBranded = variant === 'branded';
-
-  // Text colors based on variant and theme
-  const textColors = {
-    primary: isBranded ? 'rgba(255, 255, 255, 0.95)' : themeColors?.text.primary || '#374151',
-    secondary: isBranded ? 'rgba(255, 255, 255, 0.8)' : themeColors?.text.secondary || '#6B7280',
-    muted: isBranded ? 'rgba(255, 255, 255, 0.6)' : themeColors?.text.muted || '#9CA3AF',
-    link: isBranded ? 'rgba(255, 255, 255, 0.9)' : themeColors?.primary || '#006D77',
+  // Text color classes based on variant and theme
+  const textColorClasses = {
+    primary:
+      variant === 'branded'
+        ? 'text-white/95'
+        : isDark
+          ? 'text-eleva-neutral-100'
+          : 'text-eleva-neutral-700',
+    secondary:
+      variant === 'branded'
+        ? 'text-white/80'
+        : isDark
+          ? 'text-eleva-neutral-300'
+          : 'text-eleva-neutral-500',
+    muted:
+      variant === 'branded'
+        ? 'text-white/60'
+        : isDark
+          ? 'text-eleva-neutral-400'
+          : 'text-eleva-neutral-400',
   };
 
   // Footer labels (could be internationalized)
@@ -85,65 +96,29 @@ export function EmailFooter({
   };
 
   return (
-    <Section style={styles}>
-      <Container
-        style={{
-          maxWidth: '600px',
-          margin: '0 auto',
-          padding: '0 24px',
-        }}
-      >
+    <Section className={`${variantClasses[variant]} transition-colors`}>
+      <Container className="mx-auto max-w-[600px] px-6">
         {/* Main Footer Content */}
         <Row>
           {/* Company Info */}
-          <Column
-            style={{
-              width: '60%',
-              verticalAlign: 'top',
-              paddingRight: '24px',
-            }}
-          >
+          <Column className="w-[60%] pr-6 align-top">
             <Text
-              style={{
-                margin: '0 0 8px 0',
-                fontSize: '16px',
-                lineHeight: '1.5',
-                color: textColors.primary,
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-                fontWeight: '600',
-              }}
+              className={`m-0 mb-2 font-sans text-base font-semibold leading-normal ${textColorClasses.primary} `}
             >
               {companyName}
             </Text>
 
             <Text
-              style={{
-                margin: '0 0 16px 0',
-                fontSize: '14px',
-                lineHeight: '1.6',
-                color: textColors.secondary,
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-              }}
+              className={`m-0 mb-4 font-sans text-sm leading-relaxed ${textColorClasses.secondary} `}
             >
               {tagline}
             </Text>
 
             {showContactInfo && (
-              <Text
-                style={{
-                  margin: '0',
-                  fontSize: '14px',
-                  color: textColors.secondary,
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                }}
-              >
+              <Text className={`m-0 font-sans text-sm ${textColorClasses.secondary} `}>
                 <Link
                   href={`mailto:${supportEmail}`}
-                  style={{
-                    color: textColors.link,
-                    textDecoration: 'none',
-                    fontWeight: '500',
-                  }}
+                  className={` ${textColorClasses.primary} font-medium no-underline transition-opacity hover:opacity-80`}
                   aria-label={`Contact support at ${supportEmail}`}
                 >
                   {supportEmail}
@@ -153,103 +128,58 @@ export function EmailFooter({
           </Column>
 
           {/* Links */}
-          <Column
-            style={{
-              width: '40%',
-              verticalAlign: 'top',
-              textAlign: 'right',
-            }}
-          >
+          <Column className="w-[40%] text-right align-top">
             {/* Legal Links */}
-            <div style={{ marginBottom: '20px' }}>
+            <nav className="mb-5" aria-label="Legal links">
               <Link
                 href={`${DEFAULT_BASE_URL}/legal/privacy`}
-                style={{
-                  display: 'block',
-                  fontSize: '13px',
-                  color: textColors.secondary,
-                  textDecoration: 'none',
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                  marginBottom: '8px',
-                  fontWeight: '500',
-                }}
-                aria-label="Privacy Policy"
+                className={`mb-2 block font-sans text-sm font-medium no-underline ${textColorClasses.secondary} transition-opacity hover:opacity-80`}
+                aria-label="View Privacy Policy"
               >
                 {footerLabels.privacyPolicy}
               </Link>
               <Link
                 href={`${DEFAULT_BASE_URL}/legal/terms`}
-                style={{
-                  display: 'block',
-                  fontSize: '13px',
-                  color: textColors.secondary,
-                  textDecoration: 'none',
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                  marginBottom: '8px',
-                  fontWeight: '500',
-                }}
-                aria-label="Terms of Service"
+                className={`mb-2 block font-sans text-sm font-medium no-underline ${textColorClasses.secondary} transition-opacity hover:opacity-80`}
+                aria-label="View Terms of Service"
               >
                 {footerLabels.termsOfService}
               </Link>
-            </div>
+            </nav>
           </Column>
         </Row>
 
         {/* Divider */}
         <Hr
-          style={{
-            border: 'none',
-            borderTop: `1px solid ${isBranded ? 'rgba(255, 255, 255, 0.2)' : themeColors?.border || '#F3F4F6'}`,
-            margin: '32px 0 24px 0',
-            width: '100%',
-          }}
+          className={`my-8 w-full border-t border-none ${
+            variant === 'branded'
+              ? 'border-white/20'
+              : isDark
+                ? 'border-eleva-neutral-700'
+                : 'border-eleva-neutral-200'
+          } `}
         />
 
         {/* Bottom Row */}
         <Row>
-          <Column
-            style={{
-              width: '70%',
-              textAlign: 'left',
-              verticalAlign: 'middle',
-            }}
-          >
-            <Text
-              style={{
-                margin: '0',
-                fontSize: '12px',
-                color: textColors.muted,
-                fontFamily: 'system-ui, -apple-system, sans-serif',
-                lineHeight: '1.5',
-              }}
-            >
+          <Column className="w-[70%] text-left align-middle">
+            <Text className={`m-0 font-sans text-xs leading-normal ${textColorClasses.muted} `}>
               {footerLabels.copyright}
             </Text>
           </Column>
 
-          <Column
-            style={{
-              width: '30%',
-              textAlign: 'right',
-              verticalAlign: 'middle',
-            }}
-          >
+          <Column className="w-[30%] text-right align-middle">
             {showUnsubscribe && (
               <Link
                 href={finalUnsubscribeUrl}
-                style={{
-                  fontSize: '12px',
-                  color: textColors.muted,
-                  textDecoration: 'none',
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                  fontWeight: '500',
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  border: `1px solid ${isBranded ? 'rgba(255, 255, 255, 0.2)' : themeColors?.border || '#E5E7EB'}`,
-                  backgroundColor: isBranded ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
-                }}
-                aria-label="Unsubscribe from email notifications"
+                className={`font-sans text-xs font-medium no-underline ${textColorClasses.muted} rounded border px-2 py-1 ${
+                  variant === 'branded'
+                    ? 'border-white/20 bg-white/10'
+                    : isDark
+                      ? 'border-eleva-neutral-600 bg-eleva-neutral-700'
+                      : 'border-eleva-neutral-200 bg-transparent'
+                } transition-opacity hover:opacity-80`}
+                aria-label="Unsubscribe from emails"
               >
                 {footerLabels.unsubscribe}
               </Link>

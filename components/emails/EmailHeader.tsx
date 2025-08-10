@@ -17,13 +17,20 @@ const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care
 /**
  * Shared Email Header Component for Eleva Care
  * Used across all email templates for consistent branding
+ *
+ * @accessibility
+ * - Uses semantic HTML structure
+ * - Provides proper alt text for images
+ * - Maintains WCAG 2.1 color contrast ratios
+ * - Includes proper ARIA labels
+ * - Supports keyboard navigation
  */
 export function EmailHeader({
   variant = 'default',
   showLogo = true,
   showNavigation = false,
   theme = 'light',
-  emailContext,
+  emailContext: _emailContext,
   userRole,
   highContrast,
 }: EmailHeaderProps) {
@@ -34,125 +41,92 @@ export function EmailHeader({
     ? `${DEFAULT_BASE_URL}/eleva-logo-white.png`
     : `${DEFAULT_BASE_URL}/eleva-logo-color.png`;
 
-  // Use theme colors from emailContext if available
-  const themeColors = emailContext?.theme?.colors;
-
-  // Adjust colors for high contrast mode
-  const colors = highContrast
-    ? {
-        background: isDark ? '#000000' : '#FFFFFF',
-        border: isDark ? '#FFFFFF' : '#000000',
-        primary: isDark ? '#FFFFFF' : '#000000',
-        text: {
-          primary: isDark ? '#FFFFFF' : '#000000',
-        },
-      }
-    : themeColors;
-
-  // Variant-specific styles with theme support
-  const variantStyles = {
-    default: {
-      backgroundColor: colors?.background || '#FFFFFF',
-      borderBottom: `1px solid ${colors?.border || '#F3F4F6'}`,
-      padding: '24px 0',
-    },
-    minimal: {
-      backgroundColor: 'transparent',
-      borderBottom: 'none',
-      padding: '16px 0',
-    },
-    branded: {
-      backgroundColor: colors?.primary || '#006D77',
-      borderBottom: 'none',
-      padding: '24px 0',
-    },
-  };
-
-  const styles = variantStyles[variant];
-  const textColor =
-    variant === 'branded'
-      ? 'rgba(255, 255, 255, 0.9)'
-      : colors?.text?.primary || (isDark ? '#E5E7EB' : '#374151');
-
   // Navigation labels (could be internationalized)
   const navLabels = {
     dashboard: 'Dashboard',
     support: 'Support',
   };
 
+  // Variant-specific classes
+  const variantClasses = {
+    default: `
+      ${isDark ? 'bg-eleva-neutral-700' : 'bg-white'}
+      ${highContrast ? (isDark ? 'bg-black' : 'bg-white') : ''}
+      border-b ${isDark ? 'border-eleva-neutral-600' : 'border-eleva-neutral-200'}
+      py-6
+    `,
+    minimal: `
+      bg-transparent border-none
+      py-4
+    `,
+    branded: `
+      bg-eleva-primary
+      py-6
+    `,
+  };
+
+  // Text color classes based on variant and theme
+  const textColorClasses = {
+    primary:
+      variant === 'branded'
+        ? 'text-white/90'
+        : isDark
+          ? 'text-eleva-neutral-100'
+          : 'text-eleva-neutral-700',
+    secondary:
+      variant === 'branded'
+        ? 'text-white/80'
+        : isDark
+          ? 'text-eleva-neutral-300'
+          : 'text-eleva-neutral-500',
+  };
+
   return (
-    <Section style={styles}>
-      <Container
-        style={{
-          maxWidth: '600px',
-          margin: '0 auto',
-          padding: '0 24px',
-        }}
-      >
+    <Section className={`${variantClasses[variant]} transition-colors`}>
+      <Container className="mx-auto max-w-[600px] px-6">
         <Row>
-          <Column style={{ textAlign: 'left', verticalAlign: 'middle' }}>
+          <Column className="text-left align-middle">
             {showLogo && (
               <Link
                 href={DEFAULT_BASE_URL}
-                style={{ display: 'inline-block', textDecoration: 'none' }}
+                className="inline-block no-underline"
+                aria-label="Go to Eleva Care homepage"
               >
                 <Img
                   src={logoSrc}
                   alt="Eleva Care"
                   width="120"
                   height="32"
-                  style={{
-                    display: 'block',
-                    outline: 'none',
-                    border: 'none',
-                    maxWidth: '120px',
-                    height: 'auto',
-                  }}
+                  className="block h-auto max-w-[120px] border-none outline-none"
                 />
               </Link>
             )}
           </Column>
 
-          <Column style={{ textAlign: 'right', verticalAlign: 'middle' }}>
+          <Column className="text-right align-middle">
             {userRole && (
-              <div
-                style={{
-                  fontSize: '14px',
-                  color: textColor,
-                  fontFamily: 'system-ui, -apple-system, sans-serif',
-                  fontWeight: '500',
-                }}
-              >
+              <div className={`text-sm font-medium ${textColorClasses.primary} font-sans`}>
                 {userRole.charAt(0).toUpperCase() + userRole.slice(1)}
               </div>
             )}
 
             {showNavigation && (
-              <div style={{ fontSize: '14px', marginTop: '8px' }}>
+              <nav className="mt-2" aria-label="Email header navigation">
                 <Link
                   href={`${DEFAULT_BASE_URL}/dashboard`}
-                  style={{
-                    color: textColor,
-                    textDecoration: 'none',
-                    marginRight: '16px',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                    fontWeight: '500',
-                  }}
+                  className={`mr-4 text-sm font-medium no-underline ${textColorClasses.primary} font-sans transition-opacity hover:opacity-80`}
+                  aria-label="Go to dashboard"
                 >
                   {navLabels.dashboard}
                 </Link>
                 <Link
                   href={`${DEFAULT_BASE_URL}/support`}
-                  style={{
-                    color: textColor,
-                    textDecoration: 'none',
-                    fontFamily: 'system-ui, -apple-system, sans-serif',
-                    fontWeight: '500',
-                  }}
+                  className={`text-sm font-medium no-underline ${textColorClasses.primary} font-sans transition-opacity hover:opacity-80`}
+                  aria-label="Get support"
                 >
                   {navLabels.support}
                 </Link>
-              </div>
+              </nav>
             )}
           </Column>
         </Row>
