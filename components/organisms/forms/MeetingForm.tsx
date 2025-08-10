@@ -343,21 +343,6 @@ export function MeetingFormContent({
   // **PREVENT DUPLICATE REQUESTS: Force re-render when ref changes**
   const [, forceRender] = React.useReducer((x) => x + 1, 0);
 
-  // **DEBUG: Add click debugging for troubleshooting**
-  const debugButtonClick = React.useCallback(
-    (action: string) => {
-      console.log(`🔍 Button click debug: ${action}`, {
-        isSubmitting,
-        isProcessingRef: isProcessingRef.current,
-        currentStep,
-        formValid: form.formState.isValid,
-        formErrors: form.formState.errors,
-        timestamp: new Date().toISOString(),
-      });
-    },
-    [isSubmitting, currentStep, form.formState.isValid, form.formState.errors],
-  );
-
   // Query state configuration
   const queryStateParsers = React.useMemo(
     () => ({
@@ -411,6 +396,21 @@ export function MeetingFormContent({
   const selectedDateValue = watchedDate || queryStates.date;
   const selectedTimeValue = watchedStartTime || queryStates.time;
   const currentStep = queryStates.step;
+
+  // **DEBUG: Add click debugging for troubleshooting**
+  const debugButtonClick = React.useCallback(
+    (action: string) => {
+      console.log(`🔍 Button click debug: ${action}`, {
+        isSubmitting,
+        isProcessingRef: isProcessingRef.current,
+        currentStep,
+        formValid: form.formState.isValid,
+        formErrors: form.formState.errors,
+        timestamp: new Date().toISOString(),
+      });
+    },
+    [isSubmitting, currentStep, form.formState.isValid, form.formState.errors],
+  );
 
   // **IDEMPOTENCY: Generate unique request key for deduplication**
   const generateRequestKey = React.useCallback(() => {
