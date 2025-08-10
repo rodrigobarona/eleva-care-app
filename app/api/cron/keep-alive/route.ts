@@ -5,6 +5,8 @@ import { redisManager } from '@/lib/redis';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { gt, sql } from 'drizzle-orm';
 
+import { cleanupPaymentRateLimitCache } from '../../../../scripts/cleanup-payment-rate-limit-cache';
+
 /**
  * Safely extracts and validates a base URL from environment variables
  * @param envValue - The environment variable value (potentially comma-separated URLs)
@@ -71,6 +73,7 @@ function getValidBaseUrl(
 // - Comprehensive system health checks via internal health endpoint
 // - Keeps databases alive with connectivity checks
 // - Tests Redis connectivity using PING command (with fallback to in-memory cache)
+// - Performs weekly Redis cache cleanup (Sundays 2-4 AM UTC) to remove corrupted entries
 // - Verifies QStash connectivity and configuration
 // - Refreshes Google Calendar tokens for connected users (in batches)
 // - Maintains OAuth token validity
@@ -97,6 +100,15 @@ interface KeepAliveMetrics {
     configured: boolean;
     message: string;
     error?: string;
+  };
+  cacheCleanup?: {
+    executed: boolean;
+    scannedKeys: number;
+    corruptedKeys: number;
+    cleanedKeys: number;
+    errors: number;
+    skippedKeys: number;
+    executionTime: number;
   };
 }
 
@@ -227,7 +239,7 @@ export async function GET(request: Request) {
     await db.execute(sql`SELECT 1 as health_check`);
     console.log('✅ Database health check: OK');
 
-    // 3. Redis health check
+    // 3. Redis health check and cache maintenance
     console.log('📦 Checking Redis connectivity...');
     try {
       const redisHealth = await redisManager.healthCheck();
@@ -238,6 +250,62 @@ export async function GET(request: Request) {
 
       if (redisHealth.status === 'unhealthy') {
         console.warn('⚠️ Redis is unhealthy:', redisHealth.error);
+      }
+
+      // 3.1. Weekly cache cleanup (only if Redis is healthy)
+      if (redisHealth.status === 'healthy' && redisHealth.mode === 'redis') {
+        const now = new Date();
+        const isWeeklyCleanupDay = now.getDay() === 0; // Sunday
+        const isCleanupHour = now.getHours() >= 2 && now.getHours() <= 4; // 2-4 AM UTC
+
+        // Also allow manual cleanup via environment variable for testing
+        const forceCleanup = process.env.FORCE_CACHE_CLEANUP === 'true';
+
+        if ((isWeeklyCleanupDay && isCleanupHour) || forceCleanup) {
+          console.log('🧹 Starting weekly Redis cache cleanup...');
+          const cleanupStart = Date.now();
+
+          try {
+            const cleanupStats = await cleanupPaymentRateLimitCache();
+            const cleanupEnd = Date.now();
+
+            metrics.cacheCleanup = {
+              executed: true,
+              scannedKeys: cleanupStats.scannedKeys,
+              corruptedKeys: cleanupStats.corruptedKeys,
+              cleanedKeys: cleanupStats.cleanedKeys,
+              errors: cleanupStats.errors,
+              skippedKeys: cleanupStats.skippedKeys,
+              executionTime: cleanupEnd - cleanupStart,
+            };
+
+            console.log(`✅ Cache cleanup completed in ${cleanupEnd - cleanupStart}ms:`, {
+              scanned: cleanupStats.scannedKeys,
+              corrupted: cleanupStats.corruptedKeys,
+              cleaned: cleanupStats.cleanedKeys,
+              errors: cleanupStats.errors,
+            });
+
+            if (cleanupStats.cleanedKeys > 0) {
+              console.log(`🗑️  Removed ${cleanupStats.cleanedKeys} corrupted cache entries`);
+            }
+          } catch (cleanupError) {
+            console.error('❌ Cache cleanup failed:', cleanupError);
+            metrics.cacheCleanup = {
+              executed: true,
+              scannedKeys: 0,
+              corruptedKeys: 0,
+              cleanedKeys: 0,
+              errors: 1,
+              skippedKeys: 0,
+              executionTime: Date.now() - cleanupStart,
+            };
+          }
+        } else {
+          console.log(
+            `📅 Cache cleanup scheduled for Sundays 2-4 AM UTC (current: ${now.toISOString()})`,
+          );
+        }
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -354,6 +422,11 @@ export async function GET(request: Request) {
         redis: metrics.redisHealth?.status || 'unknown',
         qstash: metrics.qstashHealth?.status || 'unknown',
         tokenRefresh: metrics.failedRefreshes === 0 ? 'healthy' : 'degraded',
+        cacheCleanup: metrics.cacheCleanup
+          ? metrics.cacheCleanup.errors === 0
+            ? 'healthy'
+            : 'degraded'
+          : 'not-scheduled',
       },
     };
 
@@ -374,6 +447,14 @@ export async function GET(request: Request) {
           ? `${metrics.qstashHealth.status} (configured: ${metrics.qstashHealth.configured}, ${metrics.qstashHealth.responseTime}ms)`
           : 'not checked',
       },
+      cacheCleanup: metrics.cacheCleanup
+        ? {
+            executed: metrics.cacheCleanup.executed,
+            cleaned: `${metrics.cacheCleanup.cleanedKeys}/${metrics.cacheCleanup.scannedKeys} entries`,
+            errors: metrics.cacheCleanup.errors,
+            executionTime: `${metrics.cacheCleanup.executionTime}ms`,
+          }
+        : 'not scheduled',
     });
 
     return new Response(

@@ -25,6 +25,8 @@
     "qstash:update": "tsx scripts/update-qstash-schedules.ts",
     "postbuild": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-specifier-resolution=node tsx scripts/update-qstash-schedules.ts || echo 'QStash setup skipped'",
     "cleanup:duplicates": "NODE_NO_WARNINGS=1 tsx scripts/cleanup-duplicate-reservations.ts",
+    "cleanup:cache": "node -r dotenv/config node_modules/.bin/tsx scripts/cleanup-payment-rate-limit-cache.ts",
+    "test:keep-alive": "node -r dotenv/config node_modules/.bin/tsx scripts/test-keep-alive-cache-cleanup.ts",
     "test": "jest",
     "test:critical": "jest tests/api/create-payment-intent.test.ts tests/api/webhooks/ tests/api/getValidTimesFromSchedule.test.ts --passWithNoTests",
     "test:deprecated": "jest tests/deprecated/ --passWithNoTests",
