@@ -108,6 +108,12 @@ export default async function SuccessPage(props: PageProps) {
 
   // If paid event but no meeting found, check the session status
   if (event.price > 0 && session_id) {
+    // **SECURITY: Validate session ID format before calling Stripe**
+    if (typeof session_id !== 'string' || !session_id.startsWith('cs_')) {
+      console.error('Invalid session ID format:', session_id);
+      return notFound();
+    }
+
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
       apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
     });

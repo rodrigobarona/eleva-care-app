@@ -554,6 +554,19 @@ export function MeetingFormContent({
         throw new Error('No checkout URL received from server');
       }
 
+      // **SECURITY: Validate checkout URL before storing**
+      try {
+        const urlObject = new URL(url);
+        // Ensure it's a Stripe checkout URL
+        if (!urlObject.hostname.includes('checkout.stripe.com')) {
+          throw new Error('Invalid checkout URL domain');
+        }
+        console.log('✅ Checkout URL validated:', urlObject.hostname);
+      } catch (urlError) {
+        console.error('❌ Invalid checkout URL received:', url, urlError);
+        throw new Error('Invalid checkout URL received from server');
+      }
+
       console.log('✅ Payment intent created successfully');
 
       // **REDIS: Mark as completed**
@@ -749,6 +762,17 @@ export function MeetingFormContent({
 
         if (url) {
           console.log('🚀 Redirecting to checkout:', url);
+
+          // **SECURITY: Validate URL before redirect**
+          try {
+            const urlObject = new URL(url);
+            if (!urlObject.hostname.includes('checkout.stripe.com')) {
+              throw new Error('Invalid checkout URL domain');
+            }
+          } catch (urlError) {
+            console.error('❌ Refusing to redirect to invalid URL:', url, urlError);
+            throw new Error('Invalid checkout URL - redirect blocked for security');
+          }
 
           // **OPTIMIZED: Redirect immediately without transitioning to step 3**
           // This reduces delay and provides a smoother user experience
