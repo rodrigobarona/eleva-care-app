@@ -276,6 +276,20 @@ function createSharedMetadata({
 export async function POST(request: NextRequest) {
   console.log('Starting payment intent creation process');
 
+  // Declare variables in function scope for access in catch block
+  let eventId: string;
+  let meetingData:
+    | {
+        timezone?: string;
+        locale?: string;
+        guestEmail: string;
+        guestName: string;
+        startTime: string;
+        guestNotes?: string;
+        duration?: number;
+      }
+    | undefined;
+
   try {
     // Parse request body first to get expert's clerkUserId
     const body = await request.json();
@@ -290,14 +304,18 @@ export async function POST(request: NextRequest) {
     });
 
     const {
-      eventId,
+      eventId: extractedEventId,
       clerkUserId,
       price,
-      meetingData,
+      meetingData: extractedMeetingData,
       username,
       eventSlug,
       requiresApproval = false,
     } = body;
+
+    // Assign to function-scoped variables
+    eventId = extractedEventId;
+    meetingData = extractedMeetingData;
 
     // Validate required fields
     if (!clerkUserId) {

@@ -639,7 +639,6 @@ export function MeetingFormContent({
     price,
     username,
     generateRequestKey,
-    forceRender,
   ]);
 
   const onSubmit = React.useCallback(
@@ -939,16 +938,7 @@ export function MeetingFormContent({
         forceRender();
       }
     },
-    [
-      form,
-      price,
-      createPaymentIntent,
-      onSubmit,
-      transitionToStep,
-      forceRender,
-      checkoutUrl,
-      setCheckoutUrl,
-    ],
+    [form, price, createPaymentIntent, onSubmit, transitionToStep, checkoutUrl, setCheckoutUrl],
   );
 
   // Initialize first available date only once
