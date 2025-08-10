@@ -104,6 +104,67 @@ export async function isQStashAvailable(): Promise<boolean> {
 }
 
 /**
+ * Comprehensive health check for QStash connectivity
+ * @returns Promise with detailed health status and response time
+ */
+export async function qstashHealthCheck(): Promise<{
+  status: 'healthy' | 'unhealthy';
+  responseTime: number;
+  configured: boolean;
+  message: string;
+  error?: string;
+}> {
+  const startTime = Date.now();
+
+  // Check if QStash is configured
+  const config = validateQStashConfig();
+  if (!config.isValid) {
+    return {
+      status: 'unhealthy',
+      responseTime: Date.now() - startTime,
+      configured: false,
+      message: 'QStash not configured',
+      error: config.message,
+    };
+  }
+
+  try {
+    const client = initQStashClient();
+    if (!client) {
+      return {
+        status: 'unhealthy',
+        responseTime: Date.now() - startTime,
+        configured: true,
+        message: 'QStash client initialization failed',
+        error: 'Failed to create QStash client instance',
+      };
+    }
+
+    // Test connectivity by listing schedules (lightweight operation)
+    await client.schedules.list();
+    const responseTime = Date.now() - startTime;
+
+    return {
+      status: 'healthy',
+      responseTime,
+      configured: true,
+      message: `QStash connectivity test successful (${responseTime}ms)`,
+    };
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    const errorMessage = error instanceof Error ? error.message : 'Unknown QStash error';
+
+    return {
+      status: 'unhealthy',
+      responseTime,
+      configured: true,
+      message: `QStash connectivity test failed (${responseTime}ms)`,
+      error: errorMessage,
+    };
+  }
+}
+
+/**
  * @deprecated Use the scheduleRecurringJob function from lib/qstash.ts instead
  * This is kept for backward compatibility
  */

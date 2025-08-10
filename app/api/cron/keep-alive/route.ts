@@ -1,5 +1,7 @@
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
+import { qstashHealthCheck } from '@/lib/qstash-config';
+import { redisManager } from '@/lib/redis';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { gt, sql } from 'drizzle-orm';
 
@@ -68,6 +70,8 @@ function getValidBaseUrl(
 // Performs the following tasks:
 // - Comprehensive system health checks via internal health endpoint
 // - Keeps databases alive with connectivity checks
+// - Tests Redis connectivity using PING command (with fallback to in-memory cache)
+// - Verifies QStash connectivity and configuration
 // - Refreshes Google Calendar tokens for connected users (in batches)
 // - Maintains OAuth token validity
 // - Logs system health status and metrics for trend analysis
@@ -80,6 +84,20 @@ interface KeepAliveMetrics {
   failedRefreshes: number;
   skippedProfiles: number;
   errors: Array<{ userId: string; error: string }>;
+  redisHealth?: {
+    status: 'healthy' | 'unhealthy';
+    responseTime: number;
+    mode: 'redis' | 'in-memory';
+    message: string;
+    error?: string;
+  };
+  qstashHealth?: {
+    status: 'healthy' | 'unhealthy';
+    responseTime: number;
+    configured: boolean;
+    message: string;
+    error?: string;
+  };
 }
 
 interface HealthCheckResult {
@@ -209,7 +227,55 @@ export async function GET(request: Request) {
     await db.execute(sql`SELECT 1 as health_check`);
     console.log('✅ Database health check: OK');
 
-    // 3. Refresh tokens in batches for users with Google Calendar connected
+    // 3. Redis health check
+    console.log('📦 Checking Redis connectivity...');
+    try {
+      const redisHealth = await redisManager.healthCheck();
+      metrics.redisHealth = redisHealth;
+      console.log(
+        `✅ Redis health check: ${redisHealth.status} (${redisHealth.mode}, ${redisHealth.responseTime}ms)`,
+      );
+
+      if (redisHealth.status === 'unhealthy') {
+        console.warn('⚠️ Redis is unhealthy:', redisHealth.error);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      metrics.redisHealth = {
+        status: 'unhealthy',
+        responseTime: 0,
+        mode: 'redis',
+        message: 'Redis health check failed',
+        error: errorMessage,
+      };
+      console.error('❌ Redis health check failed:', error);
+    }
+
+    // 4. QStash health check
+    console.log('📬 Checking QStash connectivity...');
+    try {
+      const qstashHealth = await qstashHealthCheck();
+      metrics.qstashHealth = qstashHealth;
+      console.log(
+        `✅ QStash health check: ${qstashHealth.status} (configured: ${qstashHealth.configured}, ${qstashHealth.responseTime}ms)`,
+      );
+
+      if (qstashHealth.status === 'unhealthy') {
+        console.warn('⚠️ QStash is unhealthy:', qstashHealth.error);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      metrics.qstashHealth = {
+        status: 'unhealthy',
+        responseTime: 0,
+        configured: false,
+        message: 'QStash health check failed',
+        error: errorMessage,
+      };
+      console.error('❌ QStash health check failed:', error);
+    }
+
+    // 5. Refresh tokens in batches for users with Google Calendar connected
     console.log('🔄 Starting Google Calendar token refresh...');
     const googleCalendarService = GoogleCalendarService.getInstance();
     const batchSize = 50; // Process 50 profiles at a time
@@ -278,8 +344,15 @@ export async function GET(request: Request) {
       status: 'success',
       healthCheck: healthCheckResult,
       systemHealth: {
-        overall: healthCheckResult?.status === 'healthy' ? 'healthy' : 'unhealthy',
+        overall:
+          healthCheckResult?.status === 'healthy' &&
+          (!metrics.redisHealth || metrics.redisHealth.status === 'healthy') &&
+          (!metrics.qstashHealth || metrics.qstashHealth.status === 'healthy')
+            ? 'healthy'
+            : 'unhealthy',
         database: 'healthy',
+        redis: metrics.redisHealth?.status || 'unknown',
+        qstash: metrics.qstashHealth?.status || 'unknown',
         tokenRefresh: metrics.failedRefreshes === 0 ? 'healthy' : 'degraded',
       },
     };
@@ -292,6 +365,14 @@ export async function GET(request: Request) {
         successful: metrics.successfulRefreshes,
         failed: metrics.failedRefreshes,
         skipped: metrics.skippedProfiles,
+      },
+      serviceHealth: {
+        redis: metrics.redisHealth
+          ? `${metrics.redisHealth.status} (${metrics.redisHealth.mode}, ${metrics.redisHealth.responseTime}ms)`
+          : 'not checked',
+        qstash: metrics.qstashHealth
+          ? `${metrics.qstashHealth.status} (configured: ${metrics.qstashHealth.configured}, ${metrics.qstashHealth.responseTime}ms)`
+          : 'not checked',
       },
     });
 
@@ -318,6 +399,8 @@ export async function GET(request: Request) {
         systemHealth: {
           overall: 'unhealthy',
           database: 'unknown',
+          redis: metrics.redisHealth?.status || 'unknown',
+          qstash: metrics.qstashHealth?.status || 'unknown',
           tokenRefresh: 'failed',
         },
       }),

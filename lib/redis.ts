@@ -224,26 +224,57 @@ class RedisManager {
   }
 
   /**
-   * Health check for Redis connection
+   * Health check for Redis connection with detailed metrics
    */
-  async healthCheck(): Promise<{ status: 'healthy' | 'unhealthy'; message: string }> {
+  async healthCheck(): Promise<{
+    status: 'healthy' | 'unhealthy';
+    responseTime: number;
+    mode: 'redis' | 'in-memory';
+    message: string;
+    error?: string;
+  }> {
+    const startTime = Date.now();
+
     if (!this.isRedisAvailable || !this.redis) {
       return {
         status: 'healthy',
-        message: 'Using in-memory cache fallback',
+        responseTime: Date.now() - startTime,
+        mode: 'in-memory',
+        message: 'Using in-memory cache fallback (Redis not configured)',
       };
     }
 
     try {
-      await this.redis.ping();
-      return {
-        status: 'healthy',
-        message: 'Redis connection is healthy',
-      };
+      // Use PING command to test Redis connectivity
+      const response = await this.redis.ping();
+      const responseTime = Date.now() - startTime;
+
+      if (response === 'PONG') {
+        return {
+          status: 'healthy',
+          responseTime,
+          mode: 'redis',
+          message: `Redis PING successful (${responseTime}ms)`,
+        };
+      } else {
+        return {
+          status: 'unhealthy',
+          responseTime,
+          mode: 'redis',
+          message: 'Redis PING failed with unexpected response',
+          error: `Expected 'PONG', got '${response}'`,
+        };
+      }
     } catch (error) {
+      const responseTime = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Unknown Redis error';
+
       return {
         status: 'unhealthy',
-        message: `Redis connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        responseTime,
+        mode: 'redis',
+        message: `Redis connection failed (${responseTime}ms)`,
+        error: errorMessage,
       };
     }
   }

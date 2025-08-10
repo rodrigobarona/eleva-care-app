@@ -37,3 +37,4 @@ yarn-error.log*
 next-env.d.ts
 /cal.com
 _backup_.env
+_backup_env
