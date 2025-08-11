@@ -469,11 +469,35 @@ export const FormCache = {
   },
 
   /**
-   * Check if a form submission is in progress
+   * Check if a form submission is in progress or very recently completed
    */
   async isProcessing(key: string): Promise<boolean> {
     const cached = await FormCache.get(key);
-    return cached?.status === 'processing';
+
+    if (!cached) return false;
+
+    // Block if actively processing
+    if (cached.status === 'processing') {
+      return true;
+    }
+
+    // Block if VERY recently completed (within last 3 seconds) to prevent double submissions
+    // This prevents the race condition where the first request completes between button clicks
+    if (cached.status === 'completed') {
+      const timeSinceCompletion = Date.now() - cached.timestamp;
+      const veryRecentlyCompleted = timeSinceCompletion < 3000; // Only 3 seconds
+
+      if (veryRecentlyCompleted) {
+        console.log('🚫 Form submission very recently completed, blocking potential duplicate:', {
+          key,
+          timeSinceCompletion,
+          status: cached.status,
+        });
+        return true;
+      }
+    }
+
+    return false;
   },
 
   /**

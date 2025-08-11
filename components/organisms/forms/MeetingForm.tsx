@@ -555,6 +555,12 @@ export function MeetingFormContent({
       return null;
     }
 
+    // **SMART CACHING: If we already have a valid checkout URL, return it immediately**
+    if (checkoutUrl) {
+      console.log('✅ Reusing existing valid checkout URL:', checkoutUrl);
+      return checkoutUrl;
+    }
+
     try {
       // **NOTE: Redis operations moved to server-side API endpoint**
       // The /api/create-payment-intent endpoint will handle FormCache operations
