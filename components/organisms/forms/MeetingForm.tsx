@@ -356,7 +356,7 @@ export function MeetingFormContent({
   // **CLIENT-SIDE DUPLICATE PREVENTION: Track request timestamps and IDs**
   const lastRequestTimestamp = React.useRef<number>(0);
   const activeRequestId = React.useRef<string | null>(null);
-  const requestCooldownMs = 5000; // Increased to 5 seconds for stronger protection
+  const requestCooldownMs = 2000; // 2 seconds minimum between requests
 
   // **PREVENT DUPLICATE REQUESTS: Force re-render when ref changes**
   const [, forceRender] = React.useReducer((x) => x + 1, 0);
