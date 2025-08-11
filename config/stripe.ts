@@ -2,7 +2,7 @@ import type Stripe from 'stripe';
 
 export const STRIPE_CONFIG = {
   // API Configuration
-  API_VERSION: process.env.STRIPE_API_VERSION || '2025-05-28.basil',
+  API_VERSION: process.env.STRIPE_API_VERSION || '2025-07-30.basil',
   CURRENCY: 'eur',
   PAYMENT_METHODS: ['card', 'multibanco'] as const,
 
