@@ -416,15 +416,38 @@ export const FormCache = {
     if (cached) {
       try {
         // Check if cached value is already an object (should not happen)
-        if (typeof cached === 'object') {
+        if (typeof cached === 'object' && cached !== null) {
           console.warn('Cached value is already an object, converting to JSON:', cached);
-          return cached as {
-            eventId: string;
-            guestEmail: string;
-            startTime: string;
-            status: 'processing' | 'completed' | 'failed';
-            timestamp: number;
-          };
+          console.warn('Cache key:', cacheKey, 'Type:', typeof cached);
+
+          const cachedObj = cached as Record<string, unknown>; // Use Record for object inspection
+
+          // If it looks like a valid FormCache object, return it directly
+          if (
+            cachedObj.eventId &&
+            cachedObj.guestEmail &&
+            cachedObj.startTime &&
+            cachedObj.status
+          ) {
+            return cachedObj as {
+              eventId: string;
+              guestEmail: string;
+              startTime: string;
+              status: 'processing' | 'completed' | 'failed';
+              timestamp: number;
+            };
+          }
+
+          // Otherwise, try to extract from Redis cache wrapper
+          if (cachedObj.value && typeof cachedObj.value === 'string') {
+            console.warn('Found wrapped cache value, extracting...', cachedObj.value);
+            return JSON.parse(cachedObj.value);
+          }
+
+          // If it's some other object structure, clean it up
+          console.error('Unexpected cached object structure, cleaning up:', cached);
+          await redisManager.del(cacheKey);
+          return null;
         }
 
         // Ensure cached value is a string

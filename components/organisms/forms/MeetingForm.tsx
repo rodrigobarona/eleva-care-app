@@ -262,6 +262,12 @@ const Step2Content = React.memo<Step2ContentProps>(
           <Button
             type="button"
             onClick={() => {
+              // **IMMEDIATE DUPLICATE PREVENTION**
+              if (isSubmitting || isProcessingRef.current) {
+                console.log('🚫 Button click blocked - already processing');
+                return;
+              }
+
               debugButtonClick('Continue to Payment clicked');
               handleNextStep('3');
             }}
@@ -541,6 +547,14 @@ export function MeetingFormContent({
     activeRequestId.current = currentRequestId;
     setIsCreatingCheckout(true);
 
+    // **ADDITIONAL PROTECTION: Check if we're already in a pending state**
+    if (isSubmitting) {
+      console.log('🚫 Form already in submitting state - blocking duplicate');
+      activeRequestId.current = null;
+      setIsCreatingCheckout(false);
+      return null;
+    }
+
     try {
       // **NOTE: Redis operations moved to server-side API endpoint**
       // The /api/create-payment-intent endpoint will handle FormCache operations
@@ -639,6 +653,7 @@ export function MeetingFormContent({
     price,
     username,
     generateRequestKey,
+    isSubmitting,
   ]);
 
   const onSubmit = React.useCallback(
