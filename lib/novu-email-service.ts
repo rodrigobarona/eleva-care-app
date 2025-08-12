@@ -1,6 +1,7 @@
 // Email templates are now imported through the email service functions
 // Import email templates
 import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-confirmation';
+import { ExpertPayoutNotificationTemplate } from '@/emails/payments';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import WelcomeEmailTemplate from '@/emails/users/welcome-email';
@@ -109,13 +110,22 @@ interface TemplateSelector {
 interface NovuEmailOptions {
   workflowId: string;
   subscriberId: string;
-  templateType: 'appointment-confirmation' | 'payment-success' | 'expert-welcome' | 'custom';
+  templateType:
+    | 'appointment-confirmation'
+    | 'payment-success'
+    | 'expert-welcome'
+    | 'expert-payout-notification'
+    | 'custom';
   templateData: Record<string, unknown>;
   overrides?: {
     from?: string;
     replyTo?: string;
     cc?: string[];
     bcc?: string[];
+    email?: {
+      to?: string;
+      subject?: string;
+    };
   };
 }
 
@@ -128,7 +138,11 @@ interface EnhancedEmailOptions extends NovuEmailOptions {
 
 interface ResendEmailOptions {
   to: string;
-  templateType: 'appointment-confirmation' | 'payment-success' | 'expert-welcome';
+  templateType:
+    | 'appointment-confirmation'
+    | 'payment-success'
+    | 'expert-welcome'
+    | 'expert-payout-notification';
   templateData: Record<string, unknown>;
   locale?: string;
 }
@@ -245,6 +259,16 @@ export class TemplateSelectionService {
           default: MultibancoPaymentReminderTemplate,
           urgent: MultibancoPaymentReminderTemplate,
           reminder: MultibancoPaymentReminderTemplate,
+        },
+      },
+    },
+
+    'expert-payout-notification': {
+      default: {
+        patient: {
+          default: ExpertPayoutNotificationTemplate,
+          urgent: ExpertPayoutNotificationTemplate,
+          reminder: ExpertPayoutNotificationTemplate,
         },
       },
     },
@@ -495,6 +519,9 @@ export async function sendDirectResendEmail(options: ResendEmailOptions) {
       case 'expert-welcome':
         emailContent = await generateExpertWelcomeEmail(templateData);
         break;
+      case 'expert-payout-notification':
+        emailContent = await generateExpertPayoutNotificationEmail(templateData);
+        break;
       default:
         throw new Error(`Unknown template type: ${templateType}`);
     }
@@ -564,6 +591,28 @@ async function generateExpertWelcomeEmail(
   const text = html.replace(htmlTagRegex, '');
 
   return { html, text, subject };
+}
+
+async function generateExpertPayoutNotificationEmail(
+  data: Record<string, unknown>,
+): Promise<EmailGenerationResult> {
+  const html = await render(
+    React.createElement(
+      ExpertPayoutNotificationTemplate,
+      data as Parameters<typeof ExpertPayoutNotificationTemplate>[0],
+    ),
+  );
+
+  const expertName = (data.expertName as string) || 'Expert';
+  const amount = (data.payoutAmount as string) || '0.00';
+  const currency = (data.currency as string) || 'EUR';
+  const clientName = (data.clientName as string) || 'Client';
+
+  return {
+    subject: `💰 Payout sent: ${currency} ${amount} for your appointment with ${clientName}`,
+    html,
+    text: `Hello ${expertName}! Your earnings of ${currency} ${amount} from your appointment with ${clientName} have been sent to your bank account. Expected arrival: 1-2 business days.`,
+  };
 }
 
 /**

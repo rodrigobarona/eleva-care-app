@@ -251,11 +251,28 @@ export async function GET(request: Request) {
 
           // Send notification to the expert
           try {
+            // Get appointment details for the email
+            const appointment = await db.query.EventTable.findFirst({
+              where: eq(EventTable.id, transfer.eventId),
+            });
+
             await createPayoutCompletedNotification({
               userId: transfer.expertClerkUserId,
               amount: payoutAmount,
               currency: transfer.currency,
               eventId: transfer.eventId,
+              expertName:
+                expertUser.firstName && expertUser.lastName
+                  ? `${expertUser.firstName} ${expertUser.lastName}`
+                  : expertUser.firstName || 'Expert',
+              clientName: 'Client', // This would need to come from a separate query or booking data
+              serviceName:
+                appointment?.name || appointment?.description || 'Professional consultation',
+              appointmentDate: 'Recent appointment', // This would need proper appointment data structure
+              appointmentTime: 'N/A', // This would need proper appointment data structure
+              payoutId: payout.id,
+              expertEmail:
+                'email' in expertUser ? (expertUser.email as string) : 'expert@example.com',
             });
             console.log(`Payout notification sent to expert ${transfer.expertClerkUserId}`);
           } catch (notificationError) {

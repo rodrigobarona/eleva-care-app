@@ -641,3 +641,32 @@ export const workflows = [
 
   // Future slots (9 remaining for new features)
 ];
+
+// Add to the existing workflow configuration
+export const NOVU_WORKFLOWS = {
+  // ... existing workflows ...
+
+  // Expert payout notification
+  EXPERT_PAYOUT_NOTIFICATION: {
+    id: 'expert-payout-notification',
+    name: 'Expert Payout Notification',
+    description: 'Notifies experts when their payout has been sent to their bank account',
+    triggers: ['payout.completed'],
+    channels: ['email', 'in_app'],
+    templateData: {
+      expertName: 'string',
+      payoutAmount: 'string',
+      currency: 'string',
+      appointmentDate: 'string',
+      appointmentTime: 'string',
+      clientName: 'string',
+      serviceName: 'string',
+      payoutId: 'string',
+      expectedArrivalDate: 'string',
+      bankLastFour: 'string',
+      dashboardUrl: 'string',
+      supportUrl: 'string',
+      locale: 'string',
+    },
+  },
+} as const;

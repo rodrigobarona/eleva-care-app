@@ -1,4 +1,5 @@
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
+import { sendNovuEmailEnhanced } from '@/lib/novu-email-service';
 
 import { createUserNotification } from './notifications';
 import { formatCurrency } from './utils';
@@ -66,33 +67,106 @@ export async function createUpcomingPayoutNotification({
 /**
  * Create a notification when a payout has been initiated
  * This should be called when a transfer has been successfully created
+ * Now includes both in-app notification AND email via Novu + React Email
  */
 export async function createPayoutCompletedNotification({
   userId,
   amount,
   currency,
   eventId,
+  expertName,
+  clientName,
+  serviceName,
+  appointmentDate,
+  appointmentTime,
+  payoutId,
+  expertEmail,
 }: {
   userId: string;
   amount: number;
   currency: string;
   eventId: string;
+  expertName?: string;
+  clientName?: string;
+  serviceName?: string;
+  appointmentDate?: string;
+  appointmentTime?: string;
+  payoutId?: string;
+  expertEmail?: string;
 }) {
   const formattedAmount = formatCurrency(amount, currency);
 
   try {
-    return await createUserNotification({
+    // Create in-app notification (existing functionality)
+    const notificationResult = await createUserNotification({
       userId,
       type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
       data: {
-        userName: 'Expert', // Default username for payment notifications
-        title: `Payment Sent: ${formattedAmount}`,
-        message: `Your payment of ${formattedAmount} has been sent to your Stripe account. It should arrive in your bank account within 1-2 business days.`,
+        userName: expertName || 'Expert',
+        title: `💰 Payout Sent: ${formattedAmount}`,
+        message: `Your earnings of ${formattedAmount} have been sent to your bank account. Expected arrival: 1-2 business days.`,
         actionUrl: `/events/${eventId}`,
         amount: formattedAmount,
         eventId,
+        payoutId,
       },
     });
+
+    // Send beautiful email notification via Novu (NEW!)
+    if (expertEmail) {
+      try {
+        // Calculate expected arrival date (1-2 business days)
+        const expectedArrival = new Date();
+        expectedArrival.setDate(expectedArrival.getDate() + 2); // Add 2 business days buffer
+        const expectedArrivalDate = expectedArrival.toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+
+        await sendNovuEmailEnhanced({
+          workflowId: 'expert-payout-notification',
+          subscriberId: userId,
+          templateType: 'expert-payout-notification',
+          templateData: {
+            expertName: expertName || 'Expert',
+            payoutAmount: (amount / 100).toFixed(2), // Convert from cents to currency units
+            currency,
+            appointmentDate: appointmentDate || 'Recent appointment',
+            appointmentTime: appointmentTime || 'N/A',
+            clientName: clientName || 'Client',
+            serviceName: serviceName || 'Professional consultation',
+            payoutId: payoutId || 'N/A',
+            expectedArrivalDate,
+            bankLastFour: '••••', // This should come from Stripe Connect account details
+            dashboardUrl: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/earnings`,
+            supportUrl: `${process.env.NEXT_PUBLIC_APP_URL}/support`,
+            locale: 'en',
+          },
+          userSegment: 'expert',
+          templateVariant: 'default',
+          locale: 'en',
+          overrides: {
+            email: {
+              to: expertEmail,
+              subject: `💰 Payout sent: ${currency} ${(amount / 100).toFixed(2)} for your appointment with ${clientName || 'client'}`,
+            },
+          },
+        });
+
+        console.log(`✉️ Payout email notification sent to ${expertEmail} for expert ${userId}`);
+      } catch (emailError) {
+        console.error('❌ Failed to send payout email notification:', emailError);
+        // Don't fail the entire function if email fails
+      }
+    } else {
+      console.warn(
+        `⚠️ No email address provided for expert ${userId}, skipping email notification`,
+      );
+    }
+
+    return notificationResult;
   } catch (error) {
     console.error('Failed to create payout completed notification:', error);
     return null;
