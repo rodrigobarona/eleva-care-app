@@ -1,5 +1,8 @@
+import { ExpertPayoutNotificationTemplate } from '@/emails/payments';
 import { elevaEmailService } from '@/lib/novu-email-service';
 import { workflow } from '@novu/framework';
+import { render } from '@react-email/render';
+import React from 'react';
 import { z } from 'zod';
 
 // HTML escaping utility to prevent XSS vulnerabilities
@@ -621,25 +624,100 @@ Timestamp: ${payload.timestamp}`,
   },
 );
 
-// Export consolidated workflows (12 total - well within free plan limit)
+// 10. Expert Payout Notification Workflow
+export const expertPayoutNotificationWorkflow = workflow(
+  'expert-payout-notification',
+  async ({ payload, step }) => {
+    const locale = getLocale(payload);
+
+    // In-app notification step
+    await step.inApp('payout-sent', async () => {
+      const expertName = (payload.expertName as string) || 'Expert';
+      const payoutAmount = (payload.payoutAmount as string) || '0.00';
+      const currency = (payload.currency as string) || 'EUR';
+
+      return {
+        subject: `💰 Payout Sent: ${currency} ${payoutAmount}`,
+        body: `Your earnings of ${currency} ${payoutAmount} have been sent to your bank account. Expected arrival: 1-2 business days.`,
+        data: {
+          payoutId: payload.payoutId,
+          amount: payoutAmount,
+          currency,
+          expertName,
+        },
+      };
+    });
+
+    // Email notification step
+    await step.email('payout-email', async () => {
+      const expertName = (payload.expertName as string) || 'Expert';
+      const payoutAmount = (payload.payoutAmount as string) || '0.00';
+      const currency = (payload.currency as string) || 'EUR';
+      const clientName = (payload.clientName as string) || 'Client';
+
+      // Use the React email template directly
+      const templateData = {
+        expertName,
+        payoutAmount,
+        currency,
+        appointmentDate: (payload.appointmentDate as string) || 'Recent appointment',
+        appointmentTime: (payload.appointmentTime as string) || 'N/A',
+        clientName,
+        serviceName: (payload.serviceName as string) || 'Professional consultation',
+        payoutId: (payload.payoutId as string) || 'N/A',
+        expectedArrivalDate: (payload.expectedArrivalDate as string) || 'Soon',
+        bankLastFour: (payload.bankLastFour as string) || '••••',
+        dashboardUrl: (payload.dashboardUrl as string) || '#',
+        supportUrl: (payload.supportUrl as string) || '#',
+        _locale: locale,
+      };
+
+      const html = await render(
+        React.createElement(ExpertPayoutNotificationTemplate, templateData),
+      );
+      const emailContent = { html };
+
+      return {
+        subject: `💰 Payout sent: ${currency} ${payoutAmount} for your appointment with ${clientName}`,
+        body: emailContent.html,
+      };
+    });
+  },
+  {
+    payloadSchema: z.object({
+      expertName: z.string().optional(),
+      payoutAmount: z.string(),
+      currency: z.string(),
+      appointmentDate: z.string().optional(),
+      appointmentTime: z.string().optional(),
+      clientName: z.string().optional(),
+      serviceName: z.string().optional(),
+      payoutId: z.string().optional(),
+      expectedArrivalDate: z.string().optional(),
+      bankLastFour: z.string().optional(),
+      dashboardUrl: z.string().optional(),
+      supportUrl: z.string().optional(),
+      locale: z.string().optional(),
+    }),
+    tags: ['experts', 'payments', 'notifications'],
+  },
+);
+
+// All workflows exported for the Novu framework
 export const workflows = [
-  // Universal workflows (6)
   userLifecycleWorkflow,
   securityAuthWorkflow,
   paymentWorkflow,
   expertManagementWorkflow,
   appointmentWorkflow,
   marketplaceWorkflow,
-
-  // Email template workflows (3) - Core business features
   appointmentConfirmationWorkflow,
   multibancoBookingPendingWorkflow,
   multibancoPaymentReminderWorkflow,
-
-  // System workflows (1)
   systemHealthWorkflow,
+  expertPayoutNotificationWorkflow, // Added our new workflow
 
-  // Future slots (9 remaining for new features)
+  // Future slots (8 remaining for new features)
 ];
 
 // Add to the existing workflow configuration
