@@ -1,6 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { EventTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import { EventTable, MeetingTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
 import {
   PAYMENT_TRANSFER_STATUS_COMPLETED,
   PAYMENT_TRANSFER_STATUS_PAID_OUT,
@@ -251,10 +251,38 @@ export async function GET(request: Request) {
 
           // Send notification to the expert
           try {
-            // Get appointment details for the email
-            const appointment = await db.query.EventTable.findFirst({
-              where: eq(EventTable.id, transfer.eventId),
+            // Get real appointment data using paymentIntentId to find the actual meeting
+            const meetingData = await db.query.MeetingTable.findFirst({
+              where: eq(MeetingTable.stripePaymentIntentId, transfer.paymentIntentId),
+              with: {
+                event: true, // Join with EventTable to get service information
+              },
             });
+
+            // Format appointment date and time from real data
+            let appointmentDate = 'Recent appointment';
+            let appointmentTime = 'N/A';
+
+            if (meetingData?.startTime) {
+              appointmentDate = meetingData.startTime.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              });
+
+              if (meetingData.endTime) {
+                appointmentTime = `${meetingData.startTime.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                })} - ${meetingData.endTime.toLocaleTimeString('en-US', {
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true,
+                })}`;
+              }
+            }
 
             await createPayoutCompletedNotification({
               userId: transfer.expertClerkUserId,
@@ -265,11 +293,13 @@ export async function GET(request: Request) {
                 expertUser.firstName && expertUser.lastName
                   ? `${expertUser.firstName} ${expertUser.lastName}`
                   : expertUser.firstName || 'Expert',
-              clientName: 'Client', // This would need to come from a separate query or booking data
+              clientName: meetingData?.guestName || 'Client', // Real client name from meeting
               serviceName:
-                appointment?.name || appointment?.description || 'Professional consultation',
-              appointmentDate: 'Recent appointment', // This would need proper appointment data structure
-              appointmentTime: 'N/A', // This would need proper appointment data structure
+                meetingData?.event?.name ||
+                meetingData?.event?.description ||
+                'Professional consultation', // Real service name
+              appointmentDate, // Real appointment date
+              appointmentTime, // Real appointment time
               payoutId: payout.id,
               expertEmail:
                 'email' in expertUser ? (expertUser.email as string) : 'expert@example.com',
