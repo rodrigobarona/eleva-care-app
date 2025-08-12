@@ -49,6 +49,11 @@ const SCHEDULE_CONFIGS = [
     schedule: { cron: '0 */2 * * *' }, // Every 2 hours (at minute 0)
   },
   {
+    name: 'process-pending-payouts',
+    endpoint: '/api/cron/process-pending-payouts',
+    schedule: { cron: '0 6 * * *' }, // Daily at 6 AM
+  },
+  {
     name: 'check-upcoming-payouts',
     endpoint: '/api/cron/check-upcoming-payouts',
     schedule: { cron: '0 12 * * *' }, // Daily at noon

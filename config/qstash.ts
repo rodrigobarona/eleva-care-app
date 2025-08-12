@@ -27,6 +27,10 @@ export const qstash = {
       endpoint: '/api/cron/process-expert-transfers',
       interval: '2h', // Every 2 hours
     },
+    processPendingPayouts: {
+      endpoint: '/api/cron/process-pending-payouts',
+      cron: '0 6 * * *', // Daily at 6 AM
+    },
     checkUpcomingPayouts: {
       endpoint: '/api/cron/check-upcoming-payouts',
       cron: '0 12 * * *', // Daily at noon

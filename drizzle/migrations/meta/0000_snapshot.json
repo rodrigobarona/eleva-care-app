@@ -1,5 +1,5 @@
 {
-  "id": "5c727127-73fb-4b27-b3bc-18d0696be2c2",
+  "id": "d03fd9af-d690-42d1-89d0-122527bef1f5",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -117,9 +117,7 @@
         "categories_name_unique": {
           "name": "categories_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "name"
-          ]
+          "columns": ["name"]
         }
       },
       "checkConstraints": {}
@@ -529,12 +527,8 @@
           "name": "meetings_eventId_events_id_fk",
           "tableFrom": "meetings",
           "tableTo": "events",
-          "columnsFrom": [
-            "eventId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["eventId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -544,134 +538,34 @@
         "meetings_stripePaymentIntentId_unique": {
           "name": "meetings_stripePaymentIntentId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripePaymentIntentId"
-          ]
+          "columns": ["stripePaymentIntentId"]
         },
         "meetings_stripeSessionId_unique": {
           "name": "meetings_stripeSessionId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeSessionId"
-          ]
+          "columns": ["stripeSessionId"]
         },
         "meetings_stripeApplicationFeeId_unique": {
           "name": "meetings_stripeApplicationFeeId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeApplicationFeeId"
-          ]
+          "columns": ["stripeApplicationFeeId"]
         },
         "meetings_stripeRefundId_unique": {
           "name": "meetings_stripeRefundId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeRefundId"
-          ]
+          "columns": ["stripeRefundId"]
         },
         "meetings_stripeTransferId_unique": {
           "name": "meetings_stripeTransferId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeTransferId"
-          ]
+          "columns": ["stripeTransferId"]
         },
         "meetings_stripe_payout_id_unique": {
           "name": "meetings_stripe_payout_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripe_payout_id"
-          ]
+          "columns": ["stripe_payout_id"]
         }
       },
-      "checkConstraints": {}
-    },
-    "public.notifications": {
-      "name": "notifications",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "message": {
-          "name": "message",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "action_url": {
-          "name": "action_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "read": {
-          "name": "read",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
-        },
-        "read_at": {
-          "name": "read_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "notifications_user_id_users_id_fk": {
-          "name": "notifications_user_id_users_id_fk",
-          "tableFrom": "notifications",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
       "checkConstraints": {}
     },
     "public.payment_transfers": {
@@ -755,6 +649,12 @@
         },
         "transfer_id": {
           "name": "transfer_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "payout_id": {
+          "name": "payout_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
@@ -960,12 +860,8 @@
           "name": "profiles_primaryCategoryId_categories_id_fk",
           "tableFrom": "profiles",
           "tableTo": "categories",
-          "columnsFrom": [
-            "primaryCategoryId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["primaryCategoryId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -973,12 +869,8 @@
           "name": "profiles_secondaryCategoryId_categories_id_fk",
           "tableFrom": "profiles",
           "tableTo": "categories",
-          "columnsFrom": [
-            "secondaryCategoryId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["secondaryCategoryId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -988,9 +880,7 @@
         "profiles_clerkUserId_unique": {
           "name": "profiles_clerkUserId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "clerkUserId"
-          ]
+          "columns": ["clerkUserId"]
         }
       },
       "checkConstraints": {}
@@ -1064,12 +954,8 @@
           "name": "records_meeting_id_meetings_id_fk",
           "tableFrom": "records",
           "tableTo": "meetings",
-          "columnsFrom": [
-            "meeting_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["meeting_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1077,12 +963,8 @@
           "name": "records_expert_id_users_clerkUserId_fk",
           "tableFrom": "records",
           "tableTo": "users",
-          "columnsFrom": [
-            "expert_id"
-          ],
-          "columnsTo": [
-            "clerkUserId"
-          ],
+          "columnsFrom": ["expert_id"],
+          "columnsTo": ["clerkUserId"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1150,12 +1032,8 @@
           "name": "scheduleAvailabilities_scheduleId_schedules_id_fk",
           "tableFrom": "scheduleAvailabilities",
           "tableTo": "schedules",
-          "columnsFrom": [
-            "scheduleId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["scheduleId"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1209,15 +1087,13 @@
         "schedules_clerkUserId_unique": {
           "name": "schedules_clerkUserId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "clerkUserId"
-          ]
+          "columns": ["clerkUserId"]
         }
       },
       "checkConstraints": {}
     },
-    "public.slotReservations": {
-      "name": "slotReservations",
+    "public.slot_reservations": {
+      "name": "slot_reservations",
       "schema": "",
       "columns": {
         "id": {
@@ -1227,63 +1103,75 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "eventId": {
-          "name": "eventId",
+        "event_id": {
+          "name": "event_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "clerkUserId": {
-          "name": "clerkUserId",
+        "clerk_user_id": {
+          "name": "clerk_user_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "guestEmail": {
-          "name": "guestEmail",
+        "guest_email": {
+          "name": "guest_email",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "startTime": {
-          "name": "startTime",
+        "start_time": {
+          "name": "start_time",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true
         },
-        "endTime": {
-          "name": "endTime",
+        "end_time": {
+          "name": "end_time",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true
         },
-        "expiresAt": {
-          "name": "expiresAt",
+        "expires_at": {
+          "name": "expires_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true
         },
-        "stripePaymentIntentId": {
-          "name": "stripePaymentIntentId",
+        "stripe_payment_intent_id": {
+          "name": "stripe_payment_intent_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "stripeSessionId": {
-          "name": "stripeSessionId",
+        "stripe_session_id": {
+          "name": "stripe_session_id",
           "type": "text",
           "primaryKey": false,
           "notNull": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "gentle_reminder_sent_at": {
+          "name": "gentle_reminder_sent_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "urgent_reminder_sent_at": {
+          "name": "urgent_reminder_sent_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         },
-        "updatedAt": {
-          "name": "updatedAt",
+        "updated_at": {
+          "name": "updated_at",
           "type": "timestamp",
           "primaryKey": false,
           "notNull": true,
@@ -1291,11 +1179,11 @@
         }
       },
       "indexes": {
-        "slotReservations_clerkUserId_idx": {
-          "name": "slotReservations_clerkUserId_idx",
+        "slot_reservations_clerk_user_id_idx": {
+          "name": "slot_reservations_clerk_user_id_idx",
           "columns": [
             {
-              "expression": "clerkUserId",
+              "expression": "clerk_user_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1306,11 +1194,11 @@
           "method": "btree",
           "with": {}
         },
-        "slotReservations_eventId_idx": {
-          "name": "slotReservations_eventId_idx",
+        "slot_reservations_event_id_idx": {
+          "name": "slot_reservations_event_id_idx",
           "columns": [
             {
-              "expression": "eventId",
+              "expression": "event_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1321,11 +1209,11 @@
           "method": "btree",
           "with": {}
         },
-        "slotReservations_expiresAt_idx": {
-          "name": "slotReservations_expiresAt_idx",
+        "slot_reservations_expires_at_idx": {
+          "name": "slot_reservations_expires_at_idx",
           "columns": [
             {
-              "expression": "expiresAt",
+              "expression": "expires_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1336,11 +1224,11 @@
           "method": "btree",
           "with": {}
         },
-        "slotReservations_paymentIntentId_idx": {
-          "name": "slotReservations_paymentIntentId_idx",
+        "slot_reservations_payment_intent_id_idx": {
+          "name": "slot_reservations_payment_intent_id_idx",
           "columns": [
             {
-              "expression": "stripePaymentIntentId",
+              "expression": "stripe_payment_intent_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1351,11 +1239,11 @@
           "method": "btree",
           "with": {}
         },
-        "slotReservations_sessionId_idx": {
-          "name": "slotReservations_sessionId_idx",
+        "slot_reservations_session_id_idx": {
+          "name": "slot_reservations_session_id_idx",
           "columns": [
             {
-              "expression": "stripeSessionId",
+              "expression": "stripe_session_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1368,35 +1256,32 @@
         }
       },
       "foreignKeys": {
-        "slotReservations_eventId_events_id_fk": {
-          "name": "slotReservations_eventId_events_id_fk",
-          "tableFrom": "slotReservations",
+        "slot_reservations_event_id_events_id_fk": {
+          "name": "slot_reservations_event_id_events_id_fk",
+          "tableFrom": "slot_reservations",
           "tableTo": "events",
-          "columnsFrom": [
-            "eventId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["event_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "slotReservations_stripePaymentIntentId_unique": {
-          "name": "slotReservations_stripePaymentIntentId_unique",
+        "slot_reservations_stripe_payment_intent_id_unique": {
+          "name": "slot_reservations_stripe_payment_intent_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripePaymentIntentId"
-          ]
+          "columns": ["stripe_payment_intent_id"]
         },
-        "slotReservations_stripeSessionId_unique": {
-          "name": "slotReservations_stripeSessionId_unique",
+        "slot_reservations_stripe_session_id_unique": {
+          "name": "slot_reservations_stripe_session_id_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeSessionId"
-          ]
+          "columns": ["stripe_session_id"]
+        },
+        "slot_reservations_active_slot_unique": {
+          "name": "slot_reservations_active_slot_unique",
+          "nullsNotDistinct": false,
+          "columns": ["event_id", "start_time", "guest_email"]
         }
       },
       "checkConstraints": {}
@@ -1632,16 +1517,12 @@
         "users_clerkUserId_unique": {
           "name": "users_clerkUserId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "clerkUserId"
-          ]
+          "columns": ["clerkUserId"]
         },
         "users_stripeCustomerId_unique": {
           "name": "users_stripeCustomerId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "stripeCustomerId"
-          ]
+          "columns": ["stripeCustomerId"]
         }
       },
       "checkConstraints": {}
@@ -1730,21 +1611,14 @@
         "COMPLETED",
         "FAILED",
         "REFUNDED",
-        "DISPUTED"
+        "DISPUTED",
+        "PAID_OUT"
       ]
     },
     "public.day": {
       "name": "day",
       "schema": "public",
-      "values": [
-        "monday",
-        "tuesday",
-        "wednesday",
-        "thursday",
-        "friday",
-        "saturday",
-        "sunday"
-      ]
+      "values": ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
     },
     "public.subscription_status": {
       "name": "subscription_status",

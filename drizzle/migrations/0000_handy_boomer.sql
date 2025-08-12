@@ -1,4 +1,4 @@
-CREATE TYPE "public"."payment_transfer_status_enum" AS ENUM('PENDING', 'APPROVED', 'READY', 'COMPLETED', 'FAILED', 'REFUNDED', 'DISPUTED');--> statement-breakpoint
+CREATE TYPE "public"."payment_transfer_status_enum" AS ENUM('PENDING', 'APPROVED', 'READY', 'COMPLETED', 'FAILED', 'REFUNDED', 'DISPUTED', 'PAID_OUT');--> statement-breakpoint
 CREATE TYPE "public"."day" AS ENUM('monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday');--> statement-breakpoint
 CREATE TYPE "public"."subscription_status" AS ENUM('active', 'canceled', 'incomplete', 'incomplete_expired', 'past_due', 'trialing', 'unpaid');--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "blocked_dates" (
@@ -78,19 +78,6 @@ CREATE TABLE IF NOT EXISTS "meetings" (
 	CONSTRAINT "meetings_stripe_payout_id_unique" UNIQUE("stripe_payout_id")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "notifications" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"user_id" uuid NOT NULL,
-	"type" text NOT NULL,
-	"title" text NOT NULL,
-	"message" text NOT NULL,
-	"action_url" text,
-	"read" boolean DEFAULT false,
-	"read_at" timestamp,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"expires_at" timestamp
-);
---> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "payment_transfers" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"payment_intent_id" text NOT NULL,
@@ -105,6 +92,7 @@ CREATE TABLE IF NOT EXISTS "payment_transfers" (
 	"scheduled_transfer_time" timestamp NOT NULL,
 	"status" "payment_transfer_status_enum" DEFAULT 'PENDING' NOT NULL,
 	"transfer_id" text,
+	"payout_id" text,
 	"stripe_error_code" text,
 	"stripe_error_message" text,
 	"retry_count" integer DEFAULT 0,
@@ -166,20 +154,23 @@ CREATE TABLE IF NOT EXISTS "schedules" (
 	CONSTRAINT "schedules_clerkUserId_unique" UNIQUE("clerkUserId")
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "slotReservations" (
+CREATE TABLE IF NOT EXISTS "slot_reservations" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"eventId" uuid NOT NULL,
-	"clerkUserId" text NOT NULL,
-	"guestEmail" text NOT NULL,
-	"startTime" timestamp NOT NULL,
-	"endTime" timestamp NOT NULL,
-	"expiresAt" timestamp NOT NULL,
-	"stripePaymentIntentId" text,
-	"stripeSessionId" text,
-	"createdAt" timestamp DEFAULT now() NOT NULL,
-	"updatedAt" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "slotReservations_stripePaymentIntentId_unique" UNIQUE("stripePaymentIntentId"),
-	CONSTRAINT "slotReservations_stripeSessionId_unique" UNIQUE("stripeSessionId")
+	"event_id" uuid NOT NULL,
+	"clerk_user_id" text NOT NULL,
+	"guest_email" text NOT NULL,
+	"start_time" timestamp NOT NULL,
+	"end_time" timestamp NOT NULL,
+	"expires_at" timestamp NOT NULL,
+	"stripe_payment_intent_id" text,
+	"stripe_session_id" text,
+	"gentle_reminder_sent_at" timestamp,
+	"urgent_reminder_sent_at" timestamp,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "slot_reservations_stripe_payment_intent_id_unique" UNIQUE("stripe_payment_intent_id"),
+	CONSTRAINT "slot_reservations_stripe_session_id_unique" UNIQUE("stripe_session_id"),
+	CONSTRAINT "slot_reservations_active_slot_unique" UNIQUE("event_id","start_time","guest_email")
 );
 --> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "users" (
@@ -233,12 +224,6 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "notifications" ADD CONSTRAINT "notifications_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;
-EXCEPTION
- WHEN duplicate_object THEN null;
-END $$;
---> statement-breakpoint
-DO $$ BEGIN
  ALTER TABLE "profiles" ADD CONSTRAINT "profiles_primaryCategoryId_categories_id_fk" FOREIGN KEY ("primaryCategoryId") REFERENCES "public"."categories"("id") ON DELETE no action ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
@@ -269,7 +254,7 @@ EXCEPTION
 END $$;
 --> statement-breakpoint
 DO $$ BEGIN
- ALTER TABLE "slotReservations" ADD CONSTRAINT "slotReservations_eventId_events_id_fk" FOREIGN KEY ("eventId") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;
+ ALTER TABLE "slot_reservations" ADD CONSTRAINT "slot_reservations_event_id_events_id_fk" FOREIGN KEY ("event_id") REFERENCES "public"."events"("id") ON DELETE cascade ON UPDATE no action;
 EXCEPTION
  WHEN duplicate_object THEN null;
 END $$;
@@ -283,11 +268,11 @@ CREATE INDEX IF NOT EXISTS "meetings_transferId_idx" ON "meetings" USING btree (
 CREATE INDEX IF NOT EXISTS "meetings_payoutId_idx" ON "meetings" USING btree ("stripe_payout_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "profiles_clerkUserId_idx" ON "profiles" USING btree ("clerkUserId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "scheduleIdIndex" ON "scheduleAvailabilities" USING btree ("scheduleId");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "slotReservations_clerkUserId_idx" ON "slotReservations" USING btree ("clerkUserId");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "slotReservations_eventId_idx" ON "slotReservations" USING btree ("eventId");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "slotReservations_expiresAt_idx" ON "slotReservations" USING btree ("expiresAt");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "slotReservations_paymentIntentId_idx" ON "slotReservations" USING btree ("stripePaymentIntentId");--> statement-breakpoint
-CREATE INDEX IF NOT EXISTS "slotReservations_sessionId_idx" ON "slotReservations" USING btree ("stripeSessionId");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "slot_reservations_clerk_user_id_idx" ON "slot_reservations" USING btree ("clerk_user_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "slot_reservations_event_id_idx" ON "slot_reservations" USING btree ("event_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "slot_reservations_expires_at_idx" ON "slot_reservations" USING btree ("expires_at");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "slot_reservations_payment_intent_id_idx" ON "slot_reservations" USING btree ("stripe_payment_intent_id");--> statement-breakpoint
+CREATE INDEX IF NOT EXISTS "slot_reservations_session_id_idx" ON "slot_reservations" USING btree ("stripe_session_id");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "users_clerk_user_id_idx" ON "users" USING btree ("clerkUserId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "users_stripe_customer_id_idx" ON "users" USING btree ("stripeCustomerId");--> statement-breakpoint
 CREATE INDEX IF NOT EXISTS "users_stripe_identity_verification_id_idx" ON "users" USING btree ("stripe_identity_verification_id");

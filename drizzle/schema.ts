@@ -464,6 +464,7 @@ export const PaymentTransferTable = pgTable('payment_transfers', {
   scheduledTransferTime: timestamp('scheduled_transfer_time').notNull(),
   status: paymentTransferStatusEnum('status').notNull().default(PAYMENT_TRANSFER_STATUS_PENDING),
   transferId: text('transfer_id'),
+  payoutId: text('payout_id'),
   stripeErrorCode: text('stripe_error_code'),
   stripeErrorMessage: text('stripe_error_message'),
   retryCount: integer('retry_count').default(0),

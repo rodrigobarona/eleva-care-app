@@ -13,6 +13,7 @@ export const PAYMENT_TRANSFER_STATUS_COMPLETED = 'COMPLETED' as const;
 export const PAYMENT_TRANSFER_STATUS_FAILED = 'FAILED' as const;
 export const PAYMENT_TRANSFER_STATUS_REFUNDED = 'REFUNDED' as const;
 export const PAYMENT_TRANSFER_STATUS_DISPUTED = 'DISPUTED' as const;
+export const PAYMENT_TRANSFER_STATUS_PAID_OUT = 'PAID_OUT' as const;
 
 // Complete list of payment transfer statuses
 export const PAYMENT_TRANSFER_STATUSES = [
@@ -23,6 +24,7 @@ export const PAYMENT_TRANSFER_STATUSES = [
   PAYMENT_TRANSFER_STATUS_FAILED,
   PAYMENT_TRANSFER_STATUS_REFUNDED,
   PAYMENT_TRANSFER_STATUS_DISPUTED,
+  PAYMENT_TRANSFER_STATUS_PAID_OUT,
 ] as const;
 
 // Type for payment transfer status (derived from the constant array)

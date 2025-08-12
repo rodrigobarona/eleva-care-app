@@ -5,36 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1748500704370,
-      "tag": "0000_peaceful_miracleman",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1748505772109,
-      "tag": "0001_zippy_blue_blade",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1748629505602,
-      "tag": "0002_same_kate_bishop",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1748673230894,
-      "tag": "0003_melodic_power_pack",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1749018165683,
-      "tag": "0004_steady_lady_bullseye",
+      "when": 1755039076706,
+      "tag": "0000_handy_boomer",
       "breakpoints": true
     }
   ]

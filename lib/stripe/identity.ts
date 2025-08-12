@@ -1,4 +1,4 @@
-import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
+import { getMinimumPayoutDelay, STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
@@ -303,7 +303,7 @@ export async function createConnectAccountWithVerifiedIdentity(
           payouts: {
             schedule: {
               interval: 'daily',
-              delay_days: 0,
+              delay_days: getMinimumPayoutDelay(countryCode),
             },
           },
         },

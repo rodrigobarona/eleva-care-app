@@ -34,8 +34,8 @@ These values may change as Stripe updates its policies. The most up-to-date valu
 1. A client books and pays for a session
 2. The payment is processed through Stripe
 3. After the session is completed, the funds become available in the platform's Stripe account
-4. Stripe automatically transfers the expert's portion (minus platform fees) to their Connect account
-5. Stripe initiates a payout from the Connect account to the expert's bank account based on the payout schedule
+4. Our system creates a transfer to move the expert's portion (minus platform fees) to their Connect account
+5. After the required delay period, our system creates a payout from the Connect account to the expert's bank account
 6. The minimum delay (as specified above) applies before the funds are sent to the bank
 7. Additional bank processing time (typically 1-2 business days) may apply before funds appear in the expert's account
 
@@ -43,9 +43,27 @@ These values may change as Stripe updates its policies. The most up-to-date valu
 
 The default payout schedule for all experts is set to **daily** with the country-specific minimum delay. This means:
 
-1. Funds are grouped for payout once each day
-2. The minimum delay period must pass before funds are eligible for payout
+1. Transfers are created after session completion and payment aging
+2. Payouts are created daily after the minimum delay period has passed
 3. Only funds from completed sessions are included in payouts
+
+## Automated Payout Process
+
+The platform uses a two-phase approach for expert payments:
+
+### Phase 1: Transfer Creation
+
+- **Cron Job**: `process-expert-transfers` (every 2 hours)
+- **Purpose**: Creates Stripe transfers from platform account to Connect accounts
+- **Timing**: Respects payment aging and country-specific delay requirements
+- **Status**: Updates transfer status to `COMPLETED`
+
+### Phase 2: Payout Creation
+
+- **Cron Job**: `process-pending-payouts` (daily at 6 AM)
+- **Purpose**: Creates Stripe payouts from Connect accounts to expert bank accounts
+- **Timing**: After transfer completion + required delay period
+- **Status**: Updates transfer status to `PAID_OUT`
 
 ## Future Improvements
 
