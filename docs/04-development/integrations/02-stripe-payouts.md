@@ -33,37 +33,84 @@ These values may change as Stripe updates its policies. The most up-to-date valu
 
 1. A client books and pays for a session
 2. The payment is processed through Stripe
-3. After the session is completed, the funds become available in the platform's Stripe account
-4. Our system creates a transfer to move the expert's portion (minus platform fees) to their Connect account
-5. After the required delay period, our system creates a payout from the Connect account to the expert's bank account
-6. The minimum delay (as specified above) applies before the funds are sent to the bank
-7. Additional bank processing time (typically 1-2 business days) may apply before funds appear in the expert's account
+3. **Two-condition payout system** ensures compliance and customer protection:
+   - **Condition 1**: Payment must be 7+ days old (regulatory compliance)
+   - **Condition 2**: Appointment must have ended 24+ hours ago (complaint window)
+4. After both conditions are met, our system creates a transfer to the expert's Connect account
+5. Immediately after transfer completion, our system creates a payout to the expert's bank account
+6. Additional bank processing time (typically 1-2 business days) may apply before funds appear in the expert's account
+
+## Business Model: Service Delivery Assumption
+
+**Similar to Airbnb's approach:**
+
+- Since appointments cannot be cancelled or rescheduled in our system
+- We assume service delivery occurred as scheduled
+- The 24-hour hold after appointment completion provides a complaint window
+- This protects against potential service quality issues while ensuring prompt expert payment
+
+## Payout Timing Requirements
+
+### Transfer Creation Requirements (Both Must Be Met)
+
+1. **Payment Aging**: Payment must be 7+ days old
+
+   - PT (Portugal): 7 days minimum
+   - Other countries: 7 days minimum (configurable)
+   - Purpose: Regulatory compliance and chargeback protection
+
+2. **Service Delivery Window**: 24+ hours since scheduled appointment end
+   - Purpose: Customer complaint window (like Airbnb's first-night hold)
+   - Calculation: `appointment_start_time + event_duration + 24 hours`
+   - Ensures customers have time to report service issues
+
+### Payout Creation Requirements
+
+- Transfer must be successfully completed
+- Appointment must have ended 24+ hours ago
+- Connect account must have sufficient available balance
 
 ## Payout Schedule Settings
 
 The default payout schedule for all experts is set to **daily** with the country-specific minimum delay. This means:
 
-1. Transfers are created after session completion and payment aging
-2. Payouts are created daily after the minimum delay period has passed
-3. Only funds from completed sessions are included in payouts
+1. Transfers are created after both payment aging and service delivery requirements are met
+2. Payouts are created immediately after transfer completion
+3. Only funds from appointments that ended 24+ hours ago are included
 
 ## Automated Payout Process
 
-The platform uses a two-phase approach for expert payments:
+The platform uses a **two-phase approach** for expert payments:
 
 ### Phase 1: Transfer Creation
 
 - **Cron Job**: `process-expert-transfers` (every 2 hours)
 - **Purpose**: Creates Stripe transfers from platform account to Connect accounts
-- **Timing**: Respects payment aging and country-specific delay requirements
+- **Timing**: After 7+ day payment aging AND 24+ hours post-appointment
 - **Status**: Updates transfer status to `COMPLETED`
 
 ### Phase 2: Payout Creation
 
 - **Cron Job**: `process-pending-payouts` (daily at 6 AM)
 - **Purpose**: Creates Stripe payouts from Connect accounts to expert bank accounts
-- **Timing**: After transfer completion + required delay period
+- **Timing**: Immediately after transfer completion (no additional delay)
 - **Status**: Updates transfer status to `PAID_OUT`
+
+## Example Timeline
+
+**Day 0**: Customer books and pays for appointment scheduled for Day 8
+**Day 8**: Appointment occurs (1 hour duration, ends at Day 8 + 1 hour)
+**Day 8 + 25 hours**: First eligible time for transfer (7 days + 24 hours met)
+**Day 8 + 25 hours**: Transfer created and payout sent to expert
+
+## Compliance & Risk Management
+
+This approach balances:
+
+- **Regulatory compliance**: 7-day payment aging meets European regulations
+- **Customer protection**: 24-hour complaint window for service issues
+- **Expert cash flow**: Prompt payment after service delivery confirmation period
+- **Platform risk**: Sufficient time to handle disputes and quality issues
 
 ## Future Improvements
 

@@ -1,6 +1,6 @@
-import { PAYOUT_DELAY_DAYS, STRIPE_CONFIG } from '@/config/stripe';
+import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import { EventTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
 import {
   PAYMENT_TRANSFER_STATUS_COMPLETED,
   PAYMENT_TRANSFER_STATUS_PAID_OUT,
@@ -11,9 +11,9 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
-// Process Pending Payouts - Creates actual Stripe payouts after transfer delay period
-// This cron job handles the second phase of expert payments:
-// 1. Finds completed transfers where payout delay has passed
+// Process Pending Payouts - Creates actual Stripe payouts after appointment completion + 24h complaint window
+// This cron job handles the final phase of expert payments:
+// 1. Finds completed transfers where appointment ended 24+ hours ago
 // 2. Creates Stripe payouts from Connect account to expert bank account
 // 3. Updates records and sends notifications
 
@@ -99,7 +99,7 @@ export async function GET(request: Request) {
 
     console.log(`Found ${completedTransfers.length} completed transfers to evaluate for payout`);
 
-    // Filter transfers based on payout delay requirements
+    // Filter transfers based on appointment completion + complaint window requirements
     const eligibleForPayout = [];
     for (const transfer of completedTransfers) {
       try {
@@ -122,33 +122,45 @@ export async function GET(request: Request) {
           continue;
         }
 
-        // Get country-specific payout delay
-        const countryCode = (
-          expertUser.country || 'DEFAULT'
-        ).toUpperCase() as keyof typeof PAYOUT_DELAY_DAYS;
-        const requiredDelayDays = PAYOUT_DELAY_DAYS[countryCode] || PAYOUT_DELAY_DAYS.DEFAULT;
+        // Get event details to calculate appointment end time
+        const event = await db.query.EventTable.findFirst({
+          where: eq(EventTable.id, transfer.eventId),
+          columns: { durationInMinutes: true },
+        });
 
-        // Calculate days since transfer was completed
-        const transferDate = transfer.updated || transfer.created;
-        const daysSinceTransfer = Math.floor(
-          (now.getTime() - transferDate.getTime()) / (1000 * 60 * 60 * 24),
+        if (!event) {
+          console.error(`Could not find event ${transfer.eventId} for transfer ${transfer.id}`);
+          continue;
+        }
+
+        // Calculate appointment end time
+        const appointmentEndTime = new Date(
+          transfer.sessionStartTime.getTime() + event.durationInMinutes * 60 * 1000,
+        );
+
+        // Calculate hours since appointment ended (24+ hours for complaint window)
+        const hoursSinceAppointmentEnd = Math.floor(
+          (now.getTime() - appointmentEndTime.getTime()) / (1000 * 60 * 60),
         );
 
         console.log(
-          `Transfer ${transfer.id}: ${daysSinceTransfer} days since completion, required delay: ${requiredDelayDays} days`,
+          `Transfer ${transfer.id}: Appointment ended ${hoursSinceAppointmentEnd}h ago (required: 24h), appointment end: ${appointmentEndTime.toISOString()}`,
         );
 
-        // Check if enough time has passed for payout
-        if (daysSinceTransfer >= requiredDelayDays) {
+        // Check if complaint window has passed (24+ hours since appointment ended)
+        if (hoursSinceAppointmentEnd >= 24) {
           eligibleForPayout.push({
             ...transfer,
             expertUser,
-            requiredDelayDays,
-            daysSinceTransfer,
+            appointmentEndTime,
+            hoursSinceAppointmentEnd,
           });
+          console.log(
+            `✅ Transfer ${transfer.id} eligible for payout: appointment ended ${hoursSinceAppointmentEnd}h ago`,
+          );
         } else {
           console.log(
-            `Transfer ${transfer.id} not ready for payout (${daysSinceTransfer}/${requiredDelayDays} days)`,
+            `❌ Transfer ${transfer.id} not ready for payout: only ${hoursSinceAppointmentEnd}h since appointment ended (need 24h)`,
           );
         }
       } catch (error) {

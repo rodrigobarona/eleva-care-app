@@ -1,6 +1,6 @@
 import { PAYOUT_DELAY_DAYS, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import { EventTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
 import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
   PAYMENT_TRANSFER_STATUS_COMPLETED,
@@ -157,32 +157,66 @@ export async function GET(request: Request) {
           continue;
         }
 
+        // Get event details to calculate appointment end time
+        const event = await db.query.EventTable.findFirst({
+          where: eq(EventTable.id, transfer.eventId),
+          columns: { durationInMinutes: true },
+        });
+
+        if (!event) {
+          console.error(`Could not find event ${transfer.eventId} for transfer ${transfer.id}`);
+          continue;
+        }
+
+        // Calculate appointment end time
+        const appointmentEndTime = new Date(
+          transfer.sessionStartTime.getTime() + event.durationInMinutes * 60 * 1000,
+        );
+
         // Get country-specific payout delay with proper type safety
         const countryCode = (
           expertUser.country || 'DEFAULT'
         ).toUpperCase() as keyof typeof PAYOUT_DELAY_DAYS;
         const requiredAgingDays = PAYOUT_DELAY_DAYS[countryCode] || PAYOUT_DELAY_DAYS.DEFAULT;
 
-        // Calculate days since payment was created
+        // REQUIREMENT 1: Calculate days since payment was created (7+ days for regulatory compliance)
         const paymentDate = transfer.created;
         const daysSincePayment = Math.floor(
           (now.getTime() - paymentDate.getTime()) / (1000 * 60 * 60 * 24),
         );
 
-        console.log(
-          `Transfer ${transfer.id}: Payment age is ${daysSincePayment} days, required aging: ${requiredAgingDays} days`,
+        // REQUIREMENT 2: Calculate hours since appointment ended (24+ hours for complaint window)
+        const hoursSinceAppointmentEnd = Math.floor(
+          (now.getTime() - appointmentEndTime.getTime()) / (1000 * 60 * 60),
         );
 
-        // Check if payment has aged enough for payout
-        if (daysSincePayment >= requiredAgingDays) {
+        console.log(
+          `Transfer ${transfer.id}: Payment age is ${daysSincePayment} days (required: ${requiredAgingDays}), appointment ended ${hoursSinceAppointmentEnd}h ago (required: 24h)`,
+        );
+
+        // Both conditions must be met:
+        // 1. Payment must be aged enough for regulatory compliance
+        // 2. At least 24 hours must have passed since appointment ended (complaint window)
+        const paymentAgedEnough = daysSincePayment >= requiredAgingDays;
+        const appointmentComplaintWindowPassed = hoursSinceAppointmentEnd >= 24;
+
+        if (paymentAgedEnough && appointmentComplaintWindowPassed) {
           eligibleTransfers.push(transfer);
-        } else {
           console.log(
-            `Transfer ${transfer.id} does not meet aging requirement yet (${daysSincePayment}/${requiredAgingDays} days)`,
+            `✅ Transfer ${transfer.id} eligible: payment aged ${daysSincePayment}d, appointment ended ${hoursSinceAppointmentEnd}h ago`,
           );
+        } else {
+          const reasons = [];
+          if (!paymentAgedEnough) {
+            reasons.push(`payment aging (${daysSincePayment}/${requiredAgingDays} days)`);
+          }
+          if (!appointmentComplaintWindowPassed) {
+            reasons.push(`appointment completion wait (${hoursSinceAppointmentEnd}/24 hours)`);
+          }
+          console.log(`❌ Transfer ${transfer.id} not ready: ${reasons.join(', ')}`);
         }
       } catch (error) {
-        console.error(`Error evaluating payment aging for transfer ${transfer.id}:`, error);
+        console.error(`Error evaluating transfer eligibility for transfer ${transfer.id}:`, error);
       }
     }
 
