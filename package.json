@@ -134,6 +134,7 @@
     "@tiptap/pm": "^3.1.0",
     "@tiptap/react": "^3.1.0",
     "@tiptap/starter-kit": "^3.1.0",
+    "@tiptap/static-renderer": "^3.1.0",
     "@types/lodash": "^4.17.16",
     "@types/mdx": "^2.0.13",
     "@types/node-cron": "^3.0.11",
@@ -160,6 +161,7 @@
     "isomorphic-dompurify": "^2.25.0",
     "lodash": "^4.17.21",
     "lucide-react": "^0.453.0",
+    "marked": "^16.1.2",
     "motion": "^12.9.2",
     "next": "15.3.3",
     "next-intl": "^4.1.0",
@@ -183,7 +185,6 @@
     "svix": "^1.66.0",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
-    "tiptap-markdown": "^0.8.10",
     "use-server": "^0.4.9",
     "zod": "^3.24.3",
     "zod-to-json-schema": "^3.24.5"

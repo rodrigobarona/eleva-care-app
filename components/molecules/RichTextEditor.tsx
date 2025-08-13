@@ -21,6 +21,7 @@ import { Typography } from '@tiptap/extension-typography';
 import { Underline } from '@tiptap/extension-underline';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
+import { renderToMarkdown } from '@tiptap/static-renderer/pm/markdown';
 import {
   AlignCenter,
   AlignJustify,
@@ -39,13 +40,30 @@ import {
   Type,
   Underline as UnderlineIcon,
 } from 'lucide-react';
+import { marked } from 'marked';
 import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface SimpleRichTextEditorProps {
-  value: string;
-  onChange: (value: string) => void;
+  value: string; // Markdown content
+  onChange: (value: string) => void; // Returns Markdown content
 }
+
+// Convert Markdown to HTML for display in editor
+const markdownToHtml = async (markdown: string): Promise<string> => {
+  try {
+    // Configure marked for better compatibility with medical content
+    marked.setOptions({
+      gfm: true, // GitHub Flavored Markdown
+      breaks: true, // Line breaks
+    });
+
+    return await marked.parse(markdown);
+  } catch (error) {
+    console.warn('Failed to parse Markdown, using as-is:', error);
+    return markdown; // Fallback to original content
+  }
+};
 
 const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onChange }) => {
   // Use refs to avoid stale closures and unnecessary re-renders
@@ -61,82 +79,85 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     onChangeRef.current = onChange;
   }, [onChange]);
 
+  // All extensions used by the editor
+  const extensions = [
+    StarterKit.configure({
+      heading: {
+        levels: [1, 2, 3],
+      },
+    }),
+    // Professional Typography
+    Typography,
+    // Text Styling Foundation
+    TextStyle,
+    // Enhanced Text Formatting
+    Underline,
+    Color.configure({
+      types: ['textStyle'],
+    }),
+    // Text Alignment for Professional Documents
+    TextAlign.configure({
+      types: ['heading', 'paragraph'],
+      alignments: ['left', 'center', 'right', 'justify'],
+      defaultAlignment: 'left',
+    }),
+    // Enhanced List Extensions
+    BulletList,
+    ListItem,
+    TaskList,
+    TaskItem.configure({
+      nested: true,
+      HTMLAttributes: {
+        class: 'task-item',
+      },
+    }),
+    // Table Extensions for Medical Records
+    Table.configure({
+      resizable: true,
+      HTMLAttributes: {
+        class: 'medical-table',
+      },
+    }),
+    TableRow,
+    TableHeader,
+    TableCell,
+    // Image Support for Medical Diagrams
+    Image.configure({
+      inline: true,
+      allowBase64: true,
+      HTMLAttributes: {
+        class: 'medical-image',
+      },
+    }),
+    // Text Enhancement
+    Highlight.configure({
+      multicolor: true,
+      HTMLAttributes: {
+        class: 'highlight',
+      },
+    }),
+    // Professional Placeholder
+    Placeholder.configure({
+      placeholder: ({ node }) => {
+        if (node.type.name === 'heading') {
+          return 'Enter heading...';
+        }
+        return 'Start writing your medical notes...';
+      },
+      includeChildren: true,
+    }),
+    // Link with better configuration
+    Link.configure({
+      openOnClick: false,
+      HTMLAttributes: {
+        class: 'text-primary underline hover:text-primary/80',
+      },
+    }),
+  ];
+
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
-      // Professional Typography
-      Typography,
-      // Text Styling Foundation
-      TextStyle,
-      // Enhanced Text Formatting
-      Underline,
-      Color.configure({
-        types: ['textStyle'],
-      }),
-      // Text Alignment for Professional Documents
-      TextAlign.configure({
-        types: ['heading', 'paragraph'],
-        alignments: ['left', 'center', 'right', 'justify'],
-        defaultAlignment: 'left',
-      }),
-      // Enhanced List Extensions
-      BulletList,
-      ListItem,
-      TaskList,
-      TaskItem.configure({
-        nested: true,
-        HTMLAttributes: {
-          class: 'task-item',
-        },
-      }),
-      // Table Extensions for Medical Records
-      Table.configure({
-        resizable: true,
-        HTMLAttributes: {
-          class: 'medical-table',
-        },
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
-      // Image Support for Medical Diagrams
-      Image.configure({
-        inline: true,
-        allowBase64: true,
-        HTMLAttributes: {
-          class: 'medical-image',
-        },
-      }),
-      // Text Enhancement
-      Highlight.configure({
-        multicolor: true,
-        HTMLAttributes: {
-          class: 'highlight',
-        },
-      }),
-      // Professional Placeholder
-      Placeholder.configure({
-        placeholder: ({ node }) => {
-          if (node.type.name === 'heading') {
-            return 'Enter heading...';
-          }
-          return 'Start writing your medical notes...';
-        },
-        includeChildren: true,
-      }),
-      // Link with better configuration
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-primary underline hover:text-primary/80',
-        },
-      }),
-    ],
-    content: value,
+    extensions,
+    content: '', // Start with empty content, will be set via useEffect
     editorProps: {
       attributes: {
         class:
@@ -144,15 +165,24 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
       },
     },
     immediatelyRender: false,
-    // Use onUpdate callback instead of event listener for better performance
+    // Convert editor content to Markdown before calling onChange
     onUpdate: ({ editor }) => {
       // Don't emit changes if we're currently updating from external prop
       if (isUpdatingFromProp.current) {
         return;
       }
 
-      const htmlContent = editor.getHTML();
-      if (htmlContent !== undefined) {
+      // ✅ BEST PRACTICE: Store as Markdown for scalability and platform agnosticism
+      try {
+        const markdownContent = renderToMarkdown({
+          extensions,
+          content: editor.getJSON(),
+        });
+        onChangeRef.current(markdownContent);
+      } catch (error) {
+        console.warn('Failed to convert to Markdown, falling back to HTML:', error);
+        // Fallback to HTML if Markdown conversion fails
+        const htmlContent = editor.getHTML();
         onChangeRef.current(htmlContent);
       }
     },
@@ -231,11 +261,8 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
   React.useEffect(() => {
     if (!editor) return;
 
-    // Get current HTML content from editor
-    const currentHTML = editor.getHTML();
-
     // Only update if content is actually different
-    if (currentHTML === value) {
+    if (value === undefined || value === null) {
       return;
     }
 
@@ -247,42 +274,66 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     isUpdatingFromProp.current = true;
 
     try {
-      // ✅ CRITICAL: Improved cursor preservation during autosave
-
-      // Update content first without triggering onUpdate
-      editor.commands.setContent(value, { emitUpdate: false });
-
-      // Restore cursor position after content update if editor was focused
-      if (wasFocused) {
-        // Use nextTick for reliable timing after content update
-        Promise.resolve().then(() => {
+      // ✅ CRITICAL: Convert Markdown to HTML for editor display
+      markdownToHtml(value)
+        .then((htmlContent) => {
           if (editor && !editor.isDestroyed) {
-            const newDocSize = editor.state.doc.content.size;
+            // Get current HTML to compare
+            const currentHTML = editor.getHTML();
 
-            // Calculate safe cursor positions
-            const safeFrom = Math.min(from, Math.max(0, newDocSize - 1));
-            const safeTo = Math.min(to, Math.max(0, newDocSize - 1));
+            // Only update if content is actually different
+            if (currentHTML !== htmlContent) {
+              // Update content first without triggering onUpdate
+              editor.commands.setContent(htmlContent, { emitUpdate: false });
 
-            try {
-              // Restore selection using setTextSelection command
-              if (safeFrom === safeTo) {
-                // Simple cursor position
-                editor.commands.setTextSelection(safeFrom);
-              } else {
-                // Text selection range
-                editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
+              // Restore cursor position after content update if editor was focused
+              if (wasFocused) {
+                // Use nextTick for reliable timing after content update
+                Promise.resolve().then(() => {
+                  if (editor && !editor.isDestroyed) {
+                    const newDocSize = editor.state.doc.content.size;
+
+                    // Calculate safe cursor positions
+                    const safeFrom = Math.min(from, Math.max(0, newDocSize - 1));
+                    const safeTo = Math.min(to, Math.max(0, newDocSize - 1));
+
+                    try {
+                      // Restore selection using setTextSelection command
+                      if (safeFrom === safeTo) {
+                        // Simple cursor position
+                        editor.commands.setTextSelection(safeFrom);
+                      } else {
+                        // Text selection range
+                        editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
+                      }
+
+                      // Restore focus
+                      editor.commands.focus();
+                    } catch (selectionError) {
+                      // Fallback: focus at end if position restoration fails
+                      console.warn(
+                        'Cursor position restoration failed, focusing at end:',
+                        selectionError,
+                      );
+                      editor.commands.focus('end');
+                    }
+                  }
+                });
               }
-
-              // Restore focus
-              editor.commands.focus();
-            } catch (selectionError) {
-              // Fallback: focus at end if position restoration fails
-              console.warn('Cursor position restoration failed, focusing at end:', selectionError);
-              editor.commands.focus('end');
             }
           }
+        })
+        .catch((error) => {
+          console.warn('Failed to convert Markdown to HTML:', error);
+          // Fallback: try to set content directly
+          editor.commands.setContent(value, { emitUpdate: false });
+        })
+        .finally(() => {
+          // Reset the flag after the microtask queue completes
+          queueMicrotask(() => {
+            isUpdatingFromProp.current = false;
+          });
         });
-      }
     } catch (error) {
       // Fallback: simple content update without cursor preservation
       console.warn('Advanced cursor preservation failed, using fallback:', error);
@@ -290,13 +341,23 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
       if (wasFocused) {
         editor.commands.focus('end');
       }
-    } finally {
-      // Reset the flag after the microtask queue completes
       queueMicrotask(() => {
         isUpdatingFromProp.current = false;
       });
     }
   }, [value, editor]);
+
+  // Initialize editor content from props
+  React.useEffect(() => {
+    if (!editor || !value) return;
+
+    // Convert initial Markdown to HTML
+    markdownToHtml(value).then((htmlContent) => {
+      if (editor && !editor.isDestroyed) {
+        editor.commands.setContent(htmlContent, { emitUpdate: false });
+      }
+    });
+  }, [editor]); // Only run when editor is created
 
   // Cleanup on unmount
   React.useEffect(() => {
@@ -532,7 +593,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
             className="h-7 w-7 p-0"
             onClick={() => {
               alert(
-                'Typography Features:\n• Smart quotes: " "\n• Fractions: 1/2, 1/4, 3/4\n• Math symbols: ±, ≠, ×\n• Superscripts: ², ³\n• Arrows: ←, →\n• Copyright: ©, ®, ™',
+                'Typography Features:\n• Smart quotes: " "\n• Fractions: 1/2, 1/4, 3/4\n• Math symbols: ±, ≠, ×\n• Superscripts: ², ³\n• Arrows: ←, →\n• Copyright: ©, ®, ™\n\n📝 Content stored as Markdown for maximum portability!',
               );
             }}
             title="Typography Help & Features"
@@ -567,6 +628,14 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
       <EditorContent editor={editor} />
 
       {/* 
+        ✅ BEST PRACTICE: Content now stored as Markdown for:
+        - Maximum portability and platform agnosticism
+        - Smaller database storage footprint  
+        - Human-readable format for debugging
+        - Future-proof content that works everywhere
+        - Perfect for AI/LLM integration
+        - Excellent for version control and diffing
+        
         TODO: Add these CSS styles to your global stylesheet:
         
         .medical-editor .medical-table {

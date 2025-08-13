@@ -11,6 +11,7 @@ import { TaskItem } from '@tiptap/extension-task-item';
 import { TaskList } from '@tiptap/extension-task-list';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
+import { renderToMarkdown } from '@tiptap/static-renderer/pm/markdown';
 import {
   Bold,
   CheckSquare,
@@ -23,15 +24,31 @@ import {
   List,
   Table as TableIcon,
 } from 'lucide-react';
+import { marked } from 'marked';
 import React from 'react';
-import { Markdown } from 'tiptap-markdown';
 
 interface RecordEditorProps {
-  value: string;
-  onChange: (value: string) => void;
+  value: string; // Markdown content
+  onChange: (value: string) => void; // Returns Markdown content
   readOnly?: boolean;
   autoFocus?: boolean;
 }
+
+// Convert Markdown to HTML for display in editor
+const markdownToHtml = async (markdown: string): Promise<string> => {
+  try {
+    // Configure marked for better compatibility with medical content
+    marked.setOptions({
+      gfm: true, // GitHub Flavored Markdown
+      breaks: true, // Line breaks
+    });
+
+    return await marked.parse(markdown);
+  } catch (error) {
+    console.warn('Failed to parse Markdown, using as-is:', error);
+    return markdown; // Fallback to original content
+  }
+};
 
 const RecordEditor: React.FC<RecordEditorProps> = ({
   value,
@@ -39,43 +56,39 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
   readOnly = false,
   autoFocus = false,
 }) => {
+  // All extensions used by the editor
+  const extensions = [
+    StarterKit.configure({
+      heading: {
+        levels: [1, 2, 3],
+      },
+    }),
+    BulletList,
+    ListItem,
+    Link.configure({
+      openOnClick: false,
+      HTMLAttributes: {
+        class: 'text-primary underline hover:text-primary/80',
+      },
+    }),
+    Highlight.configure({
+      multicolor: true,
+    }),
+    TaskList,
+    TaskItem.configure({
+      nested: true,
+    }),
+    Table.configure({
+      resizable: true,
+    }),
+    TableRow,
+    TableHeader,
+    TableCell,
+  ];
+
   const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: {
-          levels: [1, 2, 3],
-        },
-      }),
-      Markdown.configure({
-        html: true,
-        tightLists: true,
-        bulletListMarker: '-',
-        breaks: true,
-        transformPastedText: true,
-      }),
-      BulletList,
-      ListItem,
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-primary underline hover:text-primary/80',
-        },
-      }),
-      Highlight.configure({
-        multicolor: true,
-      }),
-      TaskList,
-      TaskItem.configure({
-        nested: true,
-      }),
-      Table.configure({
-        resizable: true,
-      }),
-      TableRow,
-      TableHeader,
-      TableCell,
-    ],
-    content: value,
+    extensions,
+    content: '', // Start with empty content, will be set via useEffect
     editable: !readOnly,
     autofocus: autoFocus ? 'end' : false,
     editorProps: {
@@ -84,22 +97,60 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
           'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] h-full px-3 py-2',
       },
     },
-  });
-
-  React.useEffect(() => {
-    if (editor && value !== editor.getHTML()) {
-      editor.commands.setContent(value);
-    }
-  }, [value, editor]);
-
-  React.useEffect(() => {
-    if (editor) {
-      editor.on('update', () => {
+    // Convert editor content to Markdown before calling onChange
+    onUpdate: ({ editor }) => {
+      // ✅ BEST PRACTICE: Store as Markdown for scalability and platform agnosticism
+      try {
+        const markdownContent = renderToMarkdown({
+          extensions,
+          content: editor.getJSON(),
+        });
+        onChange(markdownContent);
+      } catch (error) {
+        console.warn('Failed to convert to Markdown, falling back to HTML:', error);
+        // Fallback to HTML if Markdown conversion fails
         const htmlContent = editor.getHTML();
         onChange(htmlContent);
+      }
+    },
+  });
+
+  // Handle external content updates
+  React.useEffect(() => {
+    if (!editor || !value) return;
+
+    // Convert Markdown to HTML for editor display
+    markdownToHtml(value)
+      .then((htmlContent) => {
+        if (editor && !editor.isDestroyed) {
+          const currentHTML = editor.getHTML();
+
+          // Only update if content is actually different
+          if (currentHTML !== htmlContent) {
+            editor.commands.setContent(htmlContent, { emitUpdate: false });
+          }
+        }
+      })
+      .catch((error) => {
+        console.warn('Failed to convert Markdown to HTML:', error);
+        // Fallback: try to set content directly
+        if (editor && !editor.isDestroyed) {
+          editor.commands.setContent(value, { emitUpdate: false });
+        }
       });
-    }
-  }, [editor, onChange]);
+  }, [value, editor]);
+
+  // Initialize editor content from props
+  React.useEffect(() => {
+    if (!editor || !value) return;
+
+    // Convert initial Markdown to HTML
+    markdownToHtml(value).then((htmlContent) => {
+      if (editor && !editor.isDestroyed) {
+        editor.commands.setContent(htmlContent, { emitUpdate: false });
+      }
+    });
+  }, [editor]); // Only run when editor is created
 
   if (!editor) {
     return null;
