@@ -58,6 +58,15 @@ type ErrorResult = {
 
 type PayoutResult = SuccessResult | ErrorResult;
 
+// Type for the expert user data needed for payouts
+type ExpertUserForPayout = {
+  clerkUserId: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string;
+  stripeConnectAccountId: string | null;
+};
+
 /**
  * Enhanced Payout Processing with Database + Stripe Fallback Verification
  * This endpoint is called by QStash daily at 6 AM
@@ -474,7 +483,7 @@ async function createPayoutForTransfer(
  */
 async function checkConnectAccountForOverdueBalance(
   accountId: string,
-  expertUser: User,
+  expertUser: ExpertUserForPayout,
 ): Promise<PayoutResult> {
   try {
     console.log(`🔍 Checking Connect account ${accountId} for overdue balance...`);
