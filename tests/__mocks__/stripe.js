@@ -44,6 +44,6 @@ const stripeMock = () => {
 };
 
 // Add necessary config properties
-stripeMock.LatestApiVersion = '2023-10-16';
+stripeMock.LatestApiVersion = '2025-07-30.basil';
 
 module.exports = stripeMock;

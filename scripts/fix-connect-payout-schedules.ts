@@ -21,7 +21,7 @@ import { db } from '../drizzle/db';
 import { UserTable } from '../drizzle/schema';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: '2023-10-16',
+  apiVersion: (process.env.STRIPE_API_VERSION as Stripe.LatestApiVersion) || '2025-07-30.basil',
 });
 
 interface ConnectAccountUpdate {
