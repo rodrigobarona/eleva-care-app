@@ -1,7 +1,6 @@
 import { isExpert } from '@/lib/auth/roles.server';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
-import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 
 import { BillingPageClient } from './billing-client';
@@ -57,14 +56,10 @@ export default async function BillingPage() {
       data.accountStatus?.payoutsEnabled
     ) {
       // Mark payment step as complete (non-blocking)
-      markStepComplete('payment')
-        .then(() => {
-          // Server-side revalidation for the layout
-          revalidatePath('/(private)/layout');
-        })
-        .catch((error) => {
-          console.error('Failed to mark payment step as complete:', error);
-        });
+      // Note: markStepComplete already handles revalidatePath internally
+      markStepComplete('payment').catch((error) => {
+        console.error('Failed to mark payment step as complete:', error);
+      });
     }
 
     return <BillingPageClient dbUser={data.user} accountStatus={data.accountStatus} />;
