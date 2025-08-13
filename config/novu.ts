@@ -353,6 +353,7 @@ export const systemHealthWorkflow = workflow(
   },
   {
     payloadSchema: z.object({
+      eventType: z.enum(['health-check-failure']).optional(),
       status: z.enum(['healthy', 'unhealthy']),
       error: z.string().optional(),
       timestamp: z.string(),
