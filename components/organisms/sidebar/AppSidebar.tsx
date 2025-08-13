@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
 } from '@/components/organisms/sidebar/sidebar';
 import { useUser } from '@clerk/nextjs';
-import { Calendar, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
+import { Bell, Calendar, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
 import { Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
 import { Suspense } from 'react';
@@ -67,6 +67,11 @@ export function AppSidebar() {
 
   // Build secondary items conditionally
   const secondaryItems: SidebarItem[] = [
+    {
+      title: 'Notifications',
+      url: '/account/notifications',
+      icon: Bell,
+    },
     // Only include Public Expert Profile if user has the required role
     ...(isExpert && user?.username
       ? [
@@ -79,7 +84,7 @@ export function AppSidebar() {
       : []),
     {
       title: 'Need help?',
-      url: '#',
+      url: 'mailto:patimota@gmail.com',
       icon: LifeBuoy,
     },
   ];

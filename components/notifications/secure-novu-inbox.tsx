@@ -1,8 +1,15 @@
 'use client';
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/molecules/dropdown-menu';
+import { SidebarMenuButton } from '@/components/organisms/sidebar/sidebar';
+import { ENV_CONFIG } from '@/config/env';
 import { useNovuInboxProps } from '@/hooks/use-secure-novu';
-import { Inbox, useNotifications } from '@novu/react';
-import { AlertCircle, Bell, Loader2 } from 'lucide-react';
+import { Bell, Inbox, InboxContent, Notifications } from '@novu/react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 interface SecureNovuInboxProps {
@@ -10,13 +17,12 @@ interface SecureNovuInboxProps {
 }
 
 /**
- * Secure Novu Inbox component with HMAC authentication
- * Prevents unauthorized access to notification feeds
- *
- * This component automatically:
- * - Fetches secure subscriber data with HMAC hash
- * - Handles loading and error states
- * - Only renders when authentication is successful
+ * Modern Secure Novu Inbox component with best practices from Context7
+ * Features:
+ * - HMAC authentication for security
+ * - Clean modern UI with proper styling
+ * - Responsive design
+ * - Error handling and loading states
  */
 export function SecureNovuInbox({ className = '' }: SecureNovuInboxProps) {
   const { applicationIdentifier, subscriberId, subscriberHash, isReady, isLoading, error } =
@@ -25,9 +31,9 @@ export function SecureNovuInbox({ className = '' }: SecureNovuInboxProps) {
   // Loading state
   if (isLoading) {
     return (
-      <div className={`flex items-center justify-center p-4 ${className}`}>
+      <div className={`flex items-center justify-center p-8 ${className}`}>
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
+          <Loader2 className="h-5 w-5 animate-spin" />
           <span>Loading notifications...</span>
         </div>
       </div>
@@ -37,206 +43,229 @@ export function SecureNovuInbox({ className = '' }: SecureNovuInboxProps) {
   // Error state
   if (error) {
     return (
-      <div className={`flex items-center justify-center p-4 ${className}`}>
-        <div className="flex items-center gap-2 text-destructive">
-          <AlertCircle className="h-4 w-4" />
-          <span>Failed to load notifications: {error}</span>
+      <div className={`flex items-center justify-center p-8 ${className}`}>
+        <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
+          <div className="flex items-center gap-2 text-destructive">
+            <AlertCircle className="h-5 w-5" />
+            <span>Failed to load notifications: {error}</span>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Not ready state (missing required data)
+  // Not ready state
   if (!isReady || !applicationIdentifier || !subscriberId || !subscriberHash) {
     return (
-      <div className={`flex items-center justify-center p-4 ${className}`}>
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <AlertCircle className="h-4 w-4" />
-          <span>Notification system not available</span>
+      <div className={`flex items-center justify-center p-8 ${className}`}>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 text-amber-800">
+            <AlertCircle className="h-5 w-5" />
+            <span>Notification system initializing...</span>
+          </div>
         </div>
       </div>
     );
   }
 
-  // Render secure Novu Inbox
+  // Custom appearance for modern styling
+  const appearance = {
+    variables: {
+      colorBackground: 'hsl(var(--background))',
+      colorForeground: 'hsl(var(--foreground))',
+      colorPrimary: 'hsl(var(--primary))',
+      colorSecondary: 'hsl(var(--secondary))',
+      colorCounter: 'hsl(var(--destructive))',
+      fontSize: '14px',
+      borderRadius: '0.5rem',
+    },
+    elements: {
+      bellContainer: 'p-0',
+      bellIcon: 'h-5 w-5',
+      notification: 'border-b border-border last:border-b-0 hover:bg-muted/50 transition-colors',
+      notificationContainer: 'p-0',
+      notificationsList: 'max-h-[400px] overflow-y-auto',
+      notificationItem: 'p-4',
+      inboxContainer: 'border-0 shadow-none',
+    },
+  };
+
   return (
     <div className={className}>
-      <div className="space-y-4">
-        {/* Debug Info */}
-        <div className="rounded-lg border bg-muted/50 p-3">
-          <div className="text-xs text-muted-foreground">
-            <span className="text-green-600">✓ HMAC Authenticated</span> | Subscriber:{' '}
-            {subscriberId?.substring(0, 8)}... | Hash: {subscriberHash?.substring(0, 8)}...
-          </div>
-        </div>
-
-        {/* Novu Inbox Component */}
-        <div className="min-h-[400px]">
-          <Inbox
-            applicationIdentifier={applicationIdentifier}
-            subscriberId={subscriberId}
-            subscriberHash={subscriberHash}
-            backendUrl="https://eu.api.novu.co"
-            socketUrl="https://eu.ws.novu.co"
-            open={true}
-          />
-        </div>
-      </div>
+      <Inbox
+        applicationIdentifier={applicationIdentifier}
+        subscriberId={subscriberId}
+        subscriberHash={subscriberHash}
+        backendUrl={ENV_CONFIG.NOVU_BASE_URL}
+        socketUrl={ENV_CONFIG.NOVU_SOCKET_URL}
+        appearance={appearance}
+      >
+        <Notifications />
+      </Inbox>
     </div>
   );
 }
 
 /**
- * Simplified secure notification list without the bell icon
- */
-export function SecureNotificationsList({ className = '' }: { className?: string }) {
-  const { isReady, isLoading, error } = useNovuInboxProps();
-  const { notifications, isLoading: notificationsLoading } = useNotifications({
-    limit: 5,
-    read: false, // Show unread notifications
-  });
-
-  if (isLoading || notificationsLoading) {
-    return (
-      <div className={`space-y-2 ${className}`}>
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
-        ))}
-      </div>
-    );
-  }
-
-  if (error || !isReady) {
-    return (
-      <div className={`p-4 text-center text-muted-foreground ${className}`}>
-        No notifications available
-      </div>
-    );
-  }
-
-  return (
-    <div className={className}>
-      <div className="space-y-2">
-        <div className="rounded-lg border p-4">
-          <div className="mb-2 text-sm text-muted-foreground">
-            Secure Notifications List
-            <br />
-            <span className="text-xs text-green-600">✓ HMAC Authenticated</span>
-          </div>
-          {notifications && notifications.length > 0 ? (
-            <div className="space-y-1">
-              {notifications.map((notification) => (
-                <div
-                  key={notification.id}
-                  className="border-b p-3 transition-colors hover:bg-muted/50"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="min-w-0 flex-1">
-                      <h4 className="truncate text-sm font-medium">{notification.subject}</h4>
-                      <p className="mt-1 text-sm text-muted-foreground">{notification.body}</p>
-                      <time className="mt-2 block text-xs text-muted-foreground">
-                        {new Date(notification.createdAt).toLocaleDateString()}
-                      </time>
-                    </div>
-                    {!notification.isRead && (
-                      <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-center text-muted-foreground">No notifications</p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/**
- * Compact notification dropdown for sidebar use
- * Shows recent notifications with a link to view all
+ * Compact notification dropdown for sidebar/navigation use
+ * Uses modern Radix UI integration pattern from Context7
  */
 export function NotificationDropdown({ className = '' }: { className?: string }) {
-  const { isReady, isLoading, error } = useNovuInboxProps();
-  const { notifications, isLoading: notificationsLoading } = useNotifications({
-    limit: 3, // Show only the 3 most recent
-    read: false, // Show unread notifications first
-  });
+  const { applicationIdentifier, subscriberId, subscriberHash, isReady, isLoading, error } =
+    useNovuInboxProps();
 
-  if (isLoading || notificationsLoading) {
+  if (
+    isLoading ||
+    error ||
+    !isReady ||
+    !applicationIdentifier ||
+    !subscriberId ||
+    !subscriberHash
+  ) {
     return (
       <div className={`w-80 p-4 ${className}`}>
         <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Loading notifications...</span>
+          {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+          {error && <AlertCircle className="h-4 w-4" />}
+          <span>{isLoading ? 'Loading...' : error ? 'Unavailable' : 'Initializing...'}</span>
         </div>
       </div>
     );
   }
 
-  if (error || !isReady) {
-    return (
-      <div className={`w-80 p-4 text-center text-muted-foreground ${className}`}>
-        <div className="flex items-center justify-center gap-2">
-          <AlertCircle className="h-4 w-4" />
-          <span>Notifications unavailable</span>
-        </div>
-      </div>
-    );
-  }
+  // Modern appearance optimized for dropdown
+  const appearance = {
+    variables: {
+      colorBackground: 'hsl(var(--popover))',
+      colorForeground: 'hsl(var(--popover-foreground))',
+      colorPrimary: 'hsl(var(--primary))',
+      colorSecondary: 'hsl(var(--secondary))',
+      colorCounter: 'hsl(var(--destructive))',
+      fontSize: '14px',
+      borderRadius: '0.5rem',
+    },
+    elements: {
+      bellContainer: 'p-0',
+      bellIcon: 'h-5 w-5',
+      notification: 'border-b border-border last:border-b-0 hover:bg-muted/50 transition-colors',
+      notificationContainer: 'p-0',
+      notificationsList: 'max-h-[320px] overflow-y-auto',
+      notificationItem: 'p-3',
+      inboxContainer: 'border-0 shadow-none',
+    },
+  };
 
   return (
     <div className={`w-80 ${className}`}>
-      {/* Header */}
-      <div className="flex items-center justify-between border-b p-4">
-        <div className="flex items-center gap-2">
-          <Bell className="h-4 w-4" />
-          <span className="font-semibold">Notifications</span>
-        </div>
-        <span className="text-xs text-green-600">✓ Secure</span>
-      </div>
+      <Inbox
+        applicationIdentifier={applicationIdentifier}
+        subscriberId={subscriberId}
+        subscriberHash={subscriberHash}
+        backendUrl={ENV_CONFIG.NOVU_BASE_URL}
+        socketUrl={ENV_CONFIG.NOVU_SOCKET_URL}
+        appearance={appearance}
+      >
+        <InboxContent />
+      </Inbox>
 
-      {/* Notification List */}
-      <div className="max-h-96 overflow-y-auto">
-        {notifications && notifications.length > 0 ? (
-          <div className="space-y-1 p-2">
-            {notifications.map((notification) => (
-              <div
-                key={notification.id}
-                className="flex items-start gap-3 rounded-lg p-3 transition-colors hover:bg-muted/50"
-              >
-                <div className="min-w-0 flex-1">
-                  <h4 className="truncate text-sm font-medium">{notification.subject}</h4>
-                  <p className="mt-1 truncate text-sm text-muted-foreground">{notification.body}</p>
-                  <time className="mt-1 block text-xs text-muted-foreground">
-                    {new Date(notification.createdAt).toLocaleDateString()}
-                  </time>
-                </div>
-                {!notification.isRead && (
-                  <div className="mt-1 h-2 w-2 flex-shrink-0 rounded-full bg-blue-500" />
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="p-8 text-center text-muted-foreground">
-            <Bell className="mx-auto h-8 w-8 opacity-50" />
-            <p className="mt-2">No new notifications</p>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="border-t p-3">
+      {/* Footer with View All link */}
+      <div className="border-t bg-muted/20 p-3">
         <Link
           href="/account/notifications"
-          className="flex w-full items-center justify-center rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          className="flex w-full items-center justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
         >
           View All Notifications
         </Link>
       </div>
     </div>
+  );
+}
+
+/**
+ * Enhanced bell component with better integration
+ * Uses Context7 best practices for bell icons and sidebar integration
+ */
+export function EnhancedNotificationBell({
+  className = '',
+  showDropdown = true,
+}: {
+  className?: string;
+  showDropdown?: boolean;
+}) {
+  const { applicationIdentifier, subscriberId, subscriberHash, isReady } = useNovuInboxProps();
+
+  if (!isReady || !applicationIdentifier || !subscriberId || !subscriberHash) {
+    if (!showDropdown) {
+      return (
+        <Link href="/account/notifications" className={className}>
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-sidebar-accent">
+            <div className="h-5 w-5 animate-pulse rounded-full bg-muted" />
+          </div>
+        </Link>
+      );
+    }
+
+    return (
+      <SidebarMenuButton asChild>
+        <Link href="/account/notifications">
+          <div className="flex h-5 w-5 items-center justify-center">
+            <div className="h-4 w-4 animate-pulse rounded-full bg-muted" />
+          </div>
+          <span>Notifications</span>
+        </Link>
+      </SidebarMenuButton>
+    );
+  }
+
+  const bellAppearance = {
+    variables: {
+      colorCounter: 'hsl(var(--destructive))',
+    },
+    elements: {
+      bellContainer: showDropdown
+        ? 'flex h-5 w-5 items-center justify-center'
+        : 'relative flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
+      bellIcon: 'h-4 w-4',
+    },
+  };
+
+  if (!showDropdown) {
+    return (
+      <Link href="/account/notifications" className={className}>
+        <Inbox
+          applicationIdentifier={applicationIdentifier}
+          subscriberId={subscriberId}
+          subscriberHash={subscriberHash}
+          backendUrl={ENV_CONFIG.NOVU_BASE_URL}
+          socketUrl={ENV_CONFIG.NOVU_SOCKET_URL}
+          appearance={bellAppearance}
+        >
+          <Bell />
+        </Inbox>
+      </Link>
+    );
+  }
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <SidebarMenuButton className={`focus:outline-none ${className}`}>
+          <Inbox
+            applicationIdentifier={applicationIdentifier}
+            subscriberId={subscriberId}
+            subscriberHash={subscriberHash}
+            backendUrl={ENV_CONFIG.NOVU_BASE_URL}
+            socketUrl={ENV_CONFIG.NOVU_SOCKET_URL}
+            appearance={bellAppearance}
+          >
+            <Bell />
+          </Inbox>
+          <span>Notifications</span>
+        </SidebarMenuButton>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent side="right" align="start" className="w-80 p-0">
+        <NotificationDropdown />
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

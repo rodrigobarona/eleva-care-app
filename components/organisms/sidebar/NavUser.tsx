@@ -12,13 +12,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/molecules/dropdown-menu';
-import { UserNavNotifications } from '@/components/organisms/layout/UserNavNotifications';
-import { SidebarMenu, SidebarMenuItem, useSidebar } from '@/components/organisms/sidebar/sidebar';
+import {
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  useSidebar,
+} from '@/components/organisms/sidebar/sidebar';
 import { useClerk, useUser } from '@clerk/nextjs';
 import {
   BadgeCheck,
   BanknoteIcon,
-  Bell,
   ChevronsUpDown,
   CreditCard,
   Home,
@@ -56,12 +59,12 @@ export function NavUser() {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <UserNavNotifications />
-      </SidebarMenuItem>
-      <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <div className="flex w-full items-center gap-3 rounded-lg px-3 py-2 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+            <SidebarMenuButton
+              size="lg"
+              className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
               <Avatar className="h-8 w-8 shrink-0 rounded-lg">
                 <AvatarImage src={user.imageUrl} alt={user.fullName || ''} />
                 <AvatarFallback className="rounded-lg">
@@ -69,12 +72,12 @@ export function NavUser() {
                   {user.lastName?.[0]}
                 </AvatarFallback>
               </Avatar>
-              <div className="grid flex-1">
-                <span className="truncate text-sm font-semibold">{user.fullName}</span>
+              <div className="grid flex-1 text-left text-sm">
+                <span className="truncate font-semibold">{user.fullName}</span>
                 <span className="truncate text-xs">{user.primaryEmailAddress?.emailAddress}</span>
               </div>
-              <ChevronsUpDown className="size-4 shrink-0" />
-            </div>
+              <ChevronsUpDown className="ml-auto size-4" />
+            </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-[--radix-dropdown-menu-trigger-width] min-w-56 rounded-lg"
@@ -94,81 +97,75 @@ export function NavUser() {
                     {user.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{user.fullName}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    Manage your account
+                <div className="grid flex-1">
+                  <span className="text-sm font-medium text-foreground">{user.fullName}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {user.primaryEmailAddress?.emailAddress}
                   </span>
                 </div>
               </Link>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-
             <DropdownMenuGroup>
-              <DropdownMenuItem asChild className="cursor-pointer">
+              <DropdownMenuItem asChild>
                 <Link href="/account">
-                  Personal Information
-                  <BadgeCheck className="ml-auto h-4 w-4" />
+                  <Home className="mr-2 h-4 w-4" />
+                  <span>Account</span>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link href="/account/notifications">
-                  Notifications
-                  <Bell className="ml-auto h-4 w-4" />
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link href="/account/security">
-                  Security
-                  <Lock className="ml-auto h-4 w-4" />
+              <DropdownMenuItem asChild>
+                <Link href="/account/billing">
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  <span>Billing</span>
                 </Link>
               </DropdownMenuItem>
               <RequireRole roles={['community_expert', 'top_expert']}>
-                <DropdownMenuItem asChild className="cursor-pointer">
+                <DropdownMenuItem asChild>
                   <Link href="/account/billing">
-                    Billing
-                    <CreditCard className="ml-auto h-4 w-4" />
+                    <BanknoteIcon className="mr-2 h-4 w-4" />
+                    <span>Earnings</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/account/identity">
-                    Identity
-                    <Shield className="ml-auto h-4 w-4" />
+              </RequireRole>
+              <DropdownMenuItem asChild>
+                <Link href="/account/identity">
+                  <BadgeCheck className="mr-2 h-4 w-4" />
+                  <span>Identity</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/account/security">
+                  <Shield className="mr-2 h-4 w-4" />
+                  <span>Security</span>
+                </Link>
+              </DropdownMenuItem>
+              <RequireRole roles={['superadmin']}>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/admin">
+                    <Users className="mr-2 h-4 w-4" />
+                    <span>Admin Portal</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/admin/tags">
+                    <Tag className="mr-2 h-4 w-4" />
+                    <span>Tags Management</span>
                   </Link>
                 </DropdownMenuItem>
               </RequireRole>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <RequireRole roles={['admin', 'superadmin']}>
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link href="/admin/users">
-                  Users
-                  <Users className="ml-auto h-4 w-4" />
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link href="/admin/categories">
-                  Categories
-                  <Tag className="ml-auto h-4 w-4" />
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link href="/admin/payments">
-                  Manage Payments
-                  <BanknoteIcon className="ml-auto h-4 w-4" />
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-            </RequireRole>
-            <DropdownMenuItem asChild className="cursor-pointer">
-              <Link href="/?home=true">
-                Home Page
-                <Home className="ml-auto h-4 w-4" />
+            <DropdownMenuItem asChild>
+              <Link href="/account/security">
+                <Lock className="mr-2 h-4 w-4" />
+                <span>Privacy & Data</span>
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => signOut()} className="cursor-pointer">
-              Log out
-              <LogOut className="ml-auto h-4 w-4" />
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => signOut({ redirectUrl: '/' })}>
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

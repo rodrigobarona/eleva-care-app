@@ -1,6 +1,7 @@
 'use client';
 
 import type * as React from 'react';
+import { EnhancedNotificationBell } from '@/components/notifications/secure-novu-inbox';
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -26,12 +27,16 @@ export function NavSecondary({ items, ...props }: NavSecondaryProps) {
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild size="sm">
-                <Link href={item.url} prefetch>
-                  <item.icon className="size-4" />
-                  <span>{item.title}</span>
-                </Link>
-              </SidebarMenuButton>
+              {item.title === 'Notifications' ? (
+                <EnhancedNotificationBell showDropdown={true} />
+              ) : (
+                <SidebarMenuButton asChild size="sm">
+                  <Link href={item.url} prefetch>
+                    <item.icon className="size-4" />
+                    <span>{item.title}</span>
+                  </Link>
+                </SidebarMenuButton>
+              )}
             </SidebarMenuItem>
           ))}
         </SidebarMenu>

@@ -60,6 +60,7 @@ export const ENV_CONFIG = {
   NOVU_API_KEY: process.env.NOVU_API_KEY || '',
   NOVU_SECRET_KEY: process.env.NOVU_SECRET_KEY || '',
   NOVU_BASE_URL: process.env.NOVU_BASE_URL || 'https://eu.api.novu.co',
+  NOVU_SOCKET_URL: process.env.NOVU_SOCKET_URL || 'https://eu.ws.novu.co',
   NOVU_ADMIN_SUBSCRIBER_ID: process.env.NOVU_ADMIN_SUBSCRIBER_ID || 'admin',
   NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER:
     process.env.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER || '',
