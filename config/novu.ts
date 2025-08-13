@@ -40,6 +40,8 @@ export const userLifecycleWorkflow = workflow(
     }));
   },
   {
+    name: 'Account & User Updates',
+    description: 'Welcome messages and account-related notifications',
     payloadSchema: z.object({
       eventType: z.enum(['welcome', 'user-created']).optional(),
       userName: z.string(),
@@ -87,6 +89,8 @@ export const securityAuthWorkflow = workflow(
     }));
   },
   {
+    name: 'Security & Authentication',
+    description: 'Security-related alerts and notifications',
     payloadSchema: z.object({
       eventType: z.enum(['security-alert', 'account-verification', 'recent-login']).optional(),
       userId: z.string(),
@@ -142,6 +146,8 @@ export const paymentWorkflow = workflow(
     }));
   },
   {
+    name: 'Payment Updates',
+    description: 'Notifications for payment status changes',
     payloadSchema: z.object({
       type: z.enum(['success', 'failed', 'refund', 'payout']),
       customerName: z.string().optional(),
@@ -190,6 +196,8 @@ export const expertManagementWorkflow = workflow(
     }));
   },
   {
+    name: 'Expert Management',
+    description: 'Notifications for expert account updates and status changes',
     payloadSchema: z.object({
       eventType: z.enum([
         'onboarding-complete',
@@ -255,6 +263,8 @@ export const appointmentWorkflow = workflow(
     }));
   },
   {
+    name: 'Appointment Updates',
+    description: 'Notifications for appointment status changes',
     payloadSchema: z.object({
       eventType: z.enum(['reminder', 'cancelled', 'confirmed', 'rescheduled', 'completed']),
       expertName: z.string(),
@@ -306,6 +316,8 @@ export const marketplaceWorkflow = workflow(
     }));
   },
   {
+    name: 'Marketplace Updates',
+    description: 'Notifications for marketplace account and payment status changes',
     payloadSchema: z.object({
       eventType: z.enum(['payment-received', 'payout-processed', 'connect-account-status']),
       amount: z.string().optional(),
@@ -354,6 +366,8 @@ export const systemHealthWorkflow = workflow(
     }));
   },
   {
+    name: 'System Health',
+    description: 'Notifications for system health status and alerts',
     payloadSchema: z.object({
       eventType: z.enum(['health-check-failure']).optional(),
       status: z.enum(['healthy', 'unhealthy']),
@@ -416,6 +430,8 @@ export const appointmentConfirmationWorkflow = workflow(
     });
   },
   {
+    name: 'Appointment Confirmations',
+    description: 'Notifications for confirmed appointments',
     payloadSchema: z.object({
       expertName: z.string(),
       clientName: z.string(),
@@ -480,6 +496,8 @@ export const multibancoBookingPendingWorkflow = workflow(
     });
   },
   {
+    name: 'Multibanco Booking Pending',
+    description: 'Notifications for pending Multibanco payments for bookings',
     payloadSchema: z.object({
       customerName: z.string(),
       expertName: z.string(),
@@ -559,6 +577,8 @@ export const multibancoPaymentReminderWorkflow = workflow(
     });
   },
   {
+    name: 'Multibanco Payment Reminders',
+    description: 'Notifications for upcoming Multibanco payment reminders',
     payloadSchema: z.object({
       customerName: z.string(),
       expertName: z.string(),
@@ -637,6 +657,8 @@ export const expertPayoutNotificationWorkflow = workflow(
     });
   },
   {
+    name: 'Expert Payout Notifications',
+    description: "Notifications for when an expert's payout has been sent",
     payloadSchema: z.object({
       expertName: z.string().optional(),
       payoutAmount: z.string(),
