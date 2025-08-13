@@ -41,6 +41,7 @@ export const userLifecycleWorkflow = workflow(
   },
   {
     payloadSchema: z.object({
+      eventType: z.enum(['welcome', 'user-created']).optional(),
       userName: z.string(),
       firstName: z.string().optional(),
       lastName: z.string().optional(),
@@ -87,6 +88,7 @@ export const securityAuthWorkflow = workflow(
   },
   {
     payloadSchema: z.object({
+      eventType: z.enum(['security-alert', 'account-verification', 'recent-login']).optional(),
       userId: z.string(),
       alertType: z.string().optional(),
       verificationUrl: z.string().optional(),
