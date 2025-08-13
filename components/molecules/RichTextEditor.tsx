@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/atoms/button';
+import { Input } from '@/components/atoms/input';
 import { BulletList } from '@tiptap/extension-bullet-list';
 import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
@@ -32,12 +33,14 @@ import {
   Italic,
   LinkIcon,
   List,
+  Loader2,
   Palette,
   Table as TableIcon,
   Type,
   Underline as UnderlineIcon,
 } from 'lucide-react';
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 interface SimpleRichTextEditorProps {
   value: string;
@@ -48,6 +51,10 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
   // Use refs to avoid stale closures and unnecessary re-renders
   const onChangeRef = useRef(onChange);
   const isUpdatingFromProp = useRef(false);
+
+  // Image upload state
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Update the onChange ref when it changes
   React.useEffect(() => {
@@ -151,6 +158,75 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     },
   });
 
+  // Handle image upload to Vercel Blob
+  const handleImageUpload = async (file: File) => {
+    if (!editor) return;
+
+    // Validate file size (4.5MB limit to match project standard)
+    if (file.size > 4.5 * 1024 * 1024) {
+      toast.error('Image must be less than 4.5MB', {
+        description: 'Please choose a smaller image file.',
+      });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select a valid image file');
+      return;
+    }
+
+    setIsUploadingImage(true);
+
+    try {
+      // Create filename with timestamp to avoid conflicts
+      const timestamp = Date.now();
+      const fileExtension = file.name.split('.').pop() || 'jpg';
+      const filename = `medical-image-${timestamp}.${fileExtension}`;
+
+      // Upload to Vercel Blob using the project's upload API
+      const response = await fetch(
+        `/api/upload?filename=${encodeURIComponent(filename)}&folder=medical-images`,
+        {
+          method: 'POST',
+          body: file,
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to upload image');
+      }
+
+      // Insert the uploaded image into the editor
+      editor.chain().focus().setImage({ src: data.url, alt: filename }).run();
+
+      toast.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image', {
+        description: error instanceof Error ? error.message : 'Please try again.',
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  // Handle file input change
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Clear the input value so the same file can be selected again
+    e.target.value = '';
+
+    handleImageUpload(file);
+  };
+
   // Handle external content updates (from autosave) while preserving cursor position
   React.useEffect(() => {
     if (!editor) return;
@@ -237,6 +313,15 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
 
   return (
     <div className="overflow-hidden rounded-md border">
+      {/* Hidden file input for image uploads */}
+      <Input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileInputChange}
+        className="hidden"
+      />
+
       {/* Enhanced Professional Toolbar for Medical Experts */}
       <div className="flex-none border-b bg-muted/30">
         <div className="flex flex-wrap items-center gap-1 p-2">
@@ -422,21 +507,24 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
           >
             <TableIcon className="h-3.5 w-3.5" />
           </Button>
+
+          {/* Enhanced Image Upload Button */}
           <Button
             type="button"
             variant="ghost"
             size="sm"
             className="h-7 w-7 p-0"
-            onClick={() => {
-              const url = window.prompt('Enter image URL');
-              if (url) {
-                editor.chain().focus().setImage({ src: url }).run();
-              }
-            }}
-            title="Insert Image"
+            onClick={() => fileInputRef.current?.click()}
+            title="Upload Image"
+            disabled={isUploadingImage}
           >
-            <ImageIcon className="h-3.5 w-3.5" />
+            {isUploadingImage ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <ImageIcon className="h-3.5 w-3.5" />
+            )}
           </Button>
+
           <Button
             type="button"
             variant="ghost"
@@ -519,6 +607,13 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
         .medical-editor .task-item input[type="checkbox"] {
           margin-right: 0.5rem;
           margin-top: 0.25rem;
+        }
+
+        .medical-editor .medical-image {
+          max-width: 100%;
+          height: auto;
+          border-radius: 0.5rem;
+          border: 1px solid #e5e7eb;
         }
       */}
     </div>
