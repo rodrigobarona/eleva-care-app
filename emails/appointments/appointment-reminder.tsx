@@ -11,8 +11,6 @@ interface AppointmentReminderEmailProps {
   duration?: number;
   appointmentType?: string;
   meetingLink?: string;
-  rescheduleUrl?: string;
-  cancelUrl?: string;
 }
 
 export const AppointmentReminderEmail = ({
@@ -24,8 +22,6 @@ export const AppointmentReminderEmail = ({
   duration = 60,
   appointmentType = 'Consulta de Cardiologia',
   meetingLink = 'https://meet.google.com/abc-defg-hij',
-  rescheduleUrl = 'https://eleva.care/reschedule/123',
-  cancelUrl = 'https://eleva.care/cancel/123',
 }: AppointmentReminderEmailProps) => {
   const subject = `Reminder: Your appointment with ${expertName} is tomorrow`;
   const previewText = `Reminder: Your appointment with ${expertName} is tomorrow - ${appointmentType}`;
@@ -34,7 +30,7 @@ export const AppointmentReminderEmail = ({
     <EmailLayout
       subject={subject}
       previewText={previewText}
-      headerVariant="default"
+      headerVariant="branded"
       footerVariant="default"
     >
       <Heading
@@ -217,19 +213,24 @@ export const AppointmentReminderEmail = ({
         style={{
           textAlign: 'center',
           margin: '32px 0',
+          padding: '20px',
+          backgroundColor: '#F8F9FA',
+          borderRadius: '8px',
         }}
       >
-        <EmailButton
-          href={rescheduleUrl}
-          variant="outline"
-          size="md"
-          style={{ marginRight: '12px' }}
+        <Text
+          style={{
+            color: '#4A5568',
+            fontSize: '16px',
+            lineHeight: '1.6',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            margin: '0',
+          }}
         >
-          Reschedule
-        </EmailButton>
-        <EmailButton href={cancelUrl} variant="danger" size="md">
-          Cancel
-        </EmailButton>
+          <strong style={{ color: '#006D77' }}>Need assistance?</strong>
+          <br />
+          If you have any questions or need support, please contact our team.
+        </Text>
       </Section>
 
       <Hr
@@ -268,6 +269,4 @@ AppointmentReminderEmail.PreviewProps = {
   duration: 60,
   appointmentType: 'Consulta de Cardiologia',
   meetingLink: 'https://meet.google.com/abc-defg-hij',
-  rescheduleUrl: 'https://eleva.care/reschedule/123',
-  cancelUrl: 'https://eleva.care/cancel/123',
 } as AppointmentReminderEmailProps;

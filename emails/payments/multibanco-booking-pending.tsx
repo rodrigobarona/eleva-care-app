@@ -1,5 +1,14 @@
 import * as React from 'react';
 import { EmailButton, EmailLayout } from '@/components/emails';
+import {
+  createTableCellStyle,
+  ELEVA_BUTTON_STYLES,
+  ELEVA_CARD_STYLES,
+  ELEVA_COLORS,
+  ELEVA_TEXT_STYLES,
+  ELEVA_TYPOGRAPHY,
+} from '@/emails/utils/brand-constants';
+import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Hr, Section, Text } from '@react-email/components';
 
 interface MultibancoBookingPendingProps {
@@ -59,6 +68,7 @@ export default function MultibancoBookingPendingTemplate({
       viewVoucher: 'View Payment Voucher',
       support: `If you have any questions or need assistance, please don't hesitate to contact our support team.`,
       minutes: 'minutes',
+      paymentUrgent: 'Payment required to secure your appointment',
     },
     pt: {
       subject: `Consulta com ${expertName} - Pagamento Pendente via Multibanco`,
@@ -83,6 +93,7 @@ export default function MultibancoBookingPendingTemplate({
       support:
         'Se tiver alguma dúvida ou precisar de ajuda, não hesite em contactar a nossa equipa de apoio.',
       minutes: 'minutos',
+      paymentUrgent: 'Pagamento necessário para garantir a sua consulta',
     },
   };
 
@@ -96,219 +107,262 @@ export default function MultibancoBookingPendingTemplate({
     <EmailLayout
       subject={subject}
       previewText={previewText}
-      headerVariant="default"
+      headerVariant="branded"
       footerVariant="default"
+      locale={locale as SupportedLocale}
     >
-      <Heading
-        style={{
-          color: '#006D77',
-          fontSize: '28px',
-          fontWeight: '600',
-          marginBottom: '24px',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        {t.title}
-      </Heading>
-
-      <Text
-        style={{
-          color: '#4A5568',
-          fontSize: '16px',
-          lineHeight: '1.6',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        {t.greeting} {customerName},
-      </Text>
-
-      <Text
-        style={{
-          color: '#4A5568',
-          fontSize: '16px',
-          lineHeight: '1.6',
-          marginBottom: '24px',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-        dangerouslySetInnerHTML={{ __html: t.mainMessage }}
-      />
-
-      {/* Appointment Details */}
-      <Section
-        style={{
-          backgroundColor: '#F0FDFF',
-          border: '1px solid #B8F5FF',
-          padding: '24px',
-          borderRadius: '12px',
-          margin: '24px 0',
-        }}
-      >
+      {/* Premium Warning Banner - Payment Required */}
+      <Section style={ELEVA_CARD_STYLES.warning}>
         <Heading
           style={{
-            color: '#006D77',
-            fontSize: '18px',
-            fontWeight: '600',
-            margin: '0 0 16px 0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.heading2,
+            margin: '0 0 8px 0',
+            textAlign: 'center' as const,
+            color: ELEVA_COLORS.warning,
+          }}
+        >
+          💳 {t.title}
+        </Heading>
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodyRegular,
+            margin: '0',
+            textAlign: 'center' as const,
+            fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+            color: ELEVA_COLORS.warning,
+          }}
+        >
+          {t.paymentUrgent}
+        </Text>
+      </Section>
+
+      {/* Premium Personal Greeting */}
+      <Section style={{ margin: '32px 0' }}>
+        <Text style={{ ...ELEVA_TEXT_STYLES.bodyLarge, margin: '0 0 16px 0' }}>
+          {t.greeting} {customerName},
+        </Text>
+
+        <Text
+          style={ELEVA_TEXT_STYLES.bodyRegular}
+          dangerouslySetInnerHTML={{ __html: t.mainMessage }}
+        />
+      </Section>
+
+      {/* Premium Appointment Details - Eleva Branded */}
+      <Section style={ELEVA_CARD_STYLES.branded}>
+        <Heading
+          style={{
+            ...ELEVA_TEXT_STYLES.heading3,
+            margin: '0 0 24px 0',
+            borderBottom: `2px solid ${ELEVA_COLORS.primary}`,
+            paddingBottom: '12px',
           }}
         >
           📅 {t.appointmentDetails}
         </Heading>
-        <Text
-          style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.service}:</strong> {serviceName}
-        </Text>
-        <Text
-          style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.date}:</strong> {appointmentDate}
-        </Text>
-        <Text
-          style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.time}:</strong> {appointmentTime} ({timezone})
-        </Text>
-        <Text
-          style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.duration}:</strong> {duration} {t.minutes}
-        </Text>
-        {customerNotes && (
-          <Text
-            style={{
-              color: '#234E52',
-              margin: '8px 0',
-              fontSize: '16px',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-            }}
-          >
-            <strong>{t.notes}:</strong> {customerNotes}
-          </Text>
-        )}
+
+        <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
+          <tr>
+            <td style={createTableCellStyle(true)}>{t.service}:</td>
+            <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
+              {serviceName}
+            </td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>{t.date}:</td>
+            <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>{t.time}:</td>
+            <td style={createTableCellStyle(false, 'right')}>
+              {appointmentTime} ({timezone})
+            </td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>{t.duration}:</td>
+            <td style={createTableCellStyle(false, 'right')}>
+              {duration} {t.minutes}
+            </td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>Expert:</td>
+            <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
+              {expertName}
+            </td>
+          </tr>
+          {customerNotes && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.notes}:</td>
+              <td style={createTableCellStyle(false, 'right')}>{customerNotes}</td>
+            </tr>
+          )}
+        </table>
       </Section>
 
-      {/* Multibanco Payment Details */}
+      {/* Premium Multibanco Payment Details */}
       <Section
         style={{
-          backgroundColor: '#FFF5F5',
-          border: '1px solid #FED7D7',
-          padding: '24px',
+          backgroundColor: ELEVA_COLORS.errorLight,
+          border: `2px solid ${ELEVA_COLORS.error}`,
+          padding: '28px',
           borderRadius: '12px',
           margin: '24px 0',
         }}
       >
         <Heading
           style={{
-            color: '#C53030',
-            fontSize: '18px',
-            fontWeight: '600',
-            margin: '0 0 16px 0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.heading3,
+            margin: '0 0 24px 0',
+            color: ELEVA_COLORS.error,
+            borderBottom: `2px solid ${ELEVA_COLORS.error}`,
+            paddingBottom: '12px',
           }}
         >
           💳 {t.paymentDetails}
         </Heading>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
+          <tr>
+            <td
+              style={{
+                ...createTableCellStyle(true),
+                color: ELEVA_COLORS.error,
+                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+              }}
+            >
+              {t.entity}:
+            </td>
+            <td
+              style={{
+                ...createTableCellStyle(false, 'right'),
+                fontFamily: 'monospace',
+                fontSize: '18px',
+                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+              }}
+            >
+              {multibancoEntity}
+            </td>
+          </tr>
+          <tr>
+            <td
+              style={{
+                ...createTableCellStyle(true),
+                color: ELEVA_COLORS.error,
+                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+              }}
+            >
+              {t.reference}:
+            </td>
+            <td
+              style={{
+                ...createTableCellStyle(false, 'right'),
+                fontFamily: 'monospace',
+                fontSize: '18px',
+                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+              }}
+            >
+              {multibancoReference}
+            </td>
+          </tr>
+          <tr>
+            <td
+              style={{
+                ...createTableCellStyle(true),
+                color: ELEVA_COLORS.error,
+                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+              }}
+            >
+              {t.amount}:
+            </td>
+            <td
+              style={{
+                ...createTableCellStyle(false, 'right'),
+                fontSize: '20px',
+                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                color: ELEVA_COLORS.success,
+              }}
+            >
+              €{multibancoAmount}
+            </td>
+          </tr>
+          <tr>
+            <td
+              style={{
+                ...createTableCellStyle(true),
+                color: ELEVA_COLORS.error,
+                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+              }}
+            >
+              {t.expires}:
+            </td>
+            <td
+              style={{
+                ...createTableCellStyle(false, 'right'),
+                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                color: ELEVA_COLORS.error,
+              }}
+            >
+              {voucherExpiresAt}
+            </td>
+          </tr>
+        </table>
+
         <Text
           style={{
-            color: '#744210',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.bodySmall,
+            color: ELEVA_COLORS.error,
+            margin: '20px 0 0 0',
+            fontStyle: 'italic',
+            padding: '16px',
+            backgroundColor: ELEVA_COLORS.surface,
+            borderRadius: '8px',
+            border: `1px solid ${ELEVA_COLORS.neutral.border}`,
           }}
         >
-          <strong>{t.entity}:</strong> {multibancoEntity}
-        </Text>
-        <Text
-          style={{
-            color: '#744210',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.reference}:</strong> {multibancoReference}
-        </Text>
-        <Text
-          style={{
-            color: '#744210',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.amount}:</strong> €{multibancoAmount}
-        </Text>
-        <Text
-          style={{
-            color: '#C53030',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontWeight: '600',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.expires}:</strong> {voucherExpiresAt}
+          ⏰ <strong style={{ color: ELEVA_COLORS.error }}>Important:</strong> Payment must be
+          completed before the expiration date to secure your appointment.
         </Text>
       </Section>
 
-      <Text
-        style={{
-          color: '#4A5568',
-          fontSize: '16px',
-          lineHeight: '1.6',
-          marginBottom: '32px',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        {t.instructions}
-      </Text>
+      {/* Premium Instructions */}
+      <Section style={{ margin: '32px 0' }}>
+        <Text style={ELEVA_TEXT_STYLES.bodyRegular}>{t.instructions}</Text>
+      </Section>
 
-      <Section style={{ textAlign: 'center', margin: '32px 0' }}>
-        <EmailButton href={hostedVoucherUrl} variant="primary" size="lg">
+      {/* Premium Action Button */}
+      <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
+        <EmailButton
+          href={hostedVoucherUrl}
+          style={{
+            ...ELEVA_BUTTON_STYLES.primary,
+            backgroundColor: ELEVA_COLORS.warning,
+            borderColor: ELEVA_COLORS.warning,
+            fontSize: '18px',
+            padding: '20px 40px',
+          }}
+        >
           {t.viewVoucher}
         </EmailButton>
       </Section>
 
-      <Hr
-        style={{
-          border: 'none',
-          borderTop: '1px solid #E2E8F0',
-          margin: '32px 0 24px 0',
-        }}
-      />
+      <Hr style={{ margin: '40px 0', borderColor: ELEVA_COLORS.neutral.border }} />
 
-      <Text
+      {/* Premium Support Information */}
+      <Section
         style={{
-          color: '#718096',
-          fontSize: '14px',
-          lineHeight: '1.6',
-          textAlign: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
+          ...ELEVA_CARD_STYLES.default,
+          textAlign: 'center' as const,
         }}
       >
-        {t.support}
-      </Text>
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodySmall,
+            margin: '0',
+          }}
+        >
+          {t.support}
+        </Text>
+      </Section>
     </EmailLayout>
   );
 }

@@ -1,5 +1,14 @@
 import * as React from 'react';
 import { EmailButton, EmailLayout } from '@/components/emails';
+import {
+  createTableCellStyle,
+  ELEVA_BUTTON_STYLES,
+  ELEVA_CARD_STYLES,
+  ELEVA_COLORS,
+  ELEVA_TEXT_STYLES,
+  ELEVA_TYPOGRAPHY,
+} from '@/emails/utils/brand-constants';
+import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Hr, Section, Text } from '@react-email/components';
 
 interface PaymentConfirmationEmailProps {
@@ -21,312 +30,199 @@ export const PaymentConfirmationEmail = ({
   customerName = 'João Silva',
   expertName = 'Dr. Maria Santos',
   serviceName = 'Consulta de Cardiologia',
-  appointmentDate = 'Monday, February 19, 2024',
-  appointmentTime = '2:30 PM - 3:30 PM',
+  appointmentDate = '2024-02-15',
+  appointmentTime = '10:00',
   amount = '75.00',
   currency = 'EUR',
   paymentMethod = 'Credit Card',
-  transactionId = 'TXN_123456789',
-  appointmentUrl = 'https://eleva.care/appointments/123',
-  receiptUrl = 'https://eleva.care/receipts/123',
-  locale = 'en-GB',
+  transactionId = 'txn_1234567890',
+  appointmentUrl = 'https://eleva.care/appointment/123',
+  receiptUrl = 'https://eleva.care/receipt/123',
+  locale = 'en',
 }: PaymentConfirmationEmailProps) => {
-  const subject = `Payment confirmed for your appointment with ${expertName}`;
+  const subject = `Payment Confirmed - ${serviceName} with ${expertName}`;
   const previewText = `Your payment of ${currency} ${amount} has been successfully processed. Your appointment is confirmed.`;
 
   return (
     <EmailLayout
       subject={subject}
       previewText={previewText}
-      headerVariant="default"
+      headerVariant="branded"
       footerVariant="default"
+      locale={locale as SupportedLocale}
     >
-      {/* Success Banner */}
-      <Section
-        style={{
-          backgroundColor: '#D4EDDA',
-          border: '1px solid #C3E6CB',
-          padding: '20px',
-          borderRadius: '12px',
-          margin: '0 0 32px 0',
-          textAlign: 'center',
-        }}
-      >
-        <Text
+      {/* Premium Success Banner - Eleva Branded */}
+      <Section style={ELEVA_CARD_STYLES.success}>
+        <Heading
           style={{
-            color: '#155724',
-            fontWeight: '600',
-            margin: '0',
-            fontSize: '20px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.heading2,
+            margin: '0 0 8px 0',
+            textAlign: 'center' as const,
           }}
         >
-          ✓ Payment Confirmed
+          ✅ Payment Confirmed!
+        </Heading>
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodyRegular,
+            margin: '0',
+            textAlign: 'center' as const,
+            fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+          }}
+        >
+          Your appointment is secured and confirmed
         </Text>
       </Section>
 
-      <Heading
-        style={{
-          color: '#006D77',
-          fontSize: '28px',
-          fontWeight: '600',
-          margin: '0 0 24px 0',
-          textAlign: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        Thank you for your payment!
-      </Heading>
+      {/* Premium Personal Greeting */}
+      <Section style={{ margin: '32px 0' }}>
+        <Text style={{ ...ELEVA_TEXT_STYLES.bodyLarge, margin: '0 0 16px 0' }}>
+          Hello {customerName},
+        </Text>
 
-      <Text
-        style={{
-          color: '#4A5568',
-          fontSize: '16px',
-          lineHeight: '1.6',
-          marginBottom: '32px',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        Hello {customerName}, your payment has been successfully processed. Your appointment is now
-        confirmed.
-      </Text>
+        <Text style={ELEVA_TEXT_STYLES.bodyRegular}>
+          Great news! Your payment has been successfully processed and your appointment with{' '}
+          <strong style={{ color: ELEVA_COLORS.primary }}>{expertName}</strong> is now confirmed.
+        </Text>
+      </Section>
 
-      {/* Payment Details */}
-      <Section
-        style={{
-          backgroundColor: '#FFF5F5',
-          border: '1px solid #FED7D7',
-          borderRadius: '12px',
-          padding: '24px',
-          margin: '24px 0',
-        }}
-      >
+      {/* Premium Payment Details - Eleva Branded */}
+      <Section style={ELEVA_CARD_STYLES.branded}>
         <Heading
           style={{
-            color: '#C53030',
-            fontSize: '18px',
-            fontWeight: '600',
-            margin: '0 0 16px 0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.heading3,
+            margin: '0 0 24px 0',
+            borderBottom: `2px solid ${ELEVA_COLORS.primary}`,
+            paddingBottom: '12px',
           }}
         >
           💳 Payment Details
         </Heading>
 
-        <Text
-          style={{
-            color: '#744210',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>Amount:</strong> {currency} {amount}
-        </Text>
-
-        <Text
-          style={{
-            color: '#744210',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>Payment Method:</strong> {paymentMethod}
-        </Text>
-
-        <Text
-          style={{
-            color: '#744210',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>Transaction ID:</strong> {transactionId}
-        </Text>
-
-        <Text
-          style={{
-            color: '#744210',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>Date:</strong> {new Date().toLocaleDateString(locale)}
-        </Text>
+        <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
+          <tr>
+            <td style={createTableCellStyle(true)}>Service:</td>
+            <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
+              {serviceName}
+            </td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>Amount:</td>
+            <td
+              style={{
+                ...createTableCellStyle(false, 'right'),
+                fontSize: '20px',
+                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                color: ELEVA_COLORS.success,
+              }}
+            >
+              {currency} {amount}
+            </td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>Payment Method:</td>
+            <td style={createTableCellStyle(false, 'right')}>{paymentMethod}</td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>Transaction ID:</td>
+            <td
+              style={{
+                ...createTableCellStyle(false, 'right'),
+                fontFamily: 'monospace',
+                fontSize: '14px',
+              }}
+            >
+              {transactionId}
+            </td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>Expert:</td>
+            <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
+              {expertName}
+            </td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>Date:</td>
+            <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>Time:</td>
+            <td style={createTableCellStyle(false, 'right')}>{appointmentTime}</td>
+          </tr>
+        </table>
       </Section>
 
-      {/* Appointment Details */}
+      {/* Premium Action Buttons */}
+      <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodyRegular,
+            marginBottom: '24px',
+          }}
+        >
+          Ready to join your appointment?
+        </Text>
+
+        <div style={{ margin: '16px 0' }}>
+          <EmailButton
+            href={appointmentUrl}
+            style={{
+              ...ELEVA_BUTTON_STYLES.primary,
+              backgroundColor: ELEVA_COLORS.primary,
+              borderColor: ELEVA_COLORS.primary,
+              marginRight: '12px',
+            }}
+          >
+            🎥 Join Appointment
+          </EmailButton>
+
+          <EmailButton href={receiptUrl} style={ELEVA_BUTTON_STYLES.secondary}>
+            📄 Download Receipt
+          </EmailButton>
+        </div>
+      </Section>
+
+      <Hr style={{ margin: '40px 0', borderColor: ELEVA_COLORS.neutral.border }} />
+
+      {/* Premium Support Information */}
       <Section
         style={{
-          backgroundColor: '#F0FDFF',
-          border: '1px solid #B8F5FF',
-          borderRadius: '12px',
-          padding: '24px',
-          margin: '24px 0',
+          ...ELEVA_CARD_STYLES.default,
+          textAlign: 'center' as const,
         }}
       >
-        <Heading
-          style={{
-            color: '#006D77',
-            fontSize: '18px',
-            fontWeight: '600',
-            margin: '0 0 16px 0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          📅 Appointment Details
-        </Heading>
-
         <Text
           style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.bodySmall,
+            margin: '0',
           }}
         >
-          <strong>Service:</strong> {serviceName}
-        </Text>
-
-        <Text
-          style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>Healthcare Provider:</strong> {expertName}
-        </Text>
-
-        <Text
-          style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>Date:</strong> {appointmentDate}
-        </Text>
-
-        <Text
-          style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>Time:</strong> {appointmentTime}
+          <strong style={{ color: ELEVA_COLORS.primary }}>Need assistance?</strong>
+          <br />
+          If you have any questions about your payment or appointment, please contact our support
+          team.
         </Text>
       </Section>
 
-      {/* Action Buttons */}
-      <Section style={{ textAlign: 'center', margin: '32px 0' }}>
-        <EmailButton
-          href={appointmentUrl}
-          variant="primary"
-          size="lg"
-          style={{ marginRight: '12px' }}
-        >
-          View Appointment
-        </EmailButton>
-        <EmailButton href={receiptUrl} variant="outline" size="lg">
-          Download Receipt
-        </EmailButton>
-      </Section>
-
-      {/* Next Steps */}
+      {/* Premium Thank You Message */}
       <Section
         style={{
-          backgroundColor: '#FEFEFE',
-          border: '1px solid #E2E8F0',
-          borderRadius: '8px',
-          padding: '20px',
-          margin: '32px 0',
+          ...ELEVA_CARD_STYLES.branded,
+          textAlign: 'center' as const,
+          marginTop: '32px',
         }}
       >
-        <Heading
-          style={{
-            color: '#2D3748',
-            fontSize: '18px',
-            fontWeight: '600',
-            margin: '0 0 16px 0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          What&apos;s next?
-        </Heading>
         <Text
           style={{
-            color: '#4A5568',
-            fontSize: '15px',
-            lineHeight: '1.6',
-            margin: '8px 0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.bodyLarge,
+            color: ELEVA_COLORS.primary,
+            fontWeight: ELEVA_TYPOGRAPHY.weights.semibold,
+            margin: '0',
           }}
         >
-          • You will receive a calendar invite with meeting details
-        </Text>
-        <Text
-          style={{
-            color: '#4A5568',
-            fontSize: '15px',
-            lineHeight: '1.6',
-            margin: '8px 0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          • Check your email for appointment reminders
-        </Text>
-        <Text
-          style={{
-            color: '#4A5568',
-            fontSize: '15px',
-            lineHeight: '1.6',
-            margin: '8px 0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          • Prepare any questions or medical history for your consultation
-        </Text>
-        <Text
-          style={{
-            color: '#4A5568',
-            fontSize: '15px',
-            lineHeight: '1.6',
-            margin: '8px 0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          • Join the video call 5 minutes before your appointment
+          🙏 Thank you for choosing Eleva Care!
         </Text>
       </Section>
-
-      <Hr
-        style={{
-          border: 'none',
-          borderTop: '1px solid #E2E8F0',
-          margin: '32px 0 24px 0',
-        }}
-      />
-
-      <Text
-        style={{
-          color: '#718096',
-          fontSize: '14px',
-          lineHeight: '1.6',
-          textAlign: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        If you have any questions about your payment or appointment, please contact our support
-        team.
-      </Text>
     </EmailLayout>
   );
 };

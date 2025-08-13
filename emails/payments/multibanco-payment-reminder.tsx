@@ -1,5 +1,14 @@
 import * as React from 'react';
 import { EmailButton, EmailLayout } from '@/components/emails';
+import {
+  createTableCellStyle,
+  ELEVA_BUTTON_STYLES,
+  ELEVA_CARD_STYLES,
+  ELEVA_COLORS,
+  ELEVA_TEXT_STYLES,
+  ELEVA_TYPOGRAPHY,
+} from '@/emails/utils/brand-constants';
+import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Hr, Section, Text } from '@react-email/components';
 
 interface MultibancoPaymentReminderProps {
@@ -73,6 +82,7 @@ export default function MultibancoPaymentReminderTemplate({
         'If payment is not received by the expiration date, your appointment will be automatically cancelled and the time slot will become available to other patients.',
       support: "Need help with payment? Contact our support team and we'll be happy to assist you.",
       minutes: 'minutes',
+      paymentExpiring: 'Payment expiring soon - Secure your appointment now',
     },
     pt: {
       urgent: 'URGENTE',
@@ -105,6 +115,7 @@ export default function MultibancoPaymentReminderTemplate({
       support:
         'Precisa de ajuda com o pagamento? Contacte a nossa equipa de apoio e ficaremos felizes em ajudá-lo.',
       minutes: 'minutos',
+      paymentExpiring: 'Pagamento a expirar em breve - Garanta a sua consulta agora',
     },
   };
 
@@ -118,27 +129,28 @@ export default function MultibancoPaymentReminderTemplate({
     <EmailLayout
       subject={subject}
       previewText={previewText}
-      headerVariant="default"
+      headerVariant="branded"
       footerVariant="default"
+      locale={locale as SupportedLocale}
     >
+      {/* Premium Urgent Warning Banner */}
       {isUrgent && (
         <Section
           style={{
-            backgroundColor: '#FED7D7',
-            border: '2px solid #F56565',
-            padding: '20px',
+            backgroundColor: ELEVA_COLORS.errorLight,
+            border: `3px solid ${ELEVA_COLORS.error}`,
+            padding: '24px',
             borderRadius: '12px',
             margin: '0 0 24px 0',
-            textAlign: 'center',
+            textAlign: 'center' as const,
           }}
         >
           <Text
             style={{
-              color: '#C53030',
-              fontWeight: '600',
+              ...ELEVA_TEXT_STYLES.bodyLarge,
+              color: ELEVA_COLORS.error,
+              fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
               margin: '0',
-              fontSize: '18px',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
             }}
           >
             {t.urgentWarning}
@@ -146,240 +158,281 @@ export default function MultibancoPaymentReminderTemplate({
         </Section>
       )}
 
-      <Heading
-        style={{
-          color: '#006D77',
-          fontSize: '28px',
-          fontWeight: '600',
-          marginBottom: '24px',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        {t.title}
-      </Heading>
-
-      <Text
-        style={{
-          color: '#4A5568',
-          fontSize: '16px',
-          lineHeight: '1.6',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        {t.greeting} {customerName},
-      </Text>
-
-      <Text
-        style={{
-          color: '#4A5568',
-          fontSize: '16px',
-          lineHeight: '1.6',
-          marginBottom: '24px',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-        dangerouslySetInnerHTML={{ __html: t.reminderMessage }}
-      />
-
-      {/* Appointment Details */}
-      <Section
-        style={{
-          backgroundColor: '#F0FDFF',
-          border: '1px solid #B8F5FF',
-          padding: '24px',
-          borderRadius: '12px',
-          margin: '24px 0',
-        }}
-      >
+      {/* Premium Warning Banner - Payment Reminder */}
+      <Section style={ELEVA_CARD_STYLES.warning}>
         <Heading
           style={{
-            color: '#006D77',
-            fontSize: '18px',
-            fontWeight: '600',
-            margin: '0 0 16px 0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.heading1,
+            margin: '0 0 12px 0',
+            textAlign: 'center' as const,
+            color: ELEVA_COLORS.warning,
+          }}
+        >
+          💳 {t.title}
+        </Heading>
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodyRegular,
+            margin: '0',
+            textAlign: 'center' as const,
+            fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+            color: ELEVA_COLORS.warning,
+          }}
+        >
+          {t.paymentExpiring}
+        </Text>
+      </Section>
+
+      {/* Premium Personal Greeting */}
+      <Section style={{ margin: '32px 0' }}>
+        <Text style={{ ...ELEVA_TEXT_STYLES.bodyLarge, margin: '0 0 16px 0' }}>
+          {t.greeting} {customerName},
+        </Text>
+
+        <Text
+          style={ELEVA_TEXT_STYLES.bodyRegular}
+          dangerouslySetInnerHTML={{ __html: t.reminderMessage }}
+        />
+      </Section>
+
+      {/* Premium Appointment Details - Eleva Branded */}
+      <Section style={ELEVA_CARD_STYLES.branded}>
+        <Heading
+          style={{
+            ...ELEVA_TEXT_STYLES.heading3,
+            margin: '0 0 24px 0',
+            borderBottom: `2px solid ${ELEVA_COLORS.primary}`,
+            paddingBottom: '12px',
           }}
         >
           📅 {t.appointmentDetails}
         </Heading>
-        <Text
-          style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.service}:</strong> {serviceName}
-        </Text>
-        <Text
-          style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.date}:</strong> {appointmentDate}
-        </Text>
-        <Text
-          style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.time}:</strong> {appointmentTime} ({timezone})
-        </Text>
-        <Text
-          style={{
-            color: '#234E52',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.duration}:</strong> {duration} {t.minutes}
-        </Text>
-        {customerNotes && (
-          <Text
-            style={{
-              color: '#234E52',
-              margin: '8px 0',
-              fontSize: '16px',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-            }}
-          >
-            <strong>{t.notes}:</strong> {customerNotes}
-          </Text>
-        )}
+
+        <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
+          <tr>
+            <td style={createTableCellStyle(true)}>{t.service}:</td>
+            <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
+              {serviceName}
+            </td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>{t.date}:</td>
+            <td style={createTableCellStyle(false, 'right')}>{appointmentDate}</td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>{t.time}:</td>
+            <td style={createTableCellStyle(false, 'right')}>
+              {appointmentTime} ({timezone})
+            </td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>{t.duration}:</td>
+            <td style={createTableCellStyle(false, 'right')}>
+              {duration} {t.minutes}
+            </td>
+          </tr>
+          <tr>
+            <td style={createTableCellStyle(true)}>Expert:</td>
+            <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
+              {expertName}
+            </td>
+          </tr>
+          {customerNotes && (
+            <tr>
+              <td style={createTableCellStyle(true)}>{t.notes}:</td>
+              <td style={createTableCellStyle(false, 'right')}>{customerNotes}</td>
+            </tr>
+          )}
+        </table>
       </Section>
 
-      {/* Multibanco Payment Details */}
+      {/* Premium Multibanco Payment Details */}
       <Section
         style={{
-          backgroundColor: isUrgent ? '#FED7D7' : '#FFF5F5',
-          border: isUrgent ? '2px solid #C53030' : '1px solid #FED7D7',
-          padding: '24px',
+          backgroundColor: isUrgent ? ELEVA_COLORS.errorLight : ELEVA_COLORS.warningLight,
+          border: `2px solid ${isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning}`,
+          padding: '28px',
           borderRadius: '12px',
           margin: '24px 0',
         }}
       >
         <Heading
           style={{
-            color: '#C53030',
-            fontSize: '18px',
-            fontWeight: '600',
-            margin: '0 0 16px 0',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.heading3,
+            margin: '0 0 24px 0',
+            color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+            borderBottom: `2px solid ${isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning}`,
+            paddingBottom: '12px',
           }}
         >
           💳 {t.paymentDetails}
         </Heading>
+
+        <table style={{ width: '100%', borderCollapse: 'collapse' as const }}>
+          <tr>
+            <td
+              style={{
+                ...createTableCellStyle(true),
+                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+              }}
+            >
+              {t.entity}:
+            </td>
+            <td
+              style={{
+                ...createTableCellStyle(false, 'right'),
+                fontFamily: 'monospace',
+                fontSize: '18px',
+                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+              }}
+            >
+              {multibancoEntity}
+            </td>
+          </tr>
+          <tr>
+            <td
+              style={{
+                ...createTableCellStyle(true),
+                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+              }}
+            >
+              {t.reference}:
+            </td>
+            <td
+              style={{
+                ...createTableCellStyle(false, 'right'),
+                fontFamily: 'monospace',
+                fontSize: '18px',
+                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+              }}
+            >
+              {multibancoReference}
+            </td>
+          </tr>
+          <tr>
+            <td
+              style={{
+                ...createTableCellStyle(true),
+                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+              }}
+            >
+              {t.amount}:
+            </td>
+            <td
+              style={{
+                ...createTableCellStyle(false, 'right'),
+                fontSize: '20px',
+                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                color: ELEVA_COLORS.success,
+              }}
+            >
+              €{multibancoAmount}
+            </td>
+          </tr>
+          <tr>
+            <td
+              style={{
+                ...createTableCellStyle(true),
+                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+              }}
+            >
+              {t.expires}:
+            </td>
+            <td
+              style={{
+                ...createTableCellStyle(false, 'right'),
+                fontWeight: ELEVA_TYPOGRAPHY.weights.bold,
+                color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+                fontSize: '18px',
+              }}
+            >
+              {voucherExpiresAt}
+            </td>
+          </tr>
+        </table>
+
         <Text
           style={{
-            color: '#744210',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.bodySmall,
+            color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+            margin: '20px 0 0 0',
+            fontStyle: 'italic',
+            padding: '16px',
+            backgroundColor: ELEVA_COLORS.surface,
+            borderRadius: '8px',
+            border: `1px solid ${ELEVA_COLORS.neutral.border}`,
           }}
         >
-          <strong>{t.entity}:</strong> {multibancoEntity}
-        </Text>
-        <Text
-          style={{
-            color: '#744210',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.reference}:</strong> {multibancoReference}
-        </Text>
-        <Text
-          style={{
-            color: '#744210',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.amount}:</strong> €{multibancoAmount}
-        </Text>
-        <Text
-          style={{
-            color: '#C53030',
-            margin: '8px 0',
-            fontSize: '16px',
-            fontWeight: '600',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
-          }}
-        >
-          <strong>{t.expires}:</strong> {voucherExpiresAt}
+          ⏰{' '}
+          <strong style={{ color: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning }}>
+            {isUrgent ? 'URGENT:' : 'Important:'}
+          </strong>{' '}
+          Payment must be completed before the expiration date to secure your appointment.
         </Text>
       </Section>
 
-      <Text
-        style={{
-          color: '#4A5568',
-          fontSize: '16px',
-          lineHeight: '1.6',
-          marginBottom: '32px',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-        dangerouslySetInnerHTML={{ __html: t.actionRequired }}
-      />
+      {/* Premium Action Required */}
+      <Section style={{ margin: '32px 0' }}>
+        <Text
+          style={ELEVA_TEXT_STYLES.bodyRegular}
+          dangerouslySetInnerHTML={{ __html: t.actionRequired }}
+        />
+      </Section>
 
-      <Section style={{ textAlign: 'center', margin: '32px 0' }}>
-        <EmailButton href={hostedVoucherUrl} variant={isUrgent ? 'danger' : 'primary'} size="lg">
+      {/* Premium Action Button */}
+      <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
+        <EmailButton
+          href={hostedVoucherUrl}
+          style={{
+            ...ELEVA_BUTTON_STYLES.primary,
+            backgroundColor: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+            borderColor: isUrgent ? ELEVA_COLORS.error : ELEVA_COLORS.warning,
+            fontSize: isUrgent ? '20px' : '18px',
+            padding: isUrgent ? '24px 48px' : '20px 40px',
+            animation: isUrgent ? 'pulse 2s infinite' : 'none',
+          }}
+        >
           {isUrgent ? t.payNowUrgent : t.completePayment}
         </EmailButton>
       </Section>
 
-      {/* Warning Section */}
-      <Section
-        style={{
-          backgroundColor: '#FEF5E7',
-          border: '1px solid #F6E05E',
-          padding: '20px',
-          borderRadius: '8px',
-          margin: '24px 0',
-        }}
-      >
+      {/* Premium Warning Section */}
+      <Section style={ELEVA_CARD_STYLES.warning}>
         <Text
           style={{
-            color: '#744210',
-            fontSize: '14px',
+            ...ELEVA_TEXT_STYLES.bodySmall,
+            color: ELEVA_COLORS.warning,
             margin: '0',
-            lineHeight: '1.6',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>{t.warningTitle}</strong>
+          <strong style={{ color: ELEVA_COLORS.warning }}>{t.warningTitle}</strong>
           <br />
           {t.warningText}
         </Text>
       </Section>
 
-      <Hr
-        style={{
-          border: 'none',
-          borderTop: '1px solid #E2E8F0',
-          margin: '32px 0 24px 0',
-        }}
-      />
+      <Hr style={{ margin: '40px 0', borderColor: ELEVA_COLORS.neutral.border }} />
 
-      <Text
+      {/* Premium Support Information */}
+      <Section
         style={{
-          color: '#718096',
-          fontSize: '14px',
-          lineHeight: '1.6',
-          textAlign: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
+          ...ELEVA_CARD_STYLES.default,
+          textAlign: 'center' as const,
         }}
       >
-        {t.support}
-      </Text>
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodySmall,
+            margin: '0',
+          }}
+        >
+          {t.support}
+        </Text>
+      </Section>
     </EmailLayout>
   );
 }

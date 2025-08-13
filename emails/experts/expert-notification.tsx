@@ -25,7 +25,7 @@ export const ExpertNotificationEmail = ({
     <EmailLayout
       subject={subject}
       previewText={previewText}
-      headerVariant="default"
+      headerVariant="branded"
       footerVariant="default"
     >
       <Heading

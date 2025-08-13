@@ -27,9 +27,11 @@ export function EmailHeader({
   emailContext,
   userContext,
 }: EmailHeaderProps) {
-  const isDark = theme === 'dark';
+  // For branded variant, force dark theme for white logo visibility
+  const effectiveTheme = variant === 'branded' ? 'dark' : theme;
+  const isDark = effectiveTheme === 'dark';
 
-  // Get logo based on theme
+  // Get logo based on effective theme - white logo for branded (green) backgrounds
   const logoSrc = isDark
     ? `${DEFAULT_BASE_URL}/eleva-logo-white.png`
     : `${DEFAULT_BASE_URL}/eleva-logo-color.png`;
@@ -87,13 +89,13 @@ export function EmailHeader({
                 <Img
                   src={logoSrc}
                   alt="Eleva Care"
-                  width="120"
-                  height="32"
+                  width="180"
+                  height="50"
                   style={{
                     display: 'block',
                     outline: 'none',
                     border: 'none',
-                    maxWidth: '120px',
+                    maxWidth: '180px',
                     height: 'auto',
                   }}
                 />

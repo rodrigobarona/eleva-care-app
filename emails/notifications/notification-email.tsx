@@ -1,5 +1,13 @@
 import * as React from 'react';
 import { EmailButton, EmailLayout } from '@/components/emails';
+import {
+  ELEVA_BUTTON_STYLES,
+  ELEVA_CARD_STYLES,
+  ELEVA_COLORS,
+  ELEVA_TEXT_STYLES,
+  ELEVA_TYPOGRAPHY,
+} from '@/emails/utils/brand-constants';
+import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Section, Text } from '@react-email/components';
 
 interface NotificationEmailProps {
@@ -13,90 +21,110 @@ interface NotificationEmailProps {
 
 export default function NotificationEmail({
   title = 'Notification',
-  message = 'You have a new notification from Eleva Care',
-  userName,
-  actionUrl,
-  actionText,
+  message = 'You have a new notification from Eleva Care.',
+  userName = 'User',
+  actionUrl = 'https://eleva.care/dashboard',
+  actionText = 'View Dashboard',
+  locale = 'en',
 }: NotificationEmailProps) {
-  const greeting = userName ? `Hi ${userName},` : 'Hello,';
-  const subject = `${title} - Eleva Care`;
-  const previewText = `${title} - ${message.substring(0, 100)}...`;
+  const subject = title;
+  const previewText = message;
 
   return (
     <EmailLayout
       subject={subject}
       previewText={previewText}
-      headerVariant="default"
+      headerVariant="branded"
       footerVariant="default"
+      locale={locale as SupportedLocale}
     >
-      <Heading
-        style={{
-          fontSize: '28px',
-          fontWeight: '600',
-          color: '#006D77',
-          margin: '0 0 24px 0',
-          letterSpacing: '-0.025em',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        {title}
-      </Heading>
+      {/* Premium Notification Banner - Eleva Branded */}
+      <Section style={ELEVA_CARD_STYLES.branded}>
+        <Heading
+          style={{
+            ...ELEVA_TEXT_STYLES.heading1,
+            margin: '0 0 12px 0',
+            textAlign: 'center' as const,
+          }}
+        >
+          🔔 {title}
+        </Heading>
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodyRegular,
+            margin: '0',
+            textAlign: 'center' as const,
+            fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+          }}
+        >
+          Eleva Care Notification
+        </Text>
+      </Section>
 
-      <Text
-        style={{
-          fontSize: '16px',
-          lineHeight: '1.6',
-          color: '#4A5568',
-          margin: '0 0 16px 0',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        {greeting}
-      </Text>
+      {/* Premium Personal Greeting */}
+      <Section style={{ margin: '32px 0' }}>
+        <Text style={{ ...ELEVA_TEXT_STYLES.bodyLarge, margin: '0 0 16px 0' }}>
+          Hello {userName},
+        </Text>
 
-      <Text
-        style={{
-          fontSize: '16px',
-          lineHeight: '1.6',
-          color: '#4A5568',
-          margin: '0 0 32px 0',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        {message}
-      </Text>
+        <Text style={ELEVA_TEXT_STYLES.bodyRegular}>{message}</Text>
+      </Section>
 
+      {/* Premium Action Section */}
       {actionUrl && actionText && (
-        <Section style={{ textAlign: 'center', margin: '32px 0' }}>
-          <EmailButton href={actionUrl} variant="primary" size="lg">
+        <Section style={{ textAlign: 'center' as const, margin: '32px 0' }}>
+          <EmailButton
+            href={actionUrl}
+            style={{
+              ...ELEVA_BUTTON_STYLES.primary,
+              backgroundColor: ELEVA_COLORS.primary,
+              borderColor: ELEVA_COLORS.primary,
+            }}
+          >
             {actionText}
           </EmailButton>
         </Section>
       )}
 
-      <Text
+      {/* Premium Support Information */}
+      <Section
         style={{
-          fontSize: '16px',
-          lineHeight: '1.6',
-          color: '#4A5568',
-          margin: '40px 0 16px 0',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
+          ...ELEVA_CARD_STYLES.default,
+          textAlign: 'center' as const,
+          marginTop: '32px',
         }}
       >
-        Thank you for using Eleva Care.
-      </Text>
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodySmall,
+            margin: '0',
+          }}
+        >
+          <strong style={{ color: ELEVA_COLORS.primary }}>Need assistance?</strong>
+          <br />
+          If you have any questions, please contact our support team.
+        </Text>
+      </Section>
 
-      <Text
+      {/* Premium Thank You Message */}
+      <Section
         style={{
-          fontSize: '14px',
-          color: '#718096',
-          margin: '0',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-          fontStyle: 'italic',
+          ...ELEVA_CARD_STYLES.branded,
+          textAlign: 'center' as const,
+          marginTop: '32px',
         }}
       >
-        — The Eleva Care Team
-      </Text>
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodyLarge,
+            color: ELEVA_COLORS.primary,
+            fontWeight: ELEVA_TYPOGRAPHY.weights.semibold,
+            margin: '0',
+          }}
+        >
+          🙏 Thank you for choosing Eleva Care!
+        </Text>
+      </Section>
     </EmailLayout>
   );
 }

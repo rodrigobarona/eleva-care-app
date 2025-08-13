@@ -1,5 +1,13 @@
 import * as React from 'react';
 import { EmailButton, EmailLayout } from '@/components/emails';
+import {
+  ELEVA_BUTTON_STYLES,
+  ELEVA_CARD_STYLES,
+  ELEVA_COLORS,
+  ELEVA_TEXT_STYLES,
+  ELEVA_TYPOGRAPHY,
+} from '@/emails/utils/brand-constants';
+import type { SupportedLocale } from '@/emails/utils/i18n';
 import { Heading, Section, Text } from '@react-email/components';
 
 interface WelcomeEmailProps {
@@ -31,6 +39,7 @@ export default function WelcomeEmailTemplate({
       actionText: 'Find Experts',
     },
   ],
+  locale = 'en',
 }: WelcomeEmailProps) {
   const subject = `Welcome to Eleva Care, ${userName}!`;
   const previewText = `Start your journey to better health with personalized expert care`;
@@ -41,131 +50,163 @@ export default function WelcomeEmailTemplate({
       previewText={previewText}
       headerVariant="branded"
       footerVariant="default"
+      locale={locale as SupportedLocale}
     >
-      <Heading
-        style={{
-          color: '#006D77',
-          fontSize: '28px',
-          marginBottom: '16px',
-          textAlign: 'center',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        Welcome to Eleva Care, {userName}! 🌟
-      </Heading>
-
-      <Text
-        style={{
-          color: '#4a5568',
-          fontSize: '18px',
-          lineHeight: '1.6',
-          textAlign: 'center',
-          marginBottom: '24px',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        We&apos;re excited to have you join our community dedicated to women&apos;s health and
-        wellness.
-      </Text>
-
-      <Section
-        style={{
-          backgroundColor: '#f0fdff',
-          padding: '24px',
-          borderRadius: '12px',
-          margin: '24px 0',
-          textAlign: 'center',
-        }}
-      >
-        <Text
+      {/* Premium Welcome Banner */}
+      <Section style={ELEVA_CARD_STYLES.branded}>
+        <Heading
           style={{
-            color: '#006D77',
-            fontSize: '16px',
-            lineHeight: '1.6',
-            marginBottom: '20px',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.heading1,
+            textAlign: 'center' as const,
+            margin: '0 0 16px 0',
           }}
         >
-          Get started by accessing your personalized dashboard:
+          Welcome to Eleva Care, {userName}! 🌟
+        </Heading>
+
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodyLarge,
+            textAlign: 'center' as const,
+            margin: '0',
+            fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
+          }}
+        >
+          We&apos;re excited to have you join our community dedicated to premium healthcare and
+          wellness.
         </Text>
-        <EmailButton href={dashboardUrl} variant="primary" size="lg">
-          Go to Dashboard
-        </EmailButton>
       </Section>
 
-      <Heading
-        style={{
-          color: '#2d3748',
-          fontSize: '20px',
-          marginTop: '32px',
-          marginBottom: '16px',
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
-        Next Steps to Get Started:
-      </Heading>
-
-      {nextSteps.map((step, index) => (
-        <Section
-          key={index}
+      {/* Premium Dashboard Access Section */}
+      <Section style={ELEVA_CARD_STYLES.success}>
+        <Text
           style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e2e8f0',
-            padding: '20px',
-            borderRadius: '8px',
-            margin: '16px 0',
+            ...ELEVA_TEXT_STYLES.bodyRegular,
+            color: ELEVA_COLORS.success,
+            textAlign: 'center' as const,
+            marginBottom: '24px',
+            fontWeight: ELEVA_TYPOGRAPHY.weights.medium,
           }}
         >
-          <Heading
+          🚀 Get started by accessing your personalized dashboard:
+        </Text>
+
+        <Section style={{ textAlign: 'center' as const }}>
+          <EmailButton
+            href={dashboardUrl}
             style={{
-              color: '#2d3748',
-              fontSize: '16px',
-              margin: '0 0 8px 0',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
+              ...ELEVA_BUTTON_STYLES.success,
+              fontSize: '18px',
+              padding: '20px 40px',
             }}
           >
-            {index + 1}. {step.title}
-          </Heading>
-          <Text
-            style={{
-              color: '#718096',
-              fontSize: '14px',
-              lineHeight: '1.5',
-              margin: '0 0 16px 0',
-              fontFamily: 'system-ui, -apple-system, sans-serif',
-            }}
-          >
-            {step.description}
-          </Text>
-          <EmailButton href={step.actionUrl} variant="outline" size="sm">
-            {step.actionText}
+            Go to Dashboard
           </EmailButton>
         </Section>
-      ))}
+      </Section>
 
+      {/* Premium Next Steps Section */}
+      <Section style={{ margin: '32px 0' }}>
+        <Heading style={ELEVA_TEXT_STYLES.heading2}>🎯 Next Steps to Get Started:</Heading>
+
+        {nextSteps.map((step, index) => (
+          <Section
+            key={index}
+            style={{
+              ...ELEVA_CARD_STYLES.default,
+              margin: '20px 0',
+            }}
+          >
+            <Heading
+              style={{
+                ...ELEVA_TEXT_STYLES.heading3,
+                margin: '0 0 12px 0',
+                color: ELEVA_COLORS.primary,
+              }}
+            >
+              {index + 1}. {step.title}
+            </Heading>
+
+            <Text
+              style={{
+                ...ELEVA_TEXT_STYLES.bodyRegular,
+                margin: '0 0 20px 0',
+              }}
+            >
+              {step.description}
+            </Text>
+
+            <EmailButton href={step.actionUrl} style={ELEVA_BUTTON_STYLES.secondary}>
+              {step.actionText}
+            </EmailButton>
+          </Section>
+        ))}
+      </Section>
+
+      {/* Premium Support Section */}
       <Section
         style={{
-          textAlign: 'center',
+          ...ELEVA_CARD_STYLES.branded,
+          textAlign: 'center' as const,
           marginTop: '32px',
+        }}
+      >
+        <Heading
+          style={{
+            ...ELEVA_TEXT_STYLES.heading3,
+            margin: '0 0 16px 0',
+          }}
+        >
+          💬 Questions? We&apos;re here to help!
+        </Heading>
+
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodyRegular,
+            margin: '0',
+          }}
+        >
+          Contact our support team at{' '}
+          <a
+            href="mailto:support@eleva.care"
+            style={{
+              color: ELEVA_COLORS.primary,
+              textDecoration: 'underline',
+              fontWeight: ELEVA_TYPOGRAPHY.weights.semibold,
+            }}
+          >
+            support@eleva.care
+          </a>
+        </Text>
+      </Section>
+
+      {/* Premium Thank You Message */}
+      <Section
+        style={{
+          textAlign: 'center' as const,
+          margin: '32px 0',
           padding: '24px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '8px',
+          backgroundColor: ELEVA_COLORS.overlay,
+          borderRadius: '12px',
         }}
       >
         <Text
           style={{
-            color: '#4a5568',
-            fontSize: '16px',
-            lineHeight: '1.6',
-            fontFamily: 'system-ui, -apple-system, sans-serif',
+            ...ELEVA_TEXT_STYLES.bodyLarge,
+            color: ELEVA_COLORS.primary,
+            fontWeight: ELEVA_TYPOGRAPHY.weights.semibold,
+            margin: '0 0 8px 0',
           }}
         >
-          Questions? We&apos;re here to help!
-          <br />
-          Contact our support team at{' '}
-          <a href="mailto:support@eleva.care" style={{ color: '#006D77', textDecoration: 'none' }}>
-            support@eleva.care
-          </a>
+          🙏 Thank you for choosing Eleva Care
+        </Text>
+        <Text
+          style={{
+            ...ELEVA_TEXT_STYLES.bodyRegular,
+            margin: '0',
+          }}
+        >
+          Your journey to better health starts here.
         </Text>
       </Section>
     </EmailLayout>
