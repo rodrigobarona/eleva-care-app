@@ -422,7 +422,7 @@ async function createPayoutForTransfer(
       return {
         success: false,
         paymentTransferId: transfer.id,
-        connectAccountId: expertUser.stripeConnectAccountId,
+        connectAccountId: expertUser.stripeConnectAccountId!,
         error: 'No available balance',
         retryCount: 0,
         source,
@@ -459,7 +459,7 @@ async function createPayoutForTransfer(
       success: true,
       payoutId: payout.id,
       paymentTransferId: transfer.id,
-      connectAccountId: expertUser.stripeConnectAccountId,
+      connectAccountId: expertUser.stripeConnectAccountId!,
       amount: payoutAmount,
       currency: transfer.currency,
       source,
@@ -469,7 +469,7 @@ async function createPayoutForTransfer(
     return {
       success: false,
       paymentTransferId: transfer.id,
-      connectAccountId: expertUser.stripeConnectAccountId,
+      connectAccountId: expertUser.stripeConnectAccountId!,
       error: (error as Error).message,
       retryCount: 0,
       source,
@@ -493,7 +493,14 @@ async function checkConnectAccountForOverdueBalance(
 
     if (!balance.available || balance.available.length === 0) {
       console.log(`No available balance in account ${accountId}`);
-      return null;
+      return {
+        success: true,
+        payoutId: 'none-needed',
+        connectAccountId: accountId,
+        amount: 0,
+        currency: 'eur',
+        source: 'stripe_fallback',
+      };
     }
 
     // Check if account has manual payout schedule (requirement for legal compliance)
@@ -502,7 +509,14 @@ async function checkConnectAccountForOverdueBalance(
 
     if (payoutSchedule?.interval !== 'manual') {
       console.log(`Account ${accountId} has automatic payouts enabled, skipping manual check`);
-      return null;
+      return {
+        success: true,
+        payoutId: 'auto-payouts-enabled',
+        connectAccountId: accountId,
+        amount: 0,
+        currency: 'eur',
+        source: 'stripe_fallback',
+      };
     }
 
     // Check for balances that exceed maximum holding period
@@ -527,7 +541,14 @@ async function checkConnectAccountForOverdueBalance(
 
     if (overdueAmount === 0) {
       console.log(`No significant balance requiring payout in account ${accountId}`);
-      return null;
+      return {
+        success: true,
+        payoutId: 'no-significant-balance',
+        connectAccountId: accountId,
+        amount: 0,
+        currency: currency,
+        source: 'stripe_fallback',
+      };
     }
 
     console.log(
@@ -645,7 +666,7 @@ async function sendPayoutNotification(
  * Send notification for Stripe verification payouts
  */
 async function sendStripeVerificationNotification(
-  expertUser: User,
+  expertUser: ExpertUserForPayout,
   payoutId: string,
   amount: number,
   currency: string,
