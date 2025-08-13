@@ -16,13 +16,13 @@ declare global {
 
 // Add required polyfills for TextEncoder/Decoder
 if (typeof TextEncoder === 'undefined') {
-  // Use a dynamic import for Node.js util module
-  import('node:util').then((util) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).TextEncoder = util.TextEncoder;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (globalThis as any).TextDecoder = util.TextDecoder;
-  });
+  // Use synchronous require for Node.js util module
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const util = require('node:util');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).TextEncoder = util.TextEncoder;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (globalThis as any).TextDecoder = util.TextDecoder;
 }
 
 // Mock Next.js Web API globals for webhook testing

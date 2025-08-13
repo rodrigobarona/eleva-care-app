@@ -23,6 +23,7 @@
     "qstash:env": "node --input-type=module scripts/setup-env-vars.js",
     "qstash:test": "node --input-type=module scripts/test-qstash-connection.js",
     "qstash:update": "tsx scripts/update-qstash-schedules.ts",
+    "fix-connect-payouts": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-specifier-resolution=node tsx scripts/fix-connect-payout-schedules.ts",
     "postbuild": "NODE_NO_WARNINGS=1 NODE_OPTIONS=--experimental-specifier-resolution=node tsx scripts/update-qstash-schedules.ts || echo 'QStash setup skipped'",
     "cleanup:duplicates": "NODE_NO_WARNINGS=1 tsx scripts/cleanup-duplicate-reservations.ts",
     "cleanup:cache": "node -r dotenv/config node_modules/.bin/tsx scripts/cleanup-payment-rate-limit-cache.ts",

@@ -410,8 +410,8 @@ export async function createStripeConnectAccount(email: string, country: string)
           settings: {
             payouts: {
               schedule: {
-                interval: 'daily',
-                delay_days: minimumDelayDays, // Use country-specific minimum delay
+                interval: 'manual', // ← FIXED: Use manual payouts for cron job control
+                // delay_days is not needed for manual payouts
               },
             },
           },
