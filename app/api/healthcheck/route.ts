@@ -41,6 +41,19 @@ interface HealthCheckData {
     hasNovu: boolean;
     baseUrl: string;
   };
+  novu?: {
+    initialized: boolean;
+    initializationError?: string | null;
+    config: {
+      hasSecretKey: boolean;
+      hasApiKey: boolean;
+      hasAppId: boolean;
+      baseUrl?: string;
+      socketUrl?: string;
+      adminSubscriberId?: string;
+      keyPrefix: string;
+    };
+  };
   error?: string;
   environmentSummary?: ReturnType<typeof ENV_HELPERS.getEnvironmentSummary>;
   method?: string;
