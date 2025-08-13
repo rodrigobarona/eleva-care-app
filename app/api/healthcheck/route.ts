@@ -87,7 +87,9 @@ async function notifyHealthCheckFailure(data: HealthCheckData) {
         error: data.error,
         timestamp: data.timestamp,
         environment: data.environment,
-        memory: data.memory,
+        memoryUsed: data.memory.used,
+        memoryTotal: data.memory.total,
+        memoryPercentage: data.memory.percentage,
       },
     });
   } catch (error) {
