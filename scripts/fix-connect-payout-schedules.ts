@@ -1,4 +1,6 @@
 #!/usr/bin/env tsx
+// Load environment variables
+import 'dotenv/config';
 /**
  * CRITICAL FIX: Update existing Stripe Connect accounts to use manual payouts
  *
