@@ -15,6 +15,7 @@ export async function createUpcomingPayoutNotification({
   payoutDate,
   sessionDate,
   eventId,
+  expert,
 }: {
   userId: string;
   amount: number;
@@ -22,6 +23,11 @@ export async function createUpcomingPayoutNotification({
   payoutDate: Date;
   sessionDate?: Date;
   eventId: string;
+  expert?: {
+    email?: string | null;
+    firstName?: string | null;
+    lastName?: string | null;
+  };
 }) {
   const formattedAmount = formatCurrency(amount, currency);
   const formattedPayoutDate = payoutDate.toLocaleDateString('en-US', {
@@ -49,13 +55,15 @@ export async function createUpcomingPayoutNotification({
       userId,
       type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
       data: {
-        userName: 'Expert', // Default username for payment notifications
+        userName: expert?.firstName ?? 'Expert', // Use expert name from user data
         title: `Upcoming Payout: ${formattedAmount}`,
         message,
         actionUrl: `/events/${eventId}`,
         amount: formattedAmount,
         payoutDate: formattedPayoutDate,
         eventId,
+        email: expert?.email ?? undefined, // Pass email for Novu, converting null to undefined
+        firstName: expert?.firstName ?? undefined, // Pass firstName for Novu, converting null to undefined
       },
     });
   } catch (error) {

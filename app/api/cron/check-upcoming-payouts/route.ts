@@ -133,6 +133,7 @@ export async function GET(request: Request) {
             currency: transfer.currency,
             payoutDate,
             eventId: transfer.eventId,
+            expert: expert, // Pass the expert user data for email/name
           });
 
           // Update the transfer record with notification timestamp

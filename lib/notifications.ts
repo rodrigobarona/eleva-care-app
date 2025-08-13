@@ -1,4 +1,4 @@
-import { securityAuthWorkflow, userLifecycleWorkflow } from '@/config/novu';
+import { triggerWorkflow } from '@/app/utils/novu';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
   NOTIFICATION_TYPE_SECURITY_ALERT,
@@ -7,9 +7,6 @@ import {
   type NotificationType,
 } from '@/lib/constants/notifications';
 
-/**
- * Type definitions for notification creation
- */
 export interface CreateNotificationParams {
   userId: string;
   type: NotificationType;
@@ -26,11 +23,16 @@ export async function createUserNotification(params: CreateNotificationParams): 
   try {
     const { userId, type, data = {} } = params;
 
-    // Map notification type to workflow and trigger
+    // Map notification type to workflow and trigger using proper Novu client
     switch (type) {
       case NOTIFICATION_TYPE_VERIFICATION_HELP:
-        await securityAuthWorkflow.trigger({
-          to: userId,
+        await triggerWorkflow({
+          workflowId: 'security-auth',
+          to: {
+            subscriberId: userId,
+            ...(data.email ? { email: data.email as string } : {}),
+            ...(data.firstName ? { firstName: data.firstName as string } : {}),
+          },
           payload: {
             eventType: 'account-verification',
             userId,
@@ -41,8 +43,13 @@ export async function createUserNotification(params: CreateNotificationParams): 
         break;
 
       case NOTIFICATION_TYPE_ACCOUNT_UPDATE:
-        await userLifecycleWorkflow.trigger({
-          to: userId,
+        await triggerWorkflow({
+          workflowId: 'user-lifecycle',
+          to: {
+            subscriberId: userId,
+            ...(data.email ? { email: data.email as string } : {}),
+            ...(data.firstName ? { firstName: data.firstName as string } : {}),
+          },
           payload: {
             eventType: 'welcome',
             userName: (data.userName as string) || 'User',
@@ -52,8 +59,13 @@ export async function createUserNotification(params: CreateNotificationParams): 
         break;
 
       case NOTIFICATION_TYPE_SECURITY_ALERT:
-        await securityAuthWorkflow.trigger({
-          to: userId,
+        await triggerWorkflow({
+          workflowId: 'security-auth',
+          to: {
+            subscriberId: userId,
+            ...(data.email ? { email: data.email as string } : {}),
+            ...(data.firstName ? { firstName: data.firstName as string } : {}),
+          },
           payload: {
             eventType: 'security-alert',
             userId,
@@ -65,8 +77,13 @@ export async function createUserNotification(params: CreateNotificationParams): 
         break;
 
       case NOTIFICATION_TYPE_SYSTEM_MESSAGE:
-        await securityAuthWorkflow.trigger({
-          to: userId,
+        await triggerWorkflow({
+          workflowId: 'security-auth',
+          to: {
+            subscriberId: userId,
+            ...(data.email ? { email: data.email as string } : {}),
+            ...(data.firstName ? { firstName: data.firstName as string } : {}),
+          },
           payload: {
             eventType: 'security-alert',
             userId,
