@@ -87,7 +87,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
   });
 
   React.useEffect(() => {
-    if (editor && value !== editor.storage.markdown.getMarkdown()) {
+    if (editor && value !== editor.getHTML()) {
       editor.commands.setContent(value);
     }
   }, [value, editor]);
@@ -95,8 +95,8 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
   React.useEffect(() => {
     if (editor) {
       editor.on('update', () => {
-        const markdownContent = editor.storage.markdown.getMarkdown();
-        onChange(markdownContent);
+        const htmlContent = editor.getHTML();
+        onChange(htmlContent);
       });
     }
   }, [editor, onChange]);

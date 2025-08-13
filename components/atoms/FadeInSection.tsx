@@ -1,7 +1,11 @@
 'use client';
 
+import { cubicBezier } from 'motion';
 import { motion, useInView } from 'motion/react';
 import React, { useRef } from 'react';
+
+// Motion best practice: Use the cubicBezier helper for custom easing
+const smoothEasing = cubicBezier(0.22, 1, 0.36, 1);
 
 const containerVariants = {
   hidden: {
@@ -13,7 +17,7 @@ const containerVariants = {
     y: 0,
     transition: {
       duration: 0.6,
-      ease: [0.22, 1, 0.36, 1], // Custom easing for smoother animation
+      ease: smoothEasing, // Using proper Motion easing function
       staggerChildren: 0.2,
     },
   },
@@ -29,7 +33,7 @@ const itemVariants = {
     y: 0,
     transition: {
       duration: 0.5,
-      ease: [0.22, 1, 0.36, 1],
+      ease: smoothEasing, // Consistent easing across components
     },
   },
 };
