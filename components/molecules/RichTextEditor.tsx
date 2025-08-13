@@ -5,10 +5,10 @@ import { BulletList } from '@tiptap/extension-bullet-list';
 import { Highlight } from '@tiptap/extension-highlight';
 import { Link } from '@tiptap/extension-link';
 import { ListItem } from '@tiptap/extension-list-item';
-import Table from '@tiptap/extension-table';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
-import TableRow from '@tiptap/extension-table-row';
+import { Table } from '@tiptap/extension-table';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { TableRow } from '@tiptap/extension-table-row';
 import { TaskItem } from '@tiptap/extension-task-item';
 import { TaskList } from '@tiptap/extension-task-list';
 import { EditorContent, useEditor } from '@tiptap/react';
@@ -23,7 +23,6 @@ import {
   Table as TableIcon,
 } from 'lucide-react';
 import React, { useRef } from 'react';
-import { Markdown } from 'tiptap-markdown';
 
 interface SimpleRichTextEditorProps {
   value: string;
@@ -46,13 +45,6 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
         heading: {
           levels: [1, 2, 3],
         },
-      }),
-      Markdown.configure({
-        html: true,
-        tightLists: true,
-        bulletListMarker: '-',
-        breaks: true,
-        transformPastedText: true,
       }),
       // Enhanced List Extensions
       BulletList,
@@ -104,9 +96,9 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
         return;
       }
 
-      const markdownContent = editor.storage.markdown.getMarkdown();
-      if (markdownContent !== undefined) {
-        onChangeRef.current(markdownContent);
+      const htmlContent = editor.getHTML();
+      if (htmlContent !== undefined) {
+        onChangeRef.current(htmlContent);
       }
     },
   });
@@ -115,11 +107,11 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
   React.useEffect(() => {
     if (!editor) return;
 
-    // Get current markdown content from editor
-    const currentMarkdown = editor.storage.markdown.getMarkdown();
+    // Get current HTML content from editor
+    const currentHTML = editor.getHTML();
 
     // Only update if content is actually different
-    if (currentMarkdown === value) {
+    if (currentHTML === value) {
       return;
     }
 
@@ -134,7 +126,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
       // ✅ CRITICAL: Improved cursor preservation during autosave
 
       // Update content first without triggering onUpdate
-      editor.commands.setContent(value, false);
+      editor.commands.setContent(value, { emitUpdate: false });
 
       // Restore cursor position after content update if editor was focused
       if (wasFocused) {
@@ -170,7 +162,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     } catch (error) {
       // Fallback: simple content update without cursor preservation
       console.warn('Advanced cursor preservation failed, using fallback:', error);
-      editor.commands.setContent(value, false);
+      editor.commands.setContent(value, { emitUpdate: false });
       if (wasFocused) {
         editor.commands.focus('end');
       }
