@@ -13,11 +13,16 @@ const customJestConfig = {
     '^@/(.*)$': '<rootDir>/$1',
     // Mock svix to avoid binary parsing issues
     '^svix$': '<rootDir>/tests/__mocks__/svix.ts',
+    // Mock next-intl modules to prevent ESM parsing issues
+    '^next-intl/server$': '<rootDir>/tests/__mocks__/next-intl-server.ts',
+    '^next-intl$': '<rootDir>/tests/__mocks__/next-intl.ts',
   },
   testPathIgnorePatterns: [
     '/node_modules/',
     '/tests/deprecated/', // Ignore deprecated tests by default
   ],
+  // Transform ESM modules that Jest can't handle
+  transformIgnorePatterns: ['node_modules/(?!(jose|@upstash/qstash)/)'],
   // Performance optimization
   maxWorkers: '50%',
   // Better error reporting
