@@ -198,35 +198,147 @@ export const securityAuthWorkflow = workflow(
   },
 );
 
-// 3. Universal Payment Workflow (combines 4 payment workflows)
+// 3. Universal Payment Workflow (comprehensive Stripe webhook support)
 export const paymentWorkflow = workflow(
   'payment-universal',
   async ({ payload, step }) => {
-    const locale = getLocale(payload);
     const eventType = payload.eventType as string;
 
-    // Payment success
+    // Payment successful (Stripe payment_intent.succeeded)
     if (eventType === 'payment-success') {
-      const content = await getLocalizedContent('paymentSuccess', locale, payload);
-      await step.inApp('payment-confirmation', async () => content);
+      await step.inApp('payment-confirmation', async () => ({
+        subject: `✅ Payment Successful - ${payload.amount} ${payload.currency}`,
+        body: `Your payment of ${payload.amount} ${payload.currency} for ${payload.serviceName} has been processed successfully. Transaction ID: ${payload.transactionId}`,
+        data: {
+          paymentIntentId: payload.paymentIntentId,
+          amount: payload.amount,
+          currency: payload.currency,
+          serviceName: payload.serviceName,
+          transactionId: payload.transactionId,
+          receiptUrl: payload.receiptUrl,
+        },
+      }));
+
+      // Send confirmation email
+      await step.email('payment-success-email', async () => ({
+        subject: `✅ Payment Confirmed - ${payload.serviceName}`,
+        body: `
+<h2>Payment Successful! ✅</h2>
+<p>Hi ${payload.customerName || 'Valued Customer'},</p>
+<p>Your payment has been successfully processed.</p>
+<h3>Payment Details:</h3>
+<ul>
+  <li><strong>Amount:</strong> ${payload.amount} ${payload.currency}</li>
+  <li><strong>Service:</strong> ${payload.serviceName}</li>
+  <li><strong>Payment Method:</strong> ${payload.paymentMethod}</li>
+  <li><strong>Transaction ID:</strong> ${payload.transactionId}</li>
+  <li><strong>Date:</strong> ${new Date().toLocaleDateString()}</li>
+</ul>
+<p>You will receive appointment details shortly.</p>
+${payload.receiptUrl ? `<p><a href="${payload.receiptUrl}">Download Receipt</a></p>` : ''}
+<p>Thank you for choosing Eleva Care!</p>
+        `,
+      }));
     }
 
-    // Payment failed
+    // Payment failed (Stripe payment_intent.payment_failed)
     if (eventType === 'payment-failed') {
-      const content = await getLocalizedContent('paymentFailed', locale, payload);
-      await step.inApp('payment-failure', async () => content);
+      await step.inApp('payment-failure', async () => ({
+        subject: `❌ Payment Failed - ${payload.amount} ${payload.currency}`,
+        body: `Your payment of ${payload.amount} ${payload.currency} could not be processed. Reason: ${payload.failureReason}. Please try again or use a different payment method.`,
+        data: {
+          paymentIntentId: payload.paymentIntentId,
+          amount: payload.amount,
+          currency: payload.currency,
+          failureReason: payload.failureReason,
+          failureCode: payload.failureCode,
+          retryUrl: payload.retryUrl,
+        },
+      }));
+
+      // Send failure notification email
+      await step.email('payment-failed-email', async () => ({
+        subject: `❌ Payment Issue - ${payload.serviceName}`,
+        body: `
+<h2>Payment Issue ❌</h2>
+<p>Hi ${payload.customerName || 'Valued Customer'},</p>
+<p>We encountered an issue processing your payment.</p>
+<h3>Payment Details:</h3>
+<ul>
+  <li><strong>Amount:</strong> ${payload.amount} ${payload.currency}</li>
+  <li><strong>Service:</strong> ${payload.serviceName}</li>
+  <li><strong>Issue:</strong> ${payload.failureReason}</li>
+  <li><strong>Transaction ID:</strong> ${payload.transactionId}</li>
+</ul>
+<h3>Next Steps:</h3>
+<p>Please try again using a different payment method or contact your bank.</p>
+${payload.retryUrl ? `<p><a href="${payload.retryUrl}" style="background: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Try Again</a></p>` : ''}
+<p>Need help? Contact our support team.</p>
+        `,
+      }));
+    }
+
+    // Refund processed (Stripe refund.created)
+    if (eventType === 'refund-processed') {
+      await step.inApp('refund-notification', async () => ({
+        subject: `💰 Refund Processed - ${payload.refundAmount} ${payload.currency}`,
+        body: `Your refund of ${payload.refundAmount} ${payload.currency} has been processed. It will appear in your account within 5-10 business days.`,
+        data: {
+          refundId: payload.refundId,
+          refundAmount: payload.refundAmount,
+          currency: payload.currency,
+          originalPaymentId: payload.originalPaymentId,
+          reason: payload.refundReason,
+        },
+      }));
+
+      await step.email('refund-processed-email', async () => ({
+        subject: `💰 Refund Processed - ${payload.refundAmount} ${payload.currency}`,
+        body: `
+<h2>Refund Processed 💰</h2>
+<p>Hi ${payload.customerName || 'Valued Customer'},</p>
+<p>Your refund has been processed successfully.</p>
+<h3>Refund Details:</h3>
+<ul>
+  <li><strong>Refund Amount:</strong> ${payload.refundAmount} ${payload.currency}</li>
+  <li><strong>Original Service:</strong> ${payload.serviceName}</li>
+  <li><strong>Refund ID:</strong> ${payload.refundId}</li>
+  <li><strong>Reason:</strong> ${payload.refundReason}</li>
+  <li><strong>Processing Date:</strong> ${new Date().toLocaleDateString()}</li>
+</ul>
+<p>The refund will appear in your account within 5-10 business days, depending on your payment method.</p>
+<p>Thank you for your understanding.</p>
+        `,
+      }));
     }
 
     // Stripe account updates
     if (eventType === 'stripe-account-update') {
-      const content = await getLocalizedContent('stripeAccountUpdate', locale, payload);
-      await step.inApp('account-update', async () => content);
+      await step.inApp('account-update', async () => ({
+        subject: `🔔 Account Update - ${payload.updateType}`,
+        body: `Your Stripe account has been updated. Status: ${payload.accountStatus}. ${payload.message || ''}`,
+        data: {
+          accountId: payload.accountId,
+          updateType: payload.updateType,
+          accountStatus: payload.accountStatus,
+          message: payload.message,
+        },
+      }));
     }
 
-    // Stripe payouts
+    // Stripe payouts for experts
     if (eventType === 'stripe-payout') {
-      const content = await getLocalizedContent('stripePayout', locale, payload);
-      await step.inApp('payout-notification', async () => content);
+      await step.inApp('payout-notification', async () => ({
+        subject: `💸 Payout Sent - ${payload.payoutAmount} ${payload.currency}`,
+        body: `Your payout of ${payload.payoutAmount} ${payload.currency} has been sent to your bank account ending in ${payload.bankLastFour}. Expected arrival: 1-2 business days.`,
+        data: {
+          payoutId: payload.payoutId,
+          payoutAmount: payload.payoutAmount,
+          currency: payload.currency,
+          bankLastFour: payload.bankLastFour,
+          expectedArrival: payload.expectedArrival,
+        },
+      }));
     }
   },
   {
@@ -234,18 +346,51 @@ export const paymentWorkflow = workflow(
       eventType: z.enum([
         'payment-success',
         'payment-failed',
+        'refund-processed',
         'stripe-account-update',
         'stripe-payout',
       ]),
+      // Common fields
+      customerName: z.string().optional(),
+      serviceName: z.string().optional(),
       amount: z.string().optional(),
-      planName: z.string().optional(),
-      reason: z.string().optional(),
+      currency: z.string().optional(),
+      // Payment success fields
+      paymentIntentId: z.string().optional(),
+      paymentMethod: z.string().optional(),
+      transactionId: z.string().optional(),
+      receiptUrl: z.string().optional(),
+      // Payment failure fields
+      failureReason: z.string().optional(),
+      failureCode: z.string().optional(),
+      retryUrl: z.string().optional(),
+      // Refund fields
+      refundId: z.string().optional(),
+      refundAmount: z.string().optional(),
+      originalPaymentId: z.string().optional(),
+      refundReason: z.string().optional(),
+      // Account update fields
       accountId: z.string().optional(),
+      updateType: z.string().optional(),
+      accountStatus: z.string().optional(),
+      message: z.string().optional(),
+      // Payout fields
+      payoutId: z.string().optional(),
       payoutAmount: z.string().optional(),
+      bankLastFour: z.string().optional(),
+      expectedArrival: z.string().optional(),
+      // Localization
       locale: z.string().optional(),
       country: z.string().optional(),
     }),
     tags: ['payments'],
+    preferences: {
+      all: { enabled: true },
+      channels: {
+        email: { enabled: true },
+        inApp: { enabled: true },
+      },
+    },
   },
 );
 
@@ -310,52 +455,269 @@ export const expertManagementWorkflow = workflow(
   },
 );
 
-// 5. Universal Appointment Workflow (combines appointment-related workflows)
+// 5. Universal Appointment Workflow (comprehensive appointment management)
 export const appointmentWorkflow = workflow(
   'appointment-universal',
   async ({ payload, step }) => {
-    const locale = getLocale(payload);
     const eventType = payload.eventType as string;
 
-    // Appointment reminders
+    // Appointment reminders (24h, 1h before)
     if (eventType === 'reminder') {
-      const content = await getLocalizedContent('appointmentReminder', locale, payload);
-      await step.inApp('appointment-reminder', async () => content);
+      const timeUntil = payload.reminderType === '24h' ? '24 hours' : '1 hour';
+      const isUrgent = payload.reminderType === '1h';
+
+      await step.inApp('appointment-reminder', async () => ({
+        subject: isUrgent
+          ? `🔔 Appointment in 1 hour with ${payload.expertName}`
+          : `📅 Appointment reminder - ${timeUntil}`,
+        body: `Your appointment with ${payload.expertName} for ${payload.appointmentType} is scheduled for ${payload.appointmentDate} at ${payload.appointmentTime}. ${isUrgent ? 'Starting soon!' : ''}`,
+        data: {
+          expertName: payload.expertName,
+          appointmentType: payload.appointmentType,
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          meetLink: payload.meetLink,
+          reminderType: payload.reminderType,
+          isUrgent,
+        },
+      }));
+
+      // Send reminder email
+      await step.email('appointment-reminder-email', async () => ({
+        subject: isUrgent
+          ? `🔔 Appointment Starting Soon - ${payload.appointmentType}`
+          : `📅 Appointment Reminder - ${payload.appointmentType}`,
+        body: `
+<h2>${isUrgent ? '🔔 Appointment Starting Soon!' : '📅 Appointment Reminder'}</h2>
+<p>Hi ${payload.clientName || 'there'},</p>
+<p>This is a ${timeUntil} reminder for your upcoming appointment.</p>
+<h3>Appointment Details:</h3>
+<ul>
+  <li><strong>Expert:</strong> ${payload.expertName}</li>
+  <li><strong>Service:</strong> ${payload.appointmentType}</li>
+  <li><strong>Date:</strong> ${payload.appointmentDate}</li>
+  <li><strong>Time:</strong> ${payload.appointmentTime}</li>
+  ${payload.timezone ? `<li><strong>Timezone:</strong> ${payload.timezone}</li>` : ''}
+  ${payload.duration ? `<li><strong>Duration:</strong> ${payload.duration} minutes</li>` : ''}
+</ul>
+${payload.meetLink ? `<p><a href="${payload.meetLink}" style="background: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Join Meeting</a></p>` : ''}
+${payload.clientNotes ? `<h3>Your Notes:</h3><p>${payload.clientNotes}</p>` : ''}
+<p>Need to reschedule? ${payload.rescheduleUrl ? `<a href="${payload.rescheduleUrl}">Click here</a>` : 'Contact support'}</p>
+        `,
+      }));
     }
 
     // Appointment cancelled
     if (eventType === 'cancelled') {
-      const content = await getLocalizedContent('appointmentCancelled', locale, payload);
-      await step.inApp('appointment-cancelled', async () => content);
+      await step.inApp('appointment-cancelled', async () => ({
+        subject: `❌ Appointment Cancelled - ${payload.expertName}`,
+        body: `Your appointment with ${payload.expertName} on ${payload.appointmentDate} has been cancelled. ${payload.cancellationReason ? `Reason: ${payload.cancellationReason}` : ''}`,
+        data: {
+          expertName: payload.expertName,
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          cancellationReason: payload.cancellationReason,
+          refundAmount: payload.refundAmount,
+          newBookingUrl: payload.newBookingUrl,
+        },
+      }));
+
+      // Send cancellation email
+      await step.email('appointment-cancelled-email', async () => ({
+        subject: `❌ Appointment Cancelled - ${payload.appointmentType}`,
+        body: `
+<h2>Appointment Cancelled ❌</h2>
+<p>Hi ${payload.clientName || 'there'},</p>
+<p>We're sorry to inform you that your appointment has been cancelled.</p>
+<h3>Cancelled Appointment:</h3>
+<ul>
+  <li><strong>Expert:</strong> ${payload.expertName}</li>
+  <li><strong>Service:</strong> ${payload.appointmentType}</li>
+  <li><strong>Original Date:</strong> ${payload.appointmentDate}</li>
+  <li><strong>Original Time:</strong> ${payload.appointmentTime}</li>
+  ${payload.cancellationReason ? `<li><strong>Reason:</strong> ${payload.cancellationReason}</li>` : ''}
+</ul>
+${payload.refundAmount ? `<h3>Refund Information:</h3><p>A refund of ${payload.refundAmount} ${payload.currency || 'EUR'} will be processed within 5-10 business days.</p>` : ''}
+<h3>Next Steps:</h3>
+<p>We sincerely apologize for any inconvenience. We'd love to help you reschedule.</p>
+${payload.newBookingUrl ? `<p><a href="${payload.newBookingUrl}" style="background: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Book New Appointment</a></p>` : ''}
+<p>Need assistance? Contact our support team.</p>
+        `,
+      }));
     }
 
-    // New booking for expert
+    // New booking notification for expert
     if (eventType === 'new-booking-expert') {
-      const content = await getLocalizedContent('newBookingExpert', locale, payload);
-      await step.inApp('new-booking-notification', async () => content);
+      await step.inApp('new-booking-notification', async () => ({
+        subject: `🎉 New Booking: ${payload.clientName}`,
+        body: `You have a new booking from ${payload.clientName} for ${payload.appointmentType} on ${payload.appointmentDate} at ${payload.appointmentTime}.`,
+        data: {
+          clientName: payload.clientName,
+          appointmentType: payload.appointmentType,
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          clientNotes: payload.clientNotes,
+          bookingAmount: payload.bookingAmount,
+          currency: payload.currency,
+        },
+      }));
 
-      const emailContent = await getLocalizedContent('newBookingExpert', locale, payload, 'email');
+      // Send new booking email to expert
       await step.email('new-booking-email', async () => ({
-        subject: emailContent.subject,
-        body: emailContent.body,
+        subject: `🎉 New Booking Confirmed - ${payload.appointmentType}`,
+        body: `
+<h2>New Booking Received! 🎉</h2>
+<p>Hi ${payload.expertName},</p>
+<p>You have received a new booking. Here are the details:</p>
+<h3>Booking Details:</h3>
+<ul>
+  <li><strong>Client:</strong> ${payload.clientName}</li>
+  <li><strong>Service:</strong> ${payload.appointmentType}</li>
+  <li><strong>Date:</strong> ${payload.appointmentDate}</li>
+  <li><strong>Time:</strong> ${payload.appointmentTime}</li>
+  ${payload.timezone ? `<li><strong>Timezone:</strong> ${payload.timezone}</li>` : ''}
+  ${payload.duration ? `<li><strong>Duration:</strong> ${payload.duration} minutes</li>` : ''}
+  ${payload.bookingAmount ? `<li><strong>Booking Value:</strong> ${payload.bookingAmount} ${payload.currency || 'EUR'}</li>` : ''}
+</ul>
+${payload.clientNotes ? `<h3>Client Notes:</h3><p>"${payload.clientNotes}"</p>` : ''}
+<h3>Next Steps:</h3>
+<p>The meeting details will be sent automatically. You can view all booking details in your dashboard.</p>
+${payload.appointmentDetailsLink ? `<p><a href="${payload.appointmentDetailsLink}" style="background: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">View Booking Details</a></p>` : ''}
+<p>Thank you for being part of Eleva Care!</p>
+        `,
+      }));
+    }
+
+    // Appointment rescheduled
+    if (eventType === 'rescheduled') {
+      await step.inApp('appointment-rescheduled', async () => ({
+        subject: `📅 Appointment Rescheduled - ${payload.expertName}`,
+        body: `Your appointment with ${payload.expertName} has been rescheduled from ${payload.originalDate} to ${payload.appointmentDate} at ${payload.appointmentTime}.`,
+        data: {
+          expertName: payload.expertName,
+          originalDate: payload.originalDate,
+          originalTime: payload.originalTime,
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          rescheduleReason: payload.rescheduleReason,
+        },
+      }));
+
+      // Send reschedule confirmation email
+      await step.email('appointment-rescheduled-email', async () => ({
+        subject: `📅 Appointment Rescheduled - ${payload.appointmentType}`,
+        body: `
+<h2>Appointment Rescheduled 📅</h2>
+<p>Hi ${payload.clientName || 'there'},</p>
+<p>Your appointment has been successfully rescheduled.</p>
+<h3>Updated Appointment:</h3>
+<ul>
+  <li><strong>Expert:</strong> ${payload.expertName}</li>
+  <li><strong>Service:</strong> ${payload.appointmentType}</li>
+  <li><strong>New Date:</strong> ${payload.appointmentDate}</li>
+  <li><strong>New Time:</strong> ${payload.appointmentTime}</li>
+  ${payload.timezone ? `<li><strong>Timezone:</strong> ${payload.timezone}</li>` : ''}
+</ul>
+<h3>Previous Appointment:</h3>
+<ul>
+  <li><strong>Original Date:</strong> ${payload.originalDate}</li>
+  <li><strong>Original Time:</strong> ${payload.originalTime}</li>
+  ${payload.rescheduleReason ? `<li><strong>Reason for Change:</strong> ${payload.rescheduleReason}</li>` : ''}
+</ul>
+${payload.meetLink ? `<p><a href="${payload.meetLink}" style="background: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Join Meeting</a></p>` : ''}
+<p>Thank you for your flexibility!</p>
+        `,
+      }));
+    }
+
+    // Appointment completed
+    if (eventType === 'completed') {
+      await step.inApp('appointment-completed', async () => ({
+        subject: `✅ Session Complete - ${payload.expertName}`,
+        body: `Your session with ${payload.expertName} has been completed. Thank you for choosing Eleva Care!`,
+        data: {
+          expertName: payload.expertName,
+          appointmentType: payload.appointmentType,
+          sessionDuration: payload.sessionDuration,
+          completedAt: payload.completedAt,
+        },
+      }));
+
+      // Send completion and feedback email
+      await step.email('appointment-completed-email', async () => ({
+        subject: `✅ Session Complete - How was your experience?`,
+        body: `
+<h2>Session Completed! ✅</h2>
+<p>Hi ${payload.clientName || 'there'},</p>
+<p>Your session with ${payload.expertName} has been completed.</p>
+<h3>Session Summary:</h3>
+<ul>
+  <li><strong>Expert:</strong> ${payload.expertName}</li>
+  <li><strong>Service:</strong> ${payload.appointmentType}</li>
+  <li><strong>Date:</strong> ${payload.appointmentDate}</li>
+  <li><strong>Duration:</strong> ${payload.sessionDuration || payload.duration} minutes</li>
+  <li><strong>Completed:</strong> ${payload.completedAt || 'Just now'}</li>
+</ul>
+<h3>How was your experience?</h3>
+<p>Your feedback helps us improve our services and support our experts.</p>
+${payload.feedbackUrl ? `<p><a href="${payload.feedbackUrl}" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Leave Feedback</a></p>` : ''}
+${payload.rebookUrl ? `<p>Need another session? <a href="${payload.rebookUrl}">Book Again</a></p>` : ''}
+<p>Thank you for choosing Eleva Care!</p>
+        `,
       }));
     }
   },
   {
     payloadSchema: z.object({
-      eventType: z.enum(['reminder', 'cancelled', 'new-booking-expert']),
+      eventType: z.enum([
+        'reminder',
+        'cancelled',
+        'new-booking-expert',
+        'rescheduled',
+        'completed',
+      ]),
+      // Common fields
       expertName: z.string(),
       clientName: z.string().optional(),
       appointmentType: z.string().optional(),
       appointmentDate: z.string(),
       appointmentTime: z.string().optional(),
-      clientNotes: z.string().optional(),
-      appointmentDetailsLink: z.string().optional(),
+      timezone: z.string().optional(),
+      duration: z.number().optional(),
+      // Reminder fields
+      reminderType: z.enum(['24h', '1h']).optional(),
+      meetLink: z.string().optional(),
+      rescheduleUrl: z.string().optional(),
+      // Cancellation fields
       cancellationReason: z.string().optional(),
+      refundAmount: z.string().optional(),
+      currency: z.string().optional(),
+      newBookingUrl: z.string().optional(),
+      // New booking fields
+      clientNotes: z.string().optional(),
+      bookingAmount: z.string().optional(),
+      appointmentDetailsLink: z.string().optional(),
+      // Reschedule fields
+      originalDate: z.string().optional(),
+      originalTime: z.string().optional(),
+      rescheduleReason: z.string().optional(),
+      // Completion fields
+      sessionDuration: z.string().optional(),
+      completedAt: z.string().optional(),
+      feedbackUrl: z.string().optional(),
+      rebookUrl: z.string().optional(),
+      // Localization
       locale: z.string().optional(),
       country: z.string().optional(),
     }),
     tags: ['appointments'],
+    preferences: {
+      all: { enabled: true },
+      channels: {
+        email: { enabled: true },
+        inApp: { enabled: true },
+      },
+    },
   },
 );
 
@@ -400,10 +762,17 @@ export const appointmentConfirmationWorkflow = workflow(
   async ({ payload, step }) => {
     const locale = getLocale(payload);
 
-    // In-app notification
+    // In-app notification with enhanced details
     await step.inApp('appointment-confirmed', async () => ({
-      subject: `Appointment confirmed with ${payload.expertName}`,
-      body: `Your appointment for ${payload.eventTitle} is confirmed for ${payload.appointmentDate} at ${payload.appointmentTime}.`,
+      subject: `✅ Appointment confirmed with ${payload.expertName}`,
+      body: `Your appointment for ${payload.eventTitle} is confirmed for ${payload.appointmentDate} at ${payload.appointmentTime}. You'll receive a calendar invite and meeting link shortly.`,
+      data: {
+        expertName: payload.expertName,
+        appointmentDate: payload.appointmentDate,
+        appointmentTime: payload.appointmentTime,
+        meetLink: payload.meetLink,
+        timezone: payload.timezone,
+      },
     }));
 
     // Email using existing beautiful AppointmentConfirmation template
@@ -422,7 +791,7 @@ export const appointmentConfirmationWorkflow = workflow(
       });
 
       return {
-        subject: `Appointment Confirmed - ${payload.eventTitle}`,
+        subject: `✅ Appointment Confirmed - ${payload.eventTitle}`,
         body: emailBody,
       };
     });
@@ -442,6 +811,13 @@ export const appointmentConfirmationWorkflow = workflow(
       country: z.string().optional(),
     }),
     tags: ['appointments', 'email'],
+    preferences: {
+      all: { enabled: true },
+      channels: {
+        email: { enabled: true },
+        inApp: { enabled: true },
+      },
+    },
   },
 );
 
@@ -450,10 +826,17 @@ export const multibancoBookingPendingWorkflow = workflow(
   async ({ payload, step }) => {
     const locale = getLocale(payload);
 
-    // In-app notification
+    // In-app notification with enhanced payment details
     await step.inApp('booking-payment-pending', async () => ({
-      subject: `Payment required for your booking with ${payload.expertName}`,
-      body: `Complete your payment using Multibanco to confirm your appointment. Reference: ${payload.multibancoReference}`,
+      subject: `💳 Payment required for your booking with ${payload.expertName}`,
+      body: `Complete your payment using Multibanco to confirm your appointment. Reference: ${payload.multibancoReference}. Amount: ${payload.multibancoAmount}`,
+      data: {
+        expertName: payload.expertName,
+        multibancoReference: payload.multibancoReference,
+        multibancoAmount: payload.multibancoAmount,
+        voucherExpiresAt: payload.voucherExpiresAt,
+        hostedVoucherUrl: payload.hostedVoucherUrl,
+      },
     }));
 
     // Email using existing beautiful MultibancoBookingPending template
@@ -476,7 +859,7 @@ export const multibancoBookingPendingWorkflow = workflow(
       });
 
       return {
-        subject: `Payment Required - ${payload.serviceName} Booking`,
+        subject: `💳 Payment Required - ${payload.serviceName} Booking`,
         body: emailBody,
       };
     });
@@ -500,6 +883,13 @@ export const multibancoBookingPendingWorkflow = workflow(
       country: z.string().optional(),
     }),
     tags: ['payments', 'email'],
+    preferences: {
+      all: { enabled: true },
+      channels: {
+        email: { enabled: true },
+        inApp: { enabled: true },
+      },
+    },
   },
 );
 
@@ -509,14 +899,22 @@ export const multibancoPaymentReminderWorkflow = workflow(
     const locale = getLocale(payload);
     const isUrgent = payload.reminderType === 'urgent';
 
-    // In-app notification with urgency
+    // In-app notification with enhanced urgency indicators
     await step.inApp('payment-reminder', async () => ({
       subject: isUrgent
-        ? `⚠️ Urgent: Payment expires in ${payload.daysRemaining} days`
-        : `Payment reminder for your booking`,
+        ? `⚠️ URGENT: Payment expires in ${payload.daysRemaining} days`
+        : `💡 Payment reminder for your booking`,
       body: isUrgent
-        ? `Your Multibanco payment will expire soon! Complete payment to secure your appointment with ${payload.expertName}.`
-        : `Don't forget to complete your payment for the appointment with ${payload.expertName}.`,
+        ? `Your Multibanco payment will expire soon! Complete payment to secure your appointment with ${payload.expertName}. Amount: ${payload.multibancoAmount}`
+        : `Don't forget to complete your payment for the appointment with ${payload.expertName}. Reference: ${payload.multibancoReference}`,
+      data: {
+        reminderType: payload.reminderType,
+        daysRemaining: payload.daysRemaining,
+        expertName: payload.expertName,
+        multibancoAmount: payload.multibancoAmount,
+        multibancoReference: payload.multibancoReference,
+        hostedVoucherUrl: payload.hostedVoucherUrl,
+      },
     }));
 
     // Email using existing beautiful MultibancoPaymentReminder template
@@ -542,8 +940,8 @@ export const multibancoPaymentReminderWorkflow = workflow(
 
       return {
         subject: isUrgent
-          ? `⚠️ Urgent: Payment expires in ${payload.daysRemaining} days - ${payload.serviceName}`
-          : `Payment Reminder - ${payload.serviceName} Booking`,
+          ? `⚠️ URGENT: Payment expires in ${payload.daysRemaining} days - ${payload.serviceName}`
+          : `💡 Payment Reminder - ${payload.serviceName} Booking`,
         body: emailBody,
       };
     });
@@ -569,6 +967,13 @@ export const multibancoPaymentReminderWorkflow = workflow(
       country: z.string().optional(),
     }),
     tags: ['payments', 'email'],
+    preferences: {
+      all: { enabled: true },
+      channels: {
+        email: { enabled: true },
+        inApp: { enabled: true },
+      },
+    },
   },
 );
 
@@ -630,25 +1035,31 @@ export const expertPayoutNotificationWorkflow = workflow(
   async ({ payload, step }) => {
     const locale = getLocale(payload);
 
-    // In-app notification step
+    // In-app notification step with enhanced data
     await step.inApp('payout-sent', async () => {
       const expertName = (payload.expertName as string) || 'Expert';
       const payoutAmount = (payload.payoutAmount as string) || '0.00';
       const currency = (payload.currency as string) || 'EUR';
+      const clientName = (payload.clientName as string) || 'Client';
 
       return {
         subject: `💰 Payout Sent: ${currency} ${payoutAmount}`,
-        body: `Your earnings of ${currency} ${payoutAmount} have been sent to your bank account. Expected arrival: 1-2 business days.`,
+        body: `Your earnings of ${currency} ${payoutAmount} from your appointment with ${clientName} have been sent to your bank account. Expected arrival: 1-2 business days.`,
         data: {
           payoutId: payload.payoutId,
           amount: payoutAmount,
           currency,
           expertName,
+          clientName,
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          serviceName: payload.serviceName,
+          bankLastFour: payload.bankLastFour,
         },
       };
     });
 
-    // Email notification step
+    // Email notification step with production-ready template
     await step.email('payout-email', async () => {
       const expertName = (payload.expertName as string) || 'Expert';
       const payoutAmount = (payload.payoutAmount as string) || '0.00';
@@ -700,6 +1111,13 @@ export const expertPayoutNotificationWorkflow = workflow(
       locale: z.string().optional(),
     }),
     tags: ['experts', 'payments', 'notifications'],
+    preferences: {
+      all: { enabled: true },
+      channels: {
+        email: { enabled: true },
+        inApp: { enabled: true },
+      },
+    },
   },
 );
 
