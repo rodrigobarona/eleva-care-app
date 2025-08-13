@@ -1,4 +1,4 @@
-import { triggerWorkflow } from '@/app/utils/novu';
+import { getNovuStatus, triggerWorkflow } from '@/app/utils/novu';
 import { ENV_CONFIG, ENV_HELPERS } from '@/config/env';
 import { NextResponse } from 'next/server';
 import { PostHog } from 'posthog-node';
@@ -152,6 +152,8 @@ export async function GET(request: Request) {
         hasNovu: envSummary.hasNovu,
         baseUrl: envSummary.baseUrl,
       },
+      // Detailed Novu diagnostics
+      novu: getNovuStatus(),
     };
 
     // Track successful health check in PostHog
