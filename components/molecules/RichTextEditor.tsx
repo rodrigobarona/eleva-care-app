@@ -82,7 +82,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
       return;
     }
 
-    // Store current selection/cursor position
+    // Store current selection/cursor position and focus state
     const { from, to } = editor.state.selection;
     const wasFocused = editor.isFocused;
 
@@ -90,32 +90,51 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     isUpdatingFromProp.current = true;
 
     try {
-      // Update content without emitting update event
+      // ✅ CRITICAL: Improved cursor preservation during autosave
+
+      // Update content first without triggering onUpdate
       editor.commands.setContent(value, false);
 
-      // Restore cursor position if the editor was focused
+      // Restore cursor position after content update if editor was focused
       if (wasFocused) {
-        // Use requestAnimationFrame to ensure DOM is updated before restoring selection
-        requestAnimationFrame(() => {
-          try {
+        // Use nextTick for reliable timing after content update
+        Promise.resolve().then(() => {
+          if (editor && !editor.isDestroyed) {
             const newDocSize = editor.state.doc.content.size;
 
-            // Ensure the position is still valid in the new document
-            const safeFrom = Math.min(from, newDocSize);
-            const safeTo = Math.min(to, newDocSize);
+            // Calculate safe cursor positions
+            const safeFrom = Math.min(from, Math.max(0, newDocSize - 1));
+            const safeTo = Math.min(to, Math.max(0, newDocSize - 1));
 
-            // Restore selection and focus
-            editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
-            editor.commands.focus();
-          } catch (error) {
-            // If position restoration fails, just focus at the end
-            console.warn('Could not restore cursor position:', error);
-            editor.commands.focus('end');
+            try {
+              // Restore selection using setTextSelection command
+              if (safeFrom === safeTo) {
+                // Simple cursor position
+                editor.commands.setTextSelection(safeFrom);
+              } else {
+                // Text selection range
+                editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
+              }
+
+              // Restore focus
+              editor.commands.focus();
+            } catch (selectionError) {
+              // Fallback: focus at end if position restoration fails
+              console.warn('Cursor position restoration failed, focusing at end:', selectionError);
+              editor.commands.focus('end');
+            }
           }
         });
       }
+    } catch (error) {
+      // Fallback: simple content update without cursor preservation
+      console.warn('Advanced cursor preservation failed, using fallback:', error);
+      editor.commands.setContent(value, false);
+      if (wasFocused) {
+        editor.commands.focus('end');
+      }
     } finally {
-      // Reset the flag after the microtask queue completes for more predictable timing
+      // Reset the flag after the microtask queue completes
       queueMicrotask(() => {
         isUpdatingFromProp.current = false;
       });
