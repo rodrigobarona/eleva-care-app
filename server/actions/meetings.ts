@@ -1,5 +1,6 @@
 'use server';
 
+import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
 import { MeetingTable } from '@/drizzle/schema';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
@@ -7,6 +8,7 @@ import { logAuditEvent } from '@/lib/logAuditEvent';
 import { meetingActionSchema } from '@/schema/meetings';
 import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalendar';
 import { addMinutes } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { headers } from 'next/headers';
 import 'use-server';
 import type { z } from 'zod';
@@ -153,6 +155,9 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
     const event = await db.query.EventTable.findFirst({
       where: ({ clerkUserId, isActive, id }, { eq, and }) =>
         and(eq(isActive, true), eq(clerkUserId, data.clerkUserId), eq(id, data.eventId)),
+      with: {
+        user: true, // Include user data for Novu notifications
+      },
     });
     if (event == null) return { error: true, code: 'EVENT_NOT_FOUND' };
 
@@ -247,6 +252,51 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         (await headers()).get('x-forwarded-for') ?? 'Unknown',
         (await headers()).get('user-agent') ?? 'Unknown',
       );
+
+      // Step 10: Trigger Novu workflow for expert notification
+      try {
+        // Format date and time for the notification
+        const appointmentDate = formatInTimeZone(
+          startTimeUTC,
+          data.timezone || 'UTC',
+          'EEEE, MMMM d, yyyy',
+        );
+        const appointmentTime = formatInTimeZone(startTimeUTC, data.timezone || 'UTC', 'h:mm a');
+        const appointmentDuration = `${event.durationInMinutes} minutes`;
+
+        // Trigger Novu workflow to notify the expert
+        const novuResult = await triggerWorkflow({
+          workflowId: 'appointment-confirmation',
+          to: {
+            subscriberId: data.clerkUserId, // Expert's Clerk ID
+            email: event.user?.email || undefined,
+            firstName: event.user?.firstName || undefined,
+            lastName: event.user?.lastName || undefined,
+          },
+          payload: {
+            expertName:
+              `${event.user?.firstName || ''} ${event.user?.lastName || ''}`.trim() || 'Expert',
+            clientName: data.guestName,
+            appointmentDate,
+            appointmentTime,
+            timezone: data.timezone || 'UTC',
+            appointmentDuration,
+            eventTitle: event.name,
+            meetLink: meetingUrl || undefined,
+            notes: data.guestNotes || undefined,
+            locale: data.locale || 'en',
+          },
+        });
+
+        if (novuResult) {
+          console.log('✅ Novu appointment confirmation sent to expert:', data.clerkUserId);
+        } else {
+          console.warn('⚠️ Failed to send Novu notification to expert');
+        }
+      } catch (novuError) {
+        // Don't fail the whole meeting creation if Novu fails
+        console.error('❌ Error sending Novu notification:', novuError);
+      }
 
       return { error: false, meeting };
     } catch (error) {
