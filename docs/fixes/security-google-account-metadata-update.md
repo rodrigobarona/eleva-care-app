@@ -235,7 +235,6 @@ No React Hook warnings or ESLint errors! ✅
 ## Related Files Modified
 
 1. **`app/(private)/account/security/page.tsx`**
-
    - Added `user.reload()` after server action
    - Added refresh trigger state management
    - Added memoized UI state calculations
@@ -244,7 +243,6 @@ No React Hook warnings or ESLint errors! ✅
    - Added `forceRefresh` callback for clean state management
 
 2. **`server/actions/expert-setup.ts`**
-
    - Already had proper `handleGoogleAccountConnection()` implementation
    - No changes needed (was working correctly)
 

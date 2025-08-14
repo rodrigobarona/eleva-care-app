@@ -37,7 +37,6 @@ Unlike a traditional e-commerce platform, our approach maintains the marketplace
 ### API Endpoints
 
 1. `/api/appointments/patients`
-
    - Returns a list of all patients who have booked with the current expert
    - Includes statistics about appointment count and total spend
 
@@ -48,7 +47,6 @@ Unlike a traditional e-commerce platform, our approach maintains the marketplace
 ### Data Flow
 
 1. When a patient books an appointment:
-
    - A record is created in the MeetingTable with patient details
    - The payment is processed through Stripe using the platform's Stripe account
    - Funds are transferred to the expert's Connect account (minus platform fees)

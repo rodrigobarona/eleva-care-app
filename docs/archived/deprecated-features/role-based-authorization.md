@@ -165,22 +165,18 @@ The system handles both formats consistently throughout the application.
 ## Authorization Flow
 
 1. **User Registration/Login**:
-
    - Roles are assigned and stored in Clerk user metadata
    - Can be stored as either a string or an array of strings
 
 2. **Server Component Authorization**:
-
    - Server components use `hasRole`, `isAdmin`, or other helper functions
    - Unauthorized users are redirected to appropriate pages
 
 3. **Client Component Authorization**:
-
    - Client components use specialized hooks or the `RequireRole` component
    - UI elements are conditionally rendered based on user roles
 
 4. **API Route Authorization**:
-
    - API routes check roles with server helpers
    - Return appropriate status codes (401/403) for unauthorized access
 
@@ -221,6 +217,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 'use client';
 
 import { useIsAdmin, useIsExpert } from '@/components/molecules/AuthorizationProvider';
+
+// components/ExampleProtectedComponent.tsx
+
+// components/ExampleProtectedComponent.tsx
 
 // components/ExampleProtectedComponent.tsx
 

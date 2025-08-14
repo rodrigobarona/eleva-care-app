@@ -32,12 +32,10 @@ app/
 ## Key Components
 
 1. **Routing Configuration**
-
    - Defined in `i18n/routing.ts`
    - Uses `defineRouting` from next-intl
 
 2. **Navigation Utilities**
-
    - Defined in `i18n/navigation.ts`
    - Provides localized `Link`, `redirect`, and other navigation helpers
 

@@ -125,19 +125,16 @@ echo "✅ Pre-push checks completed!"
 ### Files Modified
 
 1. **`package.json`**
-
    - Changed `"prepare": "husky install"` to `"prepare": "husky"`
    - Removed the deprecated `"husky": { "hooks": {...} }` section
    - Kept `lint-staged` configuration (still valid)
 
 2. **`.husky/pre-commit`**
-
    - Removed any `#!/usr/bin/env sh` and `. "$(dirname -- "$0")/_/husky.sh"` lines
    - Updated to use `pnpm exec jest` instead of `npx jest`
    - Modern shell script format
 
 3. **`.husky/pre-push`**
-
    - Same modernization as pre-commit
    - Updated to use `pnpm exec jest` consistently
 

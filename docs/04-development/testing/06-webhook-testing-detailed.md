@@ -130,20 +130,17 @@ jest.mock('@/server/actions/expert-setup'); // Expert onboarding
 Each webhook test file follows this structure:
 
 1. **Request Validation Tests**
-
    - Missing headers
    - Invalid signatures
    - Missing environment variables
 
 2. **Event Processing Tests**
-
    - Successful event handling
    - Event-specific business logic
    - Database operations
    - External service integrations
 
 3. **Error Handling Tests**
-
    - Database failures
    - External service failures
    - Invalid data handling
@@ -344,13 +341,11 @@ When contributing to webhook tests:
 ### Infrastructure Improvements Made
 
 1. **Fixed Next.js Environment Issues**
-
    - Resolved `NextResponse.json is not a function` errors
    - Added proper Request/Response mocking
    - Updated Jest setup for webhook testing
 
 2. **Resolved Import Issues**
-
    - Fixed module path resolution
    - Added proper dynamic imports for webhook routes
    - Implemented fallback mocking strategy

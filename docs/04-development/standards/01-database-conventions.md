@@ -7,24 +7,20 @@ Our database currently has mixed naming conventions due to historical reasons. W
 ### Current Naming Patterns
 
 1. **Table Names**
-
    - Standard: Use `snake_case` for new tables
    - Example: `payment_transfers`, `blocked_dates`
    - Legacy: Some tables use `camelCase` (e.g., `scheduleAvailabilities`)
 
 2. **Column Names**
-
    - Standard: Use `snake_case` for new columns
    - Example: `created_at`, `updated_at`, `expert_clerk_user_id`
    - Legacy: Some columns use `camelCase` (e.g., `clerkUserId`, `startTime`)
 
 3. **Primary Keys**
-
    - Use `id` as the standard primary key name
    - UUID or Serial depending on the use case
 
 4. **Foreign Keys**
-
    - Standard: `resource_id` format (e.g., `user_id`, `event_id`)
    - Legacy: Some use `camelCase` (e.g., `scheduleId`)
 
@@ -37,12 +33,10 @@ Our database currently has mixed naming conventions due to historical reasons. W
 To maintain data integrity while moving towards consistent naming:
 
 1. **New Tables**
-
    - Always use `snake_case` for both table and column names
    - Follow the standard naming patterns above
 
 2. **Existing Tables**
-
    - Create migration plans for each table
    - Test thoroughly in staging environment
    - Ensure all related code is updated

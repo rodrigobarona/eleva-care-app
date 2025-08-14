@@ -371,12 +371,10 @@ ORDER BY avg_load_time DESC
 ### Critical Alerts (Immediate)
 
 1. **Health Check Failures**
-
    - Trigger: Health check failure rate > 5% in 5 minutes
    - Action: Immediate notification to on-call engineer
 
 2. **High Error Rate**
-
    - Trigger: JavaScript error rate > 2% in 10 minutes
    - Action: Notification to development team
 
@@ -387,12 +385,10 @@ ORDER BY avg_load_time DESC
 ### Warning Alerts (Non-Critical)
 
 1. **Memory Usage**
-
    - Trigger: Average memory usage > 80% for 30 minutes
    - Action: Infrastructure team notification
 
 2. **Conversion Drop**
-
    - Trigger: Daily conversion rate drops by 20% compared to 7-day average
    - Action: Product team notification
 
@@ -512,13 +508,11 @@ function APIWrapper() {
 ### Common Issues
 
 1. **Events Not Appearing**
-
    - Check API key configuration
    - Verify PostHog initialization
    - Check browser console for errors
 
 2. **User Identification Issues**
-
    - Ensure user ID consistency
    - Check Clerk integration
    - Verify identify() calls

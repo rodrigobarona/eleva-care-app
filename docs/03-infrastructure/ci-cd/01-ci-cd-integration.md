@@ -298,7 +298,6 @@ pnpm test:coverage
    ```
 
 5. **Create Pull Request**
-
    - GitHub Actions run full test suite
    - Neon preview branch created
    - Integration tests run against real database

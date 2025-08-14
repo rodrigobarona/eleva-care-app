@@ -9,7 +9,6 @@ Successfully migrated the fragmented Redis implementation in `lib/stripe.ts` to 
 ### **Files Modified**
 
 1. **`lib/stripe.ts`** - Main migration target
-
    - ❌ Removed separate Redis client (`@upstash/redis`)
    - ❌ Removed `REDIS_KEYS` object with custom key patterns
    - ❌ Removed `verifyRedisConnection()` function
@@ -19,7 +18,6 @@ Successfully migrated the fragmented Redis implementation in `lib/stripe.ts` to 
    - ✅ Maintained all existing functionality and error handling
 
 2. **`config/env.ts`** - Environment configuration
-
    - ✅ Added unified Redis variables (`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`)
    - ✅ Marked legacy variables as deprecated (`KV_REST_API_*`)
    - ✅ Added `redis()` validator with migration warnings
@@ -172,7 +170,6 @@ stripe:subscription:{id}     → subscription:{id}
 ### **For Operations Teams**
 
 1. **Infrastructure**
-
    - Single Redis instance instead of multiple KV stores
    - Simplified environment variable management
    - Centralized cache monitoring

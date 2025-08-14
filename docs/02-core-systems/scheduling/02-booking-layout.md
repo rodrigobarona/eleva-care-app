@@ -35,14 +35,12 @@ This is a text representation of how the new booking layout will look:
 ## Key Features
 
 1. **Left Panel (Expert Info)**
-
    - Expert avatar and name
    - Event title and description
    - Key details (duration, location, price)
    - Current timezone
 
 2. **Middle Panel (Calendar)**
-
    - Month and year display with navigation
    - Day of week headers
    - Calendar grid with available dates

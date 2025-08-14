@@ -30,7 +30,6 @@ ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "published" boolean NOT NULL DEF
 ### Server Actions
 
 1. **toggleProfilePublication**: Toggles the publication status of a profile:
-
    - Validates that the user is authenticated and has an expert role
    - Checks if all setup steps are complete before allowing initial publication
    - Updates the profile's published status in the database

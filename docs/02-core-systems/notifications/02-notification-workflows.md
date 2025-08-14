@@ -69,7 +69,6 @@ The core integration with Novu is established through environment variables and 
 Effective subscriber management is key to delivering personalized and correctly routed notifications.
 
 - **Mapping Clerk User IDs to `subscriberId`:**
-
   - In Eleva.care, the primary user authentication is handled by Clerk. Each user in Clerk has a unique ID.
   - This **Clerk User ID is used as the `subscriberId` in Novu.**
   - When triggering a notification (e.g., via `novu.trigger()` in `lib/notifications.ts`), the `to.subscriberId` field is populated with the recipient's Clerk User ID.
@@ -77,7 +76,6 @@ Effective subscriber management is key to delivering personalized and correctly 
   - This direct mapping ensures a consistent identifier across both systems.
 
 - **Common Subscriber Data Sent to Novu:**
-
   - While Novu can store rich subscriber profiles, our current integration primarily focuses on sending essential data during the `novu.trigger()` call or when creating/updating subscribers directly in Novu (if done programmatically, though not currently a primary focus of our `createUserNotification` function which only sends `subscriberId` in the `to` field).
   - **Implicitly via Novu UI/SDK:** When a user interacts with Novu's In-App center, Novu's SDK might automatically collect some data like last seen time, device information, etc., as per Novu's capabilities.
   - **Explicitly if creating/updating subscribers:** If we were to explicitly create/update subscribers in Novu (e.g., via a separate backend process or API call to Novu), we would typically send:
@@ -133,12 +131,10 @@ This section details the practical steps for creating and configuring notificati
 Workflows are the blueprints that define how notifications are structured, timed, and delivered across various channels for a specific event.
 
 1.  **Navigate to Workflows:**
-
     - Log in to your Novu dashboard.
     - Locate and click on the "Workflows" (or similarly named) section in the main navigation menu. This is where all notification workflows are listed and managed.
 
 2.  **Initiate Workflow Creation:**
-
     - Click on the "Create Workflow," "New Workflow," or an equivalent button.
     - You may be presented with options to use pre-built blueprints or to "Start from scratch." For most of our custom Eleva.care events, starting from scratch provides the necessary flexibility.
 
@@ -152,11 +148,9 @@ Workflows are the blueprints that define how notifications are structured, timed
 The event trigger is the unique identifier that your Eleva.care backend application will use to invoke this specific workflow in Novu.
 
 1.  **Access Trigger Configuration:**
-
     - Within the newly created workflow, the first step is typically to define the trigger. This might be labeled as "Trigger," "Event Trigger," or be an initial node in a visual workflow builder.
 
 2.  **Define the Event Name/ID:**
-
     - In the designated field, enter the unique **Event Name** (also referred to as Event ID or Trigger ID).
     - **Critical:** This Event Name _must exactly match_ the string identifier used in the `novu.trigger("YOUR_EVENT_NAME", ...)` call within the Eleva.care backend (e.g., in `lib/notifications.ts`, the output of `mapNotificationTypeToNovuEvent` such as `appointment-booking-confirmation-customer` or `verification-help`).
     - Refer to the "Notification Event List" document for the definitive list of event names used in Eleva.care.
@@ -171,11 +165,9 @@ The event trigger is the unique identifier that your Eleva.care backend applicat
 Workflows gain power by orchestrating messages across multiple communication channels. Each channel you want to use for a particular notification event will be a "step" in the workflow.
 
 1.  **Add a Channel Step:**
-
     - In the workflow editor interface, find and click the "Add Step," "+", or similar icon/button. This allows you to append a new action or channel to your workflow sequence.
 
 2.  **Select the Communication Channel:**
-
     - Choose the desired channel for this step from the available options. For Eleva.care, primary channels include:
       - **In-App:** For notifications delivered directly within the Eleva.care web application using the Novu `PopoverNotificationCenter` component. Suitable for immediate, contextual updates.
       - **Email:** For more persistent or detailed notifications. Essential for confirmations, summaries, and important alerts.
@@ -184,7 +176,6 @@ Workflows gain power by orchestrating messages across multiple communication cha
     - Ensure the chosen channel has a corresponding active integration configured in Novu's "Integrations" section.
 
 3.  **Order of Steps:**
-
     - Drag and drop steps to define their order if the workflow involves a sequence (e.g., In-App first, then Email).
 
 4.  **Advanced Steps (Optional):**
@@ -196,11 +187,9 @@ Workflows gain power by orchestrating messages across multiple communication cha
 Each channel step requires a template that dictates the actual content of the notification.
 
 1.  **Access the Editor:**
-
     - For any channel step you've added (e.g., Email, In-App), click the "Edit Template," "Open Editor," or an equivalent button to access the content editor for that specific channel.
 
 2.  **Composing Content:**
-
     - **Static Content:** Type any fixed text directly into the editor. For emails, this includes the subject line and body. For In-App messages, this is typically the message content.
     - **Dynamic Content with Variables:**
       - **Payload Variables:** To insert data sent from your application (the `payload` object in `novu.trigger()`), use the Liquid templating syntax: `{{payload.variableName}}`.
@@ -223,11 +212,9 @@ Each channel step requires a template that dictates the actual content of the no
 To deliver notifications in the user's preferred language (en-US, pt-PT, pt-BR, es-ES), use Liquid templating logic within your channel templates.
 
 1.  **Prerequisite: `subscriber.locale`:**
-
     - Ensure that the `subscriber.locale` field is consistently populated for all users in Novu with values like "en-US", "pt-PT", "pt-BR", or "es-ES". This is detailed in Section 2.3.
 
 2.  **Liquid Logic for Language Switching:**
-
     - You can use `if/elsif/else` conditions or `case` statements based on `subscriber.locale`.
     - To simplify, you can first extract the primary language code (e.g., "en", "pt", "es"):
       ```liquid
@@ -264,11 +251,9 @@ To deliver notifications in the user's preferred language (en-US, pt-PT, pt-BR, 
       ```
 
 3.  **Handling Specific Locales (e.g., pt-PT vs. pt-BR):**
-
     - As shown above, after checking for the general language code `pt`, you can have a nested `if` or a more specific `elsif` for `subscriber.locale == 'pt-BR'` to handle regional variations if necessary. If no specific regional version is needed, the general `lang_code == 'pt'` block can serve both.
 
 4.  **Default/Fallback Content:**
-
     - Always include an `{% else %}` block to provide default content (typically in English) if `subscriber.locale` is missing or doesn't match any of your specified languages.
 
 5.  **Advanced Localization:**
@@ -279,11 +264,9 @@ To deliver notifications in the user's preferred language (en-US, pt-PT, pt-BR, 
 Thorough testing is crucial before notifications are sent to real users.
 
 1.  **Save Changes:**
-
     - Frequently save your progress within the workflow editor and template editors using "Save," "Update," "Publish Changes," or similar buttons. Novu might have a distinction between saving a draft and publishing a version of the workflow that is live.
 
 2.  **Use Novu's Testing Tools:**
-
     - **Test Trigger / Send Event:** Most Novu dashboards include a feature to manually simulate an event trigger for a specific workflow.
       - You will typically need to provide:
         1.  The **Event Name/ID** of the workflow you want to test.
@@ -292,14 +275,12 @@ Thorough testing is crucial before notifications are sent to real users.
     - **Execute the Test:** Send the test event.
 
 3.  **Review Test Results:**
-
     - **Activity Logs:** Check the "Logs," "Activity Feed," or a similar section in Novu. This will show if the event was received, which workflow was matched, the steps executed, and the status of each step (e.g., message sent, delivered, seen, read, failed, error).
     - **Rendered Content:** For channels like Email or In-App, Novu logs often allow you to view the actual content that was generated after processing your template and variables. Verify this against your expectations for different locales and payloads.
     - **Channel Delivery:** Check the actual channels (e.g., test email inbox, your application's In-App notification center logged in as the test subscriber) to confirm the notification was delivered and appears correctly.
     - **Error Debugging:** If a step failed, the logs should provide error messages or clues to help you debug issues in your templates, payload, or channel integration.
 
 4.  **Iterate and Refine:**
-
     - Based on the test results, go back to your workflow settings, channel step configurations, or template editor to make necessary corrections. Repeat the testing process until the notifications behave exactly as intended for all scenarios and languages.
 
 5.  **Activate/Publish Workflow:**
@@ -359,7 +340,6 @@ These notifications relate to the user's lifecycle, account status, and security
     }
     ```
 - **Content Proposals (English):**
-
   - **Subject:** Welcome to Eleva.care, {{payload.userName}}!
   - **Body:**
 
@@ -404,7 +384,6 @@ These notifications relate to the user's lifecycle, account status, and security
   - `verificationLink` or `verificationCode` generated by the application's custom email verification logic.
   - `subscriber.locale` for language.
 - **Conceptual Trigger Logic:**
-
   - _If custom application logic_:
 
     ```javascript
@@ -433,7 +412,6 @@ These notifications relate to the user's lifecycle, account status, and security
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** Verify Your Email Address for Eleva.care
   - **Body:**
 
@@ -477,7 +455,6 @@ These notifications relate to the user's lifecycle, account status, and security
   - `passwordResetLink` generated by the application, containing a secure, single-use token.
   - `subscriber.locale`.
 - **Conceptual Trigger Logic:**
-
   - _If custom application logic for password reset_:
 
     ```javascript
@@ -502,7 +479,6 @@ These notifications relate to the user's lifecycle, account status, and security
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** Eleva.care Password Reset Request
   - **Body:**
 
@@ -546,7 +522,6 @@ These notifications relate to the user's lifecycle, account status, and security
   - `loginLink`, `contactSupportLink` are application-specific URLs.
   - `subscriber.locale`.
 - **Conceptual Trigger Logic:**
-
   - _If using Clerk webhook for `user.updated` (and can identify password change)_:
 
     ```javascript
@@ -571,7 +546,6 @@ These notifications relate to the user's lifecycle, account status, and security
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** Your Eleva.care Password Has Been Changed
   - **Body:**
 
@@ -624,7 +598,6 @@ These notifications are central to the user journey for both customers and exper
   - All payload data is fetched from the newly created `MeetingTable` record and related `EventTable`, `UserTable` (for expert name), and customer's `UserTable` (for `userName` and `locale`) in the Neon.tech PostgreSQL database.
   - Calendar links are generated by the application.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // Inside application service after successful booking and DB commit:
     async function processNewBooking(bookingRecord, customer, expert) {
@@ -655,7 +628,6 @@ These notifications are central to the user journey for both customers and exper
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** Your Eleva.care Appointment with {{payload.expertName}} is Confirmed!
   - **Body:**
 
@@ -706,7 +678,6 @@ These notifications are central to the user journey for both customers and exper
   - Data fetched from `MeetingTable`, `EventTable`, customer's `UserTable`, and expert's `UserTable` in Neon.tech PostgreSQL.
   - Expert's `locale` from their Novu subscriber profile.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // Inside application service after successful booking, called alongside customer notification:
     async function notifyExpertOfNewBooking(bookingRecord, customer, expert) {
@@ -733,7 +704,6 @@ These notifications are central to the user journey for both customers and exper
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** New Booking: {{payload.appointmentType}} with {{payload.customerName}} on {{payload.appointmentDate}}
   - **Body:**
 
@@ -786,7 +756,6 @@ These notifications are central to the user journey for both customers and exper
   - Data fetched from the updated `MeetingTable` and related user tables.
   - Recipient's `locale`.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // After appointment reschedule in DB
     async function notifyOfReschedule(updatedBooking, recipientUser, initiatorUser, reason = null) {
@@ -822,7 +791,6 @@ These notifications are central to the user journey for both customers and exper
     ```
 
 - **Content Proposals (English - for Customer being notified):**
-
   - **Subject:** Your Eleva.care Appointment Has Been Rescheduled
   - **Body:**
 
@@ -874,7 +842,6 @@ These notifications are central to the user journey for both customers and exper
   - Data from the (now cancelled) `MeetingTable` and related user tables.
   - Recipient's `locale`.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // After appointment cancellation in DB
     async function notifyOfCancellation(
@@ -913,7 +880,6 @@ These notifications are central to the user journey for both customers and exper
     ```
 
 - **Content Proposals (English - for Customer being notified):**
-
   - **Subject:** Your Eleva.care Appointment on {{payload.appointmentDate}} Has Been Cancelled
   - **Body:**
 
@@ -962,7 +928,6 @@ These notifications are central to the user journey for both customers and exper
   - The QStash job queries the **Neon.tech PostgreSQL** database for appointments occurring within the relevant future window (e.g., next 24-25 hours for a 24-hour reminder).
   - It fetches details for each appointment and the `locale` for both the customer and expert from their user profiles.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // QStash Worker Logic (simplified)
     async function processAppointmentReminders() {
@@ -1016,7 +981,6 @@ These notifications are central to the user journey for both customers and exper
     ```
 
 - **Content Proposals (English - for Customer):**
-
   - **Subject:** Reminder: Your Eleva.care Appointment is {{payload.timeUntilAppointment}}
   - **Body:**
 
@@ -1067,7 +1031,6 @@ These notifications are crucial for keeping users informed about financial trans
   - Most data (`amountPaid`, `stripePaymentIntentId`, payment method details) comes directly from the Stripe `PaymentIntent` object (available in the webhook payload or API response).
   - `userName`, `orderId`, `serviceName`, `locale` are retrieved from the application's **Neon.tech PostgreSQL** database using the `customer_id` or `metadata` stored in the Stripe `PaymentIntent`.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // Stripe Webhook Handler (e.g., /api/webhooks/stripe)
     // Case: event.type === 'payment_intent.succeeded'
@@ -1103,7 +1066,6 @@ These notifications are crucial for keeping users informed about financial trans
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** Your Eleva.care Payment Confirmation (Order #{{payload.orderId}})
   - **Body:**
 
@@ -1149,7 +1111,6 @@ These notifications are crucial for keeping users informed about financial trans
   - Other data from application database based on `customer_id` or `metadata` in the Stripe event.
   - `locale` from Novu subscriber profile.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // Stripe Webhook Handler
     // Case: event.type === 'payment_intent.payment_failed'
@@ -1181,7 +1142,6 @@ These notifications are crucial for keeping users informed about financial trans
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** Action Required: Your Eleva.care Payment Failed
   - **Body:**
 
@@ -1229,7 +1189,6 @@ These notifications are crucial for keeping users informed about financial trans
   - Data from the Stripe `Refund` object (part of the `charge.refunded` event or fetched via API).
   - `userName`, `originalService`, `locale` from application database via related payment/order.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // Stripe Webhook Handler
     // Case: event.type === 'charge.refunded' (or specific refund success event)
@@ -1264,7 +1223,6 @@ These notifications are crucial for keeping users informed about financial trans
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** Your Eleva.care Refund Has Been Processed
   - **Body:**
 
@@ -1309,7 +1267,6 @@ These notifications are crucial for keeping users informed about financial trans
   - Data from Stripe `Invoice` object (if using webhook) or application's `UserTable` (which stores subscription details synced from Stripe).
   - `locale` from Novu subscriber profile.
 - **Conceptual Trigger Logic (using Stripe `invoice.upcoming` webhook):**
-
   - ```javascript
     // Stripe Webhook Handler
     // Case: event.type === 'invoice.upcoming'
@@ -1340,7 +1297,6 @@ These notifications are crucial for keeping users informed about financial trans
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** Your Eleva.care Subscription Renews Soon
   - **Body:**
 
@@ -1386,7 +1342,6 @@ These notifications are crucial for keeping users informed about financial trans
   - Data primarily from the Stripe `Payout` object in the webhook.
   - `expertName`, `locale` from application database using the `stripe_connect_account_id` often linked in payout metadata or by cross-referencing.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // Stripe Webhook Handler
     // Case: event.type === 'payout.paid'
@@ -1416,7 +1371,6 @@ These notifications are crucial for keeping users informed about financial trans
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** Your Eleva.care Payout of {{payload.payoutAmount}} Has Been Processed!
   - **Body:**
 
@@ -1463,7 +1417,6 @@ This subsection covers notifications related to the expert lifecycle (applicatio
   - `expectedReviewTimeframe` can be a configurable system setting (localize this string if backend sends it).
   - Applicant's `locale` from their user profile (if they are already a basic user) or from the application form.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // After successful expert application form submission and DB save:
     async function confirmExpertApplication(applicationData, userProfile) {
@@ -1491,7 +1444,6 @@ This subsection covers notifications related to the expert lifecycle (applicatio
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** We've Received Your Eleva.care Expert Application!
   - **Body:**
 
@@ -1535,7 +1487,6 @@ This subsection covers notifications related to the expert lifecycle (applicatio
   - Links are application-specific.
   - Expert's `locale` from their Novu subscriber profile.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // After admin approves expert application in the backend:
     async function notifyExpertOfApproval(expertUser) {
@@ -1559,7 +1510,6 @@ This subsection covers notifications related to the expert lifecycle (applicatio
     ```
 
 - **Content Proposals (English):**
-
   - **Subject:** Congratulations! Your Eleva.care Expert Application is Approved!
   - **Body:**
 
@@ -1627,7 +1577,6 @@ This subsection covers notifications related to the expert lifecycle (applicatio
     }
     ```
 - **Content Proposals (English):**
-
   - **Subject:** Update Regarding Your Eleva.care Expert Profile
   - **Body:**
 
@@ -1697,7 +1646,6 @@ This subsection covers notifications related to the expert lifecycle (applicatio
     }
     ```
 - **Content Proposals (English):**
-
   - **Subject:** Reminder: Complete Your Eleva.care Payout Account Setup
   - **Body:**
 
@@ -1742,7 +1690,6 @@ This subsection covers notifications related to the expert lifecycle (applicatio
   - Content (`title`, `messageBody`, links) is typically drafted by marketing/product teams and **translated before being sent in the payload for each locale group.**
   - Recipient's `locale` is used to select the correct pre-translated content block to send to Novu, or Novu's own advanced localization features could be used if content is uploaded there. For this model, we assume pre-translated content is passed in the payload.
 - **Conceptual Trigger Logic:**
-
   - ```javascript
     // Admin panel action or script:
     async function sendPlatformUpdate(targetAudienceFilter, languageSpecificContent) {
@@ -1781,7 +1728,6 @@ This subsection covers notifications related to the expert lifecycle (applicatio
     ```
 
 - **Content Proposals (English - template structure, actual content comes from payload):**
-
   - **Subject:** {{payload.title}}
   - **Body:**
 
@@ -1826,7 +1772,6 @@ This subsection covers notifications related to the expert lifecycle (applicatio
 - **Conceptual Trigger Logic:**
   - Similar to "Platform Update Announcement," triggered by an admin tool, with pre-translated content blocks per locale passed in the payload.
 - **Content Proposals (English - template structure, actual content from payload):**
-
   - **Subject:** Important Security Notification from Eleva.care: {{payload.alertTitle}}
   - **Body:**
 
@@ -1876,7 +1821,6 @@ This subsection covers notifications related to the expert lifecycle (applicatio
 - **Conceptual Trigger Logic:**
   - Similar to "Platform Update Announcement," with pre-translated content blocks per locale passed in the payload.
 - **Content Proposals (English - template structure, actual content from payload):**
-
   - **Subject:** Important Update to Our {{payload.documentName}}
   - **Body:**
 
@@ -1967,7 +1911,6 @@ Below are three key notification examples, demonstrating the payload, multilingu
 
 - **Event Name/ID:** `APPOINTMENT_BOOKING_CONFIRMATION_CUSTOMER`
 - **Payload:**
-
   - `userName`: string
   - `expertName`: string
   - `appointmentDate`: string (Pre-formatted for locale)
@@ -1979,9 +1922,7 @@ Below are three key notification examples, demonstrating the payload, multilingu
   - `appointmentDetailsLink`: string
 
 - **Content Proposals:**
-
   - **en-US (English - US)**
-
     - **Subject:** Your Eleva.care Appointment with {{payload.expertName}} is Confirmed!
     - **Body:**
 
@@ -2004,7 +1945,6 @@ Below are three key notification examples, demonstrating the payload, multilingu
       ```
 
   - **pt-PT (Portuguese - Portugal)**
-
     - **Subject:** A sua consulta na Eleva.care com {{payload.expertName}} está Confirmada!
     - **Body:**
 
@@ -2027,7 +1967,6 @@ Below are three key notification examples, demonstrating the payload, multilingu
       ```
 
   - **pt-BR (Portuguese - Brazil)**
-
     - **Subject:** Sua consulta na Eleva.care com {{payload.expertName}} está Confirmada!
     - **Body:**
 
@@ -2050,7 +1989,6 @@ Below are three key notification examples, demonstrating the payload, multilingu
       ```
 
   - **es-ES (Spanish - Spain)**
-
     - **Subject:** ¡Tu cita en Eleva.care con {{payload.expertName}} está Confirmada!
     - **Body:**
 
@@ -2159,7 +2097,6 @@ Below are three key notification examples, demonstrating the payload, multilingu
 
 - **Event Name/ID:** `PAYMENT_SUCCESS_CUSTOMER`
 - **Payload:**
-
   - `userName`: string
   - `orderId`: string (or booking ID)
   - `amountPaid`: string (Pre-formatted for locale)
@@ -2232,7 +2169,6 @@ Below are three key notification examples, demonstrating the payload, multilingu
 
 - **Event Name/ID:** `APPOINTMENT_REMINDER_CUSTOMER` (or `APPOINTMENT_REMINDER_CUSTOMER_24HR`)
 - **Payload:**
-
   - `userName`: string
   - `expertName`: string
   - `appointmentDate`: string (Pre-formatted for locale)
@@ -2312,37 +2248,31 @@ The notification system is not static; it will evolve with the Eleva.care platfo
 As new features are added to Eleva.care or new communication needs arise, new notifications will need to be implemented. Follow this general process:
 
 1.  **Define the Notification Event:**
-
     - **Purpose:** Clearly articulate why this notification is needed and what user action or information it conveys.
     - **Event Name/ID:** Choose a unique, descriptive Novu Event ID (e.g., `NEW_FEATURE_X_ANNOUNCEMENT`, `EXPERT_SESSION_SUMMARY_AVAILABLE`). Add this to the central "Notification Event List" document.
     - **Target Audience:** Define who should receive this notification (Customers, Experts, specific segments).
     - **Channels:** Decide which channels are appropriate (In-App, Email, SMS, etc.).
 
 2.  **Define the Payload:**
-
     - List all dynamic data points required for the notification content (e.g., `userName`, `featureLink`, `summaryDetails`).
     - Consider what data is readily available when the event is triggered.
 
 3.  **Draft Content (Multilingual):**
-
     - Write initial content for all supported languages (en-US, pt-PT, pt-BR, es-ES), including subject lines and body copy with placeholders for payload variables.
     - Follow the multilingual strategy outlined in Section 5.
 
 4.  **Implement Application Trigger Logic:**
-
     - In the Eleva.care backend, identify where this event originates (e.g., after a specific user action, a new database entry, a scheduled job, a Stripe webhook).
     - Add code to call the `createUserNotification` function (in `lib/notifications.ts`) with the new Novu Event ID and the defined payload.
     - Ensure `subscriberId` (Clerk User ID) and `locale` are correctly passed or set for the subscriber in Novu.
 
 5.  **Configure in Novu.co Dashboard:**
-
     - Create a new Workflow in Novu using the defined Event Name/ID.
     - Set up the necessary channel steps (Email, In-App, etc.).
     - Implement the templates for each channel, using the drafted multilingual content and payload variables.
     - Test thoroughly using Novu's "Test Trigger" functionality with sample payloads and different subscriber locales.
 
 6.  **Consistency:**
-
     - Review existing workflows and templates to maintain consistency in tone, branding (e.g., email footers, logos), and common phrasing where applicable.
     - Use shared partials or snippets in Novu if the feature is available and appropriate for common elements like headers/footers.
 
@@ -2356,24 +2286,20 @@ Modifications to existing notifications might be needed for clarity, new brandin
 1.  **Scope the Changes:** Clearly define what needs to be updated (e.g., text changes, adding a new variable, changing a link, altering logic in a template).
 
 2.  **Staging/Development Environment:**
-
     - **Novu Environments:** If your Novu plan supports multiple environments (e.g., Development, Staging, Production), always make and test changes in a non-production environment first. This prevents accidental impact on live user notifications.
     - **Application Staging:** Test the updated notification by triggering it from your staging Eleva.care application environment that points to your staging Novu environment.
 
 3.  **Template Editing and Testing:**
-
     - Carefully edit the relevant templates in the Novu dashboard (for the correct environment).
     - Use the "Test Trigger" feature extensively with various payloads and subscriber locales to ensure the changes render correctly and don't introduce errors (e.g., broken Liquid syntax, missing variables).
     - Pay attention to how changes affect different languages.
 
 4.  **Versioning or Duplicating Workflows (Major Changes):**
-
     - **Novu Versioning:** Check if Novu offers a built-in versioning system for workflows or templates. If so, use it to create a new version before making significant changes. This allows for easier rollback if issues arise.
     - **Manual Duplication:** If direct versioning isn't robust or available for the type of change, consider duplicating the existing workflow. Make changes to the duplicated version, test it thoroughly (perhaps by temporarily pointing a test event trigger to it), and then once satisfied, update your application to trigger the new workflow ID and deprecate/disable the old one. This provides a safe fallback.
     - **Minor Text Changes:** For very minor text edits, direct editing (with careful preview and testing) in the current workflow might be acceptable, especially if done in a staging Novu environment first.
 
 5.  **Communicating Changes to Users:**
-
     - If the changes significantly alter the information presented, the call to action, or the timing/frequency of a notification, consider whether users need to be informed about this change (e.g., via a platform announcement or a brief note in the updated notification itself if appropriate). This is a product decision.
 
 6.  **Deployment:**
@@ -2384,7 +2310,6 @@ Modifications to existing notifications might be needed for clarity, new brandin
 The Novu dashboard is the primary tool for monitoring the health and status of your notification system.
 
 1.  **Activity Logs / Feed:**
-
     - Regularly check the "Logs," "Activity Feed," or equivalent section in your Novu dashboard.
     - This feed provides a real-time or near real-time view of:
       - Events being triggered from your application.
@@ -2393,7 +2318,6 @@ The Novu dashboard is the primary tool for monitoring the health and status of y
       - Details of the payload and subscriber data for each event.
 
 2.  **Filtering and Searching Logs:**
-
     - Utilize Novu's log filtering capabilities to search by:
       - Workflow
       - Event Name/ID
@@ -2403,7 +2327,6 @@ The Novu dashboard is the primary tool for monitoring the health and status of y
     - This is invaluable for investigating issues reported by users or proactively identifying problems.
 
 3.  **Identifying Common Issues:**
-
     - **Incorrect Subscriber ID:** If `novu.trigger()` is called with a `subscriberId` that doesn't exist in Novu or doesn't match the intended recipient, the notification won't reach the user's In-App center (though email/SMS might still send if those details are in the payload and the channel doesn't strictly require a pre-existing Novu subscriber for delivery). Check that the `userId` passed from Eleva.care is correct.
     - **Template Errors:**
       - **Syntax Errors:** Incorrect Liquid syntax in your templates (`{{ }}`, `{% %}`) can cause rendering failures. Novu's test feature should help catch these.

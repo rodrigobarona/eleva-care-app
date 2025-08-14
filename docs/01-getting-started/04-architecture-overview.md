@@ -64,7 +64,6 @@ components/
 The platform uses Clerk for user authentication and implements a role-based authorization system:
 
 - **User Roles**:
-
   - `superadmin`: Complete system access
   - `admin`: Administrative functions
   - `top_expert`: Featured expert capabilities
@@ -72,7 +71,6 @@ The platform uses Clerk for user authentication and implements a role-based auth
   - `user`: Basic client access
 
 - **Authorization Components**:
-
   - `AuthorizationProvider`: Context provider for role-based permissions
   - `RequireRole`: Component for conditional rendering based on roles
   - `RequirePermission`: Component for permission-based UI elements
@@ -87,7 +85,6 @@ The platform uses Clerk for user authentication and implements a role-based auth
 Experts can create and manage detailed profiles:
 
 - **Profile Components**:
-
   - `ExpertForm`: Comprehensive form for profile creation/editing
   - `ProfilePublishToggle`: Controls profile visibility
   - `ExpertSetupChecklist`: Guides experts through setup process
@@ -105,7 +102,6 @@ Experts can create and manage detailed profiles:
 The platform manages the complete booking and appointment flow:
 
 - **Booking Components**:
-
   - `EventsList`: Displays expert services
   - `BookingCalendar`: Schedule selection
   - `CheckoutForm`: Payment processing
@@ -121,7 +117,6 @@ The platform manages the complete booking and appointment flow:
 Secure payment processing via Stripe:
 
 - **Payment Components**:
-
   - `CheckoutForm`: Client payment form
   - `StripeConnectEmbed`: Expert payment account connection
 
@@ -206,18 +201,15 @@ Server-side operations are implemented as Server Actions for secure data operati
 #### 7.1.1 Core Server Actions
 
 - **Profile Management**
-
   - `updateProfile`: Updates expert profile information with validation
   - `toggleProfilePublication`: Controls profile visibility with prerequisite checks
   - `checkExpertSetupStatus`: Verifies completion of expert setup steps
 
 - **Scheduling and Availability**
-
   - `saveSchedule`: Manages expert availability time slots
   - `getExpertSchedule`: Retrieves availability for booking interfaces
 
 - **Event and Service Management**
-
   - `createEvent`: Creates new service offerings
   - `updateEvent`: Modifies existing services
   - `deleteEvent`: Removes services
@@ -225,7 +217,6 @@ Server-side operations are implemented as Server Actions for secure data operati
   - `updateEventActiveState`: Toggles service availability
 
 - **Booking and Meetings**
-
   - `createMeeting`: Creates appointments with validation and conflict checks
   - `cancelMeeting`: Handles appointment cancellations
   - `rescheduleAppointment`: Manages appointment time changes
@@ -240,23 +231,19 @@ Server-side operations are implemented as Server Actions for secure data operati
 Server actions follow a consistent pattern:
 
 1. **Authentication and Authorization**
-
    - Verify user is authenticated
    - Check appropriate role permissions
 
 2. **Input Validation**
-
    - Use Zod schemas for type-safe validation
    - Return early with error messages for invalid inputs
 
 3. **Business Logic**
-
    - Perform database operations
    - Integrate with external services (Stripe, Google Calendar)
    - Handle transactional operations when needed
 
 4. **Response Structure**
-
    - Return consistent response objects
    - Include success/error flags
    - Provide meaningful error messages and codes
@@ -332,22 +319,18 @@ This consistent structure allows client components to handle errors appropriatel
 The platform implements a comprehensive verification process for experts through a structured checklist:
 
 1. **Profile Completion**
-
    - Experts must complete their profile with personal information, expertise details, bio, and profile picture
    - The system validates that all required fields are filled
 
 2. **Availability Configuration**
-
    - Experts must set their availability calendar
    - This defines when they're available for consultations
 
 3. **Service Creation**
-
    - At least one service must be created
    - Services include details like duration, price, and description
 
 4. **Identity Verification**
-
    - Experts must complete identity verification through Clerk's verification system
    - This ensures the platform only hosts legitimate healthcare professionals
 
@@ -360,25 +343,21 @@ The platform implements a comprehensive verification process for experts through
 The profile publishing feature allows experts to control their visibility on the platform:
 
 1. **Publication Requirements**
-
    - All setup checklist items must be completed before initial publication
    - The system performs a verification check before allowing publication
 
 2. **Publication Control**
-
    - Experts can toggle their profile between published and unpublished states
    - When published, profiles become visible to potential clients
    - When unpublished, profiles are hidden from search and browse
 
 3. **Server-Side Validation**
-
    - The `toggleProfilePublication` server action enforces all requirements
    - It checks for expert role authorization
    - It verifies all setup steps are complete before allowing publication
    - It handles the database update and path revalidation
 
 4. **User Feedback**
-
    - The system provides clear feedback on publication status
    - When all steps are completed, a congratulatory toast notification appears
    - The notification includes a direct action button to publish the profile

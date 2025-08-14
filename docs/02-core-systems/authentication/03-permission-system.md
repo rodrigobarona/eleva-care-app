@@ -115,12 +115,10 @@ Each role will have a predefined set of permissions:
 The permission system will extend the current role-based system with:
 
 1. **Permission Storage**:
-
    - Permissions stored in a database table
    - Role-permission mappings in a join table
 
 2. **Permission Checks**:
-
    - Server helpers: `hasPermission(permission)`, `hasAnyPermission([permissions])`
    - Client hooks: `useHasPermission(permission)`
 

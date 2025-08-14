@@ -45,13 +45,11 @@ POSTHOG_PROJECT_ID=your_project_id_here
 ### Getting Your PostHog Credentials
 
 1. **API Key**:
-
    - Go to PostHog → Settings → Personal API Keys
    - Create a new key with dashboard creation permissions
    - Copy the key (starts with `phx_`)
 
 2. **Project ID**:
-
    - In your PostHog URL: `https://app.posthog.com/project/12345`
    - The number `12345` is your project ID
 
@@ -449,17 +447,14 @@ curl -X POST "https://app.posthog.com/api/projects/${PROJECT_ID}/insights/" \
 ### Common Issues
 
 1. **Authentication Errors**
-
    - Verify your API key is correct and has the right permissions
    - Check that your project ID matches your PostHog project
 
 2. **Query Syntax Errors**
-
    - PostHog uses HogQL for queries
    - Refer to [PostHog HogQL documentation](https://posthog.com/docs/hogql)
 
 3. **Missing Data**
-
    - Ensure events are being tracked correctly
    - Check that property names match your implementation
 

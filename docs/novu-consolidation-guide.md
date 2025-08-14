@@ -179,7 +179,6 @@ const tabs = [{ label: 'Payments', filter: { tags: ['payments'] } }];
    ```
 
 2. **Update webhook handlers:**
-
    - Update Clerk webhook handler
    - Update Stripe webhook handler
    - Update any custom trigger calls

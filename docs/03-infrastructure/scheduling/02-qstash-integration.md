@@ -26,12 +26,10 @@ NEXT_PUBLIC_APP_URL=https://your-app-url.com
 The application uses QStash to run the following scheduled jobs:
 
 1. **Process Tasks** - Daily at 4 AM
-
    - Endpoint: `/api/cron/process-tasks`
    - Purpose: Process daily tasks and cleanup
 
 2. **Process Expert Transfers** - Every 2 hours
-
    - Endpoint: `/api/cron/process-expert-transfers`
    - Purpose: Process payments to experts
 

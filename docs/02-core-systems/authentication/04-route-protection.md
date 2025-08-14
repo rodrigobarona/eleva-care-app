@@ -200,18 +200,15 @@ function Dashboard() {
 ## Best Practices
 
 1. **Defense in Depth**: Implement protection at multiple layers
-
    - Middleware for broad route protection
    - Server components for specific layouts/pages
    - Client components for dynamic content
 
 2. **Performance Considerations**:
-
    - Use layout-level protection to avoid redundant checks in child pages
    - Middleware protection is most efficient for entire route groups
 
 3. **UX Guidelines**:
-
    - Provide clear feedback when redirecting users
    - Use consistent redirect destinations
    - Implement proper loading states during role checks
@@ -295,13 +292,11 @@ export async function GET() {
 Common issues and solutions:
 
 1. **Infinite Redirects**:
-
    - Check for circular redirects in middleware
    - Verify middleware logic correctly identifies protected routes
    - Ensure public routes are properly excluded from protection
 
 2. **Flashing Content**:
-
    - Use `isLoading` states in client components
    - Ensure server components check roles before rendering content
    - Consider using suspense boundaries

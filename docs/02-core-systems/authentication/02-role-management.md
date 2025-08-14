@@ -174,7 +174,6 @@ const protectedRoutes = [
 ## Best Practices
 
 1. **Layer Security**: Implement role checks at multiple levels:
-
    - UI level (hide unauthorized content)
    - Client-side routing (prevent unauthorized navigation)
    - API routes (prevent unauthorized data access)
@@ -182,18 +181,15 @@ const protectedRoutes = [
    - Middleware (prevent unauthorized route access)
 
 2. **Use Helper Functions**:
-
    - Prefer specialized helpers like `isAdmin()` over generic `hasRole('admin')`
    - This improves code readability and maintainability
 
 3. **Handle Loading States**:
-
    - Always check `isLoading` in client components
    - Provide appropriate loading indicators
    - Prevent UI flashing during role checks
 
 4. **Consistent Redirection**:
-
    - Use standard redirection paths (e.g., `/unauthorized`, `/`)
    - Provide clear messaging about access restrictions
 
@@ -268,13 +264,11 @@ export async function GET() {
 Common issues and their solutions:
 
 1. **Role Not Being Recognized**:
-
    - Check Clerk dashboard to confirm role is set correctly
    - Ensure role spelling matches the type definition
    - Verify role is stored in the proper format (string vs array)
 
 2. **Loading State Issues**:
-
    - Check if components are rendering before role checks complete
    - Add appropriate `isLoading` checks
    - Use Suspense boundaries for server components

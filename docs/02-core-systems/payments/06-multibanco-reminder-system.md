@@ -142,13 +142,11 @@ const reservationsNeedingReminders = await db.select(/* ... */).where(
 The reminder system integrates with:
 
 1. **Multibanco Payment Creation** (`payment.ts` webhook)
-
    - Creates slot reservations with 7-day expiry
    - Sends initial booking confirmation
    - Sets up payment tracking
 
 2. **Payment Completion** (`checkout.session.completed`)
-
    - Creates actual meeting
    - Cleans up slot reservation
    - Stops reminder sequence

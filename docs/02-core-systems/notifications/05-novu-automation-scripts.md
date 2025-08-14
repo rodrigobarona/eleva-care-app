@@ -69,28 +69,23 @@ NOVU_ADMIN_SUBSCRIBER_ID=admin
 ### 🔄 **6 Core Notification Workflows**
 
 1. **Welcome Workflow** (`user-welcome`) 🔴
-
    - In-app welcome message
    - Email with onboarding steps
    - Profile completion CTA
 
 2. **Payment Success** (`payment-success`) 🔴
-
    - Payment confirmation notification
    - Receipt email with transaction details
 
 3. **Payment Failed** (`payment-failed`) 🔴
-
    - Payment failure alert
    - Recovery email with billing update CTA
 
 4. **Appointment Reminder** (`appointment-reminder-24hr`) 🔴
-
    - 24-hour reminder notification
    - Email with meeting details and join link
 
 5. **Expert Onboarding Complete** (`expert-onboarding-complete`) 🔴
-
    - Expert profile activation notification
    - Welcome email with dashboard access
 
@@ -350,13 +345,11 @@ node scripts/test-novu-connection.js --workflow=user-welcome
 ## 🔐 Security Best Practices
 
 1. **API Key Management**:
-
    - Use `NOVU_SECRET_KEY` for server-side operations
    - Keep API keys in `.env.local` (gitignored)
    - Rotate keys regularly in production
 
 2. **Subscriber Privacy**:
-
    - Admin subscriber uses generic email
    - No sensitive data in workflow payloads
    - Proper data sanitization in templates

@@ -7,19 +7,16 @@ Based on the bundle analyzer reports, we identified several critical optimizatio
 ### 📈 **Current Bundle Issues:**
 
 1. **🚨 Google APIs Massive Footprint (638.js + large blue section)**
-
    - GoogleAPIs library consuming 20-30% of bundle
    - Multiple API versions (v1, v2, v3, v4) all loaded unnecessarily
    - Server-side only library being bundled for client
 
 2. **🌐 i18n Translation Bloat**
-
    - All locale JSON files bundled regardless of user's language
    - Large middleware.js with embedded translations
    - `br.json`, `pt.json`, `es.json`, `en.json` all loaded upfront
 
 3. **📦 Component Fragmentation**
-
    - Many small components creating numerous chunks
    - Lack of strategic code splitting for heavy features
    - Concatenated modules growing too large (9546.js, 8700.js)

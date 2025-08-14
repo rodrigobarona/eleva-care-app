@@ -70,7 +70,6 @@ Eleva combines a robust tech stack with an intuitive user interface:
 
 - **Client Components**:  
   These components are marked with `"use client"` and run in the user's browser. They include pages and components such as:
-
   - Appointment booking pages (e.g., `app/(private)/appointments/page.tsx`)
   - Account billing pages (e.g., `app/(private)/account/billing/page.tsx`)
   - Presentation components (e.g., buttons, forms, dashboards)
@@ -86,7 +85,6 @@ Eleva combines a robust tech stack with an intuitive user interface:
 
 - **API Routes & Server Actions**:  
   These are located under the `app/api/` directory (and in `server/actions/`). They do not include a `"use client"` directive, meaning they run exclusively on the server.
-
   - **SQL Queries**: All database operations are performed using DrizzleORM (e.g., `findFirst`, `findMany`, `insert`, `update`), protecting against SQL injection.
   - **Authentication**: User authentication is handled with Clerk (using functions like `auth()` and `currentUser()`), ensuring that only authorized users can access sensitive operations.
   - **Payment & Calendar Integrations**: The server communicates with Stripe for payment processing and with Google Calendar for appointment scheduling.
@@ -186,12 +184,10 @@ flowchart TB
 ### Booking Appointment Workflow
 
 1. **Client Interaction**:
-
    - A user interacts with appointment booking components, for example through the booking form on `app/(public)/[username]/[eventSlug]/page.tsx`.
    - The form collects data such as appointment date, guest email, name, and other meeting preferences.
 
 2. **Server Processing**:
-
    - The client sends a request to an API endpoint (e.g., `/api/appointments/route.ts`).
    - The server validates the booking details, performs SQL queries to check for duplicates or conflicts, and verifies available time slots by integrating with Google Calendar.
    - A new meeting record is created in the database via a secure insertion query.
@@ -204,12 +200,10 @@ flowchart TB
 ### Payment Intent Creation Workflow
 
 1. **Payment UI Interaction**:
-
    - Clients interact with the `PaymentStep` component within `components/organisms/forms/PaymentStep.tsx` to provide payment details.
    - Stripe Elements are used to securely capture payment information.
 
 2. **Server Payment Processing**:
-
    - The payment request is sent to an endpoint (e.g., `/api/create-payment-intent/route.ts`).
    - The server validates the payment information, creates a payment intent via Stripe, assigns metadata to track the booking, and returns the `clientSecret` to the client.
 
@@ -221,11 +215,9 @@ flowchart TB
 ### Record Management Workflow
 
 1. **Record Entry**:
-
    - Experts use the `RecordEditor` component (`components/organisms/RecordEditor.tsx`) to input notes and related metadata during or after meetings.
 
 2. **Server-Side Encryption & Storage**:
-
    - The record data is sent to `/api/appointments/[meetingId]/records/route.ts`.
    - The server encrypts the record content using AES-256-GCM and stores it in the database.
    - Record versions are managed through update operations for maintaining history.
@@ -238,7 +230,6 @@ flowchart TB
 ### Authentication Flow
 
 1. **User Authentication**:
-
    - Clerk manages user authentication. Client-side components include sign in/out buttons and user buttons for account management.
    - Server endpoints verify user tokens using Clerk’s `auth()` and `currentUser()` functions to ensure all server-side operations are performed securely.
 

@@ -41,22 +41,18 @@ Upstash QStash provides a more flexible solution with a generous free tier:
 ### Key Components
 
 1. **QStash Client** (`lib/qstash.ts`)
-
    - Initializes the QStash client with the provided token
    - Provides functions to schedule, list, and delete recurring jobs
 
 2. **QStash API Endpoint** (`app/api/qstash/route.ts`)
-
    - Verifies incoming requests from QStash using the signature
    - Forwards requests to the appropriate endpoint
 
 3. **Setup Script** (`scripts/setup-qstash.js`)
-
    - Sets up all required QStash schedules during deployment
    - Lists existing schedules and creates new ones as needed
 
 4. **Cron Endpoints** (Modified to accept QStash requests)
-
    - Updated to validate requests from QStash
    - Added POST methods to handle QStash's HTTP POST mechanism
 

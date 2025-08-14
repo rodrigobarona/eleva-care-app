@@ -127,13 +127,11 @@ const customerData = await CustomerCache.getCustomer(customerId); // Returns Cac
 #### Priority 2 Endpoints (3-5 hours each)
 
 - [ ] **User Role Management** - `app/api/users/[userId]/roles/route.ts`
-
   - **Limits**: 5 role changes per hour per admin
   - **Risk**: Medium-High (privilege escalation)
   - **Implementation**: Multi-layer admin protection
 
 - [ ] **Admin Force Verification** - `app/api/internal/force-verification/route.ts`
-
   - **Limits**: 10 force verifications per day per admin
   - **Risk**: High (bypasses normal verification)
   - **Implementation**: Emergency action limits
@@ -146,7 +144,6 @@ const customerData = await CustomerCache.getCustomer(customerId); // Returns Cac
 #### Priority 3 Endpoints (2-3 hours each)
 
 - [ ] **All Admin Endpoints** - `/api/admin/*` (general middleware)
-
   - **Limits**: 100 requests per 10 minutes per admin
   - **Implementation**: General admin protection middleware
 

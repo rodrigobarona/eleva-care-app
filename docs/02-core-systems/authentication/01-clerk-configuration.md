@@ -102,18 +102,15 @@ await user.update({ password: 'new_password' });
 ### Common Issues and Solutions
 
 1. **"API Key not found" Error**
-
    - Ensure `CLERK_SECRET_KEY` and `CLERK_PUBLISHABLE_KEY` are set
    - Verify the keys are from the correct Clerk instance/environment
 
 2. **Redirect URL Mismatch**
-
    - Check that callback URLs match exactly in Clerk Dashboard
    - Ensure protocol (http/https) matches between development and production
    - Format: `https://yourdomain.com/account/security/callback`
 
 3. **OAuth Flow Stuck in Loading**
-
    - Verify `AuthenticateWithRedirectCallback` is implemented correctly
    - Check browser network tab for failed requests
    - Ensure fallback redirect URLs are configured

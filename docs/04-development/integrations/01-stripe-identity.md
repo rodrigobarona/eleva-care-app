@@ -24,25 +24,21 @@ Our implementation follows a secure, sequential approach to identity verificatio
 ### Process Flow
 
 1. **Start Verification**:
-
    - The user visits `/account/identity` and initiates verification
    - Our backend creates a Stripe Identity verification session
    - The user is redirected to Stripe's hosted verification flow
 
 2. **Verification Callback**:
-
    - After completion, Stripe redirects to `/account/identity/callback`.
    - The callback page checks verification status
    - If verified, the user is redirected to the success page
 
 3. **Create Connect Account**:
-
    - From the success page, the user initiates Connect account creation
    - Our backend creates a Connect account linked to the verified identity
    - The user completes the Connect Express onboarding flow
 
 4. **Payout Scheduling**:
-
    - Country-specific payout delays are automatically configured based on Stripe requirements
 
 5. **Webhook Updates**:

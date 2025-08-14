@@ -111,13 +111,13 @@
 // Payment success with receipt
 subject: `✅ Payment Confirmed - ${serviceName}`;
 data: {
-  paymentIntentId, amount, currency, serviceName, transactionId, receiptUrl, paymentMethod;
+  (paymentIntentId, amount, currency, serviceName, transactionId, receiptUrl, paymentMethod);
 }
 
 // Payment failure with retry
 subject: `❌ Payment Issue - ${serviceName}`;
 data: {
-  paymentIntentId, failureReason, failureCode, retryUrl;
+  (paymentIntentId, failureReason, failureCode, retryUrl);
 }
 ```
 

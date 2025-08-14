@@ -105,7 +105,6 @@ NOVU_ADMIN_SUBSCRIBER_ID=admin  # The subscriber ID to receive notifications
 The system tracks the following events in PostHog:
 
 1. `health_check_success`
-
    - Triggered on successful health checks
    - Includes system metrics and response data
 
@@ -203,7 +202,6 @@ The health check failure notification template is configured in Novu with the fo
 This dashboard provides a high-level view of system health:
 
 - **Metrics**:
-
   - Health Check Success Rate (24h)
   - Average Response Time
   - Memory Usage Trends
@@ -221,7 +219,6 @@ This dashboard provides a high-level view of system health:
 This dashboard focuses on detailed system metrics:
 
 - **Metrics**:
-
   - Memory Usage by Component
   - CPU Load Average
   - Service Dependencies Status
@@ -280,7 +277,6 @@ The health check system tracks the following events:
 ## Integration Setup
 
 1. **Novu Configuration**:
-
    - Create the `health-check-failure` template in Novu dashboard
    - Configure email, SMS, and in-app channels
    - Set up subscriber groups for alerts
@@ -301,13 +297,11 @@ The health check system tracks the following events:
 ## Monitoring Best Practices
 
 1. **Regular Review**:
-
    - Monitor dashboard trends daily
    - Review error patterns weekly
    - Adjust thresholds based on patterns
 
 2. **Incident Response**:
-
    - Document all health check failures
    - Track resolution time
    - Update runbooks based on incidents
@@ -320,13 +314,11 @@ The health check system tracks the following events:
 ## Future Enhancements
 
 1. **Monitoring**:
-
    - Add custom metrics tracking
    - Implement ML-based anomaly detection
    - Enhanced visualization components
 
 2. **Alerting**:
-
    - Tiered alert levels
    - Custom notification rules
    - Integration with incident management
@@ -341,32 +333,26 @@ The health check system tracks the following events:
 The following cron jobs are configured in our system:
 
 1. Process Tasks
-
    - Schedule: Daily at 4 AM
    - Purpose: Background task processing
 
 2. Expert Transfers
-
    - Schedule: Every 2 hours
    - Purpose: Process expert payment transfers
 
 3. Upcoming Payouts
-
    - Schedule: Daily at noon
    - Purpose: Check and prepare upcoming payments
 
 4. Reservation Cleanup
-
    - Schedule: Every 15 minutes
    - Purpose: Remove expired reservations
 
 5. Blocked Dates Cleanup
-
    - Schedule: Daily at midnight
    - Purpose: Clean up expired blocked dates
 
 6. Appointment Reminders
-
    - Schedule: Daily at 9 AM
    - Purpose: Send appointment notifications
 
@@ -405,7 +391,6 @@ The following cron jobs are configured in our system:
 ### PostHog Dashboards
 
 1. Health Check Overview
-
    - Success rate over time
    - Average response time
    - Error frequency
@@ -420,7 +405,6 @@ The following cron jobs are configured in our system:
 ### Novu Alert Rules
 
 1. Immediate Alerts
-
    - Any 5xx errors
    - Memory usage > 90%
    - Response time > 2000ms
@@ -444,7 +428,6 @@ The following cron jobs are configured in our system:
 ### Common Issues
 
 1. Endpoint returns 5xx
-
    - Check server logs
    - Verify database connectivity
    - Check memory usage

@@ -724,7 +724,6 @@ The key to making Clerk work with our path-based routing is proper configuration
 
 1. Register your primary domain in Clerk dashboard (eleva-care.com)
 2. Configure paths in Clerk dashboard:
-
    - Sign-in URL: `/auth/sign-in`
    - Sign-up URL: `/auth/sign-up`
    - After sign-in URL: `/portal/dashboard`

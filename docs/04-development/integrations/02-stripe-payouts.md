@@ -54,7 +54,6 @@ These values may change as Stripe updates its policies. The most up-to-date valu
 ### Transfer Creation Requirements (Both Must Be Met)
 
 1. **Payment Aging**: Payment must be 7+ days old
-
    - PT (Portugal): 7 days minimum
    - Other countries: 7 days minimum (configurable)
    - Purpose: Regulatory compliance and chargeback protection

@@ -9,19 +9,16 @@ Eleva Care App uses Novu for comprehensive notification management, providing re
 ### Core Components
 
 1. **Configuration** (`config/novu.ts`)
-
    - Server-side Novu workflow definitions
    - Environment variable validation
    - Uses `@novu/framework` (v2.6.7) - ✅ **Current and supported**
 
 2. **Notification System** (`lib/notifications.ts`)
-
    - Core notification creation function
    - Integration with Novu workflows
    - Type-safe notification handling
 
 3. **Constants** (`lib/constants/notifications.ts`)
-
    - Centralized notification type definitions
    - UI constants (icons, colors)
    - Helper functions
@@ -168,17 +165,14 @@ NEXT_PUBLIC_NOVU_SOCKET_URL=https://eu.ws.novu.co
 ### Active Workflows
 
 1. **Welcome Notification** (`user-welcome`)
-
    - Triggered on user registration
    - Provides onboarding information
 
 2. **Account Verification** (`account-verification`)
-
    - Sent when user needs to verify email
    - Contains verification link
 
 3. **Payment Notifications**
-
    - Success: `payment-success`
    - Failed: `payment-failed`
 
@@ -307,14 +301,12 @@ The migration from deprecated packages has been completed successfully:
 ### Common Issues
 
 1. **Notifications not appearing**
-
    - Check environment variables
    - Verify user is properly subscribed
    - Check browser console for errors
    - Ensure `/api/novu` endpoint is accessible
 
 2. **WebSocket connection issues**
-
    - Verify `socketUrl` configuration
    - Check network/firewall settings
 

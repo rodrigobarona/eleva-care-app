@@ -58,6 +58,28 @@ import GoogleCalendarService from '@/server/googleCalendar';
  */
 
 /**
+ * Google Calendar Client Wrapper
+ *
+ * This module provides server-side functions for interacting with Google Calendar.
+ * It acts as a wrapper around the GoogleCalendarService, exposing simplified
+ * functions for the most common calendar operations. All functions are server actions
+ * that can be imported and called from client components.
+ *
+ * @module googleCalendarClient
+ */
+
+/**
+ * Google Calendar Client Wrapper
+ *
+ * This module provides server-side functions for interacting with Google Calendar.
+ * It acts as a wrapper around the GoogleCalendarService, exposing simplified
+ * functions for the most common calendar operations. All functions are server actions
+ * that can be imported and called from client components.
+ *
+ * @module googleCalendarClient
+ */
+
+/**
  * Checks if a user has valid Google OAuth tokens
  *
  * Verifies that the specified Clerk user has connected their Google account
