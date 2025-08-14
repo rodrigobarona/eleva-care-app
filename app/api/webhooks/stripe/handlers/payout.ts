@@ -38,39 +38,30 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
     const expectedArrival = format(arrivalDate, 'EEEE, MMMM d, yyyy');
     const amount = (payout.amount / 100).toFixed(2); // Convert cents to euros
 
-    // Get bank account details (simplified)
-    const bankAccount = `****${destinationAccountId.slice(-4)}`;
-
     // Trigger Novu workflow for payout notification
     try {
-      const payload = {
-        amount,
-        payoutId: payout.id,
-        expectedArrival,
-        bankAccount,
-        dashboardUrl: '/account/billing',
-      };
-
       await triggerWorkflow({
-        workflowId: 'marketplace-payout-processed',
+        workflowId: 'expert-payout-notification',
         to: {
           subscriberId: user.clerkUserId,
           email: user.email || 'no-email@eleva.care',
           firstName: user.firstName || '',
           lastName: user.lastName || '',
-          data: {
-            stripeAccountId: typeof payout.destination === 'string' ? payout.destination : '',
-            role: 'expert',
-          },
         },
-        payload,
-        actor: {
-          subscriberId: 'system',
-          data: {
-            source: 'stripe-webhook',
-            payoutId: payout.id,
-            timestamp: new Date().toISOString(),
-          },
+        payload: {
+          expertName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Expert',
+          payoutAmount: amount,
+          currency: 'EUR',
+          appointmentDate: format(new Date(), 'EEEE, MMMM d, yyyy'),
+          appointmentTime: format(new Date(), 'h:mm a'),
+          clientName: 'Client', // Could be enhanced to get actual client data
+          serviceName: 'Professional consultation',
+          payoutId: payout.id,
+          expectedArrivalDate: expectedArrival,
+          bankLastFour: destinationAccountId.slice(-4),
+          dashboardUrl: '/account/billing',
+          supportUrl: '/support',
+          locale: 'en',
         },
       });
       console.log('✅ Marketplace payout notification sent via Novu');
@@ -109,34 +100,20 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
 
     // Trigger Novu workflow for payout failure notification
     try {
-      const payload = {
-        title: 'Payout Failed',
-        message: `Your payout of €${amount} has failed. Reason: ${failureReason}. Please check your bank account details and contact support if needed.`,
-        requiresAction: true,
-        actionRequired: 'Check your bank account details in your Stripe dashboard',
-        actionUrl: '/account/connect',
-      };
-
       await triggerWorkflow({
-        workflowId: 'marketplace-connect-status',
+        workflowId: 'marketplace-universal',
         to: {
           subscriberId: user.clerkUserId,
           email: user.email || 'no-email@eleva.care',
           firstName: user.firstName || '',
           lastName: user.lastName || '',
-          data: {
-            stripeAccountId: destinationAccountId || '',
-            role: 'expert',
-          },
         },
-        payload,
-        actor: {
-          subscriberId: 'system',
-          data: {
-            source: 'stripe-webhook',
-            payoutId: payout.id,
-            timestamp: new Date().toISOString(),
-          },
+        payload: {
+          eventType: 'payout-failed',
+          amount: `€${amount}`,
+          expertName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Expert',
+          accountStatus: 'action_required',
+          message: `Your payout of €${amount} has failed. Reason: ${failureReason}. Please check your bank account details and contact support if needed.`,
         },
       });
       console.log('✅ Marketplace payout failure notification sent via Novu');
