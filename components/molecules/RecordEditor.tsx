@@ -39,53 +39,56 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
   readOnly = false,
   autoFocus = false,
 }) => {
-  // All extensions used by the editor
-  const extensions = [
-    StarterKit.configure({
-      heading: {
-        levels: [1, 2, 3],
-      },
-    }),
-    BulletList,
-    ListItem,
-    Link.configure({
-      openOnClick: false,
-      HTMLAttributes: {
-        class: 'text-primary underline hover:text-primary/80',
-      },
-    }),
-    Highlight.configure({
-      multicolor: true,
-      HTMLAttributes: {
-        class: 'bg-yellow-200 px-1 py-0.5 rounded',
-      },
-    }),
-    TaskList,
-    TaskItem.configure({
-      nested: true,
-      HTMLAttributes: {
-        class: 'flex items-start my-1',
-      },
-    }),
-    Table.configure({
-      resizable: true,
-      HTMLAttributes: {
-        class: 'border-collapse m-0 overflow-hidden table-fixed w-full border-2 border-gray-300',
-      },
-    }),
-    TableRow,
-    TableHeader.configure({
-      HTMLAttributes: {
-        class:
-          'bg-gray-100 font-bold border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
-      },
-    }),
-    TableCell.configure({
-      HTMLAttributes: {
-        class: 'border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
-      },
-    }),
-  ];
+  // All extensions used by the editor - memoized to prevent unnecessary re-renders
+  const extensions = React.useMemo(
+    () => [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
+      BulletList,
+      ListItem,
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline hover:text-primary/80',
+        },
+      }),
+      Highlight.configure({
+        multicolor: true,
+        HTMLAttributes: {
+          class: 'bg-yellow-200 px-1 py-0.5 rounded',
+        },
+      }),
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+        HTMLAttributes: {
+          class: 'flex items-start my-1',
+        },
+      }),
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'border-collapse m-0 overflow-hidden table-fixed w-full border-2 border-gray-300',
+        },
+      }),
+      TableRow,
+      TableHeader.configure({
+        HTMLAttributes: {
+          class:
+            'bg-gray-100 font-bold border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
+        },
+      }),
+      TableCell.configure({
+        HTMLAttributes: {
+          class: 'border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
+        },
+      }),
+    ],
+    [],
+  );
 
   const editor = useEditor({
     extensions,
@@ -130,7 +133,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
     if (currentContent !== value) {
       editor.commands.setContent(value, { emitUpdate: false });
     }
-  }, [value, editor]);
+  }, [value, editor, extensions]);
 
   if (!editor) {
     return null;

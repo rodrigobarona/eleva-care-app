@@ -62,90 +62,93 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     onChangeRef.current = onChange;
   }, [onChange]);
 
-  // All extensions used by the editor
-  const extensions = [
-    StarterKit.configure({
-      heading: {
-        levels: [1, 2, 3],
-      },
-    }),
-    // Professional Typography
-    Typography,
-    // Text Styling Foundation
-    TextStyle,
-    // Enhanced Text Formatting
-    Underline,
-    Color.configure({
-      types: ['textStyle'],
-    }),
-    // Text Alignment for Professional Documents
-    TextAlign.configure({
-      types: ['heading', 'paragraph'],
-      alignments: ['left', 'center', 'right', 'justify'],
-      defaultAlignment: 'left',
-    }),
-    // Enhanced List Extensions
-    BulletList,
-    ListItem,
-    TaskList,
-    TaskItem.configure({
-      nested: true,
-      HTMLAttributes: {
-        class: 'flex items-start my-1',
-      },
-    }),
-    // Table Extensions for Medical Records
-    Table.configure({
-      resizable: true,
-      HTMLAttributes: {
-        class: 'border-collapse m-0 overflow-hidden table-fixed w-full border-2 border-gray-300',
-      },
-    }),
-    TableRow,
-    TableHeader.configure({
-      HTMLAttributes: {
-        class:
-          'bg-gray-100 font-bold border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
-      },
-    }),
-    TableCell.configure({
-      HTMLAttributes: {
-        class: 'border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
-      },
-    }),
-    // Image Support for Medical Diagrams
-    Image.configure({
-      inline: true,
-      allowBase64: true,
-      HTMLAttributes: {
-        class: 'max-w-full h-auto rounded-lg border border-gray-200',
-      },
-    }),
-    // Text Enhancement
-    Highlight.configure({
-      multicolor: true,
-      HTMLAttributes: {
-        class: 'bg-yellow-200 px-1 py-0.5 rounded',
-      },
-    }),
-    // Professional Placeholder
-    Placeholder.configure({
-      placeholder: ({ node }) => {
-        if (node.type.name === 'heading') {
-          return 'Enter heading...';
-        }
-        return 'Start writing your medical notes...';
-      },
-      includeChildren: true,
-    }),
-    // Link with better configuration
-    Link.configure({
-      openOnClick: false,
-      HTMLAttributes: {
-        class: 'text-primary underline hover:text-primary/80',
-      },
-    }),
-  ];
+  // All extensions used by the editor - memoized to prevent unnecessary re-renders
+  const extensions = React.useMemo(
+    () => [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
+      // Professional Typography
+      Typography,
+      // Text Styling Foundation
+      TextStyle,
+      // Enhanced Text Formatting
+      Underline,
+      Color.configure({
+        types: ['textStyle'],
+      }),
+      // Text Alignment for Professional Documents
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+        alignments: ['left', 'center', 'right', 'justify'],
+        defaultAlignment: 'left',
+      }),
+      // Enhanced List Extensions
+      BulletList,
+      ListItem,
+      TaskList,
+      TaskItem.configure({
+        nested: true,
+        HTMLAttributes: {
+          class: 'flex items-start my-1',
+        },
+      }),
+      // Table Extensions for Medical Records
+      Table.configure({
+        resizable: true,
+        HTMLAttributes: {
+          class: 'border-collapse m-0 overflow-hidden table-fixed w-full border-2 border-gray-300',
+        },
+      }),
+      TableRow,
+      TableHeader.configure({
+        HTMLAttributes: {
+          class:
+            'bg-gray-100 font-bold border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
+        },
+      }),
+      TableCell.configure({
+        HTMLAttributes: {
+          class: 'border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
+        },
+      }),
+      // Image Support for Medical Diagrams
+      Image.configure({
+        inline: true,
+        allowBase64: true,
+        HTMLAttributes: {
+          class: 'max-w-full h-auto rounded-lg border border-gray-200',
+        },
+      }),
+      // Text Enhancement
+      Highlight.configure({
+        multicolor: true,
+        HTMLAttributes: {
+          class: 'bg-yellow-200 px-1 py-0.5 rounded',
+        },
+      }),
+      // Professional Placeholder
+      Placeholder.configure({
+        placeholder: ({ node }) => {
+          if (node.type.name === 'heading') {
+            return 'Enter heading...';
+          }
+          return 'Start writing your medical notes...';
+        },
+        includeChildren: true,
+      }),
+      // Link with better configuration
+      Link.configure({
+        openOnClick: false,
+        HTMLAttributes: {
+          class: 'text-primary underline hover:text-primary/80',
+        },
+      }),
+    ],
+    [],
+  );
 
   const editor = useEditor({
     extensions,
@@ -320,7 +323,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
         isUpdatingFromProp.current = false;
       });
     }
-  }, [value, editor]);
+  }, [value, editor, extensions]);
 
   // Cleanup on unmount
   React.useEffect(() => {
