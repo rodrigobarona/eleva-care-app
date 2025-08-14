@@ -40,7 +40,6 @@ import {
   Type,
   Underline as UnderlineIcon,
 } from 'lucide-react';
-import { marked } from 'marked';
 import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -48,22 +47,6 @@ interface SimpleRichTextEditorProps {
   value: string; // Markdown content
   onChange: (value: string) => void; // Returns Markdown content
 }
-
-// Convert Markdown to HTML for display in editor
-const markdownToHtml = async (markdown: string): Promise<string> => {
-  try {
-    // Configure marked for better compatibility with medical content
-    marked.setOptions({
-      gfm: true, // GitHub Flavored Markdown
-      breaks: true, // Line breaks
-    });
-
-    return await marked.parse(markdown);
-  } catch (error) {
-    console.warn('Failed to parse Markdown, using as-is:', error);
-    return markdown; // Fallback to original content
-  }
-};
 
 const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onChange }) => {
   // Use refs to avoid stale closures and unnecessary re-renders
@@ -108,32 +91,41 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     TaskItem.configure({
       nested: true,
       HTMLAttributes: {
-        class: 'task-item',
+        class: 'flex items-start my-1',
       },
     }),
     // Table Extensions for Medical Records
     Table.configure({
       resizable: true,
       HTMLAttributes: {
-        class: 'medical-table',
+        class: 'border-collapse m-0 overflow-hidden table-fixed w-full border-2 border-gray-300',
       },
     }),
     TableRow,
-    TableHeader,
-    TableCell,
+    TableHeader.configure({
+      HTMLAttributes: {
+        class:
+          'bg-gray-100 font-bold border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
+      },
+    }),
+    TableCell.configure({
+      HTMLAttributes: {
+        class: 'border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
+      },
+    }),
     // Image Support for Medical Diagrams
     Image.configure({
       inline: true,
       allowBase64: true,
       HTMLAttributes: {
-        class: 'medical-image',
+        class: 'max-w-full h-auto rounded-lg border border-gray-200',
       },
     }),
     // Text Enhancement
     Highlight.configure({
       multicolor: true,
       HTMLAttributes: {
-        class: 'highlight',
+        class: 'bg-yellow-200 px-1 py-0.5 rounded',
       },
     }),
     // Professional Placeholder
@@ -157,11 +149,11 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
 
   const editor = useEditor({
     extensions,
-    content: '', // Start with empty content, will be set via useEffect
+    content: value, // Directly use Markdown content
     editorProps: {
       attributes: {
         class:
-          'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] h-full px-3 py-2 medical-editor',
+          'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] h-full px-3 py-2',
       },
     },
     immediatelyRender: false,
@@ -172,7 +164,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
         return;
       }
 
-      // ✅ BEST PRACTICE: Store as Markdown for scalability and platform agnosticism
+      // ✅ CLEAN CODE: Direct Markdown storage - no unnecessary conversion
       try {
         const markdownContent = renderToMarkdown({
           extensions,
@@ -259,12 +251,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
 
   // Handle external content updates (from autosave) while preserving cursor position
   React.useEffect(() => {
-    if (!editor) return;
-
-    // Only update if content is actually different
-    if (value === undefined || value === null) {
-      return;
-    }
+    if (!editor || !value) return;
 
     // Store current selection/cursor position and focus state
     const { from, to } = editor.state.selection;
@@ -274,66 +261,52 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     isUpdatingFromProp.current = true;
 
     try {
-      // ✅ CRITICAL: Convert Markdown to HTML for editor display
-      markdownToHtml(value)
-        .then((htmlContent) => {
-          if (editor && !editor.isDestroyed) {
-            // Get current HTML to compare
-            const currentHTML = editor.getHTML();
+      // ✅ CLEAN CODE: Simplified - content is already Markdown
+      const currentContent = renderToMarkdown({
+        extensions,
+        content: editor.getJSON(),
+      });
 
-            // Only update if content is actually different
-            if (currentHTML !== htmlContent) {
-              // Update content first without triggering onUpdate
-              editor.commands.setContent(htmlContent, { emitUpdate: false });
+      // Only update if content is actually different
+      if (currentContent !== value) {
+        // Update content first without triggering onUpdate
+        editor.commands.setContent(value, { emitUpdate: false });
 
-              // Restore cursor position after content update if editor was focused
-              if (wasFocused) {
-                // Use nextTick for reliable timing after content update
-                Promise.resolve().then(() => {
-                  if (editor && !editor.isDestroyed) {
-                    const newDocSize = editor.state.doc.content.size;
+        // Restore cursor position after content update if editor was focused
+        if (wasFocused) {
+          // Use nextTick for reliable timing after content update
+          Promise.resolve().then(() => {
+            if (editor && !editor.isDestroyed) {
+              const newDocSize = editor.state.doc.content.size;
 
-                    // Calculate safe cursor positions
-                    const safeFrom = Math.min(from, Math.max(0, newDocSize - 1));
-                    const safeTo = Math.min(to, Math.max(0, newDocSize - 1));
+              // Calculate safe cursor positions
+              const safeFrom = Math.min(from, Math.max(0, newDocSize - 1));
+              const safeTo = Math.min(to, Math.max(0, newDocSize - 1));
 
-                    try {
-                      // Restore selection using setTextSelection command
-                      if (safeFrom === safeTo) {
-                        // Simple cursor position
-                        editor.commands.setTextSelection(safeFrom);
-                      } else {
-                        // Text selection range
-                        editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
-                      }
+              try {
+                // Restore selection using setTextSelection command
+                if (safeFrom === safeTo) {
+                  // Simple cursor position
+                  editor.commands.setTextSelection(safeFrom);
+                } else {
+                  // Text selection range
+                  editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
+                }
 
-                      // Restore focus
-                      editor.commands.focus();
-                    } catch (selectionError) {
-                      // Fallback: focus at end if position restoration fails
-                      console.warn(
-                        'Cursor position restoration failed, focusing at end:',
-                        selectionError,
-                      );
-                      editor.commands.focus('end');
-                    }
-                  }
-                });
+                // Restore focus
+                editor.commands.focus();
+              } catch (selectionError) {
+                // Fallback: focus at end if position restoration fails
+                console.warn(
+                  'Cursor position restoration failed, focusing at end:',
+                  selectionError,
+                );
+                editor.commands.focus('end');
               }
             }
-          }
-        })
-        .catch((error) => {
-          console.warn('Failed to convert Markdown to HTML:', error);
-          // Fallback: try to set content directly
-          editor.commands.setContent(value, { emitUpdate: false });
-        })
-        .finally(() => {
-          // Reset the flag after the microtask queue completes
-          queueMicrotask(() => {
-            isUpdatingFromProp.current = false;
           });
-        });
+        }
+      }
     } catch (error) {
       // Fallback: simple content update without cursor preservation
       console.warn('Advanced cursor preservation failed, using fallback:', error);
@@ -341,23 +314,13 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
       if (wasFocused) {
         editor.commands.focus('end');
       }
+    } finally {
+      // Reset the flag after the microtask queue completes
       queueMicrotask(() => {
         isUpdatingFromProp.current = false;
       });
     }
   }, [value, editor]);
-
-  // Initialize editor content from props
-  React.useEffect(() => {
-    if (!editor || !value) return;
-
-    // Convert initial Markdown to HTML
-    markdownToHtml(value).then((htmlContent) => {
-      if (editor && !editor.isDestroyed) {
-        editor.commands.setContent(htmlContent, { emitUpdate: false });
-      }
-    });
-  }, [editor]); // Only run when editor is created
 
   // Cleanup on unmount
   React.useEffect(() => {
@@ -628,62 +591,24 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
       <EditorContent editor={editor} />
 
       {/* 
-        ✅ BEST PRACTICE: Content now stored as Markdown for:
-        - Maximum portability and platform agnosticism
-        - Smaller database storage footprint  
-        - Human-readable format for debugging
-        - Future-proof content that works everywhere
-        - Perfect for AI/LLM integration
-        - Excellent for version control and diffing
+        ✅ CLEAN CODE: Simplified Markdown-only architecture
         
-        TODO: Add these CSS styles to your global stylesheet:
+        All styling converted to TailwindCSS utility classes:
+        - Medical Tables: border-collapse border-2 border-gray-300 w-full
+        - Table Headers: bg-gray-100 font-bold border-2 border-gray-300 p-1
+        - Table Cells: border-2 border-gray-300 p-1 align-top
+        - Task Items: flex items-start my-1
+        - Highlighted Text: bg-yellow-200 px-1 py-0.5 rounded
+        - Medical Images: max-w-full h-auto rounded-lg border border-gray-200
         
-        .medical-editor .medical-table {
-          border-collapse: collapse;
-          margin: 0;
-          overflow: hidden;
-          table-layout: fixed;
-          width: 100%;
-        }
-        
-        .medical-editor .medical-table td,
-        .medical-editor .medical-table th {
-          border: 2px solid #ced4da;
-          box-sizing: border-box;
-          min-width: 1em;
-          padding: 3px 5px;
-          position: relative;
-          vertical-align: top;
-        }
-        
-        .medical-editor .medical-table th {
-          background-color: #f1f3f4;
-          font-weight: bold;
-        }
-        
-        .medical-editor .task-item {
-          display: flex;
-          align-items: flex-start;
-          margin: 0.2rem 0;
-        }
-        
-        .medical-editor .highlight {
-          background-color: #fff3cd;
-          padding: 0.1em 0.3em;
-          border-radius: 0.25em;
-        }
-        
-        .medical-editor .task-item input[type="checkbox"] {
-          margin-right: 0.5rem;
-          margin-top: 0.25rem;
-        }
-
-        .medical-editor .medical-image {
-          max-width: 100%;
-          height: auto;
-          border-radius: 0.5rem;
-          border: 1px solid #e5e7eb;
-        }
+        Benefits:
+        ✅ Utility-first approach follows Tailwind best practices
+        ✅ Responsive design ready with Tailwind variants
+        ✅ Consistent spacing and colors from design system
+        ✅ Better performance (no custom CSS)
+        ✅ Easier maintenance and customization
+        ✅ Mobile-first responsive design principles
+        ✅ Direct Markdown storage - no unnecessary conversions
       */}
     </div>
   );

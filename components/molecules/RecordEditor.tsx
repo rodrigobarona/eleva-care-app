@@ -24,7 +24,6 @@ import {
   List,
   Table as TableIcon,
 } from 'lucide-react';
-import { marked } from 'marked';
 import React from 'react';
 
 interface RecordEditorProps {
@@ -33,22 +32,6 @@ interface RecordEditorProps {
   readOnly?: boolean;
   autoFocus?: boolean;
 }
-
-// Convert Markdown to HTML for display in editor
-const markdownToHtml = async (markdown: string): Promise<string> => {
-  try {
-    // Configure marked for better compatibility with medical content
-    marked.setOptions({
-      gfm: true, // GitHub Flavored Markdown
-      breaks: true, // Line breaks
-    });
-
-    return await marked.parse(markdown);
-  } catch (error) {
-    console.warn('Failed to parse Markdown, using as-is:', error);
-    return markdown; // Fallback to original content
-  }
-};
 
 const RecordEditor: React.FC<RecordEditorProps> = ({
   value,
@@ -73,22 +56,40 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
     }),
     Highlight.configure({
       multicolor: true,
+      HTMLAttributes: {
+        class: 'bg-yellow-200 px-1 py-0.5 rounded',
+      },
     }),
     TaskList,
     TaskItem.configure({
       nested: true,
+      HTMLAttributes: {
+        class: 'flex items-start my-1',
+      },
     }),
     Table.configure({
       resizable: true,
+      HTMLAttributes: {
+        class: 'border-collapse m-0 overflow-hidden table-fixed w-full border-2 border-gray-300',
+      },
     }),
     TableRow,
-    TableHeader,
-    TableCell,
+    TableHeader.configure({
+      HTMLAttributes: {
+        class:
+          'bg-gray-100 font-bold border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
+      },
+    }),
+    TableCell.configure({
+      HTMLAttributes: {
+        class: 'border-2 border-gray-300 box-border min-w-4 p-1 relative align-top',
+      },
+    }),
   ];
 
   const editor = useEditor({
     extensions,
-    content: '', // Start with empty content, will be set via useEffect
+    content: value, // Directly use Markdown content
     editable: !readOnly,
     autofocus: autoFocus ? 'end' : false,
     editorProps: {
@@ -99,7 +100,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
     },
     // Convert editor content to Markdown before calling onChange
     onUpdate: ({ editor }) => {
-      // ✅ BEST PRACTICE: Store as Markdown for scalability and platform agnosticism
+      // ✅ CLEAN CODE: Direct Markdown storage - no unnecessary conversion
       try {
         const markdownContent = renderToMarkdown({
           extensions,
@@ -119,38 +120,17 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
   React.useEffect(() => {
     if (!editor || !value) return;
 
-    // Convert Markdown to HTML for editor display
-    markdownToHtml(value)
-      .then((htmlContent) => {
-        if (editor && !editor.isDestroyed) {
-          const currentHTML = editor.getHTML();
-
-          // Only update if content is actually different
-          if (currentHTML !== htmlContent) {
-            editor.commands.setContent(htmlContent, { emitUpdate: false });
-          }
-        }
-      })
-      .catch((error) => {
-        console.warn('Failed to convert Markdown to HTML:', error);
-        // Fallback: try to set content directly
-        if (editor && !editor.isDestroyed) {
-          editor.commands.setContent(value, { emitUpdate: false });
-        }
-      });
-  }, [value, editor]);
-
-  // Initialize editor content from props
-  React.useEffect(() => {
-    if (!editor || !value) return;
-
-    // Convert initial Markdown to HTML
-    markdownToHtml(value).then((htmlContent) => {
-      if (editor && !editor.isDestroyed) {
-        editor.commands.setContent(htmlContent, { emitUpdate: false });
-      }
+    // ✅ CLEAN CODE: Simplified - content is already Markdown
+    const currentContent = renderToMarkdown({
+      extensions,
+      content: editor.getJSON(),
     });
-  }, [editor]); // Only run when editor is created
+
+    // Only update if content is actually different
+    if (currentContent !== value) {
+      editor.commands.setContent(value, { emitUpdate: false });
+    }
+  }, [value, editor]);
 
   if (!editor) {
     return null;
@@ -326,6 +306,26 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
       <div className="flex-1 overflow-auto">
         <EditorContent editor={editor} className="h-full" />
       </div>
+
+      {/* 
+        ✅ CLEAN CODE: Simplified Markdown-only architecture
+        
+        All styling converted to TailwindCSS utility classes:
+        - Medical Tables: border-collapse border-2 border-gray-300 w-full
+        - Table Headers: bg-gray-100 font-bold border-2 border-gray-300 p-1
+        - Table Cells: border-2 border-gray-300 p-1 align-top
+        - Task Items: flex items-start my-1
+        - Highlighted Text: bg-yellow-200 px-1 py-0.5 rounded
+        
+        Benefits:
+        ✅ Utility-first approach follows Tailwind best practices
+        ✅ Responsive design ready with Tailwind variants
+        ✅ Consistent spacing and colors from design system
+        ✅ Better performance (no custom CSS)
+        ✅ Easier maintenance and customization
+        ✅ Mobile-first responsive design principles
+        ✅ Direct Markdown storage - no unnecessary conversions
+      */}
     </div>
   );
 };
