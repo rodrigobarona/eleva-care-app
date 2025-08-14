@@ -20,15 +20,15 @@ interface Appointment {
   expertTimezone: string;
 }
 
-// Query database for appointments starting in the next 24-25 hours
+// Query database for appointments starting in the next 1-1.25 hours
 async function getUpcomingAppointments(): Promise<Appointment[]> {
   try {
     const now = new Date();
-    const in24Hours = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-    const in25Hours = new Date(now.getTime() + 25 * 60 * 60 * 1000);
+    const in1Hour = new Date(now.getTime() + 1 * 60 * 60 * 1000); // 1 hour from now
+    const in75Minutes = new Date(now.getTime() + 75 * 60 * 1000); // 1.25 hours from now
 
-    // Query for meetings that start between 24-25 hours from now
-    // This gives us a 1-hour window to catch all appointments for the next day
+    // Query for meetings that start between 1-1.25 hours from now
+    // This gives us a 15-minute window to catch all appointments for urgent reminders
     const upcomingMeetings = await db
       .select({
         meetingId: MeetingTable.id,
@@ -50,12 +50,12 @@ async function getUpcomingAppointments(): Promise<Appointment[]> {
       .innerJoin(UserTable, eq(UserTable.clerkUserId, EventTable.clerkUserId))
       .where(
         and(
-          between(MeetingTable.startTime, in24Hours, in25Hours),
+          between(MeetingTable.startTime, in1Hour, in75Minutes),
           eq(MeetingTable.stripePaymentStatus, 'succeeded'), // Only confirmed appointments
         ),
       );
 
-    console.log(`Found ${upcomingMeetings.length} upcoming appointments for reminders`);
+    console.log(`Found ${upcomingMeetings.length} appointments for 1-hour urgent reminders`);
 
     // Transform the data to match the expected interface
     const appointments: Appointment[] = upcomingMeetings.map((meeting) => {
@@ -78,43 +78,24 @@ async function getUpcomingAppointments(): Promise<Appointment[]> {
 
       return {
         id: meeting.meetingId,
-        customerClerkId: 'guest', // Guests don't have Clerk IDs, we'll handle this differently
+        customerClerkId: 'guest', // Guests don't have Clerk IDs
         expertClerkId: meeting.expertClerkId,
         customerName: meeting.guestName,
         expertName,
         appointmentType: meeting.eventName,
         startTime: meeting.startTime,
         meetingUrl: meeting.meetingUrl || `https://meet.eleva.care/${meeting.meetingId}`,
-        customerLocale: 'en-US', // Default for guests, could be enhanced with guest preferences
+        customerLocale: 'en-US', // Default for guests
         expertLocale: getLocaleFromCountry(meeting.expertCountry),
         customerTimezone: meeting.timezone,
-        expertTimezone: meeting.timezone, // Using meeting timezone as default
+        expertTimezone: meeting.timezone,
       };
     });
 
     return appointments;
   } catch (error) {
-    console.error('Error querying upcoming appointments:', error);
+    console.error('Error querying upcoming appointments for 1hr reminders:', error);
     throw error;
-  }
-}
-
-async function formatTimeUntilAppointment(appointmentTime: Date, locale: string): Promise<string> {
-  const now = new Date();
-  const hoursUntil = Math.round((appointmentTime.getTime() - now.getTime()) / (1000 * 60 * 60));
-
-  if (locale.startsWith('pt')) {
-    if (hoursUntil <= 1) return 'em 1 hora';
-    if (hoursUntil <= 24) return `em ${hoursUntil} horas`;
-    return 'amanhã';
-  } else if (locale.startsWith('es')) {
-    if (hoursUntil <= 1) return 'en 1 hora';
-    if (hoursUntil <= 24) return `en ${hoursUntil} horas`;
-    return 'mañana';
-  } else {
-    if (hoursUntil <= 1) return 'in 1 hour';
-    if (hoursUntil <= 24) return `in ${hoursUntil} hours`;
-    return 'tomorrow';
   }
 }
 
@@ -136,23 +117,18 @@ async function formatDateTime(date: Date, timezone: string, locale: string) {
 }
 
 async function handler() {
-  console.log('🔔 Running appointment reminder cron job...');
+  console.log('⚡ Running 1-hour urgent appointment reminder cron job...');
 
   try {
     const appointments = await getUpcomingAppointments();
-    console.log(`Found ${appointments.length} appointments needing reminders`);
+    console.log(`Found ${appointments.length} appointments needing urgent reminders`);
 
     for (const appointment of appointments) {
-      // Send reminder to expert (experts have Clerk IDs)
+      // Send urgent reminder to expert (experts have Clerk IDs)
       try {
         const expertDateTime = await formatDateTime(
           appointment.startTime,
           appointment.expertTimezone,
-          appointment.expertLocale,
-        );
-
-        const expertTimeUntil = await formatTimeUntilAppointment(
-          appointment.startTime,
           appointment.expertLocale,
         );
 
@@ -169,26 +145,25 @@ async function handler() {
             appointmentDate: expertDateTime.datePart,
             appointmentTime: expertDateTime.timePart,
             timezone: appointment.expertTimezone,
-            message: `Appointment reminder: You have an appointment with ${appointment.customerName} ${expertTimeUntil}`,
+            message: `🚨 URGENT: Your appointment with ${appointment.customerName} starts in 1 hour!`,
             meetLink: appointment.meetingUrl,
           },
         });
 
-        console.log(`✅ Reminder sent to expert: ${appointment.expertClerkId}`);
+        console.log(`⚡ URGENT reminder sent to expert: ${appointment.expertClerkId}`);
       } catch (error) {
-        console.error(`❌ Failed to send reminder to expert ${appointment.expertClerkId}:`, error);
+        console.error(
+          `❌ Failed to send urgent reminder to expert ${appointment.expertClerkId}:`,
+          error,
+        );
       }
-
-      // Note: Guest reminders would need a different approach since guests don't have Clerk IDs
-      // You could implement email-based reminders directly using Resend here if needed
-      // For now, we're only sending reminders to experts who have accounts
     }
 
-    console.log('🎉 Appointment reminder cron job completed');
+    console.log('🎉 1-hour urgent appointment reminder cron job completed');
     return NextResponse.json({ success: true, count: appointments.length });
   } catch (error) {
-    console.error('❌ Error in appointment reminder cron job:', error);
-    return NextResponse.json({ error: 'Failed to process reminders' }, { status: 500 });
+    console.error('❌ Error in 1-hour appointment reminder cron job:', error);
+    return NextResponse.json({ error: 'Failed to process urgent reminders' }, { status: 500 });
   }
 }
 

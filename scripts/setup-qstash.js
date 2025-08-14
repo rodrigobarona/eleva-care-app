@@ -47,6 +47,16 @@ const SCHEDULE_CONFIGS = [
     endpoint: '/api/cron/check-upcoming-payouts',
     schedule: { cron: '0 12 * * *' }, // Daily at noon
   },
+  {
+    name: 'appointment-reminders-24hr',
+    endpoint: '/api/cron/appointment-reminders',
+    schedule: { interval: '2h' }, // Every 2 hours - existing 24hr reminders
+  },
+  {
+    name: 'appointment-reminders-1hr',
+    endpoint: '/api/cron/appointment-reminders-1hr',
+    schedule: { interval: '30m' }, // Every 30 minutes - urgent 1hr reminders
+  },
 ];
 
 async function createSchedule(config) {
