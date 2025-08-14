@@ -9,12 +9,16 @@ try {
   console.log('[Novu] Initializing client...');
   console.log('[Novu] Environment check:', {
     hasSecretKey: !!ENV_CONFIG.NOVU_SECRET_KEY,
-    hasApiKey: !!ENV_CONFIG.NOVU_API_KEY,
     hasAppId: !!ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
     baseUrl: ENV_CONFIG.NOVU_BASE_URL || 'default',
     keyPrefix: ENV_CONFIG.NOVU_SECRET_KEY
       ? ENV_CONFIG.NOVU_SECRET_KEY.substring(0, 8) + '...'
       : 'none',
+    keyType: ENV_CONFIG.NOVU_SECRET_KEY
+      ? 'modern (NOVU_SECRET_KEY)'
+      : ENV_CONFIG.NOVU_API_KEY
+        ? 'legacy (NOVU_API_KEY)'
+        : 'none',
   });
 
   if (ENV_CONFIG.NOVU_SECRET_KEY) {
