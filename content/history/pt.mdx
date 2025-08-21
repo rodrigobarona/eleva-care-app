@@ -1,5 +1,6 @@
 import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
+import { Link } from '@/lib/i18n/navigation';
 import Image from 'next/image';
 
 <div className="max-w-4xl mx-auto">
@@ -7,27 +8,41 @@ import Image from 'next/image';
 <header className="mb-16 pt-12 sm:pt-16">
   <div className="text-center">
     <h2 className="mt-16 font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70 data-[dark]:text-eleva-neutral-900/60">
-      Uma Carta da Nossa Fundadora
+      {'Uma Carta da Nossa Fundadora'}
     </h2>
     <h1 className="mt-2 text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-primary data-[dark]:text-eleva-neutral-100 sm:text-6xl">
-      A História da Eleva Care
+      {'A História da Eleva Care'}
     </h1>
     <div className="mx-auto mt-6 max-w-2xl text-balance text-base font-light text-eleva-neutral-900 lg:text-xl">
-      Como uma fisioterapeuta se tornou pioneira na saúde da mulher baseada em evidência.
+      {'Como uma fisioterapeuta se tornou pioneira na saúde da mulher baseada em evidência.'}
     </div>
   </div>
 </header>
 
 {/* Author info */}
 
-<div className="mb-12 flex items-center gap-3">
+<div className="mb-12 mt-10 flex items-center justify-center gap-3">
   <div className="flex aspect-square size-12 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-500">
     <span className="text-lg font-semibold text-white">P</span>
   </div>
-  <div>
+  <div className="text-center">
     <div className="font-medium text-gray-900">Patrícia Mota</div>
     <div className="text-sm text-gray-600">Fundadora, Fisioterapeuta e Doutora em Biomecânica</div>
   </div>
+</div>
+
+{/* Team photo */}
+
+<div className="mb-16 mt-12">
+  <Image
+    src="/img/about/team-photo.png"
+    alt="Patrícia e Rodrigo - Fundadores da Eleva Care"
+    width={900}
+    height={600}
+    className="mx-auto rounded-2xl shadow-lg"
+    loading="lazy"
+    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 800px"
+  />
 </div>
 
 {/* Main content with blog-style formatting */}
@@ -88,20 +103,23 @@ _P.S. Se és uma profissional de saúde que partilha esta visão, ou uma mulher 
 
 {/* Call to action */}
 
-<div className="mt-16 rounded-3xl bg-gradient-to-br from-pink-50 to-purple-50 py-12 text-center">
-  <h3 className="mb-4 text-2xl font-semibold text-gray-900">
-    Pronta para cuidados baseados em evidência?
+<div className="mt-16 rounded-3xl bg-gradient-to-br from-pink-50 to-purple-50 py-16 text-center">
+  <h3 className="mx-auto max-w-xs font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70">
+    {'Pronta para cuidados baseados em evidência?'}
   </h3>
-  <div className="mx-auto mb-8 max-w-xl text-gray-600">
-    Junta-te a milhares de mulheres que encontraram na Eleva Care especialistas que realmente as
-    compreendem.
+  <p className="mx-auto mt-2 max-w-3xl text-pretty font-serif text-4xl font-light tracking-tighter text-eleva-neutral-900 sm:text-5xl">
+    {'Junta-te a milhares de mulheres que confiam nos nossos especialistas'}
+  </p>
+  <p className="mx-auto mt-6 max-w-xl text-sm/6 text-eleva-neutral-900/60">
+    {'Encontra especialistas na Eleva Care que realmente compreendem a tua jornada de saúde.'}
+  </p>
+  <div className="mt-8 flex justify-center gap-4">
+    <Link href="/#experts">
+      <Button size="lg" className="rounded-full">
+        {'Marca a Tua Consulta'}
+      </Button>
+    </Link>
   </div>
-  <Button
-    size="lg"
-    className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700"
-  >
-    Marca a Tua Consulta
-  </Button>
 </div>
 
 </div>

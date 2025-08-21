@@ -29,9 +29,7 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 
     // Text elements
     p: ({ children }) => (
-      <p className="mb-4 text-balance font-light leading-7 text-eleva-neutral-900 lg:text-lg">
-        {children}
-      </p>
+      <p className="mb-4 font-light leading-7 text-eleva-neutral-900 lg:text-lg">{children}</p>
     ),
     blockquote: ({ children }) => (
       <blockquote className="my-6 border-l-4 border-eleva-primary/30 pl-4 italic text-eleva-neutral-900/80">
