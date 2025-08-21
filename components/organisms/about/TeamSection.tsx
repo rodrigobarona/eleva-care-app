@@ -1,8 +1,10 @@
 'use client';
 
+import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
 import TextBlock from '@/components/atoms/TextBlock';
 import Image from 'next/image';
+import Link from 'next/link';
 
 type TeamMember = {
   name: string;
@@ -15,9 +17,17 @@ type TeamSectionProps = {
   title: string;
   description: Array<{ paragraph: string }>;
   leadership: TeamMember[];
+  ctaText?: string;
+  ctaLink?: string;
 };
 
-export default function TeamSection({ title, description, leadership }: TeamSectionProps) {
+export default function TeamSection({
+  title,
+  description,
+  leadership,
+  ctaText,
+  ctaLink,
+}: TeamSectionProps) {
   return (
     <>
       <section className="mt-12 grid grid-cols-1 gap-12 lg:grid-cols-2">
@@ -39,6 +49,15 @@ export default function TeamSection({ title, description, leadership }: TeamSect
           </div>
         </div>
 
+        {ctaText && ctaLink && (
+          <div className="mt-1">
+            <Link href={ctaLink}>
+              <Button size="lg" className="rounded-full">
+                {ctaText}
+              </Button>
+            </Link>
+          </div>
+        )}
         <div className="mt-16 lg:col-span-2">
           <h3 className="font-mono text-xs/5 font-normal uppercase tracking-widest text-eleva-neutral-900/70">
             {title}
