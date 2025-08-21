@@ -32,6 +32,15 @@
         "description": "Información importante sobre los términos de servicio, políticas de privacidad y otros documentos legales de Eleva Care.",
         "siteName": "Eleva Care"
       }
+    },
+    "history": {
+      "title": "Nuestra Historia | El Viaje Detrás de Eleva Care",
+      "description": "Descubre la pasión y el propósito que impulsan la misión de Eleva Care de transformar la atención médica de las mujeres. Una carta de nuestro fundador sobre por qué comenzamos este viaje.",
+      "og": {
+        "title": "Nuestra Historia | El Viaje Detrás de Eleva Care",
+        "description": "Descubre la pasión y el propósito que impulsan la misión de Eleva Care de transformar la atención médica de las mujeres. Una carta de nuestro fundador sobre por qué comenzamos este viaje.",
+        "siteName": "Eleva Care"
+      }
     }
   },
   "NotFound": {
