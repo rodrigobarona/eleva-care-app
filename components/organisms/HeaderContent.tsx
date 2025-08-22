@@ -1,5 +1,6 @@
 'use client';
 
+import { useSmoothScroll } from '@/components/providers/SmoothScrollProvider';
 import { Link, usePathname } from '@/lib/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
@@ -11,17 +12,57 @@ interface NavLinkProps {
   children: React.ReactNode;
 }
 
-const NavLink = ({ href, isScrolled, isRootPath, children }: NavLinkProps) => (
-  <Link
-    // @ts-expect-error - Allow hash-based navigation which isn't in the routing configuration
-    href={href}
-    className={`rounded-full px-4 py-1 text-sm font-medium transition-colors hover:bg-white/10 hover:text-sidebar-accent-foreground ${
-      isRootPath && !isScrolled ? 'text-white' : 'text-foreground'
-    }`}
-  >
-    {children}
-  </Link>
-);
+const NavLink = ({ href, isScrolled, isRootPath, children }: NavLinkProps) => {
+  const { scrollTo } = useSmoothScroll();
+  const pathname = usePathname();
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    // Check if it's a hash link
+    if (href.includes('#')) {
+      e.preventDefault();
+
+      const [path, hash] = href.split('#');
+
+      // Normalize paths for comparison (remove locale prefixes)
+      const normalizeRoute = (route: string) => {
+        return route.replace(/^\/[a-z]{2}(-[a-z]{2})?/, '') || '/';
+      };
+
+      const currentNormalizedPath = normalizeRoute(pathname);
+      const targetNormalizedPath = normalizeRoute(path);
+
+      console.log('🔗 Header NavLink:', {
+        href,
+        currentPath: currentNormalizedPath,
+        targetPath: targetNormalizedPath,
+      });
+
+      if (currentNormalizedPath === targetNormalizedPath) {
+        // Same page - scroll with header-aware offset
+        console.log('✅ Header same-page scroll');
+        scrollTo(`#${hash}`, { offset: -130 }); // Larger offset for header navigation
+      } else {
+        // Cross-page navigation - use router
+        console.log('🚀 Header cross-page navigation');
+        window.location.href = href; // Use native navigation for more reliable cross-page
+      }
+    }
+    // For other links, let Next.js handle them normally
+  };
+
+  return (
+    <Link
+      // @ts-expect-error - Allow hash-based navigation which isn't in the routing configuration
+      href={href}
+      onClick={handleClick}
+      className={`rounded-full px-4 py-1 text-sm font-medium transition-colors hover:bg-white/10 hover:text-sidebar-accent-foreground ${
+        isRootPath && !isScrolled ? 'text-white' : 'text-foreground'
+      }`}
+    >
+      {children}
+    </Link>
+  );
+};
 
 interface ElevaLogoProps {
   className?: string;

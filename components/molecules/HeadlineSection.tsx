@@ -5,6 +5,7 @@ type HeadlineSectionProps = {
   title: string;
   headingLevel?: 'h1' | 'h2';
   description: string;
+  id?: string;
 };
 
 export default function HeadlineSection({
@@ -12,12 +13,13 @@ export default function HeadlineSection({
   title,
   headingLevel = 'h2',
   description,
+  id,
 }: HeadlineSectionProps) {
   const LabelHeading = headingLevel === 'h1' ? 'h1' : 'h2';
   const TitleHeading = headingLevel === 'h1' && !label ? 'h1' : headingLevel === 'h1' ? 'h2' : 'h3';
 
   return (
-    <section className="pt-16 md:pt-32">
+    <section id={id} className="pt-16 md:pt-32">
       {label && (
         <LabelHeading className="font-mono text-xs/5 font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
           {label}

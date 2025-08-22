@@ -1,5 +1,6 @@
 import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
+import SmoothLink from '@/components/atoms/SmoothLink';
 import { Link } from '@/lib/i18n/navigation';
 import Image from 'next/image';
 
@@ -146,11 +147,11 @@ _P.S. Se és uma profissional de saúde que partilha esta visão, ou uma mulher 
     {'Encontre especialistas na Eleva Care que realmente entendem sua jornada de saúde.'}
   </p>
   <div className="mt-8 flex justify-center gap-4">
-    <Link href="/#experts">
+    <SmoothLink href="/#experts">
       <Button size="lg" className="rounded-full">
         {'Agende Sua Consulta'}
       </Button>
-    </Link>
+    </SmoothLink>
   </div>
 </div>
 

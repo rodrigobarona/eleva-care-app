@@ -1,5 +1,6 @@
 import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
+import SmoothLink from '@/components/atoms/SmoothLink';
 import { Link } from '@/lib/i18n/navigation';
 import Image from 'next/image';
 
@@ -16,7 +17,7 @@ import Image from 'next/image';
       {'The Story Behind Eleva Care'}
     </h1>
     <div className="mx-auto mt-6 max-w-2xl text-balance text-base font-light text-eleva-neutral-900 lg:text-xl">
-      {"How a physiotherapist became an advocate for evidence-based women's health."}
+      {"How a physiotherapist became a pioneer in evidence-based women's health."}
     </div>
   </div>
 </header>
@@ -25,6 +26,9 @@ import Image from 'next/image';
 
 <div className="mb-12 mt-10 flex items-center justify-center gap-3">
 
+  <div className="flex aspect-square size-12 items-center justify-center rounded-full bg-gradient-to-br from-pink-400 to-purple-500">
+    <span className="text-lg font-semibold text-white">P</span>
+  </div>
   <div className="text-center">
     <div className="font-medium text-gray-900">Patrícia Mota</div>
     <div className="text-sm text-gray-600">Founder, Physiotherapist and PhD in Biomechanics</div>
@@ -97,7 +101,7 @@ _With dedication to science and genuine care,_
 _Founder, Eleva Care_  
 _Physiotherapist and PhD in Biomechanics_
 
-_P.S. If you're a healthcare professional who shares this vision, or a woman seeking evidence-based care, I'd love to meet you. This community grows with each voice that joins ours._
+_P.S. If you're a healthcare professional who shares this vision, or a woman seeking evidence-based care, I'd love to meet you. [This community grows with each voice that joins ours](/about#join-our-network)._
 
 </div>
 
@@ -114,11 +118,11 @@ _P.S. If you're a healthcare professional who shares this vision, or a woman see
     {'Find specialists at Eleva Care who truly understand your health journey.'}
   </p>
   <div className="mt-8 flex justify-center gap-4">
-    <Link href="/#experts">
+    <SmoothLink href="/#experts">
       <Button size="lg" className="rounded-full">
         {'Book Your Appointment'}
       </Button>
-    </Link>
+    </SmoothLink>
   </div>
 </div>
 

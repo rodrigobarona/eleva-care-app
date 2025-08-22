@@ -1,5 +1,6 @@
 import { isValidLocale } from '@/app/i18n';
 import { IntlProvider } from '@/app/providers';
+import { SmoothScrollProvider } from '@/components/providers/SmoothScrollProvider';
 import { locales } from '@/lib/i18n/routing';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
@@ -102,7 +103,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   // The IntlProvider now automatically updates the HTML lang attribute
   return (
     <IntlProvider locale={locale} messages={messages}>
-      {children}
+      <SmoothScrollProvider>{children}</SmoothScrollProvider>
     </IntlProvider>
   );
 }

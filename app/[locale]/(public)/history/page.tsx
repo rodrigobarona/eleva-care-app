@@ -59,7 +59,7 @@ export default async function HistoryPage({ params }: PageProps) {
       </div>
 
       <div className="px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl lg:max-w-4xl">
+        <div className="mx-auto max-w-2xl lg:max-w-3xl">
           <div className="mt-16">
             <MDXContentWrapper locale={locale} namespace="history" />
           </div>

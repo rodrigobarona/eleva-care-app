@@ -1,5 +1,6 @@
 import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
+import SmoothLink from '@/components/atoms/SmoothLink';
 import { Link } from '@/lib/i18n/navigation';
 import Image from 'next/image';
 
@@ -95,7 +96,7 @@ _Com dedicação à ciência e cuidado genuíno,_
 _Fundadora, Eleva Care_  
 _Fisioterapeuta e Doutora em Biomecânica_
 
-_P.S. Se és uma profissional de saúde que partilha esta visão, ou uma mulher que procura cuidados baseados em evidência, adoraria conhecer-te. Esta comunidade cresce com cada voz que se junta à nossa._
+_P.S. Se partilhas desta visão enquanto profissional, ou alguém que procura cuidados baseados em evidência, adoraria conhecer-te. Esta comunidade cresce com cada voz que se junta à nossa._
 
 </div>
 
@@ -112,11 +113,11 @@ _P.S. Se és uma profissional de saúde que partilha esta visão, ou uma mulher 
     {'Encontra especialistas na Eleva Care que realmente compreendem a tua jornada de saúde.'}
   </p>
   <div className="mt-8 flex justify-center gap-4">
-    <Link href="/#experts">
+    <SmoothLink href="/#experts">
       <Button size="lg" className="rounded-full">
-        {'Marca a Tua Consulta'}
+        {'Agende Sua Consulta'}
       </Button>
-    </Link>
+    </SmoothLink>
   </div>
 </div>
 

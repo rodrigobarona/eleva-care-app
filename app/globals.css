@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Lenis Smooth Scroll Styles */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
