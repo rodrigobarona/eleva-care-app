@@ -25,6 +25,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         title: t('og.title'),
         description: t('og.description'),
         siteName: t('og.siteName'),
+        images: [
+          {
+            url: '/img/about/team-photo.png',
+            width: 1200,
+            height: 630,
+          },
+        ],
       },
     };
   } catch (error) {
