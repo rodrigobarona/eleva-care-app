@@ -6,7 +6,6 @@ import { createClerkClient } from '@clerk/nextjs/server';
 import { Calendar, CheckCircle, Clock, CreditCard, User } from 'lucide-react';
 import { cookies } from 'next/headers';
 import Image from 'next/image';
-import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import Stripe from 'stripe';
 
@@ -200,26 +199,6 @@ export default async function SuccessPage(props: PageProps) {
                       </div>
                     </div>
                   )}
-
-                  {/* Meeting ID */}
-                  <div className="border-t pt-4">
-                    <p className="text-sm text-gray-600">
-                      <span className="font-medium">Meeting ID:</span> {meeting.id}
-                    </p>
-                    {meeting.meetingUrl && (
-                      <p className="mt-1 text-sm text-gray-600">
-                        <span className="font-medium">Meeting link:</span>{' '}
-                        <a
-                          href={meeting.meetingUrl}
-                          className="text-eleva-primary hover:underline"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Join Meeting
-                        </a>
-                      </p>
-                    )}
-                  </div>
                 </CardContent>
               </Card>
 
@@ -239,15 +218,7 @@ export default async function SuccessPage(props: PageProps) {
                         details
                       </p>
                     </div>
-                    <div className="flex items-start space-x-3">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-eleva-primary text-xs font-medium text-white">
-                        2
-                      </div>
-                      <p className="text-sm text-gray-700">
-                        You&apos;ll receive a confirmation email with calendar invite and meeting
-                        details
-                      </p>
-                    </div>
+
                     <div className="flex items-start space-x-3">
                       <div className="flex h-6 w-6 items-center justify-center rounded-full bg-eleva-primary text-xs font-medium text-white">
                         2
@@ -272,13 +243,7 @@ export default async function SuccessPage(props: PageProps) {
 
           {/* Support Footer */}
           <div className="mt-12 text-center">
-            <p className="text-sm text-gray-500">
-              Need help? Contact our support team or check your{' '}
-              <Link href="/dashboard" className="text-eleva-primary hover:underline">
-                dashboard
-              </Link>{' '}
-              for booking management.
-            </p>
+            <p className="text-sm text-gray-500">Need help? Contact our support team.</p>
           </div>
         </div>
       </div>
