@@ -173,7 +173,7 @@ function EventCardDetails({
   durationInMinutes: number;
 }) {
   return (
-    <div className="flex-grow p-6 lg:p-8">
+    <div className="flex-grow bg-gray-50 p-6 lg:p-8">
       <div className="mb-4 inline-block rounded-full bg-black px-3 py-1 text-sm font-medium text-white">
         Book a {durationInMinutes} minute video call
       </div>
