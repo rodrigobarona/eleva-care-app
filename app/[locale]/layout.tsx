@@ -3,6 +3,7 @@ import { IntlProvider } from '@/app/providers';
 import { SmoothScrollProvider } from '@/components/providers/SmoothScrollProvider';
 import { locales } from '@/lib/i18n/routing';
 import { getMessages, setRequestLocale } from 'next-intl/server';
+import { ThemeProvider } from 'next-themes';
 import { notFound } from 'next/navigation';
 import type React from 'react';
 
@@ -102,9 +103,15 @@ export default async function LocaleLayout({ children, params }: Props) {
   // Use the dedicated IntlProvider component for localized routes
   // The IntlProvider now automatically updates the HTML lang attribute
   return (
-    <IntlProvider locale={locale} messages={messages}>
-      <SmoothScrollProvider>{children}</SmoothScrollProvider>
-    </IntlProvider>
+    <html lang={locale} suppressHydrationWarning>
+      <body>
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <IntlProvider locale={locale} messages={messages}>
+            <SmoothScrollProvider>{children}</SmoothScrollProvider>
+          </IntlProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }
 
