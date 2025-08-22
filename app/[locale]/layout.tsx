@@ -62,7 +62,7 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: s
       description: meta?.og?.description || description,
       images: [
         {
-          url: '/img/eleva-care-share.svg', // Relative URL with metadataBase
+          url: `${baseUrl}/img/eleva-care-share.png`, // Relative URL with metadataBase
           width: 1200,
           height: 680,
           alt: 'Eleva Care',
