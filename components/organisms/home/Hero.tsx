@@ -50,7 +50,6 @@ const Hero = () => {
                 <Button
                   asChild
                   className="inline-flex w-full items-center justify-center whitespace-nowrap rounded-full border border-transparent bg-eleva-neutral-100 px-8 py-[1.3rem] text-base font-semibold text-eleva-neutral-900 shadow-md hover:bg-eleva-neutral-100/70 lg:w-min lg:py-6 lg:text-lg lg:font-bold"
-                  data-mode="dark"
                 >
                   <Link href="#experts">{t('cta2')}</Link>
                 </Button>

@@ -76,12 +76,12 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
 
     // Code elements
     code: ({ children }) => (
-      <code className="rounded bg-muted px-1 py-0.5 font-mono text-sm text-eleva-neutral-900 data-[dark]:text-eleva-neutral-100">
+      <code className="rounded bg-muted px-1 py-0.5 font-mono text-sm text-eleva-neutral-900">
         {children}
       </code>
     ),
     pre: ({ children }) => (
-      <pre className="my-6 overflow-auto rounded-md bg-muted p-4 font-mono text-sm text-eleva-neutral-900 data-[dark]:text-eleva-neutral-100">
+      <pre className="my-6 overflow-auto rounded-md bg-muted p-4 font-mono text-sm text-eleva-neutral-900">
         {children}
       </pre>
     ),
