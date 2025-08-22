@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@/components/atoms/button';
-import ThemeSwitcher from '@/components/atoms/ThemeSwitcher';
 import { LanguageSwitcher } from '@/components/molecules/LocaleSwitcher';
 import { Link } from '@/lib/i18n/navigation';
 import { useTranslations } from 'next-intl';
@@ -233,9 +232,6 @@ export default function Footer() {
                     </div>
 
                     <div className="flex items-center gap-6">
-                      {/* Theme Switcher */}
-                      <ThemeSwitcher />
-
                       {/* Language Switcher */}
                       <div className="text-gray-950">
                         <LanguageSwitcher />
