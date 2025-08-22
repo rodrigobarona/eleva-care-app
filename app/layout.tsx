@@ -2,6 +2,7 @@ import { ClientProviders } from '@/app/providers';
 import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
 import { defaultLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { DM_Sans, IBM_Plex_Mono, Lora } from 'next/font/google';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
@@ -68,6 +69,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <NuqsAdapter>
             <ClientProviders messages={defaultMessages}>
               {children}
+              <Analytics />
               <SpeedInsights />
             </ClientProviders>
           </NuqsAdapter>
