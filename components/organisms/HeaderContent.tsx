@@ -40,7 +40,7 @@ const NavLink = ({ href, isScrolled, isRootPath, children }: NavLinkProps) => {
       if (currentNormalizedPath === targetNormalizedPath) {
         // Same page - scroll with header-aware offset
         console.log('✅ Header same-page scroll');
-        scrollTo(`#${hash}`, { offset: -130 }); // Larger offset for header navigation
+        scrollTo(`#${hash}`, { offset: -80 }); // Fine-tuned offset for header navigation
       } else {
         // Cross-page navigation - use router
         console.log('🚀 Header cross-page navigation');

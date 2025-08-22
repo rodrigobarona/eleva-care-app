@@ -52,37 +52,38 @@ export function useSmoothNavigation() {
     // Navigate to the new page first
     router.push(path);
 
-    // Wait for navigation and page render, then scroll with multiple attempts
-    const scrollAfterNavigation = (attempt: number = 1) => {
-      console.log(`🔄 Scroll attempt ${attempt} for hash: ${hash}`);
+    // Use a single, sequential approach for cross-page navigation
+    let scrollSuccess = false;
 
-      const element = document.querySelector(`#${hash}`);
-      if (element) {
-        console.log('🎯 Found element, scrolling:', element);
+    const attemptSequentialScroll = async (maxAttempts: number = 4) => {
+      for (let attempt = 1; attempt <= maxAttempts && !scrollSuccess; attempt++) {
+        await new Promise((resolve) => setTimeout(resolve, attempt * 300)); // 300ms, 600ms, 900ms, 1200ms
 
-        // Wait a bit more for any dynamic content to load
-        setTimeout(() => {
-          // Use different offset for cross-page navigation
-          scrollTo(`#${hash}`, { offset: -110, duration: 1.5 });
-        }, 100);
-      } else {
-        console.warn(`⚠️ Element not found on attempt ${attempt}:`, hash);
+        console.log(`🔄 Sequential scroll attempt ${attempt} for hash: ${hash}`);
 
-        // Retry with exponential backoff if element not found and we haven't tried too many times
-        if (attempt < 4) {
+        const element = document.querySelector(`#${hash}`);
+        if (element && !scrollSuccess) {
+          console.log(`🎯 Found element on attempt ${attempt}, scrolling:`, element);
+          scrollSuccess = true;
+
+          // Wait a bit more for any dynamic content to load
           setTimeout(() => {
-            scrollAfterNavigation(attempt + 1);
-          }, attempt * 300); // 300ms, 600ms, 900ms delays
-        } else {
-          console.error('❌ Element still not found after 4 attempts:', hash);
+            scrollTo(`#${hash}`, { offset: -115, duration: 1.5 });
+            console.log('✅ Cross-page scroll completed');
+          }, 150);
+          break;
+        } else if (!scrollSuccess) {
+          console.warn(`⚠️ Element not found on attempt ${attempt}:`, hash);
         }
+      }
+
+      if (!scrollSuccess) {
+        console.error('❌ Element not found after all attempts:', hash);
       }
     };
 
-    // Start scroll attempts with different timings for better reliability
-    setTimeout(() => scrollAfterNavigation(1), 400); // First attempt after 400ms
-    setTimeout(() => scrollAfterNavigation(2), 800); // Second attempt after 800ms
-    setTimeout(() => scrollAfterNavigation(3), 1200); // Third attempt after 1200ms
+    // Start sequential scroll attempts
+    attemptSequentialScroll();
   };
 
   return { navigateWithHash };

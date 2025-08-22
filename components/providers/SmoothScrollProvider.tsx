@@ -69,26 +69,19 @@ export function SmoothScrollProvider({ children }: SmoothScrollProviderProps) {
       if (hash) {
         console.log('🔍 Hash detected on route change:', hash);
 
-        // Multiple attempts with increasing delays for better reliability
-        const attemptScroll = (attempt: number = 1) => {
-          setTimeout(() => {
-            const element = document.querySelector(hash);
-            if (element) {
-              console.log(`🎯 Auto-scrolling to hash element (attempt ${attempt}):`, element);
-              lenisRef.current?.scrollTo(element as HTMLElement, {
-                offset: -110, // Consistent offset for auto-navigation
-                duration: 1.5,
-              });
-            } else if (attempt < 5) {
-              console.warn(`⚠️ Hash element not found on attempt ${attempt}:`, hash);
-              attemptScroll(attempt + 1);
-            } else {
-              console.error('❌ Hash element not found after 5 attempts:', hash);
-            }
-          }, attempt * 200); // 200ms, 400ms, 600ms, 800ms, 1000ms
-        };
-
-        attemptScroll(1);
+        // Simple, single attempt with appropriate delay
+        setTimeout(() => {
+          const element = document.querySelector(hash);
+          if (element) {
+            console.log('🎯 Auto-scrolling to hash element:', element);
+            lenisRef.current?.scrollTo(element as HTMLElement, {
+              offset: -115, // Consistent offset
+              duration: 1.5,
+            });
+          } else {
+            console.warn('⚠️ Hash element not found:', hash);
+          }
+        }, 500); // Single 500ms delay
       }
     };
 
