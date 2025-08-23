@@ -4,6 +4,7 @@ import { db } from '@/drizzle/db';
 import { formatDateTime } from '@/lib/formatters';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { Calendar, CheckCircle, Clock, CreditCard, User } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 import { cookies } from 'next/headers';
 import Image from 'next/image';
 import { notFound, redirect } from 'next/navigation';
@@ -27,6 +28,8 @@ interface PageProps {
 }
 
 export default async function SuccessPage(props: PageProps) {
+  const t = await getTranslations('experts');
+
   // Await both params and searchParams
   const params = await props.params;
   const searchParams = await props.searchParams;
@@ -117,26 +120,31 @@ export default async function SuccessPage(props: PageProps) {
             {/* Expert Profile Card */}
             <div className="lg:col-span-1">
               <Card className="h-fit">
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="relative h-16 w-16 flex-shrink-0">
+                <CardContent className="p-0">
+                  <div>
+                    <div className="relative aspect-[28/38] rounded-t-xl">
                       <Image
                         src={expertImage}
                         alt={expertName || 'Expert'}
-                        fill
-                        className="rounded-full object-cover"
-                        sizes="64px"
+                        width={1200}
+                        height={1200}
+                        className="absolute inset-0 h-full w-full overflow-hidden rounded-t-xl object-cover"
+                        loading="lazy"
+                        sizes="(max-width: 767px) 90vw, (max-width: 1023px) 45vw, 320px"
                       />
-                      {expertProfile?.isVerified && (
-                        <div className="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-blue-500">
-                          <CheckCircle className="h-3 w-3 text-white" />
+                      {/* Top Expert Badge */}
+                      {expertProfile?.isTopExpert && (
+                        <div className="absolute bottom-4 left-4">
+                          <span className="rounded-sm bg-white px-3 py-2 text-base font-medium text-eleva-neutral-900">
+                            <span>{t('topExpertBadge')}</span>
+                          </span>
                         </div>
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate text-lg font-medium text-gray-900">{expertName}</h3>
+                    <div className="rounded-b-xl bg-white p-4 pb-6">
+                      <h3 className="text-lg font-medium text-gray-900">{expertName}</h3>
                       {expertProfile?.headline && (
-                        <p className="truncate text-sm text-gray-500">{expertProfile.headline}</p>
+                        <p className="text-sm text-gray-500">{expertProfile.headline}</p>
                       )}
                       {expertProfile?.primaryCategory && (
                         <p className="mt-1 text-xs text-gray-400">
@@ -157,7 +165,7 @@ export default async function SuccessPage(props: PageProps) {
 
             {/* Booking Details */}
             <div className="lg:col-span-2">
-              <Card>
+              <Card className="bg-white">
                 <CardHeader className="pb-4">
                   <CardTitle className="font-serif text-xl font-light">Booking Details</CardTitle>
                 </CardHeader>
@@ -203,7 +211,7 @@ export default async function SuccessPage(props: PageProps) {
               </Card>
 
               {/* Next Steps */}
-              <Card className="mt-6">
+              <Card className="mt-6 bg-white">
                 <CardHeader className="pb-4">
                   <CardTitle className="font-serif text-lg font-light">What&apos;s Next?</CardTitle>
                 </CardHeader>
