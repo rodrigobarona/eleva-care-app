@@ -23,6 +23,7 @@ import {
   SPECIAL_AUTH_ROUTES,
 } from '@/lib/constants/roles';
 import { defaultLocale, locales } from '@/lib/i18n';
+import { detectLocaleFromHeaders } from '@/lib/i18n/utils';
 import { clerkMiddleware } from '@clerk/nextjs/server';
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
@@ -30,22 +31,86 @@ import type { NextRequest } from 'next/server';
 
 /**
  * Create internationalization middleware with our configuration
- * This uses formatjs intl-localematcher for smart locale detection
+ * We disable automatic locale detection to use our custom country-based logic
+ * This ensures Portuguese visitors from Portugal get 'pt' not 'pt-BR'
  */
-const handleI18nRouting = createMiddleware({
-  locales,
-  defaultLocale,
-  localePrefix: 'as-needed',
-  // Enable automatic locale detection (uses formatjs best-fit algorithm)
-  localeDetection: true,
-  // Configure the cookie for persistent locale preference
-  localeCookie: {
-    // One year in seconds for persistent preference across visits
-    maxAge: 31536000,
-    // Name can be customized if needed
-    name: 'ELEVA_LOCALE',
-  },
-});
+function createCustomI18nMiddleware() {
+  const baseMiddleware = createMiddleware({
+    locales,
+    defaultLocale,
+    localePrefix: 'as-needed',
+    // Disable automatic locale detection to use our custom logic
+    localeDetection: false,
+    // Configure the cookie for persistent locale preference
+    localeCookie: {
+      // One year in seconds for persistent preference across visits
+      maxAge: 31536000,
+      // Name can be customized if needed
+      name: 'ELEVA_LOCALE',
+    },
+  });
+
+  return async (request: NextRequest) => {
+    // Check if there's already a locale in the URL path
+    const pathname = request.nextUrl.pathname;
+    const hasLocalePrefix = locales.some(
+      (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`,
+    );
+
+    // If there's already a locale prefix, use the base middleware as-is
+    if (hasLocalePrefix) {
+      return baseMiddleware(request);
+    }
+
+    // Check for locale in cookie first (user's explicit preference)
+    const cookieLocale = request.cookies.get('ELEVA_LOCALE')?.value;
+    if (cookieLocale && locales.includes(cookieLocale as (typeof locales)[number])) {
+      return baseMiddleware(request);
+    }
+
+    // Use custom locale detection for new visitors
+    const detectedLocale = detectLocaleFromHeaders(request.headers);
+
+    if (detectedLocale && detectedLocale !== defaultLocale) {
+      // Create a modified request with custom locale detection
+      const url = request.nextUrl.clone();
+
+      // For routes that need locale prefix, redirect to the detected locale
+      if (
+        pathname === '/' ||
+        pathname.startsWith('/about') ||
+        pathname.startsWith('/legal') ||
+        pathname.startsWith('/services') ||
+        pathname.startsWith('/help') ||
+        pathname.startsWith('/contact') ||
+        pathname.startsWith('/community') ||
+        isUsernameRoute(pathname) ||
+        isLocalePublicRoute(pathname)
+      ) {
+        // Redirect to the detected locale version
+        url.pathname = `/${detectedLocale}${pathname === '/' ? '' : pathname}`;
+        console.log(
+          `🌍 Custom locale detection: Redirecting ${pathname} to ${url.pathname} for detected locale: ${detectedLocale}`,
+        );
+
+        const response = NextResponse.redirect(url);
+        // Set the locale cookie for future visits
+        response.cookies.set('ELEVA_LOCALE', detectedLocale, {
+          maxAge: 31536000, // 1 year
+          httpOnly: false, // Allow client-side access
+          path: '/',
+          sameSite: 'lax',
+        });
+        return response;
+      }
+    }
+
+    // Fall back to base middleware for all other cases
+    return baseMiddleware(request);
+  };
+}
+
+const handleI18nRouting = createCustomI18nMiddleware();
 
 /**
  * Simple and reliable path matcher

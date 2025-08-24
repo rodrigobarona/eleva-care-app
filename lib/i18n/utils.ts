@@ -108,6 +108,12 @@ function parseAcceptLanguage(acceptLanguage?: string): Locale | null {
     }
     // Handle base language without region
     else if (language && locales.includes(language as Locale)) {
+      // Special case: for Portuguese without region, default to European Portuguese
+      // This is because 'pt' alone typically means European Portuguese
+      // while Brazilian Portuguese is usually explicitly 'pt-BR'
+      if (language === 'pt') {
+        return 'pt';
+      }
       return language as Locale;
     }
   }
@@ -128,6 +134,11 @@ export function detectLocaleFromHeaders(headers: Headers): Locale | null {
   const languageLocale = parseAcceptLanguage(acceptLanguage || undefined);
 
   if (languageLocale) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(
+        `🌍 [detectLocaleFromHeaders] Accept-Language detection: ${acceptLanguage} → ${languageLocale}`,
+      );
+    }
     return languageLocale;
   }
 
@@ -136,9 +147,18 @@ export function detectLocaleFromHeaders(headers: Headers): Locale | null {
   const country = headers.get('x-vercel-ip-country');
 
   if (country && COUNTRY_LOCALE_MAP[country]) {
-    return COUNTRY_LOCALE_MAP[country];
+    const geoLocale = COUNTRY_LOCALE_MAP[country];
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`🌍 [detectLocaleFromHeaders] Geo-location detection: ${country} → ${geoLocale}`);
+    }
+    return geoLocale;
   }
 
   // Fallback to default if nothing matched
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(
+      `🌍 [detectLocaleFromHeaders] No locale detected from headers. Accept-Language: ${acceptLanguage || 'none'}, Country: ${country || 'none'}`,
+    );
+  }
   return null;
 }
