@@ -4,6 +4,17 @@ import { db } from '@/drizzle/db';
 import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 
+// Mock Novu integration
+jest.mock('@/app/utils/novu', () => ({
+  triggerWorkflow: jest.fn().mockResolvedValue({ success: true }),
+}));
+
+jest.mock('@/lib/novu-utils', () => ({
+  novuUtils: {
+    trigger: jest.fn().mockResolvedValue({ success: true }),
+  },
+}));
+
 // Mock external dependencies
 jest.mock('@/drizzle/db', () => ({
   db: {
