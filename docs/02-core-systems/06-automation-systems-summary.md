@@ -58,15 +58,14 @@ npm run validate:posthog-permissions # Check permissions
 
 #### **Automation Scripts**
 
-- `scripts/setup-novu-workflows.js` - Creates all workflows via API
-- `scripts/test-novu-connection.js` - Validates API connectivity and permissions
+- `scripts/test-novu-diagnostics.js` - Comprehensive Novu health diagnostics
+- `novu:sync` commands - Sync workflows using Novu Framework
 
 #### **NPM Commands**
 
 ```bash
-npm run setup:novu-workflows        # Create all workflows
-npm run test:novu                   # Test API connection
-npm run test:novu-permissions       # Check API permissions
+pnpm novu:sync                    # Sync all workflows
+pnpm novu:diagnostics              # Test Novu health
 ```
 
 ### **Workflow Features**
@@ -91,8 +90,8 @@ npm run test:novu-permissions       # Check API permissions
 npm run test:posthog                # Verify PostHog connection
 npm run setup:posthog-dashboards   # Create analytics dashboards
 
-npm run test:novu                   # Verify Novu connection
-npm run setup:novu-workflows       # Create notification workflows
+pnpm novu:sync                    # Sync notification workflows
+pnpm novu:diagnostics              # Comprehensive health check
 ```
 
 #### **CI/CD Integration**

@@ -172,5 +172,159 @@ export function getNovuStatus() {
   };
 }
 
+/**
+ * Comprehensive Novu health monitoring and diagnostics
+ * Use this function to diagnose Novu configuration issues
+ */
+export async function runNovuDiagnostics() {
+  console.log('\n🔍 Starting Novu Comprehensive Diagnostics...\n');
+
+  const diagnostics = {
+    client: getNovuStatus(),
+    workflows: [] as Array<{ id: string; status: string; timestamp: string }>,
+    errors: [] as string[],
+    recommendations: [] as string[],
+    summary: {
+      healthy: true,
+      criticalErrors: 0,
+      warnings: 0,
+    },
+  };
+
+  // 1. Test client initialization
+  console.log('1️⃣ Testing Client Initialization');
+  if (!diagnostics.client.initialized) {
+    diagnostics.errors.push(`Client not initialized: ${diagnostics.client.initializationError}`);
+    diagnostics.recommendations.push('Check NOVU_SECRET_KEY environment variable');
+    diagnostics.summary.criticalErrors++;
+  } else {
+    console.log('   ✅ Client initialized successfully');
+  }
+
+  // 2. Test workflow trigger capability
+  console.log('\n2️⃣ Testing Workflow Trigger Capability');
+  const testWorkflowId = 'system-health';
+  const testSubscriber = {
+    subscriberId: ENV_CONFIG.NOVU_ADMIN_SUBSCRIBER_ID || 'test-admin',
+    email: 'admin@eleva.care',
+    firstName: 'System',
+    lastName: 'Admin',
+  };
+
+  try {
+    const testPayload = {
+      eventType: 'health-check-diagnostics',
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      environment: ENV_CONFIG.NODE_ENV,
+      memoryUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+      memoryTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+      memoryPercentage: Math.round(
+        (process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100,
+      ),
+    };
+
+    const result = await triggerWorkflow({
+      workflowId: testWorkflowId,
+      to: testSubscriber,
+      payload: testPayload,
+    });
+
+    if (result) {
+      console.log('   ✅ Test workflow trigger succeeded');
+      diagnostics.workflows.push({
+        id: testWorkflowId,
+        status: 'success',
+        timestamp: new Date().toISOString(),
+      });
+    } else {
+      console.log('   ❌ Test workflow trigger failed');
+      diagnostics.errors.push('Test workflow trigger returned null');
+      diagnostics.summary.criticalErrors++;
+    }
+  } catch (error) {
+    console.log('   ❌ Test workflow trigger threw error:', error);
+    diagnostics.errors.push(`Test workflow error: ${error}`);
+    diagnostics.summary.criticalErrors++;
+  }
+
+  // 3. Environment variable validation
+  console.log('\n3️⃣ Environment Variable Validation');
+  const envChecks = [
+    { name: 'NOVU_SECRET_KEY', value: !!ENV_CONFIG.NOVU_SECRET_KEY, critical: true },
+    {
+      name: 'NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER',
+      value: !!ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
+      critical: true,
+    },
+    { name: 'NOVU_BASE_URL', value: !!ENV_CONFIG.NOVU_BASE_URL, critical: false },
+    {
+      name: 'NOVU_ADMIN_SUBSCRIBER_ID',
+      value: !!ENV_CONFIG.NOVU_ADMIN_SUBSCRIBER_ID,
+      critical: false,
+    },
+  ];
+
+  envChecks.forEach((check) => {
+    if (check.value) {
+      console.log(`   ✅ ${check.name} is set`);
+    } else {
+      console.log(`   ${check.critical ? '❌' : '⚠️'} ${check.name} is missing`);
+      if (check.critical) {
+        diagnostics.errors.push(`Missing critical environment variable: ${check.name}`);
+        diagnostics.summary.criticalErrors++;
+      } else {
+        diagnostics.recommendations.push(`Consider setting ${check.name} for better functionality`);
+        diagnostics.summary.warnings++;
+      }
+    }
+  });
+
+  // 4. Bridge endpoint check
+  console.log('\n4️⃣ Bridge Endpoint Check');
+  try {
+    const baseUrl = ENV_CONFIG.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const bridgeUrl = `${baseUrl}/api/novu`;
+
+    const bridgeResponse = await fetch(bridgeUrl, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000),
+    });
+
+    if (bridgeResponse.ok) {
+      console.log('   ✅ Bridge endpoint is accessible');
+    } else {
+      console.log(`   ⚠️ Bridge endpoint returned ${bridgeResponse.status}`);
+      diagnostics.recommendations.push('Check /api/novu bridge endpoint configuration');
+      diagnostics.summary.warnings++;
+    }
+  } catch (error) {
+    console.log('   ❌ Bridge endpoint check failed:', error);
+    diagnostics.errors.push(`Bridge endpoint error: ${error}`);
+    diagnostics.summary.criticalErrors++;
+  }
+
+  // 5. Summary and recommendations
+  console.log('\n📊 Diagnostics Summary');
+  console.log(
+    `   Status: ${diagnostics.summary.criticalErrors === 0 ? '✅ Healthy' : '❌ Issues Found'}`,
+  );
+  console.log(`   Critical Errors: ${diagnostics.summary.criticalErrors}`);
+  console.log(`   Warnings: ${diagnostics.summary.warnings}`);
+
+  if (diagnostics.errors.length > 0) {
+    console.log('\n🚨 Critical Issues:');
+    diagnostics.errors.forEach((error) => console.log(`   • ${error}`));
+  }
+
+  if (diagnostics.recommendations.length > 0) {
+    console.log('\n💡 Recommendations:');
+    diagnostics.recommendations.forEach((rec) => console.log(`   • ${rec}`));
+  }
+
+  diagnostics.summary.healthy = diagnostics.summary.criticalErrors === 0;
+  return diagnostics;
+}
+
 // Export client for advanced usage if needed
 export { novu };
