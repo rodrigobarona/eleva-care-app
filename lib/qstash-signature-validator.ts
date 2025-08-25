@@ -4,6 +4,69 @@ import crypto from 'crypto';
 import { NextRequest } from 'next/server';
 
 /**
+ * Helper function to extract signature from various header formats
+ * Handles both raw base64 strings and composite formats like "t=..., v1=..."
+ * Also normalizes base64url to base64
+ */
+function extractSignatureFromHeader(headerValue: string): string | null {
+  if (!headerValue) {
+    return null;
+  }
+
+  // Trim whitespace
+  const trimmed = headerValue.trim();
+
+  // Check if this looks like a composite format (contains = and ,)
+  if (trimmed.includes('=') && trimmed.includes(',')) {
+    // Parse key=value pairs separated by commas or semicolons
+    const pairs = trimmed.split(/[,;]/).map((pair) => pair.trim());
+    const signatureMap = new Map<string, string>();
+
+    for (const pair of pairs) {
+      const [key, value] = pair.split('=').map((s) => s.trim());
+      if (key && value) {
+        signatureMap.set(key.toLowerCase(), value);
+      }
+    }
+
+    // Try to find signature in order of preference: v1, signature, s, hmac
+    const signatureKeys = ['v1', 'signature', 's', 'hmac'];
+    for (const key of signatureKeys) {
+      const signature = signatureMap.get(key);
+      if (signature) {
+        return normalizeBase64(signature);
+      }
+    }
+
+    return null;
+  } else {
+    // Treat as raw signature string
+    return normalizeBase64(trimmed);
+  }
+}
+
+/**
+ * Normalize base64url to base64 format
+ * base64url uses - and _ instead of + and /, and omits padding
+ */
+function normalizeBase64(signature: string): string {
+  if (!signature) {
+    return signature;
+  }
+
+  // Convert base64url to base64
+  let normalized = signature.replace(/-/g, '+').replace(/_/g, '/');
+
+  // Add padding if needed
+  const padding = normalized.length % 4;
+  if (padding > 0) {
+    normalized += '='.repeat(4 - padding);
+  }
+
+  return normalized;
+}
+
+/**
  * Validates Upstash QStash signature according to official documentation
  * Supports both current and next signing keys for key rotation
  */
@@ -23,10 +86,12 @@ export async function validateUpstashSignature(
 ): Promise<UpstashSignatureValidationResult> {
   try {
     // Extract signature from various possible headers
-    const signature =
+    const rawSignatureHeader =
       request.headers.get('Upstash-Signature') ||
       request.headers.get('upstash-signature') ||
       request.headers.get('x-upstash-signature');
+
+    const signature = rawSignatureHeader ? extractSignatureFromHeader(rawSignatureHeader) : null;
 
     if (!signature) {
       return {
@@ -103,11 +168,17 @@ async function validateSignatureWithKey(
       .update(payload, 'utf8')
       .digest('base64');
 
+    // Convert signatures to buffers first
+    const providedBuffer = Buffer.from(providedSignature, 'base64');
+    const expectedBuffer = Buffer.from(expectedSignature, 'base64');
+
+    // Check buffer lengths before calling timingSafeEqual to prevent exceptions
+    if (providedBuffer.length !== expectedBuffer.length) {
+      return false;
+    }
+
     // Compare signatures securely (timing attack resistant)
-    return crypto.timingSafeEqual(
-      Buffer.from(providedSignature, 'base64'),
-      Buffer.from(expectedSignature, 'base64'),
-    );
+    return crypto.timingSafeEqual(providedBuffer, expectedBuffer);
   } catch (error) {
     console.error('Error validating signature with key:', error);
     return false;
