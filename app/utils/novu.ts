@@ -58,7 +58,7 @@ export interface TriggerWorkflowOptions {
     avatar?: string;
     data?: Record<string, string | number | boolean>;
   };
-  payload?: Record<string, string | number | boolean | null | undefined>;
+  payload?: Record<string, unknown>;
   overrides?: {
     email?: {
       from?: string;
@@ -217,11 +217,13 @@ export async function runNovuDiagnostics() {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       environment: ENV_CONFIG.NODE_ENV,
-      memoryUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
-      memoryTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
-      memoryPercentage: Math.round(
-        (process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100,
-      ),
+      memory: {
+        used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024),
+        total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024),
+        percentage: Math.round(
+          (process.memoryUsage().heapUsed / process.memoryUsage().heapTotal) * 100,
+        ),
+      },
     };
 
     const result = await triggerWorkflow({
