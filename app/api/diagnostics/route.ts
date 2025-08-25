@@ -20,6 +20,7 @@ import {
   generateWebhookHealthReport,
   getWebhookConfigStatus,
 } from '@/lib/webhook-health';
+import { sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -52,7 +53,7 @@ interface DiagnosticsResult {
 async function checkDatabaseHealth() {
   try {
     // Simple connectivity check
-    await db.execute('SELECT 1');
+    await db.execute(sql`SELECT 1`);
 
     return {
       status: 'healthy' as const,
@@ -200,15 +201,15 @@ export async function GET(request: NextRequest) {
   const component = searchParams.get('component') || 'all';
   const includeDetails = searchParams.get('details') === 'true';
 
-  // Access control: require DIAGNOSTICS_TOKEN or internal-only caller
-  const diagnosticsToken = request.headers.get('x-diagnostics-token');
-  const isInternalHealthCheck =
-    request.headers.get('x-internal-health-check') === 'true' ||
-    request.headers.get('user-agent')?.includes('node') ||
-    request.nextUrl.hostname === 'localhost';
-
-  const hasValidToken = diagnosticsToken && diagnosticsToken === process.env.DIAGNOSTICS_TOKEN;
-  const isAuthorized = hasValidToken || isInternalHealthCheck;
+  // Access control: in production require a token; in non-prod allow limited internal callers
+  const diagnosticsToken = request.headers.get('x-diagnostics-token') || '';
+  const hasValidToken = diagnosticsToken === (process.env.DIAGNOSTICS_TOKEN || '');
+  const ua = (request.headers.get('user-agent') || '').toLowerCase();
+  const isTrustedUA =
+    ua.includes('upstash') || ua.includes('qstash') || ua.includes('vercel') || ua.includes('cron');
+  const isLocalhost = request.nextUrl.hostname === 'localhost';
+  const isDevOrPreview = ENV_CONFIG.NODE_ENV !== 'production';
+  const isAuthorized = hasValidToken || (isDevOrPreview && (isTrustedUA || isLocalhost));
 
   if (!isAuthorized) {
     return NextResponse.json(
@@ -216,7 +217,7 @@ export async function GET(request: NextRequest) {
         error: 'Unauthorized access to diagnostics endpoint',
         timestamp: new Date().toISOString(),
       },
-      { status: 403 },
+      { status: 403, headers: { 'Cache-Control': 'no-cache, no-store, max-age=0' } },
     );
   }
 
