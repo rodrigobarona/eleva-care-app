@@ -86,9 +86,13 @@ async function scheduleAllJobs() {
   console.log('📅 Scheduling all configured cron jobs...\n');
 
   // Get the base URL
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+    ? process.env.NEXT_PUBLIC_BASE_URL
+    : process.env.NEXT_PUBLIC_APP_URL
+      ? process.env.NEXT_PUBLIC_APP_URL
+      : process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000';
 
   // Define all schedule configurations (mirroring config/qstash.ts)
   const schedules = {
@@ -257,9 +261,16 @@ async function showStats() {
     console.log(`📋 Total Schedules: ${schedules.length}`);
     console.log(`📋 Total Configured: 10 (from config)`); // Hard-coded for now
     console.log(`🔄 QStash Available: ${QSTASH_TOKEN ? '✅' : '❌'}`);
-    console.log(
-      `🌐 Base URL: ${process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000'}`,
-    );
+    // Compute baseUrl using the same precedence as elsewhere
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
+      ? process.env.NEXT_PUBLIC_BASE_URL
+      : process.env.NEXT_PUBLIC_APP_URL
+        ? process.env.NEXT_PUBLIC_APP_URL
+        : process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : 'http://localhost:3000';
+
+    console.log(`🌐 Base URL: ${baseUrl}`);
 
     console.log('\n📊 Schedule Breakdown:');
     Object.entries(priorityCounts).forEach(([priority, count]) => {
