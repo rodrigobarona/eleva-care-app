@@ -37,18 +37,51 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: 🔍 Debug Neon Configuration
+        env:
+          NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          RAW_BRANCH_NAME: ${{ needs.setup.outputs.branch }}
+          PR_NUMBER: ${{ github.event.number }}
         run: |
-          echo "Project ID set: ${{ vars.NEON_PROJECT_ID != '' && 'YES' || 'NO' }}"
-          echo "API Key set: ${{ secrets.NEON_API_KEY != '' && 'YES' || 'NO' }}"
-          echo "Branch name will be: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}"
+          # Check environment variables with bash
+          if [ -n "$NEON_PROJECT_ID" ]; then
+            echo "Project ID set: YES"
+          else
+            echo "Project ID set: NO"
+          fi
+          
+          if [ -n "$NEON_API_KEY" ]; then
+            echo "API Key set: YES"
+          else
+            echo "API Key set: NO"
+          fi
+          
+          # Sanitize branch name for safe use
+          sanitized_branch=$(echo "$RAW_BRANCH_NAME" | \
+            tr '[:upper:]' '[:lower:]' | \
+            sed 's/[^a-z0-9-]/-/g' | \
+            sed 's/--*/-/g' | \
+            sed 's/^-\|-$//g')
+          
+          # Create safe preview branch name
+          preview_branch="preview/pr-${PR_NUMBER}-${sanitized_branch}"
+          
+          echo "Raw branch name: $RAW_BRANCH_NAME"
+          echo "Sanitized branch slug: $sanitized_branch"
+          echo "Preview branch name: $preview_branch"
+          
+          # Export sanitized name for downstream steps
+          echo "SANITIZED_BRANCH_NAME=$sanitized_branch" >> $GITHUB_ENV
+          echo "PREVIEW_BRANCH_NAME=$preview_branch" >> $GITHUB_ENV
 
       - name: 🗄️ Create Neon Branch
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v5
         with:
           project_id: ${{ vars.NEON_PROJECT_ID }}
-          branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
+          branch_name: ${{ env.PREVIEW_BRANCH_NAME }}
           api_key: ${{ secrets.NEON_API_KEY }}
+          username: ${{ secrets.NEON_DATABASE_USERNAME }}
         continue-on-error: false
         timeout-minutes: 5
 
