@@ -20,7 +20,12 @@ NOVU_SECRET_KEY=e678365fb59907ca914e38efea8241d4
 
 # AFTER (Production)
 NOVU_SECRET_KEY=440e98801cb50f4b21060fd29d6652eb
+
+# Production Security - REQUIRED
+DIAGNOSTICS_TOKEN=your-secure-random-production-token-here
 ```
+
+**🔒 Security Requirement**: The `DIAGNOSTICS_TOKEN` is required for production deployments to secure the `/api/diagnostics` endpoint. This endpoint exposes sensitive system information including environment variables, database status, and integration health checks. Only share this token with SRE teams and automated monitoring systems.
 
 ### **2. Environment Configuration**
 

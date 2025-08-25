@@ -71,7 +71,7 @@ async function checkDatabaseHealth() {
 
 async function checkEnvironmentVariables() {
   const requiredVars = [
-    'NEXT_PUBLIC_APP_URL',
+    'NEXT_PUBLIC_BASE_URL',
     'DATABASE_URL',
     'CLERK_SECRET_KEY',
     'STRIPE_SECRET_KEY',
@@ -82,11 +82,14 @@ async function checkEnvironmentVariables() {
     'QSTASH_TOKEN',
     'STRIPE_WEBHOOK_SECRET',
     'CLERK_WEBHOOK_SIGNING_SECRET',
-    'REDIS_URL',
+    'UPSTASH_REDIS_REST_URL',
+    'UPSTASH_REDIS_REST_TOKEN',
   ];
 
   const missing = requiredVars.filter((varName) => !ENV_CONFIG[varName as keyof typeof ENV_CONFIG]);
-  const missingOptional = optionalVars.filter((varName) => !process.env[varName]);
+  const missingOptional = optionalVars.filter(
+    (varName) => !ENV_CONFIG[varName as keyof typeof ENV_CONFIG],
+  );
 
   const status: 'healthy' | 'warning' | 'critical' = missing.length === 0 ? 'healthy' : 'critical';
 
@@ -197,12 +200,30 @@ export async function GET(request: NextRequest) {
   const component = searchParams.get('component') || 'all';
   const includeDetails = searchParams.get('details') === 'true';
 
-  // Allow internal health checks (bypassing auth for diagnostics)
-  // const isInternalHealthCheck = request.headers.get('x-internal-health-check') === 'true' ||
-  //   request.headers.get('user-agent')?.includes('node') ||
-  //   request.nextUrl.hostname === 'localhost';
+  // Access control: require DIAGNOSTICS_TOKEN or internal-only caller
+  const diagnosticsToken = request.headers.get('x-diagnostics-token');
+  const isInternalHealthCheck =
+    request.headers.get('x-internal-health-check') === 'true' ||
+    request.headers.get('user-agent')?.includes('node') ||
+    request.nextUrl.hostname === 'localhost';
 
-  console.log(`🔍 Running diagnostics for: ${component}`);
+  const hasValidToken = diagnosticsToken && diagnosticsToken === process.env.DIAGNOSTICS_TOKEN;
+  const isAuthorized = hasValidToken || isInternalHealthCheck;
+
+  if (!isAuthorized) {
+    return NextResponse.json(
+      {
+        error: 'Unauthorized access to diagnostics endpoint',
+        timestamp: new Date().toISOString(),
+      },
+      { status: 403 },
+    );
+  }
+
+  // Only log component info for authorized requests
+  if (hasValidToken) {
+    console.log(`🔍 Running diagnostics for: ${component}`);
+  }
 
   const result: DiagnosticsResult = {
     timestamp: new Date().toISOString(),
@@ -268,7 +289,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Remove duplicates
-    result.recommendations = [...new Set(result.recommendations)];
+    result.recommendations = Array.from(new Set(result.recommendations));
 
     // Filter out detailed information if not requested
     if (!includeDetails) {

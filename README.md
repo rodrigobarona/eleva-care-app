@@ -289,7 +289,12 @@ Feel free to enhance or update the Mermaid diagram section as your architecture 
 
    # General Config
    NEXT_PUBLIC_BASE_URL=https://eleva.care
+
+   # Production Security (Required for production deployments)
+   DIAGNOSTICS_TOKEN=your-secure-random-token-here
    ```
+
+   > **⚠️ Production Security Note**: Set `DIAGNOSTICS_TOKEN` in your production environment secrets. This token secures the `/api/diagnostics` endpoint which exposes sensitive system information. Share this token only with SRE teams and monitoring systems that need access to diagnostic data.
 
 4. **Run the development server:**
 
