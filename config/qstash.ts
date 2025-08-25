@@ -21,6 +21,9 @@ export const qstash = {
   // Default retry settings
   defaultRetries: 3,
 
+  // Default timezone for cron schedules
+  defaultTimezone: 'UTC',
+
   // Default schedule configurations
   schedules: {
     // Note: keep-alive is handled by Vercel cron (vercel.json) for maximum reliability
@@ -29,7 +32,7 @@ export const qstash = {
     // 📅 APPOINTMENT MANAGEMENT
     appointmentReminders: {
       endpoint: '/api/cron/appointment-reminders',
-      cron: '0 9 * * *', // Daily at 9 AM - 24-hour reminders
+      cron: '0 9 * * *', // Daily at 9 AM UTC - 24-hour reminders
       description: '24-hour appointment reminders for confirmed bookings',
       priority: 'high',
     },
@@ -51,14 +54,14 @@ export const qstash = {
 
     processPendingPayouts: {
       endpoint: '/api/cron/process-pending-payouts',
-      cron: '0 6 * * *', // Daily at 6 AM - check and prepare payouts
+      cron: '0 6 * * *', // Daily at 6 AM UTC - check and prepare payouts
       description: 'Check and prepare expert payouts for processing',
       priority: 'high',
     },
 
     checkUpcomingPayouts: {
       endpoint: '/api/cron/check-upcoming-payouts',
-      cron: '0 12 * * *', // Daily at noon - notify about upcoming payouts
+      cron: '0 12 * * *', // Daily at noon UTC - notify about upcoming payouts
       description: 'Notify experts about upcoming payouts and account status',
       priority: 'medium',
     },
@@ -88,7 +91,7 @@ export const qstash = {
     // ⚙️ GENERAL TASK PROCESSING
     processTasks: {
       endpoint: '/api/cron/process-tasks',
-      cron: '0 4 * * *', // Daily at 4 AM - general system maintenance
+      cron: '0 4 * * *', // Daily at 4 AM UTC - general system maintenance
       description: 'General system maintenance, audit logs, and administrative tasks',
       priority: 'medium',
     },

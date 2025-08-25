@@ -25,6 +25,9 @@ require('dotenv').config();
 const QSTASH_TOKEN = process.env.QSTASH_TOKEN;
 const QSTASH_BASE_URL = 'https://qstash.upstash.io/v2';
 
+// Default timezone for cron schedules (mirroring config/qstash.ts)
+const DEFAULT_TIMEZONE = 'UTC';
+
 // Define all schedule configurations (mirroring config/qstash.ts)
 // Note: keep-alive is handled by Vercel cron (vercel.json) for maximum reliability
 // This ensures system health checks run even if QStash service is down
@@ -178,6 +181,7 @@ async function scheduleAllJobs() {
           'x-qstash-request': 'true',
           'x-cron-job-name': jobName,
           'x-cron-priority': config.priority,
+          'Upstash-Cron-TZ': DEFAULT_TIMEZONE,
           ...(process.env.CRON_API_KEY && { 'x-api-key': process.env.CRON_API_KEY }),
         },
       };
