@@ -175,7 +175,41 @@ export async function scheduleRecurringJob(
 export async function scheduleAllConfiguredJobs(): Promise<
   Array<{ name: string; scheduleId: string; endpoint: string }>
 > {
+  // 🔍 Pre-flight checks: Ensure QStash client and configuration are available
+  if (!qstashClient) {
+    console.error('❌ QStash client is not initialized. Cannot schedule jobs.');
+    console.error('   💡 Check QSTASH_TOKEN environment variable and QStash configuration.');
+    return [];
+  }
+
+  if (!qstash || typeof qstash !== 'object') {
+    console.error('❌ QStash configuration object is not available. Cannot schedule jobs.');
+    console.error('   💡 Check qstash configuration import and initialization.');
+    return [];
+  }
+
+  if (!qstash.schedules || typeof qstash.schedules !== 'object') {
+    console.error('❌ QStash schedules configuration is not available. Cannot schedule jobs.');
+    console.error('   💡 Check qstash.schedules configuration in qstash config file.');
+    return [];
+  }
+
+  if (!qstash.baseUrl || typeof qstash.baseUrl !== 'string') {
+    console.error('❌ QStash baseUrl is not configured. Cannot schedule jobs.');
+    console.error('   💡 Check qstash.baseUrl configuration in qstash config file.');
+    return [];
+  }
+
+  const scheduleCount = Object.keys(qstash.schedules).length;
+  if (scheduleCount === 0) {
+    console.warn('⚠️ No cron jobs configured for scheduling.');
+    return [];
+  }
+
   console.log('📅 Scheduling all configured cron jobs...');
+  console.log(`   🔧 QStash client: ${qstashClient ? '✅ Available' : '❌ Not available'}`);
+  console.log(`   📋 Jobs to schedule: ${scheduleCount}`);
+  console.log(`   🌐 Base URL: ${qstash.baseUrl}`);
 
   const results: Array<{ name: string; scheduleId: string; endpoint: string }> = [];
   const schedules = qstash.schedules;
