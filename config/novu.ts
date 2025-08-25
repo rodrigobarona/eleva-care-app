@@ -22,22 +22,21 @@ export const userLifecycleWorkflow = workflow(
       },
     }));
 
-    await step.email('welcome-email', async () => ({
-      subject: `Welcome to Eleva Care - Your Healthcare Journey Starts Here! 🎉`,
-      body: `
-<h2>Welcome to Eleva Care! 🎉</h2>
-<p>Hi ${payload.firstName || payload.userName},</p>
-<p>Thank you for joining Eleva Care! We're thrilled to have you as part of our healthcare community.</p>
-<h3>What's Next?</h3>
-<ul>
-  <li><strong>Explore Experts:</strong> Browse our network of qualified healthcare professionals</li>
-  <li><strong>Book Consultation:</strong> Schedule your first appointment with an expert</li>
-  <li><strong>Complete Profile:</strong> Add your health preferences and information</li>
-</ul>
-<p><a href="/dashboard" style="background: #0066cc; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Get Started</a></p>
-<p>Welcome aboard!</p>
-      `,
-    }));
+    await step.email('welcome-email', async () => {
+      const emailBody = await elevaEmailService.renderWelcomeEmail({
+        userName: payload.userName,
+        firstName: payload.firstName,
+        dashboardUrl: '/dashboard',
+        locale: payload.locale || 'en',
+        userSegment: payload.userSegment || 'patient',
+        templateVariant: payload.templateVariant || 'default',
+      });
+
+      return {
+        subject: `Welcome to Eleva Care - Your Healthcare Journey Starts Here! 🎉`,
+        body: emailBody,
+      };
+    });
   },
   {
     name: 'Account & User Updates',
@@ -48,11 +47,14 @@ export const userLifecycleWorkflow = workflow(
       firstName: z.string().optional(),
       lastName: z.string().optional(),
       email: z.string().email().optional(),
-      clerkUserId: z.string().optional(),
-      locale: z.string().optional(),
-      country: z.string().optional(),
+      locale: z.string().optional().default('en'),
+      userSegment: z.enum(['patient', 'expert', 'admin']).optional().default('patient'),
+      templateVariant: z
+        .enum(['default', 'urgent', 'reminder', 'minimal', 'branded'])
+        .optional()
+        .default('default'),
     }),
-    tags: ['auth', 'user'],
+    tags: ['user-lifecycle'],
     preferences: {
       all: { enabled: true },
       channels: {
@@ -77,16 +79,27 @@ export const securityAuthWorkflow = workflow(
       },
     }));
 
-    await step.email('security-email', async () => ({
-      subject: `🔒 Security Alert - Eleva Care`,
-      body: `
-<h2>Security Alert</h2>
-<p>Hi there,</p>
-<p>We detected unusual activity on your account.</p>
-<p>${payload.message || 'Please review your recent activity.'}</p>
-<p>If this wasn't you, please contact support immediately.</p>
-      `,
-    }));
+    await step.email('security-email', async () => {
+      // Use generic email renderer for security alerts
+      const emailBody = await elevaEmailService.renderGenericEmail({
+        templateName: 'security-alert',
+        subject: '🔒 Security Alert - Eleva Care',
+        templateData: {
+          message: payload.message || 'Please review your recent activity.',
+          alertType: payload.alertType,
+          deviceInfo: payload.deviceInfo,
+          userId: payload.userId,
+        },
+        locale: payload.locale || 'en',
+        userSegment: payload.userSegment || 'patient',
+        templateVariant: 'urgent', // Security alerts should be urgent
+      });
+
+      return {
+        subject: `🔒 Security Alert - Eleva Care`,
+        body: emailBody,
+      };
+    });
   },
   {
     name: 'Security & Authentication',
@@ -98,7 +111,8 @@ export const securityAuthWorkflow = workflow(
       verificationUrl: z.string().optional(),
       deviceInfo: z.string().optional(),
       message: z.string().optional(),
-      locale: z.string().optional(),
+      locale: z.string().optional().default('en'),
+      userSegment: z.enum(['patient', 'expert', 'admin']).optional().default('patient'),
       country: z.string().optional(),
     }),
     tags: ['security'],
@@ -117,47 +131,119 @@ export const paymentWorkflow = workflow(
   'payment-universal',
   async ({ payload, step }) => {
     await step.inApp('payment-notification', async () => ({
-      subject: `${payload.type === 'success' ? '✅' : payload.type === 'failed' ? '❌' : '💰'} Payment Update`,
-      body: `${payload.message || 'Payment status update for your transaction'}`,
+      subject: `💳 Payment ${payload.eventType}: ${payload.amount} ${payload.currency || 'EUR'}`,
+      body: `${payload.message || `Payment ${payload.eventType} for ${payload.amount}`}`,
       data: {
-        type: payload.type,
+        eventType: payload.eventType,
         amount: payload.amount,
         currency: payload.currency,
-        serviceName: payload.serviceName,
-        paymentId: payload.paymentId,
+        transactionId: payload.transactionId,
+        customerName: payload.customerName,
       },
     }));
 
-    await step.email('payment-email', async () => ({
-      subject: `Payment Update - ${payload.serviceName || 'Your Service'}`,
-      body: `
-<h2>Payment Update</h2>
-<p>Hi ${payload.customerName || 'Valued Customer'},</p>
-<p>${payload.message || 'Your payment has been processed.'}</p>
-<h3>Payment Details:</h3>
-<ul>
-  <li><strong>Amount:</strong> ${payload.amount} ${payload.currency}</li>
-  <li><strong>Service:</strong> ${payload.serviceName}</li>
-  <li><strong>Status:</strong> ${payload.type}</li>
-  <li><strong>Date:</strong> ${new Date().toLocaleDateString()}</li>
-</ul>
-<p>Thank you for choosing Eleva Care!</p>
-      `,
-    }));
+    await step.email('payment-email', async () => {
+      let emailBody: string;
+
+      if (payload.eventType === 'success' || payload.eventType === 'confirmed') {
+        // Use payment confirmation template
+        emailBody = await elevaEmailService.renderPaymentConfirmation({
+          customerName: payload.customerName,
+          amount: payload.amount,
+          currency: payload.currency || 'EUR',
+          transactionId: payload.transactionId,
+          appointmentDetails: payload.appointmentDetails
+            ? {
+                service: payload.appointmentDetails.service,
+                expert: payload.appointmentDetails.expert,
+                date: payload.appointmentDetails.date,
+                time: payload.appointmentDetails.time,
+                duration: payload.appointmentDetails.duration || '60 minutes',
+              }
+            : undefined,
+          locale: payload.locale || 'en',
+          userSegment: payload.userSegment || 'patient',
+          templateVariant: payload.templateVariant || 'default',
+        });
+      } else if (payload.eventType === 'multibanco-reminder') {
+        // Use Multibanco payment reminder template
+        emailBody = await elevaEmailService.renderMultibancoPaymentReminder({
+          customerName: payload.customerName,
+          entity: payload.multibancoEntity || '',
+          reference: payload.multibancoReference || '',
+          amount: payload.amount,
+          expiresAt: payload.expiresAt || '',
+          appointmentDetails: payload.appointmentDetails
+            ? {
+                service: payload.appointmentDetails.service,
+                expert: payload.appointmentDetails.expert,
+                date: payload.appointmentDetails.date,
+                time: payload.appointmentDetails.time,
+                duration: payload.appointmentDetails.duration || '60 minutes',
+              }
+            : undefined,
+          reminderType: payload.reminderType || 'gentle',
+          locale: payload.locale || 'en',
+          userSegment: payload.userSegment || 'patient',
+          templateVariant: payload.templateVariant || 'reminder',
+        });
+      } else {
+        // Use generic email renderer for other payment events
+        emailBody = await elevaEmailService.renderGenericEmail({
+          templateName: 'payment-notification',
+          subject: `Payment ${payload.eventType}`,
+          templateData: {
+            eventType: payload.eventType,
+            amount: payload.amount,
+            currency: payload.currency,
+            customerName: payload.customerName,
+            message: payload.message,
+          },
+          locale: payload.locale || 'en',
+          userSegment: payload.userSegment || 'patient',
+          templateVariant: payload.templateVariant || 'default',
+        });
+      }
+
+      return {
+        subject: `Payment ${payload.eventType} - ${payload.amount} ${payload.currency || 'EUR'}`,
+        body: emailBody,
+      };
+    });
   },
   {
-    name: 'Payment Updates',
-    description: 'Notifications for payment status changes',
+    name: 'Payment Processing',
+    description: 'Payment confirmations, failures, and reminders',
     payloadSchema: z.object({
-      type: z.enum(['success', 'failed', 'refund', 'payout']),
-      customerName: z.string().optional(),
-      serviceName: z.string().optional(),
-      amount: z.string().optional(),
-      currency: z.string().optional(),
-      paymentId: z.string().optional(),
+      eventType: z
+        .enum(['success', 'failed', 'pending', 'confirmed', 'multibanco-reminder'])
+        .optional(),
+      amount: z.string(),
+      currency: z.string().optional().default('EUR'),
+      transactionId: z.string().optional(),
+      customerName: z.string(),
       message: z.string().optional(),
-      locale: z.string().optional(),
-      country: z.string().optional(),
+      // Multibanco specific fields
+      multibancoEntity: z.string().optional(),
+      multibancoReference: z.string().optional(),
+      expiresAt: z.string().optional(),
+      reminderType: z.enum(['gentle', 'urgent']).optional(),
+      // Appointment details
+      appointmentDetails: z
+        .object({
+          service: z.string(),
+          expert: z.string(),
+          date: z.string(),
+          time: z.string(),
+          duration: z.string().optional(),
+        })
+        .optional(),
+      locale: z.string().optional().default('en'),
+      userSegment: z.enum(['patient', 'expert', 'admin']).optional().default('patient'),
+      templateVariant: z
+        .enum(['default', 'urgent', 'reminder', 'minimal', 'branded'])
+        .optional()
+        .default('default'),
     }),
     tags: ['payments'],
     preferences: {
@@ -175,49 +261,81 @@ export const expertManagementWorkflow = workflow(
   'expert-management',
   async ({ payload, step }) => {
     await step.inApp('expert-notification', async () => ({
-      subject: `Expert Update: ${payload.eventType}`,
-      body: `${payload.message || `Update for expert ${payload.expertName}`}`,
+      subject: `👩‍⚕️ ${payload.notificationType}: ${payload.expertName}`,
+      body: `${payload.message || `Expert notification for ${payload.expertName}`}`,
       data: {
-        eventType: payload.eventType,
-        expertId: payload.expertId,
+        notificationType: payload.notificationType,
         expertName: payload.expertName,
-        status: payload.status,
+        amount: payload.amount,
+        payoutDate: payload.payoutDate,
       },
     }));
 
-    await step.email('expert-email', async () => ({
-      subject: `Expert Account Update`,
-      body: `
-<h2>Expert Account Update</h2>
-<p>Hi ${payload.expertName},</p>
-<p>${payload.message || 'Your expert account has been updated.'}</p>
-<p>Thank you for being part of Eleva Care!</p>
-      `,
-    }));
+    await step.email('expert-email', async () => {
+      let emailBody: string;
+
+      if (
+        payload.notificationType === 'payout-processed' ||
+        payload.notificationType === 'payout-notification'
+      ) {
+        // Use expert payout notification template
+        emailBody = await elevaEmailService.renderExpertPayoutNotification({
+          expertName: payload.expertName,
+          amount: payload.amount || '0',
+          currency: payload.currency || 'EUR',
+          payoutDate: payload.payoutDate || new Date().toISOString(),
+          payoutMethod: payload.payoutMethod || 'Bank Transfer',
+          transactionId: payload.transactionId,
+          locale: payload.locale || 'en',
+          userSegment: 'expert',
+          templateVariant: payload.templateVariant || 'default',
+        });
+      } else {
+        // Use general expert notification template
+        emailBody = await elevaEmailService.renderExpertNotification({
+          expertName: payload.expertName,
+          notificationType: payload.notificationType,
+          message: payload.message || `Expert notification: ${payload.notificationType}`,
+          actionUrl: payload.actionUrl,
+          actionText: payload.actionText,
+          locale: payload.locale || 'en',
+          userSegment: 'expert',
+          templateVariant: payload.templateVariant || 'default',
+        });
+      }
+
+      return {
+        subject: `Expert ${payload.notificationType} - ${payload.expertName}`,
+        body: emailBody,
+      };
+    });
   },
   {
     name: 'Expert Management',
-    description: 'Notifications for expert account updates and status changes',
+    description: 'Expert-related notifications including payouts and account updates',
     payloadSchema: z.object({
-      eventType: z.enum([
-        'onboarding-complete',
-        'setup-step-complete',
-        'identity-verification',
-        'google-account',
-        'payout-setup-reminder',
+      notificationType: z.enum([
+        'payout-processed',
+        'payout-notification',
+        'account-update',
+        'verification-required',
       ]),
-      expertId: z.string(),
       expertName: z.string(),
-      stepType: z.string().optional(),
-      actionType: z.string().optional(),
-      status: z.string().optional(),
       message: z.string().optional(),
-      setupUrl: z.string().optional(),
-      accountEmail: z.string().optional(),
-      locale: z.string().optional(),
-      country: z.string().optional(),
+      amount: z.string().optional(),
+      currency: z.string().optional().default('EUR'),
+      payoutDate: z.string().optional(),
+      payoutMethod: z.string().optional(),
+      transactionId: z.string().optional(),
+      actionUrl: z.string().optional(),
+      actionText: z.string().optional(),
+      locale: z.string().optional().default('en'),
+      templateVariant: z
+        .enum(['default', 'urgent', 'reminder', 'minimal', 'branded'])
+        .optional()
+        .default('default'),
     }),
-    tags: ['expert'],
+    tags: ['expert-management'],
     preferences: {
       all: { enabled: true },
       channels: {
@@ -245,39 +363,87 @@ export const appointmentWorkflow = workflow(
       },
     }));
 
-    await step.email('appointment-email', async () => ({
-      subject: `Appointment ${payload.eventType} - ${payload.serviceName || 'Your Service'}`,
-      body: `
-<h2>Appointment ${payload.eventType}</h2>
-<p>Hi ${payload.customerName || 'there'},</p>
-<p>${payload.message || 'Your appointment has been updated.'}</p>
-<h3>Appointment Details:</h3>
-<ul>
-  <li><strong>Expert:</strong> ${payload.expertName}</li>
-  <li><strong>Service:</strong> ${payload.serviceName}</li>
-  <li><strong>Date:</strong> ${payload.appointmentDate}</li>
-  <li><strong>Time:</strong> ${payload.appointmentTime}</li>
-</ul>
-<p>Thank you for choosing Eleva Care!</p>
-      `,
-    }));
+    await step.email('appointment-email', async () => {
+      let emailBody: string;
+
+      if (payload.eventType === 'reminder') {
+        // Use appointment reminder template
+        emailBody = await elevaEmailService.renderAppointmentReminder({
+          userName: payload.customerName,
+          expertName: payload.expertName,
+          appointmentType: payload.serviceName || 'Consultation',
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          meetingUrl: payload.meetingUrl,
+          timeUntilAppointment: payload.timeUntilAppointment,
+          locale: payload.locale || 'en',
+          userSegment: payload.userSegment || 'patient',
+          templateVariant: payload.templateVariant || 'reminder',
+        });
+      } else if (payload.eventType === 'confirmed') {
+        // Use appointment confirmation template (existing)
+        emailBody = await elevaEmailService.renderAppointmentConfirmation({
+          expertName: payload.expertName,
+          clientName: payload.customerName,
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          timezone: payload.timezone || 'UTC',
+          appointmentDuration: payload.appointmentDuration || '60 minutes',
+          eventTitle: payload.serviceName || 'Consultation',
+          meetLink: payload.meetingUrl,
+          notes: payload.notes,
+          locale: payload.locale || 'en',
+          userSegment: payload.userSegment || 'patient',
+          templateVariant: payload.templateVariant || 'default',
+        });
+      } else {
+        // Use generic email renderer for other appointment events
+        emailBody = await elevaEmailService.renderGenericEmail({
+          templateName: 'appointment-notification',
+          subject: `Appointment ${payload.eventType}`,
+          templateData: {
+            eventType: payload.eventType,
+            expertName: payload.expertName,
+            customerName: payload.customerName,
+            serviceName: payload.serviceName,
+            appointmentDate: payload.appointmentDate,
+            appointmentTime: payload.appointmentTime,
+            message: payload.message,
+          },
+          locale: payload.locale || 'en',
+          userSegment: payload.userSegment || 'patient',
+          templateVariant: payload.templateVariant || 'default',
+        });
+      }
+
+      return {
+        subject: `Appointment ${payload.eventType} - ${payload.serviceName || 'Your Service'}`,
+        body: emailBody,
+      };
+    });
   },
   {
     name: 'Appointment Updates',
-    description: 'Notifications for appointment status changes',
+    description: 'Appointment confirmations, reminders, and updates',
     payloadSchema: z.object({
-      eventType: z.enum(['reminder', 'cancelled', 'confirmed', 'rescheduled', 'completed']),
+      eventType: z.enum(['confirmed', 'reminder', 'cancelled', 'rescheduled', 'updated']),
+      customerName: z.string(),
       expertName: z.string(),
-      customerName: z.string().optional(),
       serviceName: z.string().optional(),
       appointmentDate: z.string(),
-      appointmentTime: z.string().optional(),
-      timezone: z.string().optional(),
-      duration: z.number().optional(),
+      appointmentTime: z.string(),
+      timezone: z.string().optional().default('UTC'),
+      appointmentDuration: z.string().optional().default('60 minutes'),
+      meetingUrl: z.string().optional(),
+      timeUntilAppointment: z.string().optional(),
+      notes: z.string().optional(),
       message: z.string().optional(),
-      meetLink: z.string().optional(),
-      locale: z.string().optional(),
-      country: z.string().optional(),
+      locale: z.string().optional().default('en'),
+      userSegment: z.enum(['patient', 'expert', 'admin']).optional().default('patient'),
+      templateVariant: z
+        .enum(['default', 'urgent', 'reminder', 'minimal', 'branded'])
+        .optional()
+        .default('default'),
     }),
     tags: ['appointments'],
     preferences: {
@@ -551,21 +717,23 @@ export const multibancoPaymentReminderWorkflow = workflow(
     await step.email('multibanco-reminder-email', async () => {
       const emailBody = await elevaEmailService.renderMultibancoPaymentReminder({
         customerName: payload.customerName,
-        expertName: payload.expertName,
-        serviceName: payload.serviceName,
-        appointmentDate: payload.appointmentDate,
-        appointmentTime: payload.appointmentTime,
-        timezone: payload.timezone,
-        duration: payload.duration,
-        multibancoEntity: payload.multibancoEntity,
-        multibancoReference: payload.multibancoReference,
-        multibancoAmount: payload.multibancoAmount,
-        voucherExpiresAt: payload.voucherExpiresAt,
-        hostedVoucherUrl: payload.hostedVoucherUrl,
-        customerNotes: payload.customerNotes,
-        reminderType: payload.reminderType,
-        daysRemaining: payload.daysRemaining,
+        entity: payload.multibancoEntity || '',
+        reference: payload.multibancoReference || '',
+        amount: payload.multibancoAmount || '',
+        expiresAt: payload.voucherExpiresAt || '',
+        appointmentDetails: payload.appointmentTime
+          ? {
+              service: payload.serviceName || '',
+              expert: payload.expertName || '',
+              date: payload.appointmentDate || '',
+              time: payload.appointmentTime || '',
+              duration: payload.duration ? `${payload.duration} minutes` : '60 minutes',
+            }
+          : undefined,
+        reminderType: payload.reminderType || 'gentle',
         locale: payload.locale || 'en',
+        userSegment: 'patient',
+        templateVariant: 'reminder',
       });
 
       return {

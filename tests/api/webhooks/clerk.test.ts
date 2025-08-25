@@ -16,9 +16,7 @@ class MockWebhook {
 const Webhook = MockWebhook;
 
 // Mock all external dependencies first
-jest.mock('@/app/utils/novu', () => ({
-  triggerWorkflow: jest.fn().mockResolvedValue({ success: true }),
-}));
+jest.mock('@/app/utils/novu');
 
 jest.mock('@/config/env', () => ({
   ENV_CONFIG: {

@@ -39,6 +39,11 @@ jest.mock('@/server/actions/user-sync', () => ({
   ensureFullUserSynchronization: jest.fn().mockResolvedValue({ success: true }),
 }));
 
+// Mock Novu integration using manual mocks
+jest.mock('@/app/utils/novu');
+jest.mock('@/lib/novu-utils');
+jest.mock('@/lib/novu-email-service');
+
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
     webhooks: {

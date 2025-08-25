@@ -1,9 +1,43 @@
+import { ENV_CONFIG } from '@/config/env';
 import { Novu } from '@novu/api';
 import { SubscriberPayloadDto } from '@novu/api/models/components/subscriberpayloaddto';
 
-const novu = new Novu({
-  secretKey: process.env.NOVU_SECRET_KEY!,
-});
+// Initialize Novu client with proper error handling
+let novu: Novu | null = null;
+let initializationError: string | null = null;
+
+try {
+  console.log('[Novu Utils] Initializing client...');
+  console.log('[Novu Utils] Environment check:', {
+    hasSecretKey: !!ENV_CONFIG.NOVU_SECRET_KEY,
+    hasAppId: !!ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER,
+    baseUrl: ENV_CONFIG.NOVU_BASE_URL || 'default',
+    keyPrefix: ENV_CONFIG.NOVU_SECRET_KEY
+      ? ENV_CONFIG.NOVU_SECRET_KEY.substring(0, 8) + '...'
+      : 'none',
+  });
+
+  if (ENV_CONFIG.NOVU_SECRET_KEY) {
+    novu = new Novu({
+      secretKey: ENV_CONFIG.NOVU_SECRET_KEY,
+      ...(ENV_CONFIG.NOVU_BASE_URL && { apiUrl: ENV_CONFIG.NOVU_BASE_URL }),
+    });
+    console.log('[Novu Utils] ✅ Client initialized successfully');
+  } else if (ENV_CONFIG.NOVU_API_KEY) {
+    // Legacy fallback
+    novu = new Novu({
+      secretKey: ENV_CONFIG.NOVU_API_KEY,
+      ...(ENV_CONFIG.NOVU_BASE_URL && { apiUrl: ENV_CONFIG.NOVU_BASE_URL }),
+    });
+    console.log('[Novu Utils] ✅ Client initialized with legacy API key');
+  } else {
+    initializationError = 'Missing NOVU_SECRET_KEY or NOVU_API_KEY environment variable';
+    console.error(`[Novu Utils] ❌ ${initializationError}`);
+  }
+} catch (error) {
+  initializationError = `Initialization failed: ${error}`;
+  console.error('[Novu Utils] ❌ Failed to initialize:', error);
+}
 
 /**
  * Trigger a Novu workflow with subscriber and payload data
@@ -17,8 +51,17 @@ export async function triggerNovuWorkflow(
   subscriber: SubscriberPayloadDto,
   payload: object,
 ) {
+  if (!novu) {
+    const errorMsg = `[Novu Utils] Cannot trigger workflow ${workflowId}: ${initializationError || 'client not initialized'}`;
+    console.error(errorMsg);
+    console.error(
+      '[Novu Utils] 🔧 Check environment variables: NOVU_SECRET_KEY, NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER',
+    );
+    return { success: false, error: initializationError || 'Client not initialized' };
+  }
+
   try {
-    console.log('🔔 Triggering Novu workflow:', {
+    console.log('[Novu Utils] 🔔 Triggering workflow:', {
       workflowId,
       subscriberId: subscriber.subscriberId,
       payload: Object.keys(payload),
@@ -30,13 +73,25 @@ export async function triggerNovuWorkflow(
       payload,
     });
 
-    console.log('✅ Successfully triggered Novu workflow:', workflowId);
+    console.log('[Novu Utils] ✅ Successfully triggered workflow:', workflowId);
     return { success: true };
   } catch (error) {
-    console.error('❌ Failed to trigger Novu workflow:', {
+    console.error('[Novu Utils] ❌ Failed to trigger workflow:', {
       workflowId,
       error: error instanceof Error ? error.message : 'Unknown error',
+      fullError: error,
     });
+
+    // Provide specific error guidance
+    if (error && typeof error === 'object' && 'statusCode' in error) {
+      const errorWithStatus = error as { statusCode: number };
+      if (errorWithStatus.statusCode === 401) {
+        console.error(
+          '[Novu Utils] 🔑 Authentication error - check NOVU_SECRET_KEY environment variable',
+        );
+      }
+    }
+
     return { success: false, error };
   }
 }
@@ -112,50 +167,52 @@ export function buildNovuSubscriberFromStripe(customer: StripeCustomer): Subscri
 
 /**
  * Mapping of Clerk events to Novu workflow IDs
+ * Updated to use standardized workflow IDs from config/novu-workflows.ts
  */
 export const CLERK_EVENT_TO_WORKFLOW_MAPPINGS = {
   // User lifecycle events
-  'user.created': 'user-welcome',
-  'user.updated': 'user-profile-updated',
-  'user.deleted': 'user-account-deleted',
+  'user.created': 'user-lifecycle', // Uses eventType: 'welcome'
+  'user.updated': 'user-lifecycle', // Uses eventType: 'user-created'
+  'user.deleted': 'user-lifecycle', // Uses eventType: 'user-deleted'
 
   // Session events
-  'session.created': 'user-login-notification',
-  'session.ended': 'user-logout-notification',
+  'session.created': 'security-auth', // Uses eventType: 'recent-login'
+  'session.ended': 'security-auth', // Uses eventType: 'session-ended'
 
   // Email events (if you want to track these)
   'email.created': {
-    magic_link_sign_in: 'auth-magic-link-login',
-    magic_link_sign_up: 'auth-magic-link-registration',
-    reset_password_code: 'password-reset-notification',
-    verification_code: 'email-verification-notification',
+    magic_link_sign_in: 'security-auth', // Uses eventType: 'magic-link-login'
+    magic_link_sign_up: 'user-lifecycle', // Uses eventType: 'magic-link-registration'
+    reset_password_code: 'security-auth', // Uses eventType: 'password-reset'
+    verification_code: 'security-auth', // Uses eventType: 'email-verification'
   },
 } as const;
 
 /**
  * Mapping of Stripe events to Novu workflow IDs
+ * Updated to use standardized workflow IDs from config/novu-workflows.ts
  */
 export const STRIPE_EVENT_TO_WORKFLOW_MAPPINGS = {
-  // Payment events
-  'payment_intent.succeeded': 'payment-success',
-  'payment_intent.payment_failed': 'payment-failed',
-  'charge.refunded': 'payment-refunded',
+  // Payment events - use universal workflow with eventType
+  'payment_intent.succeeded': 'payment-universal', // Uses eventType: 'success'
+  'payment_intent.payment_failed': 'payment-universal', // Uses eventType: 'failed'
+  'charge.refunded': 'payment-universal', // Uses eventType: 'refund'
 
-  // Subscription events
-  'customer.subscription.created': 'subscription-created',
-  'customer.subscription.updated': 'subscription-updated',
-  'customer.subscription.deleted': 'subscription-cancelled',
+  // Subscription events - use payment universal workflow
+  'customer.subscription.created': 'payment-universal', // Uses eventType: 'success'
+  'customer.subscription.updated': 'payment-universal', // Uses eventType: 'success'
+  'customer.subscription.deleted': 'payment-universal', // Uses eventType: 'cancelled'
 
-  // Invoice events
-  'invoice.payment_succeeded': 'invoice-paid',
-  'invoice.payment_failed': 'invoice-payment-failed',
+  // Invoice events - use payment universal workflow
+  'invoice.payment_succeeded': 'payment-universal', // Uses eventType: 'success'
+  'invoice.payment_failed': 'payment-universal', // Uses eventType: 'failed'
 
-  // Dispute events
-  'charge.dispute.created': 'payment-dispute-created',
+  // Dispute events - use payment universal workflow
+  'charge.dispute.created': 'payment-universal', // Uses eventType: 'dispute'
 
-  // Connect account events
-  'account.updated': 'expert-account-updated',
-  'capability.updated': 'expert-capability-updated',
+  // Connect account events - use expert management workflow
+  'account.updated': 'expert-management', // Uses eventType: 'connect-account-status'
+  'capability.updated': 'expert-management', // Uses eventType: 'capability-updated'
 } as const;
 
 export interface ClerkEventData {

@@ -1,0 +1,148 @@
+name: 🔍 Debug CI Failures
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  FORCE_COLOR: 1
+  NODE_NO_WARNINGS: 1
+
+jobs:
+  debug-environment:
+    name: 🔍 Environment Debug
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔍 Debug Environment Variables
+        run: |
+          echo "=== Environment Variables ==="
+          echo "GITHUB_WORKSPACE: $GITHUB_WORKSPACE"
+          echo "GITHUB_REPOSITORY: $GITHUB_REPOSITORY"
+          echo "GITHUB_REF: $GITHUB_REF"
+          echo "GITHUB_SHA: $GITHUB_SHA"
+          echo "NODE_VERSION: ${NODE_VERSION:-'not set'}"
+          echo "=== Available Secrets (masked) ==="
+          echo "NEON_API_KEY: ${{ secrets.NEON_API_KEY && 'SET' || 'NOT SET' }}"
+          echo "=== Available Variables ==="
+          echo "NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID || 'NOT SET' }}"
+          echo "=== System Info ==="
+          uname -a
+          df -h
+          free -h
+
+      - name: 📦 Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: 🔧 Test Node.js Setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 📦 Test PNPM Installation
+        run: |
+          echo "=== PNPM Installation Test ==="
+          which pnpm || echo "PNPM not found in PATH"
+          pnpm --version || echo "PNPM version check failed"
+          pnpm config get cache-dir || echo "Cache dir check failed"
+          echo "=== PNPM Cache Info ==="
+          ls -la ~/.pnpm-state/ || echo "No PNPM state directory"
+
+      - name: 🔍 Test Network Connectivity
+        run: |
+          echo "=== Network Connectivity Tests ==="
+          echo "Testing GitHub API..."
+          curl -I https://api.github.com/ || echo "GitHub API unreachable"
+          echo "Testing NPM Registry..."
+          curl -I https://registry.npmjs.org/ || echo "NPM Registry unreachable"
+          echo "Testing Neon API..."
+          curl -I https://console.neon.tech/api/v2/ || echo "Neon API unreachable"
+
+  debug-neon:
+    name: 🗄️ Debug Neon Configuration
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🔍 Test Neon API Connection
+        run: |
+          echo "=== Testing Neon API Connection ==="
+          if [ -z "${{ secrets.NEON_API_KEY }}" ]; then
+            echo "❌ NEON_API_KEY is not set"
+            exit 1
+          fi
+
+          if [ -z "${{ vars.NEON_PROJECT_ID }}" ]; then
+            echo "❌ NEON_PROJECT_ID is not set"
+            exit 1
+          fi
+
+          echo "✅ Both NEON_API_KEY and NEON_PROJECT_ID are set"
+
+          # Test API connection
+          response=$(curl -s -w "HTTP_CODE:%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.NEON_API_KEY }}" \
+            -H "Accept: application/json" \
+            "https://console.neon.tech/api/v2/projects/${{ vars.NEON_PROJECT_ID }}")
+
+          http_code=$(echo "$response" | grep -o "HTTP_CODE:[0-9]*" | cut -d: -f2)
+
+          if [ "$http_code" = "200" ]; then
+            echo "✅ Neon API connection successful"
+          else
+            echo "❌ Neon API connection failed with HTTP code: $http_code"
+            echo "Response: $(echo "$response" | sed 's/HTTP_CODE:[0-9]*//')"
+          fi
+
+      - name: 🔍 Test Branch Creation (Dry Run)
+        run: |
+          echo "=== Testing Branch Creation Logic ==="
+          branch_name="preview/pr-${{ github.event.number }}-test-$(date +%s)"
+          echo "Would create branch: $branch_name"
+          echo "Project ID: ${{ vars.NEON_PROJECT_ID }}"
+          echo "API Key length: ${{ secrets.NEON_API_KEY && '***' || 'NOT SET' }}"
+
+  debug-dependencies:
+    name: 📦 Debug Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: 📦 Verify PNPM Installation
+        run: |
+          echo "=== PNPM Installation Verification ==="
+          pnpm --version
+          pnpm config get cache-dir
+
+      - name: 🔍 Test Dependency Installation
+        run: |
+          echo "=== Testing Dependency Installation ==="
+          echo "Package.json exists: $(test -f package.json && echo 'YES' || echo 'NO')"
+          echo "pnpm-lock.yaml exists: $(test -f pnpm-lock.yaml && echo 'YES' || echo 'NO')"
+
+          # Test installation with verbose output
+          time pnpm install --frozen-lockfile --reporter=append-only
+
+          echo "=== Post-installation Check ==="
+          ls -la node_modules/ | head -10
+          pnpm list --depth=0 | head -20

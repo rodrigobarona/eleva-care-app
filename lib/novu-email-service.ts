@@ -1,5 +1,6 @@
 // Email templates are now imported through the email service functions
 // Import email templates
+import { ENV_CONFIG } from '@/config/env';
 import AppointmentConfirmationTemplate from '@/emails/appointments/appointment-confirmation';
 import { ExpertPayoutNotificationTemplate } from '@/emails/payments';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
@@ -89,9 +90,33 @@ import React from 'react';
  * - Scalable: Easy to add new templates and variants
  */
 
-const novu = new Novu({
-  secretKey: process.env.NOVU_SECRET_KEY!,
-});
+// Initialize Novu client with proper error handling
+let novu: Novu | null = null;
+let initializationError: string | null = null;
+
+try {
+  console.log('[Novu Email Service] Initializing client...');
+
+  if (ENV_CONFIG.NOVU_SECRET_KEY) {
+    novu = new Novu({
+      secretKey: ENV_CONFIG.NOVU_SECRET_KEY,
+      ...(ENV_CONFIG.NOVU_BASE_URL && { apiUrl: ENV_CONFIG.NOVU_BASE_URL }),
+    });
+    console.log('[Novu Email Service] ✅ Client initialized successfully');
+  } else if (ENV_CONFIG.NOVU_API_KEY) {
+    novu = new Novu({
+      secretKey: ENV_CONFIG.NOVU_API_KEY,
+      ...(ENV_CONFIG.NOVU_BASE_URL && { apiUrl: ENV_CONFIG.NOVU_BASE_URL }),
+    });
+    console.log('[Novu Email Service] ✅ Client initialized with legacy API key');
+  } else {
+    initializationError = 'Missing NOVU_SECRET_KEY or NOVU_API_KEY environment variable';
+    console.error(`[Novu Email Service] ❌ ${initializationError}`);
+  }
+} catch (error) {
+  initializationError = `Initialization failed: ${error}`;
+  console.error('[Novu Email Service] ❌ Failed to initialize:', error);
+}
 
 /**
  * Enhanced email service that integrates Novu workflows with Resend templates
@@ -421,6 +446,10 @@ export async function sendNovuEmailEnhanced(options: EnhancedEmailOptions) {
       locale = 'en',
     } = options;
 
+    if (!novu) {
+      throw new Error('Novu client not initialized. Cannot send email.');
+    }
+
     const result = await novu.trigger({
       workflowId,
       to: { subscriberId },
@@ -457,6 +486,10 @@ export async function sendNovuEmail(options: NovuEmailOptions) {
   try {
     const { workflowId, subscriberId, templateData, overrides } = options;
 
+    if (!novu) {
+      throw new Error('Novu client not initialized. Cannot send email.');
+    }
+
     const result = await novu.trigger({
       workflowId,
       to: { subscriberId },
@@ -481,6 +514,10 @@ export async function sendNovuEmailWithCustomTemplate(
 ) {
   try {
     const emailContent = customTemplate();
+
+    if (!novu) {
+      throw new Error('Novu client not initialized. Cannot send email.');
+    }
 
     const result = await novu.trigger({
       workflowId,
@@ -632,15 +669,31 @@ export async function getSubscriberForEmail(clerkUserId: string) {
 }
 
 export async function triggerNovuWorkflow(workflowId: string, payload: TriggerWorkflowPayload) {
+  if (!novu) {
+    const errorMsg = `[Novu Email Service] Cannot trigger workflow ${workflowId}: ${initializationError || 'client not initialized'}`;
+    console.error(errorMsg);
+    throw new Error(initializationError || 'Novu client not initialized');
+  }
+
   try {
+    console.log('[Novu Email Service] 🔔 Triggering workflow:', {
+      workflowId,
+      subscriberId: payload.subscriberId,
+    });
+
     const result = await novu.trigger({
       workflowId,
       to: payload.subscriberId,
       payload,
     });
+
+    console.log('[Novu Email Service] ✅ Successfully triggered workflow:', workflowId);
     return result;
   } catch (error) {
-    console.error('Error triggering Novu workflow:', error);
+    console.error('[Novu Email Service] ❌ Failed to trigger workflow:', {
+      workflowId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     throw error;
   }
 }
@@ -747,8 +800,365 @@ export class ElevaEmailService {
       eventTitle: data.eventTitle,
       meetLink: data.meetLink,
       notes: data.notes,
+      locale: data.locale || 'en',
     });
+
     return render(template);
+  }
+
+  /**
+   * 🆕 Render welcome email using React Email template
+   */
+  async renderWelcomeEmail(data: {
+    userName: string;
+    firstName?: string;
+    dashboardUrl?: string;
+    locale?: string;
+    userSegment?: 'patient' | 'expert' | 'admin';
+    templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
+  }) {
+    const {
+      userSegment = 'patient',
+      templateVariant = 'default',
+      locale = 'en',
+      ...templateData
+    } = data;
+
+    // Use enhanced template selection if advanced options provided
+    if (data.userSegment || data.templateVariant) {
+      const selector: TemplateSelector = {
+        workflowId: 'user-lifecycle',
+        eventType: 'welcome',
+        userSegment,
+        locale,
+        templateVariant,
+      };
+
+      const result = await this.renderEmailWithSelection(selector, templateData);
+      return result.html;
+    }
+
+    // Render the React Email template
+    const template = React.createElement(WelcomeEmailTemplate, {
+      userName: data.userName,
+      dashboardUrl: data.dashboardUrl || '/dashboard',
+      locale: data.locale || 'en',
+    });
+
+    return render(template);
+  }
+
+  /**
+   * 🆕 Render appointment reminder using React Email template
+   */
+  async renderAppointmentReminder(data: {
+    userName: string;
+    expertName: string;
+    appointmentType: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    meetingUrl?: string;
+    timeUntilAppointment?: string;
+    locale?: string;
+    userSegment?: 'patient' | 'expert' | 'admin';
+    templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
+  }) {
+    const {
+      userSegment = 'patient',
+      templateVariant = 'reminder',
+      locale = 'en',
+      ...templateData
+    } = data;
+
+    // Use enhanced template selection if advanced options provided
+    if (data.userSegment || data.templateVariant) {
+      const selector: TemplateSelector = {
+        workflowId: 'appointment-reminder',
+        eventType: 'reminder',
+        userSegment,
+        locale,
+        templateVariant,
+      };
+
+      const result = await this.renderEmailWithSelection(selector, templateData);
+      return result.html;
+    }
+
+    // Import and render the appointment reminder template
+    const { default: AppointmentReminderTemplate } = await import(
+      '@/emails/appointments/appointment-reminder'
+    );
+
+    const template = React.createElement(AppointmentReminderTemplate, {
+      patientName: data.userName,
+      expertName: data.expertName,
+      appointmentType: data.appointmentType,
+      appointmentDate: data.appointmentDate,
+      appointmentTime: data.appointmentTime,
+      meetingLink: data.meetingUrl,
+    });
+
+    return render(template);
+  }
+
+  /**
+   * 🆕 Render payment confirmation using React Email template
+   */
+  async renderPaymentConfirmation(data: {
+    customerName: string;
+    amount: string;
+    currency?: string;
+    transactionId?: string;
+    appointmentDetails?: {
+      service: string;
+      expert: string;
+      date: string;
+      time: string;
+      duration?: string;
+    };
+    locale?: string;
+    userSegment?: 'patient' | 'expert' | 'admin';
+    templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
+  }) {
+    const {
+      userSegment = 'patient',
+      templateVariant = 'default',
+      locale = 'en',
+      ...templateData
+    } = data;
+
+    // Use enhanced template selection if advanced options provided
+    if (data.userSegment || data.templateVariant) {
+      const selector: TemplateSelector = {
+        workflowId: 'payment-confirmation',
+        eventType: 'success',
+        userSegment,
+        locale,
+        templateVariant,
+      };
+
+      const result = await this.renderEmailWithSelection(selector, templateData);
+      return result.html;
+    }
+
+    // Import and render the payment confirmation template
+    const { default: PaymentConfirmationTemplate } = await import(
+      '@/emails/payments/payment-confirmation'
+    );
+
+    const template = React.createElement(PaymentConfirmationTemplate, {
+      customerName: data.customerName,
+      amount: data.amount,
+      currency: data.currency || 'EUR',
+      transactionId: data.transactionId,
+      expertName: data.appointmentDetails?.expert,
+      serviceName: data.appointmentDetails?.service,
+      appointmentDate: data.appointmentDetails?.date,
+      appointmentTime: data.appointmentDetails?.time,
+      locale: data.locale || 'en',
+    });
+
+    return render(template);
+  }
+
+  /**
+   * 🆕 Render Multibanco payment reminder using React Email template
+   */
+  async renderMultibancoPaymentReminder(data: {
+    customerName: string;
+    entity: string;
+    reference: string;
+    amount: string;
+    expiresAt: string;
+    appointmentDetails?: {
+      service: string;
+      expert: string;
+      date: string;
+      time: string;
+      duration: string;
+    };
+    reminderType: 'gentle' | 'urgent';
+    locale?: string;
+    userSegment?: 'patient' | 'expert' | 'admin';
+    templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
+  }) {
+    const {
+      userSegment = 'patient',
+      templateVariant = data.reminderType === 'urgent' ? 'urgent' : 'reminder',
+      locale = 'en',
+      ...templateData
+    } = data;
+
+    // Use enhanced template selection if advanced options provided
+    if (data.userSegment || data.templateVariant) {
+      const selector: TemplateSelector = {
+        workflowId: 'multibanco-payment-reminder',
+        eventType: data.reminderType,
+        userSegment,
+        locale,
+        templateVariant,
+      };
+
+      const result = await this.renderEmailWithSelection(selector, templateData);
+      return result.html;
+    }
+
+    const template = React.createElement(MultibancoPaymentReminderTemplate, {
+      customerName: data.customerName,
+      multibancoEntity: data.entity,
+      multibancoReference: data.reference,
+      multibancoAmount: data.amount,
+      voucherExpiresAt: data.expiresAt,
+      expertName: data.appointmentDetails?.expert,
+      serviceName: data.appointmentDetails?.service,
+      appointmentDate: data.appointmentDetails?.date,
+      appointmentTime: data.appointmentDetails?.time,
+      duration: data.appointmentDetails?.duration
+        ? parseInt(data.appointmentDetails.duration)
+        : undefined,
+      reminderType: data.reminderType,
+      locale: data.locale || 'en',
+    });
+
+    return render(template);
+  }
+
+  /**
+   * 🆕 Render expert payout notification using React Email template
+   */
+  async renderExpertPayoutNotification(data: {
+    expertName: string;
+    amount: string;
+    currency?: string;
+    payoutDate: string;
+    payoutMethod: string;
+    transactionId?: string;
+    locale?: string;
+    userSegment?: 'patient' | 'expert' | 'admin';
+    templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
+  }) {
+    const {
+      userSegment = 'expert',
+      templateVariant = 'default',
+      locale = 'en',
+      ...templateData
+    } = data;
+
+    // Use enhanced template selection if advanced options provided
+    if (data.userSegment || data.templateVariant) {
+      const selector: TemplateSelector = {
+        workflowId: 'expert-payout-notification',
+        eventType: 'payout',
+        userSegment,
+        locale,
+        templateVariant,
+      };
+
+      const result = await this.renderEmailWithSelection(selector, templateData);
+      return result.html;
+    }
+
+    const template = React.createElement(ExpertPayoutNotificationTemplate, {
+      expertName: data.expertName,
+      payoutAmount: data.amount,
+      currency: data.currency || 'EUR',
+      expectedArrivalDate: data.payoutDate,
+      payoutId: data.transactionId,
+      _locale: data.locale || 'en',
+    });
+
+    return render(template);
+  }
+
+  /**
+   * 🆕 Render expert notification using React Email template
+   */
+  async renderExpertNotification(data: {
+    expertName: string;
+    notificationType: string;
+    message: string;
+    actionUrl?: string;
+    actionText?: string;
+    locale?: string;
+    userSegment?: 'patient' | 'expert' | 'admin';
+    templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
+  }) {
+    const {
+      userSegment = 'expert',
+      templateVariant = 'default',
+      locale = 'en',
+      ...templateData
+    } = data;
+
+    // Use enhanced template selection if advanced options provided
+    if (data.userSegment || data.templateVariant) {
+      const selector: TemplateSelector = {
+        workflowId: 'expert-notification',
+        eventType: data.notificationType,
+        userSegment,
+        locale,
+        templateVariant,
+      };
+
+      const result = await this.renderEmailWithSelection(selector, templateData);
+      return result.html;
+    }
+
+    // Import and render the expert notification template
+    const { default: ExpertNotificationTemplate } = await import(
+      '@/emails/experts/expert-notification'
+    );
+
+    const template = React.createElement(ExpertNotificationTemplate, {
+      expertName: data.expertName,
+      notificationTitle: data.notificationType,
+      notificationMessage: data.message,
+      actionUrl: data.actionUrl,
+      actionText: data.actionText,
+      locale: data.locale || 'en',
+    });
+
+    return render(template);
+  }
+
+  /**
+   * 🆕 Generic email renderer for any template with fallback
+   */
+  async renderGenericEmail(data: {
+    templateName: string;
+    templateData: Record<string, unknown>;
+    subject: string;
+    userSegment?: 'patient' | 'expert' | 'admin';
+    templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
+    locale?: string;
+  }) {
+    const { userSegment = 'patient', templateVariant = 'default', locale = 'en' } = data;
+
+    try {
+      // Try to use enhanced template selection
+      const selector: TemplateSelector = {
+        workflowId: data.templateName,
+        eventType: 'default',
+        userSegment,
+        locale,
+        templateVariant,
+      };
+
+      const result = await this.renderEmailWithSelection(selector, data.templateData);
+      return result.html;
+    } catch (error) {
+      console.warn(`Failed to render enhanced template for ${data.templateName}:`, error);
+
+      // Fallback to basic HTML template
+      return `
+        <div style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2>${data.subject}</h2>
+          ${Object.entries(data.templateData)
+            .map(([key, value]) => `<p><strong>${key}:</strong> ${value}</p>`)
+            .join('')}
+        </div>
+      `;
+    }
   }
 
   /**
@@ -796,56 +1206,6 @@ export class ElevaEmailService {
 
     // Fallback to original implementation for backward compatibility
     const template = React.createElement(MultibancoBookingPendingTemplate, data);
-    return render(template);
-  }
-
-  /**
-   * Render Multibanco payment reminder email with enhanced selection
-   */
-  async renderMultibancoPaymentReminder(data: {
-    customerName: string;
-    expertName: string;
-    serviceName: string;
-    appointmentDate: string;
-    appointmentTime: string;
-    timezone: string;
-    duration: number;
-    multibancoEntity: string;
-    multibancoReference: string;
-    multibancoAmount: string;
-    voucherExpiresAt: string;
-    hostedVoucherUrl: string;
-    customerNotes?: string;
-    reminderType: 'gentle' | 'urgent';
-    daysRemaining: number;
-    locale?: string;
-    // ELEVA-31: Enhanced options
-    userSegment?: 'patient' | 'expert' | 'admin';
-    templateVariant?: 'default' | 'urgent' | 'reminder' | 'minimal' | 'branded';
-  }) {
-    const {
-      userSegment = 'patient',
-      templateVariant = 'default',
-      locale = 'en',
-      ...templateData
-    } = data;
-
-    // Use enhanced template selection if advanced options provided
-    if (data.userSegment || data.templateVariant) {
-      const selector: TemplateSelector = {
-        workflowId: 'multibanco-payment-reminder',
-        eventType: 'default',
-        userSegment,
-        locale,
-        templateVariant,
-      };
-
-      const result = await this.renderEmailWithSelection(selector, templateData);
-      return result.html;
-    }
-
-    // Fallback to original implementation for backward compatibility
-    const template = React.createElement(MultibancoPaymentReminderTemplate, data);
     return render(template);
   }
 
