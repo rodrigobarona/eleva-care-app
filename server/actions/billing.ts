@@ -1,10 +1,16 @@
 'use server';
 
+import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { createStripeConnectAccount, getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
+});
 
 /**
  * @fileoverview Server actions for managing Stripe Connect integration in the Eleva Care application.
@@ -226,6 +232,74 @@ export async function syncIdentityToConnect() {
     return {
       success: false,
       message: error instanceof Error ? error.message : 'An unknown error occurred',
+    };
+  }
+}
+
+/**
+ * Creates a refund for a connected account charge with proper application fee handling.
+ *
+ * @param chargeId - The ID of the charge to refund
+ * @param amount - Optional partial refund amount in cents (full refund if not provided)
+ * @param reason - Optional refund reason
+ * @returns Promise with refund result
+ */
+export async function createConnectRefund(
+  chargeId: string,
+  amount?: number,
+  reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer',
+) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return { success: false, message: 'Not authenticated' };
+    }
+
+    // Get user's connected account ID
+    const dbUser = await db.query.UserTable.findFirst({
+      where: eq(UserTable.clerkUserId, userId),
+    });
+
+    if (!dbUser?.stripeConnectAccountId) {
+      return { success: false, message: 'No connected Stripe account found' };
+    }
+
+    // Create refund with application fee refund enabled
+    const refund = await stripe.refunds.create(
+      {
+        charge: chargeId,
+        refund_application_fee: true, // Refunds the platform fee
+        ...(amount && { amount }), // Partial refund if amount specified
+        ...(reason && { reason }),
+      },
+      {
+        stripeAccount: dbUser.stripeConnectAccountId,
+      },
+    );
+
+    console.log('Refund created successfully:', {
+      refundId: refund.id,
+      chargeId,
+      amount: refund.amount,
+      status: refund.status,
+      userId,
+    });
+
+    return {
+      success: true,
+      message: 'Refund processed successfully',
+      refund: {
+        id: refund.id,
+        amount: refund.amount,
+        currency: refund.currency,
+        status: refund.status,
+      },
+    };
+  } catch (error) {
+    console.error('Failed to create refund:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to process refund',
     };
   }
 }
