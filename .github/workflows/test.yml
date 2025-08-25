@@ -32,6 +32,14 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
+      - name: 📦 Install PNPM if not available
+        run: |
+          if ! command -v pnpm &> /dev/null; then
+            echo "PNPM not found, installing..."
+            npm install -g pnpm@latest
+          fi
+          echo "PNPM version: $(pnpm --version)"
+
       - name: 📦 Get PNPM version
         id: pnpm-version
         run: echo "version=$(pnpm --version)" >> $GITHUB_OUTPUT

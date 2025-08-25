@@ -36,6 +36,12 @@ jobs:
       || github.event.action == 'reopened')
     runs-on: ubuntu-latest
     steps:
+      - name: 🔍 Debug Neon Configuration
+        run: |
+          echo "Project ID set: ${{ vars.NEON_PROJECT_ID != '' && 'YES' || 'NO' }}"
+          echo "API Key set: ${{ secrets.NEON_API_KEY != '' && 'YES' || 'NO' }}"
+          echo "Branch name will be: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}"
+
       - name: 🗄️ Create Neon Branch
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v5
@@ -43,6 +49,8 @@ jobs:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch_name: preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}
           api_key: ${{ secrets.NEON_API_KEY }}
+        continue-on-error: false
+        timeout-minutes: 5
 
       - name: 🎉 Comment on PR with branch info
         uses: actions/github-script@v7
