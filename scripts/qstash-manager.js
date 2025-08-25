@@ -25,6 +25,69 @@ require('dotenv').config();
 const QSTASH_TOKEN = process.env.QSTASH_TOKEN;
 const QSTASH_BASE_URL = 'https://qstash.upstash.io/v2';
 
+// Define all schedule configurations (mirroring config/qstash.ts)
+// Note: keep-alive is handled by Vercel cron (vercel.json) for maximum reliability
+// This ensures system health checks run even if QStash service is down
+const CONFIGURED_SCHEDULES = {
+  appointmentReminders: {
+    endpoint: '/api/cron/appointment-reminders',
+    cron: '0 9 * * *',
+    description: '24-hour appointment reminders for confirmed bookings',
+    priority: 'high',
+  },
+  appointmentReminders1Hr: {
+    endpoint: '/api/cron/appointment-reminders-1hr',
+    cron: '*/15 * * * *',
+    description: '1-hour appointment reminders for upcoming sessions',
+    priority: 'high',
+  },
+  processExpertTransfers: {
+    endpoint: '/api/cron/process-expert-transfers',
+    cron: '0 */2 * * *',
+    description: 'Process pending expert payouts based on aging requirements',
+    priority: 'critical',
+  },
+  processPendingPayouts: {
+    endpoint: '/api/cron/process-pending-payouts',
+    cron: '0 6 * * *',
+    description: 'Check and prepare expert payouts for processing',
+    priority: 'high',
+  },
+  checkUpcomingPayouts: {
+    endpoint: '/api/cron/check-upcoming-payouts',
+    cron: '0 12 * * *',
+    description: 'Notify experts about upcoming payouts and account status',
+    priority: 'medium',
+  },
+  sendPaymentReminders: {
+    endpoint: '/api/cron/send-payment-reminders',
+    cron: '0 */6 * * *',
+    description: 'Send staged Multibanco payment reminders (Day 3 gentle, Day 6 urgent)',
+    priority: 'high',
+  },
+  cleanupExpiredReservations: {
+    endpoint: '/api/cron/cleanup-expired-reservations',
+    cron: '*/15 * * * *',
+    description: 'Clean up expired slot reservations and pending payments',
+    priority: 'medium',
+  },
+  cleanupBlockedDates: {
+    endpoint: '/api/cron/cleanup-blocked-dates',
+    cron: '0 0 * * *',
+    description: 'Remove old blocked dates and calendar conflicts',
+    priority: 'low',
+  },
+  processTasks: {
+    endpoint: '/api/cron/process-tasks',
+    cron: '0 4 * * *',
+    description: 'General system maintenance, audit logs, and administrative tasks',
+    priority: 'medium',
+  },
+};
+
+// Dynamically count configured jobs to ensure consistency
+const CONFIGURED_JOBS_COUNT = Object.keys(CONFIGURED_SCHEDULES).length;
+
 if (!QSTASH_TOKEN) {
   console.error('❌ QSTASH_TOKEN environment variable is required');
   process.exit(1);
@@ -94,70 +157,9 @@ async function scheduleAllJobs() {
         ? `https://${process.env.VERCEL_URL}`
         : 'http://localhost:3000';
 
-  // Define all schedule configurations (mirroring config/qstash.ts)
-  const schedules = {
-    // Note: keep-alive is handled by Vercel cron (vercel.json) for maximum reliability
-    // This ensures system health checks run even if QStash service is down
-
-    appointmentReminders: {
-      endpoint: '/api/cron/appointment-reminders',
-      cron: '0 9 * * *',
-      description: '24-hour appointment reminders for confirmed bookings',
-      priority: 'high',
-    },
-    appointmentReminders1Hr: {
-      endpoint: '/api/cron/appointment-reminders-1hr',
-      cron: '*/15 * * * *',
-      description: '1-hour appointment reminders for upcoming sessions',
-      priority: 'high',
-    },
-    processExpertTransfers: {
-      endpoint: '/api/cron/process-expert-transfers',
-      cron: '0 */2 * * *',
-      description: 'Process pending expert payouts based on aging requirements',
-      priority: 'critical',
-    },
-    processPendingPayouts: {
-      endpoint: '/api/cron/process-pending-payouts',
-      cron: '0 6 * * *',
-      description: 'Check and prepare expert payouts for processing',
-      priority: 'high',
-    },
-    checkUpcomingPayouts: {
-      endpoint: '/api/cron/check-upcoming-payouts',
-      cron: '0 12 * * *',
-      description: 'Notify experts about upcoming payouts and account status',
-      priority: 'medium',
-    },
-    sendPaymentReminders: {
-      endpoint: '/api/cron/send-payment-reminders',
-      cron: '0 */6 * * *',
-      description: 'Send staged Multibanco payment reminders (Day 3 gentle, Day 6 urgent)',
-      priority: 'high',
-    },
-    cleanupExpiredReservations: {
-      endpoint: '/api/cron/cleanup-expired-reservations',
-      cron: '*/15 * * * *',
-      description: 'Clean up expired slot reservations and pending payments',
-      priority: 'medium',
-    },
-    cleanupBlockedDates: {
-      endpoint: '/api/cron/cleanup-blocked-dates',
-      cron: '0 0 * * *',
-      description: 'Remove old blocked dates and calendar conflicts',
-      priority: 'low',
-    },
-    processTasks: {
-      endpoint: '/api/cron/process-tasks',
-      cron: '0 4 * * *',
-      description: 'General system maintenance, audit logs, and administrative tasks',
-      priority: 'medium',
-    },
-  };
-
   const results = [];
 
-  for (const [jobName, config] of Object.entries(schedules)) {
+  for (const [jobName, config] of Object.entries(CONFIGURED_SCHEDULES)) {
     try {
       console.log(`🔄 Scheduling ${jobName}...`);
       console.log(`   📍 Endpoint: ${config.endpoint}`);
@@ -259,7 +261,7 @@ async function showStats() {
     });
 
     console.log(`📋 Total Schedules: ${schedules.length}`);
-    console.log(`📋 Total Configured: 10 (from config)`); // Hard-coded for now
+    console.log(`📋 Total Configured: ${CONFIGURED_JOBS_COUNT} (from config)`);
     console.log(`🔄 QStash Available: ${QSTASH_TOKEN ? '✅' : '❌'}`);
     // Compute baseUrl using the same precedence as elsewhere
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
@@ -290,7 +292,7 @@ async function showStats() {
     });
 
     // Check if all configured jobs are scheduled
-    const isInSync = schedules.length === 10;
+    const isInSync = schedules.length === CONFIGURED_JOBS_COUNT;
     console.log(`\n🔄 Sync Status: ${isInSync ? '✅ In sync' : '⚠️ Out of sync'}`);
 
     if (!isInSync) {
