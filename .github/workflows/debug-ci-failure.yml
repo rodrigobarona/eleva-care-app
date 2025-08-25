@@ -34,6 +34,11 @@ jobs:
           df -h
           free -h
 
+      - name: 📦 Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
       - name: 🔧 Test Node.js Setup
         uses: actions/setup-node@v4
         with:
@@ -112,15 +117,20 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
+      - name: 📦 Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: 'pnpm'
 
-      - name: 📦 Install PNPM explicitly
+      - name: 📦 Verify PNPM Installation
         run: |
-          echo "=== Installing PNPM ==="
-          npm install -g pnpm@latest
+          echo "=== PNPM Installation Verification ==="
           pnpm --version
           pnpm config get cache-dir
 
