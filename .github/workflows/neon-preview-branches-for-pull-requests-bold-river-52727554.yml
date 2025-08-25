@@ -41,21 +41,41 @@ jobs:
         env:
           NEON_PROJECT_ID: ${{ vars.NEON_PROJECT_ID }}
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          NEON_DATABASE_USERNAME: ${{ secrets.NEON_DATABASE_USERNAME }}
+          NEON_DATABASE_NAME: ${{ vars.NEON_DATABASE_NAME }}
           RAW_BRANCH_NAME: ${{ needs.setup.outputs.branch }}
           PR_NUMBER: ${{ github.event.number }}
         run: |
-          # Check environment variables with bash
+          echo "🔍 Checking Neon Configuration..."
+
+          # Check required environment variables
           if [ -n "$NEON_PROJECT_ID" ]; then
-            echo "Project ID set: YES"
+            echo "✅ Project ID set: YES"
           else
-            echo "Project ID set: NO"
+            echo "❌ Project ID set: NO (Required: Set NEON_PROJECT_ID in repository variables)"
           fi
 
           if [ -n "$NEON_API_KEY" ]; then
-            echo "API Key set: YES"
+            echo "✅ API Key set: YES"
           else
-            echo "API Key set: NO"
+            echo "❌ API Key set: NO (Required: Set NEON_API_KEY in repository secrets)"
           fi
+
+          # Check optional variables
+          if [ -n "$NEON_DATABASE_USERNAME" ]; then
+            echo "✅ Database Username set: YES"
+          else
+            echo "⚠️  Database Username set: NO (Optional: Will use 'neondb_owner' as default)"
+          fi
+
+          if [ -n "$NEON_DATABASE_NAME" ]; then
+            echo "✅ Database Name set: YES ($NEON_DATABASE_NAME)"
+          else
+            echo "⚠️  Database Name set: NO (Optional: Will use 'neondb' as default)"
+          fi
+
+          echo ""
+          echo "🌿 Branch Information:"
 
           # Sanitize branch name deterministically and safely
           sanitized_branch=$(echo "$RAW_BRANCH_NAME" | \
@@ -87,6 +107,28 @@ jobs:
           echo "sanitized_branch_name=$sanitized_branch" >> $GITHUB_OUTPUT
           echo "preview_branch_name=$preview_branch" >> $GITHUB_OUTPUT
 
+          echo ""
+          echo "📋 Configuration Summary:"
+          echo "- Project ID: $([ -n "$NEON_PROJECT_ID" ] && echo "✅ Set" || echo "❌ Missing")"
+          echo "- API Key: $([ -n "$NEON_API_KEY" ] && echo "✅ Set" || echo "❌ Missing")"
+          echo "- Username: $([ -n "$NEON_DATABASE_USERNAME" ] && echo "✅ Set" || echo "⚠️  Using default")"
+          echo "- Database: $([ -n "$NEON_DATABASE_NAME" ] && echo "✅ Set ($NEON_DATABASE_NAME)" || echo "⚠️  Using default (neondb)")"
+
+      - name: 🧹 Clean up existing branch if it exists
+        id: cleanup_existing_branch
+        continue-on-error: true
+        run: |
+          echo "Checking if branch already exists..."
+          if command -v neonctl &> /dev/null; then
+            # Try to delete existing branch (will fail silently if it doesn't exist)
+            neonctl branches delete "$PREVIEW_BRANCH_NAME" --project-id "${{ vars.NEON_PROJECT_ID }}" || echo "Branch doesn't exist or couldn't be deleted (this is fine)"
+          else
+            echo "neonctl not available, skipping cleanup"
+          fi
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+          PREVIEW_BRANCH_NAME: ${{ env.PREVIEW_BRANCH_NAME }}
+
       - name: 🗄️ Create Neon Branch
         id: create_neon_branch
         uses: neondatabase/create-branch-action@v5
@@ -94,18 +136,41 @@ jobs:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch_name: ${{ env.PREVIEW_BRANCH_NAME }}
           api_key: ${{ secrets.NEON_API_KEY }}
-          username: ${{ secrets.NEON_DATABASE_USERNAME }}
-        continue-on-error: false
+          username: ${{ secrets.NEON_DATABASE_USERNAME || 'neondb_owner' }}
+          database: ${{ vars.NEON_DATABASE_NAME || 'neondb' }}
+        continue-on-error: true
         timeout-minutes: 5
 
+      - name: 🔍 Debug branch creation result
+        run: |
+          echo "Branch creation result: ${{ steps.create_neon_branch.outcome }}"
+          echo "Branch ID: ${{ steps.create_neon_branch.outputs.branch_id }}"
+          echo "DB URL: ${{ steps.create_neon_branch.outputs.db_url }}"
+
+          if [ "${{ steps.create_neon_branch.outcome }}" != "success" ]; then
+            echo "Branch creation failed, but continuing with existing branch if available"
+            # Try to get existing branch info
+            if command -v neonctl &> /dev/null; then
+              echo "Attempting to get existing branch info..."
+              neonctl branches list --project-id "${{ vars.NEON_PROJECT_ID }}" | grep "${{ env.PREVIEW_BRANCH_NAME }}" || echo "Could not find existing branch"
+            fi
+          fi
+        env:
+          NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
+
       - name: 🎉 Comment on PR with branch info
+        if: steps.create_neon_branch.outcome == 'success' || steps.create_neon_branch.outputs.branch_id != ''
         uses: actions/github-script@v7
         with:
           script: |
-            const comment = `## 🗄️ Neon Preview Branch Created
+            const branchId = '${{ steps.create_neon_branch.outputs.branch_id }}';
+            const wasCreated = '${{ steps.create_neon_branch.outcome }}' === 'success';
+            const status = wasCreated ? 'Created' : 'Found existing';
 
-            **Branch ID**: \`${{ steps.create_neon_branch.outputs.branch_id }}\`
-            **Branch Name**: \`preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}\`
+            const comment = `## 🗄️ Neon Preview Branch ${status}
+
+            **Branch ID**: \`${branchId}\`
+            **Branch Name**: \`${{ env.PREVIEW_BRANCH_NAME }}\`
 
             🧪 Tests will run against this preview database to ensure database operations work correctly.
 
@@ -122,7 +187,7 @@ jobs:
     name: 🚀 Migrate Preview Database
     needs: [setup, create_neon_branch]
     runs-on: ubuntu-latest
-    if: needs.create_neon_branch.result == 'success'
+    if: needs.create_neon_branch.result != 'cancelled' && needs.create_neon_branch.outputs.branch_id != ''
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -160,7 +225,7 @@ jobs:
     name: 🧪 Test Against Preview Database
     needs: [setup, create_neon_branch, migrate_preview_db]
     runs-on: ubuntu-latest
-    if: needs.migrate_preview_db.result == 'success'
+    if: needs.migrate_preview_db.result == 'success' || (needs.create_neon_branch.outputs.branch_id != '' && needs.migrate_preview_db.result != 'cancelled')
     strategy:
       matrix:
         test-type: [integration, webhook-integration]
@@ -213,23 +278,25 @@ jobs:
 
   comment_test_results:
     name: 💬 Comment Test Results
-    needs: [setup, test_with_preview_db]
+    needs: [setup, create_neon_branch, test_with_preview_db]
     runs-on: ubuntu-latest
-    if: always() && needs.create_neon_branch.result == 'success'
+    if: always() && needs.create_neon_branch.outputs.branch_id != ''
     steps:
       - name: 💬 Update PR with test results
         uses: actions/github-script@v7
         with:
           script: |
             const testResults = '${{ needs.test_with_preview_db.result }}';
+            const branchCreationResult = '${{ needs.create_neon_branch.result }}';
             const emoji = testResults === 'success' ? '✅' : '❌';
             const status = testResults === 'success' ? 'PASSED' : 'FAILED';
+            const branchStatus = branchCreationResult === 'success' ? 'created' : 'found existing';
 
             const comment = `## 🧪 Preview Database Test Results
 
             ${emoji} **Tests ${status}** against preview database
 
-            **Branch**: \`preview/pr-${{ github.event.number }}-${{ needs.setup.outputs.branch }}\`
+            **Branch**: \`${{ needs.create_neon_branch.outputs.branch_id }}\` (${branchStatus})
             **Status**: ${status}
 
             ${testResults === 'success' ? 
