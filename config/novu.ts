@@ -725,7 +725,7 @@ export const multibancoPaymentReminderWorkflow = workflow(
           ? {
               service: payload.serviceName || '',
               expert: payload.expertName || '',
-              date: payload.appointmentTime || '',
+              date: payload.appointmentDate || '',
               time: payload.appointmentTime || '',
               duration: payload.duration ? `${payload.duration} minutes` : '60 minutes',
             }
