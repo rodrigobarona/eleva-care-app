@@ -125,9 +125,12 @@ export async function checkWebhookHealth(
   // 2. Check authentication configuration
   if (endpoint.authMethod === 'signature') {
     const secretEnvVar = endpoint.requiredEnvVars.find(
-      (env) => env.includes('WEBHOOK_SECRET') || env.includes('SIGNING_SECRET'),
+      (env) => env.includes('SECRET') || env.includes('SIGNING'),
     );
-    if (secretEnvVar && process.env[secretEnvVar]) {
+    const secretValue = secretEnvVar
+      ? process.env[secretEnvVar] || ENV_CONFIG[secretEnvVar as keyof typeof ENV_CONFIG]
+      : null;
+    if (secretEnvVar && secretValue) {
       result.checks.authConfigured = true;
     } else {
       result.issues.push('Webhook signature verification not configured');
