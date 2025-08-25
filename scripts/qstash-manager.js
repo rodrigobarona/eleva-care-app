@@ -115,8 +115,42 @@ async function makeQStashRequest(endpoint, method = 'GET', body = null) {
       throw new Error(`QStash API error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    return data;
+    // Handle 204 No Content or empty responses
+    if (response.status === 204) {
+      return { success: true, message: 'Operation completed successfully' };
+    }
+
+    // Check if response has content to parse
+    const contentLength = response.headers.get('content-length');
+    const contentType = response.headers.get('content-type');
+
+    // If content-length is 0 or content-type indicates no JSON, return sentinel
+    if (contentLength === '0' || !contentType || !contentType.includes('application/json')) {
+      // For non-JSON responses, try to get text content if available
+      if (contentType && contentType.includes('text/')) {
+        const textContent = await response.text();
+        return textContent || { success: true, message: 'Operation completed successfully' };
+      }
+      return { success: true, message: 'Operation completed successfully' };
+    }
+
+    // Attempt to parse JSON, but handle empty bodies gracefully
+    const text = await response.text();
+    if (!text.trim()) {
+      return { success: true, message: 'Operation completed successfully' };
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      // If JSON parsing fails, return the raw text
+      console.warn('Failed to parse JSON response, returning raw text:', parseError.message);
+      return {
+        success: true,
+        data: text,
+        message: 'Response received but could not parse as JSON',
+      };
+    }
   } catch (error) {
     console.error(`❌ QStash request failed:`, error);
     throw error;
