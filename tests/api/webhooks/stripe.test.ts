@@ -39,24 +39,10 @@ jest.mock('@/server/actions/user-sync', () => ({
   ensureFullUserSynchronization: jest.fn().mockResolvedValue({ success: true }),
 }));
 
-// Mock Novu integration
-jest.mock('@/app/utils/novu', () => ({
-  triggerWorkflow: jest.fn().mockResolvedValue({ success: true }),
-}));
-
-jest.mock('@/lib/novu-utils', () => ({
-  novuUtils: {
-    trigger: jest.fn().mockResolvedValue({ success: true }),
-  },
-}));
-
-jest.mock('@/lib/novu-email-service', () => ({
-  elevaEmailService: {
-    renderPaymentConfirmation: jest.fn().mockResolvedValue('<html>Mock Email</html>'),
-    renderAppointmentReminder: jest.fn().mockResolvedValue('<html>Mock Email</html>'),
-    renderGenericEmail: jest.fn().mockResolvedValue('<html>Mock Email</html>'),
-  },
-}));
+// Mock Novu integration using manual mocks
+jest.mock('@/app/utils/novu');
+jest.mock('@/lib/novu-utils');
+jest.mock('@/lib/novu-email-service');
 
 jest.mock('stripe', () => {
   return jest.fn().mockImplementation(() => ({
