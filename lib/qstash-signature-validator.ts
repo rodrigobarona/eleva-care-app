@@ -1,4 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
+import { qstash } from '@/config/qstash';
 import crypto from 'crypto';
 import { NextRequest } from 'next/server';
 
@@ -135,20 +136,22 @@ export async function validateQStashRequest(
     };
   }
 
-  // 2. Fallback: Check for custom QStash header (legacy)
-  const hasQStashHeader = request.headers.get('x-qstash-request') === 'true';
-  if (hasQStashHeader) {
-    // Still validate user agent for additional security
-    const userAgent = request.headers.get('user-agent') || '';
-    const isUpstashUserAgent =
-      userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
+  // 2. Fallback: Check for custom QStash header (legacy) - only when fallbackAuth is enabled
+  if (qstash.security.fallbackAuth) {
+    const hasQStashHeader = request.headers.get('x-qstash-request') === 'true';
+    if (hasQStashHeader) {
+      // Still validate user agent for additional security
+      const userAgent = request.headers.get('user-agent') || '';
+      const isUpstashUserAgent =
+        userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
 
-    if (isUpstashUserAgent) {
-      return {
-        isValid: true,
-        validationType: 'header',
-        details: 'Validated via x-qstash-request header with Upstash user agent',
-      };
+      if (isUpstashUserAgent) {
+        return {
+          isValid: true,
+          validationType: 'header',
+          details: 'Validated via x-qstash-request header with Upstash user agent (fallback mode)',
+        };
+      }
     }
   }
 

@@ -122,7 +122,7 @@ export const qstash = {
 
   // 🔒 Security configuration
   security: {
-    requiredHeaders: ['Upstash-Signature', 'x-qstash-request'],
+    requiredHeaders: ['Upstash-Signature'],
     // Match user agent case-insensitively at the edge/middleware
     allowedUserAgents: ['upstash', 'qstash'],
     fallbackAuth: process.env.NODE_ENV === 'production' ? false : true,
