@@ -18,12 +18,39 @@ console.log('🔍 Starting Novu Configuration Diagnostics...\n');
 
 // Check if we're in development or need to start the Next.js app
 const isDev = process.env.NODE_ENV !== 'production';
+let nextProcess = null;
+
+// Cleanup function to terminate Next.js dev server
+function cleanupNextProcess() {
+  if (nextProcess && !nextProcess.killed) {
+    console.log('\n🛑 Terminating Next.js development server...');
+    nextProcess.kill('SIGTERM');
+
+    // Give the process a moment to terminate gracefully
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        if (!nextProcess.killed) {
+          console.log('⚠️  Force killing Next.js process...');
+          nextProcess.kill('SIGKILL');
+        }
+        resolve();
+      }, 5000);
+
+      nextProcess.on('exit', () => {
+        clearTimeout(timeout);
+        console.log('✅ Next.js development server terminated');
+        resolve();
+      });
+    });
+  }
+  return Promise.resolve();
+}
 
 if (isDev) {
   console.log('🚀 Starting Next.js development server for diagnostics...\n');
 
   // Start Next.js dev server
-  const nextProcess = spawn('npx', ['next', 'dev'], {
+  nextProcess = spawn('npx', ['next', 'dev'], {
     stdio: 'inherit',
     shell: true,
     cwd: path.resolve(__dirname, '..'),
@@ -259,13 +286,24 @@ async function runDiagnostics() {
   console.log('\n✅ Diagnostics Complete!\n');
 
   if (isDev) {
-    console.log('🛑 Stopping development server...');
-    process.exit(0);
+    await cleanupNextProcess();
   }
+
+  process.exit(0);
 }
 
-// Handle script termination
-process.on('SIGINT', () => {
-  console.log('\n👋 Diagnostics interrupted. Goodbye!');
+// Handle script termination signals
+async function handleTermination(signal) {
+  console.log(`\n👋 Received ${signal}. Cleaning up...`);
+  await cleanupNextProcess();
   process.exit(0);
+}
+
+process.on('SIGINT', () => handleTermination('SIGINT'));
+process.on('SIGTERM', () => handleTermination('SIGTERM'));
+process.on('beforeExit', () => {
+  if (nextProcess && !nextProcess.killed) {
+    console.log('\n🔄 Process exiting, cleaning up Next.js server...');
+    nextProcess.kill('SIGTERM');
+  }
 });
