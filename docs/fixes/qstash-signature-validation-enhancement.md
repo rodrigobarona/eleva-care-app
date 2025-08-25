@@ -52,25 +52,36 @@ security: {
 
 ```typescript
 // 1. Extract signature from headers (multiple variations supported)
-const signature =
+const providedSignature =
   request.headers.get('Upstash-Signature') ||
   request.headers.get('upstash-signature') ||
   request.headers.get('x-upstash-signature');
 
-// 2. Create signature payload (URL + body)
+// 2. Handle null case early
+if (!providedSignature) {
+  return { isValid: false, error: 'No signature found' };
+}
+
+// 3. Create signature payload (URL + body)
 const sigPayload = request.nextUrl.toString() + body;
 
-// 3. Validate against current signing key
+// 4. Validate against current signing key
 const expectedSignature = crypto
   .createHmac('sha256', QSTASH_CURRENT_SIGNING_KEY)
   .update(sigPayload, 'utf8')
   .digest('base64');
 
-// 4. Secure comparison (timing attack resistant)
-const isValid = crypto.timingSafeEqual(
-  Buffer.from(providedSignature, 'base64'),
-  Buffer.from(expectedSignature, 'base64'),
-);
+// 5. Convert signatures to buffers and check lengths first
+const providedBuffer = Buffer.from(providedSignature, 'base64');
+const expectedBuffer = Buffer.from(expectedSignature, 'base64');
+
+// 6. Return false if buffer lengths differ (avoids timingSafeEqual exception)
+if (providedBuffer.length !== expectedBuffer.length) {
+  return { isValid: false, error: 'Invalid signature format' };
+}
+
+// 7. Secure comparison (timing attack resistant)
+const isValid = crypto.timingSafeEqual(providedBuffer, expectedBuffer);
 ```
 
 ## 🔧 **Implementation Guide**

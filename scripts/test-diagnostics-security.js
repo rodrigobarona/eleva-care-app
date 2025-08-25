@@ -10,6 +10,8 @@ const diagnosticsUrl = `${baseUrl}/api/diagnostics`;
 async function testDiagnosticsAccess() {
   console.log('🔐 Testing Diagnostics Endpoint Security\n');
 
+  let failureDetected = false;
+
   // Test 1: Unauthorized access (should return 403)
   console.log('1️⃣ Testing unauthorized access...');
   try {
@@ -20,9 +22,11 @@ async function testDiagnosticsAccess() {
       console.log(`   ✅ Correctly blocked: ${data.error}`);
     } else {
       console.log(`   ❌ SECURITY ISSUE: Should return 403, got ${response.status}`);
+      failureDetected = true;
     }
   } catch (error) {
     console.log(`   🔌 Connection error: ${error.message}`);
+    failureDetected = true;
   }
 
   console.log('\n2️⃣ Testing with valid DIAGNOSTICS_TOKEN...');
@@ -43,9 +47,11 @@ async function testDiagnosticsAccess() {
         console.log(`   📊 Found ${Object.keys(data.components).length} diagnostic components`);
       } else {
         console.log(`   ❌ Unexpected status with valid token: ${response.status}`);
+        failureDetected = true;
       }
     } catch (error) {
       console.log(`   🔌 Connection error: ${error.message}`);
+      failureDetected = true;
     }
   } else {
     console.log(`   ⚠️  No DIAGNOSTICS_TOKEN environment variable set - skipping token test`);
@@ -67,9 +73,11 @@ async function testDiagnosticsAccess() {
       console.log(`   📊 System status: ${data.status}`);
     } else {
       console.log(`   ❌ Internal health check failed: ${response.status}`);
+      failureDetected = true;
     }
   } catch (error) {
     console.log(`   🔌 Connection error: ${error.message}`);
+    failureDetected = true;
   }
 
   console.log('\n🏁 Security test completed!\n');
@@ -82,11 +90,27 @@ async function testDiagnosticsAccess() {
   console.log('\n🔒 Production Setup:');
   console.log('   Set DIAGNOSTICS_TOKEN in your production environment');
   console.log('   Share only with SRE teams and monitoring systems');
+
+  // Return success status
+  return !failureDetected;
 }
 
 // Only run if this script is executed directly
 if (require.main === module) {
-  testDiagnosticsAccess();
+  testDiagnosticsAccess()
+    .then((success) => {
+      if (success) {
+        console.log('\n✅ All security tests passed!');
+        process.exit(0);
+      } else {
+        console.log('\n❌ Some security tests failed!');
+        process.exit(1);
+      }
+    })
+    .catch((error) => {
+      console.error('\n💥 Test execution failed:', error);
+      process.exit(1);
+    });
 }
 
 module.exports = { testDiagnosticsAccess };

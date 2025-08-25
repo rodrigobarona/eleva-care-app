@@ -19,9 +19,10 @@ console.log('🔍 Starting Novu Configuration Diagnostics...\n');
 // Check if we're in development or need to start the Next.js app
 const isDev = process.env.NODE_ENV !== 'production';
 let nextProcess = null;
+let failureDetected = false; // Shared failure flag
 
 // Cleanup function to terminate Next.js dev server
-function cleanupNextProcess() {
+async function cleanupNextProcess() {
   if (nextProcess && !nextProcess.killed) {
     console.log('\n🛑 Terminating Next.js development server...');
     nextProcess.kill('SIGTERM');
@@ -44,6 +45,14 @@ function cleanupNextProcess() {
     });
   }
   return Promise.resolve();
+}
+
+// Single termination point that ensures cleanup
+async function terminateWithCleanup(exitCode = 0) {
+  if (isDev) {
+    await cleanupNextProcess();
+  }
+  process.exit(exitCode);
 }
 
 if (isDev) {
@@ -106,7 +115,7 @@ async function runDiagnostics() {
         // Fall through to environment check below instead of exiting
       } else {
         console.log(`💡 Make sure your Next.js server is running on port ${port}`);
-        process.exit(1);
+        failureDetected = true;
       }
     } else {
       const diagnostics = await response.json();
@@ -176,6 +185,7 @@ async function runDiagnostics() {
     console.log('   2. Check that the /api/diagnostics endpoint exists');
     console.log('   3. Verify your environment variables are set');
     console.log('   4. Check the server logs for more details');
+    failureDetected = true;
   }
 
   console.log('\n2️⃣ Environment Variables Check');
@@ -207,6 +217,7 @@ async function runDiagnostics() {
     console.log('   - Add missing environment variables to your .env.local file');
     console.log('   - Restart your development server after adding them');
     console.log('   - Check the documentation for correct variable names');
+    failureDetected = true;
   }
 
   console.log('\n3️⃣ React Email Templates Check');
@@ -285,18 +296,17 @@ async function runDiagnostics() {
 
   console.log('\n✅ Diagnostics Complete!\n');
 
-  if (isDev) {
-    await cleanupNextProcess();
+  if (failureDetected) {
+    await terminateWithCleanup(1);
+  } else {
+    await terminateWithCleanup(0);
   }
-
-  process.exit(0);
 }
 
 // Handle script termination signals
 async function handleTermination(signal) {
   console.log(`\n👋 Received ${signal}. Cleaning up...`);
-  await cleanupNextProcess();
-  process.exit(0);
+  await terminateWithCleanup(0);
 }
 
 process.on('SIGINT', () => handleTermination('SIGINT'));
