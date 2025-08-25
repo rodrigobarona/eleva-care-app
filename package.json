@@ -2,6 +2,7 @@
   "name": "eleva-care-app",
   "version": "0.3.1",
   "private": true,
+  "packageManager": "pnpm@9.2.0",
   "scripts": {
     "dev": "NODE_NO_WARNINGS=1 next dev --port 3000",
     "build": "NODE_NO_WARNINGS=1 next build",
