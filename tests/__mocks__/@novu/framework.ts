@@ -9,6 +9,9 @@ export const workflow = jest.fn((workflowId: string, handler: WorkflowHandler) =
 
 export const serve = jest.fn().mockReturnValue({
   handler: jest.fn(),
+  GET: jest.fn(),
+  POST: jest.fn(),
+  OPTIONS: jest.fn(),
 });
 
 // Mock workflow step functions
