@@ -26,11 +26,58 @@
     },
     "legal": {
       "title": "Documentação Legal | Eleva Care",
-      "description": "Informação importante sobre os termos de serviço, políticas de privacidade e outros documentos legais da Eleva Care.",
+      "description": "Informações importantes sobre os termos de serviço, políticas de privacidade e outros documentos legais da Eleva Care.",
       "og": {
         "title": "Documentação Legal | Eleva Care",
-        "description": "Informação importante sobre os termos de serviço, políticas de privacidade e outros documentos legais da Eleva Care.",
+        "description": "Informações importantes sobre os termos de serviço, políticas de privacidade e outros documentos legais da Eleva Care.",
         "siteName": "Eleva Care"
+      },
+      "documents": {
+        "terms": {
+          "title": "Termos de Serviço | Eleva Care",
+          "description": "Leia os termos de serviço da Eleva Care e compreenda seus direitos e obrigações ao utilizar nossa plataforma de saúde.",
+          "og": {
+            "title": "Termos de Serviço | Eleva Care",
+            "description": "Leia os termos de serviço da Eleva Care e compreenda seus direitos e obrigações ao utilizar nossa plataforma de saúde.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "privacy": {
+          "title": "Política de Privacidade | Eleva Care",
+          "description": "Saiba como a Eleva Care protege suas informações de saúde pessoais e direitos de privacidade de acordo com as regulamentações de saúde.",
+          "og": {
+            "title": "Política de Privacidade | Eleva Care",
+            "description": "Saiba como a Eleva Care protege suas informações de saúde pessoais e direitos de privacidade de acordo com as regulamentações de saúde.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "cookie": {
+          "title": "Política de Cookies | Eleva Care",
+          "description": "Compreenda como a Eleva Care utiliza cookies para melhorar sua experiência de navegação e proteger sua privacidade.",
+          "og": {
+            "title": "Política de Cookies | Eleva Care",
+            "description": "Compreenda como a Eleva Care utiliza cookies para melhorar sua experiência de navegação e proteger sua privacidade.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "dpa": {
+          "title": "Acordo de Processamento de Dados | Eleva Care",
+          "description": "Revise o acordo de processamento de dados da Eleva Care que descreve como tratamos e protegemos seus dados de saúde.",
+          "og": {
+            "title": "Acordo de Processamento de Dados | Eleva Care",
+            "description": "Revise o acordo de processamento de dados da Eleva Care que descreve como tratamos e protegemos seus dados de saúde.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "payment-policies": {
+          "title": "Políticas de Pagamento | Eleva Care",
+          "description": "Compreenda os termos de pagamento, políticas de reembolso e procedimentos de cobrança da Eleva Care para serviços de saúde.",
+          "og": {
+            "title": "Políticas de Pagamento | Eleva Care",
+            "description": "Compreenda os termos de pagamento, políticas de reembolso e procedimentos de cobrança da Eleva Care para serviços de saúde.",
+            "siteName": "Eleva Care"
+          }
+        }
       }
     },
     "history": {

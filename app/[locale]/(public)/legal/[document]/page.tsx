@@ -1,7 +1,8 @@
 import { isValidLocale } from '@/app/i18n';
 import MDXContentWrapper from '@/components/atoms/MDXContentWrapper';
-import { generateLegalPageMetadata } from '@/lib/seo/metadata-utils';
+import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import { notFound, redirect } from 'next/navigation';
 
 interface PageProps {
@@ -23,25 +24,88 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { locale, document } = await params;
 
   if (!isValidLocale(locale) || !validDocuments.includes(document)) {
-    return generateLegalPageMetadata(
-      'en',
-      'terms',
-      'Legal Document Not Found',
-      'The requested legal document could not be found',
-    );
+    return generatePageMetadata({
+      locale: 'en',
+      path: '/legal/terms',
+      title: 'Legal Document Not Found',
+      description: 'The requested legal document could not be found',
+    });
   }
 
-  // Get the display name for the document
-  const displayName =
-    documentDisplayNames[document as keyof typeof documentDisplayNames] ||
-    document.charAt(0).toUpperCase() + document.slice(1);
+  try {
+    const t = await getTranslations({ locale, namespace: 'metadata.legal.documents' });
 
-  return generateLegalPageMetadata(
-    locale,
-    document,
-    `Eleva.care - ${displayName}`,
-    `Legal information - ${displayName}`,
-  );
+    // Get translations based on document type using explicit typing
+    let title, description, ogTitle, ogDescription, siteName;
+
+    switch (document) {
+      case 'terms':
+        title = t('terms.title');
+        description = t('terms.description');
+        ogTitle = t('terms.og.title');
+        ogDescription = t('terms.og.description');
+        siteName = t('terms.og.siteName');
+        break;
+      case 'privacy':
+        title = t('privacy.title');
+        description = t('privacy.description');
+        ogTitle = t('privacy.og.title');
+        ogDescription = t('privacy.og.description');
+        siteName = t('privacy.og.siteName');
+        break;
+      case 'cookie':
+        title = t('cookie.title');
+        description = t('cookie.description');
+        ogTitle = t('cookie.og.title');
+        ogDescription = t('cookie.og.description');
+        siteName = t('cookie.og.siteName');
+        break;
+      case 'dpa':
+        title = t('dpa.title');
+        description = t('dpa.description');
+        ogTitle = t('dpa.og.title');
+        ogDescription = t('dpa.og.description');
+        siteName = t('dpa.og.siteName');
+        break;
+      case 'payment-policies':
+        title = t('payment-policies.title');
+        description = t('payment-policies.description');
+        ogTitle = t('payment-policies.og.title');
+        ogDescription = t('payment-policies.og.description');
+        siteName = t('payment-policies.og.siteName');
+        break;
+      default:
+        throw new Error(`Unknown document type: ${document}`);
+    }
+
+    return generatePageMetadata({
+      locale,
+      path: `/legal/${document}`,
+      title,
+      description,
+      ogTitle,
+      ogDescription,
+      siteName,
+      type: 'article',
+      keywords: ['legal', document, 'eleva care', 'healthcare', 'policy'],
+    });
+  } catch {
+    console.warn(
+      `No translations found for legal document ${document} in locale ${locale}, using fallback`,
+    );
+
+    const displayName =
+      documentDisplayNames[document as keyof typeof documentDisplayNames] ||
+      document.charAt(0).toUpperCase() + document.slice(1);
+
+    return generatePageMetadata({
+      locale,
+      path: `/legal/${document}`,
+      title: `Eleva.care - ${displayName}`,
+      description: `Legal information - ${displayName}`,
+      keywords: ['legal', document, 'eleva care'],
+    });
+  }
 }
 
 export default async function LegalDocumentPage({ params }: PageProps) {

@@ -31,6 +31,53 @@
         "title": "Legal Documentation | Eleva Care",
         "description": "Important information about Eleva Care's terms of service, privacy policies, and other legal documents.",
         "siteName": "Eleva Care"
+      },
+      "documents": {
+        "terms": {
+          "title": "Terms of Service | Eleva Care",
+          "description": "Read Eleva Care's terms of service and understand your rights and obligations when using our healthcare platform.",
+          "og": {
+            "title": "Terms of Service | Eleva Care",
+            "description": "Read Eleva Care's terms of service and understand your rights and obligations when using our healthcare platform.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "privacy": {
+          "title": "Privacy Policy | Eleva Care",
+          "description": "Learn how Eleva Care protects your personal health information and privacy rights in accordance with healthcare regulations.",
+          "og": {
+            "title": "Privacy Policy | Eleva Care",
+            "description": "Learn how Eleva Care protects your personal health information and privacy rights in accordance with healthcare regulations.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "cookie": {
+          "title": "Cookie Policy | Eleva Care",
+          "description": "Understand how Eleva Care uses cookies to enhance your browsing experience and protect your privacy.",
+          "og": {
+            "title": "Cookie Policy | Eleva Care",
+            "description": "Understand how Eleva Care uses cookies to enhance your browsing experience and protect your privacy.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "dpa": {
+          "title": "Data Processing Agreement | Eleva Care",
+          "description": "Review Eleva Care's data processing agreement outlining how we handle and protect your healthcare data.",
+          "og": {
+            "title": "Data Processing Agreement | Eleva Care",
+            "description": "Review Eleva Care's data processing agreement outlining how we handle and protect your healthcare data.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "payment-policies": {
+          "title": "Payment Policies | Eleva Care",
+          "description": "Understand Eleva Care's payment terms, refund policies, and billing procedures for healthcare services.",
+          "og": {
+            "title": "Payment Policies | Eleva Care",
+            "description": "Understand Eleva Care's payment terms, refund policies, and billing procedures for healthcare services.",
+            "siteName": "Eleva Care"
+          }
+        }
       }
     },
     "history": {
