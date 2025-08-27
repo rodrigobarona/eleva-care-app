@@ -1,6 +1,85 @@
+import { isValidLocale } from '@/app/i18n';
 import ExpertsSection from '@/components/organisms/home/ExpertsSection';
 import Hero from '@/components/organisms/home/Hero';
+import { generatePageMetadata } from '@/lib/seo/metadata-utils';
+import type { Metadata } from 'next';
+import { getTranslations } from 'next-intl/server';
 import dynamic from 'next/dynamic';
+
+// Define the page props
+interface PageProps {
+  params: Promise<{ locale: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { locale } = await params;
+
+  if (!isValidLocale(locale)) {
+    // Fallback metadata for invalid locales
+    return generatePageMetadata({
+      locale: 'en',
+      path: '/',
+      title: 'Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care',
+      description:
+        'Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.',
+      keywords: [
+        'pregnancy care',
+        'postpartum support',
+        'sexual health',
+        'women health',
+        'healthcare experts',
+        'menopause care',
+      ],
+    });
+  }
+
+  try {
+    const t = await getTranslations({ locale, namespace: 'metadata' });
+
+    return generatePageMetadata({
+      locale,
+      path: '/',
+      title: t('title'),
+      description: t('description'),
+      ogTitle: t('og.title') || undefined,
+      ogDescription: t('og.description') || undefined,
+      siteName: t('og.siteName') || undefined,
+      keywords: [
+        'pregnancy care',
+        'postpartum support',
+        'sexual health',
+        'women health',
+        'healthcare experts',
+        'menopause care',
+      ],
+      image: {
+        url: '/img/eleva-care-share.png',
+        width: 1200,
+        height: 680,
+        alt: 'Eleva Care - Expert Healthcare for Women',
+      },
+    });
+  } catch (error) {
+    console.error('Error generating home page metadata:', error);
+
+    // Fallback metadata using utility
+    return generatePageMetadata({
+      locale,
+      path: '/',
+      title: 'Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care',
+      description:
+        'Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.',
+      keywords: [
+        'pregnancy care',
+        'postpartum support',
+        'sexual health',
+        'women health',
+        'healthcare experts',
+        'menopause care',
+      ],
+    });
+  }
+}
 
 // Skeleton loading components for dynamic sections
 const SectionSkeleton = () => (

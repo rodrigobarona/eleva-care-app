@@ -1,5 +1,6 @@
 import { isValidLocale } from '@/app/i18n';
 import MDXContentWrapper from '@/components/atoms/MDXContentWrapper';
+import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
@@ -18,21 +19,39 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   try {
     const t = await getTranslations({ locale, namespace: 'metadata.about' });
-    return {
+
+    return generatePageMetadata({
+      locale,
+      path: '/about',
       title: t('title'),
       description: t('description'),
-      openGraph: {
-        title: t('og.title'),
-        description: t('og.description'),
-        siteName: t('og.siteName'),
+      ogTitle: t('og.title') || undefined,
+      ogDescription: t('og.description') || undefined,
+      siteName: t('og.siteName') || undefined,
+      keywords: ['about eleva care', 'mission', 'vision', 'healthcare team', 'women health'],
+      image: {
+        url: '/img/about/team-photo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Eleva Care Team',
       },
-    };
+    });
   } catch (error) {
     console.error('Error generating metadata:', error);
-    return {
+
+    return generatePageMetadata({
+      locale,
+      path: '/about',
       title: 'About Eleva Care',
       description: 'Learn about our mission, vision, and team at Eleva Care.',
-    };
+      keywords: ['about eleva care', 'mission', 'vision', 'healthcare team', 'women health'],
+      image: {
+        url: '/img/about/team-photo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Eleva Care Team',
+      },
+    });
   }
 }
 

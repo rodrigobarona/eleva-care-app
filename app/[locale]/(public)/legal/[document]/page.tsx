@@ -1,5 +1,6 @@
 import { isValidLocale } from '@/app/i18n';
 import MDXContentWrapper from '@/components/atoms/MDXContentWrapper';
+import { generateLegalPageMetadata } from '@/lib/seo/metadata-utils';
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 
@@ -22,10 +23,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { locale, document } = await params;
 
   if (!isValidLocale(locale) || !validDocuments.includes(document)) {
-    return {
-      title: 'Legal Document Not Found',
-      description: 'The requested legal document could not be found',
-    };
+    return generateLegalPageMetadata(
+      'en',
+      'terms',
+      'Legal Document Not Found',
+      'The requested legal document could not be found',
+    );
   }
 
   // Get the display name for the document
@@ -33,15 +36,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     documentDisplayNames[document as keyof typeof documentDisplayNames] ||
     document.charAt(0).toUpperCase() + document.slice(1);
 
-  return {
-    title: `Eleva.care - ${displayName}`,
-    description: `Legal information - ${displayName}`,
-    openGraph: {
-      title: `Eleva.care - ${displayName}`,
-      description: `Legal information - ${displayName}`,
-      siteName: 'Eleva.care',
-    },
-  };
+  return generateLegalPageMetadata(
+    locale,
+    document,
+    `Eleva.care - ${displayName}`,
+    `Legal information - ${displayName}`,
+  );
 }
 
 export default async function LegalDocumentPage({ params }: PageProps) {

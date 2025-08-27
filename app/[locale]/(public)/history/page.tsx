@@ -1,5 +1,6 @@
 import { isValidLocale } from '@/app/i18n';
 import MDXContentWrapper from '@/components/atoms/MDXContentWrapper';
+import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
@@ -18,29 +19,40 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   try {
     const t = await getTranslations({ locale, namespace: 'metadata.history' });
-    return {
+
+    return generatePageMetadata({
+      locale,
+      path: '/history',
       title: t('title'),
       description: t('description'),
-      openGraph: {
-        title: t('og.title'),
-        description: t('og.description'),
-        siteName: t('og.siteName'),
-        images: [
-          {
-            url: '/img/about/team-photo.png',
-            width: 1200,
-            height: 630,
-          },
-        ],
+      ogTitle: t('og.title') || undefined,
+      ogDescription: t('og.description') || undefined,
+      siteName: t('og.siteName') || undefined,
+      keywords: ['eleva care story', 'company history', 'mission', 'women healthcare journey'],
+      image: {
+        url: '/img/about/team-photo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Eleva Care Story',
       },
-    };
+    });
   } catch (error) {
     console.error('Error generating metadata:', error);
-    return {
+
+    return generatePageMetadata({
+      locale,
+      path: '/history',
       title: 'Our Story - Eleva Care',
       description:
         "Discover the journey behind Eleva Care and the passion that drives our mission to transform women's healthcare.",
-    };
+      keywords: ['eleva care story', 'company history', 'mission', 'women healthcare journey'],
+      image: {
+        url: '/img/about/team-photo.png',
+        width: 1200,
+        height: 630,
+        alt: 'Eleva Care Story',
+      },
+    });
   }
 }
 
