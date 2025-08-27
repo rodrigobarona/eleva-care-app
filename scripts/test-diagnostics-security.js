@@ -4,7 +4,7 @@
  * This script demonstrates the access control fixes made to /api/diagnostics
  */
 
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
 const diagnosticsUrl = `${baseUrl}/api/diagnostics`;
 
 async function testDiagnosticsAccess() {

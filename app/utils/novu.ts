@@ -285,7 +285,7 @@ export async function runNovuDiagnostics() {
   // 4. Bridge endpoint check
   console.log('\n4️⃣ Bridge Endpoint Check');
   try {
-    const baseUrl = ENV_CONFIG.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const baseUrl = ENV_CONFIG.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const bridgeUrl = `${baseUrl}/api/novu`;
 
     const bridgeResponse = await fetch(bridgeUrl, {

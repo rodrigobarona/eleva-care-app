@@ -288,7 +288,7 @@ Feel free to enhance or update the Mermaid diagram section as your architecture 
    GOOGLE_CLIENT_SECRET=
 
    # General Config
-   NEXT_PUBLIC_BASE_URL=https://eleva.care
+   NEXT_PUBLIC_APP_URL=https://eleva.care
 
    # Production Security (Required for production deployments)
    DIAGNOSTICS_TOKEN=your-secure-random-token-here

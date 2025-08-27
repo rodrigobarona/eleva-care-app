@@ -186,8 +186,8 @@ async function scheduleAllJobs() {
   console.log('📅 Scheduling all configured cron jobs...\n');
 
   // Get the base URL
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-    ? process.env.NEXT_PUBLIC_BASE_URL
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+    ? process.env.NEXT_PUBLIC_APP_URL
     : process.env.NEXT_PUBLIC_APP_URL
       ? process.env.NEXT_PUBLIC_APP_URL
       : process.env.VERCEL_URL
@@ -302,8 +302,8 @@ async function showStats() {
     console.log(`📋 Total Configured: ${CONFIGURED_JOBS_COUNT} (from config)`);
     console.log(`🔄 QStash Available: ${QSTASH_TOKEN ? '✅' : '❌'}`);
     // Compute baseUrl using the same precedence as elsewhere
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-      ? process.env.NEXT_PUBLIC_BASE_URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL
+      ? process.env.NEXT_PUBLIC_APP_URL
       : process.env.NEXT_PUBLIC_APP_URL
         ? process.env.NEXT_PUBLIC_APP_URL
         : process.env.VERCEL_URL

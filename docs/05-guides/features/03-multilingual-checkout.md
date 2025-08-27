@@ -53,7 +53,7 @@ const locale = meetingData.locale || 'en';
 const t = await getTranslations({ locale, namespace: 'Payments.checkout' });
 
 // Construct URLs for legal pages
-const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care';
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
 const paymentPoliciesUrl = `${baseUrl}/${locale}/legal/payment-policies`;
 const termsUrl = `${baseUrl}/${locale}/legal/terms-of-service`;
 ```

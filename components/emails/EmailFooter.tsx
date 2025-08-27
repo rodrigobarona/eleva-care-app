@@ -16,7 +16,7 @@ export interface EmailFooterProps {
   unsubscribeUrl?: string;
 }
 
-const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://eleva.care';
+const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';
 
 /**
  * Shared Email Footer Component for Eleva Care

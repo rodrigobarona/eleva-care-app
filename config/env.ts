@@ -54,7 +54,7 @@ export const ENV_CONFIG = {
   RESEND_API_KEY: process.env.RESEND_API_KEY || '',
 
   // Base URL Configuration
-  NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || '',
+  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL || '',
 
   // Novu Configuration
   NOVU_API_KEY: process.env.NOVU_API_KEY || '',
@@ -325,8 +325,8 @@ export const ENV_HELPERS = {
    * Get the base application URL with fallbacks
    */
   getBaseUrl(): string {
-    if (ENV_CONFIG.NEXT_PUBLIC_BASE_URL) {
-      return ENV_CONFIG.NEXT_PUBLIC_BASE_URL;
+    if (ENV_CONFIG.NEXT_PUBLIC_APP_URL) {
+      return ENV_CONFIG.NEXT_PUBLIC_APP_URL;
     }
 
     return this.isDevelopment() ? 'http://localhost:3000' : 'https://eleva.care';

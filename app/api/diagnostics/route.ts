@@ -72,7 +72,7 @@ async function checkDatabaseHealth() {
 
 async function checkEnvironmentVariables() {
   const requiredVars = [
-    'NEXT_PUBLIC_BASE_URL',
+    'NEXT_PUBLIC_APP_URL',
     'DATABASE_URL',
     'CLERK_SECRET_KEY',
     'STRIPE_SECRET_KEY',
@@ -166,7 +166,7 @@ async function runQStashDiagnostics() {
 async function runWebhookDiagnostics() {
   try {
     const baseUrl =
-      ENV_CONFIG.NEXT_PUBLIC_BASE_URL ||
+      ENV_CONFIG.NEXT_PUBLIC_APP_URL ||
       (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
     const results = await checkAllWebhooksHealth(baseUrl);
