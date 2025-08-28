@@ -124,44 +124,119 @@ async function handler(req: NextRequest) {
                   justifyContent: 'space-between',
                 }}
               >
+                {/* Top Section - Name and Logo */}
                 <div
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    alignItems: 'center',
+                    alignItems: 'flex-start',
                     width: '100%',
                   }}
                 >
                   <div
                     style={{
                       display: 'flex',
-                      color: 'white',
-                      fontSize: '60px',
-                      fontWeight: 'bold',
+                      flexDirection: 'column',
+                      flex: 1,
                     }}
                   >
-                    {profileProps.name}
+                    <div
+                      style={{
+                        display: 'flex',
+                        color: 'white',
+                        fontSize: '60px',
+                        fontWeight: 'bold',
+                        marginBottom: '16px',
+                      }}
+                    >
+                      {profileProps.name}
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        color: 'white',
+                        fontSize: '24px',
+                        opacity: 0.8,
+                      }}
+                    >
+                      @{profileProps.username}
+                      {profileProps.headline && ` • ${profileProps.headline}`}
+                    </div>
                   </div>
+
+                  {/* Avatar and Logo Section */}
                   <div
                     style={{
                       display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'flex-end',
+                      gap: '20px',
                     }}
                   >
-                    <ElevaCareLogo color="white" width={180} height={36} />
+                    <div
+                      style={{
+                        display: 'flex',
+                      }}
+                    >
+                      <ElevaCareLogo color="white" width={180} height={36} />
+                    </div>
+
+                    {/* Profile Avatar */}
+                    {profileProps.image && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          width: '120px',
+                          height: '120px',
+                          borderRadius: '60px',
+                          overflow: 'hidden',
+                          border: '4px solid rgba(255, 255, 255, 0.3)',
+                        }}
+                      >
+                        {/* Note: Using img tag directly in satori doesn't work well, 
+                             so we'll use a background image approach */}
+                        <div
+                          style={{
+                            display: 'flex',
+                            width: '100%',
+                            height: '100%',
+                            backgroundImage: `url(${profileProps.image})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    color: 'white',
-                    fontSize: '24px',
-                    opacity: 0.8,
-                    width: '100%',
-                  }}
-                >
-                  @{profileProps.username}
-                  {profileProps.headline && ` • ${profileProps.headline}`}
-                </div>
+
+                {/* Bottom Section - Specialties (if available) */}
+                {profileProps.specialties && profileProps.specialties.length > 0 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '12px',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    {profileProps.specialties.slice(0, 3).map((specialty, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          display: 'flex',
+                          backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                          color: 'white',
+                          padding: '8px 16px',
+                          borderRadius: '20px',
+                          fontSize: '18px',
+                          backdropFilter: 'blur(10px)',
+                        }}
+                      >
+                        {specialty}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ),
             ogConfig,
