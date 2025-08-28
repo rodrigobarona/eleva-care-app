@@ -1,6 +1,6 @@
 import { isValidLocale } from '@/app/i18n';
 import MDXContentWrapper from '@/components/atoms/MDXContentWrapper';
-import { generatePageMetadata } from '@/lib/seo/metadata-utils';
+import { generateGenericPageMetadata } from '@/lib/seo/metadata-utils';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
@@ -20,38 +20,25 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   try {
     const t = await getTranslations({ locale, namespace: 'metadata.about' });
 
-    return generatePageMetadata({
+    return generateGenericPageMetadata(
       locale,
-      path: '/about',
-      title: t('title'),
-      description: t('description'),
-      ogTitle: t('og.title') || undefined,
-      ogDescription: t('og.description') || undefined,
-      siteName: t('og.siteName') || undefined,
-      keywords: ['about eleva care', 'mission', 'vision', 'healthcare team', 'women health'],
-      image: {
-        url: '/img/about/team-photo.png',
-        width: 1200,
-        height: 630,
-        alt: 'Eleva Care Team',
-      },
-    });
+      '/about',
+      t('title'),
+      t('description'),
+      'secondary', // Use secondary variant for about page
+      ['about eleva care', 'mission', 'vision', 'healthcare team', 'women health'],
+    );
   } catch (error) {
     console.error('Error generating metadata:', error);
 
-    return generatePageMetadata({
+    return generateGenericPageMetadata(
       locale,
-      path: '/about',
-      title: 'About Eleva Care',
-      description: 'Learn about our mission, vision, and team at Eleva Care.',
-      keywords: ['about eleva care', 'mission', 'vision', 'healthcare team', 'women health'],
-      image: {
-        url: '/img/about/team-photo.png',
-        width: 1200,
-        height: 630,
-        alt: 'Eleva Care Team',
-      },
-    });
+      '/about',
+      'About Eleva Care',
+      'Learn about our mission, vision, and team at Eleva Care.',
+      'secondary',
+      ['about eleva care', 'mission', 'vision', 'healthcare team', 'women health'],
+    );
   }
 }
 

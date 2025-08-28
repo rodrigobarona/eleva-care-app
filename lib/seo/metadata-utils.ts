@@ -1,4 +1,12 @@
 import { type Locale, locales } from '@/lib/i18n/routing';
+import {
+  constructEventImage,
+  constructGenericImage,
+  constructUserProfileImage,
+  type EventImageProps,
+  type GenericImageProps,
+  type UserProfileImageProps,
+} from '@/lib/og-images/components';
 import type { Metadata } from 'next';
 
 interface SEOConfig {
@@ -14,6 +22,10 @@ interface SEOConfig {
     width: number;
     height: number;
     alt: string;
+  };
+  ogImage?: {
+    type: 'profile' | 'generic' | 'event';
+    data: UserProfileImageProps | GenericImageProps | EventImageProps;
   };
   keywords?: string[];
   type?: 'website' | 'article';
@@ -33,15 +45,68 @@ export function generatePageMetadata(config: SEOConfig): Metadata {
   const fullPath = config.path === '/' ? '' : config.path;
   const currentUrl = `${baseUrl}${pathPrefix}${fullPath}`;
 
-  // Default image configuration
-  const defaultImage = {
-    url: '/img/eleva-care-share.png',
-    width: 1200,
-    height: 680,
-    alt: 'Eleva Care - Expert Healthcare for Women',
-  };
+  // Generate dynamic OG image if specified, otherwise use default
+  let image;
 
-  const image = config.image || defaultImage;
+  if (config.ogImage) {
+    let ogImageUrl: string;
+
+    switch (config.ogImage.type) {
+      case 'profile':
+        ogImageUrl = constructUserProfileImage(config.ogImage.data as UserProfileImageProps);
+        break;
+      case 'generic':
+        ogImageUrl = constructGenericImage(config.ogImage.data as GenericImageProps);
+        break;
+      case 'event':
+        ogImageUrl = constructEventImage(config.ogImage.data as EventImageProps);
+        break;
+      default:
+        ogImageUrl = '/img/eleva-care-share.png';
+    }
+
+    // Generate appropriate alt text based on image type
+    let altText: string;
+    switch (config.ogImage.type) {
+      case 'profile': {
+        const profileData = config.ogImage.data as UserProfileImageProps;
+        altText = `${profileData.name} - Healthcare Expert | Eleva Care`;
+        break;
+      }
+      case 'generic': {
+        const genericData = config.ogImage.data as GenericImageProps;
+        altText = genericData.title;
+        break;
+      }
+      case 'event': {
+        const eventData = config.ogImage.data as EventImageProps;
+        altText = `${eventData.title} with ${eventData.expertName} | Eleva Care`;
+        break;
+      }
+      default:
+        altText = config.title;
+    }
+
+    image = {
+      url: `${baseUrl}${ogImageUrl}`,
+      width: 1200,
+      height: 630,
+      alt: altText,
+    };
+  } else if (config.image) {
+    image = {
+      ...config.image,
+      url: config.image.url.startsWith('http') ? config.image.url : `${baseUrl}${config.image.url}`,
+    };
+  } else {
+    // Default image configuration
+    image = {
+      url: `${baseUrl}/img/eleva-care-share.png`,
+      width: 1200,
+      height: 680,
+      alt: 'Eleva Care - Expert Healthcare for Women',
+    };
+  }
 
   return {
     metadataBase: new URL(baseUrl),
@@ -127,7 +192,7 @@ export function generateLegalPageMetadata(
 }
 
 /**
- * Generate metadata for user profile pages
+ * Generate metadata for user profile pages with dynamic OG image
  */
 export function generateUserProfileMetadata(
   locale: Locale,
@@ -135,6 +200,8 @@ export function generateUserProfileMetadata(
   name: string,
   bio?: string,
   image?: string,
+  headline?: string,
+  specialties?: string[],
 ): Metadata {
   const title = `${name} - Healthcare Expert | Eleva Care`;
   const description = bio
@@ -147,14 +214,89 @@ export function generateUserProfileMetadata(
     title,
     description,
     keywords: ['healthcare expert', 'consultation', 'pregnancy', 'postpartum', 'women health'],
-    image: image
-      ? {
-          url: image,
-          width: 1200,
-          height: 630,
-          alt: `${name} - Healthcare Expert`,
-        }
-      : undefined,
+    ogImage: {
+      type: 'profile',
+      data: {
+        name,
+        username,
+        headline,
+        image,
+        specialties,
+      },
+    },
+    type: 'website',
+  });
+}
+
+/**
+ * Generate metadata for generic pages with dynamic OG image
+ */
+export function generateGenericPageMetadata(
+  locale: Locale,
+  path: string,
+  title: string,
+  description: string,
+  variant: 'primary' | 'secondary' | 'accent' = 'primary',
+  keywords?: string[],
+): Metadata {
+  return generatePageMetadata({
+    locale,
+    path,
+    title,
+    description,
+    keywords,
+    ogImage: {
+      type: 'generic',
+      data: {
+        title,
+        description,
+        variant,
+      },
+    },
+    type: 'website',
+  });
+}
+
+/**
+ * Generate metadata for event pages with dynamic OG image
+ */
+export function generateEventMetadata(
+  locale: Locale,
+  username: string,
+  eventSlug: string,
+  title: string,
+  expertName: string,
+  description?: string,
+  expertImage?: string,
+  duration?: string,
+  price?: string,
+): Metadata {
+  const pageTitle = `${title} with ${expertName} | Eleva Care`;
+  const pageDescription =
+    description || `Book a ${title} consultation with ${expertName}, a verified healthcare expert.`;
+
+  return generatePageMetadata({
+    locale,
+    path: `/${username}/${eventSlug}`,
+    title: pageTitle,
+    description: pageDescription,
+    keywords: [
+      'healthcare consultation',
+      'expert appointment',
+      'women health',
+      'pregnancy',
+      'postpartum',
+    ],
+    ogImage: {
+      type: 'event',
+      data: {
+        title,
+        expertName,
+        expertImage,
+        duration,
+        price,
+      },
+    },
     type: 'website',
   });
 }

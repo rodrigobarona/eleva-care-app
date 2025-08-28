@@ -1,8 +1,10 @@
 import { Skeleton } from '@/components/atoms/skeleton';
 import { EventBookingList } from '@/components/molecules/EventBookingList';
 import { db } from '@/drizzle/db';
+import { generateUserProfileMetadata } from '@/lib/seo/metadata-utils';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
+import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import React from 'react';
@@ -60,6 +62,73 @@ interface PageProps {
     username: string;
     locale: string;
   }>;
+}
+
+// Generate dynamic metadata for user profiles with OG images
+export async function generateMetadata(props: PageProps): Promise<Metadata> {
+  const params = await props.params;
+  const { username, locale } = params;
+
+  try {
+    // Get user data
+    const clerk = createClerkClient({
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
+
+    const users = await clerk.users.getUserList({
+      username: [username],
+    });
+
+    const user = users.data[0];
+    if (!user) {
+      return {
+        title: 'User Not Found | Eleva Care',
+        description: 'The requested user profile could not be found.',
+      };
+    }
+
+    // Get profile data from database
+    const profile = await db.query.ProfileTable.findFirst({
+      where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
+      with: {
+        primaryCategory: true,
+        secondaryCategory: true,
+      },
+    });
+
+    // Prepare data for OG image and metadata
+    const name = profile ? `${profile.firstName} ${profile.lastName}` : user.fullName || username;
+    const bio = profile?.shortBio || profile?.longBio || undefined;
+    const headline = profile?.headline;
+    const image = (profile?.profilePicture || user.imageUrl) ?? undefined;
+
+    // Extract specialties from categories
+    const specialties: string[] = [];
+    if (profile?.primaryCategory) {
+      specialties.push((profile.primaryCategory as { name: string }).name);
+    }
+    if (profile?.secondaryCategory) {
+      specialties.push((profile.secondaryCategory as { name: string }).name);
+    }
+
+    return generateUserProfileMetadata(
+      locale as 'en' | 'es' | 'pt' | 'pt-BR',
+      username,
+      name,
+      bio || undefined,
+      image || undefined,
+      headline || undefined,
+      specialties,
+    );
+  } catch (error) {
+    console.error('Error generating metadata for user profile:', error);
+
+    // Fallback metadata
+    return {
+      title: `${username} | Eleva Care`,
+      description: 'Healthcare expert profile on Eleva Care - Expert Healthcare for Women.',
+    };
+  }
 }
 
 export default async function UserLayout(props: PageProps) {
