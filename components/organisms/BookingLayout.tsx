@@ -369,7 +369,7 @@ export function BookingLayout({
                   </div>
                 </div>
 
-                <div className="grid gap-2 overflow-y-auto pr-2">
+                <div className="grid gap-2 overflow-y-auto pr-2" data-lenis-prevent>
                   {selectedDate &&
                     timesByDate[startOfDay(selectedDate).toISOString()]?.map((timeSlot) => (
                       <Button
@@ -487,11 +487,8 @@ export function BookingLayout({
               </div>
 
               <div
-                className="grid gap-2 overflow-y-auto pr-2"
-                style={{
-                  maxHeight: 'calc(450px - 3rem)',
-                  scrollbarGutter: 'stable',
-                }}
+                className="grid gap-2 overflow-y-auto pr-2 md:h-[calc(400px-3.8rem)]"
+                data-lenis-prevent
               >
                 {selectedDate &&
                   timesByDate[startOfDay(selectedDate).toISOString()]?.map((timeSlot) => (
