@@ -208,8 +208,6 @@ async function ProfileInfo({
           className="object-cover"
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
-          placeholder="blur"
-          // Removed ineffective blurDataURL={profile?.profilePicture || clerkUserImageUrl}
         />
         {/* Top Expert Badge */}
         {profile?.isTopExpert && (
