@@ -229,7 +229,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         },
       }),
     ],
-    [],
+    [placeholder, variant],
   );
 
   const editor = useEditor({
