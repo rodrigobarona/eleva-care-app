@@ -1,4 +1,10 @@
 import {
+  analyzeSessionSecurity,
+  type ClerkSessionData,
+  logSecurityEvent,
+  shouldSendSecurityNotification,
+} from '@/lib/clerk-security-utils';
+import {
   buildNovuSubscriberFromClerk,
   type ClerkEventData,
   getWorkflowFromClerkEvent,
@@ -170,9 +176,36 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
     }
 
     if (evt.type === 'session.created') {
-      // TODO: Add logic to detect suspicious logins (different IP, location, device)
-      // For now, we'll send all login notifications, but this should be enhanced
-      console.log(`🔔 Login detected - sending security notification`);
+      // Use Clerk's session data for intelligent security analysis
+      const sessionData = evt.data as ClerkSessionData;
+
+      if (sessionData.user_id) {
+        // Analyze session for security risks using Clerk's built-in data
+        const securityAnalysis = await analyzeSessionSecurity(sessionData, sessionData.user_id);
+
+        // Check user's notification preferences
+        const userWantsNotifications = await shouldSendSecurityNotification(sessionData.user_id);
+
+        // Log security event for audit trail
+        logSecurityEvent({
+          userId: sessionData.user_id,
+          sessionId: sessionData.id,
+          eventType: 'session.created',
+          riskScore: securityAnalysis.riskScore,
+          action: securityAnalysis.shouldNotify && userWantsNotifications ? 'notified' : 'ignored',
+          reason: securityAnalysis.reason,
+        });
+
+        // Only proceed with notification if analysis indicates risk AND user wants notifications
+        if (!securityAnalysis.shouldNotify || !userWantsNotifications) {
+          console.log(`🔕 Skipping security notification: ${securityAnalysis.reason}`);
+          return;
+        }
+
+        console.log(`🔔 Security notification warranted: ${securityAnalysis.reason}`);
+      } else {
+        console.log(`🔔 Login detected - no user_id available for analysis`);
+      }
     }
 
     // Check if we have a workflow mapped for this event
