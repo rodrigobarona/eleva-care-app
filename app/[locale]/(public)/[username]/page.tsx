@@ -132,43 +132,56 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 }
 
 export default async function UserLayout(props: PageProps) {
-  // Await the params
-  const params = await props.params;
-  const { username, locale } = params;
+  try {
+    // Await the params
+    const params = await props.params;
+    const { username, locale } = params;
 
-  // Get user data early
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
+    console.log(`[UserLayout] Loading page for username: ${username}, locale: ${locale}`);
 
-  const users = await clerk.users.getUserList({
-    username: [username],
-  });
+    // Get user data early
+    const clerk = createClerkClient({
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
 
-  const user = users.data[0];
-  if (!user) return notFound();
+    const users = await clerk.users.getUserList({
+      username: [username],
+    });
 
-  return (
-    <div className="container max-w-7xl pb-10 pt-32">
-      <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
-        {/* Left Column - Profile Info with Suspense */}
-        <React.Suspense fallback={<ProfileSkeleton />}>
-          <ProfileInfo
-            username={username}
-            locale={locale}
-            clerkUserId={user.id}
-            clerkUserImageUrl={user.imageUrl}
-            clerkUserFullName={user.fullName}
-          />
-        </React.Suspense>
+    const user = users.data[0];
+    if (!user) {
+      console.log(`[UserLayout] User not found for username: ${username}`);
+      return notFound();
+    }
 
-        {/* Right Column - Content */}
-        <div className="space-y-6">
-          <EventBookingList userId={user.id} username={username} />
+    console.log(`[UserLayout] Found user: ${user.id} for username: ${username}`);
+
+    return (
+      <div className="container max-w-7xl pb-10 pt-32">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
+          {/* Left Column - Profile Info with Suspense */}
+          <React.Suspense fallback={<ProfileSkeleton />}>
+            <ProfileInfo
+              username={username}
+              locale={locale}
+              clerkUserId={user.id}
+              clerkUserImageUrl={user.imageUrl}
+              clerkUserFullName={user.fullName}
+            />
+          </React.Suspense>
+
+          {/* Right Column - Content */}
+          <div className="space-y-6">
+            <EventBookingList userId={user.id} username={username} />
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error(`[UserLayout] Error loading page for username: ${username}:`, error);
+    // Re-throw the error to let Next.js error boundary handle it
+    throw error;
+  }
 }
 
 // Separate component for profile info
@@ -187,106 +200,118 @@ async function ProfileInfo({
   clerkUserImageUrl,
   clerkUserFullName, // Ensure this is used or remove if not needed
 }: ProfileInfoProps) {
-  // User data is now passed from UserLayout, no need to fetch Clerk user here.
-  // The 'user' object previously fetched here is replaced by passed props.
+  try {
+    console.log(`[ProfileInfo] Loading profile for clerkUserId: ${clerkUserId}`);
 
-  const profile = await db.query.ProfileTable.findFirst({
-    where: ({ clerkUserId: profileClerkUserId }, { eq }) => eq(profileClerkUserId, clerkUserId),
-    with: {
-      primaryCategory: true,
-      secondaryCategory: true,
-    },
-  });
+    // User data is now passed from UserLayout, no need to fetch Clerk user here.
+    // The 'user' object previously fetched here is replaced by passed props.
 
-  return (
-    <div className="space-y-6">
-      <div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
-        <Image
-          src={profile?.profilePicture || clerkUserImageUrl}
-          alt={clerkUserFullName || 'Profile picture'}
-          fill
-          className="object-cover"
-          priority
-          sizes="(max-width: 768px) 100vw, 50vw"
-        />
-        {/* Top Expert Badge */}
-        {profile?.isTopExpert && (
-          <div className="absolute bottom-4 left-3">
-            <span className="rounded-sm bg-white px-3 py-2 text-base font-medium text-eleva-neutral-900">
-              <span>Top Expert</span>
-            </span>
-          </div>
-        )}
-      </div>
-      <div className="space-y-12">
-        <div>
-          <h1 className="flex items-center gap-2 text-xl font-medium">
-            {profile ? `${profile.firstName} ${profile.lastName}` : clerkUserFullName}
-            {profile?.isVerified && (
-              <Image
-                src="/img/expert-verified-icon.svg"
-                alt=""
-                className="h-5 w-5"
-                aria-hidden="true"
-                width={32}
-                height={32}
-              />
-            )}
-          </h1>
-          {profile?.headline && (
-            <p className="text-sm font-medium text-eleva-neutral-900/60">{profile.headline}</p>
-          )}
-          {/* Categories */}
-          {(profile?.primaryCategory || profile?.secondaryCategory) && (
-            <div className="mt-2 flex flex-wrap gap-2">
-              {profile.primaryCategory && (
-                <span className="rounded-full bg-eleva-neutral-100 px-3 py-1 text-sm font-medium text-eleva-neutral-900">
-                  {(profile.primaryCategory as { name: string }).name}
-                </span>
-              )}
-              {profile.secondaryCategory && (
-                <span className="rounded-full bg-eleva-neutral-100 px-3 py-1 text-sm font-medium text-eleva-neutral-900">
-                  {(profile.secondaryCategory as { name: string }).name}
-                </span>
-              )}
+    const profile = await db.query.ProfileTable.findFirst({
+      where: ({ clerkUserId: profileClerkUserId }, { eq }) => eq(profileClerkUserId, clerkUserId),
+      with: {
+        primaryCategory: true,
+        secondaryCategory: true,
+      },
+    });
+
+    console.log(
+      `[ProfileInfo] Profile found: ${profile ? 'yes' : 'no'} for clerkUserId: ${clerkUserId}`,
+    );
+
+    return (
+      <div className="space-y-6">
+        <div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
+          <Image
+            src={profile?.profilePicture || clerkUserImageUrl}
+            alt={clerkUserFullName || 'Profile picture'}
+            fill
+            className="object-cover"
+            priority
+            sizes="(max-width: 768px) 100vw, 50vw"
+          />
+          {/* Top Expert Badge */}
+          {profile?.isTopExpert && (
+            <div className="absolute bottom-4 left-3">
+              <span className="rounded-sm bg-white px-3 py-2 text-base font-medium text-eleva-neutral-900">
+                <span>Top Expert</span>
+              </span>
             </div>
           )}
         </div>
-        <div className="space-y-4">
-          <h2 className="flex w-full items-center justify-between text-xl font-medium text-eleva-neutral-900">
-            About me
-            {profile?.socialLinks && profile.socialLinks.length > 0 && (
-              <div className="flex gap-3">
-                {profile.socialLinks.map((link) => {
-                  if (!link.url) return null;
-                  const Icon = SOCIAL_ICONS[link.name as keyof typeof SOCIAL_ICONS];
-                  return (
-                    <a
-                      key={link.name}
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener nofollow noreferrer"
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      {Icon && (
-                        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-eleva-neutral-200 p-1">
-                          <Icon className="h-5 w-5 text-eleva-neutral-900" />
-                        </span>
-                      )}
-                      <span className="sr-only">{link.name}</span>
-                    </a>
-                  );
-                })}
+        <div className="space-y-12">
+          <div>
+            <h1 className="flex items-center gap-2 text-xl font-medium">
+              {profile ? `${profile.firstName} ${profile.lastName}` : clerkUserFullName}
+              {profile?.isVerified && (
+                <Image
+                  src="/img/expert-verified-icon.svg"
+                  alt=""
+                  className="h-5 w-5"
+                  aria-hidden="true"
+                  width={32}
+                  height={32}
+                />
+              )}
+            </h1>
+            {profile?.headline && (
+              <p className="text-sm font-medium text-eleva-neutral-900/60">{profile.headline}</p>
+            )}
+            {/* Categories */}
+            {(profile?.primaryCategory || profile?.secondaryCategory) && (
+              <div className="mt-2 flex flex-wrap gap-2">
+                {profile.primaryCategory && (
+                  <span className="rounded-full bg-eleva-neutral-100 px-3 py-1 text-sm font-medium text-eleva-neutral-900">
+                    {(profile.primaryCategory as { name: string }).name}
+                  </span>
+                )}
+                {profile.secondaryCategory && (
+                  <span className="rounded-full bg-eleva-neutral-100 px-3 py-1 text-sm font-medium text-eleva-neutral-900">
+                    {(profile.secondaryCategory as { name: string }).name}
+                  </span>
+                )}
               </div>
             )}
-          </h2>
-          {profile?.longBio && (
-            <div className="prose-eleva-neutral-900 prose-font-light prose prose-base">
-              <ReactMarkdown>{profile.longBio}</ReactMarkdown>
-            </div>
-          )}
+          </div>
+          <div className="space-y-4">
+            <h2 className="flex w-full items-center justify-between text-xl font-medium text-eleva-neutral-900">
+              About me
+              {profile?.socialLinks && profile.socialLinks.length > 0 && (
+                <div className="flex gap-3">
+                  {profile.socialLinks.map((link) => {
+                    if (!link.url) return null;
+                    const Icon = SOCIAL_ICONS[link.name as keyof typeof SOCIAL_ICONS];
+                    return (
+                      <a
+                        key={link.name}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener nofollow noreferrer"
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        {Icon && (
+                          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-eleva-neutral-200 p-1">
+                            <Icon className="h-5 w-5 text-eleva-neutral-900" />
+                          </span>
+                        )}
+                        <span className="sr-only">{link.name}</span>
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </h2>
+            {profile?.longBio && (
+              <div className="prose-eleva-neutral-900 prose-font-light prose prose-base">
+                <ReactMarkdown>{profile.longBio}</ReactMarkdown>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  } catch (error) {
+    console.error(`[ProfileInfo] Error loading profile for clerkUserId: ${clerkUserId}:`, error);
+    // Re-throw the error to let the parent component handle it
+    throw error;
+  }
 }
