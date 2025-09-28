@@ -82,40 +82,29 @@ export const securityAuthWorkflow = workflow(
     }));
 
     await step.email('security-email', async () => {
-      try {
-        // Use generic email renderer for security alerts
-        const emailBody = await elevaEmailService.renderGenericEmail({
-          templateName: 'security-alert',
-          subject: '🔒 Security Alert - Eleva Care',
-          templateData: {
-            message: payload.message || 'Please review your recent activity.',
-            alertType: payload.alertType || 'security-event',
-            deviceInfo: payload.deviceInfo || 'Unknown device',
-            userId: payload.userId || 'Unknown user',
-          },
-          locale: payload.locale || 'en',
-          userSegment: payload.userSegment || 'patient',
-          templateVariant: 'urgent', // Security alerts should be urgent
-        });
-
-        return {
-          subject: `🔒 Security Alert - Eleva Care`,
-          body: emailBody,
-        };
-      } catch (error) {
-        console.error('Error rendering security email:', error);
-        // Fallback to simple HTML email
-        return {
-          subject: `🔒 Security Alert - Eleva Care`,
-          body: `
-            <h2>Security Alert</h2>
+      // Use simple HTML email for security alerts (no complex template needed)
+      return {
+        subject: `🔒 Security Alert - Eleva Care`,
+        body: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #e74c3c;">🔒 Security Alert</h2>
             <p>Hi there,</p>
-            <p>${payload.message || 'We detected unusual activity on your account.'}</p>
-            <p>If this was you, you can safely ignore this message. If not, please contact our support team.</p>
-            <p>Best regards,<br>Eleva Care Team</p>
-          `,
-        };
-      }
+            <p><strong>${payload.message || 'We detected unusual activity on your account.'}</strong></p>
+            <p>Event details:</p>
+            <ul>
+              <li><strong>Event type:</strong> ${payload.alertType || 'Security event'}</li>
+              <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
+              <li><strong>Device:</strong> ${payload.deviceInfo || 'Unknown device'}</li>
+            </ul>
+            <p>If this was you, you can safely ignore this message. If not, please contact our support team immediately.</p>
+            <p>Best regards,<br><strong>Eleva Care Team</strong></p>
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
+            <p style="font-size: 12px; color: #666;">
+              This is an automated security notification from Eleva Care.
+            </p>
+          </div>
+        `,
+      };
     });
   },
   {
@@ -590,7 +579,7 @@ export const appointmentConfirmationWorkflow = workflow(
   'appointment-confirmation',
   async ({ payload, step }) => {
     await step.inApp('appointment-confirmed', async () => ({
-      subject: `✅ Appointment confirmed with ${payload.expertName}`,
+      subject: `✅ Appointment confirmed with ${payload.clientName}`,
       body: `Your appointment for ${payload.eventTitle} is confirmed for ${payload.appointmentDate} at ${payload.appointmentTime}.`,
       data: {
         expertName: payload.expertName,
