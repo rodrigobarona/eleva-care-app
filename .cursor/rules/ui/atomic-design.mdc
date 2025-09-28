@@ -1,8 +1,9 @@
 ---
-description:
-globs:
-alwaysApply: false
+description: Atomic Design Pattern Implementation
+globs: components/**
+alwaysApply: true
 ---
+
 # Atomic Design Pattern Implementation
 
 ## Directory Structure
@@ -20,6 +21,7 @@ components/
 ## Component Organization
 
 ### 1. Atoms
+
 Basic, indivisible components that serve as building blocks.
 
 ```typescript
@@ -44,6 +46,7 @@ export function Button({ variant, size, children }: ButtonProps) {
 ```
 
 ### 2. Molecules
+
 Combinations of atoms that form simple UI components.
 
 ```typescript
@@ -66,6 +69,7 @@ export function FormField({ label, error, children }: FormFieldProps) {
 ```
 
 ### 3. Organisms
+
 Complex UI components composed of molecules and/or atoms.
 
 ```typescript
@@ -88,6 +92,7 @@ export function AppointmentForm() {
 ## Best Practices
 
 1. **Component Structure**
+
    ```
    ComponentName/
    ├── index.ts           # Export file
@@ -97,6 +102,7 @@ export function AppointmentForm() {
    ```
 
 2. **Props Interface**
+
    ```typescript
    export interface ComponentNameProps {
      // Required props first
@@ -109,10 +115,10 @@ export function AppointmentForm() {
    ```
 
 3. **Component Documentation**
-   ```typescript
+   ````typescript
    /**
     * ComponentName description
-    * 
+    *
     * @example
     * ```tsx
     * <ComponentName
@@ -124,7 +130,7 @@ export function AppointmentForm() {
    export function ComponentName({ required, optional }: ComponentNameProps) {
      // ...
    }
-   ```
+   ````
 
 ## Validation Rules
 
@@ -156,6 +162,7 @@ export function AppointmentForm() {
 ## Special Components
 
 ### 1. Email Templates
+
 ```typescript
 // components/emails/AppointmentConfirmation.tsx
 export function AppointmentConfirmation({
@@ -173,6 +180,7 @@ export function AppointmentConfirmation({
 ```
 
 ### 2. Analytics Components
+
 ```typescript
 // components/analytics/EventTracker.tsx
 export function EventTracker({
@@ -194,6 +202,7 @@ export function EventTracker({
 ```
 
 ### 3. Authentication Components
+
 ```typescript
 // components/auth/SignInForm.tsx
 export function SignInForm() {

@@ -22,7 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/molecules/form';
-import SimpleRichTextEditor from '@/components/molecules/RichTextEditor';
+import RichTextEditor from '@/components/molecules/RichTextEditor';
 import { SOCIAL_MEDIA_LIST } from '@/lib/constants/social-media';
 import { cn } from '@/lib/utils';
 import { profileFormSchema } from '@/schema/profile';
@@ -474,7 +474,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               <FormItem>
                 <FormLabel>About Me</FormLabel>
                 <FormControl>
-                  <SimpleRichTextEditor value={field.value || ''} onChange={field.onChange} />
+                  <RichTextEditor value={field.value || ''} onChange={field.onChange} />
                 </FormControl>
                 <FormDescription>
                   You can use Markdown formatting to style your text. Add links, lists, and basic

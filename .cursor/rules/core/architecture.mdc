@@ -1,13 +1,15 @@
 ---
-description:
+description: Architectural Patterns and Decisions
 globs:
-alwaysApply: false
+alwaysApply: true
 ---
+
 # Architectural Patterns and Decisions
 
 ## Application Architecture
 
 ### 1. Next.js App Router Structure
+
 ```
 app/
 ├── (auth)/           # Authentication routes
@@ -19,30 +21,35 @@ app/
 ```
 
 ### 2. Component Architecture
+
 - Follow Atomic Design principles
 - Use Server Components by default
 - Client Components only when necessary
 - Implement proper error boundaries
 
 ### 3. Data Flow
+
 - Server-first approach with RSC
 - Use Server Actions for mutations
 - Implement optimistic updates
 - Handle loading and error states
 
 ### 4. State Management
+
 - Use React Server Components for most state
 - Server Actions for mutations
 - React Context for global UI state
 - URL state for shareable state
 
 ### 5. API Design
+
 - RESTful principles
 - Strong typing with Zod
 - Proper error handling
 - Rate limiting and caching
 
 ### 6. Database Design
+
 - Use Drizzle schemas
 - Implement proper relations
 - Follow naming conventions
@@ -51,9 +58,11 @@ app/
 ## Implementation Guidelines
 
 ### 1. Server Components
+
 ```typescript
 // Example Server Component
 export default async function ExpertProfile() {
   const expert = await getExpertProfile();
   return <ExpertProfileView expert={expert} />;
 }
+```

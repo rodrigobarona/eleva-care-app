@@ -21,7 +21,6 @@ import { Typography } from '@tiptap/extension-typography';
 import { Underline } from '@tiptap/extension-underline';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
-import { renderToMarkdown } from '@tiptap/static-renderer/pm/markdown';
 import {
   AlignCenter,
   AlignJustify,
@@ -42,10 +41,20 @@ import {
 } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
+import { Markdown } from 'tiptap-markdown';
 
 interface SimpleRichTextEditorProps {
   value: string; // Markdown content
   onChange: (value: string) => void; // Returns Markdown content
+}
+
+// Type declaration for the markdown storage extension
+declare module '@tiptap/core' {
+  interface Storage {
+    markdown: {
+      getMarkdown: () => string;
+    };
+  }
 }
 
 const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onChange }) => {
@@ -69,6 +78,14 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
         heading: {
           levels: [1, 2, 3],
         },
+      }),
+      // ✅ MARKDOWN SUPPORT: Enable proper markdown parsing and rendering
+      Markdown.configure({
+        html: true, // Allow HTML input/output
+        transformPastedText: true, // Allow pasting markdown text
+        transformCopiedText: true, // Copied text is transformed to markdown
+        breaks: false, // Don't convert \n to <br>
+        linkify: false, // Don't auto-create links from URLs
       }),
       // Professional Typography
       Typography,
@@ -167,12 +184,9 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
         return;
       }
 
-      // ✅ CLEAN CODE: Direct Markdown storage - no unnecessary conversion
+      // ✅ MARKDOWN EXTENSION: Use the tiptap-markdown extension's built-in method
       try {
-        const markdownContent = renderToMarkdown({
-          extensions,
-          content: editor.getJSON(),
-        });
+        const markdownContent = editor.storage.markdown.getMarkdown();
         onChangeRef.current(markdownContent);
       } catch (error) {
         console.warn('Failed to convert to Markdown, falling back to HTML:', error);
@@ -254,7 +268,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
 
   // Handle external content updates (from autosave) while preserving cursor position
   React.useEffect(() => {
-    if (!editor || !value) return;
+    if (!editor || value === undefined) return;
 
     // Store current selection/cursor position and focus state
     const { from, to } = editor.state.selection;
@@ -264,16 +278,13 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     isUpdatingFromProp.current = true;
 
     try {
-      // ✅ CLEAN CODE: Simplified - content is already Markdown
-      const currentContent = renderToMarkdown({
-        extensions,
-        content: editor.getJSON(),
-      });
+      // ✅ MARKDOWN EXTENSION: Get current content as markdown for comparison
+      const currentContent = editor.storage.markdown.getMarkdown();
 
       // Only update if content is actually different
       if (currentContent !== value) {
-        // Update content first without triggering onUpdate
-        editor.commands.setContent(value, { emitUpdate: false });
+        // ✅ MARKDOWN EXTENSION: setContent now properly parses markdown!
+        editor.commands.setContent(value || '', { emitUpdate: false });
 
         // Restore cursor position after content update if editor was focused
         if (wasFocused) {
@@ -313,7 +324,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     } catch (error) {
       // Fallback: simple content update without cursor preservation
       console.warn('Advanced cursor preservation failed, using fallback:', error);
-      editor.commands.setContent(value, { emitUpdate: false });
+      editor.commands.setContent(value || '', { emitUpdate: false });
       if (wasFocused) {
         editor.commands.focus('end');
       }
@@ -323,7 +334,7 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
         isUpdatingFromProp.current = false;
       });
     }
-  }, [value, editor, extensions]);
+  }, [value, editor]);
 
   // Cleanup on unmount
   React.useEffect(() => {
@@ -594,9 +605,16 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
       <EditorContent editor={editor} />
 
       {/* 
-        ✅ CLEAN CODE: Simplified Markdown-only architecture
+        ✅ MARKDOWN-POWERED RICH TEXT EDITOR
         
-        All styling converted to TailwindCSS utility classes:
+        Features:
+        ✅ Native Markdown Support: Uses tiptap-markdown extension for proper parsing
+        ✅ Bidirectional Conversion: Seamlessly converts between Markdown and HTML
+        ✅ Database-Ready: Content stored as markdown, displayed as rich HTML
+        ✅ Copy/Paste Support: Handles markdown text pasting and copying
+        ✅ Professional Styling: TailwindCSS utility classes for consistent design
+        
+        Styling Classes:
         - Medical Tables: border-collapse border-2 border-gray-300 w-full
         - Table Headers: bg-gray-100 font-bold border-2 border-gray-300 p-1
         - Table Cells: border-2 border-gray-300 p-1 align-top
@@ -605,13 +623,11 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
         - Medical Images: max-w-full h-auto rounded-lg border border-gray-200
         
         Benefits:
-        ✅ Utility-first approach follows Tailwind best practices
-        ✅ Responsive design ready with Tailwind variants
-        ✅ Consistent spacing and colors from design system
-        ✅ Better performance (no custom CSS)
-        ✅ Easier maintenance and customization
-        ✅ Mobile-first responsive design principles
-        ✅ Direct Markdown storage - no unnecessary conversions
+        ✅ Proper markdown parsing from database content
+        ✅ Rich text editing with markdown storage
+        ✅ Consistent rendering between edit and view modes
+        ✅ Professional medical documentation features
+        ✅ Responsive design with Tailwind utilities
       */}
     </div>
   );
