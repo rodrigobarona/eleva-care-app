@@ -98,9 +98,11 @@ export async function analyzeSessionSecurity(
     }
 
     // 3. Geographic Anomaly - Check for location changes
-    // Note: This would require IP address data from Clerk's session info
+    // Note: IP address should be captured from request headers in webhook handler
     if (preferences.locationChangeAlerts) {
-      analysis.isGeographicAnomaly = await isGeographicAnomaly(userId, sessionData);
+      // IP address would be passed from webhook handler: req.headers['x-forwarded-for'] || req.connection.remoteAddress
+      const ipAddress = (sessionData as ClerkSessionData & { ipAddress?: string }).ipAddress; // Added by webhook handler
+      analysis.isGeographicAnomaly = await isGeographicAnomaly(userId, sessionData, ipAddress);
       if (analysis.isGeographicAnomaly) {
         console.log(`🔍 Geographic anomaly detected for user ${userId}`);
       }
@@ -151,25 +153,46 @@ export async function analyzeSessionSecurity(
 
 /**
  * Get enhanced session information from Clerk
- * This can provide additional context like IP address, user agent, etc.
+ * This provides additional context like IP address, user agent, etc.
  */
 export async function getEnhancedSessionInfo(sessionId: string) {
   try {
-    // TODO: Use Clerk's session API to get enhanced information
-    // This might include IP address, user agent, geographic location
-    // const client = await clerkClient();
-    // const sessionDetails = await client.sessions.getSession(sessionId);
+    const client = await clerkClient();
+    const sessionDetails = await client.sessions.getSession(sessionId);
 
-    return {
+    // Extract available session metadata
+    const sessionInfo = {
       sessionId,
-      // Additional metadata from Clerk (when API is implemented)
-      ipAddress: undefined, // Available in Clerk's session data
-      userAgent: undefined, // Available in Clerk's session data
-      location: undefined, // Available in Clerk's session data
+      status: sessionDetails.status,
+      lastActiveAt: sessionDetails.lastActiveAt,
+      expireAt: sessionDetails.expireAt,
+      abandonAt: sessionDetails.abandonAt,
+      // Note: IP address and user agent are not directly available in Clerk's session API
+      // These would need to be captured from the request headers in your webhook handler
+      ipAddress: undefined, // Capture from request headers: req.headers['x-forwarded-for'] || req.connection.remoteAddress
+      userAgent: undefined, // Capture from request headers: req.headers['user-agent']
+      location: undefined, // Derive from IP address using geolocation service
     };
+
+    console.log(`📊 Enhanced session info retrieved for ${sessionId}:`, {
+      status: sessionInfo.status,
+      lastActiveAt: sessionInfo.lastActiveAt,
+      expireAt: sessionInfo.expireAt,
+    });
+
+    return sessionInfo;
   } catch (error) {
     console.error('Error fetching enhanced session info:', error);
-    return null;
+    return {
+      sessionId,
+      status: 'unknown',
+      lastActiveAt: null,
+      expireAt: null,
+      abandonAt: null,
+      ipAddress: undefined,
+      userAgent: undefined,
+      location: undefined,
+    };
   }
 }
 
@@ -192,21 +215,50 @@ export async function shouldSendSecurityNotification(userId: string): Promise<bo
  * Log security event for audit purposes
  * This creates an audit trail of security-related activities
  */
-export function logSecurityEvent(event: {
+export async function logSecurityEvent(event: {
   userId: string;
   sessionId: string;
   eventType: string;
   riskScore: string;
   action: 'notified' | 'ignored';
   reason: string;
+  metadata?: Record<string, unknown>;
 }) {
-  console.log('🔒 Security Event:', {
+  const auditEvent = {
     timestamp: new Date().toISOString(),
     ...event,
-  });
+  };
 
-  // TODO: Store in audit database for compliance and analysis
-  // This could integrate with your existing audit logging system
+  console.log('🔒 Security Event:', auditEvent);
+
+  try {
+    // Store in audit database using the existing audit system
+    const { logAuditEvent } = await import('@/lib/logAuditEvent');
+
+    const { SECURITY_ALERT_NOTIFIED, SECURITY_ALERT_IGNORED } = await import('@/types/audit');
+
+    await logAuditEvent(
+      event.userId,
+      event.action === 'notified' ? SECURITY_ALERT_NOTIFIED : SECURITY_ALERT_IGNORED,
+      'security_event',
+      event.sessionId,
+      null, // oldValues
+      {
+        eventType: event.eventType,
+        riskScore: event.riskScore,
+        reason: event.reason,
+        timestamp: auditEvent.timestamp,
+        ...event.metadata,
+      },
+      'webhook', // ipAddress - from webhook context
+      'clerk-webhook', // userAgent - webhook context
+    );
+
+    console.log(`✅ Security event logged to audit database for user ${event.userId}`);
+  } catch (error) {
+    console.error('Error logging security event to audit database:', error);
+    // Don't throw - logging failure shouldn't break the security flow
+  }
 }
 
 // ============================================================================
@@ -367,30 +419,72 @@ async function isUnusualTiming(userId: string, loginTime: number): Promise<boole
 
 /**
  * Check for geographic anomalies (location changes)
- * Note: This requires IP address data which may not be available in webhook data
+ * Uses IP geolocation to detect unusual login locations
  */
 async function isGeographicAnomaly(
   userId: string,
-  _sessionData: ClerkSessionData,
+  sessionData: ClerkSessionData,
+  ipAddress?: string,
 ): Promise<boolean> {
   try {
-    // TODO: Implement IP geolocation checking
-    // This would require:
-    // 1. Access to IP address from session data
-    // 2. IP geolocation service (like MaxMind GeoIP)
-    // 3. Comparison with user's recent locations
+    if (!ipAddress) {
+      console.log(`🔍 Geographic anomaly check for user ${userId} - No IP address provided`);
+      return false;
+    }
 
-    console.log(
-      `🔍 Geographic anomaly check for user ${userId} - IP data not available in webhook`,
-    );
+    // Get user's location history from private metadata
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    const loginPattern = user.privateMetadata?.loginPattern as LoginPattern;
 
-    // For now, return false as we don't have IP data in webhook
-    // In a real implementation, you would:
-    // 1. Get IP address from session
-    // 2. Use geolocation service to get location
-    // 3. Compare with user's recent locations stored in metadata
+    if (!loginPattern || !loginPattern.recentLocations.length) {
+      // First login or no location history - not anomalous
+      return false;
+    }
 
-    return false;
+    // Get location from IP address
+    const currentLocation = await getLocationFromIP(ipAddress);
+    if (!currentLocation) {
+      console.log(`🔍 Could not determine location for IP ${ipAddress}`);
+      return false;
+    }
+
+    // Check if this location is significantly different from recent locations
+    const isNewLocation = !loginPattern.recentLocations.some((recentLocation) => {
+      // Parse stored location (format: "city,country" or "latitude,longitude")
+      const [recentLat, recentLon] = recentLocation.split(',').map(Number);
+      if (isNaN(recentLat) || isNaN(recentLon)) {
+        // If stored location is not coordinates, do string comparison
+        return recentLocation === `${currentLocation.city},${currentLocation.country}`;
+      }
+
+      // Calculate distance between coordinates (Haversine formula)
+      const distance = calculateDistance(
+        recentLat,
+        recentLon,
+        currentLocation.latitude,
+        currentLocation.longitude,
+      );
+
+      // Consider locations within 100km as "same location"
+      return distance < 100;
+    });
+
+    if (isNewLocation) {
+      console.log(`🔍 Geographic anomaly detected for user ${userId}:`, {
+        currentLocation: `${currentLocation.city}, ${currentLocation.country}`,
+        recentLocations: loginPattern.recentLocations,
+        ipAddress,
+      });
+
+      // Update location history
+      await updateLocationHistory(
+        userId,
+        `${currentLocation.latitude},${currentLocation.longitude}`,
+      );
+    }
+
+    return isNewLocation;
   } catch (error) {
     console.error('Error checking geographic anomaly:', error);
     return false;
@@ -510,5 +604,137 @@ async function updateLoginPatterns(userId: string, loginTime: number): Promise<v
     });
   } catch (error) {
     console.error('Error updating login patterns:', error);
+  }
+}
+
+// ============================================================================
+// IP GEOLOCATION AND GEOGRAPHIC ANALYSIS HELPERS
+// ============================================================================
+
+interface LocationInfo {
+  latitude: number;
+  longitude: number;
+  city: string;
+  country: string;
+  region?: string;
+  timezone?: string;
+}
+
+/**
+ * Get geographic location from IP address using a free geolocation service
+ * Uses ip-api.com which provides 1000 requests per month for free
+ */
+async function getLocationFromIP(ipAddress: string): Promise<LocationInfo | null> {
+  try {
+    // Skip private/local IP addresses
+    if (isPrivateIP(ipAddress)) {
+      console.log(`🔍 Skipping geolocation for private IP: ${ipAddress}`);
+      return null;
+    }
+
+    // Use ip-api.com free service (1000 requests/month)
+    const response = await fetch(
+      `http://ip-api.com/json/${ipAddress}?fields=status,lat,lon,city,country,regionName,timezone`,
+    );
+    const data = await response.json();
+
+    if (data.status === 'success') {
+      return {
+        latitude: data.lat,
+        longitude: data.lon,
+        city: data.city,
+        country: data.country,
+        region: data.regionName,
+        timezone: data.timezone,
+      };
+    } else {
+      console.log(`🔍 Geolocation failed for IP ${ipAddress}:`, data.message);
+      return null;
+    }
+  } catch (error) {
+    console.error('Error getting location from IP:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if an IP address is private/local
+ */
+function isPrivateIP(ip: string): boolean {
+  const privateRanges = [
+    /^10\./, // 10.0.0.0/8
+    /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
+    /^192\.168\./, // 192.168.0.0/16
+    /^127\./, // 127.0.0.0/8 (localhost)
+    /^169\.254\./, // 169.254.0.0/16 (link-local)
+    /^::1$/, // IPv6 localhost
+    /^fc00:/, // IPv6 private
+    /^fe80:/, // IPv6 link-local
+  ];
+
+  return privateRanges.some((range) => range.test(ip));
+}
+
+/**
+ * Calculate distance between two geographic points using Haversine formula
+ * Returns distance in kilometers
+ */
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in kilometers
+  const dLat = toRadians(lat2 - lat1);
+  const dLon = toRadians(lon2 - lon1);
+
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(lat1)) * Math.cos(toRadians(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+/**
+ * Convert degrees to radians
+ */
+function toRadians(degrees: number): number {
+  return degrees * (Math.PI / 180);
+}
+
+/**
+ * Update user's location history in private metadata
+ */
+async function updateLocationHistory(userId: string, location: string): Promise<void> {
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+
+    const loginPattern = (user.privateMetadata?.loginPattern as LoginPattern) || {
+      userId,
+      typicalHours: [],
+      typicalDays: [],
+      averageFrequency: 24,
+      lastLoginTime: Date.now(),
+      recentLocations: [],
+    };
+
+    // Add new location and keep only last 5 locations
+    const updatedLocations = [location, ...loginPattern.recentLocations]
+      .filter((loc, index, arr) => arr.indexOf(loc) === index) // Remove duplicates
+      .slice(0, 5); // Keep only 5 most recent
+
+    const updatedPattern = {
+      ...loginPattern,
+      recentLocations: updatedLocations,
+    };
+
+    await client.users.updateUserMetadata(userId, {
+      privateMetadata: {
+        ...user.privateMetadata,
+        loginPattern: updatedPattern,
+      },
+    });
+
+    console.log(`📍 Updated location history for user ${userId}:`, updatedLocations);
+  } catch (error) {
+    console.error('Error updating location history:', error);
   }
 }

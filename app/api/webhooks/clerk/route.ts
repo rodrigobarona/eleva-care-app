@@ -297,14 +297,28 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
 
 export async function POST(req: NextRequest) {
   try {
+    // Capture IP address for security analysis
+    const ipAddress =
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      req.headers.get('x-real-ip') ||
+      req.headers.get('cf-connecting-ip') || // Cloudflare
+      'unknown';
+
     // Verify the webhook using Clerk's official method
     const evt = await verifyWebhook(req);
 
     // Log the webhook details
     const { id } = evt.data;
     const eventType = evt.type;
-    console.log(`Received webhook with ID ${id} and event type of ${eventType}`);
+    console.log(
+      `Received webhook with ID ${id} and event type of ${eventType} from IP: ${ipAddress}`,
+    );
     console.log('Webhook payload:', evt.data);
+
+    // Add IP address to session data for security analysis
+    if (evt.type.startsWith('session.') && evt.data) {
+      (evt.data as unknown as Record<string, unknown>).ipAddress = ipAddress;
+    }
 
     // Process the webhook
     await handleClerkEvent(evt);

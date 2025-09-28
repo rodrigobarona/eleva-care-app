@@ -39,6 +39,10 @@ export const SCHEDULE_UPDATED = 'SCHEDULE_UPDATED' as const;
 export const BLOCKED_DATE_ADDED = 'BLOCKED_DATE_ADDED' as const;
 export const BLOCKED_DATE_REMOVED = 'BLOCKED_DATE_REMOVED' as const;
 
+// Security Events
+export const SECURITY_ALERT_NOTIFIED = 'SECURITY_ALERT_NOTIFIED' as const;
+export const SECURITY_ALERT_IGNORED = 'SECURITY_ALERT_IGNORED' as const;
+
 // Generic failure patterns
 export const FAILED_OPERATION = 'FAILED_OPERATION' as const;
 export const FAILED_OPERATION_UNAUTHORIZED = 'FAILED_OPERATION_UNAUTHORIZED' as const;
@@ -75,6 +79,10 @@ export type AuditEventType =
   | typeof BLOCKED_DATE_ADDED
   | typeof BLOCKED_DATE_REMOVED
 
+  // Security Events
+  | typeof SECURITY_ALERT_NOTIFIED
+  | typeof SECURITY_ALERT_IGNORED
+
   // Generic failure patterns for future use
   | typeof FAILED_OPERATION
   | typeof FAILED_OPERATION_UNAUTHORIZED
@@ -92,7 +100,8 @@ export type AuditResourceType =
   | 'schedule'
   | 'payment_intent'
   | 'user'
-  | 'system';
+  | 'system'
+  | 'security_event';
 
 /**
  * Type for audit event metadata
