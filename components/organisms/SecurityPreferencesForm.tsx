@@ -1,14 +1,14 @@
 'use client';
 
 import { Alert, AlertDescription } from '@/components/atoms/alert';
-import { Button } from '@/components/atoms/button';
 import { Card } from '@/components/atoms/card';
 import { Label } from '@/components/atoms/label';
 import { Switch } from '@/components/atoms/switch';
 import type { UserSecurityPreferences } from '@/lib/clerk-security-utils';
 import { useUser } from '@clerk/nextjs';
 import { Bell, Clock, Loader2, Mail, MapPin, Shield, Smartphone } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'sonner';
 
 interface SecurityPreferencesFormProps {
   className?: string;
@@ -19,7 +19,10 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
   const [preferences, setPreferences] = useState<UserSecurityPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [lastSavedPreferences, setLastSavedPreferences] = useState<UserSecurityPreferences | null>(
+    null,
+  );
 
   // Load current preferences
   useEffect(() => {
@@ -36,23 +39,25 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
 
       if (data.success) {
         setPreferences(data.preferences);
+        setLastSavedPreferences(data.preferences);
       } else {
-        setMessage({ type: 'error', text: 'Failed to load preferences' });
+        toast.error('Failed to load security preferences');
       }
     } catch (error) {
       console.error('Error loading preferences:', error);
-      setMessage({ type: 'error', text: 'Failed to load preferences' });
+      toast.error('Failed to load security preferences');
     } finally {
       setLoading(false);
     }
   };
 
-  const savePreferences = async () => {
-    if (!preferences) return;
+  const savePreferences = useCallback(async () => {
+    if (!preferences || JSON.stringify(preferences) === JSON.stringify(lastSavedPreferences)) {
+      return;
+    }
 
     try {
       setSaving(true);
-      setMessage(null);
 
       const response = await fetch('/api/user/security-preferences', {
         method: 'PUT',
@@ -65,23 +70,67 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
       const data = await response.json();
 
       if (data.success) {
-        setMessage({ type: 'success', text: 'Security preferences updated successfully!' });
-        setPreferences(data.preferences);
+        setLastSavedPreferences(preferences);
+        toast.success('Security preferences saved');
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to update preferences' });
+        toast.error(data.error || 'Failed to save preferences');
       }
     } catch (error) {
       console.error('Error saving preferences:', error);
-      setMessage({ type: 'error', text: 'Failed to update preferences' });
+      toast.error('Failed to save preferences');
     } finally {
       setSaving(false);
     }
-  };
+  }, [preferences, lastSavedPreferences]);
 
   const updatePreference = (key: keyof UserSecurityPreferences, value: boolean) => {
     if (!preferences) return;
     setPreferences({ ...preferences, [key]: value });
   };
+
+  // Auto-save when preferences change
+  useEffect(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    if (preferences && JSON.stringify(preferences) !== JSON.stringify(lastSavedPreferences)) {
+      saveTimeoutRef.current = setTimeout(() => {
+        void savePreferences();
+      }, 2000); // Auto-save after 2 seconds of no changes
+    }
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [preferences, lastSavedPreferences, savePreferences]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Add protection against unsaved changes
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (preferences && JSON.stringify(preferences) !== JSON.stringify(lastSavedPreferences)) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [preferences, lastSavedPreferences]);
+
+  const hasUnsavedChanges =
+    preferences && JSON.stringify(preferences) !== JSON.stringify(lastSavedPreferences);
 
   if (!isLoaded || loading) {
     return (
@@ -133,16 +182,21 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
           </div>
         </div>
 
-        {message && (
-          <Alert
-            className={`mb-6 ${message.type === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}
-          >
-            <AlertDescription
-              className={message.type === 'success' ? 'text-green-800' : 'text-red-800'}
-            >
-              {message.text}
-            </AlertDescription>
-          </Alert>
+        {/* Auto-save indicator */}
+        {hasUnsavedChanges && (
+          <div className="mb-4 flex items-center gap-2 text-sm text-muted-foreground">
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Saving preferences...</span>
+              </>
+            ) : (
+              <>
+                <div className="h-2 w-2 rounded-full bg-orange-500" />
+                <span>Unsaved changes</span>
+              </>
+            )}
+          </div>
         )}
 
         <div className="space-y-6">
@@ -278,18 +332,11 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
             </div>
           </div>
 
-          {/* Save Button */}
+          {/* Auto-save info */}
           <div className="border-t pt-4">
-            <Button onClick={savePreferences} disabled={saving} className="w-full">
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                'Save Preferences'
-              )}
-            </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              Changes are automatically saved
+            </p>
           </div>
         </div>
       </div>
