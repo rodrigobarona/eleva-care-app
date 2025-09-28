@@ -5,7 +5,7 @@ import {
   triggerNovuWorkflow,
 } from '@/lib/novu-utils';
 import { updateSetupStepForUser } from '@/server/actions/expert-setup';
-import { UserJSON, WebhookEvent } from '@clerk/nextjs/server';
+import { clerkClient, UserJSON, WebhookEvent } from '@clerk/nextjs/server';
 import { verifyWebhook } from '@clerk/nextjs/webhooks';
 import { NextRequest } from 'next/server';
 
@@ -163,6 +163,18 @@ async function handleClerkEvent(evt: WebhookEvent) {
  */
 async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
   try {
+    // Smart filtering for security events - avoid notification spam
+    if (evt.type === 'session.removed') {
+      console.log(`🔕 Skipping notification for session.removed - normal logout behavior`);
+      return;
+    }
+
+    if (evt.type === 'session.created') {
+      // TODO: Add logic to detect suspicious logins (different IP, location, device)
+      // For now, we'll send all login notifications, but this should be enhanced
+      console.log(`🔔 Login detected - sending security notification`);
+    }
+
     // Check if we have a workflow mapped for this event
     const workflowId = getWorkflowFromClerkEvent(evt.type, evt.data as unknown as ClerkEventData);
 
@@ -182,12 +194,32 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
         client_id?: string;
         status?: string;
       };
+
+      // Try to fetch user data to get email for notifications
+      let userEmail: string | undefined;
+      let userFirstName: string | undefined;
+      let userLastName: string | undefined;
+
+      if (sessionData.user_id) {
+        try {
+          const user = await (await clerkClient()).users.getUser(sessionData.user_id);
+          userEmail = user.emailAddresses?.[0]?.emailAddress;
+          userFirstName = user.firstName || undefined;
+          userLastName = user.lastName || undefined;
+        } catch (error) {
+          console.warn(`Could not fetch user data for ${sessionData.user_id}:`, error);
+        }
+      }
+
       subscriber = {
         subscriberId: sessionData.user_id || sessionData.id,
-        // We don't have full user data from session events, so use minimal data
+        email: userEmail,
+        firstName: userFirstName,
+        lastName: userLastName,
         data: {
           sessionId: sessionData.id,
           clientId: sessionData.client_id || 'unknown',
+          eventType: evt.type,
         },
       };
     } else {

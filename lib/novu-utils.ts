@@ -177,8 +177,7 @@ export const CLERK_EVENT_TO_WORKFLOW_MAPPINGS = {
 
   // Session events
   'session.created': 'security-auth', // Uses eventType: 'recent-login'
-  'session.ended': 'security-auth', // Uses eventType: 'session-ended'
-  'session.removed': 'security-auth', // Uses eventType: 'session-removed'
+  // Note: session.removed and session.ended are filtered out to avoid notification spam
 
   // Email events (if you want to track these)
   'email.created': {
