@@ -27,6 +27,18 @@ export interface ClerkSessionData {
   // Additional fields that might be available in webhook data
   actor?: unknown;
   object?: string;
+  // Enhanced security data from webhook handler
+  ipAddress?: string;
+  vercelGeoData?: VercelGeoData;
+}
+
+export interface VercelGeoData {
+  country?: string | null;
+  countryRegion?: string | null;
+  city?: string | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  timezone?: string | null;
 }
 
 export interface UserSecurityPreferences {
@@ -97,12 +109,9 @@ export async function analyzeSessionSecurity(
       }
     }
 
-    // 3. Geographic Anomaly - Check for location changes
-    // Note: IP address should be captured from request headers in webhook handler
+    // 3. Geographic Anomaly - Check for location changes using Vercel's geolocation
     if (preferences.locationChangeAlerts) {
-      // IP address would be passed from webhook handler: req.headers['x-forwarded-for'] || req.connection.remoteAddress
-      const ipAddress = (sessionData as ClerkSessionData & { ipAddress?: string }).ipAddress; // Added by webhook handler
-      analysis.isGeographicAnomaly = await isGeographicAnomaly(userId, sessionData, ipAddress);
+      analysis.isGeographicAnomaly = await isGeographicAnomaly(userId, sessionData);
       if (analysis.isGeographicAnomaly) {
         console.log(`🔍 Geographic anomaly detected for user ${userId}`);
       }
@@ -419,16 +428,17 @@ async function isUnusualTiming(userId: string, loginTime: number): Promise<boole
 
 /**
  * Check for geographic anomalies (location changes)
- * Uses IP geolocation to detect unusual login locations
+ * Uses Vercel's built-in geolocation data (free and reliable)
  */
 async function isGeographicAnomaly(
   userId: string,
   sessionData: ClerkSessionData,
-  ipAddress?: string,
 ): Promise<boolean> {
   try {
-    if (!ipAddress) {
-      console.log(`🔍 Geographic anomaly check for user ${userId} - No IP address provided`);
+    const vercelGeoData = sessionData.vercelGeoData;
+
+    if (!vercelGeoData || !vercelGeoData.country) {
+      console.log(`🔍 Geographic anomaly check for user ${userId} - No geolocation data available`);
       return false;
     }
 
@@ -438,50 +448,48 @@ async function isGeographicAnomaly(
     const loginPattern = user.privateMetadata?.loginPattern as LoginPattern;
 
     if (!loginPattern || !loginPattern.recentLocations.length) {
-      // First login or no location history - not anomalous
-      return false;
-    }
-
-    // Get location from IP address
-    const currentLocation = await getLocationFromIP(ipAddress);
-    if (!currentLocation) {
-      console.log(`🔍 Could not determine location for IP ${ipAddress}`);
+      // First login or no location history - store current location and not anomalous
+      await updateLocationHistory(userId, formatVercelLocation(vercelGeoData));
       return false;
     }
 
     // Check if this location is significantly different from recent locations
+    const currentLocationString = formatVercelLocation(vercelGeoData);
+
     const isNewLocation = !loginPattern.recentLocations.some((recentLocation) => {
-      // Parse stored location (format: "city,country" or "latitude,longitude")
-      const [recentLat, recentLon] = recentLocation.split(',').map(Number);
-      if (isNaN(recentLat) || isNaN(recentLon)) {
-        // If stored location is not coordinates, do string comparison
-        return recentLocation === `${currentLocation.city},${currentLocation.country}`;
+      // Check for exact city/country match first
+      if (recentLocation === currentLocationString) {
+        return true;
       }
 
-      // Calculate distance between coordinates (Haversine formula)
-      const distance = calculateDistance(
-        recentLat,
-        recentLon,
-        currentLocation.latitude,
-        currentLocation.longitude,
-      );
+      // If we have coordinates, calculate distance
+      if (vercelGeoData.latitude && vercelGeoData.longitude) {
+        const currentLat = parseFloat(vercelGeoData.latitude);
+        const currentLon = parseFloat(vercelGeoData.longitude);
 
-      // Consider locations within 100km as "same location"
-      return distance < 100;
+        // Parse stored location (format: "city,country" or "latitude,longitude")
+        const [recentLat, recentLon] = recentLocation.split(',').map(Number);
+        if (!isNaN(recentLat) && !isNaN(recentLon)) {
+          // Calculate distance between coordinates (Haversine formula)
+          const distance = calculateDistance(recentLat, recentLon, currentLat, currentLon);
+
+          // Consider locations within 100km as "same location"
+          return distance < 100;
+        }
+      }
+
+      return false;
     });
 
     if (isNewLocation) {
       console.log(`🔍 Geographic anomaly detected for user ${userId}:`, {
-        currentLocation: `${currentLocation.city}, ${currentLocation.country}`,
+        currentLocation: currentLocationString,
         recentLocations: loginPattern.recentLocations,
-        ipAddress,
+        vercelGeoData,
       });
 
-      // Update location history
-      await updateLocationHistory(
-        userId,
-        `${currentLocation.latitude},${currentLocation.longitude}`,
-      );
+      // Update location history with new location
+      await updateLocationHistory(userId, currentLocationString);
     }
 
     return isNewLocation;
@@ -608,71 +616,25 @@ async function updateLoginPatterns(userId: string, loginTime: number): Promise<v
 }
 
 // ============================================================================
-// IP GEOLOCATION AND GEOGRAPHIC ANALYSIS HELPERS
+// VERCEL GEOLOCATION HELPERS
 // ============================================================================
 
-interface LocationInfo {
-  latitude: number;
-  longitude: number;
-  city: string;
-  country: string;
-  region?: string;
-  timezone?: string;
-}
-
 /**
- * Get geographic location from IP address using a free geolocation service
- * Uses ip-api.com which provides 1000 requests per month for free
+ * Format Vercel geolocation data into a consistent string format
+ * Uses Vercel's built-in geolocation headers (free and reliable)
  */
-async function getLocationFromIP(ipAddress: string): Promise<LocationInfo | null> {
-  try {
-    // Skip private/local IP addresses
-    if (isPrivateIP(ipAddress)) {
-      console.log(`🔍 Skipping geolocation for private IP: ${ipAddress}`);
-      return null;
-    }
+function formatVercelLocation(vercelGeoData: VercelGeoData): string {
+  const city = vercelGeoData.city || 'Unknown';
+  const region = vercelGeoData.countryRegion;
+  const country = vercelGeoData.country || 'Unknown';
 
-    // Use ip-api.com free service (1000 requests/month)
-    const response = await fetch(
-      `http://ip-api.com/json/${ipAddress}?fields=status,lat,lon,city,country,regionName,timezone`,
-    );
-    const data = await response.json();
-
-    if (data.status === 'success') {
-      return {
-        latitude: data.lat,
-        longitude: data.lon,
-        city: data.city,
-        country: data.country,
-        region: data.regionName,
-        timezone: data.timezone,
-      };
-    } else {
-      console.log(`🔍 Geolocation failed for IP ${ipAddress}:`, data.message);
-      return null;
-    }
-  } catch (error) {
-    console.error('Error getting location from IP:', error);
-    return null;
+  // If we have coordinates, use them for more precise tracking
+  if (vercelGeoData.latitude && vercelGeoData.longitude) {
+    return `${vercelGeoData.latitude},${vercelGeoData.longitude}`;
   }
-}
 
-/**
- * Check if an IP address is private/local
- */
-function isPrivateIP(ip: string): boolean {
-  const privateRanges = [
-    /^10\./, // 10.0.0.0/8
-    /^172\.(1[6-9]|2[0-9]|3[01])\./, // 172.16.0.0/12
-    /^192\.168\./, // 192.168.0.0/16
-    /^127\./, // 127.0.0.0/8 (localhost)
-    /^169\.254\./, // 169.254.0.0/16 (link-local)
-    /^::1$/, // IPv6 localhost
-    /^fc00:/, // IPv6 private
-    /^fe80:/, // IPv6 link-local
-  ];
-
-  return privateRanges.some((range) => range.test(ip));
+  // Otherwise use city/region/country format
+  return region ? `${city}, ${region}, ${country}` : `${city}, ${country}`;
 }
 
 /**
@@ -701,6 +663,7 @@ function toRadians(degrees: number): number {
 
 /**
  * Update user's location history in private metadata
+ * Now uses Vercel's geolocation data for more accurate tracking
  */
 async function updateLocationHistory(userId: string, location: string): Promise<void> {
   try {

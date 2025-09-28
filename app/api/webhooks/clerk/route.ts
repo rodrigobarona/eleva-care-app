@@ -297,27 +297,45 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
 
 export async function POST(req: NextRequest) {
   try {
-    // Capture IP address for security analysis
+    // Capture IP address and geolocation from Vercel headers for security analysis
     const ipAddress =
+      req.headers.get('x-vercel-forwarded-for') ||
       req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
       req.headers.get('x-real-ip') ||
-      req.headers.get('cf-connecting-ip') || // Cloudflare
+      req.headers.get('cf-connecting-ip') || // Cloudflare fallback
       'unknown';
+
+    // Capture Vercel's built-in geolocation data (free and reliable)
+    const vercelGeoData = {
+      country: req.headers.get('x-vercel-ip-country'),
+      countryRegion: req.headers.get('x-vercel-ip-country-region'),
+      city: req.headers.get('x-vercel-ip-city'),
+      latitude: req.headers.get('x-vercel-ip-latitude'),
+      longitude: req.headers.get('x-vercel-ip-longitude'),
+      timezone: req.headers.get('x-vercel-ip-timezone'),
+    };
 
     // Verify the webhook using Clerk's official method
     const evt = await verifyWebhook(req);
 
-    // Log the webhook details
+    // Log the webhook details with enhanced geolocation info
     const { id } = evt.data;
     const eventType = evt.type;
     console.log(
       `Received webhook with ID ${id} and event type of ${eventType} from IP: ${ipAddress}`,
     );
+    if (vercelGeoData.country) {
+      console.log(
+        `📍 Location: ${vercelGeoData.city || 'Unknown'}, ${vercelGeoData.countryRegion || ''} ${vercelGeoData.country}`,
+      );
+    }
     console.log('Webhook payload:', evt.data);
 
-    // Add IP address to session data for security analysis
+    // Add IP address and geolocation data to session data for security analysis
     if (evt.type.startsWith('session.') && evt.data) {
-      (evt.data as unknown as Record<string, unknown>).ipAddress = ipAddress;
+      const sessionData = evt.data as unknown as Record<string, unknown>;
+      sessionData.ipAddress = ipAddress;
+      sessionData.vercelGeoData = vercelGeoData;
     }
 
     // Process the webhook
