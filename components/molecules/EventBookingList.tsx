@@ -1,7 +1,6 @@
 import { Button } from '@/components/atoms/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Skeleton } from '@/components/atoms/skeleton';
-import MarkdownViewer from '@/components/molecules/MarkdownViewer';
 import { db } from '@/drizzle/db';
 import { formatEventDescription } from '@/lib/formatters';
 import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
@@ -12,6 +11,7 @@ import { ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
+import ReactMarkdown from 'react-markdown';
 
 type Event = {
   id: string;
@@ -184,7 +184,7 @@ function EventCardDetails({
         <details className="group mb-4">
           <summary className="cursor-pointer list-none">
             <div className="prose text-base text-muted-foreground group-open:line-clamp-none group-[:not([open])]:line-clamp-[6]">
-              <MarkdownViewer content={description || ''} />
+              <ReactMarkdown>{description}</ReactMarkdown>
             </div>
             {description.split('\n').length > 6 && (
               <div className="mt-2 inline-flex items-center gap-1.5 rounded-md bg-blue-50 px-2.5 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-100 hover:text-blue-700">

@@ -12,7 +12,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/molecules/dialog';
-import MarkdownViewer from '@/components/molecules/MarkdownViewer';
 import {
   Select,
   SelectContent,
@@ -26,6 +25,7 @@ import { startOfDay } from 'date-fns';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { Clock, CreditCard, Globe, Info, Video } from 'lucide-react';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
 
 interface BlockedDate {
   id: number;
@@ -236,7 +236,7 @@ export function BookingLayout({
                     </DialogDescription>
                   </DialogHeader>
                   <div className="prose prose-sm mt-4 max-h-[60vh] overflow-y-auto">
-                    <MarkdownViewer content={event.description || ''} />
+                    <ReactMarkdown>{event.description}</ReactMarkdown>
                   </div>
                 </DialogContent>
               </Dialog>
