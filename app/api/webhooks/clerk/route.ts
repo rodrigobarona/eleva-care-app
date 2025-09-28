@@ -199,7 +199,7 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
     const payload = {
       eventType: evt.type,
       eventId: evt.data.id,
-      userId: evt.type.startsWith('session.') 
+      userId: evt.type.startsWith('session.')
         ? (evt.data as { user_id?: string; id: string }).user_id || evt.data.id
         : evt.data.id, // Extract user_id from session data or use event id
       eventData: evt.data,
