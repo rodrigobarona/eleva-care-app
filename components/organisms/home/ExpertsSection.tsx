@@ -92,7 +92,10 @@ const ExpertsSection = async () => {
         >
           <CarouselContent className="-ml-6 pl-2 pt-1">
             {expertsWithPricing.map((expert) => (
-              <CarouselItem key={expert.id} className="pl-6 md:basis-1/2 lg:basis-80">
+              <CarouselItem
+                key={expert.id}
+                className="basis-[85%] pl-6 sm:basis-[45%] md:basis-1/2 lg:basis-[22%]"
+              >
                 <Link
                   href={`/${expert.username}`}
                   className="group overflow-visible"
