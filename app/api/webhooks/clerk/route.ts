@@ -172,19 +172,51 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
     }
 
     // Build subscriber data from Clerk user data
-    const subscriber = buildNovuSubscriberFromClerk(evt.data as UserJSON);
+    // For session events, we need to use the user_id from the session data
+    let subscriber;
+    if (evt.type.startsWith('session.')) {
+      // For session events, create subscriber from session data
+      const sessionData = evt.data as {
+        id: string;
+        user_id?: string;
+        client_id?: string;
+        status?: string;
+      };
+      subscriber = {
+        subscriberId: sessionData.user_id || sessionData.id,
+        // We don't have full user data from session events, so use minimal data
+        data: {
+          sessionId: sessionData.id,
+          clientId: sessionData.client_id || 'unknown',
+        },
+      };
+    } else {
+      // For user events, use the full user data
+      subscriber = buildNovuSubscriberFromClerk(evt.data as UserJSON);
+    }
 
     // Create payload with event data
     const payload = {
       eventType: evt.type,
       eventId: evt.data.id,
+      userId: evt.type.startsWith('session.') 
+        ? (evt.data as { user_id?: string; id: string }).user_id || evt.data.id
+        : evt.data.id, // Extract user_id from session data or use event id
       eventData: evt.data,
       timestamp: Date.now(),
       source: 'clerk_webhook',
+      // Add additional fields for security-auth workflow
+      alertType: evt.type === 'session.created' ? 'recent-login' : evt.type,
+      message:
+        evt.type === 'session.created'
+          ? 'New login detected on your account'
+          : `Session event: ${evt.type}`,
     };
 
     // Trigger the Novu workflow
     console.log(`🔔 Triggering Novu workflow '${workflowId}' for Clerk event '${evt.type}'`);
+    console.log('📋 Payload being sent to Novu:', JSON.stringify(payload, null, 2));
+    console.log('👤 Subscriber being sent to Novu:', JSON.stringify(subscriber, null, 2));
     const result = await triggerNovuWorkflow(workflowId, subscriber, payload);
 
     if (result.success) {

@@ -73,40 +73,66 @@ export const securityAuthWorkflow = workflow(
       subject: `🔒 Security Alert`,
       body: `Security alert for your account: ${payload.message || 'Unusual activity detected'}`,
       data: {
-        alertType: payload.alertType,
-        deviceInfo: payload.deviceInfo,
-        userId: payload.userId,
+        alertType: payload.alertType || 'security-event',
+        deviceInfo: payload.deviceInfo || 'Unknown device',
+        userId: payload.userId || 'Unknown user',
+        eventType: payload.eventType || 'security-alert',
+        timestamp: new Date().toISOString(),
       },
     }));
 
     await step.email('security-email', async () => {
-      // Use generic email renderer for security alerts
-      const emailBody = await elevaEmailService.renderGenericEmail({
-        templateName: 'security-alert',
-        subject: '🔒 Security Alert - Eleva Care',
-        templateData: {
-          message: payload.message || 'Please review your recent activity.',
-          alertType: payload.alertType,
-          deviceInfo: payload.deviceInfo,
-          userId: payload.userId,
-        },
-        locale: payload.locale || 'en',
-        userSegment: payload.userSegment || 'patient',
-        templateVariant: 'urgent', // Security alerts should be urgent
-      });
+      try {
+        // Use generic email renderer for security alerts
+        const emailBody = await elevaEmailService.renderGenericEmail({
+          templateName: 'security-alert',
+          subject: '🔒 Security Alert - Eleva Care',
+          templateData: {
+            message: payload.message || 'Please review your recent activity.',
+            alertType: payload.alertType || 'security-event',
+            deviceInfo: payload.deviceInfo || 'Unknown device',
+            userId: payload.userId || 'Unknown user',
+          },
+          locale: payload.locale || 'en',
+          userSegment: payload.userSegment || 'patient',
+          templateVariant: 'urgent', // Security alerts should be urgent
+        });
 
-      return {
-        subject: `🔒 Security Alert - Eleva Care`,
-        body: emailBody,
-      };
+        return {
+          subject: `🔒 Security Alert - Eleva Care`,
+          body: emailBody,
+        };
+      } catch (error) {
+        console.error('Error rendering security email:', error);
+        // Fallback to simple HTML email
+        return {
+          subject: `🔒 Security Alert - Eleva Care`,
+          body: `
+            <h2>Security Alert</h2>
+            <p>Hi there,</p>
+            <p>${payload.message || 'We detected unusual activity on your account.'}</p>
+            <p>If this was you, you can safely ignore this message. If not, please contact our support team.</p>
+            <p>Best regards,<br>Eleva Care Team</p>
+          `,
+        };
+      }
     });
   },
   {
     name: 'Security & Authentication',
     description: 'Security-related alerts and notifications',
     payloadSchema: z.object({
-      eventType: z.enum(['security-alert', 'account-verification', 'recent-login']).optional(),
-      userId: z.string(),
+      eventType: z
+        .enum([
+          'security-alert',
+          'account-verification',
+          'recent-login',
+          'session.created',
+          'session.ended',
+          'session.removed',
+        ])
+        .optional(),
+      userId: z.string().optional(),
       alertType: z.string().optional(),
       verificationUrl: z.string().optional(),
       deviceInfo: z.string().optional(),
