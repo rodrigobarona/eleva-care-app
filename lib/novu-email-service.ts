@@ -214,6 +214,18 @@ export class TemplateSelectionService {
 
     // Appointment workflows
     'appointment-universal': {
+      confirmed: {
+        patient: {
+          default: AppointmentConfirmationTemplate,
+          urgent: AppointmentConfirmationTemplate,
+          reminder: AppointmentConfirmationTemplate,
+        },
+        expert: {
+          default: AppointmentConfirmationTemplate,
+          urgent: AppointmentConfirmationTemplate,
+          reminder: AppointmentConfirmationTemplate,
+        },
+      },
       reminder: {
         patient: {
           default: AppointmentConfirmationTemplate,
@@ -236,11 +248,31 @@ export class TemplateSelectionService {
           urgent: AppointmentConfirmationTemplate,
         },
       },
+      default: {
+        patient: {
+          default: AppointmentConfirmationTemplate,
+          urgent: AppointmentConfirmationTemplate,
+        },
+        expert: {
+          default: AppointmentConfirmationTemplate,
+          urgent: AppointmentConfirmationTemplate,
+        },
+      },
     },
 
     // Payment workflows
     'payment-universal': {
-      'payment-success': {
+      success: {
+        patient: {
+          default: MultibancoBookingPendingTemplate,
+          branded: MultibancoBookingPendingTemplate,
+        },
+        expert: {
+          default: MultibancoBookingPendingTemplate,
+          branded: MultibancoBookingPendingTemplate,
+        },
+      },
+      failed: {
         patient: {
           default: MultibancoBookingPendingTemplate,
           branded: MultibancoBookingPendingTemplate,
@@ -770,7 +802,7 @@ export class ElevaEmailService {
       userSegment = 'patient',
       templateVariant = 'default',
       locale = 'en',
-      workflowId = 'appointment-confirmation',
+      workflowId = 'appointment-universal',
       eventType = 'default',
       ...templateData
     } = data;
@@ -930,7 +962,7 @@ export class ElevaEmailService {
     // Use enhanced template selection if advanced options provided
     if (data.userSegment || data.templateVariant) {
       const selector: TemplateSelector = {
-        workflowId: 'payment-confirmation',
+        workflowId: 'payment-universal',
         eventType: 'success',
         userSegment,
         locale,
