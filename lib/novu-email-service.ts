@@ -100,13 +100,13 @@ try {
   if (ENV_CONFIG.NOVU_SECRET_KEY) {
     novu = new Novu({
       secretKey: ENV_CONFIG.NOVU_SECRET_KEY,
-      ...(ENV_CONFIG.NOVU_BASE_URL && { apiUrl: ENV_CONFIG.NOVU_BASE_URL }),
+      ...(ENV_CONFIG.NOVU_BASE_URL && { serverURL: ENV_CONFIG.NOVU_BASE_URL }),
     });
     console.log('[Novu Email Service] ✅ Client initialized successfully');
   } else if (ENV_CONFIG.NOVU_API_KEY) {
     novu = new Novu({
       secretKey: ENV_CONFIG.NOVU_API_KEY,
-      ...(ENV_CONFIG.NOVU_BASE_URL && { apiUrl: ENV_CONFIG.NOVU_BASE_URL }),
+      ...(ENV_CONFIG.NOVU_BASE_URL && { serverURL: ENV_CONFIG.NOVU_BASE_URL }),
     });
     console.log('[Novu Email Service] ✅ Client initialized with legacy API key');
   } else {

@@ -20,14 +20,14 @@ try {
   if (ENV_CONFIG.NOVU_SECRET_KEY) {
     novu = new Novu({
       secretKey: ENV_CONFIG.NOVU_SECRET_KEY,
-      ...(ENV_CONFIG.NOVU_BASE_URL && { apiUrl: ENV_CONFIG.NOVU_BASE_URL }),
+      ...(ENV_CONFIG.NOVU_BASE_URL && { serverURL: ENV_CONFIG.NOVU_BASE_URL }),
     });
     console.log('[Novu Utils] ✅ Client initialized successfully');
   } else if (ENV_CONFIG.NOVU_API_KEY) {
     // Legacy fallback
     novu = new Novu({
       secretKey: ENV_CONFIG.NOVU_API_KEY,
-      ...(ENV_CONFIG.NOVU_BASE_URL && { apiUrl: ENV_CONFIG.NOVU_BASE_URL }),
+      ...(ENV_CONFIG.NOVU_BASE_URL && { serverURL: ENV_CONFIG.NOVU_BASE_URL }),
     });
     console.log('[Novu Utils] ✅ Client initialized with legacy API key');
   } else {

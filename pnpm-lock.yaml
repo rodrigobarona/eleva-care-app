@@ -55,8 +55,8 @@ importers:
         specifier: ^15.3.1
         version: 15.4.6(@mdx-js/loader@3.1.0(acorn@8.15.0))(@mdx-js/react@3.1.0(@types/react@19.0.10)(react@19.1.1))
       '@novu/api':
-        specifier: ^1.2.0
-        version: 1.5.0(zod@3.25.76)
+        specifier: ^1.6.0
+        version: 1.6.0
       '@novu/framework':
         specifier: ^2.6.7
         version: 2.6.7(express@5.1.0)(next@15.3.3(@babel/core@7.28.0)(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(zod-to-json-schema@3.24.6(zod@3.25.76))(zod@3.25.76)
@@ -721,6 +721,10 @@ packages:
 
   '@babel/runtime@7.28.2':
     resolution: {integrity: sha512-KHp2IflsnGywDjBWDkR9iEqiWSpc8GIi0lgTT3mOElT0PP1tG26P4tmFI2YvAdzgq9RGyoHZQEIEdZy6Ec5xCA==}
+    engines: {node: '>=6.9.0'}
+
+  '@babel/runtime@7.28.4':
+    resolution: {integrity: sha512-Q/N6JNWvIvPnLDvjlE1OUBLPQHH6l3CltCEsHIujp45zQUSSh8K+gHnaEX45yAT1nyngnINhvWtzN+Nb9D8RAQ==}
     engines: {node: '>=6.9.0'}
 
   '@babel/template@7.27.2':
@@ -1702,8 +1706,8 @@ packages:
     bundledDependencies:
       - '@libsql/libsql-wasm-experimental'
 
-  '@libsql/core@0.15.10':
-    resolution: {integrity: sha512-fAMD+GnGQNdZ9zxeNC8AiExpKnou/97GJWkiDDZbTRHj3c9dvF1y4jsRQ0WE72m/CqTdbMGyU98yL0SJ9hQVeg==}
+  '@libsql/core@0.15.15':
+    resolution: {integrity: sha512-C88Z6UKl+OyuKKPwz224riz02ih/zHYI3Ho/LAcVOgjsunIRZoBw7fjRfaH9oPMmSNeQfhGklSG2il1URoOIsA==}
 
   '@lukeed/csprng@1.1.0':
     resolution: {integrity: sha512-Z7C/xXCiGWsg0KuKsHTKJxbWhpI3Vs5GwLfOean7MGyVFGqdRgBbAjOCh6u4bbjPc/8MJ2pZmK/0DLdCbivLDA==}
@@ -1858,12 +1862,11 @@ packages:
     resolution: {integrity: sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA==}
     engines: {node: '>=12.4.0'}
 
-  '@novu/api@1.5.0':
-    resolution: {integrity: sha512-WILnDmCpinlI3OkqMPyyV/F4JivxGcXZ28sga/bzT5FYtqO+5IFJz6vZx7YvAsAomhoVDUNZfq/SvTJuQZoVuw==}
+  '@novu/api@1.6.0':
+    resolution: {integrity: sha512-Zi2FzlQw2m5s2rPTrcJ2YuD8Q0P/7H343RsGwyXSqWwajQpjTnWV3us0PzIr8m0oK0H5wDxi9LkGYoHHHFYbfg==}
     hasBin: true
     peerDependencies:
       '@modelcontextprotocol/sdk': '>=1.5.0 <1.10.0'
-      zod: ^3
     peerDependenciesMeta:
       '@modelcontextprotocol/sdk':
         optional: true
@@ -8576,6 +8579,8 @@ snapshots:
 
   '@babel/runtime@7.28.2': {}
 
+  '@babel/runtime@7.28.4': {}
+
   '@babel/template@7.27.2':
     dependencies:
       '@babel/code-frame': 7.27.1
@@ -9479,10 +9484,10 @@ snapshots:
 
   '@libsql/client-wasm@0.15.10':
     dependencies:
-      '@libsql/core': 0.15.10
+      '@libsql/core': 0.15.15
       js-base64: 3.7.8
 
-  '@libsql/core@0.15.10':
+  '@libsql/core@0.15.15':
     dependencies:
       js-base64: 3.7.8
 
@@ -9674,7 +9679,7 @@ snapshots:
 
   '@nolyfill/is-core-module@1.0.39': {}
 
-  '@novu/api@1.5.0(zod@3.25.76)':
+  '@novu/api@1.6.0':
     dependencies:
       zod: 3.25.76
 
@@ -10632,7 +10637,7 @@ snapshots:
   '@testing-library/dom@10.4.1':
     dependencies:
       '@babel/code-frame': 7.27.1
-      '@babel/runtime': 7.28.2
+      '@babel/runtime': 7.28.4
       '@types/aria-query': 5.0.4
       aria-query: 5.3.0
       dom-accessibility-api: 0.5.16

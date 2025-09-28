@@ -25,14 +25,14 @@ try {
     novu = new Novu({
       secretKey: ENV_CONFIG.NOVU_SECRET_KEY,
       // Use EU region if configured, defaults to US
-      ...(ENV_CONFIG.NOVU_BASE_URL && { apiUrl: ENV_CONFIG.NOVU_BASE_URL }),
+      ...(ENV_CONFIG.NOVU_BASE_URL && { serverURL: ENV_CONFIG.NOVU_BASE_URL }),
     });
     console.log('[Novu] ✅ Client initialized successfully');
   } else if (ENV_CONFIG.NOVU_API_KEY) {
     // Legacy fallback for older API key format
     novu = new Novu({
       secretKey: ENV_CONFIG.NOVU_API_KEY,
-      ...(ENV_CONFIG.NOVU_BASE_URL && { apiUrl: ENV_CONFIG.NOVU_BASE_URL }),
+      ...(ENV_CONFIG.NOVU_BASE_URL && { serverURL: ENV_CONFIG.NOVU_BASE_URL }),
     });
     console.log('[Novu] ✅ Client initialized with legacy API key');
   } else {
