@@ -22,6 +22,7 @@ import { useClerk, useUser } from '@clerk/nextjs';
 import {
   BadgeCheck,
   BanknoteIcon,
+  Bell,
   ChevronsUpDown,
   CreditCard,
   Home,
@@ -137,6 +138,12 @@ export function NavUser() {
                 <Link href="/account/security">
                   <Shield className="mr-2 h-4 w-4" />
                   <span>Security</span>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/account/notifications">
+                  <Bell className="mr-2 h-4 w-4" />
+                  <span>My Notifications</span>
                 </Link>
               </DropdownMenuItem>
               <RequireRole roles={['superadmin']}>

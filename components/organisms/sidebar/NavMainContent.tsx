@@ -188,6 +188,14 @@ export function NavMainContent({ items }: NavMainContentProps) {
               </SidebarMenuButton>
             </SidebarMenuItem>
 
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={pathname === '/account/notifications'}>
+                <Link href="/account/notifications">
+                  <span>My Notifications</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
             {/* Billing and identity section */}
             <RequireRole roles={['community_expert', 'top_expert']}>
               <SidebarMenuItem>
