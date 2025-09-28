@@ -474,7 +474,20 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               <FormItem>
                 <FormLabel>About Me</FormLabel>
                 <FormControl>
-                  <RichTextEditor value={field.value || ''} onChange={field.onChange} />
+                  <RichTextEditor
+                    variant="full"
+                    value={field.value || ''}
+                    onChange={field.onChange}
+                    placeholder="Tell potential clients about yourself, your expertise, and what makes you unique..."
+                    features={{
+                      images: true,
+                      tables: true,
+                      colors: true,
+                      alignment: true,
+                      typography: true,
+                      links: true,
+                    }}
+                  />
                 </FormControl>
                 <FormDescription>
                   You can use Markdown formatting to style your text. Add links, lists, and basic

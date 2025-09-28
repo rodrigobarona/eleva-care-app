@@ -50,7 +50,7 @@ import { toast } from 'sonner';
 import type { z } from 'zod';
 
 // Dynamic import of RichTextEditor with SSR disabled
-const SimpleRichTextEditor = dynamic(() => import('@/components/molecules/RichTextEditor'), {
+const RichTextEditor = dynamic(() => import('@/components/molecules/RichTextEditor'), {
   ssr: false,
   loading: () => (
     <div className="min-h-[100px] animate-pulse rounded-md border bg-muted/50 px-3 py-2" />
@@ -281,11 +281,21 @@ export function EventForm({
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
-                    <SimpleRichTextEditor
+                    <RichTextEditor
+                      variant="simple"
                       value={description}
                       onChange={(value) => {
                         setDescription(value);
                         field.onChange(value);
+                      }}
+                      placeholder="Describe your event. You can use formatting to make it more readable."
+                      features={{
+                        images: false,
+                        tables: false,
+                        colors: false,
+                        alignment: true,
+                        typography: true,
+                        links: true,
                       }}
                     />
                   </FormControl>

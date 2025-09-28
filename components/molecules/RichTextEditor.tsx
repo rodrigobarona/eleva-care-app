@@ -43,9 +43,20 @@ import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Markdown } from 'tiptap-markdown';
 
-interface SimpleRichTextEditorProps {
+interface RichTextEditorProps {
   value: string; // Markdown content
   onChange: (value: string) => void; // Returns Markdown content
+  variant?: 'full' | 'simple' | 'minimal'; // Editor variant
+  placeholder?: string; // Custom placeholder text
+  className?: string; // Additional CSS classes
+  features?: {
+    images?: boolean;
+    tables?: boolean;
+    colors?: boolean;
+    alignment?: boolean;
+    typography?: boolean;
+    links?: boolean;
+  };
 }
 
 // Type declaration for the markdown storage extension
@@ -57,7 +68,50 @@ declare module '@tiptap/core' {
   }
 }
 
-const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onChange }) => {
+const RichTextEditor: React.FC<RichTextEditorProps> = ({
+  value,
+  onChange,
+  variant = 'full',
+  placeholder,
+  className = '',
+  features = {},
+}) => {
+  // Default features based on variant
+  const defaultFeatures = React.useMemo(() => {
+    switch (variant) {
+      case 'minimal':
+        return {
+          images: false,
+          tables: false,
+          colors: false,
+          alignment: false,
+          typography: false,
+          links: false,
+          ...features,
+        };
+      case 'simple':
+        return {
+          images: false,
+          tables: false,
+          colors: false,
+          alignment: true,
+          typography: true,
+          links: true,
+          ...features,
+        };
+      case 'full':
+      default:
+        return {
+          images: true,
+          tables: true,
+          colors: true,
+          alignment: true,
+          typography: true,
+          links: true,
+          ...features,
+        };
+    }
+  }, [variant, features]);
   // Use refs to avoid stale closures and unnecessary re-renders
   const onChangeRef = useRef(onChange);
   const isUpdatingFromProp = useRef(false);
@@ -149,10 +203,21 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
       // Professional Placeholder
       Placeholder.configure({
         placeholder: ({ node }) => {
+          if (placeholder) {
+            return placeholder;
+          }
           if (node.type.name === 'heading') {
             return 'Enter heading...';
           }
-          return 'Start writing your medical notes...';
+          switch (variant) {
+            case 'minimal':
+              return 'Start typing...';
+            case 'simple':
+              return 'Write your content...';
+            case 'full':
+            default:
+              return 'Start writing your medical notes...';
+          }
         },
         includeChildren: true,
       }),
@@ -349,8 +414,17 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
     return null;
   }
 
+  // Determine which toolbar groups to show based on variant and features
+  const showAdvancedFormatting =
+    variant === 'full' && (defaultFeatures.colors || defaultFeatures.typography);
+  const showAlignment = defaultFeatures.alignment;
+  const showTables = defaultFeatures.tables;
+  const showImages = defaultFeatures.images;
+  const showLinks = defaultFeatures.links;
+  const showBasicFormatting = variant !== 'minimal';
+
   return (
-    <div className="overflow-hidden rounded-md border">
+    <div className={`overflow-hidden rounded-md border ${className}`}>
       {/* Hidden file input for image uploads */}
       <Input
         ref={fileInputRef}
@@ -363,242 +437,278 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
       {/* Enhanced Professional Toolbar for Medical Experts */}
       <div className="flex-none border-b bg-muted/30">
         <div className="flex flex-wrap items-center gap-1 p-2">
-          {/* Text Formatting Group */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            title="Bold"
-            style={{
-              backgroundColor: editor.isActive('bold') ? 'hsl(var(--accent))' : 'transparent',
-            }}
-          >
-            <Bold className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            title="Italic"
-            style={{
-              backgroundColor: editor.isActive('italic') ? 'hsl(var(--accent))' : 'transparent',
-            }}
-          >
-            <Italic className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => editor.chain().focus().toggleUnderline().run()}
-            title="Underline"
-            style={{
-              backgroundColor: editor.isActive('underline') ? 'hsl(var(--accent))' : 'transparent',
-            }}
-          >
-            <UnderlineIcon className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => editor.chain().focus().toggleHighlight().run()}
-            title="Highlight Text"
-            style={{
-              backgroundColor: editor.isActive('highlight') ? 'hsl(var(--accent))' : 'transparent',
-            }}
-          >
-            <Highlighter className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => {
-              const color = window.prompt('Enter color (e.g., #ff0000, red)');
-              if (color) {
-                editor.chain().focus().setColor(color).run();
-              }
-            }}
-            title="Text Color"
-            style={{
-              backgroundColor: editor.isActive('textStyle') ? 'hsl(var(--accent))' : 'transparent',
-            }}
-          >
-            <Palette className="h-3.5 w-3.5" />
-          </Button>
+          {/* Basic Text Formatting Group */}
+          {showBasicFormatting && (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => editor.chain().focus().toggleBold().run()}
+                title="Bold"
+                style={{
+                  backgroundColor: editor.isActive('bold') ? 'hsl(var(--accent))' : 'transparent',
+                }}
+              >
+                <Bold className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => editor.chain().focus().toggleItalic().run()}
+                title="Italic"
+                style={{
+                  backgroundColor: editor.isActive('italic') ? 'hsl(var(--accent))' : 'transparent',
+                }}
+              >
+                <Italic className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => editor.chain().focus().toggleUnderline().run()}
+                title="Underline"
+                style={{
+                  backgroundColor: editor.isActive('underline')
+                    ? 'hsl(var(--accent))'
+                    : 'transparent',
+                }}
+              >
+                <UnderlineIcon className="h-3.5 w-3.5" />
+              </Button>
+              {showAdvancedFormatting && (
+                <>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => editor.chain().focus().toggleHighlight().run()}
+                    title="Highlight Text"
+                    style={{
+                      backgroundColor: editor.isActive('highlight')
+                        ? 'hsl(var(--accent))'
+                        : 'transparent',
+                    }}
+                  >
+                    <Highlighter className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0"
+                    onClick={() => {
+                      const color = window.prompt('Enter color (e.g., #ff0000, red)');
+                      if (color) {
+                        editor.chain().focus().setColor(color).run();
+                      }
+                    }}
+                    title="Text Color"
+                    style={{
+                      backgroundColor: editor.isActive('textStyle')
+                        ? 'hsl(var(--accent))'
+                        : 'transparent',
+                    }}
+                  >
+                    <Palette className="h-3.5 w-3.5" />
+                  </Button>
+                </>
+              )}
+            </>
+          )}
 
-          <div className="mx-1 h-5 w-px bg-border" />
+          {(showBasicFormatting || showAlignment) && <div className="mx-1 h-5 w-px bg-border" />}
 
           {/* Text Alignment Group */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => editor.chain().focus().setTextAlign('left').run()}
-            title="Align Left"
-            style={{
-              backgroundColor: editor.isActive({ textAlign: 'left' })
-                ? 'hsl(var(--accent))'
-                : 'transparent',
-            }}
-          >
-            <AlignLeft className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => editor.chain().focus().setTextAlign('center').run()}
-            title="Align Center"
-            style={{
-              backgroundColor: editor.isActive({ textAlign: 'center' })
-                ? 'hsl(var(--accent))'
-                : 'transparent',
-            }}
-          >
-            <AlignCenter className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => editor.chain().focus().setTextAlign('right').run()}
-            title="Align Right"
-            style={{
-              backgroundColor: editor.isActive({ textAlign: 'right' })
-                ? 'hsl(var(--accent))'
-                : 'transparent',
-            }}
-          >
-            <AlignRight className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => editor.chain().focus().setTextAlign('justify').run()}
-            title="Justify"
-            style={{
-              backgroundColor: editor.isActive({ textAlign: 'justify' })
-                ? 'hsl(var(--accent))'
-                : 'transparent',
-            }}
-          >
-            <AlignJustify className="h-3.5 w-3.5" />
-          </Button>
+          {showAlignment && (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                title="Align Left"
+                style={{
+                  backgroundColor: editor.isActive({ textAlign: 'left' })
+                    ? 'hsl(var(--accent))'
+                    : 'transparent',
+                }}
+              >
+                <AlignLeft className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                title="Align Center"
+                style={{
+                  backgroundColor: editor.isActive({ textAlign: 'center' })
+                    ? 'hsl(var(--accent))'
+                    : 'transparent',
+                }}
+              >
+                <AlignCenter className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                title="Align Right"
+                style={{
+                  backgroundColor: editor.isActive({ textAlign: 'right' })
+                    ? 'hsl(var(--accent))'
+                    : 'transparent',
+                }}
+              >
+                <AlignRight className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+                title="Justify"
+                style={{
+                  backgroundColor: editor.isActive({ textAlign: 'justify' })
+                    ? 'hsl(var(--accent))'
+                    : 'transparent',
+                }}
+              >
+                <AlignJustify className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
 
-          <div className="mx-1 h-5 w-px bg-border" />
+          {(showAlignment || showBasicFormatting) && <div className="mx-1 h-5 w-px bg-border" />}
 
           {/* Lists Group */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            title="Bullet List"
-            style={{
-              backgroundColor: editor.isActive('bulletList') ? 'hsl(var(--accent))' : 'transparent',
-            }}
-          >
-            <List className="h-3.5 w-3.5" />
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => editor.chain().focus().toggleTaskList().run()}
-            title="Task List / Checklist"
-            style={{
-              backgroundColor: editor.isActive('taskList') ? 'hsl(var(--accent))' : 'transparent',
-            }}
-          >
-            <CheckSquare className="h-3.5 w-3.5" />
-          </Button>
+          {showBasicFormatting && (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => editor.chain().focus().toggleBulletList().run()}
+                title="Bullet List"
+                style={{
+                  backgroundColor: editor.isActive('bulletList')
+                    ? 'hsl(var(--accent))'
+                    : 'transparent',
+                }}
+              >
+                <List className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 w-7 p-0"
+                onClick={() => editor.chain().focus().toggleTaskList().run()}
+                title="Task List / Checklist"
+                style={{
+                  backgroundColor: editor.isActive('taskList')
+                    ? 'hsl(var(--accent))'
+                    : 'transparent',
+                }}
+              >
+                <CheckSquare className="h-3.5 w-3.5" />
+              </Button>
+            </>
+          )}
 
-          <div className="mx-1 h-5 w-px bg-border" />
+          {(showBasicFormatting || showTables || showImages) && (
+            <div className="mx-1 h-5 w-px bg-border" />
+          )}
 
           {/* Table Group - Essential for Medical Records */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() =>
-              editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
-            }
-            title="Insert Table (3x3)"
-            disabled={!editor.can().insertTable()}
-          >
-            <TableIcon className="h-3.5 w-3.5" />
-          </Button>
+          {showTables && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() =>
+                editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+              }
+              title="Insert Table (3x3)"
+              disabled={!editor.can().insertTable()}
+            >
+              <TableIcon className="h-3.5 w-3.5" />
+            </Button>
+          )}
 
           {/* Enhanced Image Upload Button */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => fileInputRef.current?.click()}
-            title="Upload Image"
-            disabled={isUploadingImage}
-          >
-            {isUploadingImage ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <ImageIcon className="h-3.5 w-3.5" />
-            )}
-          </Button>
+          {showImages && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => fileInputRef.current?.click()}
+              title="Upload Image"
+              disabled={isUploadingImage}
+            >
+              {isUploadingImage ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <ImageIcon className="h-3.5 w-3.5" />
+              )}
+            </Button>
+          )}
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => {
-              alert(
-                'Typography Features:\n• Smart quotes: " "\n• Fractions: 1/2, 1/4, 3/4\n• Math symbols: ±, ≠, ×\n• Superscripts: ², ³\n• Arrows: ←, →\n• Copyright: ©, ®, ™\n\n📝 Content stored as Markdown for maximum portability!',
-              );
-            }}
-            title="Typography Help & Features"
-          >
-            <Type className="h-3.5 w-3.5" />
-          </Button>
+          {defaultFeatures.typography && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => {
+                alert(
+                  'Typography Features:\n• Smart quotes: " "\n• Fractions: 1/2, 1/4, 3/4\n• Math symbols: ±, ≠, ×\n• Superscripts: ², ³\n• Arrows: ←, →\n• Copyright: ©, ®, ™\n\n📝 Content stored as Markdown for maximum portability!',
+                );
+              }}
+              title="Typography Help & Features"
+            >
+              <Type className="h-3.5 w-3.5" />
+            </Button>
+          )}
 
-          <div className="mx-1 h-5 w-px bg-border" />
+          {(defaultFeatures.typography || showLinks) && <div className="mx-1 h-5 w-px bg-border" />}
 
           {/* Link Group */}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => {
-              const url = window.prompt('Enter the URL');
-              if (url) {
-                editor.chain().focus().setLink({ href: url }).run();
-              }
-            }}
-            title="Insert Link"
-            style={{
-              backgroundColor: editor.isActive('link') ? 'hsl(var(--accent))' : 'transparent',
-            }}
-          >
-            <LinkIcon className="h-3.5 w-3.5" />
-          </Button>
+          {showLinks && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={() => {
+                const url = window.prompt('Enter the URL');
+                if (url) {
+                  editor.chain().focus().setLink({ href: url }).run();
+                }
+              }}
+              title="Insert Link"
+              style={{
+                backgroundColor: editor.isActive('link') ? 'hsl(var(--accent))' : 'transparent',
+              }}
+            >
+              <LinkIcon className="h-3.5 w-3.5" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -633,4 +743,4 @@ const SimpleRichTextEditor: React.FC<SimpleRichTextEditorProps> = ({ value, onCh
   );
 };
 
-export default SimpleRichTextEditor;
+export default RichTextEditor;
