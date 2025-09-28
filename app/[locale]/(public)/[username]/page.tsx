@@ -132,11 +132,11 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 }
 
 export default async function UserLayout(props: PageProps) {
-  try {
-    // Await the params
-    const params = await props.params;
-    const { username, locale } = params;
+  // Await the params outside try-catch so they're available in catch block
+  const params = await props.params;
+  const { username, locale } = params;
 
+  try {
     console.log(`[UserLayout] Loading page for username: ${username}, locale: ${locale}`);
 
     // Get user data early
