@@ -51,6 +51,7 @@
     "novu:sync:prod": "bash -c 'source .env && npx novu@latest sync --bridge-url \"https://eleva.care/api/novu\" --secret-key \"$NOVU_SECRET_KEY_PROD\" --api-url \"$NOVU_BASE_URL\"'",
     "novu:sync:preview": "bash -c 'source .env && npx novu@latest sync --bridge-url \"$VERCEL_PREVIEW_URL/api/novu\" --secret-key \"$NOVU_SECRET_KEY\" --api-url \"$NOVU_BASE_URL\"'",
     "novu:diagnostics": "node scripts/test-novu-diagnostics.js",
+    "test:security": "node scripts/test-enhanced-security.js",
     "qstash:schedule": "node scripts/qstash-manager.js schedule",
     "qstash:list": "node scripts/qstash-manager.js list",
     "qstash:cleanup": "node scripts/qstash-manager.js cleanup",
