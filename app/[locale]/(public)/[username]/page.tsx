@@ -1,5 +1,6 @@
 import { Skeleton } from '@/components/atoms/skeleton';
 import { EventBookingList } from '@/components/molecules/EventBookingList';
+import MarkdownViewer from '@/components/molecules/MarkdownViewer';
 import { db } from '@/drizzle/db';
 import { generateUserProfileMetadata } from '@/lib/seo/metadata-utils';
 import { createClerkClient } from '@clerk/nextjs/server';
@@ -8,7 +9,6 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import React from 'react';
-import ReactMarkdown from 'react-markdown';
 
 const SOCIAL_ICONS = {
   instagram: Instagram,
@@ -281,9 +281,10 @@ async function ProfileInfo({
             )}
           </h2>
           {profile?.longBio && (
-            <div className="prose-eleva-neutral-900 prose-font-light prose prose-base">
-              <ReactMarkdown>{profile.longBio}</ReactMarkdown>
-            </div>
+            <MarkdownViewer
+              content={profile.longBio}
+              className="prose-eleva-neutral-900 prose-font-light prose-base"
+            />
           )}
         </div>
       </div>
