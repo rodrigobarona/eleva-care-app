@@ -7,6 +7,7 @@ import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { logAuditEvent } from '@/lib/logAuditEvent';
 import { meetingActionSchema } from '@/schema/meetings';
 import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalendar';
+import { checkBotId } from 'botid/server';
 import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { headers } from 'next/headers';
@@ -60,6 +61,27 @@ import type { z } from 'zod';
  * @throws Will not throw errors directly, but returns error information in the result object
  */
 export async function createMeeting(unsafeData: z.infer<typeof meetingActionSchema>) {
+  // 🛡️ BotID Protection: Check for bot traffic before creating meetings
+  const botVerification = await checkBotId({
+    advancedOptions: {
+      checkLevel: 'deepAnalysis',
+    },
+  });
+
+  if (botVerification.isBot) {
+    console.warn('🚫 Bot detected in meeting creation:', {
+      isVerifiedBot: botVerification.isVerifiedBot,
+      verifiedBotName: botVerification.verifiedBotName,
+      guestEmail: unsafeData.guestEmail,
+    });
+
+    return {
+      error: true,
+      code: 'BOT_DETECTED',
+      message: 'Automated meeting creation is not allowed',
+    };
+  }
+
   // Step 1: Validate the incoming data against our schema
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
   if (!success) return { error: true, code: 'VALIDATION_ERROR' };

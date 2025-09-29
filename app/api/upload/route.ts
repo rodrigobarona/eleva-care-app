@@ -1,5 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 import { del, put } from '@vercel/blob';
+import { checkBotId } from 'botid/server';
 import { NextResponse } from 'next/server';
 
 /**
@@ -15,6 +16,28 @@ import { NextResponse } from 'next/server';
  */
 export async function POST(request: Request): Promise<NextResponse> {
   try {
+    // 🛡️ BotID Protection: Check for bot traffic before processing file uploads
+    const botVerification = await checkBotId({
+      advancedOptions: {
+        checkLevel: 'deepAnalysis',
+      },
+    });
+
+    if (botVerification.isBot) {
+      console.warn('🚫 Bot detected in file upload:', {
+        isVerifiedBot: botVerification.isVerifiedBot,
+        verifiedBotName: botVerification.verifiedBotName,
+      });
+
+      return NextResponse.json(
+        {
+          error: 'Access denied',
+          message: 'Automated file uploads are not allowed',
+        },
+        { status: 403 },
+      );
+    }
+
     const { userId } = await auth();
 
     if (!userId) {

@@ -9,6 +9,7 @@ import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
 import { FormCache, IdempotencyCache, RateLimitCache } from '@/lib/redis';
 import { getOrCreateStripeCustomer } from '@/lib/stripe';
+import { checkBotId } from 'botid/server';
 import { and, eq, gt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -275,6 +276,37 @@ function createSharedMetadata({
 
 export async function POST(request: NextRequest) {
   console.log('Starting payment intent creation process');
+
+  // 🛡️ BotID Protection: Check for bot traffic before processing payment
+  const botVerification = await checkBotId({
+    advancedOptions: {
+      checkLevel: 'deepAnalysis',
+    },
+  });
+
+  if (botVerification.isBot) {
+    console.warn('🚫 Bot detected in payment intent creation:', {
+      isVerifiedBot: botVerification.isVerifiedBot,
+      verifiedBotName: botVerification.verifiedBotName,
+      verifiedBotCategory: botVerification.verifiedBotCategory,
+    });
+
+    // Allow verified bots that might be legitimate (e.g., monitoring services)
+    const allowedVerifiedBots = ['pingdom-bot', 'uptime-robot', 'checkly'];
+    const isAllowedBot =
+      botVerification.isVerifiedBot &&
+      allowedVerifiedBots.includes(botVerification.verifiedBotName || '');
+
+    if (!isAllowedBot) {
+      return NextResponse.json(
+        {
+          error: 'Access denied',
+          message: 'Automated requests are not allowed for payment processing',
+        },
+        { status: 403 },
+      );
+    }
+  }
 
   // Declare variables in function scope for access in catch block
   let eventId: string = '';

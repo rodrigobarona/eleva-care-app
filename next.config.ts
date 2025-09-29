@@ -1,4 +1,5 @@
 import createMDX from '@next/mdx';
+import { withBotId } from 'botid/next/config';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
@@ -133,6 +134,6 @@ const config: NextConfig = {
   bundlePagesRouterDependencies: true,
 };
 
-// Apply plugins in order: Bundle Analyzer -> MDX -> Next-Intl
+// Apply plugins in order: Bundle Analyzer -> MDX -> Next-Intl -> BotID
 const nextConfig = withMDX(config);
-export default withBundleAnalyzer(withNextIntl(nextConfig));
+export default withBotId(withBundleAnalyzer(withNextIntl(nextConfig)));

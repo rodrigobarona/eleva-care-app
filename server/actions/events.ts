@@ -8,6 +8,7 @@ import { eventFormSchema } from '@/schema/events';
 import { checkExpertSetupStatus, markStepComplete } from '@/server/actions/expert-setup';
 import { EVENT_CREATED, EVENT_DELETED, EVENT_UPDATED } from '@/types/audit';
 import { auth } from '@clerk/nextjs/server';
+import { checkBotId } from 'botid/server';
 import { and, count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
@@ -35,6 +36,25 @@ import type { z } from 'zod';
 export async function createEvent(
   unsafeData: z.infer<typeof eventFormSchema>,
 ): Promise<{ error: boolean; message?: string } | undefined> {
+  // 🛡️ BotID Protection: Check for bot traffic before creating events
+  const botVerification = await checkBotId({
+    advancedOptions: {
+      checkLevel: 'basic',
+    },
+  });
+
+  if (botVerification.isBot) {
+    console.warn('🚫 Bot detected in event creation:', {
+      isVerifiedBot: botVerification.isVerifiedBot,
+      verifiedBotName: botVerification.verifiedBotName,
+    });
+
+    return {
+      error: true,
+      message: 'Automated event creation is not allowed',
+    };
+  }
+
   const { userId } = await auth();
   const headersList = await headers();
 

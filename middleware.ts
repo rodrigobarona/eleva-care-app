@@ -407,7 +407,10 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     path.startsWith('/api/healthcheck') ||
     path.startsWith('/api/create-payment-intent') ||
     path.startsWith('/api/og/') ||
-    path === '/api/novu'
+    path === '/api/novu' ||
+    // BotID routes - let BotID handle these directly
+    path.startsWith('/_vercel/insights/') ||
+    path.startsWith('/_botid/')
   ) {
     console.log(`📁 Static/internal route, skipping: ${path}`);
     return NextResponse.next();

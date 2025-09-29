@@ -607,6 +607,12 @@ export function MeetingFormContent({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+
+        // Handle BotID protection responses
+        if (response.status === 403 && errorData.error === 'Access denied') {
+          throw new Error(errorData.message || 'Request blocked for security reasons');
+        }
+
         throw new Error(errorData.error || 'Failed to create payment intent');
       }
 

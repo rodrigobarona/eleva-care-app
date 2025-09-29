@@ -2,6 +2,7 @@ import { db } from '@/drizzle/db';
 import { CategoryTable } from '@/drizzle/schema';
 import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import type { ApiResponse } from '@/types/api';
+import { checkBotId } from 'botid/server';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
@@ -28,6 +29,25 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  // 🛡️ BotID Protection: Check for bot traffic before admin operations
+  const botVerification = await checkBotId({
+    advancedOptions: {
+      checkLevel: 'basic',
+    },
+  });
+
+  if (botVerification.isBot && !botVerification.isVerifiedBot) {
+    console.warn('🚫 Bot detected in admin category creation');
+    return NextResponse.json(
+      {
+        success: false,
+        error: 'Access denied',
+        message: 'Automated admin operations are not allowed',
+      },
+      { status: 403 },
+    );
+  }
+
   // Check admin authentication
   const authResponse = await adminAuthMiddleware();
   if (authResponse) return authResponse;
