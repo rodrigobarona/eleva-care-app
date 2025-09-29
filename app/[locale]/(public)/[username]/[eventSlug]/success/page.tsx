@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
+import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { formatDateTime } from '@/lib/formatters';
@@ -28,6 +29,18 @@ interface PageProps {
 }
 
 export default async function SuccessPage(props: PageProps) {
+  const params = await props.params;
+  const { username, eventSlug } = params;
+
+  return (
+    <ProfileAccessControl username={username} context="SuccessPage" additionalPath={eventSlug}>
+      <SuccessPageContent props={props} />
+    </ProfileAccessControl>
+  );
+}
+
+// Separate component for the actual content
+async function SuccessPageContent({ props }: { props: PageProps }) {
   const t = await getTranslations('experts');
 
   // Await both params and searchParams
@@ -43,15 +56,13 @@ export default async function SuccessPage(props: PageProps) {
 
   const { username, eventSlug, locale } = params;
 
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
+  // Get user data - we know it exists because ProfileAccessControl validated it
+  const data = await getProfileAccessData(username);
+  if (!data) {
+    return notFound(); // This shouldn't happen due to ProfileAccessControl
+  }
 
-  const users = await clerk.users.getUserList({
-    username: [username],
-  });
-  const user = users.data[0];
-  if (!user) return notFound();
+  const { user } = data;
 
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId: userIdCol, isActive, slug }, { eq, and }) =>
@@ -68,6 +79,9 @@ export default async function SuccessPage(props: PageProps) {
     },
   });
 
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
   const calendarUser = await clerk.users.getUser(user.id);
 
   // Validate startTime before creating Date object

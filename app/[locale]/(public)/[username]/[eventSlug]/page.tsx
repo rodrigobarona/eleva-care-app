@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from '@/components/atoms/card';
 import { Skeleton } from '@/components/atoms/skeleton';
+import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
 import { MeetingForm } from '@/components/organisms/forms/MeetingForm';
 import { db } from '@/drizzle/db';
 import {
@@ -70,16 +71,30 @@ interface EventType {
 export default async function BookEventPage(props: PageProps) {
   const { username, eventSlug, locale } = await props.params;
 
-  // Fetch basic user/event data first
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
+  return (
+    <ProfileAccessControl username={username} context="BookEventPage" additionalPath={eventSlug}>
+      <BookEventPageContent username={username} eventSlug={eventSlug} locale={locale} />
+    </ProfileAccessControl>
+  );
+}
 
-  const users = await clerk.users.getUserList({
-    username: [username],
-  });
-  const user = users.data[0];
-  if (!user) return notFound();
+// Separate component for the actual content
+async function BookEventPageContent({
+  username,
+  eventSlug,
+  locale,
+}: {
+  username: string;
+  eventSlug: string;
+  locale: string;
+}) {
+  // Get user data - we know it exists because ProfileAccessControl validated it
+  const data = await getProfileAccessData(username);
+  if (!data) {
+    return notFound(); // This shouldn't happen due to ProfileAccessControl
+  }
+
+  const { user } = data;
 
   const event = await db.query.EventTable.findFirst({
     where: ({ clerkUserId: userIdCol, isActive, slug }, { eq, and }) =>
@@ -88,6 +103,9 @@ export default async function BookEventPage(props: PageProps) {
 
   if (event == null) return notFound();
 
+  const clerk = createClerkClient({
+    secretKey: process.env.CLERK_SECRET_KEY,
+  });
   const calendarUser = await clerk.users.getUser(user.id);
 
   return (

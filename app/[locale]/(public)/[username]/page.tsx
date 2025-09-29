@@ -1,8 +1,9 @@
 import { Skeleton } from '@/components/atoms/skeleton';
+import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
 import { EventBookingList } from '@/components/molecules/EventBookingList';
 import { db } from '@/drizzle/db';
 import { generateUserProfileMetadata } from '@/lib/seo/metadata-utils';
-import { createClerkClient } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
@@ -70,25 +71,20 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const { username, locale } = params;
 
   try {
-    // Get user data
-    const clerk = createClerkClient({
-      secretKey: process.env.CLERK_SECRET_KEY,
-    });
+    // Use the centralized utility to get profile data
+    const data = await getProfileAccessData(username);
 
-    const users = await clerk.users.getUserList({
-      username: [username],
-    });
-
-    const user = users.data[0];
-    if (!user) {
+    if (!data) {
       return {
         title: 'User Not Found | Eleva Care',
         description: 'The requested user profile could not be found.',
       };
     }
 
-    // Get profile data from database
-    const profile = await db.query.ProfileTable.findFirst({
+    const { user } = data;
+
+    // Get full profile data with relations for metadata
+    const fullProfile = await db.query.ProfileTable.findFirst({
       where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
       with: {
         primaryCategory: true,
@@ -96,19 +92,35 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
       },
     });
 
+    // Check if profile is published - if not, return generic metadata
+    if (!fullProfile?.published) {
+      // Get current authenticated user to check if they're the profile owner
+      const { userId: currentUserId } = await auth();
+
+      // If profile is not published and user is not the owner, return generic metadata
+      if (!currentUserId || currentUserId !== user.id) {
+        return {
+          title: 'Profile Not Available | Eleva Care',
+          description: 'This profile is not currently available.',
+        };
+      }
+    }
+
     // Prepare data for OG image and metadata
-    const name = profile ? `${profile.firstName} ${profile.lastName}` : user.fullName || username;
-    const bio = profile?.shortBio || profile?.longBio || undefined;
-    const headline = profile?.headline;
-    const image = (profile?.profilePicture || user.imageUrl) ?? undefined;
+    const name = fullProfile
+      ? `${fullProfile.firstName} ${fullProfile.lastName}`
+      : user.fullName || username;
+    const bio = fullProfile?.shortBio || fullProfile?.longBio || undefined;
+    const headline = fullProfile?.headline;
+    const image = (fullProfile?.profilePicture || user.imageUrl) ?? undefined;
 
     // Extract specialties from categories
     const specialties: string[] = [];
-    if (profile?.primaryCategory) {
-      specialties.push((profile.primaryCategory as { name: string }).name);
+    if (fullProfile?.primaryCategory) {
+      specialties.push((fullProfile.primaryCategory as { name: string }).name);
     }
-    if (profile?.secondaryCategory) {
-      specialties.push((profile.secondaryCategory as { name: string }).name);
+    if (fullProfile?.secondaryCategory) {
+      specialties.push((fullProfile.secondaryCategory as { name: string }).name);
     }
 
     return generateUserProfileMetadata(
@@ -132,29 +144,29 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 }
 
 export default async function UserLayout(props: PageProps) {
-  // Await the params outside try-catch so they're available in catch block
   const params = await props.params;
   const { username, locale } = params;
 
+  return (
+    <ProfileAccessControl username={username} context="UserLayout">
+      <UserLayoutContent username={username} locale={locale} />
+    </ProfileAccessControl>
+  );
+}
+
+// Separate component for the actual content
+async function UserLayoutContent({ username, locale }: { username: string; locale: string }) {
   try {
-    console.log(`[UserLayout] Loading page for username: ${username}, locale: ${locale}`);
+    console.log(`[UserLayoutContent] Loading page for username: ${username}, locale: ${locale}`);
 
-    // Get user data early
-    const clerk = createClerkClient({
-      secretKey: process.env.CLERK_SECRET_KEY,
-    });
-
-    const users = await clerk.users.getUserList({
-      username: [username],
-    });
-
-    const user = users.data[0];
-    if (!user) {
-      console.log(`[UserLayout] User not found for username: ${username}`);
-      return notFound();
+    // Get user data - we know it exists because ProfileAccessControl validated it
+    const data = await getProfileAccessData(username);
+    if (!data) {
+      return notFound(); // This shouldn't happen due to ProfileAccessControl
     }
 
-    console.log(`[UserLayout] Found user: ${user.id} for username: ${username}`);
+    const { user } = data;
+    console.log(`[UserLayoutContent] Found user: ${user.id} for username: ${username}`);
 
     return (
       <div className="container max-w-7xl pb-10 pt-32">
@@ -178,7 +190,7 @@ export default async function UserLayout(props: PageProps) {
       </div>
     );
   } catch (error) {
-    console.error(`[UserLayout] Error loading page for username: ${username}:`, error);
+    console.error(`[UserLayoutContent] Error loading page for username: ${username}:`, error);
     // Re-throw the error to let Next.js error boundary handle it
     throw error;
   }
