@@ -199,7 +199,15 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
       let profilePictureUrl = transformedData.profilePicture;
       if (selectedFile) {
         setIsUploading(true);
-        const filename = `${user?.id}-${selectedFile.name}`;
+        // Create a Safari-friendly filename without special characters
+        const timestamp = Date.now();
+        // Remove any problematic characters that might cause Safari issues
+        const sanitizedName = selectedFile.name
+          .replace(/[^a-zA-Z0-9.-]/g, '-') // Replace special chars with hyphens
+          .replace(/-+/g, '-') // Replace multiple hyphens with single
+          .replace(/^-|-$/g, ''); // Remove leading/trailing hyphens
+
+        const filename = `${user?.id}-${timestamp}-${sanitizedName}`;
         const response = await fetch(
           `/api/upload?filename=${encodeURIComponent(filename)}&folder=profiles`,
           {

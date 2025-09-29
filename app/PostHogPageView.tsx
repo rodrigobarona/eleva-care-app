@@ -55,7 +55,14 @@ function PostHogPageView(): null {
       screen_height: window.screen.height,
       user_agent: navigator.userAgent,
       language: navigator.language,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      timezone: (() => {
+        try {
+          return Intl.DateTimeFormat().resolvedOptions().timeZone;
+        } catch (error) {
+          console.warn('Failed to get timezone, using UTC:', error);
+          return 'UTC';
+        }
+      })(),
       connection_type: (navigator as ExtendedNavigator)?.connection?.effectiveType || 'unknown',
       // Route categorization
       route_category: getRouteCategory(pathname),

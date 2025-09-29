@@ -124,7 +124,14 @@ function PostHogUserTracker() {
         user_role: metadata?.role || 'user',
         onboarding_completed: metadata?.onboardingCompleted || false,
         preferred_locale: locale,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezone: (() => {
+          try {
+            return Intl.DateTimeFormat().resolvedOptions().timeZone;
+          } catch (error) {
+            console.warn('Failed to get timezone, using UTC:', error);
+            return 'UTC';
+          }
+        })(),
       });
 
       posthog.people.set({
@@ -265,7 +272,14 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
             screen_height: window.screen.height,
             viewport_width: window.innerWidth,
             viewport_height: window.innerHeight,
-            timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+            timezone: (() => {
+              try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone;
+              } catch (error) {
+                console.warn('Failed to get timezone, using UTC:', error);
+                return 'UTC';
+              }
+            })(),
             language: navigator.language,
             platform: navigator.platform,
           });
