@@ -5,6 +5,13 @@ import { render } from '@react-email/render';
 import React from 'react';
 import { z } from 'zod';
 
+import {
+  getAppointmentLinks,
+  getPaymentLinks,
+  getSecurityLinks,
+  getUserLifecycleLinks,
+} from './notification-links';
+
 // SIMPLIFIED PRODUCTION-READY WORKFLOWS
 // These workflows are designed to be simple and compatible with Novu Bridge
 
@@ -12,15 +19,20 @@ import { z } from 'zod';
 export const userLifecycleWorkflow = workflow(
   'user-lifecycle',
   async ({ payload, step }) => {
-    await step.inApp('welcome-notification', async () => ({
-      subject: `Welcome to Eleva Care! 🎉`,
-      body: `Welcome ${payload.userName}! We're excited to have you join our healthcare community.`,
-      data: {
-        userName: payload.userName,
-        firstName: payload.firstName,
-        email: payload.email,
-      },
-    }));
+    await step.inApp('welcome-notification', async () => {
+      const links = getUserLifecycleLinks(payload.userSegment);
+
+      return {
+        subject: `Welcome to Eleva Care! 🎉`,
+        body: `Welcome ${payload.userName}! We're excited to have you join our healthcare community.`,
+        ...links,
+        data: {
+          userName: payload.userName,
+          firstName: payload.firstName,
+          email: payload.email,
+        },
+      };
+    });
 
     await step.email('welcome-email', async () => {
       const emailBody = await elevaEmailService.renderWelcomeEmail({
@@ -69,17 +81,22 @@ export const userLifecycleWorkflow = workflow(
 export const securityAuthWorkflow = workflow(
   'security-auth',
   async ({ payload, step }) => {
-    await step.inApp('security-alert', async () => ({
-      subject: `🔒 Security Alert`,
-      body: `Security alert for your account: ${payload.message || 'Unusual activity detected'}`,
-      data: {
-        alertType: payload.alertType || 'security-event',
-        deviceInfo: payload.deviceInfo || 'Unknown device',
-        userId: payload.userId || 'Unknown user',
-        eventType: payload.eventType || 'security-alert',
-        timestamp: new Date().toISOString(),
-      },
-    }));
+    await step.inApp('security-alert', async () => {
+      const links = getSecurityLinks(payload.alertType || payload.eventType);
+
+      return {
+        subject: `🔒 Security Alert`,
+        body: `Security alert for your account: ${payload.message || 'Unusual activity detected'}`,
+        ...links,
+        data: {
+          alertType: payload.alertType || 'security-event',
+          deviceInfo: payload.deviceInfo || 'Unknown device',
+          userId: payload.userId || 'Unknown user',
+          eventType: payload.eventType || 'security-alert',
+          timestamp: new Date().toISOString(),
+        },
+      };
+    });
 
     await step.email('security-email', async () => {
       // Use simple HTML email for security alerts (no complex template needed)
@@ -145,17 +162,22 @@ export const securityAuthWorkflow = workflow(
 export const paymentWorkflow = workflow(
   'payment-universal',
   async ({ payload, step }) => {
-    await step.inApp('payment-notification', async () => ({
-      subject: `💳 Payment ${payload.eventType}: ${payload.amount} ${payload.currency || 'EUR'}`,
-      body: `${payload.message || `Payment ${payload.eventType} for ${payload.amount}`}`,
-      data: {
-        eventType: payload.eventType,
-        amount: payload.amount,
-        currency: payload.currency,
-        transactionId: payload.transactionId,
-        customerName: payload.customerName,
-      },
-    }));
+    await step.inApp('payment-notification', async () => {
+      const links = getPaymentLinks(payload.eventType || 'pending', payload.transactionId);
+
+      return {
+        subject: `💳 Payment ${payload.eventType}: ${payload.amount} ${payload.currency || 'EUR'}`,
+        body: `${payload.message || `Payment ${payload.eventType} for ${payload.amount}`}`,
+        ...links,
+        data: {
+          eventType: payload.eventType,
+          amount: payload.amount,
+          currency: payload.currency,
+          transactionId: payload.transactionId,
+          customerName: payload.customerName,
+        },
+      };
+    });
 
     await step.email('payment-email', async () => {
       let emailBody: string;
@@ -365,18 +387,28 @@ export const expertManagementWorkflow = workflow(
 export const appointmentWorkflow = workflow(
   'appointment-universal',
   async ({ payload, step }) => {
-    await step.inApp('appointment-notification', async () => ({
-      subject: `📅 Appointment ${payload.eventType}: ${payload.serviceName || 'Your Appointment'}`,
-      body: `${payload.message || `Appointment update with ${payload.expertName}`}`,
-      data: {
-        eventType: payload.eventType,
-        expertName: payload.expertName,
-        customerName: payload.customerName,
-        appointmentDate: payload.appointmentDate,
-        appointmentTime: payload.appointmentTime,
-        serviceName: payload.serviceName,
-      },
-    }));
+    await step.inApp('appointment-notification', async () => {
+      const links = getAppointmentLinks(
+        payload.eventType || 'update',
+        payload.meetingUrl,
+        payload.appointmentId,
+      );
+
+      return {
+        subject: `📅 Appointment ${payload.eventType}: ${payload.serviceName || 'Your Appointment'}`,
+        body: `${payload.message || `Appointment update with ${payload.expertName}`}`,
+        ...links,
+        data: {
+          eventType: payload.eventType,
+          expertName: payload.expertName,
+          customerName: payload.customerName,
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          serviceName: payload.serviceName,
+          appointmentId: payload.appointmentId,
+        },
+      };
+    });
 
     await step.email('appointment-email', async () => {
       let emailBody: string;
@@ -453,6 +485,7 @@ export const appointmentWorkflow = workflow(
       timeUntilAppointment: z.string().optional(),
       notes: z.string().optional(),
       message: z.string().optional(),
+      appointmentId: z.string().optional(),
       locale: z.string().optional().default('en'),
       userSegment: z.enum(['patient', 'expert', 'admin']).optional().default('patient'),
       templateVariant: z
@@ -578,17 +611,23 @@ export const systemHealthWorkflow = workflow(
 export const appointmentConfirmationWorkflow = workflow(
   'appointment-confirmation',
   async ({ payload, step }) => {
-    await step.inApp('appointment-confirmed', async () => ({
-      subject: `✅ Appointment confirmed with ${payload.clientName}`,
-      body: `Your appointment for ${payload.eventTitle} is confirmed for ${payload.appointmentDate} at ${payload.appointmentTime}.`,
-      data: {
-        expertName: payload.expertName,
-        appointmentDate: payload.appointmentDate,
-        appointmentTime: payload.appointmentTime,
-        meetLink: payload.meetLink,
-        timezone: payload.timezone,
-      },
-    }));
+    await step.inApp('appointment-confirmed', async () => {
+      const links = getAppointmentLinks('confirmed', payload.meetLink, payload.appointmentId);
+
+      return {
+        subject: `✅ Appointment confirmed with ${payload.clientName}`,
+        body: `Your appointment for ${payload.eventTitle} is confirmed for ${payload.appointmentDate} at ${payload.appointmentTime}.`,
+        ...links,
+        data: {
+          expertName: payload.expertName,
+          appointmentDate: payload.appointmentDate,
+          appointmentTime: payload.appointmentTime,
+          meetLink: payload.meetLink,
+          timezone: payload.timezone,
+          appointmentId: payload.appointmentId,
+        },
+      };
+    });
 
     await step.email('appointment-confirmation-email', async () => {
       const emailBody = await elevaEmailService.renderAppointmentConfirmation({
@@ -625,6 +664,7 @@ export const appointmentConfirmationWorkflow = workflow(
       notes: z.string().optional(),
       locale: z.string().optional(),
       country: z.string().optional(),
+      appointmentId: z.string().optional(),
     }),
     tags: ['appointments', 'email'],
     preferences: {
