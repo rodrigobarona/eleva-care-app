@@ -36,6 +36,8 @@
     "test:payment": "jest tests/api/create-payment-intent.test.ts --passWithNoTests",
     "test:scheduling": "jest tests/api/getValidTimesFromSchedule.test.ts --passWithNoTests",
     "test:integration": "jest tests/integration",
+    "test:novu": "jest tests/lib/novu-workflow-fix.test.ts --passWithNoTests",
+    "test:novu:integration": "NOVU_INTEGRATION_TEST=true jest tests/integration/novu-workflow-execution.test.ts --passWithNoTests",
     "test:e2e": "jest tests/e2e",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
