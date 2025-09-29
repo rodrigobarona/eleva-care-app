@@ -247,25 +247,25 @@ async function ProfileInfo({
               profile?.profilePicture ?? null,
               clerkUserImageUrl,
             );
-              return (
-                <Image
-                  src={safeImageUrl}
-                  alt={clerkUserFullName || 'Profile picture'}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  // Disable optimization for Vercel Blob URLs to prevent Safari issues
-                  unoptimized={safeImageUrl.includes('public.blob.vercel-storage.com')}
-                  onError={(e) => {
-                    console.warn('Image failed to load:', safeImageUrl);
-                    // Fallback to Clerk image if current image fails
-                    if (e.currentTarget.src !== clerkUserImageUrl) {
-                      e.currentTarget.src = clerkUserImageUrl;
-                    }
-                  }}
-                />
-              );
+            return (
+              <Image
+                src={safeImageUrl}
+                alt={clerkUserFullName || 'Profile picture'}
+                fill
+                className="object-cover"
+                priority
+                sizes="(max-width: 768px) 100vw, 50vw"
+                // Disable optimization for Vercel Blob URLs to prevent Safari issues
+                unoptimized={safeImageUrl.includes('public.blob.vercel-storage.com')}
+                onError={(e) => {
+                  console.warn('Image failed to load:', safeImageUrl);
+                  // Fallback to Clerk image if current image fails
+                  if (e.currentTarget.src !== clerkUserImageUrl) {
+                    e.currentTarget.src = clerkUserImageUrl;
+                  }
+                }}
+              />
+            );
           })()}
           {/* Top Expert Badge */}
           {profile?.isTopExpert && (
