@@ -10,27 +10,6 @@ import { notFound } from 'next/navigation';
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
 
-// Helper function to validate and sanitize image URLs
-function getSafeImageUrl(profilePicture: string | null, clerkImageUrl: string): string {
-  // Prefer Clerk image for iPhone Safari compatibility (like event pages do)
-  // Only use profile picture if it's different from Clerk image
-  if (profilePicture && profilePicture.startsWith('http') && profilePicture !== clerkImageUrl) {
-    return profilePicture;
-  }
-
-  // If profile picture is a blob URL (shouldn't happen but safety check), use Clerk image
-  if (profilePicture?.startsWith('blob:')) {
-    console.warn(
-      'Blob URL detected in profile picture, using Clerk image instead:',
-      profilePicture,
-    );
-    return clerkImageUrl;
-  }
-
-  // Default to Clerk image (same as event pages)
-  return clerkImageUrl;
-}
-
 const SOCIAL_ICONS = {
   instagram: Instagram,
   twitter: Twitter,
@@ -242,31 +221,14 @@ async function ProfileInfo({
     return (
       <div className="space-y-6">
         <div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
-          {(() => {
-            const safeImageUrl = getSafeImageUrl(
-              profile?.profilePicture ?? null,
-              clerkUserImageUrl,
-            );
-              return (
-                <Image
-                  src={safeImageUrl}
-                  alt={clerkUserFullName || 'Profile picture'}
-                  fill
-                  className="object-cover"
-                  priority
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  // Disable optimization for Vercel Blob URLs to prevent Safari issues
-                  unoptimized={safeImageUrl.includes('public.blob.vercel-storage.com')}
-                  onError={(e) => {
-                    console.warn('Image failed to load:', safeImageUrl);
-                    // Fallback to Clerk image if current image fails
-                    if (e.currentTarget.src !== clerkUserImageUrl) {
-                      e.currentTarget.src = clerkUserImageUrl;
-                    }
-                  }}
-                />
-              );
-          })()}
+          <Image
+            src={profile?.profilePicture || clerkUserImageUrl}
+            alt={clerkUserFullName || 'Profile picture'}
+            fill
+            className="object-cover"
+            priority
+            sizes="(max-width: 768px) 100vw, 50vw"
+          />
           {/* Top Expert Badge */}
           {profile?.isTopExpert && (
             <div className="absolute bottom-4 left-3">
