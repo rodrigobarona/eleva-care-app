@@ -60,6 +60,7 @@ export { default as AppointmentConfirmationTemplate } from './appointments/appoi
 export { default as AppointmentReminderTemplate } from './appointments/appointment-reminder';
 export { default as ExpertNotificationTemplate } from './experts/expert-notification';
 export { default as NotificationEmailTemplate } from './notifications/notification-email';
+export { default as SecurityAlertEmailTemplate } from './notifications/security-alert';
 export { default as PaymentConfirmationTemplate } from './payments/payment-confirmation';
 export { default as MultibancoBookingPendingTemplate } from './payments/multibanco-booking-pending';
 export { default as MultibancoPaymentReminderTemplate } from './payments/multibanco-payment-reminder';
@@ -129,6 +130,16 @@ export interface MultibancoEmailProps extends EmailTemplateProps {
   customerNotes?: string;
 }
 
+export interface SecurityAlertEmailProps extends EmailTemplateProps {
+  userName?: string;
+  alertType?: string;
+  message?: string;
+  deviceInfo?: string;
+  location?: string;
+  timestamp?: string;
+  actionUrl?: string;
+}
+
 // Email creation helpers with i18n support
 export async function createEmailWithI18n<T extends EmailTemplateProps>(
   TemplateComponent: React.ComponentType<T>,
@@ -155,6 +166,7 @@ export const EMAIL_PREVIEW_URLS = {
   appointmentReminder: '/emails/appointments/appointment-reminder',
   expertNotification: '/emails/experts/expert-notification',
   notification: '/emails/notifications/notification-email',
+  securityAlert: '/emails/notifications/security-alert',
   paymentConfirmation: '/emails/payments/payment-confirmation',
   multibancoBookingPending: '/emails/payments/multibanco-booking-pending',
   multibancoPaymentReminder: '/emails/payments/multibanco-payment-reminder',

@@ -100,28 +100,27 @@ export const securityAuthWorkflow = workflow(
     });
 
     await step.email('security-email', async () => {
-      // Use simple HTML email for security alerts (no complex template needed)
+      // Import the security alert email template
+      const { render } = await import('@react-email/render');
+      const { SecurityAlertEmailTemplate } = await import('@/emails');
+
+      // Render the email template with the payload data
+      const emailHtml = await render(
+        SecurityAlertEmailTemplate({
+          userName: payload.userName,
+          alertType: payload.alertType || 'Security Alert',
+          message: payload.message || 'We detected unusual activity on your account.',
+          deviceInfo: payload.deviceInfo || 'Unknown device',
+          location: payload.location,
+          timestamp: payload.timestamp || new Date().toLocaleString(),
+          actionUrl: payload.actionUrl || 'https://eleva.care/account/security',
+          locale: payload.locale || 'en',
+        }),
+      );
+
       return {
-        subject: `🔒 Security Alert - Eleva Care`,
-        body: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #e74c3c;">🔒 Security Alert</h2>
-            <p>Hi there,</p>
-            <p><strong>${payload.message || 'We detected unusual activity on your account.'}</strong></p>
-            <p>Event details:</p>
-            <ul>
-              <li><strong>Event type:</strong> ${payload.alertType || 'Security event'}</li>
-              <li><strong>Time:</strong> ${new Date().toLocaleString()}</li>
-              <li><strong>Device:</strong> ${payload.deviceInfo || 'Unknown device'}</li>
-            </ul>
-            <p>If this was you, you can safely ignore this message. If not, please contact our support team immediately.</p>
-            <p>Best regards,<br><strong>Eleva Care Team</strong></p>
-            <hr style="margin: 20px 0; border: none; border-top: 1px solid #eee;">
-            <p style="font-size: 12px; color: #666;">
-              This is an automated security notification from Eleva Care.
-            </p>
-          </div>
-        `,
+        subject: `🔒 Security Alert - ${payload.alertType || 'Eleva Care'}`,
+        body: emailHtml,
       };
     });
   },
@@ -140,9 +139,13 @@ export const securityAuthWorkflow = workflow(
         ])
         .optional(),
       userId: z.string().optional(),
+      userName: z.string().optional(),
       alertType: z.string().optional(),
       verificationUrl: z.string().optional(),
       deviceInfo: z.string().optional(),
+      location: z.string().optional(),
+      timestamp: z.string().optional(),
+      actionUrl: z.string().optional(),
       message: z.string().optional(),
       locale: z.string().optional().default('en'),
       userSegment: z.enum(['patient', 'expert', 'admin']).optional().default('patient'),
