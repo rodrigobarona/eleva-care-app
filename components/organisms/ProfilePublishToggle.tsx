@@ -155,12 +155,14 @@ export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishT
                 <AlertDialogDescription>
                   Your profile cannot be published until all required steps are completed. Please
                   complete the following steps:
-                  <ul className="mt-3 list-disc space-y-1 pl-5">
+                </AlertDialogDescription>
+                <div className="mt-3">
+                  <ul className="list-disc space-y-1 pl-5">
                     {incompleteSteps.map((step) => (
                       <li key={step}>{getStepName(step)}</li>
                     ))}
                   </ul>
-                </AlertDialogDescription>
+                </div>
               </>
             ) : dialogMode === 'publish' ? (
               <>

@@ -864,7 +864,12 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Error processing webhook event:', error);
+    console.error('Error processing webhook event:', {
+      error: error instanceof Error ? error.message : error,
+      eventType: event?.type || 'unknown',
+      eventId: event?.id || 'unknown',
+      timestamp: new Date().toISOString(),
+    });
     return NextResponse.json(
       { error: 'Internal server error processing webhook' },
       { status: 500 },
