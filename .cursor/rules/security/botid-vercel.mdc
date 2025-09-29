@@ -1,0 +1,561 @@
+---
+description: 'Vercel BotID Implementation Rule: Bot Protection and Management for Eleva Care'
+type: 'agent'
+globs:
+  [
+    '**/botid/**',
+    '**/bot-protection/**',
+    'instrumentation-client.ts',
+    'middleware.ts',
+    '**/api/**/route.ts',
+    'server/actions/**',
+  ]
+---
+
+# Vercel BotID Implementation Rule
+
+## Overview
+
+This rule provides comprehensive guidance for implementing and managing Vercel BotID bot protection across the Eleva Care application. BotID provides invisible CAPTCHA protection against sophisticated bots without showing visible challenges or requiring manual intervention.
+
+## Architecture & Configuration
+
+### Two-Layer Protection Strategy
+
+1. **Vercel Bot Protection (Managed Ruleset)**
+   - Dashboard configuration: **Log Mode** (recommended)
+   - Monitors all bot traffic without blocking
+   - Allows legitimate bots (Googlebot, Twitterbot, etc.)
+   - Provides comprehensive traffic visibility
+
+2. **BotID Server-Side Protection**
+   - Custom endpoint protection using `checkBotId()`
+   - Granular control per API route and server action
+   - Allows verified bots, blocks unverified ones
+   - Protects critical business operations
+
+### Client-Side Configuration
+
+```typescript
+// instrumentation-client.ts
+import { initBotId } from 'botid/client/core';
+
+initBotId({
+  protect: [
+    // Critical payment endpoints
+    {
+      path: '/api/create-payment-intent',
+      method: 'POST',
+      advancedOptions: {
+        checkLevel: 'basic', // Free on all Vercel plans
+      },
+    },
+
+    // File upload protection
+    {
+      path: '/api/upload',
+      method: 'POST',
+      advancedOptions: {
+        checkLevel: 'basic',
+      },
+    },
+
+    // Booking and meeting pages
+    {
+      path: '/*/booking',
+      method: 'POST',
+      advancedOptions: {
+        checkLevel: 'basic',
+      },
+    },
+
+    // Admin operations
+    {
+      path: '/api/admin/**',
+      method: 'POST',
+      advancedOptions: {
+        checkLevel: 'basic',
+      },
+    },
+  ],
+});
+```
+
+### Server-Side Implementation Pattern
+
+```typescript
+// Standard BotID check pattern for API routes
+import { checkBotId } from 'botid/server';
+
+export async function POST(request: Request) {
+  // 🛡️ BotID Protection: Check for bot traffic
+  const botVerification = await checkBotId({
+    advancedOptions: {
+      checkLevel: 'basic', // Free on all Vercel plans including Hobby
+    },
+  });
+
+  // Allow verified bots but block unverified ones
+  if (botVerification.isBot && !botVerification.isVerifiedBot) {
+    console.warn('🚫 Unverified bot detected:', {
+      isVerifiedBot: botVerification.isVerifiedBot,
+      verifiedBotName: botVerification.verifiedBotName,
+      endpoint: request.url,
+    });
+
+    return NextResponse.json(
+      {
+        error: 'Access denied',
+        message: 'Automated requests are not allowed for this operation',
+      },
+      { status: 403 },
+    );
+  }
+
+  // Log verified bot access for monitoring
+  if (botVerification.isBot && botVerification.isVerifiedBot) {
+    console.info('✅ Verified bot accessing endpoint:', {
+      verifiedBotName: botVerification.verifiedBotName,
+      verifiedBotCategory: botVerification.verifiedBotCategory,
+      endpoint: request.url,
+    });
+  }
+
+  // Continue with normal request processing...
+}
+```
+
+### Server Actions Protection Pattern
+
+```typescript
+// Server actions protection pattern
+import { checkBotId } from 'botid/server';
+
+export async function createMeeting(data: MeetingData) {
+  // 🛡️ BotID Protection for server actions
+  const botVerification = await checkBotId({
+    advancedOptions: {
+      checkLevel: 'basic',
+    },
+  });
+
+  // Allow verified bots but block unverified ones
+  if (botVerification.isBot && !botVerification.isVerifiedBot) {
+    console.warn('🚫 Unverified bot detected in server action:', {
+      action: 'createMeeting',
+      isVerifiedBot: botVerification.isVerifiedBot,
+      verifiedBotName: botVerification.verifiedBotName,
+    });
+
+    return {
+      error: true,
+      code: 'BOT_DETECTED',
+      message: 'Automated operations are not allowed',
+    };
+  }
+
+  // Log verified bot access
+  if (botVerification.isBot && botVerification.isVerifiedBot) {
+    console.info('✅ Verified bot accessing server action:', {
+      action: 'createMeeting',
+      verifiedBotName: botVerification.verifiedBotName,
+    });
+  }
+
+  // Continue with server action logic...
+}
+```
+
+## Protection Levels & Plans
+
+### Hobby Plan (FREE)
+
+- **BotID Basic Mode**: ✅ Available
+- **Features**: Browser session validation, basic bot blocking
+- **Cost**: Free
+- **Recommended for**: Most applications
+
+### Pro/Enterprise Plans
+
+- **BotID Basic Mode**: ✅ Free (same as Hobby)
+- **BotID Deep Analysis**: ✅ $1 per 1,000 calls
+- **Features**: Advanced ML-powered detection, sophisticated bot blocking
+- **Recommended for**: High-value endpoints with advanced threats
+
+## Endpoint Protection Strategy
+
+### 🔥 Critical Endpoints (Always Protect)
+
+```typescript
+// Payment processing
+'/api/create-payment-intent'     // Payment creation
+'/api/webhooks/stripe'           // Payment webhooks (if not using signature validation)
+
+// File operations
+'/api/upload'                    // File uploads
+'/api/admin/**'                  // Admin operations
+
+// Meeting/booking operations
+'createMeeting' server action    // Meeting creation
+'createEvent' server action      // Event creation
+```
+
+### 🎯 High Priority Endpoints (Recommended)
+
+```typescript
+// User operations
+'updateProfile' server action    // Profile updates
+'saveSchedule' server action     // Schedule management
+
+// Content operations
+'/api/admin/categories'          // Category management
+'/api/admin/experts'             // Expert management
+```
+
+### 📊 Medium Priority Endpoints (Optional)
+
+```typescript
+// Analytics and monitoring
+'/api/analytics/**'; // Analytics endpoints
+'/api/health-check'; // Health monitoring
+
+// Content delivery
+'/api/og/**'; // OG image generation
+```
+
+## Verified Bot Handling
+
+### Allowed Verified Bots
+
+```typescript
+// These bots should always be allowed through:
+const allowedVerifiedBots = [
+  'Googlebot', // Google Search indexing
+  'Twitterbot', // Twitter/X social previews
+  'FacebookExternalHit', // Facebook social previews
+  'LinkedInBot', // LinkedIn social previews
+  'WhatsApp', // WhatsApp link previews
+  'Slackbot', // Slack link previews
+  'TelegramBot', // Telegram link previews
+  'facebookexternalhit', // Facebook crawler (alternative name)
+  'Applebot', // Apple Search
+  'Bingbot', // Microsoft Bing
+  'DuckDuckBot', // DuckDuckGo
+];
+```
+
+### Verification Logic
+
+```typescript
+// Always allow verified bots for SEO and social media
+if (botVerification.isBot && botVerification.isVerifiedBot) {
+  // Log for monitoring but allow through
+  console.info('✅ Verified bot allowed:', {
+    botName: botVerification.verifiedBotName,
+    category: botVerification.verifiedBotCategory,
+  });
+  // Continue processing normally
+}
+
+// Block only unverified bots
+if (botVerification.isBot && !botVerification.isVerifiedBot) {
+  // Block and log
+  return NextResponse.json(
+    { error: 'Access denied' },
+    { status: 403 }
+  );
+}
+```
+
+## Configuration Management
+
+### Next.js Configuration
+
+```typescript
+// next.config.ts
+import { withBotId } from 'botid/next/config';
+
+const nextConfig = {
+  // ... other config
+};
+
+// Apply BotID configuration last in the plugin chain
+export default withBotId(withBundleAnalyzer(withNextIntl(nextConfig)));
+```
+
+### Middleware Integration
+
+```typescript
+// middleware.ts - Exclude BotID routes from custom middleware
+export function middleware(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+
+  // Skip middleware for BotID-protected routes
+  if (
+    path.startsWith('/_next') ||
+    path.startsWith('/api/webhooks/') ||
+    path.startsWith('/api/botid/') ||  // BotID internal routes
+    // ... other exclusions
+  ) {
+    return NextResponse.next();
+  }
+
+  // Continue with custom middleware logic...
+}
+```
+
+## Error Handling & User Experience
+
+### Client-Side Error Handling
+
+```typescript
+// Handle BotID responses in forms
+try {
+  const response = await fetch('/api/create-payment-intent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+
+    // Handle BotID protection responses
+    if (response.status === 403 && errorData.error === 'Access denied') {
+      throw new Error(
+        errorData.message || 'Request blocked for security reasons'
+      );
+    }
+
+    throw new Error(errorData.error || 'Request failed');
+  }
+
+  return await response.json();
+} catch (error) {
+  // Show user-friendly error message
+  setError(error.message);
+}
+```
+
+### Graceful Degradation
+
+```typescript
+// Provide fallback options for blocked requests
+if (botVerification.isBot && !botVerification.isVerifiedBot) {
+  // For non-critical endpoints, provide alternative response
+  if (isNonCriticalEndpoint(request.url)) {
+    return NextResponse.json({
+      message: 'Limited access mode',
+      data: getPublicData(),
+    });
+  }
+
+  // For critical endpoints, block completely
+  return NextResponse.json(
+    { error: 'Access denied' },
+    { status: 403 }
+  );
+}
+```
+
+## Monitoring & Analytics
+
+### Logging Strategy
+
+```typescript
+// Comprehensive logging for bot activity
+function logBotActivity(botVerification: BotVerification, context: any) {
+  const logData = {
+    timestamp: new Date().toISOString(),
+    isBot: botVerification.isBot,
+    isVerified: botVerification.isVerifiedBot,
+    botName: botVerification.verifiedBotName,
+    botCategory: botVerification.verifiedBotCategory,
+    endpoint: context.endpoint,
+    method: context.method,
+    userAgent: context.userAgent,
+    ip: context.ip,
+    action: botVerification.isBot
+      ? botVerification.isVerifiedBot
+        ? 'ALLOWED'
+        : 'BLOCKED'
+      : 'PASSED',
+  };
+
+  // Log to appropriate service (PostHog, DataDog, etc.)
+  console.info('🤖 Bot Activity:', logData);
+
+  // Send to analytics if needed
+  if (process.env.NODE_ENV === 'production') {
+    analytics.track('bot_activity', logData);
+  }
+}
+```
+
+### Vercel Dashboard Monitoring
+
+- Monitor bot traffic in **Vercel Dashboard > Security > Bot Protection**
+- Review logs regularly for patterns and threats
+- Adjust protection levels based on traffic analysis
+- Set up alerts for unusual bot activity spikes
+
+## Testing & Validation
+
+### Local Testing
+
+```bash
+# Test with different user agents
+curl -H "User-Agent: Googlebot/2.1" https://eleva.care/
+curl -H "User-Agent: BadBot/1.0" https://eleva.care/api/create-payment-intent
+
+# Test critical endpoints
+curl -X POST -H "Content-Type: application/json" \
+  -H "User-Agent: TestBot/1.0" \
+  -d '{"test": "data"}' \
+  https://eleva.care/api/create-payment-intent
+```
+
+### Production Validation
+
+```typescript
+// Health check endpoint to verify BotID status
+export async function GET() {
+  try {
+    const botCheck = await checkBotId({
+      advancedOptions: { checkLevel: 'basic' },
+    });
+
+    return NextResponse.json({
+      status: 'healthy',
+      botProtection: 'active',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    return NextResponse.json({ status: 'error', message: 'BotID check failed' }, { status: 500 });
+  }
+}
+```
+
+## Best Practices
+
+### 1. Configuration
+
+- ✅ Use **Log Mode** in Vercel dashboard for optimal balance
+- ✅ Implement server-side checks for critical endpoints
+- ✅ Allow verified bots for SEO and social media
+- ✅ Use **Basic mode** for cost-effective protection
+
+### 2. Implementation
+
+- ✅ Apply protection to high-value endpoints only
+- ✅ Provide clear error messages for blocked requests
+- ✅ Log all bot activity for monitoring
+- ✅ Test with various user agents
+
+### 3. Monitoring
+
+- ✅ Review bot logs regularly
+- ✅ Monitor for false positives
+- ✅ Track protection effectiveness
+- ✅ Adjust rules based on traffic patterns
+
+### 4. Performance
+
+- ✅ Minimize BotID checks to essential endpoints
+- ✅ Cache bot verification results when possible
+- ✅ Use appropriate check levels (basic vs deep analysis)
+- ✅ Monitor response times and error rates
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Legitimate bots being blocked**
+   - Switch Vercel dashboard to **Log Mode**
+   - Verify `isVerifiedBot` check in server code
+   - Check bot user agent against verified bot list
+
+2. **False positives for real users**
+   - Review BotID check implementation
+   - Ensure proper error handling in client code
+   - Monitor user feedback and support tickets
+
+3. **Performance impact**
+   - Limit BotID checks to critical endpoints only
+   - Use Basic mode instead of Deep Analysis
+   - Implement caching for repeated checks
+
+4. **Integration conflicts**
+   - Ensure BotID is last in Next.js plugin chain
+   - Exclude BotID routes from custom middleware
+   - Check for conflicts with other security tools
+
+### Debug Commands
+
+```bash
+# Check BotID package installation
+pnpm list botid
+
+# Verify Next.js configuration
+pnpm build --debug
+
+# Test endpoint protection
+curl -v -H "User-Agent: TestBot" https://eleva.care/api/test-endpoint
+```
+
+## Migration & Updates
+
+### Upgrading BotID
+
+```bash
+# Update to latest version
+pnpm update botid
+
+# Check for breaking changes
+pnpm audit
+
+# Test after upgrade
+pnpm test
+```
+
+### Configuration Changes
+
+- Always test configuration changes in staging first
+- Monitor bot logs after changes
+- Have rollback plan ready
+- Document all configuration modifications
+
+## Security Considerations
+
+### Data Privacy
+
+- BotID respects user privacy and GDPR compliance
+- No personal data is collected during bot checks
+- Verification happens server-side without exposing user info
+- Logs contain only technical bot detection data
+
+### Compliance
+
+- BotID is SOC 2 compliant
+- Meets healthcare data protection requirements
+- Compatible with HIPAA compliance needs
+- Supports audit trail requirements
+
+### Rate Limiting
+
+- Combine BotID with rate limiting for comprehensive protection
+- Use different limits for verified vs unverified traffic
+- Implement progressive penalties for repeat offenders
+- Monitor for distributed attacks across multiple IPs
+
+## Related Rules
+
+- `@security/clerk` - Authentication and user management
+- `@security/stripe` - Payment security and PCI compliance
+- `@security/privacy-compliance` - GDPR, SOC 2, and HIPAA compliance
+- `@core/api-actions` - API endpoint development patterns
+- `@infrastructure/neon-drizzler` - Database security patterns
+
+---
+
+**Remember**: BotID protection should be invisible to legitimate users while effectively blocking malicious automation. Always prioritize user experience while maintaining robust security.
