@@ -95,6 +95,17 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
     }
   }, [isUserLoaded, user, form, initialData]);
 
+  // Helper function to safely clean up blob URLs
+  const cleanupBlobUrl = React.useCallback((url: string) => {
+    try {
+      if (url?.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.warn('Failed to revoke blob URL:', error);
+    }
+  }, []);
+
   // Fetch categories on component mount
   useEffect(() => {
     async function fetchCategories() {
@@ -130,6 +141,10 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
 
     setIsUploading(true);
     try {
+      // Clean up any existing blob URL before creating a new one
+      const currentProfilePicture = form.getValues('profilePicture');
+      cleanupBlobUrl(currentProfilePicture);
+
       setSelectedFile(file);
       const previewUrl = URL.createObjectURL(file);
       form.setValue('profilePicture', previewUrl);
@@ -247,11 +262,9 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
     return () => {
       // Cleanup blob URLs when component unmounts
       const profilePicture = form.getValues('profilePicture');
-      if (profilePicture?.startsWith('blob:')) {
-        URL.revokeObjectURL(profilePicture);
-      }
+      cleanupBlobUrl(profilePicture);
     };
-  }, [form]);
+  }, [form, cleanupBlobUrl]);
 
   return (
     <Form {...form}>
@@ -275,6 +288,17 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                           fill
                           className="object-cover"
                           priority
+                          onError={(_e) => {
+                            console.warn('Image failed to load:', field.value);
+                            // If blob URL fails, try to clean it up and reset to Clerk image
+                            if (field.value?.startsWith('blob:')) {
+                              cleanupBlobUrl(field.value);
+                              if (user?.imageUrl) {
+                                form.setValue('profilePicture', user.imageUrl);
+                                setSelectedFile(null);
+                              }
+                            }
+                          }}
                         />
                       </div>
                     )}
@@ -301,6 +325,10 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                           <button
                             type="button"
                             onClick={() => {
+                              // Clean up blob URL before resetting to Clerk image
+                              const currentProfilePicture = form.getValues('profilePicture');
+                              cleanupBlobUrl(currentProfilePicture);
+
                               form.setValue('profilePicture', user?.imageUrl || '');
                               setSelectedFile(null);
                             }}
