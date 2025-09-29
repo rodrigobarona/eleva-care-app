@@ -109,7 +109,7 @@ function NextAvailableTimeContent({
       if (isTomorrow(dateObj, now)) {
         return `Tomorrow at ${formattedTime}`;
       }
-      return formatInTimeZone(dateObj, userTimeZone, `EEE, ${timeFormat}`);
+      return formatInTimeZone(dateObj, userTimeZone, 'EEE, h:mm a');
     } catch (error) {
       console.error('[NextAvailableTimeClient] Error formatting date:', error);
       return dateObj.toLocaleString('en-US', {
@@ -171,7 +171,7 @@ function NextAvailableTimeContent({
                 {formatInTimeZone(
                   parsedDate,
                   userTimeZone,
-                  `'Book' '${eventName}' 'on' EEEE, MMM d 'at' h:mm a '('z')'`,
+                  "'Book on' EEEE, MMM d 'at' h:mm a '('z')'",
                 )}
               </TooltipContent>
             </Tooltip>
