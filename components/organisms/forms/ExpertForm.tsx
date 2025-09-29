@@ -240,6 +240,11 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
         }
       }
 
+      // Ensure we never save a temporary blob URL to the database
+      if (profilePictureUrl?.startsWith('blob:')) {
+        throw new Error('Cannot save temporary blob URL. Please try uploading the image again.');
+      }
+
       const response = await fetch('/api/profile', {
         method: 'POST',
         headers: {
