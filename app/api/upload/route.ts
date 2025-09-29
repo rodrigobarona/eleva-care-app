@@ -19,7 +19,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     // 🛡️ BotID Protection: Check for bot traffic before processing file uploads
     const botVerification = await checkBotId({
       advancedOptions: {
-        checkLevel: 'deepAnalysis',
+        checkLevel: 'basic', // Free on all Vercel plans including Hobby
       },
     });
 

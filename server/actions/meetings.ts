@@ -64,7 +64,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
   // 🛡️ BotID Protection: Check for bot traffic before creating meetings
   const botVerification = await checkBotId({
     advancedOptions: {
-      checkLevel: 'deepAnalysis',
+      checkLevel: 'basic', // Free on all Vercel plans including Hobby
     },
   });
 

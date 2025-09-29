@@ -280,7 +280,7 @@ export async function POST(request: NextRequest) {
   // 🛡️ BotID Protection: Check for bot traffic before processing payment
   const botVerification = await checkBotId({
     advancedOptions: {
-      checkLevel: 'deepAnalysis',
+      checkLevel: 'basic', // Free on all Vercel plans including Hobby
     },
   });
 

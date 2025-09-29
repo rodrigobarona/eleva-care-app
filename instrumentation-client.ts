@@ -16,12 +16,12 @@ import { initBotId } from 'botid/client/core';
 
 initBotId({
   protect: [
-    // 🔥 CRITICAL: Payment & Booking Endpoints (Deep Analysis)
+    // 🔥 CRITICAL: Payment & Booking Endpoints (Basic - Free on all plans)
     {
       path: '/api/create-payment-intent',
       method: 'POST',
       advancedOptions: {
-        checkLevel: 'deepAnalysis',
+        checkLevel: 'basic', // Free on all plans including Hobby
       },
     },
 
@@ -31,14 +31,14 @@ initBotId({
       path: '/*/booking',
       method: 'POST',
       advancedOptions: {
-        checkLevel: 'deepAnalysis',
+        checkLevel: 'basic', // Free on all plans
       },
     },
     {
       path: '/*/booking/*',
       method: 'POST',
       advancedOptions: {
-        checkLevel: 'deepAnalysis',
+        checkLevel: 'basic', // Free on all plans
       },
     },
 
@@ -47,7 +47,7 @@ initBotId({
       path: '/api/upload',
       method: 'POST',
       advancedOptions: {
-        checkLevel: 'deepAnalysis',
+        checkLevel: 'basic', // Free on all plans
       },
     },
 
