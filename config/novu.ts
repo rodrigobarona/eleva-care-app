@@ -21,10 +21,11 @@ export const userLifecycleWorkflow = workflow(
   async ({ payload, step }) => {
     await step.inApp('welcome-notification', async () => {
       const links = getUserLifecycleLinks(payload.userSegment);
+      const displayName = payload.firstName || payload.userName || 'there';
 
       return {
         subject: `Welcome to Eleva Care! 🎉`,
-        body: `Welcome ${payload.userName}! We're excited to have you join our healthcare community.`,
+        body: `Welcome ${displayName}! We're excited to have you join our healthcare community.`,
         ...links,
         data: {
           userName: payload.userName,
@@ -36,8 +37,8 @@ export const userLifecycleWorkflow = workflow(
 
     await step.email('welcome-email', async () => {
       const emailBody = await elevaEmailService.renderWelcomeEmail({
-        userName: payload.userName,
-        firstName: payload.firstName,
+        userName: payload.userName || payload.firstName || 'User',
+        firstName: payload.firstName || payload.userName || 'User',
         dashboardUrl: '/dashboard',
         locale: payload.locale || 'en',
         userSegment: payload.userSegment || 'patient',

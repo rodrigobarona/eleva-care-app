@@ -261,22 +261,54 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
     }
 
     // Create payload with event data
-    const payload = {
-      eventType: evt.type,
-      eventId: evt.data.id,
-      userId: evt.type.startsWith('session.')
-        ? (evt.data as { user_id?: string; id: string }).user_id || evt.data.id
-        : evt.data.id, // Extract user_id from session data or use event id
-      eventData: evt.data,
-      timestamp: Date.now(),
-      source: 'clerk_webhook',
-      // Add additional fields for security-auth workflow
-      alertType: evt.type === 'session.created' ? 'recent-login' : evt.type,
-      message:
-        evt.type === 'session.created'
-          ? 'New login detected on your account'
-          : `Session event: ${evt.type}`,
-    };
+    let payload: Record<string, unknown>;
+
+    if (evt.type.startsWith('user.')) {
+      // For user events, extract user fields to the payload root level for workflow compatibility
+      const userData = evt.data as UserJSON;
+      payload = {
+        eventType: evt.type,
+        eventId: evt.data.id,
+        userId: evt.data.id,
+        // Extract user fields for workflow compatibility
+        userName:
+          userData.username ||
+          `${userData.first_name || ''} ${userData.last_name || ''}`.trim() ||
+          userData.id,
+        firstName: userData.first_name || '',
+        lastName: userData.last_name || '',
+        email: userData.email_addresses?.[0]?.email_address || '',
+        locale: 'en', // Default locale
+        userSegment: (userData.public_metadata?.role as string[])?.includes('expert')
+          ? 'expert'
+          : 'patient',
+        templateVariant: 'default',
+        // Keep full event data for reference
+        eventData: evt.data,
+        timestamp: Date.now(),
+        source: 'clerk_webhook',
+        alertType: evt.type,
+        message: `User event: ${evt.type}`,
+      };
+    } else {
+      // For other events (sessions, etc.), use the original structure
+      payload = {
+        eventType: evt.type,
+        eventId: evt.data.id,
+        userId: evt.type.startsWith('session.')
+          ? (evt.data as { user_id?: string; id: string }).user_id || evt.data.id
+          : evt.data.id,
+        eventData: evt.data,
+        timestamp: Date.now(),
+        source: 'clerk_webhook',
+        // Add additional fields for security-auth workflow
+        alertType: evt.type === 'session.created' ? 'recent-login' : evt.type,
+        message:
+          evt.type === 'session.created'
+            ? 'New login detected on your account'
+            : `Session event: ${evt.type}`,
+      };
+    }
 
     // Trigger the Novu workflow
     console.log(`🔔 Triggering Novu workflow '${workflowId}' for Clerk event '${evt.type}'`);
