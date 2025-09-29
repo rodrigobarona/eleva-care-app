@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
+// Using official TipTap extensions instead of custom sanitizer
 import { BulletList } from '@tiptap/extension-bullet-list';
 import { Color } from '@tiptap/extension-color';
 import { Highlight } from '@tiptap/extension-highlight';
@@ -135,11 +136,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       }),
       // ✅ MARKDOWN SUPPORT: Enable proper markdown parsing and rendering
       Markdown.configure({
-        html: true, // Allow HTML input/output
+        html: false, // Disable HTML for security and iPhone Safari compatibility
         transformPastedText: true, // Allow pasting markdown text
         transformCopiedText: true, // Copied text is transformed to markdown
         breaks: false, // Don't convert \n to <br>
         linkify: false, // Don't auto-create links from URLs
+        tightLists: true, // No <p> inside <li> for cleaner output
+        bulletListMarker: '-', // Consistent list markers
       }),
       // Professional Typography
       Typography,
@@ -254,10 +257,9 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         const markdownContent = editor.storage.markdown.getMarkdown();
         onChangeRef.current(markdownContent);
       } catch (error) {
-        console.warn('Failed to convert to Markdown, falling back to HTML:', error);
-        // Fallback to HTML if Markdown conversion fails
-        const htmlContent = editor.getHTML();
-        onChangeRef.current(htmlContent);
+        console.warn('Failed to convert to Markdown:', error);
+        // Fallback to empty content to prevent corruption
+        onChangeRef.current('');
       }
     },
   });
@@ -348,7 +350,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
       // Only update if content is actually different
       if (currentContent !== value) {
-        // ✅ MARKDOWN EXTENSION: setContent now properly parses markdown!
+        // ✅ MARKDOWN EXTENSION: setContent properly parses markdown!
         editor.commands.setContent(value || '', { emitUpdate: false });
 
         // Restore cursor position after content update if editor was focused
