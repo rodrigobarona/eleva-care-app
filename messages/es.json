@@ -77,6 +77,24 @@
             "description": "Comprende los términos de pago, políticas de reembolso y procedimientos de facturación de Eleva Care para servicios de salud.",
             "siteName": "Eleva Care"
           }
+        },
+        "practitioner-agreement": {
+          "title": "Acuerdo de Profesionales | Eleva Care",
+          "description": "Revisa el acuerdo de profesionales de Eleva Care que describe los términos y condiciones para profesionales de salud que utilizan nuestra plataforma.",
+          "og": {
+            "title": "Acuerdo de Profesionales | Eleva Care",
+            "description": "Revisa el acuerdo de profesionales de Eleva Care que describe los términos y condiciones para profesionales de salud que utilizan nuestra plataforma.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "security": {
+          "title": "Seguridad y Cumplimiento | Eleva Care",
+          "description": "Conoce las medidas de seguridad, certificaciones y compromiso de Eleva Care para proteger tus datos de salud con cumplimiento RGPD, LGPD e HIPAA.",
+          "og": {
+            "title": "Seguridad y Cumplimiento | Eleva Care",
+            "description": "Conoce las medidas de seguridad, certificaciones y compromiso de Eleva Care para proteger tus datos de salud con cumplimiento RGPD, LGPD e HIPAA.",
+            "siteName": "Eleva Care"
+          }
         }
       }
     },
@@ -333,7 +351,9 @@
         "cookie": "Política de Cookies",
         "preferences": "Preferencias de Cookies",
         "dpa": "Procesamiento de Datos",
-        "paymentPolicies": "Políticas de Pago"
+        "paymentPolicies": "Políticas de Pago",
+        "practitionerAgreement": "Acuerdo de Profesionales",
+        "security": "Seguridad"
       }
     },
     "copyright": "Todos los derechos reservados.",
@@ -341,6 +361,21 @@
       "instagram": "Síguenos en Instagram",
       "twitter": "Síguenos en Twitter",
       "linkedin": "Síguenos en LinkedIn"
+    },
+    "platformDisclaimer": {
+      "title": "Eleva Care es una Plataforma Tecnológica de Salud",
+      "description": "Conectamos pacientes con profesionales de salud independientes y licenciados. Eleva Care proporciona la tecnología; su profesional elegido brinda su atención médica."
+    },
+    "compliance": {
+      "gdpr": "Cumple con el RGPD",
+      "lgpd": "Cumple con la LGPD",
+      "encryption": "Cifrado AES-256",
+      "euData": "Datos Almacenados en la UE",
+      "hipaa": "Infraestructura Preparada para HIPAA",
+      "secureEmail": "Email Seguro (TLS 1.3)",
+      "iso27001": "Alineado con ISO 27001",
+      "soc2": "Infraestructura SOC 2",
+      "ccpa": "Cumple con el CCPA"
     }
   },
   "experts": {

@@ -1,0 +1,441 @@
+# Security
+
+_Last Updated: October 1, 2025_
+
+---
+
+## Our Commitment to Security
+
+As a healthcare technology platform, Eleva.care understands that security isn't just a feature—it's the foundation of trust. We handle sensitive health information for practitioners and patients across Europe and Latin America, and we take this responsibility seriously.
+
+Our security infrastructure is built on **GDPR**, **LGPD**, and **HIPAA-compliant** foundations, implementing industry-leading practices to protect your data at every layer of our platform.
+
+---
+
+## Certifications & Compliance
+
+### Active Compliance Standards
+
+✅ **GDPR (General Data Protection Regulation)**  
+Full compliance as a Portugal-based entity serving EU healthcare professionals and patients.
+
+✅ **LGPD (Lei Geral de Proteção de Dados Pessoais)**  
+Complete compliance with Brazilian data protection law (Lei nº 13.709/2018).
+
+✅ **HIPAA-Ready Infrastructure**  
+HIPAA-compliant database infrastructure through Neon.tech with executed Business Associate Agreement (BAA).
+
+### Infrastructure & Vendor Certifications
+
+Our security posture is strengthened by our infrastructure providers' formal certifications:
+
+✅ **SOC 2 Type II Certified Infrastructure**
+
+- **Clerk** (Authentication): SOC 2 Type II certified
+- **Stripe** (Payments): SOC 2 Type II + PCI DSS Level 1
+- **Vercel** (Hosting): SOC 2 Type II certified
+- **Neon** (Database): SOC 2 Type II + HIPAA compliance
+
+✅ **ISO 27001-Aligned Security Practices**  
+Our information security management follows ISO 27001 principles and best practices, implemented across our development lifecycle, infrastructure, and operational procedures.
+
+For detailed compliance information, visit our [Data Processing Agreement](/legal/dpa).
+
+---
+
+## Technical Security Measures
+
+### Data Encryption
+
+**Encryption at Rest:**
+
+- **AES-256-GCM** encryption for all healthcare-related data
+- Database-level encryption through Neon.tech HIPAA-compliant infrastructure
+- Encrypted backups with point-in-time recovery
+
+**Encryption in Transit:**
+
+- **TLS 1.3** for all data transmission
+- Perfect Forward Secrecy (PFS) enabled
+- HTTP Strict Transport Security (HSTS) enforced
+- Secure WebSocket connections for real-time features
+
+**Key Management:**
+
+- Secure key rotation policies
+- Hardware Security Module (HSM) integration through cloud providers
+- No plaintext storage of encryption keys
+
+### Authentication & Access Control
+
+**Multi-Factor Authentication (MFA):**
+
+- SMS-based verification
+- Authenticator app support (TOTP)
+- Email verification fallback
+- Enforced for administrative accounts
+
+**Identity Management:**
+
+- Powered by **Clerk** with enterprise-grade authentication
+- Single Sign-On (SSO) with Google
+- Passwordless authentication options
+- Secure session management with automatic timeout
+
+**Role-Based Access Control (RBAC):**
+
+- Principle of least privilege enforcement
+- Granular permission system (Expert, Client, Admin)
+- Separate role hierarchies for platform and clinical data access
+- Regular access review and audit
+
+### Infrastructure Security
+
+**EU Data Residency:**
+
+- Primary database hosting: **Frankfurt, Germany** (Neon.tech)
+- Email services: **Ireland** (Resend)
+- Edge computing: **EU regions** (Vercel)
+- Cache/Queue: **EU regions** (Upstash)
+- Analytics: **EU hosting** (PostHog)
+- Notifications: **EU API endpoint** (Novu - eu.api.novu.co)
+
+**Network Security:**
+
+- DDoS protection through Vercel edge network
+- Web Application Firewall (WAF)
+- Rate limiting on all API endpoints
+- IP allowlisting for administrative access
+- Secure API gateway with request validation
+
+**Database Security:**
+
+- HIPAA-compliant PostgreSQL (Neon.tech Scale plan)
+- Enhanced audit logging via **pgAudit** extension
+- Automated backups with 30-day retention
+- Connection pooling with SSL enforcement
+- Database-level row security policies
+
+### Payment Security
+
+**PCI DSS Level 1 Compliance:**
+
+- All payment processing through **Stripe**
+- No storage of credit card data on our servers
+- Tokenization for payment methods
+- 3D Secure authentication support
+- Fraud detection and prevention
+
+**Financial Data Protection:**
+
+- Separate encryption keys for financial data
+- Audit trail for all payment transactions
+- Automated reconciliation and monitoring
+- Secure webhook signature verification
+
+---
+
+## Operational Security
+
+### Secure Development Lifecycle
+
+**Code Security:**
+
+- Branch protection on all repositories
+- Mandatory peer code reviews
+- Automated security scanning with **Snyk** and **Dependabot**
+- Static Application Security Testing (SAST)
+- Dynamic Application Security Testing (DAST)
+- Software Composition Analysis (SCA)
+
+**Deployment Security:**
+
+- Immutable infrastructure
+- Zero-downtime deployments
+- Automated rollback capabilities
+- Staging environment testing
+- Production deployment approval workflow
+
+**Dependency Management:**
+
+- Automated vulnerability scanning
+- Regular dependency updates
+- Vendor security assessment
+- Supply chain security monitoring
+
+### Monitoring & Incident Response
+
+**Continuous Monitoring:**
+
+- Real-time application performance monitoring
+- Security event logging and analysis
+- Automated anomaly detection
+- Uptime monitoring with 99.9% SLA target
+- Error tracking and alerting
+
+**Audit Logging:**
+
+- Comprehensive audit trail for all data access
+- GDPR Article 30 compliant processing records
+- LGPD Article 37 compliant processing activity logs
+- HIPAA-compliant access logs (pgAudit)
+- Tamper-proof log storage
+- Minimum 12-month log retention
+
+**Incident Response:**
+
+- 24/7 security incident monitoring
+- Documented incident response plan
+- GDPR-compliant breach notification (72-hour requirement)
+- LGPD-compliant breach notification to ANPD
+- Post-incident analysis and remediation
+- Communication protocols for affected users
+
+### Employee Security
+
+**Access Management:**
+
+- Quarterly access reviews for all employees
+- Immediate access revocation upon termination
+- VPN required for production access
+- Multi-factor authentication enforced
+
+**Training & Awareness:**
+
+- Security awareness training for all employees
+- GDPR and LGPD training for data handlers
+- HIPAA training for healthcare data processors
+- Annual security refresher courses
+- Phishing simulation exercises
+
+**Background Checks:**
+
+- Background verification for all employees with data access
+- Confidentiality agreements (NDAs)
+- Code of conduct and security policies
+- Regular security awareness communications
+
+### Third-Party Security
+
+**Vendor Management:**
+
+- Security questionnaires for all vendors
+- Data Processing Agreements (DPAs) with all processors
+- Regular vendor security assessments
+- Vendor access monitoring and logging
+- Annual vendor risk reviews
+
+**Subprocessor Oversight:**
+
+All our data processors comply with GDPR, LGPD, and applicable security standards:
+
+- **Neon Inc.** - Database (HIPAA BAA executed)
+- **Clerk Inc.** - Authentication (SOC 2 Type II)
+- **Stripe Inc.** - Payments (PCI DSS Level 1)
+- **PostHog Inc.** - Analytics (GDPR compliant)
+- **Resend Inc.** - Email (EU hosting)
+- **Vercel Inc.** - Hosting (SOC 2 Type II)
+- **Upstash Inc.** - Cache/Queue (EU regions)
+- **Novu** - Notifications (EU endpoint, GDPR representative)
+
+Full list available in our [Data Processing Agreement](/legal/dpa).
+
+---
+
+## Vulnerability Management
+
+### Regular Security Testing
+
+**Penetration Testing:**
+
+- Annual third-party penetration testing
+- Quarterly internal security assessments
+- Automated vulnerability scanning
+- Web application security testing
+- API security testing
+
+**Vulnerability Remediation:**
+
+- Critical vulnerabilities: 24-48 hours
+- High vulnerabilities: 7 days
+- Medium vulnerabilities: 30 days
+- Low vulnerabilities: 90 days
+- Public disclosure after remediation
+
+### Responsible Vulnerability Disclosure
+
+We welcome security researchers and ethical hackers to help us maintain the highest security standards.
+
+**How to Report a Vulnerability:**
+
+1. **Email:** [security@eleva.care](mailto:security@eleva.care)
+2. **GitHub Security Advisories:** [github.com/eleva-care/eleva-care-app/security/advisories](https://github.com/eleva-care/eleva-care-app/security/advisories)
+3. **PGP Encrypted:** Available upon request
+
+**What We Need:**
+
+- Description of the vulnerability
+- Steps to reproduce
+- Potential impact assessment
+- Your contact information (optional)
+- Any proof-of-concept code (if applicable)
+
+**Our Commitment:**
+
+- Acknowledgment within 48 hours
+- Regular updates on remediation progress
+- Recognition in our security acknowledgments (unless you prefer anonymity)
+- No legal action for good-faith security research
+- Strict confidentiality of your report
+
+### In-Scope Vulnerabilities
+
+✅ Authentication and authorization flaws  
+✅ SQL injection  
+✅ Server-side code execution  
+✅ Privilege escalation  
+✅ Data exposure (PII, PHI, payment data)  
+✅ Session hijacking  
+✅ API security issues  
+✅ Encryption vulnerabilities  
+✅ Business logic flaws
+
+### Out-of-Scope Vulnerabilities
+
+❌ Clickjacking on non-sensitive pages  
+❌ Cross-Site Request Forgery (CSRF) without impact  
+❌ Attacks requiring MITM or physical access  
+❌ Denial of Service (DoS/DDoS)  
+❌ Content spoofing without HTML/CSS modification  
+❌ SPF/DKIM/DMARC email configuration  
+❌ Missing security headers without exploit  
+❌ SSL/TLS best practices without actual vulnerability  
+❌ Rate limiting on non-sensitive endpoints  
+❌ Descriptive error messages without data exposure  
+❌ Software version disclosure  
+❌ Clickjacking on pages with no sensitive actions
+
+**Note:** We reserve the right to designate any reported vulnerability as out of scope based on risk assessment.
+
+### What Not to Do
+
+⚠️ Do **not** run automated scanners without permission (contact us for a sandbox)  
+⚠️ Do **not** access or modify user data beyond what's necessary to demonstrate the vulnerability  
+⚠️ Do **not** publicly disclose the vulnerability before we've had time to fix it  
+⚠️ Do **not** perform social engineering, phishing, or physical attacks  
+⚠️ Do **not** engage in any activity that could disrupt our services
+
+---
+
+## Data Privacy & Protection
+
+### Data Minimization
+
+We collect only the data necessary to provide our services:
+
+- **Identity Data:** Name, email, phone (for authentication)
+- **Profile Data:** Professional credentials, specialties (for practitioners)
+- **Clinical Data:** Appointment notes, session recordings (encrypted, practitioner-controlled)
+- **Payment Data:** Tokenized payment methods (Stripe-managed)
+- **Usage Data:** Platform analytics (anonymized where possible)
+
+### Data Retention
+
+- **Active accounts:** Data retained as long as account is active
+- **Inactive accounts:** 12-month inactivity notification, then 24-month deletion
+- **Clinical data:** Retained per healthcare regulations (varies by jurisdiction)
+- **Audit logs:** 12-month minimum retention for security investigations
+- **Backups:** 30-day retention with encrypted storage
+
+### Data Subject Rights
+
+We fully support GDPR and LGPD rights:
+
+- **Right to Access:** Export your data in portable format
+- **Right to Rectification:** Update or correct your information
+- **Right to Erasure:** Delete your account and data
+- **Right to Restriction:** Limit processing of your data
+- **Right to Portability:** Transfer data to another service
+- **Right to Object:** Opt-out of processing activities
+- **Right to Automated Decision-Making:** Explanation of algorithmic decisions
+
+**Exercise Your Rights:**  
+Email: [privacy@eleva.care](mailto:privacy@eleva.care) or [dpo@eleva.care](mailto:dpo@eleva.care)
+
+For more details, see our [Privacy Policy](/legal/privacy).
+
+---
+
+## Business Continuity & Disaster Recovery
+
+### Backup & Recovery
+
+- **Automated backups:** Every 6 hours with point-in-time recovery
+- **Geo-redundant storage:** Cross-region replication
+- **Recovery Time Objective (RTO):** < 4 hours for critical systems
+- **Recovery Point Objective (RPO):** < 15 minutes for database
+- **Backup testing:** Quarterly restoration drills
+
+### High Availability
+
+- **Multi-region deployment:** Automatic failover capability
+- **Load balancing:** Distributed traffic across availability zones
+- **Database replication:** Primary-replica setup with automatic failover
+- **CDN:** Global edge caching for static assets
+- **Uptime SLA:** 99.9% availability target
+
+---
+
+## Compliance Automation
+
+We utilize security and compliance automation platforms to ensure continuous compliance:
+
+**Continuous Monitoring:**
+
+- Automated security control assessments
+- Real-time compliance posture tracking
+- Integration with existing systems and tools
+- Comprehensive security dashboards
+- Immediate alerting on compliance drift
+
+**Proactive Remediation:**
+
+- Automated detection of compliance issues
+- Immediate alerting to security team
+- Remediation tracking and verification
+- Continuous improvement cycles
+- Audit-ready documentation
+
+---
+
+## Contact & Questions
+
+### Security Team
+
+For security-related inquiries:
+
+- **Security Issues:** [security@eleva.care](mailto:security@eleva.care)
+- **Data Protection Officer:** [dpo@eleva.care](mailto:dpo@eleva.care)
+- **General Support:** [support@eleva.care](mailto:support@eleva.care)
+
+### Documentation
+
+- [Privacy Policy](/legal/privacy)
+- [Data Processing Agreement](/legal/dpa)
+- [Terms of Service](/legal/terms)
+- [Cookie Policy](/legal/cookie)
+
+---
+
+**Data Controller:**
+
+**BÚZIOS E TARTARUGAS - LDA**  
+Commercially operating as **Eleva.care**  
+NIPC/VAT: 515001708  
+Rua Gil Vicente, 2, 2775-198 Parede, Portugal  
+Email: [support@eleva.care](mailto:support@eleva.care)  
+Phone: [+351 931 897 950](tel:+351931897950)
+
+---
+
+_We continuously improve our security practices. This page is updated regularly to reflect our latest security measures and compliance standards._

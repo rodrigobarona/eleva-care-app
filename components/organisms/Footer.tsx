@@ -62,6 +62,59 @@ export default function Footer() {
                             Eleva Care
                           </Link>
                           <p className="mt-4 text-sm text-eleva-neutral-900/60">{t('tagline')}</p>
+
+                          {/* Compliance Badges - Cal.com style */}
+                          <div className="mt-6 flex flex-wrap items-center gap-3">
+                            <Link
+                              href="/legal/security"
+                              className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
+                              aria-label="GDPR Compliant"
+                            >
+                              <span className="text-xs font-semibold text-gray-700">
+                                {t('compliance.gdpr')}
+                              </span>
+                            </Link>
+
+                            <Link
+                              href="/legal/security"
+                              className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
+                              aria-label="LGPD Compliant"
+                            >
+                              <span className="text-xs font-semibold text-gray-700">
+                                {t('compliance.lgpd')}
+                              </span>
+                            </Link>
+
+                            <Link
+                              href="/legal/security"
+                              className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
+                              aria-label="HIPAA Ready"
+                            >
+                              <span className="text-xs font-semibold text-gray-700">
+                                {t('compliance.hipaa')}
+                              </span>
+                            </Link>
+
+                            <Link
+                              href="/legal/security"
+                              className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
+                              aria-label="ISO 27001-Aligned Practices"
+                            >
+                              <span className="text-xs font-semibold text-gray-700">
+                                {t('compliance.iso27001')}
+                              </span>
+                            </Link>
+                          </div>
+
+                          {/* Platform Disclaimer - Compact */}
+                          <div className="mt-6 max-w-md rounded-lg border border-gray-200/40 bg-white/60 p-3">
+                            <p className="text-xs font-semibold text-gray-700">
+                              🏥 {t('platformDisclaimer.title')}
+                            </p>
+                            <p className="mt-1 text-xs text-gray-600">
+                              {t('platformDisclaimer.description')}
+                            </p>
+                          </div>
                         </div>
                       </div>
 
@@ -217,8 +270,67 @@ export default function Footer() {
                                 {t('nav.legal.paymentPolicies')}
                               </Link>
                             </li>
+                            <li>
+                              <Link
+                                href="/legal/practitioner-agreement"
+                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              >
+                                {t('nav.legal.practitionerAgreement')}
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                href="/legal/security"
+                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              >
+                                {t('nav.legal.security')}
+                              </Link>
+                            </li>
                           </ul>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Additional Trust Indicators */}
+                  <div className="border-t border-gray-200/20 pb-6 pt-8">
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <svg
+                          className="h-4 w-4 flex-shrink-0 text-blue-600"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        <span className="font-medium">{t('compliance.encryption')}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <svg
+                          className="h-4 w-4 flex-shrink-0 text-blue-600"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h7a1 1 0 100-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM15 8a1 1 0 10-2 0v5.586l-1.293-1.293a1 1 0 00-1.414 1.414l3 3a1 1 0 001.414 0l3-3a1 1 0 00-1.414-1.414L15 13.586V8z" />
+                        </svg>
+                        <span className="font-medium">{t('compliance.euData')}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-xs text-gray-600">
+                        <svg
+                          className="h-4 w-4 flex-shrink-0 text-green-600"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                          <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                        </svg>
+                        <span className="font-medium">{t('compliance.secureEmail')}</span>
                       </div>
                     </div>
                   </div>
@@ -228,6 +340,9 @@ export default function Footer() {
                     <div>
                       <p className="text-sm/6 text-gray-600">
                         © {new Date().getFullYear()} Eleva Care. {t('copyright')}
+                      </p>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Búzios e Tartarugas, Lda. · NIF PT515001708 · Portugal
                       </p>
                     </div>
 

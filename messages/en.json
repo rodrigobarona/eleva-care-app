@@ -77,6 +77,24 @@
             "description": "Understand Eleva Care's payment terms, refund policies, and billing procedures for healthcare services.",
             "siteName": "Eleva Care"
           }
+        },
+        "practitioner-agreement": {
+          "title": "Practitioner Agreement | Eleva Care",
+          "description": "Review Eleva Care's practitioner agreement outlining the terms and conditions for healthcare professionals using our platform.",
+          "og": {
+            "title": "Practitioner Agreement | Eleva Care",
+            "description": "Review Eleva Care's practitioner agreement outlining the terms and conditions for healthcare professionals using our platform.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "security": {
+          "title": "Security & Compliance | Eleva Care",
+          "description": "Learn about Eleva Care's security measures, certifications, and commitment to protecting your healthcare data with GDPR, LGPD, and HIPAA compliance.",
+          "og": {
+            "title": "Security & Compliance | Eleva Care",
+            "description": "Learn about Eleva Care's security measures, certifications, and commitment to protecting your healthcare data with GDPR, LGPD, and HIPAA compliance.",
+            "siteName": "Eleva Care"
+          }
         }
       }
     },
@@ -334,7 +352,9 @@
         "cookie": "Cookie Policy",
         "preferences": "Cookies Preferences",
         "dpa": "Data Processing",
-        "paymentPolicies": "Payment Policies"
+        "paymentPolicies": "Payment Policies",
+        "practitionerAgreement": "Practitioner Agreement",
+        "security": "Security"
       }
     },
     "copyright": "All rights reserved.",
@@ -342,6 +362,21 @@
       "instagram": "Follow us on Instagram",
       "twitter": "Follow us on Twitter",
       "linkedin": "Follow us on LinkedIn"
+    },
+    "platformDisclaimer": {
+      "title": "Eleva Care is a Healthcare Technology Platform",
+      "description": "We connect patients with independent, licensed healthcare practitioners. Eleva Care provides the technology; your chosen practitioner provides your medical care."
+    },
+    "compliance": {
+      "gdpr": "GDPR Compliant",
+      "lgpd": "LGPD Compliant",
+      "encryption": "AES-256 Encrypted",
+      "euData": "EU Data Residency",
+      "hipaa": "HIPAA-Ready Infrastructure",
+      "secureEmail": "Secure Email (TLS 1.3)",
+      "iso27001": "ISO 27001-Aligned",
+      "soc2": "SOC 2 Infrastructure",
+      "ccpa": "CCPA Compliant"
     }
   },
   "experts": {

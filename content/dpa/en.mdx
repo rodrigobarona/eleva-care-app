@@ -2,173 +2,489 @@
 
 _Effective Date:_ April 16, 2025
 
-This Data Processing Agreement ("Agreement") is entered into by and between:
+**IMPORTANT**: Eleva.care is a **healthcare technology marketplace platform** that connects patients with independent, licensed healthcare practitioners. We are NOT a healthcare provider. This Data Processing Agreement explains how we handle data in our **dual role** as both Data Controller and Data Processor.
 
+## Our Dual Role in Data Processing
+
+Eleva.care processes personal data in **two distinct capacities**:
+
+### 🟦 As Data Controller (Platform Operations)
+
+For platform functionality, we are the **Data Controller** and use technology vendors as our processors:
+
+- User accounts (practitioners and patients)
+- Booking and scheduling information
+- Payment processing
+- Platform analytics
+- Communications and support
+
+### 🟧 As Data Processor (Clinical Data Storage)
+
+For clinical notes and medical records created by practitioners, we are the **Data Processor**:
+
+- Healthcare practitioners are the **Data Controllers**
+- We provide secure encrypted storage only
+- We process data only on practitioner instructions
+- We do NOT access clinical content without authorization
+
+---
+
+## PART A: Eleva.care as Data Controller
+
+**This section governs how Eleva.care (as Controller) engages Data Processors (vendors) to provide our platform services.**
+
+### A.1 Parties to This Agreement
+
+**Data Controller:**  
 **BÚZIOS E TARTARUGAS - LDA**, a limited liability company organized and existing under the laws of Portugal, with NIPC 515001708, having its registered office at Rua Gil Vicente, 2, 2775-198 Parede, Portugal, commercially operating as **Eleva.care** ("Controller"),
 
-_and_
+**Data Processors (Vendors):**
 
-**Data Processors:**
+- **Neon Inc.**, 2261 Market Street STE 22601 San Francisco, CA, 94114, USA (EU hosting: Frankfurt, Germany)
+- **Clerk Inc.**, 660 King Street Unit 345 San Francisco, CA 94107 United States (EU hosting available)
+- **Stripe Inc.**, 510 Townsend St., San Francisco, CA United States (EU processing)
+- **PostHog Inc.**, 2261 Market St STE 22301, San Francisco, CA 94114, United States (EU hosting)
+- **Google LLC**, 1600 Amphitheatre Parkway, Mountain View, CA 94043 United States (for Google SSO)
+- **Beehiiv Inc.**, 228 Park Avenue # 2329976 New York, New York 10003, United States
+- **Vercel Inc.**, 340 S Lemon Ave #4133, Walnut, CA 91789, United States (EU regions)
+- **Upstash Inc.**, 120 9th St, San Francisco, CA 94103, United States (EU regions)
+- **Resend Inc.**, 1111B S Governors Ave STE 7567, Dover, DE 19904, United States (EU hosting: Ireland)
+- **Noti-Fire Apps Ltd. d/b/a Novu**, Derech Ben Gurion 132, Ramat Gan, Israel (EU API endpoint: eu.api.novu.co; EU Representative: Instant EU GDPR Representative Ltd., Office 2, 12A Lower Main Street, Lucan Co. Dublin K78 X5P8 Ireland)
 
-- Neon Inc., 2261 Market Street STE 22601 San Francisco, CA, 94114, USA
-- Clerk, Inc., 660 King Street Unit 345 San Francisco, CA 94107 United States
-- Stripe, Inc., 510 Townsend St., San Francisco, CA United States
-- PostHog Inc., 2261 Market St STE 22301, San Francisco, CA 94114, United States
-- Google LLC, 1600 Amphitheatre Parkway, Mountain View, CA 94043 United States
-- Beehiiv Inc., 228 Park Avenue # 2329976 New York, New York 10003, United States
-- Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, United States
-- Upstash, Inc., 120 9th St, San Francisco, CA 94103, United States
-
-## 1. Definitions
+### A.2 Definitions
 
 For the purposes of this Agreement:
 
-- **Data Protection Laws** refer to all applicable laws governing the processing of personal data, including the General Data Protection Regulation (EU) 2016/679 ("GDPR"), UK GDPR, and other relevant data protection laws.
+- **Data Protection Laws** refer to all applicable laws governing the processing of personal data, including the General Data Protection Regulation (EU) 2016/679 ("GDPR"), and relevant national implementations.
 - **Personal Data** refers to any information relating to an identified or identifiable natural person, as defined by the GDPR.
 - **Special Categories of Personal Data** include sensitive data such as health information, biometric data, or information related to an individual's racial or ethnic origin, political opinions, religious beliefs, etc.
 - **Processing** means any operation performed on personal data, such as collection, storage, modification, or transfer.
 - **Data Subject** refers to the individual to whom the personal data relates.
 - **Personal Data Breach** means a breach of security leading to accidental or unlawful destruction, loss, alteration, unauthorized disclosure of, or access to personal data.
 - **Subprocessor** means any processor engaged by a Data Processor to process personal data on behalf of the Data Controller.
-- **Healthcare Data** refers to personal data related to the health of an individual, including any healthcare service provision.
 
-## 2. Subject Matter and Purpose of Processing
+### A.3 Subject Matter and Purpose of Processing by Vendors
 
-This DPA governs the processing of personal data by the Data Processors on behalf of the Data Controller in connection with the services provided to Eleva.care, which include:
+This DPA governs the processing of personal data by the Data Processors (vendors) on behalf of Eleva.care (Controller) in connection with the following platform services:
 
-- **Neon:** Database services for storing appointment data synchronized with Clerk.
-- **Clerk:** User management services.
-- **Stripe:** Payment processing and storage of payment method data.
-- **PostHog:** Analytics and user behavior tracking services.
-- **Google:** Single Sign-On services.
-- **Beehiiv:** Newsletter services and communications.
-- **Vercel:** Hosting and edge computing services.
-- **Upstash:**
-  - **Redis KV Storage:** Managed Redis services for session storage, caching, and key-value storage to persist user sessions and other application state data.
-  - **Qstash:** Event-driven serverless cron job processing services for handling background tasks such as scheduling tasks for Eleva.care's platform.
+- **Neon:** Database services for storing platform and clinical data (encrypted)
+- **Clerk:** User authentication and identity management services
+- **Stripe:** Payment processing and storage of payment method data
+- **PostHog:** Platform analytics and user behavior tracking services
+- **Google:** Single Sign-On authentication services
+- **Beehiiv:** Newsletter services and marketing communications
+- **Resend:** Transactional email delivery services (EU-hosted in Ireland)
+- **Vercel:** Hosting and edge computing services (EU regions)
+- **Upstash:** Redis KV storage for session management and Qstash for event-driven task processing
+- **Novu:** Notification and communication services (EU endpoint)
 
-The personal data processing is necessary for facilitating the operation of Eleva.care's platform and services, including user authentication, appointment management, payment processing, analytics, healthcare-related services, session management, and task automation.
+The personal data processing is necessary for facilitating the operation of Eleva.care's marketplace platform, including user authentication, appointment booking, payment processing, analytics, secure storage, and communications.
 
-## 3. Types of Personal Data and Categories of Data Subjects
+### A.4 Types of Personal Data and Categories of Data Subjects
 
-### Types of Personal Data processed:
+**Types of Personal Data processed by vendors:**
 
-- **Identity Data:** Names, email addresses, phone numbers, user IDs.
-- **Profile Data:** Professional information, credentials, specialties, profile pictures.
-- **Account Data:** Username, password (hashed), account preferences.
-- **Communication Data:** Messages, emails, communication preferences.
-- **Technical Data:** IP addresses, cookies, device information, access logs.
-- **Usage Data:** Platform interaction, feature usage, analytics data.
-- **Payment Data:** Payment method details, transaction records, billing addresses.
-- **Healthcare-Related Data:** Appointment types, scheduling information, clinical notes (encrypted).
-- **Session Data:** Session identifiers, authentication tokens, and activity logs for user sessions managed.
-- **Webhook Processing Data:** Data processed through asynchronous webhooks (event-driven tasks), including logs, task identifiers, and metadata.
+- **Identity Data:** Names, email addresses, phone numbers, user IDs
+- **Profile Data:** Professional credentials, specialties, profile information
+- **Account Data:** Username, password (hashed), account preferences
+- **Communication Data:** Messages, emails, communication preferences
+- **Technical Data:** IP addresses, cookies, device information, access logs
+- **Usage Data:** Platform interaction, feature usage, analytics data
+- **Payment Data:** Payment method details, transaction records, billing addresses
+- **Healthcare-Related Data:** Appointment types, scheduling information, clinical notes (encrypted at rest)
+- **Session Data:** Session identifiers, authentication tokens, activity logs
+- **Webhook Processing Data:** Event-driven task data, logs, metadata
 
-### Categories of Data Subjects:
+**Categories of Data Subjects:**
 
-- Healthcare professionals using the platform
-- Clients/patients seeking healthcare services
+- Healthcare practitioners using the platform (independent professionals)
+- Patients/clients seeking healthcare services
 - Eleva.care staff and administrators
 - Business partners and service providers
 
-## 4. Data Controller's Responsibilities
+### A.5 Eleva.care's Responsibilities as Data Controller
 
-As the Data Controller, Eleva.care shall:
+As the Data Controller for platform operations, Eleva.care shall:
 
-- Comply with all applicable data protection laws, including the GDPR.
-- Provide clear and accurate instructions to Data Processors regarding the processing of personal data.
-- Obtain and maintain necessary consents from data subjects for processing their personal data.
-- Implement appropriate technical and organizational measures to ensure the security of personal data.
-- Respond to requests from data subjects regarding their rights under applicable data protection laws.
-- Conduct Data Protection Impact Assessments (DPIAs) where required.
-- Maintain records of processing activities.
-- Ensure that Data Processors provide sufficient guarantees regarding the security and confidentiality of personal data.
+- Comply with all applicable data protection laws, including the GDPR
+- Provide clear and accurate instructions to Data Processors regarding the processing of personal data
+- Obtain and maintain necessary consents from data subjects for processing their personal data
+- Implement appropriate technical and organizational measures to ensure the security of personal data
+- Respond to requests from data subjects regarding their rights under applicable data protection laws
+- Conduct Data Protection Impact Assessments (DPIAs) where required
+- Maintain records of processing activities (Article 30)
+- Ensure that Data Processors provide sufficient guarantees regarding the security and confidentiality of personal data
+- Appoint a Data Protection Officer (DPO) as required by Article 37
 
-## 5. Data Processor's Responsibilities
+### A.6 Data Processor (Vendor) Responsibilities
 
-Each Data Processor shall:
+Each Data Processor (vendor) shall:
 
-- Process personal data only on documented instructions from Eleva.care.
-- Ensure that persons authorized to process personal data are bound by confidentiality obligations.
-- Implement appropriate technical and organizational security measures, including encryption of personal data, ongoing confidentiality, integrity, and availability of processing systems, and the ability to restore data availability in case of incidents.
-- Not engage any subprocessors without prior written authorization from Eleva.care.
-- Assist Eleva.care in responding to data subject requests, ensuring compliance with security obligations, and notifying data breaches.
-- Delete or return all personal data to Eleva.care upon termination of services, unless storage is required by applicable law.
+- Process personal data only on documented instructions from Eleva.care
+- Ensure that persons authorized to process personal data are bound by confidentiality obligations
+- Implement appropriate technical and organizational security measures, including:
+  - Encryption of personal data in transit (TLS 1.3) and at rest (AES-256-GCM for health data)
+  - Access control systems with strong authentication
+  - Role-based access controls
+  - Employee training on data protection
+  - Incident response procedures
+  - Regular backup procedures
+- Not engage any subprocessors without prior written authorization from Eleva.care
+- Assist Eleva.care in responding to data subject requests
+- Assist Eleva.care in ensuring compliance with security obligations
+- Notify Eleva.care of any personal data breach without undue delay (within 24 hours)
+- Delete or return all personal data to Eleva.care upon termination of services, unless storage is required by applicable law
 
-## 6. Security Measures
+### A.7 Security Measures
 
 The Data Processors shall implement appropriate security measures, including:
 
-- Access control systems with strong authentication
-- Encryption of personal data in transit (using TLS/SSL)
-- Role-based access controls
-- Employee training on data protection
-- Incident response procedures
-- Regular backup procedures
-- For healthcare-related data, encryption at rest using AES-256-GCM and strict access control mechanisms.
-- Session storage with data encryption, including persistent data storage and session key management.
-- Secure processing of webhooks, task logs, and metadata with encrypted payloads and strict access controls.
+- Access control systems with multi-factor authentication
+- Encryption of personal data in transit (using TLS 1.3)
+- Encryption at rest for healthcare-related data (AES-256-GCM)
+- Role-based access controls (RBAC)
+- Employee training on data protection and confidentiality
+- Incident response and breach notification procedures
+- Regular backup and disaster recovery procedures
+- Audit logging for healthcare data access
+- Secure webhook processing with encrypted payloads
 
-## 7. Personal Data Breach Notification
+### A.8 International Transfers
 
-In the event of a personal data breach, the Data Processor shall:
+**EU Data Residency:** All customer data is stored and processed within the European Union. No international data transfers outside the EEA occur during normal operations.
 
-- Notify Eleva.care without undue delay, and no later than 24 hours after becoming aware of the breach.
-- Provide necessary information to enable Eleva.care to comply with its notification obligations to supervisory authorities or affected data subjects.
-- Cooperate with Eleva.care in investigating and mitigating the breach.
+**US Vendor Compliance:** While some data processors are US-based companies, they provide **EU-hosted infrastructure** with data residency in the European Union and have executed:
 
-## 8. Data Subject Rights
+- ✅ Standard Contractual Clauses (SCCs) for GDPR compliance
+- ✅ Data Processing Agreements (DPAs)
+- ✅ EU data center options (utilized by Eleva.care)
 
-The Data Processor shall assist Eleva.care in responding to data subject requests, including requests for:
+**Data Location and Sovereignty:**
 
-- Access to personal data
-- Rectification of inaccurate data
-- Erasure (right to be forgotten)
-- Restriction of processing
-- Data portability
-- Objection to processing
+All personal data and health information is stored and processed exclusively within the European Union:
 
-## 9. Compliance with Healthcare Regulations
+- Database: Neon.tech (Frankfurt, Germany - EU)
+- Hosting: Vercel (EU regions)
+- Email: Resend (Ireland - EU)
+- Cache/Queue: Upstash (EU regions)
+- Analytics: PostHog (EU hosting)
+- Notifications: Novu (EU API endpoint: eu.api.novu.co)
 
-While Eleva.care and its Data Processors are not currently HIPAA-certified, they are taking steps to achieve higher compliance standards, including those required by HIPAA where applicable.
+### A.9 Compliance with Healthcare Regulations
 
-## 10. International Transfers
+**EU Health Data Regulations (Primary):**
 
-Where data is transferred outside the EEA, Data Processors shall ensure that adequate safeguards are in place, including the use of Standard Contractual Clauses (SCCs) or certifications such as the EU-US Data Privacy Framework.
+Eleva.care operates primarily under **GDPR Article 9** (Special Categories of Personal Data) as a Portugal-based entity serving EU healthcare professionals and patients.
 
-## 11. Audits and Inspections
+**GDPR Article 9 Compliance:**
 
-Eleva.care shall have the right to audit and inspect the Data Processors' compliance with the terms of this DPA. Audits may be conducted by Eleva.care or a third-party auditor with prior notice.
+- ✅ Enhanced security measures for health data
+- ✅ Explicit consent mechanisms
+- ✅ Data Protection Impact Assessment (DPIA) required and conducted
+- ✅ Encryption at rest and in transit (AES-256-GCM + TLS 1.3)
+- ✅ Access controls and audit logging
+- ✅ Data minimization and purpose limitation
 
-## 12. Termination and Data Deletion
+**US Healthcare Regulations (HIPAA) - Infrastructure Ready:**
 
-Upon termination of services, each Data Processor shall:
+Eleva.care operates on **HIPAA-compliant infrastructure** through our database provider **Neon.tech** (Scale plan):
 
-- Delete or return all personal data to Eleva.care and destroy existing copies, unless required by law to store the data.
-- Anonymize personal data such that it can no longer be associated with any individual.
+- ✅ Business Associate Agreement (BAA) executed with Neon.tech
+- ✅ HIPAA-compliant database infrastructure enabled
+- ✅ Enhanced audit logging via pgAudit extension
+- ✅ HIPAA Security Rule technical safeguards implemented
+- ✅ Breach notification procedures in place
+- ✅ All PHI encrypted at rest (AES-256-GCM) and in transit (TLS 1.3)
 
-## 13. Liability
+**Regulatory Applicability:** As a Portugal-based entity, Eleva.care operates primarily under **GDPR Article 9**. HIPAA compliance becomes applicable when processing Protected Health Information (PHI) of US patients or US-licensed healthcare providers. Our HIPAA-ready infrastructure ensures seamless compliance if serving US-based users in the future.
 
-Each Data Processor shall be liable for damages caused by processing that violates data protection laws or this DPA. Where multiple Data Processors are involved, each shall be liable for the entire damage caused.
+**Brazilian Data Protection (LGPD) - Full Compliance:**
 
-## 14. Subprocessing
+Eleva.care complies with Brazil's **Lei Geral de Proteção de Dados Pessoais (LGPD)**, which shares similar principles with GDPR:
 
-Data Processors may engage subprocessors only with Eleva.care's prior written consent. The Data Processor shall ensure subprocessors are bound by the same data protection obligations.
+**Key LGPD Provisions:**
 
-## 15. Amendments
+- **Legal Bases for Processing** (LGPD Article 7): We process data based on consent, contract performance, legal obligation, and legitimate interests
+- **Sensitive Personal Data** (LGPD Article 11): Health data requires specific consent or legal authorization
+- **Data Subject Rights** (LGPD Articles 17-22): Right to access, correction, deletion, portability, and more
+- **International Transfers** (LGPD Articles 33-36): We ensure adequate safeguards for international data transfers
+- **Security Measures** (LGPD Article 46): Technical and organizational measures to protect personal data
 
-Any amendment to this DPA must be in writing and signed by both parties. Eleva.care may update security measures and compliance requirements, with prior notification to the Data Processors.
+**Data Processing Activities:**
 
-## 16. Severability
+All data processing activities comply with both GDPR and LGPD requirements, including:
+
+✅ Transparency in data processing  
+✅ Purpose limitation  
+✅ Data minimization  
+✅ Accuracy and up-to-date records  
+✅ Storage limitation  
+✅ Security and confidentiality
+
+For Brazilian users' rights or LGPD-related inquiries, contact: [dpo@eleva.care](mailto:dpo@eleva.care)
+
+---
+
+## PART B: Eleva.care as Data Processor (for Healthcare Practitioners)
+
+**This section governs how Eleva.care (as Processor) processes clinical data on behalf of healthcare practitioners (Controllers).**
+
+### B.1 Platform Nature and Practitioner Relationship
+
+**IMPORTANT**: Healthcare practitioners using Eleva.care are **independent professionals**, not employees. For clinical data they create (session notes, medical records):
+
+- **The practitioner is the Data Controller**
+- **Eleva.care is the Data Processor**
+- **The patient's relationship is with the practitioner, not Eleva.care**
+
+This section constitutes a Data Processing Agreement under **GDPR Article 28** between practitioners and Eleva.care.
+
+### B.2 Scope of Processing
+
+**Clinical Data We Process on Practitioner's Behalf:**
+
+- Clinical session notes and medical observations
+- Patient health information recorded by the practitioner
+- Treatment plans and medical recommendations
+- Medical file attachments (encrypted)
+- Appointment-related clinical documentation
+
+**We DO NOT:**
+
+- ❌ Access clinical content without practitioner authorization
+- ❌ Make medical decisions or provide medical advice
+- ❌ Modify clinical data without practitioner instruction
+- ❌ Share clinical data except as instructed by the practitioner
+
+### B.3 Purpose of Processing
+
+Eleva.care provides **secure encrypted storage and platform infrastructure** to enable practitioners to:
+
+- Store clinical session notes securely
+- Access patient records when needed
+- Maintain continuity of care
+- Comply with medical record retention requirements
+- Ensure data backup and disaster recovery
+
+### B.4 Legal Basis for Processing
+
+**For the Practitioner (Data Controller):**
+
+- **GDPR Article 9(2)(h)** - Processing necessary for healthcare provision by a health professional
+- Practitioner must obtain informed consent from patients for treatment and data processing
+
+**For Eleva.care (Data Processor):**
+
+- **GDPR Article 6(1)(b)** - Contract performance (platform services agreement with practitioner)
+- **GDPR Article 9(2)(a)** - Explicit consent from patients for platform storage
+
+### B.5 Practitioner's Responsibilities as Data Controller
+
+As the Data Controller for clinical data, each practitioner shall:
+
+- **Obtain informed consent** from patients for treatment and data processing
+- **Ensure lawful basis** for processing health data (Article 9(2)(h))
+- **Comply with medical ethics** and professional licensing requirements
+- **Maintain professional liability insurance** (malpractice coverage)
+- **Respond to patient rights requests** (access, rectification, erasure, etc.)
+- **Determine data retention periods** in compliance with medical record laws
+- **Instruct Eleva.care** on data processing, retention, and deletion
+- **Notify Eleva.care** of any changes to processing instructions
+- **Ensure clinical data accuracy** and keep records up to date
+
+### B.6 Eleva.care's Responsibilities as Data Processor
+
+As the Data Processor for clinical data, Eleva.care shall:
+
+- **Process data only on practitioner instructions** - No unauthorized access to clinical content
+- **Implement technical security measures:**
+  - AES-256-GCM encryption at rest for all clinical data
+  - TLS 1.3 encryption in transit
+  - Role-based access control (only practitioner can access their clinical notes)
+  - Audit logging for all clinical data access
+  - Regular automated backups
+  - Disaster recovery procedures
+- **Use approved subprocessors only:**
+  - Neon Inc. (database - Frankfurt, Germany)
+  - Vercel Inc. (hosting - EU regions)
+  - Upstash Inc. (cache - EU regions)
+- **Notify practitioners of data breaches** within 24 hours
+- **Assist with data subject requests** (provide tools for practitioners to export, delete data)
+- **Delete or return data** upon practitioner instruction or contract termination
+- **Not transfer data outside the EU** without explicit authorization
+- **Maintain confidentiality** of all clinical information
+
+### B.7 Subprocessors (for Clinical Data)
+
+**Eleva.care engages the following subprocessors to store clinical data:**
+
+| Subprocessor     | Service             | Location                | Purpose                             |
+| ---------------- | ------------------- | ----------------------- | ----------------------------------- |
+| **Neon Inc.**    | PostgreSQL Database | Frankfurt, Germany (EU) | Encrypted storage of clinical notes |
+| **Vercel Inc.**  | Hosting & CDN       | EU Regions              | Application hosting                 |
+| **Upstash Inc.** | Redis Cache         | EU Regions              | Session management                  |
+
+**All subprocessors have:**
+
+- ✅ Executed Data Processing Agreements
+- ✅ Standard Contractual Clauses (SCCs)
+- ✅ EU data residency
+- ✅ GDPR compliance certifications
+- ✅ Appropriate security measures (encryption, access controls)
+
+**Notification:** Practitioners will be notified of any changes to subprocessors 30 days in advance.
+
+### B.8 Data Subject Rights
+
+Eleva.care shall assist practitioners in responding to patient requests for:
+
+- **Right of access** - Data export tools provided
+- **Right to rectification** - Editing interface for practitioners
+- **Right to erasure** - Data deletion functionality
+- **Right to restriction** - Processing restriction tools
+- **Right to data portability** - Export in structured format (JSON/CSV)
+- **Right to object** - Objection handling procedures
+
+**Response deadline:** 30 days (as per Article 12(3))
+
+### B.9 Data Security and Confidentiality
+
+**Technical Measures:**
+
+- AES-256-GCM encryption for all clinical data at rest
+- TLS 1.3 encryption for all data in transit
+- Encrypted backups stored in EU data centers
+- Multi-factor authentication available
+- IP whitelisting (optional)
+- Audit logs for all clinical data access
+
+**Organizational Measures:**
+
+- Employee confidentiality agreements
+- Need-to-know access principle
+- Regular security training
+- Incident response plan
+- Data breach notification procedures (24-hour SLA)
+
+### B.10 Data Breach Notification
+
+In the event of a personal data breach affecting clinical data:
+
+**Eleva.care shall:**
+
+1. **Notify the practitioner** without undue delay, within **24 hours** of becoming aware
+2. **Provide details:**
+   - Nature of the breach
+   - Categories and approximate number of data subjects affected
+   - Categories and approximate number of records affected
+   - Likely consequences of the breach
+   - Measures taken or proposed to address the breach
+3. **Cooperate with the practitioner** in investigating and mitigating the breach
+4. **Assist the practitioner** in notifying supervisory authorities (CNPD) if required
+
+**Practitioner's responsibility:**
+
+- Determine if notification to supervisory authority (CNPD) is required (Article 33)
+- Determine if notification to affected patients is required (Article 34)
+- Take responsibility for regulatory notifications as Data Controller
+
+### B.11 Data Retention and Deletion
+
+**Retention Period:**
+
+- Clinical data is retained as long as the practitioner maintains an active account
+- Practitioners may set custom retention policies
+- Portuguese medical record retention law: **10 years minimum** (practitioner's responsibility to comply)
+
+**Deletion Procedures:**
+
+Upon practitioner request or account termination:
+
+1. **30-day grace period** - Data remains accessible for recovery
+2. **After 30 days** - Permanent deletion from primary storage
+3. **After 90 days** - Deletion from encrypted backups
+4. **Confirmation** - Practitioner receives deletion confirmation certificate
+
+**Data Export:** Practitioners can export all clinical data before deletion (JSON/CSV format)
+
+### B.12 Audits and Inspections
+
+Eleva.care shall:
+
+- **Allow practitioners** to request information about security measures
+- **Provide annual security reports** (upon request)
+- **Cooperate with audits** by the practitioner or appointed third-party auditor
+- **Provide audit logs** for clinical data access (upon request)
+- **Give 30 days advance notice** for on-site audits
+
+### B.13 Liability and Indemnification
+
+**Eleva.care's Liability (as Processor):**
+
+- **Responsible for:** Platform security, data encryption, breach notification, subprocessor management
+- **NOT responsible for:** Medical malpractice, clinical decisions, patient outcomes, practitioner licensing
+
+**Practitioner's Liability (as Controller):**
+
+- **Responsible for:** All medical care provided, clinical data accuracy, patient consent, medical record compliance
+- **Indemnifies Eleva.care** for any claims arising from medical malpractice or clinical decisions
+
+**Limitation:** Eleva.care's liability is limited to platform technology services only, not medical services.
+
+### B.14 Term and Termination
+
+**Duration:** This DPA remains in effect as long as the practitioner maintains an Eleva.care account.
+
+**Termination:**
+
+- Either party may terminate with 30 days written notice
+- Upon termination, Eleva.care shall:
+  - Provide 30-day data export period
+  - Delete all clinical data after grace period
+  - Provide deletion confirmation certificate
+  - Return or destroy subprocessor copies
+
+**Survival:** Security, confidentiality, and liability clauses survive termination.
+
+---
+
+## General Provisions (Applicable to Both Roles)
+
+### Amendments
+
+Any amendment to this DPA must be in writing. Eleva.care may update security measures and compliance requirements with 30 days prior notification.
+
+### Severability
 
 If any provision of this DPA is found to be invalid or unenforceable, the remainder of the agreement shall remain in effect.
+
+### Governing Law
+
+This DPA is governed by the laws of Portugal and the GDPR.
+
+### Dispute Resolution
+
+Any disputes shall be resolved in the courts of Portugal.
 
 ---
 
 ## Contact Information
 
-For questions regarding this Data Processing Agreement, please contact:
+**Data Protection Inquiries:**
 
-- **Email:** [support@eleva.care](mailto:support@eleva.care)
-- **Phone:** +351 931897950
-- **Postal Address:** Rua Gil Vicente, 2 - 2775-198 Parede, Portugal
+- **Email:** [dpo@eleva.care](mailto:dpo@eleva.care)
+- **Phone:** +351 931 897 950
+- **Postal Address:** Rua Gil Vicente, 2, 2775-198 Parede, Portugal
+
+**Supervisory Authority (Portugal):**
+
+- **CNPD** (Comissão Nacional de Proteção de Dados)
+- Website: https://www.cnpd.pt
+- Email: geral@cnpd.pt
+- Phone: +351 213 928 400
+
+---
+
+**By using Eleva.care's platform services, you acknowledge and agree to this Data Processing Agreement.**
+
+_Last Updated: April 16, 2025_
