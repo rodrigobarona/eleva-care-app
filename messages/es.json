@@ -126,10 +126,12 @@
     "metaDescription": "Información importante sobre los términos de servicio, políticas de privacidad y otros documentos legales de Eleva Care."
   },
   "hero": {
-    "title": "Atención de Clase Mundial para Mujeres, *cuando lo necesites.*",
-    "subtitle": "Reserva con los Principales Especialistas en Salud de la Mujer - A Tu Ritmo.",
+    "title": "Expertos en Salud Femenina de Clase Mundial, *cuando lo necesites.*",
+    "subtitle": "Reserva con las Principales Especialistas en Salud de la Mujer - A Tu Ritmo.",
+    "disclaimer": "Te conectamos con expertas de salud independientes y con licencia.",
+    "disclaimerLink": "Saber más",
     "cta1": "¿Como podemos ayudarte? Haz el Quiz",
-    "cta2": "Reservar ahora",
+    "cta2": "Encontrar una Experta",
     "cta2Help": "Marca tu cita",
     "cta2Help2": "en menos de 3 minutos."
   },
@@ -379,13 +381,45 @@
     }
   },
   "experts": {
-    "title": "Expertos Destacados",
-    "subtitle": "El acceso a los mejores nunca ha sido más fácil",
-    "description": "Conéctate con expertos de primera clase en fisioterapia y salud femenina. Nuestra plataforma ofrece acceso a profesionales líderes listos para apoyar tu viaje único de salud y bienestar.",
-    "topExpertBadge": "Experto Destacado",
+    "title": "Especialistas Independientes",
+    "subtitle": "Conéctate con los Mejores Profesionales",
+    "description": "Encuentra y reserva especialistas independientes y licenciados especializados en fisioterapia y salud femenina. Nuestra plataforma te conecta con profesionales calificados listos para apoyar tu viaje único de salud y bienestar.",
+    "disclaimerLink": "Más información sobre nuestra plataforma",
+    "topExpertBadge": "Destacado",
+    "topExpertDisclaimer": "Los especialistas son profesionales independientes que auto-certifican sus credenciales.",
     "sessionLabel": "Sesión",
     "expertImageAlt": "Foto de perfil de {name}",
-    "verifiedBadgeAlt": "Insignia de Experto Verificado"
+    "verifiedBadgeAlt": "Especialista Auto-Certificado"
+  },
+  "platformDisclaimer": {
+    "modal": {
+      "title": "Sobre la Plataforma Eleva Care",
+      "description": "Información importante sobre la naturaleza de nuestra plataforma, servicios e información de emergencia."
+    },
+    "emergency": {
+      "title": "⚠️ No es para Emergencias Médicas",
+      "description": "Si estás experimentando una emergencia médica, no uses esta plataforma. Contacta los servicios de emergencia inmediatamente:",
+      "eu": "UE",
+      "usa": "EE.UU."
+    },
+    "platform": {
+      "title": "Importante: Naturaleza de la Plataforma",
+      "description": "Eleva Care es una plataforma tecnológica de marketplace que conecta pacientes con especialistas de salud independientes y licenciados. No proporcionamos servicios médicos.",
+      "weAre": "Lo Que Proporcionamos:",
+      "weAreList": {
+        "marketplace": "Una plataforma tecnológica segura y marketplace",
+        "technology": "Herramientas de reserva, programación y procesamiento de pagos",
+        "secure": "Almacenamiento encriptado de notas clínicas de los especialistas"
+      },
+      "weAreNot": "Lo Que NO Proporcionamos:",
+      "weAreNotList": {
+        "provider": "Atención médica, diagnósticos o tratamientos",
+        "employer": "Empleo o supervisión de especialistas",
+        "responsible": "Responsabilidad médica (los especialistas son los únicos responsables)"
+      },
+      "footer": "Los especialistas de salud en nuestra plataforma son profesionales independientes que auto-certifican sus credenciales y son los únicos responsables de toda la atención médica que brindan. Para más detalles, lee nuestros",
+      "termsLink": "Términos y Condiciones"
+    }
   },
   "cookie": {
     "title": "Preferencias de Cookies",

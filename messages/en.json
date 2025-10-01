@@ -8,11 +8,11 @@
     "mission": "Our Mission"
   },
   "metadata": {
-    "title": "Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care",
-    "description": "Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.",
+    "title": "Connect with Expert Women's Health Specialists | Eleva Care",
+    "description": "Eleva Care: Find and book licensed women's health experts for pregnancy, postpartum, menopause, and sexual health. A secure platform connecting you with independent healthcare professionals.",
     "og": {
-      "title": "Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care",
-      "description": "Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.",
+      "title": "Connect with Expert Women's Health Specialists | Eleva Care",
+      "description": "Eleva Care: Find and book licensed women's health experts for pregnancy, postpartum, menopause, and sexual health. A secure platform connecting you with independent healthcare professionals.",
       "siteName": "Eleva Care"
     },
     "about": {
@@ -126,8 +126,10 @@
     "metaDescription": "Important information about Eleva Care's terms of service, privacy policies, and other legal documents."
   },
   "hero": {
-    "title": "World-Class Care for Women, *on-demand.*",
-    "subtitle": "Book Leading Women's Health Specialists - On Your Schedule. ",
+    "title": "World-Class Women's Health Experts, *on-demand.*",
+    "subtitle": "Book Leading Women's Health Specialists - On Your Schedule.",
+    "disclaimer": "We connect you with independent, licensed health experts.",
+    "disclaimerLink": "Learn more",
     "cta1": "Not sure if we can help? Take the Quiz",
     "cta2": "Find an Expert",
     "cta2Help": "Make your appointment",
@@ -140,9 +142,9 @@
     "cta": "Listen Now"
   },
   "services": {
-    "title": "How we support you",
-    "subtitle": "Expert-Led Care, Tailored to You",
-    "description": "Access personalized care from top-rated women's health professionals worldwide. We connect you with the expertise you need, from online consultations to local resources, all tailored to your unique health journey.",
+    "title": "How we connect you",
+    "subtitle": "Find Expert Care, Tailored to Your Needs",
+    "description": "Connect with top-rated women's health professionals worldwide through our secure platform. Find the independent experts you need for online consultations, all tailored to your unique health journey.",
     "items": [
       {
         "icon": "Baby",
@@ -380,13 +382,45 @@
     }
   },
   "experts": {
-    "title": "Top Experts",
-    "subtitle": "Access to the best has never been easier",
-    "description": "Connect with top-rated experts in physiotherapy, and women's health. Our platform offers access to leading professionals ready to support your unique health and wellness journey.",
-    "topExpertBadge": "Top Expert",
+    "title": "Independent Experts",
+    "subtitle": "Connect with Leading Professionals",
+    "description": "Find and book independent, licensed experts specializing in physiotherapy and women's health. Our platform connects you with qualified professionals ready to support your unique health and wellness journey.",
+    "disclaimerLink": "Learn more about our platform",
+    "topExpertBadge": "Featured",
+    "topExpertDisclaimer": "Experts are independent professionals who self-certify their credentials.",
     "sessionLabel": "Session",
     "expertImageAlt": "Profile photo of {name}",
-    "verifiedBadgeAlt": "Verified Expert Badge"
+    "verifiedBadgeAlt": "Self-Certified Expert"
+  },
+  "platformDisclaimer": {
+    "modal": {
+      "title": "About Eleva Care Platform",
+      "description": "Important information about our platform nature, services, and emergency contact information."
+    },
+    "emergency": {
+      "title": "⚠️ Not for Medical Emergencies",
+      "description": "If you are experiencing a medical emergency, do not use this platform. Contact emergency services immediately:",
+      "eu": "EU",
+      "usa": "USA"
+    },
+    "platform": {
+      "title": "Important: Platform Nature",
+      "description": "Eleva Care is a technology marketplace platform that connects patients with independent, licensed healthcare experts. We do not provide medical services.",
+      "weAre": "What We Provide:",
+      "weAreList": {
+        "marketplace": "A secure technology platform and marketplace",
+        "technology": "Booking, scheduling, and payment processing tools",
+        "secure": "Encrypted storage for expert clinical notes"
+      },
+      "weAreNot": "What We Do NOT Provide:",
+      "weAreNotList": {
+        "provider": "Medical care, diagnoses, or treatment",
+        "employer": "Employment or supervision of experts",
+        "responsible": "Medical liability (experts are solely responsible)"
+      },
+      "footer": "Healthcare experts on our platform are independent professionals who self-certify their credentials and are solely responsible for all medical care they provide. For full details, please read our",
+      "termsLink": "Terms and Conditions"
+    }
   },
   "cookie": {
     "title": "Cookie Preferences",

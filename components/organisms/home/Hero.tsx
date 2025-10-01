@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@/components/atoms/button';
+import { PlatformDisclaimer } from '@/components/molecules/PlatformDisclaimer';
 import { VideoPlayer } from '@/components/molecules/videoPlayer';
 import { ClipboardList } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -40,7 +41,7 @@ const Hero = () => {
             </h1>
           </div>
           <div>
-            <p className="mb-12 mt-8 max-w-lg text-balance font-sans text-xl/6 font-light text-eleva-neutral-100 lg:mb-8 lg:mt-16 lg:text-2xl/7">
+            <p className="mb-4 mt-8 max-w-lg text-balance font-sans text-xl/6 font-light text-eleva-neutral-100 lg:mb-8 lg:mt-16 lg:text-2xl/7">
               {t('subtitle')}
             </p>
           </div>
@@ -54,9 +55,13 @@ const Hero = () => {
                   <Link href="#experts">{t('cta2')}</Link>
                 </Button>
               </div>
-              <div className="mt-2 text-center text-xs font-normal text-eleva-neutral-100 lg:mt-0 lg:text-left lg:text-sm/[1.3] lg:font-medium">
-                {t('cta2Help')} <br className="hidden sm:inline" />
-                {t('cta2Help2')}
+              <div className="mt-2 max-w-xs text-balance text-center text-xs font-light text-eleva-neutral-100/90 lg:mt-0 lg:text-left lg:text-sm/[1.3]">
+                {t('disclaimer')}{' '}
+                <PlatformDisclaimer>
+                  <button className="inline-flex items-center underline decoration-eleva-neutral-100/50 underline-offset-2 transition-colors hover:text-eleva-neutral-100 hover:decoration-eleva-neutral-100">
+                    {t('disclaimerLink')}
+                  </button>
+                </PlatformDisclaimer>
               </div>
             </div>
             <div>

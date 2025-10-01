@@ -19,9 +19,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return generatePageMetadata({
       locale: 'en',
       path: '/',
-      title: 'Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care',
+      title: "Connect with Expert Women's Health Practitioners | Eleva Care",
       description:
-        'Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.',
+        "Eleva Care: Find and book licensed women's health practitioners for pregnancy, postpartum, menopause, and sexual health. A secure platform connecting you with independent healthcare professionals.",
       keywords: [
         'pregnancy care',
         'postpartum support',
@@ -29,6 +29,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         'women health',
         'healthcare experts',
         'menopause care',
+        'healthcare marketplace',
+        'find practitioners',
       ],
     });
   }
@@ -66,9 +68,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return generatePageMetadata({
       locale,
       path: '/',
-      title: 'Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care',
+      title: "Connect with Expert Women's Health Practitioners | Eleva Care",
       description:
-        'Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.',
+        "Eleva Care: Find and book licensed women's health practitioners for pregnancy, postpartum, menopause, and sexual health. A secure platform connecting you with independent healthcare professionals.",
       keywords: [
         'pregnancy care',
         'postpartum support',
@@ -76,6 +78,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         'women health',
         'healthcare experts',
         'menopause care',
+        'healthcare marketplace',
+        'find practitioners',
       ],
     });
   }
