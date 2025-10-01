@@ -73,10 +73,13 @@ Cookies que permanecen en su dispositivo por un período establecido. Limitamos 
 Utilizamos CookieKit para garantizar transparencia y control sobre las cookies:
 
 - Obtener consentimiento explícito antes de establecer cookies no esenciales
+- Bloquear todas las cookies no esenciales hasta obtener consentimiento
 - Proporcionar control granular sobre preferencias de cookies por categoría
 - Permitir la retirada fácil del consentimiento en cualquier momento
 - Mantener registros detallados de consentimiento para fines de cumplimiento
 - Actualizar preferencias de consentimiento en tiempo real en toda nuestra plataforma
+
+Los registros de consentimiento (incluidas las categorías aceptadas/rechazadas) se conservan hasta 13 meses. Puede reabrir el modal de **Preferencias de Cookies** desde el pie de página en cualquier momento para cambiar sus elecciones.
 
 ## 6. Mejores Prácticas de la Industria Sanitaria
 
@@ -104,6 +107,23 @@ Puede gestionar sus preferencias de cookies de varias maneras:
 - **Edge**: Configuración > Cookies y permisos del sitio > Cookies
 
 **Nota:** Bloquear cookies esenciales puede afectar la funcionalidad de nuestro sitio web y plataforma, incluidas las características de seguridad.
+
+---
+
+## 11. Detalle de Cookies
+
+La siguiente tabla describe las cookies principales usadas en nuestra plataforma. Los nombres y duraciones exactas pueden variar por entorno y dispositivo. El modal de Preferencias de Cookies contiene siempre la lista autoritativa.
+
+| Nombre (ejemplo)             | Proveedor  | Finalidad                                    | Categoría   | Duración         | Tipo                  |
+| ---------------------------- | ---------- | -------------------------------------------- | ----------- | ---------------- | --------------------- |
+| `clerk.session` / `__client` | Clerk      | Gestión de sesión y autenticación segura     | Esenciales  | Sesión           | First-party HTTP-only |
+| `clerk.csrf`                 | Clerk      | Protección CSRF para flujos de autenticación | Esenciales  | Sesión           | First-party           |
+| `ph_*_posthog`               | PostHog    | Analítica de uso anónima                     | Analíticas  | Hasta 12 meses   | First-party           |
+| `__stripe_mid`               | Stripe     | Prevención de fraude y gestión de riesgos    | Esenciales  | Hasta 12 meses   | Third-party           |
+| `__stripe_sid`               | Stripe     | Prevención de fraude (sesión)                | Esenciales  | Hasta 30 minutos | Third-party           |
+| `locale`                     | Eleva.care | Recordar preferencia de idioma               | Funcionales | Hasta 12 meses   | First-party           |
+
+Minimizamos cookies de terceros y exigimos a todos los proveedores el cumplimiento RGPD/LGPD, ejecución de APD/CCT cuando proceda y alojamiento en la UE cuando sea aplicable.
 
 ## 8. Cookies de Terceros
 

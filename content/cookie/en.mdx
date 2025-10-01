@@ -73,10 +73,13 @@ Cookies that remain on your device for a set period. We limit persistent cookies
 We use CookieKit to ensure transparency and control over cookies:
 
 - Obtain explicit consent before setting non-essential cookies
+- Block all non-essential cookies until consent is provided
 - Provide granular control over cookie preferences by category
 - Enable easy withdrawal of consent at any time
 - Maintain detailed consent records for compliance purposes
 - Update consent preferences in real-time across our platform
+
+Consent records (including the categories granted/denied) are retained for up to 13 months. You can reopen the **Cookie Preferences** modal from the website footer at any time to change your choices.
 
 ## 6. Healthcare Industry Best Practices
 
@@ -104,6 +107,23 @@ You can manage your cookie preferences in several ways:
 - **Edge**: Settings > Cookies and site permissions > Cookies
 
 **Note:** Blocking essential cookies may affect the functionality of our website and platform, including security features.
+
+---
+
+## 11. Cookie Details
+
+The following table describes the main cookies used on our platform. Exact names and durations may vary by environment and device. The Cookie Preferences modal always contains the authoritative list.
+
+| Name (example)               | Provider   | Purpose                                      | Category   | Duration         | Type                  |
+| ---------------------------- | ---------- | -------------------------------------------- | ---------- | ---------------- | --------------------- |
+| `clerk.session` / `__client` | Clerk      | Secure session management and authentication | Essential  | Session          | First-party HTTP-only |
+| `clerk.csrf`                 | Clerk      | CSRF protection for auth flows               | Essential  | Session          | First-party           |
+| `ph_*_posthog`               | PostHog    | Anonymous usage analytics                    | Analytics  | Up to 12 months  | First-party           |
+| `__stripe_mid`               | Stripe     | Fraud prevention and risk management         | Essential  | Up to 12 months  | Third-party           |
+| `__stripe_sid`               | Stripe     | Fraud prevention (session)                   | Essential  | Up to 30 minutes | Third-party           |
+| `locale`                     | Eleva.care | Remember language preference                 | Functional | Up to 12 months  | First-party           |
+
+We minimize third-party cookies and require all providers to comply with GDPR/LGPD, execute DPAs/SCCs as needed, and provide EU-hosted infrastructure where applicable.
 
 ## 8. Third-Party Cookies
 

@@ -170,6 +170,19 @@ Todos os dados pessoais e informações de saúde são armazenados e processados
 - Análise: PostHog (hospedagem na UE)
 - Notificações: Novu (endpoint da API na UE: eu.api.novu.co)
 
+#### A.8.1 Avaliações de Impacto de Transferência (TIAs) e Medidas Suplementares (Schrems II)
+
+Para tratar riscos identificados no caso C‑311/18 (Schrems II), a Eleva.care realiza Avaliações de Impacto de Transferência para cada fornecedor listado e implementa medidas suplementares, incluindo:
+
+- SCC (2021/914) Módulo 2 (Controlador→Operador) com todos os fornecedores fora da UE que oferecem infraestrutura hospedada na UE
+- Criptografia em trânsito (TLS 1.3) e em repouso (AES‑256‑GCM); chaves geridas pela Eleva.care na UE com controles de acesso estritos
+- Princípio do menor privilégio, RBAC e logging abrangente de acesso administrativo
+- Política de solicitações governamentais: compromissos dos fornecedores de (i) notificar a Eleva.care quando permitido por lei, (ii) contestar solicitações ilegais ou desproporcionais e (iii) publicar relatórios de transparência quando aplicável
+- Sem acesso remoto de suporte de fornecedores sem aprovações UE, com tempo limitado e registro de auditoria
+- Minimização e pseudonimização de dados quando viável para analytics e telemetria
+
+Sumários de TIAs e de medidas técnicas/organizacionais podem ser fornecidos a controladores sob solicitação razoável e acordo de confidencialidade.
+
 ### A.9 Conformidade com Regulamentos de Saúde
 
 **Regulamentos de Dados de Saúde da UE (Primários):**

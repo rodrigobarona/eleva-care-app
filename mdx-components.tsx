@@ -2,6 +2,7 @@ import type { MDXComponents } from 'mdx/types';
 import Image from 'next/image';
 import type { ImageProps } from 'next/image';
 import Link from 'next/link';
+import type { TdHTMLAttributes, ThHTMLAttributes } from 'react';
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
@@ -87,22 +88,79 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ),
 
     // Table elements
-    table: ({ children }) => (
-      <div className="my-6 w-full overflow-y-auto">
-        <table className="w-full border-collapse text-sm text-eleva-neutral-900">{children}</table>
+    table: ({ children, ...props }) => (
+      <div className="my-6 w-full overflow-x-auto">
+        <table className="w-full border-collapse text-sm text-eleva-neutral-900" {...props}>
+          {children}
+        </table>
       </div>
     ),
-    thead: ({ children }) => <thead className="border-b bg-muted/50">{children}</thead>,
-    tbody: ({ children }) => <tbody className="divide-y">{children}</tbody>,
-    tr: ({ children }) => <tr className="m-0 border-t p-0 even:bg-muted/50">{children}</tr>,
-    th: ({ children }) => (
-      <th className="border px-4 py-2 text-left font-mono text-xs font-semibold uppercase tracking-widest text-eleva-neutral-900/70">
+    caption: ({ children, ...props }) => (
+      <caption
+        className="text-eleva-neutral-700 mb-2 text-left font-sans text-xs font-medium"
+        {...props}
+      >
         {children}
-      </th>
+      </caption>
     ),
-    td: ({ children }) => (
-      <td className="border px-4 py-2 text-left font-light text-eleva-neutral-900">{children}</td>
+    thead: ({ children, ...props }) => (
+      <thead className="sticky top-0 z-10 border-b bg-muted/50" {...props}>
+        {children}
+      </thead>
     ),
+    tbody: ({ children, ...props }) => (
+      <tbody className="divide-y" {...props}>
+        {children}
+      </tbody>
+    ),
+    tfoot: ({ children, ...props }) => (
+      <tfoot className="border-t bg-muted/30" {...props}>
+        {children}
+      </tfoot>
+    ),
+    tr: ({ children, ...props }) => (
+      <tr className="m-0 border-t p-0 even:bg-muted/50" {...props}>
+        {children}
+      </tr>
+    ),
+    th: ({
+      children,
+      align,
+      ...props
+    }: {
+      children: React.ReactNode;
+      align?: 'left' | 'center' | 'right';
+    } & ThHTMLAttributes<HTMLTableHeaderCellElement>) => {
+      const alignClass =
+        align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
+      return (
+        <th
+          className={`border px-4 py-2 ${alignClass} font-mono text-xs font-semibold uppercase tracking-widest text-eleva-neutral-900/70`}
+          {...props}
+        >
+          {children}
+        </th>
+      );
+    },
+    td: ({
+      children,
+      align,
+      ...props
+    }: {
+      children: React.ReactNode;
+      align?: 'left' | 'center' | 'right';
+    } & TdHTMLAttributes<HTMLTableDataCellElement>) => {
+      const alignClass =
+        align === 'center' ? 'text-center' : align === 'right' ? 'text-right' : 'text-left';
+      return (
+        <td
+          className={`border px-4 py-2 ${alignClass} font-light text-eleva-neutral-900`}
+          {...props}
+        >
+          {children}
+        </td>
+      );
+    },
 
     // Merge with existing components
     ...components,
