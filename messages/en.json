@@ -752,5 +752,33 @@
     "expertNotification": {
       "subject": "{notificationTitle} - Eleva Care"
     }
+  },
+  "profilePublish": {
+    "status": {
+      "published": "Profile Published",
+      "notPublished": "Profile Not Published"
+    },
+    "publishDialog": {
+      "title": "Publish Your Expert Profile",
+      "description": "Publishing your profile will make it visible to clients searching for experts. Your profile, services, and availability will be public.",
+      "agreementRequired": "Agreement Required",
+      "agreementText": "I have read and agree to the",
+      "practitionerAgreement": "Practitioner Agreement",
+      "agreementIncludes": "including professional conduct standards, liability terms, and platform obligations",
+      "disclaimer": "By publishing your profile, you acknowledge that you are a licensed healthcare professional and agree to comply with all applicable laws and regulations."
+    },
+    "unpublishDialog": {
+      "title": "Unpublish Your Expert Profile",
+      "description": "Unpublishing your profile will hide it from clients. You will not appear in search results and clients won't be able to book your services until you publish again."
+    },
+    "incompleteDialog": {
+      "title": "Complete All Steps First",
+      "description": "Your profile cannot be published until all required steps are completed. Please complete the following steps:"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "publish": "Publish Profile",
+      "unpublish": "Unpublish Profile"
+    }
   }
 }

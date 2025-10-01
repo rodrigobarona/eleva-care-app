@@ -1,5 +1,6 @@
 'use client';
 
+import { Checkbox } from '@/components/atoms/checkbox';
 import { Label } from '@/components/atoms/label';
 import { Switch } from '@/components/atoms/switch';
 import {
@@ -12,9 +13,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/molecules/alert-dialog';
+import { Link } from '@/lib/i18n/navigation';
 import { toggleProfilePublication } from '@/server/actions/expert-profile';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
-import { AlertTriangle, CheckCircle2, Info } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileText, Info } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -23,16 +26,25 @@ interface ProfilePublishToggleProps {
 }
 
 export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishToggleProps) {
+  const t = useTranslations('profilePublish');
   const [isPublished, setIsPublished] = useState(initialPublishedStatus);
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [incompleteSteps, setIncompleteSteps] = useState<string[]>([]);
   const [dialogMode, setDialogMode] = useState<'publish' | 'unpublish' | 'incomplete'>('publish');
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => {
     // Sync state with props if changed externally
     setIsPublished(initialPublishedStatus);
   }, [initialPublishedStatus]);
+
+  useEffect(() => {
+    // Reset agreement checkbox when dialog closes or mode changes
+    if (!showConfirmDialog || dialogMode !== 'publish') {
+      setAgreedToTerms(false);
+    }
+  }, [showConfirmDialog, dialogMode]);
 
   async function checkCompletionStatus() {
     try {
@@ -132,12 +144,12 @@ export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishT
           {isPublished ? (
             <span className="flex items-center text-green-600">
               <CheckCircle2 className="mr-1 h-4 w-4" />
-              Profile Published
+              {t('status.published')}
             </span>
           ) : (
             <span className="flex items-center text-muted-foreground">
               <Info className="mr-1 h-4 w-4" />
-              Profile Not Published
+              {t('status.notPublished')}
             </span>
           )}
         </Label>
@@ -150,12 +162,9 @@ export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishT
               <>
                 <AlertDialogTitle className="flex items-center">
                   <AlertTriangle className="mr-2 h-5 w-5 text-amber-500" />
-                  Complete All Steps First
+                  {t('incompleteDialog.title')}
                 </AlertDialogTitle>
-                <AlertDialogDescription>
-                  Your profile cannot be published until all required steps are completed. Please
-                  complete the following steps:
-                </AlertDialogDescription>
+                <AlertDialogDescription>{t('incompleteDialog.description')}</AlertDialogDescription>
                 <div className="mt-3">
                   <ul className="list-disc space-y-1 pl-5">
                     {incompleteSteps.map((step) => (
@@ -166,28 +175,69 @@ export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishT
               </>
             ) : dialogMode === 'publish' ? (
               <>
-                <AlertDialogTitle>Publish Your Expert Profile</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Publishing your profile will make it visible to clients searching for experts.
-                  Your profile, services, and availability will be public.
+                <AlertDialogTitle className="flex items-center">
+                  <CheckCircle2 className="mr-2 h-5 w-5 text-green-600" />
+                  {t('publishDialog.title')}
+                </AlertDialogTitle>
+                <AlertDialogDescription className="space-y-4">
+                  <p>{t('publishDialog.description')}</p>
+
+                  {/* Legal Agreement Section */}
+                  <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950">
+                    <div className="mb-3 flex items-start">
+                      <FileText className="mr-2 mt-0.5 h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                      <p className="text-sm font-medium text-amber-900 dark:text-amber-100">
+                        {t('publishDialog.agreementRequired')}
+                      </p>
+                    </div>
+
+                    <div className="flex items-start space-x-2">
+                      <Checkbox
+                        id="agree-practitioner-terms"
+                        checked={agreedToTerms}
+                        onCheckedChange={(checked) => setAgreedToTerms(checked as boolean)}
+                        className="mt-0.5"
+                      />
+                      <Label
+                        htmlFor="agree-practitioner-terms"
+                        className="cursor-pointer text-sm leading-relaxed text-amber-900 dark:text-amber-100"
+                      >
+                        {t('publishDialog.agreementText')}{' '}
+                        <Link
+                          href="/legal/practitioner-agreement"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold underline underline-offset-2 hover:text-amber-700 dark:hover:text-amber-300"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {t('publishDialog.practitionerAgreement')}
+                        </Link>
+                        , {t('publishDialog.agreementIncludes')}
+                      </Label>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">{t('publishDialog.disclaimer')}</p>
                 </AlertDialogDescription>
               </>
             ) : (
               <>
-                <AlertDialogTitle>Unpublish Your Expert Profile</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Unpublishing your profile will hide it from clients. You will not appear in search
-                  results and clients won&apos;t be able to book your services until you publish
-                  again.
-                </AlertDialogDescription>
+                <AlertDialogTitle className="flex items-center">
+                  <AlertTriangle className="mr-2 h-5 w-5 text-amber-500" />
+                  {t('unpublishDialog.title')}
+                </AlertDialogTitle>
+                <AlertDialogDescription>{t('unpublishDialog.description')}</AlertDialogDescription>
               </>
             )}
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>{t('buttons.cancel')}</AlertDialogCancel>
             {dialogMode !== 'incomplete' && (
-              <AlertDialogAction onClick={handleToggle} disabled={isLoading}>
-                {dialogMode === 'publish' ? 'Publish Profile' : 'Unpublish Profile'}
+              <AlertDialogAction
+                onClick={handleToggle}
+                disabled={isLoading || (dialogMode === 'publish' && !agreedToTerms)}
+              >
+                {dialogMode === 'publish' ? t('buttons.publish') : t('buttons.unpublish')}
               </AlertDialogAction>
             )}
           </AlertDialogFooter>
