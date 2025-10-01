@@ -746,5 +746,64 @@
       "publish": "Publicar Perfil",
       "unpublish": "Despublicar Perfil"
     }
+  },
+  "account": {
+    "billing": {
+      "title": "Faturamento",
+      "subtitle": "Configurações de Pagamento de Especialista",
+      "description": "Conecte sua conta Stripe para receber pagamentos pelos seus serviços de especialista. A Eleva cobra uma taxa de serviço de 15% e os restantes 85% serão transferidos diretamente para sua conta.",
+      "legalDisclaimer": "Ao conectar sua conta de pagamento, você concorda com nossas",
+      "paymentPolicies": "Políticas de Pagamento",
+      "refundPolicy": "Política de Reembolso",
+      "and": "e",
+      "learnMore": "Saiba mais sobre taxas, reembolsos e cronogramas de pagamento em nossas Políticas de Pagamento.",
+      "accountStatus": {
+        "title": "Status da Conta",
+        "setup": "Configuração da Conta",
+        "payments": "Pagamentos Habilitados",
+        "payouts": "Transferências Habilitadas",
+        "complete": "Completo",
+        "incomplete": "Incompleto",
+        "yes": "Sim",
+        "no": "Não"
+      },
+      "buttons": {
+        "connect": "Conectar com Stripe",
+        "connecting": "Conectando...",
+        "dashboard": "Ver Painel Stripe",
+        "completeSetup": "Completar Configuração Stripe",
+        "loading": "Carregando..."
+      }
+    },
+    "identity": {
+      "title": "Verificação de Identidade",
+      "subtitle": "Status de Verificação de Identidade",
+      "description": "Verifique sua identidade para desbloquear recursos adicionais e construir confiança com seus clientes",
+      "privacyNotice": "Usamos Stripe Identity para verificação segura. Seus dados são processados de acordo com nossa",
+      "privacyPolicy": "Política de Privacidade",
+      "dataProcessing": "Acordo de Processamento de Dados",
+      "securityInfo": "Suas informações de identidade são criptografadas e armazenadas com segurança de acordo com os padrões GDPR, LGPD e HIPAA.",
+      "dataUsage": "Os dados de verificação de identidade são usados apenas para:",
+      "dataUsageItems": {
+        "fraud": "Prevenção de fraude e segurança",
+        "compliance": "Conformidade regulatória",
+        "trust": "Construir confiança com clientes",
+        "payments": "Verificação de conta de pagamento"
+      },
+      "status": {
+        "unverified": "Não Verificado",
+        "pending": "Pendente",
+        "verified": "Verificado",
+        "rejected": "Rejeitado"
+      },
+      "buttons": {
+        "start": "Iniciar Verificação",
+        "starting": "Iniciando...",
+        "checkStatus": "Verificar Status",
+        "checking": "Verificando...",
+        "resume": "Retomar Verificação",
+        "tryAgain": "Tentar Novamente"
+      }
+    }
   }
 }

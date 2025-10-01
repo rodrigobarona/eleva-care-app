@@ -97,7 +97,7 @@ export default function ExpertSetupPage() {
     },
   ]);
 
-  // Load setup status on component mount
+  // Load setup status on component mount and when user changes
   useEffect(() => {
     const loadSetupStatus = async () => {
       if (!isLoaded || !user) return;
@@ -123,7 +123,7 @@ export default function ExpertSetupPage() {
             }
           }
 
-          // Update the profile published status
+          // Update the profile published status (now reading from database)
           if (result.isPublished !== undefined) {
             setIsProfilePublished(Boolean(result.isPublished));
           }
@@ -135,6 +135,25 @@ export default function ExpertSetupPage() {
 
     loadSetupStatus();
   }, [isLoaded, user, showConfetti]);
+
+  // Refresh status when the page gains focus (user comes back from another tab)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && isLoaded && user) {
+        try {
+          const result = await checkExpertSetupStatus();
+          if (result.success && result.isPublished !== undefined) {
+            setIsProfilePublished(Boolean(result.isPublished));
+          }
+        } catch (error) {
+          console.error('Failed to refresh setup status:', error);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isLoaded, user]);
 
   // Check if all steps are completed
   const allStepsCompleted = steps.every((step) => step.completed);
@@ -191,7 +210,12 @@ export default function ExpertSetupPage() {
           </p>
         </div>
 
-        {allStepsCompleted ? <SetupCompletePublishCard isPublished={isProfilePublished} /> : null}
+        {allStepsCompleted ? (
+          <SetupCompletePublishCard
+            isPublished={isProfilePublished}
+            onPublishStatusChange={(newStatus) => setIsProfilePublished(newStatus)}
+          />
+        ) : null}
 
         <div className="space-y-6">
           {steps.map((step) => (

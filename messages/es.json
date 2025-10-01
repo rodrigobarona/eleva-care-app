@@ -746,5 +746,64 @@
       "publish": "Publicar Perfil",
       "unpublish": "Despublicar Perfil"
     }
+  },
+  "account": {
+    "billing": {
+      "title": "Facturación",
+      "subtitle": "Configuración de Pagos de Experto",
+      "description": "Conecta tu cuenta de Stripe para recibir pagos por tus servicios de experto. Eleva cobra una tarifa de servicio del 15% y el 85% restante se transferirá directamente a tu cuenta.",
+      "legalDisclaimer": "Al conectar tu cuenta de pago, aceptas nuestras",
+      "paymentPolicies": "Políticas de Pago",
+      "refundPolicy": "Política de Reembolso",
+      "and": "y",
+      "learnMore": "Obtén más información sobre tarifas, reembolsos y cronogramas de pago en nuestras Políticas de Pago.",
+      "accountStatus": {
+        "title": "Estado de la Cuenta",
+        "setup": "Configuración de Cuenta",
+        "payments": "Pagos Habilitados",
+        "payouts": "Transferencias Habilitadas",
+        "complete": "Completo",
+        "incomplete": "Incompleto",
+        "yes": "Sí",
+        "no": "No"
+      },
+      "buttons": {
+        "connect": "Conectar con Stripe",
+        "connecting": "Conectando...",
+        "dashboard": "Ver Panel de Stripe",
+        "completeSetup": "Completar Configuración de Stripe",
+        "loading": "Cargando..."
+      }
+    },
+    "identity": {
+      "title": "Verificación de Identidad",
+      "subtitle": "Estado de Verificación de Identidad",
+      "description": "Verifica tu identidad para desbloquear funciones adicionales y generar confianza con tus clientes",
+      "privacyNotice": "Usamos Stripe Identity para verificación segura. Tus datos se procesan de acuerdo con nuestra",
+      "privacyPolicy": "Política de Privacidad",
+      "dataProcessing": "Acuerdo de Procesamiento de Datos",
+      "securityInfo": "Tu información de identidad está encriptada y almacenada de forma segura de acuerdo con los estándares GDPR, LGPD y HIPAA.",
+      "dataUsage": "Los datos de verificación de identidad solo se utilizan para:",
+      "dataUsageItems": {
+        "fraud": "Prevención de fraude y seguridad",
+        "compliance": "Cumplimiento regulatorio",
+        "trust": "Generar confianza con los clientes",
+        "payments": "Verificación de cuenta de pago"
+      },
+      "status": {
+        "unverified": "No Verificado",
+        "pending": "Pendiente",
+        "verified": "Verificado",
+        "rejected": "Rechazado"
+      },
+      "buttons": {
+        "start": "Iniciar Verificación",
+        "starting": "Iniciando...",
+        "checkStatus": "Verificar Estado",
+        "checking": "Verificando...",
+        "resume": "Reanudar Verificación",
+        "tryAgain": "Intentar Nuevamente"
+      }
+    }
   }
 }

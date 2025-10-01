@@ -1,8 +1,11 @@
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
+import { db } from '@/drizzle/db';
+import { ProfileTable } from '@/drizzle/schema';
 import { ROLE_COMMUNITY_EXPERT, ROLE_TOP_EXPERT } from '@/lib/auth/roles';
 import { UserButton } from '@clerk/nextjs';
 import { auth, currentUser } from '@clerk/nextjs/server';
+import { eq } from 'drizzle-orm';
 import { CalendarIcon, CheckCircle2, CompassIcon, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 
@@ -40,8 +43,16 @@ export default async function HomePage() {
   // Use the flag first, fall back to the steps check
   const isSetupCompleted = setupCompleteFlag || allStepsCompleted;
 
-  // Check if profile is published
-  const isProfilePublished = isExpert ? user.unsafeMetadata?.profile_published === true : false;
+  // Get profile publication status from database (single source of truth)
+  const profile = isExpert
+    ? await db.query.ProfileTable.findFirst({
+        where: eq(ProfileTable.clerkUserId, userId),
+        columns: {
+          published: true,
+        },
+      })
+    : null;
+  const isProfilePublished = profile?.published ?? false;
 
   return (
     <div className="over container max-w-6xl py-6">

@@ -3,17 +3,49 @@
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent } from '@/components/atoms/card';
 import { ProfilePublishToggle } from '@/components/organisms/ProfilePublishToggle';
+import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { useUser } from '@clerk/nextjs';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 interface SetupCompletePublishCardProps {
   isPublished: boolean;
+  onPublishStatusChange?: (isPublished: boolean) => void;
 }
 
-export function SetupCompletePublishCard({ isPublished }: SetupCompletePublishCardProps) {
+export function SetupCompletePublishCard({
+  isPublished: initialIsPublished,
+  onPublishStatusChange,
+}: SetupCompletePublishCardProps) {
   const { user } = useUser();
   const username = user?.username || '';
+  const [isPublished, setIsPublished] = useState(initialIsPublished);
+
+  // Sync with parent prop changes
+  useEffect(() => {
+    setIsPublished(initialIsPublished);
+  }, [initialIsPublished]);
+
+  // Poll for publication status changes
+  useEffect(() => {
+    const pollInterval = setInterval(async () => {
+      try {
+        const result = await checkExpertSetupStatus();
+        if (result.success && result.isPublished !== undefined) {
+          const newStatus = Boolean(result.isPublished);
+          if (newStatus !== isPublished) {
+            setIsPublished(newStatus);
+            onPublishStatusChange?.(newStatus);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to poll publication status:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [isPublished, onPublishStatusChange]);
 
   return (
     <div className="mb-10 rounded-xl border-2 border-green-100 bg-green-50 p-8 text-center shadow-sm">

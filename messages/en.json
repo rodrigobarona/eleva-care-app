@@ -780,5 +780,64 @@
       "publish": "Publish Profile",
       "unpublish": "Unpublish Profile"
     }
+  },
+  "account": {
+    "billing": {
+      "title": "Billing",
+      "subtitle": "Expert Payment Settings",
+      "description": "Connect your Stripe account to receive payments for your expert services. Eleva takes a 15% service fee, and the remaining 85% will be transferred directly to your account.",
+      "legalDisclaimer": "By connecting your payment account, you agree to our",
+      "paymentPolicies": "Payment Policies",
+      "refundPolicy": "Refund Policy",
+      "and": "and",
+      "learnMore": "Learn more about fees, refunds, and payout schedules in our Payment Policies.",
+      "accountStatus": {
+        "title": "Account Status",
+        "setup": "Account Setup",
+        "payments": "Payments Enabled",
+        "payouts": "Payouts Enabled",
+        "complete": "Complete",
+        "incomplete": "Incomplete",
+        "yes": "Yes",
+        "no": "No"
+      },
+      "buttons": {
+        "connect": "Connect with Stripe",
+        "connecting": "Connecting...",
+        "dashboard": "View Stripe Dashboard",
+        "completeSetup": "Complete Stripe Setup",
+        "loading": "Loading..."
+      }
+    },
+    "identity": {
+      "title": "Identity Verification",
+      "subtitle": "Identity Verification Status",
+      "description": "Verify your identity to unlock additional features and build trust with your clients",
+      "privacyNotice": "We use Stripe Identity for secure verification. Your data is processed according to our",
+      "privacyPolicy": "Privacy Policy",
+      "dataProcessing": "Data Processing Agreement",
+      "securityInfo": "Your identity information is encrypted and stored securely in accordance with GDPR, LGPD, and HIPAA standards.",
+      "dataUsage": "Identity verification data is only used for:",
+      "dataUsageItems": {
+        "fraud": "Fraud prevention and security",
+        "compliance": "Regulatory compliance",
+        "trust": "Building trust with clients",
+        "payments": "Payment account verification"
+      },
+      "status": {
+        "unverified": "Not Verified",
+        "pending": "Pending",
+        "verified": "Verified",
+        "rejected": "Rejected"
+      },
+      "buttons": {
+        "start": "Start Verification",
+        "starting": "Starting...",
+        "checkStatus": "Check Status",
+        "checking": "Checking...",
+        "resume": "Resume Verification",
+        "tryAgain": "Try Again"
+      }
+    }
   }
 }

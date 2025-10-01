@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { ProfileTable, UserTable } from '@/drizzle/schema';
 import { auth, clerkClient, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -197,7 +197,15 @@ export async function checkExpertSetupStatus() {
 
     // Get the setup status from metadata
     const setupStatus = user.unsafeMetadata?.expertSetup || {};
-    const isPublished = user.unsafeMetadata?.profile_published || false;
+
+    // Get the published status directly from the database (single source of truth)
+    const profile = await db.query.ProfileTable.findFirst({
+      where: eq(ProfileTable.clerkUserId, user.id),
+      columns: {
+        published: true,
+      },
+    });
+    const isPublished = profile?.published ?? false;
 
     // Check if the setupComplete flag is out of sync and update if needed
     const isSetupComplete = user.unsafeMetadata?.setupComplete === true;
