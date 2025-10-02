@@ -109,7 +109,7 @@ export default function Footer() {
                           {/* Platform Disclaimer - Compact */}
                           <div className="mt-6 max-w-md rounded-lg border border-gray-200/40 bg-white/60 p-3">
                             <p className="text-xs font-semibold text-gray-700">
-                              🏥 {t('platformDisclaimer.title')}
+                              💙 {t('platformDisclaimer.title')}
                             </p>
                             <p className="mt-1 text-xs text-gray-600">
                               {t('platformDisclaimer.description')}
