@@ -1,3 +1,16 @@
+#!/bin/sh
+
+# Load nvm and node environment - critical for GitHub Desktop
+export NVM_DIR="$HOME/.nvm"
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  . "$NVM_DIR/nvm.sh"
+fi
+
+# Alternative: use system node if nvm not available
+if ! command -v node >/dev/null 2>&1; then
+  export PATH="/usr/local/bin:$PATH"
+fi
+
 echo "🚀 Running pre-push checks..."
 
 # Check if we're on a feature branch
