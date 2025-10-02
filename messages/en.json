@@ -78,12 +78,12 @@
             "siteName": "Eleva Care"
           }
         },
-        "practitioner-agreement": {
-          "title": "Practitioner Agreement | Eleva Care",
-          "description": "Review Eleva Care's practitioner agreement outlining the terms and conditions for healthcare professionals using our platform.",
+        "expert-agreement": {
+          "title": "Expert Agreement | Eleva Care",
+          "description": "Review Eleva Care's expert agreement outlining the terms and conditions for independent experts using our platform.",
           "og": {
-            "title": "Practitioner Agreement | Eleva Care",
-            "description": "Review Eleva Care's practitioner agreement outlining the terms and conditions for healthcare professionals using our platform.",
+            "title": "Expert Agreement | Eleva Care",
+            "description": "Review Eleva Care's expert agreement outlining the terms and conditions for independent experts using our platform.",
             "siteName": "Eleva Care"
           }
         },
@@ -355,7 +355,7 @@
         "preferences": "Cookies Preferences",
         "dpa": "Data Processing",
         "paymentPolicies": "Payment Policies",
-        "practitionerAgreement": "Practitioner Agreement",
+        "expertAgreement": "Expert Agreement",
         "security": "Security"
       }
     },
@@ -797,7 +797,7 @@
       "description": "Publishing your profile will make it visible to clients searching for experts. Your profile, services, and availability will be public.",
       "agreementRequired": "Agreement Required",
       "agreementText": "I have read and agree to the",
-      "practitionerAgreement": "Practitioner Agreement",
+      "expertAgreement": "Expert Agreement",
       "agreementIncludes": "including professional conduct standards, liability terms, and platform obligations",
       "disclaimer": "By publishing your profile, you acknowledge that you are a licensed healthcare professional and agree to comply with all applicable laws and regulations."
     },

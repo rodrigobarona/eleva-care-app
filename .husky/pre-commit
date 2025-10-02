@@ -1,3 +1,9 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Add common Node.js paths to PATH for GitHub Desktop and other GUI apps
+export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.nvm/versions/node/v20.16.0/bin:$PATH"
+
 echo "🔍 Running pre-commit checks..."
 
 # Run lint-staged for staged files

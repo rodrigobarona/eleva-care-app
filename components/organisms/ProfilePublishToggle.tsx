@@ -204,13 +204,13 @@ export function ProfilePublishToggle({ initialPublishedStatus }: ProfilePublishT
                       >
                         {t('publishDialog.agreementText')}{' '}
                         <Link
-                          href="/legal/practitioner-agreement"
+                          href="/legal/expert-agreement"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="font-semibold underline underline-offset-2 hover:text-amber-700 dark:hover:text-amber-300"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          {t('publishDialog.practitionerAgreement')}
+                          {t('publishDialog.expertAgreement')}
                         </Link>
                         , {t('publishDialog.agreementIncludes')}
                       </Label>

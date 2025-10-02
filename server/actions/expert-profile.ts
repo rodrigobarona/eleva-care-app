@@ -120,7 +120,7 @@ export async function toggleProfilePublication() {
             userId,
             PRACTITIONER_AGREEMENT_ACCEPTED,
             'legal_agreement',
-            `practitioner-agreement-${profile.id}`,
+            `expert-agreement-${profile.id}`,
             null,
             {
               agreementType: 'practitioner_agreement',

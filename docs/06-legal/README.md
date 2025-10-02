@@ -19,6 +19,7 @@ This directory contains all legal, compliance, and audit documentation organized
 | **[audit/](#audit)**           | Technical & legal audits, security assessments    | 🟡 High     | Management, auditors, investors |
 | **[platform/](#platform)**     | Platform model, liability protection, disclaimers | 🔴 Critical | Legal, product, marketing teams |
 | **[guides/](#guides)**         | Translation guides, operational procedures        | 🟢 Medium   | All teams                       |
+| **[pgAudit Setup](#pgaudit)**  | HIPAA database audit logging implementation       | 🔴 Critical | DevOps, compliance, security    |
 
 ---
 
@@ -153,6 +154,84 @@ Operational guides, translation resources, and reference materials.
 
 ---
 
+## 🔐 Audit Logging & Compliance Roadmap
+
+**Path**: `docs/06-legal/`
+
+Database audit logging strategy with staged compliance approach for growth.
+
+| #   | Document                                                      | Purpose                                 | Status        |
+| --- | ------------------------------------------------------------- | --------------------------------------- | ------------- |
+| 01  | **[Audit Compliance Roadmap](./audit-compliance-roadmap.md)** | **Current strategy & upgrade triggers** | ✅ **ACTIVE** |
+| 02  | [Audit Logging Strategy](./audit-logging-strategy.md)         | Complete pgAudit architecture (future)  | 📚 Archived   |
+| 03  | [Phase 1 Setup Guide](./pgaudit-phase-1-setup.md)             | Detailed pgAudit setup (when needed)    | 📚 Archived   |
+| 04  | [Quick Start Checklist](./pgaudit-quick-start.md)             | Fast pgAudit deployment (when needed)   | 📚 Archived   |
+| 05  | [Visual Guide](./pgaudit-visual-guide.md)                     | Diagrams and flows (when needed)        | 📚 Archived   |
+
+### Current Audit Strategy (Stage 1: Startup)
+
+**Status**: ✅ **Keep Current Manual Audit Setup**  
+**Decision**: pgAudit is overkill at current stage  
+**Trigger**: Upgrade when you get first US client or hit 500 users
+
+**Current Setup (Adequate for Stage 1)**
+
+You have:
+
+- ✅ Manual audit logging via `drizzle/auditSchema.ts`
+- ✅ Application-level event tracking
+- ✅ Basic Neon tier (~$20/month)
+- ✅ GDPR basic compliance
+- ✅ Encryption and Clerk auth
+
+**Cost**: $0 extra (already built)  
+**Coverage**: Adequate for EU-only, early-stage SaaS  
+**Risk**: 🟢 LOW (appropriate for current stage)
+
+**When to Upgrade to pgAudit**
+
+Upgrade immediately when ANY of these happen:
+
+1. 🔴 **First US client** - HIPAA becomes mandatory
+2. 🔴 **Regulatory audit notice** - CNPD requests complete trail
+3. 🔴 **Data breach** - Need complete forensics
+4. 🟡 **500+ active users** - Scale requires better infrastructure
+5. 🟡 **Enterprise RFP** - SOC 2 requirements
+6. 🟡 **Series A funding** - Investor due diligence
+7. 🟢 **Revenue > €100K/year** - Cost becomes proportional
+
+**pgAudit Benefits (When You Need It)**
+
+| Current Setup          | pgAudit (Future)        |
+| ---------------------- | ----------------------- |
+| App-level logging only | Complete DB audit trail |
+| Can be bypassed        | Cannot be bypassed      |
+| ~$20/month             | ~$170/month             |
+| Good for GDPR          | Good for HIPAA + SOC 2  |
+| ✅ Perfect for now     | 📚 Ready when needed    |
+
+**Upgrade Timeline**
+
+When triggered: 1-2 weeks to full deployment using archived guides.
+
+**Cost When Upgraded**
+
+- Stage 2 (Growth): ~$100/month (Neon HIPAA, no SIEM yet)
+- Stage 3 (Scale): ~$200/month (Full setup with SIEM)
+
+**Implementation Guides (Archived Until Needed)**
+
+All pgAudit documentation is ready but archived for future use:
+
+- Complete architecture and roadmap
+- Step-by-step setup guides
+- Quick start checklists
+- Visual diagrams and flows
+
+**Decision**: Focus on growth now, upgrade when triggered ✅
+
+---
+
 ## 🔗 Related Documentation
 
 ### Live Legal Pages
@@ -162,7 +241,7 @@ Operational guides, translation resources, and reference materials.
 - **Cookie Policy**: https://eleva.care/legal/cookie ([source](../../content/cookie/))
 - **Data Processing Agreement**: https://eleva.care/legal/dpa ([source](../../content/dpa/))
 - **Payment Policies**: https://eleva.care/legal/payment-policies ([source](../../content/payment-policies/))
-- **Practitioner Agreement**: https://eleva.care/legal/practitioner-agreement ([source](../../content/practitioner-agreement/))
+- **Expert Agreement**: https://eleva.care/legal/expert-agreement ([source](../../content/expert-agreement/))
 
 ### Internal Documentation
 
@@ -189,7 +268,6 @@ Operational guides, translation resources, and reference materials.
 
 - [ ] Data Protection Officer (DPO) appointment & CNPD registration
 - [ ] Data Protection Impact Assessment (DPIA) completion
-- [ ] Enhanced PHI audit logging
 - [ ] Vendor BAA execution (all providers)
 - [ ] Incident response plan finalization
 

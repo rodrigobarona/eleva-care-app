@@ -78,12 +78,12 @@
             "siteName": "Eleva Care"
           }
         },
-        "practitioner-agreement": {
-          "title": "Acuerdo de Profesionales | Eleva Care",
-          "description": "Revisa el acuerdo de profesionales de Eleva Care que describe los términos y condiciones para profesionales de salud que utilizan nuestra plataforma.",
+        "expert-agreement": {
+          "title": "Acuerdo de Expertos | Eleva Care",
+          "description": "Revisa el acuerdo de expertos de Eleva Care que describe los términos y condiciones para expertos independientes que utilizan nuestra plataforma.",
           "og": {
-            "title": "Acuerdo de Profesionales | Eleva Care",
-            "description": "Revisa el acuerdo de profesionales de Eleva Care que describe los términos y condiciones para profesionales de salud que utilizan nuestra plataforma.",
+            "title": "Acuerdo de Expertos | Eleva Care",
+            "description": "Revisa el acuerdo de expertos de Eleva Care que describe los términos y condiciones para expertos independientes que utilizan nuestra plataforma.",
             "siteName": "Eleva Care"
           }
         },
@@ -354,7 +354,7 @@
         "preferences": "Preferencias de Cookies",
         "dpa": "Procesamiento de Datos",
         "paymentPolicies": "Políticas de Pago",
-        "practitionerAgreement": "Acuerdo de Profesionales",
+        "expertAgreement": "Acuerdo de Expertos",
         "security": "Seguridad"
       }
     },
@@ -763,7 +763,7 @@
       "description": "Publicar tu perfil lo hará visible para clientes que buscan expertos. Tu perfil, servicios y disponibilidad serán públicos.",
       "agreementRequired": "Acuerdo Requerido",
       "agreementText": "He leído y acepto el",
-      "practitionerAgreement": "Acuerdo de Profesionales",
+      "expertAgreement": "Acuerdo de Expertos",
       "agreementIncludes": "incluyendo estándares de conducta profesional, términos de responsabilidad y obligaciones de la plataforma",
       "disclaimer": "Al publicar tu perfil, reconoces que eres un profesional de salud licenciado y aceptas cumplir con todas las leyes y regulaciones aplicables."
     },

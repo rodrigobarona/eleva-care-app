@@ -272,10 +272,10 @@ export default function Footer() {
                             </li>
                             <li>
                               <Link
-                                href="/legal/practitioner-agreement"
+                                href="/legal/expert-agreement"
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
-                                {t('nav.legal.practitionerAgreement')}
+                                {t('nav.legal.expertAgreement')}
                               </Link>
                             </li>
                             <li>

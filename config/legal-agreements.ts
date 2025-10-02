@@ -32,7 +32,7 @@ export const PRACTITIONER_AGREEMENT_CONFIG = {
   /**
    * Path to the agreement document
    */
-  documentPath: '/legal/practitioner-agreement',
+  documentPath: '/legal/expert-agreement',
 
   /**
    * Whether existing users who accepted a previous version

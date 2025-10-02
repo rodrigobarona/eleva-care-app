@@ -15,7 +15,7 @@ const validDocuments = [
   'cookie',
   'dpa',
   'payment-policies',
-  'practitioner-agreement',
+  'expert-agreement',
   'security',
 ];
 
@@ -26,7 +26,7 @@ const documentDisplayNames = {
   cookie: 'Cookie Policy',
   dpa: 'Data Processing Agreement',
   'payment-policies': 'Payment Policies',
-  'practitioner-agreement': 'Practitioner Agreement',
+  'expert-agreement': 'Expert Agreement',
   security: 'Security',
 };
 
@@ -84,12 +84,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         ogDescription = t('payment-policies.og.description');
         siteName = t('payment-policies.og.siteName');
         break;
-      case 'practitioner-agreement':
-        title = t('practitioner-agreement.title');
-        description = t('practitioner-agreement.description');
-        ogTitle = t('practitioner-agreement.og.title');
-        ogDescription = t('practitioner-agreement.og.description');
-        siteName = t('practitioner-agreement.og.siteName');
+      case 'expert-agreement':
+        title = t('expert-agreement.title');
+        description = t('expert-agreement.description');
+        ogTitle = t('expert-agreement.og.title');
+        ogDescription = t('expert-agreement.og.description');
+        siteName = t('expert-agreement.og.siteName');
         break;
       case 'security':
         title = t('security.title');
