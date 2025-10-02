@@ -142,14 +142,14 @@
     "cta": "Listen Now"
   },
   "services": {
-    "title": "How we connect you",
-    "subtitle": "Find Expert Care, Tailored to Your Needs",
-    "description": "Connect with top-rated women's health professionals worldwide through our secure platform. Find the independent experts you need for online consultations, all tailored to your unique health journey.",
+    "title": "How we support you",
+    "subtitle": "Expert-led care, tailored to you",
+    "description": "Access personalized care from top women’s health professionals. We connect you with the expertise you need—from online consultations to local resources—designed around your unique journey.",
     "items": [
       {
         "icon": "Baby",
         "title": "Pregnancy & Postpartum",
-        "description": "Comprehensive care to support women through the transformative journey of pregnancy and early motherhood.",
+        "description": "Compassionate, evidence-based support through pregnancy and early motherhood.",
         "items": [
           "**Physical Therapy:** Prepare for birth, manage pain, regain strength, address diastasis recti, and receive targeted pelvic floor interventions to prevent and treat dysfunction.",
           "**OB/GYN Care:** Receive expert care throughout your pregnancy journey and postpartum recovery.",
@@ -163,7 +163,7 @@
       {
         "icon": "Droplets",
         "title": "Pelvic Health",
-        "description": "Specialized care addressing the unique pelvic health needs of women throughout their lives.",
+        "description": "Specialized care for pelvic floor health across every stage of life.",
         "items": [
           "**Pelvic Physical Therapy:** Specialized treatment for incontinence, pelvic organ prolapse, and pelvic pain, including pain during intercourse.",
           "**Specialized OB/GYN Care:** Expert diagnosis and treatment for a range of pelvic health issues, including prolapse, endometriosis, and sexual dysfunction. ",
@@ -175,7 +175,7 @@
       {
         "icon": "Flower2",
         "title": "Through Every Stage",
-        "description": "Holistic support for women's health concerns from adolescence through menopause and beyond.",
+        "description": "Holistic support from adolescence through menopause—and beyond.",
         "items": [
           "**Teen Health:** Navigate puberty, menstruation, and early womanhood with confidence and support.",
           "**Menopause Management:** Address hormonal changes, manage symptoms, and prioritize your well-being ",
@@ -189,7 +189,7 @@
       {
         "icon": "Ribbon",
         "title": "Empowering Your Cancer Journey",
-        "description": "Specialized support for women facing breast and gynecological cancers, providing comprehensive care from diagnosis through survivorship.",
+        "description": "Specialized support for breast and gynecologic cancers—from diagnosis to survivorship.",
         "items": [
           "**Physical Therapy:** Optimize your recovery with pre-surgical preparation, post-treatment rehabilitation, lymphedema management, and targeted exercise programs designed for each phase of your cancer journey.",
           "**Pain Management:** Access evidence-based techniques for managing treatment-related pain, including manual therapy, therapeutic exercise, and scar tissue management.",
@@ -366,8 +366,8 @@
       "linkedin": "Follow us on LinkedIn"
     },
     "platformDisclaimer": {
-      "title": "Eleva Care is a Healthcare Technology Platform",
-      "description": "We connect patients with independent, licensed healthcare practitioners. Eleva Care provides the technology; your chosen practitioner provides your medical care."
+      "title": "We’re a healthcare technology platform",
+      "description": "We help you connect with independent, licensed healthcare practitioners. We provide the technology; your chosen practitioner provides your care."
     },
     "compliance": {
       "gdpr": "GDPR Compliant",
@@ -394,31 +394,31 @@
   },
   "platformDisclaimer": {
     "modal": {
-      "title": "About Eleva Care Platform",
-      "description": "Important information about our platform nature, services, and emergency contact information."
+      "title": "About the Eleva Care platform",
+      "description": "A friendly note on how Eleva Care works and what to do in an emergency."
     },
     "emergency": {
-      "title": "⚠️ Not for Medical Emergencies",
-      "description": "If you are experiencing a medical emergency, do not use this platform. Contact emergency services immediately:",
+      "title": "⚠️ Not for medical emergencies",
+      "description": "If you’re experiencing a medical emergency, please don’t use Eleva Care. Contact emergency services:",
       "eu": "EU",
       "usa": "USA"
     },
     "platform": {
-      "title": "Important: Platform Nature",
-      "description": "Eleva Care is a technology marketplace platform that connects patients with independent, licensed healthcare experts. We do not provide medical services.",
-      "weAre": "What We Provide:",
+      "title": "How Eleva Care works",
+      "description": "Eleva Care is a technology marketplace that connects you with independent, licensed healthcare experts. We don’t provide medical services; your chosen practitioner provides your care.",
+      "weAre": "What we provide",
       "weAreList": {
         "marketplace": "A secure technology platform and marketplace",
         "technology": "Booking, scheduling, and payment processing tools",
         "secure": "Encrypted storage for expert clinical notes"
       },
-      "weAreNot": "What We Do NOT Provide:",
+      "weAreNot": "What we don’t provide",
       "weAreNotList": {
         "provider": "Medical care, diagnoses, or treatment",
         "employer": "Employment or supervision of experts",
-        "responsible": "Medical liability (experts are solely responsible)"
+        "responsible": "Medical liability (your practitioner is responsible for your care)"
       },
-      "footer": "Healthcare experts on our platform are independent professionals who self-certify their credentials and are solely responsible for all medical care they provide. For full details, please read our",
+      "footer": "Experts on Eleva Care are independent professionals who self‑certify their credentials and are solely responsible for the care they provide. For full details, please read our",
       "termsLink": "Terms and Conditions"
     }
   },

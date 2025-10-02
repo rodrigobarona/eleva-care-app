@@ -1,503 +1,70 @@
-# Acordo de Processamento de Dados (APD)
+# Acordo de Tratamento de Dados (DPA)
 
-_Data de Entrada em Vigor:_ 16 de abril de 2025
+_Data de vigência: 16 de abril de 2025_
 
-**IMPORTANTE**: A Eleva.care é uma **plataforma marketplace de tecnologia para saúde** que conecta pacientes com profissionais de saúde independentes e licenciados. NÃO somos um prestador de cuidados de saúde. Este Acordo de Processamento de Dados explica como tratamos os dados no nosso **duplo papel** como Responsável pelo Tratamento e Subcontratante.
+Este DPA explica como a Eleva.care trata dados pessoais—de forma clara e simples.
 
-## O Nosso Duplo Papel no Processamento de Dados
+## 1) Quem faz o quê
 
-A Eleva.care processa dados pessoais em **duas capacidades distintas**:
+- A Eleva.care é um marketplace tecnológico em saúde. Não somos prestador de saúde.
+- Dois papéis:
+  - Responsável (operações de plataforma: contas, marcações, pagamentos, analítica, suporte)
+  - Subcontratante (notas/ficheiros clínicos criados por profissionais: armazenamos em segurança sob instruções)
 
-### 🟦 Como Responsável pelo Tratamento (Operações da Plataforma)
+## 2) Quando somos Responsável (plataforma)
 
-Para a funcionalidade da plataforma, somos o **Responsável pelo Tratamento** e utilizamos fornecedores tecnológicos como nossos subcontratantes:
+- Usamos subcontratantes de confiança para operar a plataforma:
+  - BD/infra & entrega: Neon (UE), Vercel (regiões UE), Upstash (UE), Resend (Irlanda), Novu (endpoint UE)
+  - Identidade/SSO: Clerk (opções UE), Google SSO
+  - Pagamentos: Stripe (PCI DSS L1)
+  - Analítica: PostHog (opção de hosting UE)
+- Exigimos DPAs/SCCs, controlos de segurança e residência de dados na UE sempre que possível.
 
-- Contas de utilizadores (profissionais e pacientes)
-- Informações de marcação e agendamento
-- Processamento de pagamentos
-- Análise da plataforma
-- Comunicações e suporte
+## 3) Quando somos Subcontratante (para profissionais)
 
-### 🟧 Como Subcontratante (Armazenamento de Dados Clínicos)
+- Os profissionais são Responsáveis pelos dados clínicos; nós somos Subcontratante.
+- Atuamos apenas com instruções documentadas, ciframos dados (em trânsito e em repouso) e aplicamos RBAC e logs de auditoria.
+- Subprocessadores para dados clínicos (UE): Neon (DB Frankfurt), Vercel (hosting UE), Upstash (cache UE). Notificamos alterações.
 
-Para notas clínicas e registos médicos criados pelos profissionais, somos o **Subcontratante**:
+## 4) Segurança em resumo
 
-- Os profissionais de saúde são os **Responsáveis pelo Tratamento**
-- Fornecemos apenas armazenamento encriptado seguro
-- Processamos dados apenas mediante instruções do profissional
-- NÃO acedemos ao conteúdo clínico sem autorização
+- TLS 1.3 em trânsito; AES‑256‑GCM em repouso (dados clínicos)
+- Menor privilégio/RBAC; MFA opcional; auditoria; backups cifrados; planos de DR
+- SLA de notificação de violação aos Responsáveis em 24h (dados clínicos)
+
+## 5) Transferências internacionais
+
+- Priorizamos residência na UE. Quando fornecedores fora da UE oferecem hosting na UE, usamos SCCs + medidas suplementares (cifra, chaves, registo de acessos, contestação de pedidos excessivos).
+
+## 6) Retenção e eliminação
+
+- Dados de plataforma: apenas o necessário ou exigido por lei
+- Dados clínicos: retenção definida pelo profissional (p. ex., 10 anos em PT). Em término/instrução, exportamos e eliminamos após período de graça e janela de backups.
+
+## 7) Direitos dos titulares
+
+- Plataforma (Responsável): Tratamos acesso, retificação, apagamento, portabilidade, limitação e oposição.
+- Clínico (Subcontratante): Fornecemos ferramentas para que os profissionais cumpram pedidos dos pacientes.
+
+## 8) Deveres do profissional (como Responsável)
+
+- Obter consentimentos quando necessário; assegurar base legal (RGPD art. 9.º, n.º 2, al. h))
+- Definir retenção; responder a direitos; manter exatidão; seguro de responsabilidade profissional
+
+## 9) Os nossos deveres (como Subcontratante)
+
+- Seguir instruções; proteger dados; apoiar direitos e DPIAs; notificar violações sem demora; devolver/eliminar dados a pedido; limitar transferências; confidencialidade
+
+## 10) Responsabilidade
+
+- Eleva.care: responsável pela tecnologia e segurança descritas
+- Profissionais: responsáveis por decisões clínicas, resultados e conformidade enquanto Responsáveis
+
+## 11) Atualizações, lei e litígios
+
+- Podemos atualizar este DPA; notificaremos alterações materiais
+- Lei aplicável: Portugal; foro: tribunais de Portugal
 
 ---
 
-## PARTE A: Eleva.care como Responsável pelo Tratamento
-
-**Esta secção regula como a Eleva.care (como Responsável) contrata Subcontratantes (fornecedores) para fornecer os nossos serviços de plataforma.**
-
-### A.1 Partes deste Acordo
-
-**Responsável pelo Tratamento:**  
-**BÚZIOS E TARTARUGAS - LDA**, uma sociedade por quotas organizada e existente sob as leis de Portugal, com NIPC 515001708, com sede na Rua Gil Vicente, 2, 2775-198 Parede, Portugal, operando comercialmente como **Eleva.care** ("Responsável"),
-
-**Subcontratantes (Fornecedores):**
-
-- **Neon Inc.**, 2261 Market Street STE 22601 San Francisco, CA, 94114, EUA (alojamento na UE: Frankfurt, Alemanha)
-- **Clerk Inc.**, 660 King Street Unit 345 San Francisco, CA 94107 Estados Unidos (alojamento na UE disponível)
-- **Stripe Inc.**, 510 Townsend St., San Francisco, CA Estados Unidos (processamento na UE)
-- **PostHog Inc.**, 2261 Market St STE 22301, San Francisco, CA 94114, Estados Unidos (alojamento na UE)
-- **Google LLC**, 1600 Amphitheatre Parkway, Mountain View, CA 94043 Estados Unidos (para Google SSO)
-- **Beehiiv Inc.**, 228 Park Avenue # 2329976 New York, New York 10003, Estados Unidos
-- **Vercel Inc.**, 340 S Lemon Ave #4133, Walnut, CA 91789, Estados Unidos (regiões da UE)
-- **Upstash Inc.**, 120 9th St, San Francisco, CA 94103, Estados Unidos (regiões da UE)
-- **Resend Inc.**, 1111B S Governors Ave STE 7567, Dover, DE 19904, Estados Unidos (alojamento na UE: Irlanda)
-- **Noti-Fire Apps Ltd. d/b/a Novu**, Derech Ben Gurion 132, Ramat Gan, Israel (endpoint da API na UE: eu.api.novu.co; Representante na UE: Instant EU GDPR Representative Ltd., Office 2, 12A Lower Main Street, Lucan Co. Dublin K78 X5P8 Irlanda)
-
-### A.2 Definições
-
-Para os fins deste Acordo:
-
-- **Legislação de Proteção de Dados** refere-se a todas as leis aplicáveis que regem o processamento de dados pessoais, incluindo o Regulamento Geral de Proteção de Dados (UE) 2016/679 ("RGPD"), e respetivas implementações nacionais.
-- **Dados Pessoais** refere-se a qualquer informação relativa a uma pessoa singular identificada ou identificável, conforme definido pelo RGPD.
-- **Categorias Especiais de Dados Pessoais** incluem dados sensíveis como informações de saúde, dados biométricos ou informações relacionadas com a origem racial ou étnica de um indivíduo, opiniões políticas, crenças religiosas, etc.
-- **Tratamento** significa qualquer operação realizada sobre dados pessoais, como recolha, armazenamento, modificação ou transferência.
-- **Titular dos Dados** refere-se ao indivíduo a quem os dados pessoais dizem respeito.
-- **Violação de Dados Pessoais** significa uma violação de segurança que conduza à destruição, perda, alteração, divulgação não autorizada ou acesso acidental ou ilícito a dados pessoais.
-- **Subcontratante Adicional** significa qualquer processador contratado por um Subcontratante para processar dados pessoais em nome do Responsável pelo Tratamento.
-
-### A.3 Objeto e Finalidade do Tratamento pelos Fornecedores
-
-Este APD regula o tratamento de dados pessoais pelos Subcontratantes (fornecedores) em nome da Eleva.care (Responsável) em relação aos seguintes serviços de plataforma:
-
-- **Neon:** Serviços de base de dados para armazenamento de dados de plataforma e clínicos (encriptados)
-- **Clerk:** Serviços de autenticação e gestão de identidade de utilizadores
-- **Stripe:** Processamento de pagamentos e armazenamento de dados de métodos de pagamento
-- **PostHog:** Serviços de análise da plataforma e rastreamento de comportamento do utilizador
-- **Google:** Serviços de autenticação Single Sign-On
-- **Beehiiv:** Serviços de newsletter e comunicações de marketing
-- **Resend:** Serviços de entrega de emails transacionais (alojado na UE na Irlanda)
-- **Vercel:** Serviços de alojamento e edge computing (regiões da UE)
-- **Upstash:** Armazenamento Redis KV para gestão de sessões e Qstash para processamento de tarefas orientado a eventos
-- **Novu:** Serviços de notificação e comunicação (endpoint da UE)
-
-O tratamento de dados pessoais é necessário para facilitar a operação da plataforma marketplace da Eleva.care, incluindo autenticação de utilizadores, marcação de consultas, processamento de pagamentos, análise, armazenamento seguro e comunicações.
-
-### A.4 Tipos de Dados Pessoais e Categorias de Titulares dos Dados
-
-**Tipos de Dados Pessoais processados pelos fornecedores:**
-
-- **Dados de Identidade:** Nomes, endereços de email, números de telefone, IDs de utilizador
-- **Dados de Perfil:** Credenciais profissionais, especialidades, informações de perfil
-- **Dados de Conta:** Nome de utilizador, palavra-passe (hash), preferências de conta
-- **Dados de Comunicação:** Mensagens, emails, preferências de comunicação
-- **Dados Técnicos:** Endereços IP, cookies, informações do dispositivo, registos de acesso
-- **Dados de Utilização:** Interação com a plataforma, utilização de funcionalidades, dados de análise
-- **Dados de Pagamento:** Detalhes de métodos de pagamento, registos de transações, endereços de faturação
-- **Dados Relacionados com Saúde:** Tipos de consultas, informações de agendamento, notas clínicas (encriptadas em repouso)
-- **Dados de Sessão:** Identificadores de sessão, tokens de autenticação, registos de atividade
-- **Dados de Processamento de Webhook:** Dados de tarefas orientadas a eventos, registos, metadados
-
-**Categorias de Titulares dos Dados:**
-
-- Profissionais de saúde que utilizam a plataforma (profissionais independentes)
-- Pacientes/clientes que procuram serviços de saúde
-- Funcionários e administradores da Eleva.care
-- Parceiros de negócio e prestadores de serviços
-
-### A.5 Responsabilidades da Eleva.care como Responsável pelo Tratamento
-
-Como Responsável pelo Tratamento para operações da plataforma, a Eleva.care deverá:
-
-- Cumprir com todas as leis aplicáveis de proteção de dados, incluindo o RGPD
-- Fornecer instruções claras e precisas aos Subcontratantes relativamente ao tratamento de dados pessoais
-- Obter e manter os consentimentos necessários dos titulares dos dados para processar os seus dados pessoais
-- Implementar medidas técnicas e organizativas adequadas para garantir a segurança dos dados pessoais
-- Responder a pedidos de titulares dos dados relativamente aos seus direitos sob as leis aplicáveis de proteção de dados
-- Realizar Avaliações de Impacto sobre a Proteção de Dados (AIPD) quando necessário
-- Manter registos de atividades de tratamento (Artigo 30)
-- Assegurar que os Subcontratantes fornecem garantias suficientes relativamente à segurança e confidencialidade dos dados pessoais
-- Nomear um Encarregado de Proteção de Dados (EPD) conforme exigido pelo Artigo 37
-
-### A.6 Responsabilidades do Subcontratante (Fornecedor)
-
-Cada Subcontratante (fornecedor) deverá:
-
-- Processar dados pessoais apenas mediante instruções documentadas da Eleva.care
-- Assegurar que as pessoas autorizadas a processar dados pessoais estão vinculadas por obrigações de confidencialidade
-- Implementar medidas técnicas e organizativas de segurança adequadas, incluindo:
-  - Encriptação de dados pessoais em trânsito (TLS 1.3) e em repouso (AES-256-GCM para dados de saúde)
-  - Sistemas de controlo de acesso com autenticação forte
-  - Controlos de acesso baseados em funções
-  - Formação de funcionários sobre proteção de dados
-  - Procedimentos de resposta a incidentes
-  - Procedimentos regulares de backup
-- Não contratar subcontratantes adicionais sem autorização prévia por escrito da Eleva.care
-- Auxiliar a Eleva.care a responder a pedidos de titulares dos dados
-- Auxiliar a Eleva.care a garantir o cumprimento das obrigações de segurança
-- Notificar a Eleva.care de qualquer violação de dados pessoais sem demora indevida (dentro de 24 horas)
-- Eliminar ou devolver todos os dados pessoais à Eleva.care após a cessação dos serviços, salvo se o armazenamento for exigido pela lei aplicável
-
-### A.7 Medidas de Segurança
-
-Os Subcontratantes deverão implementar medidas de segurança adequadas, incluindo:
-
-- Sistemas de controlo de acesso com autenticação multifator
-- Encriptação de dados pessoais em trânsito (usando TLS 1.3)
-- Encriptação em repouso para dados relacionados com saúde (AES-256-GCM)
-- Controlos de acesso baseados em funções (RBAC)
-- Formação de funcionários sobre proteção de dados e confidencialidade
-- Procedimentos de resposta a incidentes e notificação de violações
-- Procedimentos regulares de backup e recuperação de desastres
-- Registo de auditoria para acesso a dados de saúde
-- Processamento seguro de webhook com payloads encriptados
-
-### A.8 Transferências Internacionais
-
-**Residência de Dados na UE:** Todos os dados de clientes são armazenados e processados dentro da União Europeia. Não ocorrem transferências internacionais de dados fora do EEE durante operações normais.
-
-**Conformidade de Fornecedores dos EUA:** Embora alguns subcontratantes sejam empresas baseadas nos EUA, fornecem **infraestrutura alojada na UE** com residência de dados na União Europeia e executaram:
-
-- ✅ Cláusulas Contratuais Tipo (CCT) para conformidade com o RGPD
-- ✅ Acordos de Processamento de Dados (APD)
-- ✅ Opções de data center na UE (utilizadas pela Eleva.care)
-
-**Localização e Soberania de Dados:**
-
-Todos os dados pessoais e informações de saúde são armazenados e processados exclusivamente dentro da União Europeia:
-
-- Base de dados: Neon.tech (Frankfurt, Alemanha - UE)
-- Alojamento: Vercel (regiões da UE)
-- Email: Resend (Irlanda - UE)
-- Cache/Fila: Upstash (regiões da UE)
-- Análise: PostHog (alojamento na UE)
-- Notificações: Novu (endpoint da API na UE: eu.api.novu.co)
-
-#### A.8.1 Avaliações de Impacto de Transferência (TIAs) e Medidas Suplementares (Schrems II)
-
-Para mitigar riscos identificados no processo C‑311/18 (Schrems II), a Eleva.care realiza Avaliações de Impacto de Transferência para cada fornecedor acima e implementa medidas suplementares, incluindo:
-
-- CCT (2021/914) Módulo 2 (Responsável→Subcontratante) com fornecedores extra-UE que fornecem infraestrutura alojada na UE
-- Encriptação em trânsito (TLS 1.3) e em repouso (AES‑256‑GCM); chaves geridas pela Eleva.care na UE com controlos de acesso estritos
-- Princípio do menor privilégio, RBAC e registo de auditoria abrangente do acesso administrativo
-- Política para pedidos governamentais: compromissos de (i) notificar a Eleva.care quando legal, (ii) contestar pedidos ilegais ou desproporcionais e (iii) publicar relatórios de transparência quando aplicável
-- Sem acesso remoto de suporte de fornecedores sem aprovações UE, limitadas no tempo e registadas
-- Minimização e pseudonimização de dados quando viável para analítica e telemetria
-
-Resumos de TIAs e medidas técnicas/organizativas podem ser fornecidos a responsáveis mediante pedido razoável e acordo de confidencialidade.
-
-### A.9 Conformidade com Regulamentos de Saúde
-
-**Regulamentos de Dados de Saúde da UE (Primários):**
-
-A Eleva.care opera primariamente sob o **Artigo 9 do RGPD** (Categorias Especiais de Dados Pessoais) como entidade baseada em Portugal que serve profissionais de saúde e pacientes da UE.
-
-**Conformidade com o Artigo 9 do RGPD:**
-
-- ✅ Medidas de segurança reforçadas para dados de saúde
-- ✅ Mecanismos de consentimento explícito
-- ✅ Avaliação de Impacto sobre a Proteção de Dados (AIPD) necessária e realizada
-- ✅ Encriptação em repouso e em trânsito (AES-256-GCM + TLS 1.3)
-- ✅ Controlos de acesso e registo de auditoria
-- ✅ Minimização de dados e limitação de finalidade
-
-**Regulamentos de Saúde dos EUA (HIPAA) - Infraestrutura Preparada:**
-
-A Eleva.care opera numa **infraestrutura conforme com HIPAA** através do nosso fornecedor de base de dados **Neon.tech** (plano Scale):
-
-- ✅ Acordo de Associado de Negócios (BAA) executado com Neon.tech
-- ✅ Infraestrutura de base de dados conforme com HIPAA ativada
-- ✅ Registo de auditoria melhorado via extensão pgAudit
-- ✅ Salvaguardas técnicas da Regra de Segurança HIPAA implementadas
-- ✅ Procedimentos de notificação de violações em vigor
-- ✅ Todos os PHI encriptados em repouso (AES-256-GCM) e em trânsito (TLS 1.3)
-
-**Aplicabilidade Regulatória:** Como entidade baseada em Portugal, a Eleva.care opera primariamente sob o **Artigo 9 do RGPD**. A conformidade HIPAA torna-se aplicável ao processar Informações de Saúde Protegidas (PHI) de pacientes dos EUA ou profissionais de saúde licenciados nos EUA. A nossa infraestrutura preparada para HIPAA garante conformidade contínua caso sirvamos utilizadores baseados nos EUA no futuro.
-
-**Proteção de Dados Brasileiros (LGPD) - Conformidade Total:**
-
-A Eleva.care cumpre a **Lei Geral de Proteção de Dados Pessoais (LGPD)** do Brasil, que partilha princípios semelhantes ao RGPD:
-
-**Disposições-Chave da LGPD:**
-
-- **Bases Legais para Processamento** (LGPD Artigo 7): Processamos dados com base no consentimento, execução de contrato, obrigação legal e interesses legítimos
-- **Dados Pessoais Sensíveis** (LGPD Artigo 11): Dados de saúde requerem consentimento específico ou autorização legal
-- **Direitos dos Titulares de Dados** (LGPD Artigos 17-22): Direito de acesso, correção, eliminação, portabilidade e mais
-- **Transferências Internacionais** (LGPD Artigos 33-36): Garantimos salvaguardas adequadas para transferências internacionais de dados
-- **Medidas de Segurança** (LGPD Artigo 46): Medidas técnicas e organizacionais para proteger dados pessoais
-
-**Atividades de Processamento de Dados:**
-
-Todas as atividades de processamento de dados cumprem os requisitos do RGPD e da LGPD, incluindo:
-
-✅ Transparência no processamento de dados  
-✅ Limitação de finalidade  
-✅ Minimização de dados  
-✅ Exatidão e registos atualizados  
-✅ Limitação de conservação  
-✅ Segurança e confidencialidade
-
-Para direitos de utilizadores brasileiros ou questões relacionadas com a LGPD, contacte: [dpo@eleva.care](mailto:dpo@eleva.care)
-
----
-
-## PARTE B: Eleva.care como Subcontratante (para Profissionais de Saúde)
-
-**Esta secção regula como a Eleva.care (como Subcontratante) processa dados clínicos em nome dos profissionais de saúde (Responsáveis).**
-
-### B.1 Natureza da Plataforma e Relação com Profissionais
-
-**IMPORTANTE**: Os profissionais de saúde que utilizam a Eleva.care são **profissionais independentes**, não funcionários. Para dados clínicos que criam (notas de sessão, registos médicos):
-
-- **O profissional é o Responsável pelo Tratamento**
-- **A Eleva.care é o Subcontratante**
-- **A relação do paciente é com o profissional, não com a Eleva.care**
-
-Esta secção constitui um Acordo de Processamento de Dados sob o **Artigo 28 do RGPD** entre profissionais e a Eleva.care.
-
-### B.2 Âmbito do Tratamento
-
-**Dados Clínicos que Processamos em Nome do Profissional:**
-
-- Notas de sessão clínicas e observações médicas
-- Informações de saúde do paciente registadas pelo profissional
-- Planos de tratamento e recomendações médicas
-- Anexos de ficheiros médicos (encriptados)
-- Documentação clínica relacionada com consultas
-
-**NÃO:**
-
-- ❌ Acedemos a conteúdo clínico sem autorização do profissional
-- ❌ Tomamos decisões médicas ou fornecemos aconselhamento médico
-- ❌ Modificamos dados clínicos sem instrução do profissional
-- ❌ Partilhamos dados clínicos exceto conforme instruído pelo profissional
-
-### B.3 Finalidade do Tratamento
-
-A Eleva.care fornece **armazenamento encriptado seguro e infraestrutura de plataforma** para permitir que os profissionais:
-
-- Armazenem notas de sessão clínicas de forma segura
-- Acedam a registos de pacientes quando necessário
-- Mantenham continuidade de cuidados
-- Cumpram requisitos de retenção de registos médicos
-- Garantam backup de dados e recuperação de desastres
-
-### B.4 Base Legal para o Tratamento
-
-**Para o Profissional (Responsável pelo Tratamento):**
-
-- **Artigo 9(2)(h) do RGPD** - Tratamento necessário para prestação de cuidados de saúde por um profissional de saúde
-- O profissional deve obter consentimento informado dos pacientes para tratamento e processamento de dados
-
-**Para a Eleva.care (Subcontratante):**
-
-- **Artigo 6(1)(b) do RGPD** - Execução de contrato (acordo de serviços de plataforma com o profissional)
-- **Artigo 9(2)(a) do RGPD** - Consentimento explícito dos pacientes para armazenamento na plataforma
-
-### B.5 Responsabilidades do Profissional como Responsável pelo Tratamento
-
-Como Responsável pelo Tratamento de dados clínicos, cada profissional deverá:
-
-- **Obter consentimento informado** dos pacientes para tratamento e processamento de dados
-- **Assegurar base legal** para processar dados de saúde (Artigo 9(2)(h))
-- **Cumprir com ética médica** e requisitos de licenciamento profissional
-- **Manter seguro de responsabilidade profissional** (cobertura de negligência médica)
-- **Responder a pedidos de direitos dos pacientes** (acesso, retificação, eliminação, etc.)
-- **Determinar períodos de retenção de dados** em conformidade com leis de registos médicos
-- **Instruir a Eleva.care** sobre processamento, retenção e eliminação de dados
-- **Notificar a Eleva.care** de quaisquer alterações às instruções de processamento
-- **Garantir precisão de dados clínicos** e manter registos atualizados
-
-### B.6 Responsabilidades da Eleva.care como Subcontratante
-
-Como Subcontratante de dados clínicos, a Eleva.care deverá:
-
-- **Processar dados apenas mediante instruções do profissional** - Nenhum acesso não autorizado a conteúdo clínico
-- **Implementar medidas técnicas de segurança:**
-  - Encriptação AES-256-GCM em repouso para todos os dados clínicos
-  - Encriptação TLS 1.3 em trânsito
-  - Controlo de acesso baseado em funções (apenas o profissional pode aceder às suas notas clínicas)
-  - Registo de auditoria para todos os acessos a dados clínicos
-  - Backups automáticos regulares
-  - Procedimentos de recuperação de desastres
-- **Usar apenas subcontratantes aprovados:**
-  - Neon Inc. (base de dados - Frankfurt, Alemanha)
-  - Vercel Inc. (alojamento - regiões da UE)
-  - Upstash Inc. (cache - regiões da UE)
-- **Notificar profissionais de violações de dados** dentro de 24 horas
-- **Auxiliar com pedidos de titulares dos dados** (fornecer ferramentas para profissionais exportarem, eliminarem dados)
-- **Eliminar ou devolver dados** mediante instrução do profissional ou cessação do contrato
-- **Não transferir dados fora da UE** sem autorização explícita
-- **Manter confidencialidade** de todas as informações clínicas
-
-### B.7 Subcontratantes (para Dados Clínicos)
-
-**A Eleva.care contrata os seguintes subcontratantes para armazenar dados clínicos:**
-
-| Subcontratante   | Serviço                  | Localização              | Finalidade                                 |
-| ---------------- | ------------------------ | ------------------------ | ------------------------------------------ |
-| **Neon Inc.**    | Base de Dados PostgreSQL | Frankfurt, Alemanha (UE) | Armazenamento encriptado de notas clínicas |
-| **Vercel Inc.**  | Alojamento & CDN         | Regiões da UE            | Alojamento de aplicação                    |
-| **Upstash Inc.** | Cache Redis              | Regiões da UE            | Gestão de sessões                          |
-
-**Todos os subcontratantes têm:**
-
-- ✅ Acordos de Processamento de Dados executados
-- ✅ Cláusulas Contratuais Tipo (CCT)
-- ✅ Residência de dados na UE
-- ✅ Certificações de conformidade com o RGPD
-- ✅ Medidas de segurança adequadas (encriptação, controlos de acesso)
-
-**Notificação:** Os profissionais serão notificados de quaisquer alterações aos subcontratantes com 30 dias de antecedência.
-
-### B.8 Direitos dos Titulares dos Dados
-
-A Eleva.care auxiliará os profissionais a responder aos pedidos dos pacientes para:
-
-- **Direito de acesso** - Ferramentas de exportação de dados fornecidas
-- **Direito de retificação** - Interface de edição para profissionais
-- **Direito de eliminação** - Funcionalidade de eliminação de dados
-- **Direito de limitação** - Ferramentas de restrição de processamento
-- **Direito à portabilidade de dados** - Exportação em formato estruturado (JSON/CSV)
-- **Direito de oposição** - Procedimentos de tratamento de objeções
-
-**Prazo de resposta:** 30 dias (conforme Artigo 12(3))
-
-### B.9 Segurança e Confidencialidade de Dados
-
-**Medidas Técnicas:**
-
-- Encriptação AES-256-GCM para todos os dados clínicos em repouso
-- Encriptação TLS 1.3 para todos os dados em trânsito
-- Backups encriptados armazenados em data centers da UE
-- Autenticação multifator disponível
-- Whitelisting de IP (opcional)
-- Registos de auditoria para todos os acessos a dados clínicos
-
-**Medidas Organizativas:**
-
-- Acordos de confidencialidade de funcionários
-- Princípio de necessidade de conhecer
-- Formação regular de segurança
-- Plano de resposta a incidentes
-- Procedimentos de notificação de violação de dados (SLA de 24 horas)
-
-### B.10 Notificação de Violação de Dados
-
-No caso de uma violação de dados pessoais que afete dados clínicos:
-
-**A Eleva.care deverá:**
-
-1. **Notificar o profissional** sem demora indevida, dentro de **24 horas** após tomar conhecimento
-2. **Fornecer detalhes:**
-   - Natureza da violação
-   - Categorias e número aproximado de titulares dos dados afetados
-   - Categorias e número aproximado de registos afetados
-   - Consequências prováveis da violação
-   - Medidas tomadas ou propostas para abordar a violação
-3. **Cooperar com o profissional** na investigação e mitigação da violação
-4. **Auxiliar o profissional** a notificar autoridades de supervisão (CNPD) se necessário
-
-**Responsabilidade do profissional:**
-
-- Determinar se é necessária notificação à autoridade de supervisão (CNPD) (Artigo 33)
-- Determinar se é necessária notificação aos pacientes afetados (Artigo 34)
-- Assumir responsabilidade pelas notificações regulatórias como Responsável pelo Tratamento
-
-### B.11 Retenção e Eliminação de Dados
-
-**Período de Retenção:**
-
-- Os dados clínicos são retidos enquanto o profissional mantiver uma conta ativa
-- Os profissionais podem definir políticas de retenção personalizadas
-- Lei portuguesa de retenção de registos médicos: **10 anos mínimo** (responsabilidade do profissional cumprir)
-
-**Procedimentos de Eliminação:**
-
-Mediante pedido do profissional ou cessação da conta:
-
-1. **Período de graça de 30 dias** - Os dados permanecem acessíveis para recuperação
-2. **Após 30 dias** - Eliminação permanente do armazenamento primário
-3. **Após 90 dias** - Eliminação de backups encriptados
-4. **Confirmação** - O profissional recebe certificado de confirmação de eliminação
-
-**Exportação de Dados:** Os profissionais podem exportar todos os dados clínicos antes da eliminação (formato JSON/CSV)
-
-### B.12 Auditorias e Inspeções
-
-A Eleva.care deverá:
-
-- **Permitir aos profissionais** solicitar informações sobre medidas de segurança
-- **Fornecer relatórios anuais de segurança** (mediante pedido)
-- **Cooperar com auditorias** pelo profissional ou auditor terceiro nomeado
-- **Fornecer registos de auditoria** para acesso a dados clínicos (mediante pedido)
-- **Dar aviso prévio de 30 dias** para auditorias no local
-
-### B.13 Responsabilidade e Indemnização
-
-**Responsabilidade da Eleva.care (como Subcontratante):**
-
-- **Responsável por:** Segurança da plataforma, encriptação de dados, notificação de violações, gestão de subcontratantes
-- **NÃO responsável por:** Negligência médica, decisões clínicas, resultados dos pacientes, licenciamento de profissionais
-
-**Responsabilidade do Profissional (como Responsável):**
-
-- **Responsável por:** Todos os cuidados médicos prestados, precisão de dados clínicos, consentimento do paciente, conformidade de registos médicos
-- **Indemniza a Eleva.care** por quaisquer reclamações decorrentes de negligência médica ou decisões clínicas
-
-**Limitação:** A responsabilidade da Eleva.care está limitada apenas a serviços de tecnologia de plataforma, não serviços médicos.
-
-### B.14 Prazo e Cessação
-
-**Duração:** Este APD permanece em vigor enquanto o profissional mantiver uma conta Eleva.care.
-
-**Cessação:**
-
-- Qualquer parte pode cessar com 30 dias de aviso prévio por escrito
-- Após a cessação, a Eleva.care deverá:
-  - Fornecer período de exportação de dados de 30 dias
-  - Eliminar todos os dados clínicos após período de graça
-  - Fornecer certificado de confirmação de eliminação
-  - Devolver ou destruir cópias de subcontratantes
-
-**Sobrevivência:** As cláusulas de segurança, confidencialidade e responsabilidade sobrevivem à cessação.
-
----
-
-## Disposições Gerais (Aplicáveis a Ambos os Papéis)
-
-### Alterações
-
-Qualquer alteração a este APD deve ser feita por escrito. A Eleva.care pode atualizar medidas de segurança e requisitos de conformidade com notificação prévia de 30 dias.
-
-### Separabilidade
-
-Se qualquer disposição deste APD for considerada inválida ou inexequível, o restante do acordo permanecerá em vigor.
-
-### Lei Aplicável
-
-Este APD é regido pelas leis de Portugal e pelo RGPD.
-
-### Resolução de Litígios
-
-Quaisquer litígios serão resolvidos nos tribunais de Portugal.
-
----
-
-## Informações de Contacto
-
-**Questões sobre Proteção de Dados:**
-
-- **Email:** [dpo@eleva.care](mailto:dpo@eleva.care)
-- **Telefone:** +351 931 897 950
-- **Endereço Postal:** Rua Gil Vicente, 2, 2775-198 Parede, Portugal
-
-**Autoridade de Supervisão (Portugal):**
-
-- **CNPD** (Comissão Nacional de Proteção de Dados)
-- Website: https://www.cnpd.pt
-- Email: geral@cnpd.pt
-- Telefone: +351 213 928 400
-
----
-
-**Ao utilizar os serviços de plataforma da Eleva.care, reconhece e concorda com este Acordo de Processamento de Dados.**
-
-_Última Atualização: 16 de abril de 2025_
+Contacto (DPO): `dpo@eleva.care` · Operador: BÚZIOS E TARTARUGAS – LDA (Eleva.care), NIPC/NIF 515001708, Rua Gil Vicente, 2, 2775‑198 Parede, Portugal. Suporte `support@eleva.care`.

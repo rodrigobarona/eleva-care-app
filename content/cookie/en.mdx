@@ -1,175 +1,53 @@
 # Cookie Policy
 
-_Effective Date:_ April 16, 2025
+_Effective Date: April 16, 2025_
 
-**IMPORTANT**: Eleva.care is a **healthcare technology marketplace platform** that connects patients with independent, licensed healthcare practitioners. We are NOT a healthcare provider. This Cookie Policy explains how we use cookies and similar tracking technologies on our platform.
+We use a small number of cookies to run Eleva.care reliably and securely. This page explains what we use and how you can control it.
 
----
+## 1) What we (don’t) store
 
-As a healthcare platform, we take cookie privacy and transparency very seriously. This Cookie Policy explains how we use cookies and similar tracking technologies on our website and platform, with special attention to healthcare data protection. It also explains how we manage cookie consent to ensure your privacy and compliance with relevant regulations.
+- We never store clinical data or health information in cookies
+- Cookies are used only for platform features, security, preferences, and minimal analytics
 
-## 1. What Are Cookies?
+## 2) Types of cookies
 
-Cookies are small text files that are stored on your device when you visit a website. They serve various purposes, including:
+- Essential: sign‑in/session, security (CSRF/fraud), load balancing
+- Functional: language, theme, UI preferences
+- Analytics (minimal, EU‑hosted PostHog): performance, errors, usage trends (aggregated/anonymized)
 
-- Remembering your preferences and settings
-- Understanding how you interact with websites
-- Helping with security and login verification
-- Enabling certain website functionalities
-- Supporting secure authentication processes
+## 3) Duration
 
-## 2. Healthcare Data and Cookies
+- Session cookies: removed when you close your browser
+- Persistent cookies: typically up to 12 months (often much less)
 
-We understand the sensitive nature of healthcare-related information:
+## 4) Consent and control
 
-- No clinical data or patient information is ever stored in cookies
-- We do not use cookies to track health-related behaviors or conditions
-- Our use of cookies is separate from our encrypted storage of healthcare information
-- Cookie data is never combined with clinical information stored in our systems
+- Non‑essential cookies load only after consent
+- You can change choices anytime via “Cookie Preferences” in the footer
+- You can also manage cookies in your browser settings
 
-## 3. Types of Cookies We Use
+## 5) Providers we rely on (cookies may apply)
 
-### Essential Cookies
+- Auth/identity: Clerk (EU options)
+- Payments: Stripe (PCI DSS L1)
+- Analytics: PostHog (EU hosting)
+- Email/notifications/infra (EU endpoints/regions): Resend, Novu, Vercel, Upstash
 
-These cookies are necessary for our website to function properly and cannot be disabled:
+All providers are under DPAs/SCCs as applicable and support EU data hosting.
 
-- Authentication cookies to manage user sessions and secure login status
-- Security cookies to prevent fraud and protect our service
-- Technical cookies required for our platform's core functionality
-- Load balancing cookies for optimal performance
+## 6) Data location
 
-### Functional Cookies
+We prioritize EU data residency. Cookie‑related data is processed in EU regions where available; otherwise, SCCs and supplementary measures apply.
 
-These cookies enable enhanced functionality but are not strictly necessary:
+## 7) Changing your mind
 
-- Language preferences
-- Theme preferences (light/dark mode)
-- User interface customization settings
-- Saved preferences for forms and features
+- Open the “Cookie Preferences” link in the footer to adjust categories
+- Blocking essential cookies may impact sign‑in and core features
 
-### Analytics Cookies
+## 8) Updates
 
-We use minimal analytics through PostHog to improve our service:
-
-- Anonymous usage statistics with data minimization principles applied
-- Performance monitoring of site functionality
-- Error tracking for service improvement
-- User flow analysis to optimize platform experience
-
-All analytics data is anonymized and aggregated. Individual users cannot be personally identified through our analytics implementation.
-
-## 4. Cookie Duration
-
-### Session Cookies
-
-Temporary cookies that expire when you close your browser. These are primarily used for essential functions like maintaining login sessions.
-
-### Persistent Cookies
-
-Cookies that remain on your device for a set period. We limit persistent cookies to a maximum of 12 months, as recommended by privacy regulations, with most expiring much sooner.
-
-## 5. Our Cookie Consent Solution
-
-We use CookieKit to ensure transparency and control over cookies:
-
-- Obtain explicit consent before setting non-essential cookies
-- Block all non-essential cookies until consent is provided
-- Provide granular control over cookie preferences by category
-- Enable easy withdrawal of consent at any time
-- Maintain detailed consent records for compliance purposes
-- Update consent preferences in real-time across our platform
-
-Consent records (including the categories granted/denied) are retained for up to 13 months. You can reopen the **Cookie Preferences** modal from the website footer at any time to change your choices.
-
-## 6. Healthcare Industry Best Practices
-
-As a platform serving the healthcare industry, we follow these additional best practices:
-
-- We implement a "privacy by default" approach, minimizing cookie usage
-- We regularly audit our cookie usage to ensure compliance with healthcare privacy standards
-- We separate analytics data from any healthcare-related information
-- We ensure all third-party cookie providers comply with relevant data protection regulations
-
-## 7. Managing Cookie Preferences
-
-You can manage your cookie preferences in several ways:
-
-- Using our cookie consent banner upon first visit
-- Through your browser settings (instructions for common browsers provided below)
-- Via our preference center (accessible through the "Cookie Preferences" button in the footer)
-- By contacting our support team
-
-**Browser Settings:**
-
-- **Chrome**: Settings > Privacy and Security > Cookies and other site data
-- **Firefox**: Options > Privacy & Security > Cookies and Site Data
-- **Safari**: Preferences > Privacy > Cookies and website data
-- **Edge**: Settings > Cookies and site permissions > Cookies
-
-**Note:** Blocking essential cookies may affect the functionality of our website and platform, including security features.
+We review cookies regularly and may update this policy. We’ll reflect changes here and notify you of material updates.
 
 ---
 
-## 11. Cookie Details
-
-The following table describes the main cookies used on our platform. Exact names and durations may vary by environment and device. The Cookie Preferences modal always contains the authoritative list.
-
-| Name (example)               | Provider   | Purpose                                      | Category   | Duration         | Type                  |
-| ---------------------------- | ---------- | -------------------------------------------- | ---------- | ---------------- | --------------------- |
-| `clerk.session` / `__client` | Clerk      | Secure session management and authentication | Essential  | Session          | First-party HTTP-only |
-| `clerk.csrf`                 | Clerk      | CSRF protection for auth flows               | Essential  | Session          | First-party           |
-| `ph_*_posthog`               | PostHog    | Anonymous usage analytics                    | Analytics  | Up to 12 months  | First-party           |
-| `__stripe_mid`               | Stripe     | Fraud prevention and risk management         | Essential  | Up to 12 months  | Third-party           |
-| `__stripe_sid`               | Stripe     | Fraud prevention (session)                   | Essential  | Up to 30 minutes | Third-party           |
-| `locale`                     | Eleva.care | Remember language preference                 | Functional | Up to 12 months  | First-party           |
-
-We minimize third-party cookies and require all providers to comply with GDPR/LGPD, execute DPAs/SCCs as needed, and provide EU-hosted infrastructure where applicable.
-
-## 8. Third-Party Cookies
-
-We minimize the use of third-party cookies. When required, we ensure our partners comply with relevant data protection regulations and maintain transparent privacy practices. Our third-party services include:
-
-- **Clerk** for user authentication and identity management
-- **Stripe** for payment processing (EU processing)
-- **PostHog** for minimal usage statistics and analytics (EU hosting)
-- **Beehiiv** for newsletter subscription management
-- **Novu** (Noti-Fire Apps Ltd.) for notification services (EU API endpoint: eu.api.novu.co)
-- **Vercel** for hosting and platform infrastructure (EU regions)
-
-Each of these providers has been selected based on their security practices and compliance with data protection standards relevant to healthcare applications. All providers have executed Data Processing Agreements (DPAs) and use EU data centers for hosting and processing.
-
-## 9. Data Processing and Storage
-
-**EU Data Residency:** All cookie data is stored and processed within the European Union. We do not transfer cookie data outside the EEA during normal operations.
-
-**Data Location:** Our infrastructure is hosted exclusively in EU regions:
-
-- Database: Frankfurt, Germany (EU)
-- Hosting: Vercel EU regions
-- Analytics: PostHog EU hosting
-- Notifications: Novu EU API endpoint
-
-While some service providers are US-based companies, they provide **EU-hosted infrastructure** with data residency in the European Union and have executed Standard Contractual Clauses (SCCs) for GDPR compliance.
-
-## 10. Regular Cookie Audits
-
-We conduct regular audits of our cookie usage to:
-
-- Identify and remove unnecessary cookies
-- Verify compliance with data protection regulations
-- Ensure accuracy of cookie descriptions in this policy
-- Minimize data collection to only what is necessary
-
-**Updates to This Policy:** We may update this Cookie Policy to reflect changes in our practices or for legal compliance. We will notify you of any material changes and update the "Effective Date" date accordingly. Significant changes may also be announced via a banner on our website.
-
----
-
-## Who is Responsible for This Cookie Policy?
-
-This Cookie Policy is managed and maintained by:
-
-- **BÚZIOS E TARTARUGAS - LDA**
-- Commercial name: **Eleva.care**
-- NIPC/VAT: 515001708
-- Rua Gil Vicente, 2, 2775-198 Parede, Portugal
-- Email: [support@eleva.care](mailto:support@eleva.care)
+Questions? Contact `support@eleva.care`.

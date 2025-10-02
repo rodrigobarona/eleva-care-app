@@ -135,14 +135,14 @@
     "cta": "Ouvir agora"
   },
   "services": {
-    "title": "Como Podemos Ajudar",
-    "subtitle": "Cuidado especializado, personalizado para si",
-    "description": "Obtenha cuidados personalizados com profissionais altamente qualificados em saúde feminina em todo o mundo. Proporcionamos-lhe o aconselhamento que necessita, desde consultas online até recursos locais, tudo adaptado à sua jornada de saúde.",
+    "title": "Como a apoiamos",
+    "subtitle": "Cuidado liderado por especialistas, feito para si",
+    "description": "Aceda a cuidados personalizados com profissionais em saúde feminina. Ligamo-la à experiência de que precisa—de consultas online a recursos locais—adaptada à sua própria jornada.",
     "items": [
       {
         "icon": "Baby",
         "title": "Gravidez e Pós-Parto",
-        "description": "Apoio abrangente para mulheres durante a transformação da gravidez e maternidade.",
+        "description": "Acompanhamento próximo e baseado em evidência durante a gravidez e o pós‑parto.",
         "items": [
           "**Fisioterapia:** Prepare-se para o parto, controle a dor, recupere a força, trate a diástase abdominal e intervenções focadas no pavimento pélvico para prevenir e tratar disfunções.",
           "**Cuidados Obstétricos e Ginecológicos:** Tratamento especializado durante a gravidez e recuperação pós-parto.",
@@ -156,7 +156,7 @@
       {
         "icon": "Droplets",
         "title": "Saúde Pélvica",
-        "description": "Cuidados especializados que satisfazem as necessidades únicas da saúde pélvica ao longo da vida.",
+        "description": "Cuidado especializado do pavimento pélvico em todas as fases da vida.",
         "items": [
           "**Fisioterapia Pélvica:** Tratamento especializado para incontinência, prolapso de órgãos pélvicos e dor pélvica, incluindo dor durante o sexo.",
           "**Cuidados Obstétricos e Ginecológicos Especializados:** Diagnóstico e tratamento para uma gama de problemas de saúde pélvica como prolapso, endometriose e disfunção sexual.",
@@ -168,7 +168,7 @@
       {
         "icon": "Flower2",
         "title": "Em Todas as Fases",
-        "description": "Apoio holístico para a saúde feminina, desde a adolescência até a menopausa e em todos os desafios da sua vida.",
+        "description": "Apoio holístico da adolescência à menopausa—e além.",
         "items": [
           "**Saúde Adolescente:** Enfrente a puberdade, menstruação e primeiros anos da vida adulta feminina com confiança e apoio.",
           "**Gestão da Menopausa:** Acompanhe as mudanças hormonais, controle sintomas e priorize o seu bem-estar.",
@@ -182,7 +182,7 @@
       {
         "icon": "Ribbon",
         "title": "Empoderando a sua Jornada Contra o Cancro",
-        "description": "Apoio especializado para mulheres que enfrentam cancros da mama e ginecológicos, proporcionando cuidados abrangentes desde o diagnóstico até à sobrevivência.",
+        "description": "Apoio especializado em cancro da mama e ginecológico—do diagnóstico à sobrevivência.",
         "items": [
           "**Fisioterapia:** Otimize a sua recuperação com preparação pré-cirúrgica, reabilitação pós-tratamento, gestão do linfedema e programas de exercícios específicos concebidos para cada fase da sua jornada contra o cancro.",
           "**Gestão da Dor:** Aceda a técnicas baseadas em evidências para gerir a dor relacionada com o tratamento, incluindo terapia manual, exercício terapêutico e gestão do tecido cicatricial.",
@@ -358,8 +358,8 @@
       "linkedin": "Siga-nos no LinkedIn"
     },
     "platformDisclaimer": {
-      "title": "Eleva Care é uma Plataforma de Tecnologia para Saúde",
-      "description": "Conectamos pacientes com profissionais de saúde independentes e licenciados. A Eleva Care fornece a tecnologia; o seu profissional escolhido presta os seus cuidados médicos."
+      "title": "Somos uma plataforma tecnológica de saúde",
+      "description": "Ajudamos a ligar‑se a profissionais de saúde independentes e licenciados. Nós fornecemos a tecnologia; o(a) profissional que escolhe presta os seus cuidados."
     },
     "compliance": {
       "gdpr": "Conforme com o RGPD",
@@ -386,31 +386,31 @@
   },
   "platformDisclaimer": {
     "modal": {
-      "title": "Sobre a Plataforma Eleva Care",
-      "description": "Informações importantes sobre a natureza da nossa plataforma, serviços e informações de emergência."
+      "title": "Sobre a plataforma Eleva Care",
+      "description": "Uma nota simpática sobre como a Eleva Care funciona e o que fazer numa emergência."
     },
     "emergency": {
-      "title": "⚠️ Não é para Emergências Médicas",
-      "description": "Se estiver a experienciar uma emergência médica, não utilize esta plataforma. Contacte os serviços de emergência imediatamente:",
+      "title": "⚠️ Não é para emergências médicas",
+      "description": "Se estiver a viver uma emergência médica, por favor não use a Eleva Care. Contacte os serviços de emergência:",
       "eu": "UE",
       "usa": "EUA"
     },
     "platform": {
-      "title": "Importante: Natureza da Plataforma",
-      "description": "Eleva Care é uma plataforma tecnológica de mercado que conecta pacientes com especialistas de saúde independentes e licenciados. Não fornecemos serviços médicos.",
-      "weAre": "O Que Fornecemos:",
+      "title": "Como a Eleva Care funciona",
+      "description": "A Eleva Care é um marketplace tecnológico que a liga a especialistas de saúde independentes e licenciados. Não prestamos serviços médicos; o(a) profissional que escolhe presta os seus cuidados.",
+      "weAre": "O que fornecemos",
       "weAreList": {
         "marketplace": "Uma plataforma tecnológica segura e marketplace",
-        "technology": "Ferramentas de marcação, agendamento e processamento de pagamentos",
-        "secure": "Armazenamento encriptado de notas clínicas dos especialistas"
+        "technology": "Marcação, agendamento e pagamentos",
+        "secure": "Armazenamento encriptado de notas clínicas"
       },
-      "weAreNot": "O Que NÃO Fornecemos:",
+      "weAreNot": "O que não fornecemos",
       "weAreNotList": {
         "provider": "Cuidados médicos, diagnósticos ou tratamentos",
         "employer": "Emprego ou supervisão de especialistas",
-        "responsible": "Responsabilidade médica (os especialistas são os únicos responsáveis)"
+        "responsible": "Responsabilidade médica (o(a) seu/sua profissional é responsável pelos cuidados)"
       },
-      "footer": "Os especialistas de saúde na nossa plataforma são profissionais independentes que auto-certificam as suas credenciais e são os únicos responsáveis por todos os cuidados médicos que prestam. Para mais detalhes, leia os nossos",
+      "footer": "Os especialistas na Eleva Care são profissionais independentes que auto‑certificam as suas credenciais e são responsáveis pelos cuidados que prestam. Para mais detalhes, leia os nossos",
       "termsLink": "Termos e Condições"
     }
   },
