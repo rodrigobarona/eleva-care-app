@@ -1,441 +1,74 @@
 # Segurança
 
-_Última Atualização: 1 de Outubro de 2025_
+_Última atualização: 1 de outubro de 2025_
+
+Levamos a segurança a sério. Abaixo está um resumo claro e objetivo de como protegemos seus dados e operamos uma plataforma segura.
+
+## 1) Conformidade como base
+
+- Conformidade com GDPR e LGPD como empresa sediada em Portugal
+- Banco de dados preparado para HIPAA (Neon.tech) com BAA assinado
+- Fornecedores com certificações sólidas: Clerk, Stripe, Vercel, Neon (SOC 2 Type II), Stripe (PCI DSS L1)
+- Práticas alinhadas à ISO 27001 em desenvolvimento e operações
+- Detalhes e lista completa de subprocessadores em nosso [Acordo de Processamento de Dados](/legal/dpa)
+
+## 2) Salvaguardas técnicas
+
+- Criptografia em repouso (AES‑256‑GCM) e em trânsito (TLS 1.3, HSTS, PFS)
+- Residência de dados na UE por padrão (DB em Frankfurt; e‑mail, edge, cache, analytics e notificações na UE)
+- Rede: WAF, mitigação DDoS, rate limiting rigoroso, gateway de API seguro
+- Banco de dados: pgAudit, apenas SSL, políticas em nível de linha, backups automatizados
+- Pagamentos: processados pela Stripe; não armazenamos cartões; suporte a 3DS
+
+## 3) Contas e acessos
+
+- Autenticação com Clerk, SSO, opções sem senha, sessões seguras
+- MFA (SMS, TOTP, fallback por e‑mail); obrigatório para administradores
+- Controle de acesso por função com menor privilégio e revisões periódicas
+
+## 4) Desenvolvimento e operações seguras
+
+- Branches protegidas, revisões por pares, SAST/DAST/SCA (Snyk/Dependabot)
+- Deploys imutáveis, sem downtime, rollback, releases em etapas
+- Monitoramento contínuo, detecção de anomalias, rastreamento de erros, meta de 99.9% de uptime
+- Logs de auditoria abrangentes; retenção conforme GDPR/LGPD/HIPAA
+
+## 5) Resposta a incidentes
+
+- Monitoramento 24/7, runbooks documentados, notificações regulatórias (GDPR 72h, LGPD ANPD)
+- Revisões pós‑incidente e comunicação com usuários
+
+## 6) Pessoas e terceiros
+
+- Revisões trimestrais de acesso, VPN para produção, MFA, verificação de antecedentes, treinamento anual
+- Avaliação de segurança de fornecedores, DPAs com processadores; acessos monitorados e registrados
+
+## 7) Vulnerabilidades e pesquisa
+
+- Pentests regulares e varredura automatizada; SLAs: Críticas 24‑48h, Altas 7 dias, Médias 30 dias, Baixas 90 dias
+- Divulgação responsável: `security@eleva.care` ou advisory no GitHub; PGP sob solicitação
+- Evite varredura automatizada sem permissão, acesso a dados não relacionados, divulgação prematura, engenharia social ou interrupções
+
+## 8) Privacidade de dados
+
+- Coletamos o mínimo necessário e retemos apenas o tempo necessário
+- Você pode acessar, retificar, excluir, limitar, portar ou se opor; contate `privacy@eleva.care` ou `dpo@eleva.care`
+- Veja nossa [Política de Privacidade](/legal/privacy)
+
+## 9) Resiliência
+
+- Backups automáticos com recuperação point‑in‑time e geo‑redundância
+- RTO < 4h para sistemas críticos; RPO < 15m para BD; testes trimestrais de restauração
+- Alta disponibilidade com design multi‑região, replicação e edge caching global
+
+## 10) Fale com a gente
+
+- Segurança: `security@eleva.care`
+- DPO: `dpo@eleva.care`
+- Suporte: `support@eleva.care`
 
 ---
 
-## Nosso Compromisso com a Segurança
+**Controlador de Dados:** BÚZIOS E TARTARUGAS - LDA (Eleva.care), NIPC/NIF 515001708, Rua Gil Vicente, 2, 2775‑198 Parede, Portugal. E‑mail `support@eleva.care`, Telefone `+351 931 897 950`.
 
-Como plataforma de tecnologia para a saúde, a Eleva.care entende que a segurança não é apenas um recurso—é a base da confiança. Lidamos com informações sensíveis de saúde de profissionais e pacientes em toda a Europa e América Latina, e levamos essa responsabilidade a sério.
-
-Nossa infraestrutura de segurança é construída sobre fundações conformes com **GDPR**, **LGPD** e **HIPAA**, implementando práticas líderes do setor para proteger seus dados em todas as camadas de nossa plataforma.
-
----
-
-## Certificações e Conformidade
-
-### Padrões de Conformidade Ativos
-
-✅ **GDPR (General Data Protection Regulation)**  
-Conformidade total como entidade sediada em Portugal atendendo profissionais de saúde e pacientes da UE.
-
-✅ **LGPD (Lei Geral de Proteção de Dados Pessoais)**  
-Conformidade completa com a lei brasileira de proteção de dados (Lei nº 13.709/2018).
-
-✅ **Infraestrutura Preparada para HIPAA**  
-Infraestrutura de banco de dados conforme HIPAA através da Neon.tech com Acordo de Associado Comercial (BAA) executado.
-
-### Certificações de Infraestrutura e Fornecedores
-
-Nossa postura de segurança é fortalecida pelas certificações formais de nossos provedores de infraestrutura:
-
-✅ **Infraestrutura Certificada SOC 2 Type II**
-
-- **Clerk** (Autenticação): Certificado SOC 2 Type II
-- **Stripe** (Pagamentos): SOC 2 Type II + PCI DSS Level 1
-- **Vercel** (Hospedagem): Certificado SOC 2 Type II
-- **Neon** (Banco de Dados): SOC 2 Type II + conformidade HIPAA
-
-✅ **Práticas de Segurança Alinhadas com ISO 27001**  
-Nossa gestão de segurança da informação segue os princípios e melhores práticas da ISO 27001, implementados em todo nosso ciclo de desenvolvimento, infraestrutura e procedimentos operacionais.
-
-Para informações detalhadas sobre conformidade, visite nosso [Acordo de Processamento de Dados](/legal/dpa). Realizamos Avaliações de Impacto de Transferência (TIAs) e aplicamos medidas suplementares alinhadas com Schrems II (gestão de chaves na UE, acesso de menor privilégio, políticas de notificação e contestação de solicitações governamentais) para mitigar riscos de acesso transfronteiriço ao utilizar infraestrutura hospedada na UE de provedores fora da UE.
-
----
-
-## Medidas Técnicas de Segurança
-
-### Criptografia de Dados
-
-**Criptografia em Repouso:**
-
-- Criptografia **AES-256-GCM** para todos os dados relacionados à saúde
-- Criptografia em nível de banco de dados através da infraestrutura conforme HIPAA da Neon.tech
-- Backups criptografados com recuperação point-in-time
-
-**Criptografia em Trânsito:**
-
-- **TLS 1.3** para toda a transmissão de dados
-- Perfect Forward Secrecy (PFS) habilitado
-- HTTP Strict Transport Security (HSTS) aplicado
-- Conexões WebSocket seguras para recursos em tempo real
-
-**Gestão de Chaves:**
-
-- Políticas de rotação segura de chaves
-- Integração com Hardware Security Module (HSM) através de provedores cloud
-- Sem armazenamento em texto simples de chaves de criptografia
-
-### Autenticação e Controle de Acesso
-
-**Autenticação Multi-Fator (MFA):**
-
-- Verificação baseada em SMS
-- Suporte para aplicativo de autenticação (TOTP)
-- Verificação por e-mail como alternativa
-- Obrigatório para contas administrativas
-
-**Gestão de Identidade:**
-
-- Powered by **Clerk** com autenticação de nível empresarial
-- Single Sign-On (SSO) com Google
-- Opções de autenticação sem senha
-- Gestão segura de sessões com timeout automático
-
-**Controle de Acesso Baseado em Funções (RBAC):**
-
-- Aplicação do princípio do menor privilégio
-- Sistema de permissões granulares (Especialista, Cliente, Admin)
-- Hierarquias de funções separadas para acesso a dados da plataforma e dados clínicos
-- Revisão e auditoria regular de acessos
-
-### Segurança da Infraestrutura
-
-**Residência de Dados na UE:**
-
-- Hospedagem primária de banco de dados: **Frankfurt, Alemanha** (Neon.tech)
-- Serviços de e-mail: **Irlanda** (Resend)
-- Edge computing: **Regiões da UE** (Vercel)
-- Cache/Fila: **Regiões da UE** (Upstash)
-- Analytics: **Hospedagem na UE** (PostHog)
-- Notificações: **Endpoint API da UE** (Novu - eu.api.novu.co)
-
-**Segurança de Rede:**
-
-- Proteção DDoS através da rede edge da Vercel
-- Web Application Firewall (WAF)
-- Rate limiting em todos os endpoints da API
-- Lista branca de IPs para acesso administrativo
-- Gateway de API seguro com validação de requisições
-
-**Segurança de Banco de Dados:**
-
-- PostgreSQL conforme HIPAA (plano Scale da Neon.tech)
-- Registro de auditoria aprimorado via extensão **pgAudit**
-- Backups automatizados com retenção de 30 dias
-- Connection pooling com aplicação de SSL
-- Políticas de segurança em nível de linhas do banco de dados
-
-### Segurança de Pagamentos
-
-**Conformidade PCI DSS Level 1:**
-
-- Todo o processamento de pagamentos através do **Stripe**
-- Sem armazenamento de dados de cartões de crédito em nossos servidores
-- Tokenização para métodos de pagamento
-- Suporte para autenticação 3D Secure
-- Detecção e prevenção de fraudes
-
-**Proteção de Dados Financeiros:**
-
-- Chaves de criptografia separadas para dados financeiros
-- Trilha de auditoria para todas as transações de pagamento
-- Reconciliação e monitoramento automatizados
-- Verificação segura de assinatura de webhooks
-
----
-
-## Segurança Operacional
-
-### Ciclo de Desenvolvimento Seguro
-
-**Segurança de Código:**
-
-- Proteção de branches em todos os repositórios
-- Revisões obrigatórias de código por pares
-- Escaneamento de segurança automatizado com **Snyk** e **Dependabot**
-- Static Application Security Testing (SAST)
-- Dynamic Application Security Testing (DAST)
-- Software Composition Analysis (SCA)
-
-**Segurança de Implantação:**
-
-- Infraestrutura imutável
-- Implantações sem tempo de inatividade
-- Capacidades de rollback automatizado
-- Testes em ambiente de staging
-- Fluxo de aprovação de implantação em produção
-
-**Gestão de Dependências:**
-
-- Escaneamento automatizado de vulnerabilidades
-- Atualizações regulares de dependências
-- Avaliação de segurança de fornecedores
-- Monitoramento de segurança da cadeia de suprimentos
-
-### Monitoramento e Resposta a Incidentes
-
-**Monitoramento Contínuo:**
-
-- Monitoramento de desempenho de aplicações em tempo real
-- Registro e análise de eventos de segurança
-- Detecção automática de anomalias
-- Monitoramento de uptime com meta de SLA de 99.9%
-- Rastreamento e alertas de erros
-
-**Registro de Auditoria:**
-
-- Trilha de auditoria abrangente para todos os acessos a dados
-- Registros de processamento conformes com o Artigo 30 do GDPR
-- Registros de atividades de processamento conformes com o Artigo 37 da LGPD
-- Registros de acesso conformes com HIPAA (pgAudit)
-- Armazenamento de registros à prova de adulteração
-- Retenção mínima de registros de 12 meses
-
-**Resposta a Incidentes:**
-
-- Monitoramento de incidentes de segurança 24/7
-- Plano documentado de resposta a incidentes
-- Notificação de violações conforme GDPR (requisito de 72 horas)
-- Notificação de violações conforme LGPD à ANPD
-- Análise e remediação pós-incidente
-- Protocolos de comunicação para usuários afetados
-
-### Segurança de Funcionários
-
-**Gestão de Acessos:**
-
-- Revisões trimestrais de acessos para todos os funcionários
-- Revogação imediata de acesso após rescisão
-- VPN obrigatória para acesso à produção
-- Autenticação multi-fator aplicada
-
-**Treinamento e Conscientização:**
-
-- Treinamento de conscientização de segurança para todos os funcionários
-- Treinamento em GDPR e LGPD para manipuladores de dados
-- Treinamento em HIPAA para processadores de dados de saúde
-- Cursos anuais de atualização de segurança
-- Exercícios de simulação de phishing
-
-**Verificação de Antecedentes:**
-
-- Verificação de antecedentes para todos os funcionários com acesso a dados
-- Acordos de confidencialidade (NDAs)
-- Código de conduta e políticas de segurança
-- Comunicações regulares de conscientização de segurança
-
-### Segurança de Terceiros
-
-**Gestão de Fornecedores:**
-
-- Questionários de segurança para todos os fornecedores
-- Acordos de Processamento de Dados (DPAs) com todos os processadores
-- Avaliações regulares de segurança de fornecedores
-- Monitoramento e registro de acessos de fornecedores
-- Revisões anuais de risco de fornecedores
-
-**Supervisão de Subprocessadores:**
-
-Todos nossos processadores de dados cumprem com GDPR, LGPD e padrões de segurança aplicáveis:
-
-- **Neon Inc.** - Banco de Dados (BAA HIPAA executado)
-- **Clerk Inc.** - Autenticação (SOC 2 Type II)
-- **Stripe Inc.** - Pagamentos (PCI DSS Level 1)
-- **PostHog Inc.** - Analytics (conforme GDPR)
-- **Resend Inc.** - E-mail (hospedagem na UE)
-- **Vercel Inc.** - Hospedagem (SOC 2 Type II)
-- **Upstash Inc.** - Cache/Fila (regiões da UE)
-- **Novu** - Notificações (endpoint UE, representante GDPR)
-
-Lista completa disponível em nosso [Acordo de Processamento de Dados](/legal/dpa).
-
----
-
-## Gestão de Vulnerabilidades
-
-### Testes Regulares de Segurança
-
-**Testes de Penetração:**
-
-- Testes de penetração anuais por terceiros
-- Avaliações de segurança internas trimestrais
-- Escaneamento automatizado de vulnerabilidades
-- Testes de segurança de aplicações web
-- Testes de segurança de API
-
-**Remediação de Vulnerabilidades:**
-
-- Vulnerabilidades críticas: 24-48 horas
-- Vulnerabilidades altas: 7 dias
-- Vulnerabilidades médias: 30 dias
-- Vulnerabilidades baixas: 90 dias
-- Divulgação pública após remediação
-
-### Divulgação Responsável de Vulnerabilidades
-
-Damos as boas-vindas a pesquisadores de segurança e hackers éticos para nos ajudar a manter os mais altos padrões de segurança.
-
-**Como Reportar uma Vulnerabilidade:**
-
-1. **E-mail:** [security@eleva.care](mailto:security@eleva.care)
-2. **GitHub Security Advisories:** [github.com/eleva-care/eleva-care-app/security/advisories](https://github.com/eleva-care/eleva-care-app/security/advisories)
-3. **PGP Criptografado:** Disponível mediante solicitação
-
-**O Que Precisamos:**
-
-- Descrição da vulnerabilidade
-- Passos para reproduzir
-- Avaliação do impacto potencial
-- Suas informações de contato (opcional)
-- Qualquer código proof-of-concept (se aplicável)
-
-**Nosso Compromisso:**
-
-- Reconhecimento dentro de 48 horas
-- Atualizações regulares sobre o progresso da remediação
-- Reconhecimento em nossos agradecimentos de segurança (a menos que você prefira anonimato)
-- Sem ação legal para pesquisa de segurança de boa-fé
-- Estrita confidencialidade de seu relatório
-
-### Vulnerabilidades em Escopo
-
-✅ Falhas de autenticação e autorização  
-✅ Injeção SQL  
-✅ Execução de código do lado do servidor  
-✅ Escalação de privilégios  
-✅ Exposição de dados (PII, PHI, dados de pagamento)  
-✅ Sequestro de sessão  
-✅ Problemas de segurança de API  
-✅ Vulnerabilidades de criptografia  
-✅ Falhas de lógica de negócio
-
-### Vulnerabilidades Fora de Escopo
-
-❌ Clickjacking em páginas não sensíveis  
-❌ Cross-Site Request Forgery (CSRF) sem impacto  
-❌ Ataques que requerem MITM ou acesso físico  
-❌ Denial of Service (DoS/DDoS)  
-❌ Content spoofing sem modificação de HTML/CSS  
-❌ Configuração de e-mail SPF/DKIM/DMARC  
-❌ Cabeçalhos de segurança faltando sem exploit  
-❌ Melhores práticas SSL/TLS sem vulnerabilidade real  
-❌ Rate limiting em endpoints não sensíveis  
-❌ Mensagens de erro descritivas sem exposição de dados  
-❌ Divulgação de versão de software  
-❌ Clickjacking em páginas sem ações sensíveis
-
-**Nota:** Reservamos o direito de designar qualquer vulnerabilidade reportada como fora de escopo com base na avaliação de risco.
-
-### O Que Não Fazer
-
-⚠️ **Não** execute scanners automatizados sem permissão (entre em contato conosco para um sandbox)  
-⚠️ **Não** acesse ou modifique dados de usuários além do necessário para demonstrar a vulnerabilidade  
-⚠️ **Não** divulgue publicamente a vulnerabilidade antes de termos tido tempo para corrigi-la  
-⚠️ **Não** realize engenharia social, phishing ou ataques físicos  
-⚠️ **Não** se envolva em qualquer atividade que possa interromper nossos serviços
-
----
-
-## Privacidade e Proteção de Dados
-
-### Minimização de Dados
-
-Coletamos apenas os dados necessários para fornecer nossos serviços:
-
-- **Dados de Identidade:** Nome, e-mail, telefone (para autenticação)
-- **Dados de Perfil:** Credenciais profissionais, especialidades (para profissionais)
-- **Dados Clínicos:** Notas de consultas, gravações de sessões (criptografadas, controladas pelo profissional)
-- **Dados de Pagamento:** Métodos de pagamento tokenizados (gerenciados pelo Stripe)
-- **Dados de Uso:** Analytics da plataforma (anonimizados quando possível)
-
-### Retenção de Dados
-
-- **Contas ativas:** Dados retidos enquanto a conta estiver ativa
-- **Contas inativas:** Notificação de inatividade de 12 meses, depois eliminação em 24 meses
-- **Dados clínicos:** Retidos conforme regulamentações de saúde (varia por jurisdição)
-- **Registros de auditoria:** Retenção mínima de 12 meses para investigações de segurança
-- **Backups:** Retenção de 30 dias com armazenamento criptografado
-
-### Direitos dos Titulares de Dados
-
-Apoiamos totalmente os direitos do GDPR e LGPD:
-
-- **Direito de Acesso:** Exporte seus dados em formato portátil
-- **Direito de Retificação:** Atualize ou corrija suas informações
-- **Direito ao Apagamento:** Exclua sua conta e dados
-- **Direito de Limitação:** Limite o processamento de seus dados
-- **Direito à Portabilidade:** Transfira dados para outro serviço
-- **Direito de Oposição:** Opte por não participar de atividades de processamento
-- **Direito à Decisão Automatizada:** Explicação de decisões algorítmicas
-
-**Exercer Seus Direitos:**  
-E-mail: [privacy@eleva.care](mailto:privacy@eleva.care) ou [dpo@eleva.care](mailto:dpo@eleva.care)
-
-Para mais detalhes, consulte nossa [Política de Privacidade](/legal/privacy).
-
----
-
-## Continuidade de Negócio e Recuperação de Desastres
-
-### Backup e Recuperação
-
-- **Backups automatizados:** A cada 6 horas com recuperação point-in-time
-- **Armazenamento geo-redundante:** Replicação entre regiões
-- **Recovery Time Objective (RTO):** < 4 horas para sistemas críticos
-- **Recovery Point Objective (RPO):** < 15 minutos para banco de dados
-- **Testes de backup:** Exercícios de restauração trimestrais
-
-### Alta Disponibilidade
-
-- **Implantação multi-região:** Capacidade de failover automático
-- **Load balancing:** Tráfego distribuído entre zonas de disponibilidade
-- **Replicação de banco de dados:** Configuração primária-réplica com failover automático
-- **CDN:** Cache global edge para ativos estáticos
-- **SLA de uptime:** Meta de disponibilidade de 99.9%
-
----
-
-## Automação de Conformidade
-
-Utilizamos plataformas de automação de segurança e conformidade para garantir conformidade contínua:
-
-**Monitoramento Contínuo:**
-
-- Avaliações automatizadas de controles de segurança
-- Rastreamento em tempo real da postura de conformidade
-- Integração com sistemas e ferramentas existentes
-- Dashboards abrangentes de segurança
-- Alertas imediatos sobre desvios de conformidade
-
-**Remediação Proativa:**
-
-- Detecção automatizada de problemas de conformidade
-- Alertas imediatos para a equipe de segurança
-- Rastreamento e verificação de remediação
-- Ciclos de melhoria contínua
-- Documentação pronta para auditoria
-
----
-
-## Contato e Questões
-
-### Equipe de Segurança
-
-Para consultas relacionadas à segurança:
-
-- **Problemas de Segurança:** [security@eleva.care](mailto:security@eleva.care)
-- **Encarregado de Proteção de Dados:** [dpo@eleva.care](mailto:dpo@eleva.care)
-- **Suporte Geral:** [support@eleva.care](mailto:support@eleva.care)
-
-### Documentação
-
-- [Política de Privacidade](/legal/privacy)
-- [Acordo de Processamento de Dados](/legal/dpa)
-- [Termos de Serviço](/legal/terms)
-- [Política de Cookies](/legal/cookie)
-
----
-
-**Controlador de Dados:**
-
-**BÚZIOS E TARTARUGAS - LDA**  
-Operando comercialmente como **Eleva.care**  
-NIPC/NIF: 515001708  
-Rua Gil Vicente, 2, 2775-198 Parede, Portugal  
-E-mail: [support@eleva.care](mailto:support@eleva.care)  
-Telefone: [+351 931 897 950](tel:+351931897950)
-
----
-
-_Melhoramos continuamente nossas práticas de segurança. Esta página é atualizada regularmente para refletir nossas últimas medidas de segurança e padrões de conformidade._
+Melhoramos continuamente nosso programa de segurança e atualizamos esta página conforme evolui.
