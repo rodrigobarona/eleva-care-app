@@ -1,6 +1,8 @@
+import { ENV_CONFIG } from '@/config/env';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import { sendHeartbeatFailure, sendHeartbeatSuccess } from '@/lib/betterstack-heartbeat';
 import {
   PAYMENT_TRANSFER_STATUS_COMPLETED,
   PAYMENT_TRANSFER_STATUS_PAID_OUT,
@@ -356,6 +358,12 @@ export async function GET(request: Request) {
       );
     }
 
+    // Send success heartbeat to BetterStack
+    await sendHeartbeatSuccess({
+      url: ENV_CONFIG.BETTERSTACK_PENDING_PAYOUTS_HEARTBEAT,
+      jobName: 'Expert Payout to Bank',
+    });
+
     return NextResponse.json({
       success: true,
       summary,
@@ -374,6 +382,16 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('❌ Error in enhanced payout processing:', error);
+
+    // Send failure heartbeat to BetterStack
+    await sendHeartbeatFailure(
+      {
+        url: ENV_CONFIG.BETTERSTACK_PENDING_PAYOUTS_HEARTBEAT,
+        jobName: 'Expert Payout to Bank',
+      },
+      error,
+    );
+
     return NextResponse.json(
       {
         success: false,
