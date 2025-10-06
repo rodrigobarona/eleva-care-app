@@ -307,18 +307,26 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         (await headers()).get('user-agent') ?? 'Unknown',
       );
 
-      // Step 10: Trigger Novu workflow for expert notification
+      // Step 10: Fetch expert's timezone and trigger Novu workflow for expert notification
       try {
-        // Format date and time for the notification
-        const appointmentDate = formatInTimeZone(
+        // CRITICAL: Fetch expert's timezone from their schedule settings
+        const expertSchedule = await db.query.ScheduleTable.findFirst({
+          where: (fields, { eq: eqOp }) => eqOp(fields.clerkUserId, data.clerkUserId),
+        });
+
+        const expertTimezone = expertSchedule?.timezone || 'UTC';
+        const guestTimezone = data.timezone || 'UTC';
+
+        // Format date and time for the EXPERT in THEIR timezone
+        const appointmentDateForExpert = formatInTimeZone(
           startTimeUTC,
-          data.timezone || 'UTC',
+          expertTimezone,
           'EEEE, MMMM d, yyyy',
         );
-        const appointmentTime = formatInTimeZone(startTimeUTC, data.timezone || 'UTC', 'h:mm a');
+        const appointmentTimeForExpert = formatInTimeZone(startTimeUTC, expertTimezone, 'h:mm a');
         const appointmentDuration = `${event.durationInMinutes} minutes`;
 
-        // Trigger Novu workflow to notify the expert
+        // Trigger Novu workflow to notify the expert (with EXPERT's timezone)
         const novuResult = await triggerWorkflow({
           workflowId: 'appointment-confirmation',
           to: {
@@ -331,9 +339,10 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
             expertName:
               `${event.user?.firstName || ''} ${event.user?.lastName || ''}`.trim() || 'Expert',
             clientName: data.guestName,
-            appointmentDate,
-            appointmentTime,
-            timezone: data.timezone || 'UTC',
+            appointmentDate: appointmentDateForExpert, // ✅ Expert's timezone
+            appointmentTime: appointmentTimeForExpert, // ✅ Expert's timezone
+            timezone: expertTimezone, // ✅ Expert's timezone for display
+            guestTimezone: guestTimezone, // Store guest's timezone for reference
             appointmentDuration,
             eventTitle: event.name,
             meetLink: meetingUrl || undefined,

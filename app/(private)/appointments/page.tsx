@@ -43,6 +43,7 @@ type AppointmentWithCustomerId = AppointmentOrReservation & {
 };
 
 interface AppointmentsResponse {
+  expertTimezone: string; // Expert's configured timezone from their schedule
   appointments: Array<
     Omit<Appointment, 'startTime' | 'endTime'> & {
       startTime: string;
@@ -69,6 +70,7 @@ const EmptyState = ({ message }: { message: string }) => (
 export default function AppointmentsPage() {
   const { user, isLoaded } = useUser();
   const [appointments, setAppointments] = React.useState<AppointmentOrReservation[]>([]);
+  const [expertTimezone, setExpertTimezone] = React.useState<string>('UTC');
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -82,6 +84,11 @@ export default function AppointmentsPage() {
       if (data.error) {
         setError(data.error);
         return;
+      }
+
+      // Store the expert's timezone from the API response
+      if (data.expertTimezone) {
+        setExpertTimezone(data.expertTimezone);
       }
 
       // Combine appointments and reservations, converting dates
@@ -100,7 +107,7 @@ export default function AppointmentsPage() {
       ];
 
       console.log(
-        `[Appointments Page] Loaded ${data.appointments.length} appointments and ${data.reservations.length} reservations`,
+        `[Appointments Page] Loaded ${data.appointments.length} appointments and ${data.reservations.length} reservations (Expert timezone: ${data.expertTimezone})`,
       );
       setAppointments(allAppointments);
     } catch (error) {
@@ -181,6 +188,7 @@ export default function AppointmentsPage() {
         key={`${item.id}-${item.customerId}`}
         appointment={item}
         customerId={item.customerId}
+        expertTimezone={expertTimezone}
       />
     ));
   };

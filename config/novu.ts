@@ -628,18 +628,23 @@ export const appointmentConfirmationWorkflow = workflow(
           appointmentTime: payload.appointmentTime,
           meetLink: payload.meetLink,
           timezone: payload.timezone,
+          guestTimezone: payload.guestTimezone,
           appointmentId: payload.appointmentId,
         },
       };
     });
 
     await step.email('appointment-confirmation-email', async () => {
+      // CRITICAL: Use recipient-specific timezone
+      // For EXPERT: payload.timezone (expert's timezone)
+      // For GUEST: payload.guestTimezone (guest's timezone)
+      // This email is sent to the EXPERT, so use payload.timezone
       const emailBody = await elevaEmailService.renderAppointmentConfirmation({
         expertName: payload.expertName,
         clientName: payload.clientName,
         appointmentDate: payload.appointmentDate,
         appointmentTime: payload.appointmentTime,
-        timezone: payload.timezone,
+        timezone: payload.timezone, // ✅ Expert's timezone
         appointmentDuration: payload.appointmentDuration,
         eventTitle: payload.eventTitle,
         meetLink: payload.meetLink,
@@ -655,13 +660,14 @@ export const appointmentConfirmationWorkflow = workflow(
   },
   {
     name: 'Appointment Confirmations',
-    description: 'Notifications for confirmed appointments',
+    description: 'Notifications for confirmed appointments (sent to expert with expert timezone)',
     payloadSchema: z.object({
       expertName: z.string(),
       clientName: z.string(),
       appointmentDate: z.string(),
       appointmentTime: z.string(),
-      timezone: z.string(),
+      timezone: z.string(), // Expert's timezone for display
+      guestTimezone: z.string().optional(), // Guest's timezone for reference
       appointmentDuration: z.string(),
       eventTitle: z.string(),
       meetLink: z.string().optional(),

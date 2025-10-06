@@ -4,7 +4,7 @@ import { Badge } from '@/components/atoms/badge';
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { RecordDialog } from '@/components/organisms/RecordDialog';
-import { format } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { Clock, Link as LinkIcon, Mail, User } from 'lucide-react';
 import Link from 'next/link';
 
@@ -41,6 +41,7 @@ type AppointmentOrReservation = Appointment | Reservation;
 interface AppointmentCardProps {
   appointment: AppointmentOrReservation;
   customerId?: string; // Optional secure customer ID for patient link
+  expertTimezone?: string; // Expert's configured timezone from their schedule
 }
 
 const getStatusBadgeVariant = (status: string) => {
@@ -56,7 +57,11 @@ const getStatusBadgeVariant = (status: string) => {
   }
 };
 
-export function AppointmentCard({ appointment, customerId }: AppointmentCardProps) {
+export function AppointmentCard({
+  appointment,
+  customerId,
+  expertTimezone = 'UTC',
+}: AppointmentCardProps) {
   const isReservation = appointment.type === 'reservation';
   const reservation = isReservation ? (appointment as Reservation) : null;
 
@@ -85,7 +90,11 @@ export function AppointmentCard({ appointment, customerId }: AppointmentCardProp
               )}
             </CardTitle>
             <CardDescription>
-              {format(new Date(appointment.startTime), 'EEEE, MMMM d, yyyy')}
+              {formatInTimeZone(
+                new Date(appointment.startTime),
+                expertTimezone,
+                'EEEE, MMMM d, yyyy',
+              )}
               {isReservation && (
                 <span className="ml-2 text-orange-600">• Expires in {timeUntilExpiration}h</span>
               )}
@@ -107,8 +116,9 @@ export function AppointmentCard({ appointment, customerId }: AppointmentCardProp
           <div className="flex items-center gap-2">
             <Clock className="h-4 w-4" />
             <span>
-              {format(new Date(appointment.startTime), 'h:mm a')} -{' '}
-              {format(new Date(appointment.endTime), 'h:mm a')} ({appointment.timezone})
+              {formatInTimeZone(new Date(appointment.startTime), expertTimezone, 'h:mm a')} -{' '}
+              {formatInTimeZone(new Date(appointment.endTime), expertTimezone, 'h:mm a')} (
+              {expertTimezone})
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -134,7 +144,10 @@ export function AppointmentCard({ appointment, customerId }: AppointmentCardProp
               <p className="font-medium">⚠️ This is a temporary reservation</p>
               <p>
                 The guest started a Multibanco payment but hasn&apos;t completed it yet. This slot
-                is held until {reservation && format(reservation.expiresAt, 'MMM d, h:mm a')}.
+                is held until{' '}
+                {reservation &&
+                  formatInTimeZone(reservation.expiresAt, expertTimezone, 'MMM d, h:mm a')}
+                .
               </p>
               {isExpiringSoon && (
                 <p className="mt-1 font-medium text-red-700">

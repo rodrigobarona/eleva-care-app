@@ -16,6 +16,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Fetch the expert's timezone from their schedule
+    const schedule = await db.query.ScheduleTable.findFirst({
+      where: (fields, { eq: eqOp }) => eqOp(fields.clerkUserId, userId),
+    });
+
+    // Default to UTC if no schedule is found (fallback)
+    const expertTimezone = schedule?.timezone || 'UTC';
+
     // Fetch all confirmed meetings for the expert
     const appointments = await db.query.MeetingTable.findMany({
       where: eq(MeetingTable.clerkUserId, userId),
@@ -33,10 +41,11 @@ export async function GET() {
     });
 
     console.log(
-      `[Appointments API] Found ${appointments.length} appointments and ${reservations.length} active reservations for expert ${userId}`,
+      `[Appointments API] Found ${appointments.length} appointments and ${reservations.length} active reservations for expert ${userId} (timezone: ${expertTimezone})`,
     );
 
     return NextResponse.json({
+      expertTimezone, // Include expert's timezone in response
       appointments: appointments.map((appointment) => ({
         id: appointment.id,
         type: 'appointment' as const,
@@ -44,7 +53,7 @@ export async function GET() {
         guestEmail: appointment.guestEmail,
         startTime: appointment.startTime,
         endTime: appointment.endTime,
-        timezone: appointment.timezone,
+        timezone: appointment.timezone, // This is the guest's timezone (kept for reference)
         meetingUrl: appointment.meetingUrl,
         guestNotes: appointment.guestNotes,
         stripePaymentStatus: appointment.stripePaymentStatus,
@@ -57,7 +66,7 @@ export async function GET() {
         guestEmail: reservation.guestEmail,
         startTime: reservation.startTime,
         endTime: reservation.endTime,
-        timezone: 'UTC',
+        timezone: 'UTC', // Reservations don't have a timezone yet
         expiresAt: reservation.expiresAt,
         stripeSessionId: reservation.stripeSessionId,
         stripePaymentIntentId: reservation.stripePaymentIntentId,
