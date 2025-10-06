@@ -133,12 +133,29 @@ export async function GET(request: Request) {
         console.log(`Processing transfer for payment intent: ${transfer.paymentIntentId}`);
 
         try {
+          // Retrieve the PaymentIntent to get the charge ID
+          const paymentIntent = await stripe.paymentIntents.retrieve(transfer.paymentIntentId);
+
+          if (!paymentIntent.latest_charge) {
+            throw new Error(
+              `PaymentIntent ${transfer.paymentIntentId} has no charge. Status: ${paymentIntent.status}`,
+            );
+          }
+
+          // Get the charge ID (latest_charge can be a string ID or a Charge object)
+          const chargeId =
+            typeof paymentIntent.latest_charge === 'string'
+              ? paymentIntent.latest_charge
+              : paymentIntent.latest_charge.id;
+
+          console.log(`Using charge ID ${chargeId} for transfer`);
+
           // Create a transfer to the expert's Connect account
           const stripeTransfer = await stripe.transfers.create({
             amount: transfer.amount,
             currency: transfer.currency,
             destination: transfer.expertConnectAccountId,
-            source_transaction: transfer.paymentIntentId,
+            source_transaction: chargeId, // ✅ Use charge ID, not payment intent ID
             metadata: {
               paymentTransferId: transfer.id.toString(),
               eventId: transfer.eventId,
