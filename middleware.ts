@@ -405,6 +405,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     path.startsWith('/api/qstash/') ||
     path.startsWith('/api/internal/') ||
     path.startsWith('/api/healthcheck') ||
+    path.startsWith('/api/health/') || // Individual service health checks
     path.startsWith('/api/create-payment-intent') ||
     path.startsWith('/api/og/') ||
     path === '/api/novu' ||
