@@ -278,27 +278,14 @@ export async function checkResend(): Promise<ServiceHealthResult> {
   }
 
   try {
-    // Make a lightweight API call to check Resend connectivity
-    const response = await fetch('https://api.resend.com/api-keys', {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${ENV_CONFIG.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    // Use Resend SDK to check connectivity via domains endpoint (lightweight)
+    const { Resend } = await import('resend');
+    const resend = new Resend(ENV_CONFIG.RESEND_API_KEY);
+
+    // List domains is a lightweight operation that verifies API connectivity
+    await resend.domains.list();
 
     const responseTime = Date.now() - startTime;
-
-    if (!response.ok) {
-      return {
-        service: 'resend',
-        status: 'down',
-        responseTime,
-        message: 'Resend API returned error',
-        error: `HTTP ${response.status}: ${response.statusText}`,
-        timestamp,
-      };
-    }
 
     return {
       service: 'resend',
@@ -309,12 +296,17 @@ export async function checkResend(): Promise<ServiceHealthResult> {
     };
   } catch (error) {
     const responseTime = Date.now() - startTime;
+
+    // Check for specific error types
+    const errorMessage = error instanceof Error ? error.message : 'Unknown Resend error';
+    const isAuthError = errorMessage.includes('401') || errorMessage.includes('Unauthorized');
+
     return {
       service: 'resend',
       status: 'down',
       responseTime,
-      message: 'Resend API connection failed',
-      error: error instanceof Error ? error.message : 'Unknown Resend error',
+      message: isAuthError ? 'Resend API authentication failed' : 'Resend API connection failed',
+      error: errorMessage,
       timestamp,
     };
   }
