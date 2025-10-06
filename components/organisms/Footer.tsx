@@ -1,17 +1,15 @@
-'use client';
-
 import { Button } from '@/components/atoms/button';
+import { CookiePreferencesButton } from '@/components/atoms/CookiePreferencesButton';
+import { ServerStatus } from '@/components/atoms/ServerStatus';
 import { LanguageSwitcher } from '@/components/molecules/LocaleSwitcher';
 import { Link } from '@/lib/i18n/navigation';
 import { useTranslations } from 'next-intl';
 import NextLink from 'next/link';
-import { useCookieConsent } from 'react-cookie-manager';
 
 import { FooterContentWrapper } from './FooterContentWrapper';
 
 export default function Footer() {
   const t = useTranslations('footer');
-  const { showConsentBanner } = useCookieConsent() || { showConsentBanner: () => {} };
 
   return (
     <footer className="w-full">
@@ -118,25 +116,7 @@ export default function Footer() {
 
                           {/* Status Page Indicator - Cal.com style */}
                           <div className="mt-6 flex items-center gap-3">
-                            <a
-                              href="https://status.eleva.care"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center"
-                              aria-label="System Status"
-                            >
-                              <iframe
-                                src="https://status.eleva.care/badge?theme=light"
-                                width="250"
-                                height="30"
-                                style={{
-                                  border: 'none',
-                                  colorScheme: 'normal',
-                                  display: 'block',
-                                }}
-                                title="Eleva Care Status"
-                              />
-                            </a>
+                            <ServerStatus />
                           </div>
                         </div>
                       </div>
@@ -269,13 +249,7 @@ export default function Footer() {
                               </Link>
                             </li>
                             <li>
-                              <button
-                                type="button"
-                                onClick={() => showConsentBanner?.()}
-                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
-                              >
-                                {t('nav.legal.preferences')}
-                              </button>
+                              <CookiePreferencesButton label={t('nav.legal.preferences')} />
                             </li>
                             <li>
                               <Link

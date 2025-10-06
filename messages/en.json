@@ -319,6 +319,13 @@
     "twitter": "Twitter",
     "scholar": "Google Scholar"
   },
+  "status": {
+    "allSystemsNormal": "All systems normal",
+    "partialOutage": "Partial outage",
+    "degradedPerformance": "Degraded performance",
+    "unableToFetch": "Unable to fetch status",
+    "ariaLabel": "System Status: {status}"
+  },
   "footer": {
     "cta": {
       "title": "Join Our Network",

@@ -318,6 +318,13 @@
     "twitter": "Twitter",
     "scholar": "Google Scholar"
   },
+  "status": {
+    "allSystemsNormal": "Todos los sistemas normales",
+    "partialOutage": "Interrupción parcial",
+    "degradedPerformance": "Rendimiento degradado",
+    "unableToFetch": "No se puede obtener el estado",
+    "ariaLabel": "Estado del Sistema: {status}"
+  },
   "footer": {
     "cta": {
       "title": "Únete a Nuestra Red",
