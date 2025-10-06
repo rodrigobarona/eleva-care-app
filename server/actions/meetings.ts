@@ -7,7 +7,6 @@ import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { logAuditEvent } from '@/lib/logAuditEvent';
 import { meetingActionSchema } from '@/schema/meetings';
 import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalendar';
-import { checkBotId } from 'botid/server';
 import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { headers } from 'next/headers';
@@ -61,26 +60,11 @@ import type { z } from 'zod';
  * @throws Will not throw errors directly, but returns error information in the result object
  */
 export async function createMeeting(unsafeData: z.infer<typeof meetingActionSchema>) {
-  // 🛡️ BotID Protection: Check for bot traffic before creating meetings
-  const botVerification = await checkBotId({
-    advancedOptions: {
-      checkLevel: 'basic', // Free on all Vercel plans including Hobby
-    },
-  });
-
-  if (botVerification.isBot) {
-    console.warn('🚫 Bot detected in meeting creation:', {
-      isVerifiedBot: botVerification.isVerifiedBot,
-      verifiedBotName: botVerification.verifiedBotName,
-      guestEmail: unsafeData.guestEmail,
-    });
-
-    return {
-      error: true,
-      code: 'BOT_DETECTED',
-      message: 'Automated meeting creation is not allowed',
-    };
-  }
+  // NOTE: BotID protection is NOT needed here because this function is called by:
+  // 1. Stripe webhooks (server-to-server, would be flagged as bot)
+  // 2. Internal server actions (after payment is verified)
+  // BotID protection is applied at the payment intent creation level instead
+  // where actual user interaction happens (create-payment-intent route)
 
   // Step 1: Validate the incoming data against our schema
   const { success, data } = meetingActionSchema.safeParse(unsafeData);
