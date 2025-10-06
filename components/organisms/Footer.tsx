@@ -115,6 +115,29 @@ export default function Footer() {
                               {t('platformDisclaimer.description')}
                             </p>
                           </div>
+
+                          {/* Status Page Indicator - Cal.com style */}
+                          <div className="mt-6 flex items-center gap-3">
+                            <a
+                              href="https://status.eleva.care"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center"
+                              aria-label="System Status"
+                            >
+                              <iframe
+                                src="https://status.eleva.care/badge?theme=light"
+                                width="250"
+                                height="30"
+                                style={{
+                                  border: 'none',
+                                  colorScheme: 'normal',
+                                  display: 'block',
+                                }}
+                                title="Eleva Care Status"
+                              />
+                            </a>
+                          </div>
                         </div>
                       </div>
 
