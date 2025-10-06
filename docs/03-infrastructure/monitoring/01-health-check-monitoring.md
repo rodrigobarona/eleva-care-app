@@ -2,20 +2,60 @@
 
 ## Overview
 
-This document outlines the health check monitoring system implemented in the Eleva Care application. We've consolidated our health monitoring into a single, robust endpoint that serves multiple purposes including CI/CD monitoring, QStash testing, general API health verification, PostHog analytics, and Novu notifications.
+This document outlines the health check monitoring system implemented in the Eleva Care application. We've consolidated our health monitoring into comprehensive endpoints that serve multiple purposes including CI/CD monitoring, QStash testing, general API health verification, PostHog analytics, Novu notifications, and Better Stack status page monitoring.
+
+> **📊 Better Stack Integration:** For setting up status page monitoring with Better Stack, see the [Better Stack Integration Guide](./02-betterstack-integration.md) and [Quick Reference](./betterstack-quick-reference.md).
 
 ## Endpoint Details
 
-### Base Endpoint
+### Primary Endpoints
+
+#### 1. Comprehensive Health Check
 
 ```
 /api/healthcheck
 ```
 
-### Supported Methods
+**Supported Methods:**
 
 - `GET`: Returns comprehensive system health information
 - `POST`: Handles QStash message testing
+
+**Query Parameters:**
+
+- `?services=true` - Include service health summary
+- `?detailed=true` - Include detailed service health checks (all services)
+
+#### 2. Individual Service Health Checks
+
+```
+/api/health/[service]
+```
+
+**Supported Methods:**
+
+- `GET`: Returns health status for a specific service
+
+**Available Services:**
+
+- `vercel` - Vercel deployment status
+- `neon-database` - Main Neon PostgreSQL database
+- `audit-database` - Audit log database
+- `stripe` - Stripe payment API
+- `clerk` - Clerk authentication API
+- `upstash-redis` - Redis cache
+- `upstash-qstash` - QStash job queue
+- `resend` - Resend email service
+- `posthog` - PostHog analytics
+- `novu` - Novu notification service
+
+**Special Endpoint:**
+
+```
+/api/health/_list
+```
+
+Returns a list of all available services for health checks.
 
 ### Response Format
 

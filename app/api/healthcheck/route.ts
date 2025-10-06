@@ -1,5 +1,6 @@
 import { getNovuStatus, triggerWorkflow } from '@/app/utils/novu';
 import { ENV_CONFIG, ENV_HELPERS } from '@/config/env';
+import { checkAllServices, ServiceHealthResult } from '@/lib/service-health';
 import { NextResponse } from 'next/server';
 import { PostHog } from 'posthog-node';
 
@@ -15,9 +16,9 @@ export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 interface HealthCheckData {
-  status: 'healthy' | 'unhealthy';
+  status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;
-  source?: 'qstash' | 'ci-cd' | 'direct';
+  source?: 'qstash' | 'ci-cd' | 'direct' | 'betterstack';
   uptime: number;
   version: string;
   environment: string;
@@ -40,6 +41,16 @@ interface HealthCheckData {
     hasEmail: boolean;
     hasNovu: boolean;
     baseUrl: string;
+  };
+  services?: {
+    overall: 'healthy' | 'degraded' | 'down';
+    summary: {
+      total: number;
+      healthy: number;
+      degraded: number;
+      down: number;
+    };
+    details?: ServiceHealthResult[];
   };
   novu?: {
     initialized: boolean;
@@ -118,6 +129,7 @@ async function notifyHealthCheckFailure(data: HealthCheckData) {
  * 2. QStash service testing and validation
  * 3. System status monitoring with PostHog analytics
  * 4. Automated alerts via Novu for failures
+ * 5. Better Stack status page monitoring
  *
  * Used by:
  * - GitHub Actions CI/CD for build verification
@@ -126,20 +138,39 @@ async function notifyHealthCheckFailure(data: HealthCheckData) {
  * - Load balancers for health checks
  * - PostHog for analytics and monitoring
  * - Novu for failure notifications
+ * - Better Stack for status page monitoring
+ *
+ * Query parameters:
+ * - ?detailed=true - Include detailed service health checks (Better Stack compatible)
+ * - ?services=true - Include individual service status
  */
 export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    const includeDetailed = url.searchParams.get('detailed') === 'true';
+    const includeServices = url.searchParams.get('services') === 'true';
+
     const isQStashRequest = request.headers.get('x-qstash-request') === 'true';
     const isCIRequest =
       request.headers.get('user-agent')?.includes('curl') ||
       request.headers.get('x-ci-check') === 'true';
+    const isBetterStack =
+      request.headers.get('user-agent')?.toLowerCase().includes('betterstack') ||
+      request.headers.get('user-agent')?.toLowerCase().includes('better-uptime');
 
     const envSummary = ENV_HELPERS.getEnvironmentSummary();
 
+    // Initialize health data
     const healthData: HealthCheckData = {
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      source: isQStashRequest ? 'qstash' : isCIRequest ? 'ci-cd' : 'direct',
+      source: isBetterStack
+        ? 'betterstack'
+        : isQStashRequest
+          ? 'qstash'
+          : isCIRequest
+            ? 'ci-cd'
+            : 'direct',
       uptime: process.uptime(),
       version: process.env.npm_package_version || '0.3.1',
       environment: ENV_CONFIG.NODE_ENV,
@@ -171,11 +202,33 @@ export async function GET(request: Request) {
       novu: getNovuStatus(),
     };
 
+    // Run comprehensive service health checks if requested
+    if (includeDetailed || includeServices || isBetterStack) {
+      console.log('🔍 Running comprehensive service health checks...');
+      const serviceHealth = await checkAllServices();
+
+      healthData.services = {
+        overall: serviceHealth.overall,
+        summary: serviceHealth.summary,
+        details: includeDetailed ? serviceHealth.services : undefined,
+      };
+
+      // Update overall status based on service health
+      if (serviceHealth.overall === 'down') {
+        healthData.status = 'unhealthy';
+      } else if (serviceHealth.overall === 'degraded') {
+        healthData.status = 'degraded';
+      }
+    }
+
     // Track successful health check in PostHog
     await trackHealthCheck(healthData);
 
+    // Return appropriate HTTP status code based on health
+    const httpStatus = healthData.status === 'unhealthy' ? 503 : 200;
+
     return NextResponse.json(healthData, {
-      status: 200,
+      status: httpStatus,
       headers: {
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         Pragma: 'no-cache',
@@ -207,7 +260,7 @@ export async function GET(request: Request) {
     await trackHealthCheck(errorData, true);
     await notifyHealthCheckFailure(errorData);
 
-    return NextResponse.json(errorData, { status: 500 });
+    return NextResponse.json(errorData, { status: 503 });
   }
 }
 
