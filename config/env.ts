@@ -70,6 +70,10 @@ export const ENV_CONFIG = {
   NEXT_PUBLIC_POSTHOG_HOST: process.env.NEXT_PUBLIC_POSTHOG_HOST || '',
   POSTHOG_API_KEY: process.env.POSTHOG_API_KEY || '',
   POSTHOG_PROJECT_ID: process.env.POSTHOG_PROJECT_ID || '',
+
+  // BetterStack Heartbeat Configuration
+  BETTERSTACK_EXPERT_TRANSFERS_HEARTBEAT: process.env.BETTERSTACK_EXPERT_TRANSFERS_HEARTBEAT || '',
+  BETTERSTACK_TASKS_HEARTBEAT: process.env.BETTERSTACK_TASKS_HEARTBEAT || '',
 } as const;
 
 /**

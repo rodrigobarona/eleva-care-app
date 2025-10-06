@@ -1,6 +1,8 @@
+import { ENV_CONFIG } from '@/config/env';
 import { PAYOUT_DELAY_DAYS, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import { sendHeartbeatFailure, sendHeartbeatSuccess } from '@/lib/betterstack-heartbeat';
 import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
   PAYMENT_TRANSFER_STATUS_COMPLETED,
@@ -371,9 +373,25 @@ export async function GET(request: Request) {
       }),
     };
 
+    // Send success heartbeat to BetterStack
+    await sendHeartbeatSuccess({
+      url: ENV_CONFIG.BETTERSTACK_EXPERT_TRANSFERS_HEARTBEAT,
+      jobName: 'Expert Payout Processing',
+    });
+
     return NextResponse.json({ success: true, summary });
   } catch (error) {
     console.error('Error processing expert transfers:', error);
+
+    // Send failure heartbeat to BetterStack
+    await sendHeartbeatFailure(
+      {
+        url: ENV_CONFIG.BETTERSTACK_EXPERT_TRANSFERS_HEARTBEAT,
+        jobName: 'Expert Payout Processing',
+      },
+      error,
+    );
+
     return NextResponse.json(
       { error: 'Failed to process expert transfers', details: (error as Error).message },
       { status: 500 },
