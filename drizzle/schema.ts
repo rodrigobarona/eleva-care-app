@@ -354,6 +354,9 @@ export const UserTable = pgTable(
     stripeIdentityVerificationStatus: text('stripe_identity_verification_status'),
     stripeIdentityVerificationLastChecked: timestamp('stripe_identity_verification_last_checked'),
     country: text('country').default('PT'),
+    // Onboarding and notification tracking
+    welcomeEmailSentAt: timestamp('welcome_email_sent_at'),
+    onboardingCompletedAt: timestamp('onboarding_completed_at'),
     createdAt,
     updatedAt,
   },

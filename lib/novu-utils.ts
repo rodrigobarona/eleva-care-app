@@ -171,9 +171,12 @@ export function buildNovuSubscriberFromStripe(customer: StripeCustomer): Subscri
  */
 export const CLERK_EVENT_TO_WORKFLOW_MAPPINGS = {
   // User lifecycle events
+  // CRITICAL: Only trigger welcome workflow on user creation, NOT on updates
+  // user.updated events happen frequently (profile changes, metadata updates, etc.)
+  // and should NOT re-trigger welcome emails
   'user.created': 'user-lifecycle', // Uses eventType: 'welcome'
-  'user.updated': 'user-lifecycle', // Uses eventType: 'user-created'
-  'user.deleted': 'user-lifecycle', // Uses eventType: 'user-deleted'
+  // ❌ REMOVED: 'user.updated': 'user-lifecycle' - was causing duplicate welcome emails!
+  // 'user.deleted': 'user-lifecycle', // Commented out - no need to notify on deletion
 
   // Session events
   'session.created': 'security-auth', // Uses eventType: 'recent-login'

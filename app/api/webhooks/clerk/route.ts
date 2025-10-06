@@ -1,3 +1,5 @@
+import { db } from '@/drizzle/db';
+import { UserTable } from '@/drizzle/schema';
 import {
   analyzeSessionSecurity,
   type ClerkSessionData,
@@ -13,6 +15,7 @@ import {
 import { updateSetupStepForUser } from '@/server/actions/expert-setup';
 import { clerkClient, UserJSON, WebhookEvent } from '@clerk/nextjs/server';
 import { verifyWebhook } from '@clerk/nextjs/webhooks';
+import { eq } from 'drizzle-orm';
 import { NextRequest } from 'next/server';
 
 export const dynamic = 'force-dynamic';
@@ -164,6 +167,44 @@ async function handleClerkEvent(evt: WebhookEvent) {
 }
 
 /**
+ * Check if user has already received welcome email
+ * @param clerkUserId - The Clerk user ID
+ * @returns true if welcome email was already sent, false otherwise
+ */
+async function hasReceivedWelcomeEmail(clerkUserId: string): Promise<boolean> {
+  try {
+    const user = await db
+      .select({ welcomeEmailSentAt: UserTable.welcomeEmailSentAt })
+      .from(UserTable)
+      .where(eq(UserTable.clerkUserId, clerkUserId))
+      .limit(1);
+
+    return user.length > 0 && user[0].welcomeEmailSentAt !== null;
+  } catch (error) {
+    console.error('Error checking welcome email status:', error);
+    // On error, return false to allow sending (fail open)
+    return false;
+  }
+}
+
+/**
+ * Mark that user has received welcome email
+ * @param clerkUserId - The Clerk user ID
+ */
+async function markWelcomeEmailSent(clerkUserId: string): Promise<void> {
+  try {
+    await db
+      .update(UserTable)
+      .set({ welcomeEmailSentAt: new Date() })
+      .where(eq(UserTable.clerkUserId, clerkUserId));
+
+    console.log(`✅ Marked welcome email as sent for user: ${clerkUserId}`);
+  } catch (error) {
+    console.error('Error marking welcome email as sent:', error);
+  }
+}
+
+/**
  * Trigger Novu notification workflows based on Clerk events
  * @param evt - The verified webhook event
  */
@@ -173,6 +214,17 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
     if (evt.type === 'session.removed') {
       console.log(`🔕 Skipping notification for session.removed - normal logout behavior`);
       return;
+    }
+
+    // IDEMPOTENCY CHECK: For user.created events, check if welcome email already sent
+    if (evt.type === 'user.created') {
+      const clerkUserId = evt.data.id;
+      const alreadySent = await hasReceivedWelcomeEmail(clerkUserId);
+
+      if (alreadySent) {
+        console.log(`🔕 Skipping welcome notification - already sent to user: ${clerkUserId}`);
+        return;
+      }
     }
 
     if (evt.type === 'session.created') {
@@ -318,6 +370,11 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
 
     if (result.success) {
       console.log(`✅ Successfully triggered Novu workflow for Clerk event: ${evt.type}`);
+
+      // Mark welcome email as sent for user lifecycle workflows
+      if (evt.type === 'user.created' && workflowId === 'user-lifecycle') {
+        await markWelcomeEmailSent(evt.data.id);
+      }
     } else {
       console.error(`❌ Failed to trigger Novu workflow for Clerk event:`, result.error);
     }
