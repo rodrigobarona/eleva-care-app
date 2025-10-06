@@ -499,7 +499,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       // If meeting doesn't have a meeting URL yet (was created with pending payment), create calendar event now
       if (!meeting.meetingUrl) {
         try {
-          console.log(`Creating deferred calendar event for meeting ${meeting.id}`);
+          console.log(`📅 Creating deferred calendar event for meeting ${meeting.id}...`);
 
           // Get the event details for calendar creation
           const event = await db.query.EventTable.findFirst({
@@ -510,6 +510,13 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             // Dynamic import to avoid circular dependency with calendar service
             // The calendar service depends on meeting types which depend on payment types
             const { createCalendarEvent } = await import('@/server/googleCalendar');
+
+            console.log('🚀 Calling createCalendarEvent for deferred booking:', {
+              meetingId: meeting.id,
+              clerkUserId: meeting.clerkUserId,
+              guestEmail: meeting.guestEmail,
+              timezone: meeting.timezone,
+            });
 
             const calendarEvent = await createCalendarEvent({
               clerkUserId: meeting.clerkUserId,
@@ -536,7 +543,11 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
                 .where(eq(MeetingTable.id, meeting.id));
 
               console.log(
-                `Calendar event created and meeting URL updated for meeting ${meeting.id}`,
+                `✅ Calendar event created and meeting URL updated for meeting ${meeting.id}`,
+              );
+            } else {
+              console.warn(
+                `⚠️ Calendar event created but no meeting URL extracted for meeting ${meeting.id}`,
               );
             }
 
@@ -545,18 +556,25 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               await db
                 .delete(SlotReservationTable)
                 .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id));
+              console.log(`🧹 Cleaned up slot reservation for payment intent ${paymentIntent.id}`);
             } catch (cleanupError) {
-              console.error('Failed to clean up slot reservation:', cleanupError);
+              console.error('❌ Failed to clean up slot reservation:', cleanupError);
               // Continue execution - this is not critical
             }
+          } else {
+            console.error(`❌ Event ${meeting.eventId} not found for deferred calendar creation`);
           }
         } catch (calendarError) {
-          console.error(
-            `Failed to create deferred calendar event for meeting ${meeting.id}:`,
-            calendarError,
-          );
+          console.error(`❌ Failed to create deferred calendar event for meeting ${meeting.id}:`, {
+            error: calendarError instanceof Error ? calendarError.message : calendarError,
+            stack: calendarError instanceof Error ? calendarError.stack : undefined,
+            meetingId: meeting.id,
+            paymentIntentId: paymentIntent.id,
+          });
           // Don't fail the entire webhook for calendar errors - payment succeeded
         }
+      } else {
+        console.log(`✅ Meeting ${meeting.id} already has a meeting URL: ${meeting.meetingUrl}`);
       }
 
       // Find the payment transfer record

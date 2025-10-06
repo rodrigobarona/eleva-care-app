@@ -358,10 +358,11 @@ function validateAndParseMetadata<T>(
 }
 
 async function handleCheckoutSession(session: StripeCheckoutSession) {
-  console.log('Starting checkout session processing:', {
+  console.log('🎯 Starting checkout session processing:', {
     sessionId: session.id,
     paymentStatus: session.payment_status,
     paymentIntent: session.payment_intent,
+    metadata: session.metadata,
   });
 
   try {
@@ -371,9 +372,10 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     });
 
     if (existingMeeting) {
-      console.log('Meeting already exists for session:', {
+      console.log('✅ Meeting already exists for session:', {
         sessionId: session.id,
         meetingId: existingMeeting.id,
+        hasUrl: !!existingMeeting.meetingUrl,
       });
       return { success: true, meetingId: existingMeeting.id };
     }
@@ -446,6 +448,15 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       }
     }
 
+    console.log('📅 Creating meeting with payment status:', {
+      status: session.payment_status,
+      mappedStatus: mapPaymentStatus(session.payment_status, session.id),
+      willCreateCalendar:
+        !session.payment_status ||
+        session.payment_status === 'paid' ||
+        mapPaymentStatus(session.payment_status, session.id) === 'succeeded',
+    });
+
     const result = await createMeeting({
       eventId: meetingData.id,
       clerkUserId: meetingData.expert,
@@ -463,7 +474,11 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
     // Handle possible errors
     if (result.error) {
-      console.error('Failed to create meeting:', result.error);
+      console.error('❌ Failed to create meeting:', {
+        error: result.error,
+        code: result.code,
+        message: result.message,
+      });
 
       // Handle refund for double booking
       if (
@@ -477,9 +492,11 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       return { success: false, error: result.error };
     }
 
-    console.log('Meeting created successfully:', {
+    console.log('✅ Meeting created successfully:', {
       sessionId: session.id,
       meetingId: result.meeting?.id,
+      hasUrl: !!result.meeting?.meetingUrl,
+      paymentStatus: result.meeting?.stripePaymentStatus,
     });
 
     // Clean up any existing slot reservation since meeting is now confirmed
@@ -800,10 +817,21 @@ export async function POST(request: NextRequest) {
       }
       case 'checkout.session.completed':
         try {
-          console.log('Processing checkout.session.completed event');
-          await handleCheckoutSession(event.data.object as StripeCheckoutSession);
+          console.log('🎉 Processing checkout.session.completed event:', {
+            sessionId: event.data.object.id,
+            paymentStatus: (event.data.object as StripeCheckoutSession).payment_status,
+            paymentIntent: (event.data.object as StripeCheckoutSession).payment_intent,
+          });
+          const sessionResult = await handleCheckoutSession(
+            event.data.object as StripeCheckoutSession,
+          );
+          console.log('✅ Checkout session processing completed:', sessionResult);
         } catch (error) {
-          console.error('Error in checkout.session.completed handler:', error);
+          console.error('❌ Error in checkout.session.completed handler:', {
+            error: error instanceof Error ? error.message : error,
+            stack: error instanceof Error ? error.stack : undefined,
+            sessionId: event.data.object.id,
+          });
           throw error; // Rethrow to be caught by the outer try-catch
         }
         break;
@@ -860,12 +888,24 @@ export async function POST(request: NextRequest) {
     }
 
     // 🔔 NEW: Trigger Novu notification workflows after processing the event
-    await triggerNovuNotificationFromStripeEvent(event);
+    // This is a non-blocking operation - if it fails, we still want to acknowledge the webhook
+    try {
+      await triggerNovuNotificationFromStripeEvent(event);
+      console.log('✅ Novu notification workflow triggered successfully');
+    } catch (novuError) {
+      console.error('⚠️ Novu notification failed (non-blocking):', {
+        error: novuError instanceof Error ? novuError.message : novuError,
+        eventType: event.type,
+        eventId: event.id,
+      });
+      // Don't throw - Novu failures shouldn't block webhook processing
+    }
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Error processing webhook event:', {
+    console.error('❌ Error processing webhook event:', {
       error: error instanceof Error ? error.message : error,
+      stack: error instanceof Error ? error.stack : undefined,
       eventType: event?.type || 'unknown',
       eventId: event?.id || 'unknown',
       timestamp: new Date().toISOString(),

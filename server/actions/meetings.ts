@@ -209,26 +209,48 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         data.stripePaymentStatus === 'succeeded' ||
         data.stripePaymentStatus === 'processing';
 
+      console.log('📅 Calendar event creation decision:', {
+        shouldCreate: shouldCreateCalendarEvent,
+        paymentStatus: data.stripePaymentStatus,
+        eventId: data.eventId,
+        guestEmail: data.guestEmail,
+      });
+
       if (shouldCreateCalendarEvent) {
         // Step 7: Create calendar event in Google Calendar
-        calendarEvent = await createCalendarEvent({
-          clerkUserId: data.clerkUserId,
-          guestName: data.guestName,
-          guestEmail: data.guestEmail,
-          startTime: startTimeUTC,
-          guestNotes: data.guestNotes,
-          durationInMinutes: event.durationInMinutes,
-          eventName: event.name,
-          timezone: data.timezone,
-          locale: data.locale || 'en',
-        });
-        meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
-        console.log(
-          `Calendar event created for meeting with payment status: ${data.stripePaymentStatus || 'free'}`,
-        );
+        try {
+          console.log('🚀 Creating Google Calendar event...');
+          calendarEvent = await createCalendarEvent({
+            clerkUserId: data.clerkUserId,
+            guestName: data.guestName,
+            guestEmail: data.guestEmail,
+            startTime: startTimeUTC,
+            guestNotes: data.guestNotes,
+            durationInMinutes: event.durationInMinutes,
+            eventName: event.name,
+            timezone: data.timezone,
+            locale: data.locale || 'en',
+          });
+          meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
+          console.log('✅ Calendar event created successfully:', {
+            paymentStatus: data.stripePaymentStatus || 'free',
+            hasUrl: !!meetingUrl,
+            hasConferenceData: !!calendarEvent.conferenceData,
+          });
+        } catch (calendarError) {
+          console.error('❌ Failed to create calendar event:', {
+            error: calendarError instanceof Error ? calendarError.message : calendarError,
+            stack: calendarError instanceof Error ? calendarError.stack : undefined,
+            eventId: data.eventId,
+            clerkUserId: data.clerkUserId,
+            guestEmail: data.guestEmail,
+          });
+          // Don't fail the meeting creation - calendar can be created later
+          // Log the error but continue
+        }
       } else {
         console.log(
-          `Calendar event deferred for meeting with payment status: ${data.stripePaymentStatus}. Will be created when payment succeeds.`,
+          `⏳ Calendar event deferred for meeting with payment status: ${data.stripePaymentStatus}. Will be created when payment succeeds.`,
         );
       }
 
@@ -322,18 +344,23 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
 
       return { error: false, meeting };
     } catch (error) {
-      console.error('Error creating meeting:', {
+      console.error('❌ Error creating meeting:', {
         error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
         eventId: data.eventId,
         startTime: data.startTime,
         guestEmail: data.guestEmail,
+        clerkUserId: data.clerkUserId,
       });
       return { error: true, code: 'CREATION_ERROR' };
     }
   } catch (error) {
-    console.error('Unexpected error in createMeeting:', {
+    console.error('❌ Unexpected error in createMeeting:', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      data,
+      stack: error instanceof Error ? error.stack : undefined,
+      eventId: unsafeData.eventId,
+      clerkUserId: unsafeData.clerkUserId,
+      guestEmail: unsafeData.guestEmail,
     });
     return { error: true, code: 'UNEXPECTED_ERROR' };
   }

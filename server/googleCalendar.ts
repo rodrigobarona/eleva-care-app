@@ -415,10 +415,12 @@ class GoogleCalendarService {
 
     try {
       // After creating the event, send an immediate email notification to the expert
-      console.log('Event created, sending email notification to expert: ', {
+      console.log('📧 Event created, sending email notification to expert:', {
         expertEmail: calendarUser.primaryEmailAddress.emailAddress,
         eventId: calendarEvent?.data?.id,
         eventSummary: eventSummary,
+        timezone,
+        locale,
       });
 
       // Generate the email content for the expert
@@ -435,6 +437,12 @@ class GoogleCalendarService {
         locale,
       });
 
+      console.log('📝 Generated expert email content:', {
+        subject: expertEmailContent.subject,
+        hasHtml: !!expertEmailContent.html,
+        hasText: !!expertEmailContent.text,
+      });
+
       // Send the expert notification
       const expertEmailResult = await sendEmail({
         to: calendarUser.primaryEmailAddress.emailAddress,
@@ -444,16 +452,24 @@ class GoogleCalendarService {
       });
 
       if (!expertEmailResult.success) {
-        console.error('Failed to send expert notification email:', expertEmailResult.error);
+        console.error('❌ Failed to send expert notification email:', {
+          error: expertEmailResult.error,
+          to: calendarUser.primaryEmailAddress.emailAddress,
+        });
       } else {
-        console.log('Expert notification email sent successfully:', expertEmailResult.messageId);
+        console.log('✅ Expert notification email sent successfully:', {
+          messageId: expertEmailResult.messageId,
+          to: calendarUser.primaryEmailAddress.emailAddress,
+        });
       }
 
       // Also send notification to the client
-      console.log('Sending email notification to client:', {
+      console.log('📧 Sending email notification to client:', {
         clientEmail: guestEmail,
         eventId: calendarEvent?.data?.id,
         eventSummary: eventSummary,
+        timezone,
+        locale,
       });
 
       // Generate client email
@@ -470,6 +486,12 @@ class GoogleCalendarService {
         locale,
       });
 
+      console.log('📝 Generated client email content:', {
+        subject: clientEmailContent.subject,
+        hasHtml: !!clientEmailContent.html,
+        hasText: !!clientEmailContent.text,
+      });
+
       const clientEmailResult = await sendEmail({
         to: guestEmail,
         subject: clientEmailContent.subject,
@@ -478,12 +500,21 @@ class GoogleCalendarService {
       });
 
       if (!clientEmailResult.success) {
-        console.error('Failed to send client notification email:', clientEmailResult.error);
+        console.error('❌ Failed to send client notification email:', {
+          error: clientEmailResult.error,
+          to: guestEmail,
+        });
       } else {
-        console.log('Client notification email sent successfully:', clientEmailResult.messageId);
+        console.log('✅ Client notification email sent successfully:', {
+          messageId: clientEmailResult.messageId,
+          to: guestEmail,
+        });
       }
     } catch (error) {
-      console.error('Error sending notifications:', error);
+      console.error('❌ Error sending notifications:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+      });
       // Don't fail the whole operation if just the email notification fails
     }
 
