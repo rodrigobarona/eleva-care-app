@@ -170,15 +170,41 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
     // Step 5: Verify the requested time slot is valid according to the schedule
     const startTimeUTC = data.startTime;
 
-    // Get calendar events for the time slot
-    const calendarService = GoogleCalendarService.getInstance();
-    const calendarEvents = await calendarService.getCalendarEventTimes(event.clerkUserId, {
-      start: startTimeUTC,
-      end: addMinutes(startTimeUTC, event.durationInMinutes),
-    });
+    // 🔐 IMPORTANT: Skip time slot validation for already-paid bookings
+    // When a webhook arrives with payment_status='succeeded', the customer has already paid
+    // and we MUST honor the booking even if the schedule has changed since payment.
+    // This prevents issues when webhooks are resent or delayed.
+    const isAlreadyPaid = data.stripePaymentStatus === 'succeeded';
+    const shouldSkipTimeValidation = isAlreadyPaid && data.stripeSessionId;
 
-    const validTimes = await getValidTimesFromSchedule([startTimeUTC], event, calendarEvents);
-    if (validTimes.length === 0) return { error: true, code: 'INVALID_TIME_SLOT' };
+    if (!shouldSkipTimeValidation) {
+      console.log('⏰ Validating time slot availability...');
+
+      // Get calendar events for the time slot
+      const calendarService = GoogleCalendarService.getInstance();
+      const calendarEvents = await calendarService.getCalendarEventTimes(event.clerkUserId, {
+        start: startTimeUTC,
+        end: addMinutes(startTimeUTC, event.durationInMinutes),
+      });
+
+      const validTimes = await getValidTimesFromSchedule([startTimeUTC], event, calendarEvents);
+      if (validTimes.length === 0) {
+        console.error('❌ Time slot validation failed:', {
+          requestedTime: startTimeUTC,
+          eventId: data.eventId,
+          guestEmail: data.guestEmail,
+        });
+        return { error: true, code: 'INVALID_TIME_SLOT' };
+      }
+
+      console.log('✅ Time slot is valid');
+    } else {
+      console.log('⏭️ Skipping time slot validation (payment already succeeded):', {
+        paymentStatus: data.stripePaymentStatus,
+        sessionId: data.stripeSessionId,
+        bookingTime: startTimeUTC,
+      });
+    }
 
     // Step 6: Calculate the end time based on event duration
     const endTimeUTC = new Date(startTimeUTC.getTime() + event.durationInMinutes * 60000);

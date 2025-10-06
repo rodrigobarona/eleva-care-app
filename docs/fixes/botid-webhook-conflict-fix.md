@@ -6,13 +6,19 @@
 
 ---
 
-## 🔍 Problem Discovered
+## 🔍 Problems Discovered
 
-### The Issue
+### Issue 1: BotID Blocking Webhooks ✅ FIXED
 
 BotID protection was implemented in `createMeeting()` function, which is called by Stripe webhooks. Since Stripe webhooks are server-to-server calls (not from a browser), BotID correctly identified them as "bot traffic" and blocked the meeting creation.
 
-### Error Log
+### Issue 2: Time Slot Validation Blocking Paid Webhooks ✅ FIXED
+
+After fixing the BotID issue, a second problem emerged: time slot validation was failing for webhook resends of already-paid bookings. The `getValidTimesFromSchedule` validation was checking if the slot was still available, but for already-succeeded payments, we must honor the booking regardless of schedule changes.
+
+### Error Logs
+
+**Issue 1 - BotID Blocking:**
 
 ```
 Possible misconfiguration of Vercel BotId or malicious request to 'POST /api/webhooks/stripe'
@@ -25,6 +31,18 @@ Possible misconfiguration of Vercel BotId or malicious request to 'POST /api/web
   error: true,
   code: 'BOT_DETECTED',
   message: 'Automated meeting creation is not allowed'
+}
+```
+
+**Issue 2 - Time Slot Validation:**
+
+```
+📅 Creating meeting with payment status: { status: 'paid', mappedStatus: 'succeeded', willCreateCalendar: true }
+[getValidTimesFromSchedule] Found 0 active slot reservations
+❌ Failed to create meeting: {
+  error: true,
+  code: 'INVALID_TIME_SLOT',
+  message: undefined
 }
 ```
 
@@ -92,6 +110,82 @@ if (botVerification.isBot) {
 // BotID protection is applied at the payment intent creation level instead
 // where actual user interaction happens (create-payment-intent route)
 ```
+
+---
+
+## ✅ Fix 2: Skip Time Slot Validation for Paid Webhooks
+
+**File:** `server/actions/meetings.ts` (Lines 173-207)
+
+**Added Logic:**
+
+```typescript
+// 🔐 IMPORTANT: Skip time slot validation for already-paid bookings
+// When a webhook arrives with payment_status='succeeded', the customer has already paid
+// and we MUST honor the booking even if the schedule has changed since payment.
+// This prevents issues when webhooks are resent or delayed.
+const isAlreadyPaid = data.stripePaymentStatus === 'succeeded';
+const shouldSkipTimeValidation = isAlreadyPaid && data.stripeSessionId;
+
+if (!shouldSkipTimeValidation) {
+  console.log('⏰ Validating time slot availability...');
+
+  // Get calendar events for the time slot
+  const calendarService = GoogleCalendarService.getInstance();
+  const calendarEvents = await calendarService.getCalendarEventTimes(event.clerkUserId, {
+    start: startTimeUTC,
+    end: addMinutes(startTimeUTC, event.durationInMinutes),
+  });
+
+  const validTimes = await getValidTimesFromSchedule([startTimeUTC], event, calendarEvents);
+  if (validTimes.length === 0) {
+    console.error('❌ Time slot validation failed');
+    return { error: true, code: 'INVALID_TIME_SLOT' };
+  }
+
+  console.log('✅ Time slot is valid');
+} else {
+  console.log('⏭️ Skipping time slot validation (payment already succeeded):', {
+    paymentStatus: data.stripePaymentStatus,
+    sessionId: data.stripeSessionId,
+    bookingTime: startTimeUTC,
+  });
+}
+```
+
+**Why This Fix Is Critical:**
+
+1. **Webhooks Can Be Delayed** - Stripe may resend webhooks hours or days later
+2. **Slot Reservations Expire** - They expire after 15 minutes
+3. **Schedules Can Change** - Expert availability might have changed since payment
+4. **Customer Has Paid** - We must honor the booking regardless of schedule changes
+
+**What Was Happening:**
+
+```
+User books at 10:05 PM on Sept 30 → Payment succeeds → Webhook arrives
+Webhook fails because:
+  - Slot reservation expired at 10:20 PM
+  - Webhook resent on Oct 6 (days later)
+  - System checks if slot still available → NOT FOUND
+  - Returns INVALID_TIME_SLOT error
+  - Calendar event NOT created
+  - Confirmation email NOT sent
+```
+
+**What Happens Now:**
+
+```
+User books at 10:05 PM on Sept 30 → Payment succeeds → Webhook arrives
+Webhook succeeds because:
+  ✅ Detects payment_status='succeeded'
+  ✅ Skips time slot validation
+  ✅ Creates calendar event
+  ✅ Sends confirmation emails
+  ✅ Booking honored
+```
+
+---
 
 ### BotID Protection Maintained
 
