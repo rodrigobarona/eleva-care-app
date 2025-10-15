@@ -46,7 +46,12 @@ export const betterstackConfig = {
    * Default: 60 seconds
    */
   cacheDuration: 60,
-} as const;
+} as const satisfies {
+  apiKey: string | undefined;
+  statusPageUrl: string | undefined;
+  apiEndpoint: string;
+  cacheDuration: number;
+};
 
 /**
  * Validates that all required BetterStack configuration is present
