@@ -2,7 +2,31 @@
 . "$(dirname -- "$0")/_/husky.sh"
 
 # Add common Node.js paths to PATH for GitHub Desktop and other GUI apps
-export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.nvm/versions/node/v20.16.0/bin:$PATH"
+# Dynamically resolve NVM node bin path
+if [ -n "$NVM_DIR" ]; then
+  # NVM_DIR is set, use it
+  [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+elif [ -s "$HOME/.nvm/nvm.sh" ]; then
+  # Try default NVM location
+  export NVM_DIR="$HOME/.nvm"
+  . "$NVM_DIR/nvm.sh"
+fi
+
+# Build PATH with dynamic node resolution
+NODE_BIN_PATH=""
+if command -v nvm > /dev/null 2>&1 && [ -n "$NVM_DIR" ]; then
+  # Get active NVM node version and build path
+  NODE_VERSION=$(nvm version 2>/dev/null)
+  if [ -n "$NODE_VERSION" ] && [ "$NODE_VERSION" != "none" ]; then
+    NODE_BIN_PATH="$NVM_DIR/versions/node/$NODE_VERSION/bin"
+  fi
+elif [ -n "$NVM_BIN" ]; then
+  # Use NVM_BIN if available
+  NODE_BIN_PATH="$NVM_BIN"
+fi
+
+# Export PATH with all necessary locations
+export PATH="/usr/local/bin:/opt/homebrew/bin:${NODE_BIN_PATH:+$NODE_BIN_PATH:}$PATH"
 
 echo "🔍 Running pre-commit checks..."
 
@@ -11,14 +35,10 @@ pnpm lint-staged
 
 # Run tests for modified files
 echo "🧪 Running tests for modified files..."
-if git diff --cached --name-only | grep -E '\.(ts|tsx)$' > /dev/null; then
-  FILES=$(git diff --cached --name-only | grep -E '\.(ts|tsx)$' | xargs)
-  if [ -n "$FILES" ]; then
-    echo "🔍 Found changed TypeScript files, running related tests..."
-    pnpm exec jest --findRelatedTests $FILES --passWithNoTests
-  else
-    echo "📝 No TypeScript files changed, skipping tests"
-  fi
+FILES=$(git diff --cached --name-only | grep -E '\.(ts|tsx)$' || true)
+if [ -n "$FILES" ]; then
+  echo "🔍 Found changed TypeScript files, running related tests..."
+  pnpm exec jest --findRelatedTests "$FILES" --passWithNoTests
 else
   echo "📝 No TypeScript files changed, skipping tests"
 fi
