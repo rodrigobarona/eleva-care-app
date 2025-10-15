@@ -52,18 +52,25 @@ export async function ServerStatus() {
     // Calculate the percentage of monitors that are "up"
     const upMonitors = data.filter((monitor) => monitor.attributes.status === 'up').length;
     const totalMonitors = data.length;
-    const status = totalMonitors > 0 ? upMonitors / totalMonitors : 0;
 
-    // Determine status color and label based on the percentage
-    if (status === 0) {
-      statusColor = 'bg-destructive';
-      statusLabel = t('degradedPerformance');
-    } else if (status < 1) {
-      statusColor = 'bg-orange-500';
-      statusLabel = t('partialOutage');
+    // Handle case when no monitors are configured
+    if (totalMonitors === 0) {
+      statusColor = 'bg-muted-foreground';
+      statusLabel = t('noMonitorsConfigured');
     } else {
-      statusColor = 'bg-green-500';
-      statusLabel = t('allSystemsNormal');
+      const status = upMonitors / totalMonitors;
+
+      // Determine status color and label based on the percentage
+      if (status === 0) {
+        statusColor = 'bg-destructive';
+        statusLabel = t('degradedPerformance');
+      } else if (status < 1) {
+        statusColor = 'bg-orange-500';
+        statusLabel = t('partialOutage');
+      } else {
+        statusColor = 'bg-green-500';
+        statusLabel = t('allSystemsNormal');
+      }
     }
   } catch (error) {
     // Log error for monitoring but don't expose details to users

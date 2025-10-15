@@ -323,6 +323,7 @@
     "partialOutage": "Interrupción parcial",
     "degradedPerformance": "Rendimiento degradado",
     "unableToFetch": "No se puede obtener el estado",
+    "noMonitorsConfigured": "No hay monitores configurados",
     "ariaLabel": "Estado del Sistema: {status}"
   },
   "footer": {

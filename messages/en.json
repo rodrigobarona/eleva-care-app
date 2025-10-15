@@ -324,6 +324,7 @@
     "partialOutage": "Partial outage",
     "degradedPerformance": "Degraded performance",
     "unableToFetch": "Unable to fetch status",
+    "noMonitorsConfigured": "No monitors configured",
     "ariaLabel": "System Status: {status}"
   },
   "footer": {

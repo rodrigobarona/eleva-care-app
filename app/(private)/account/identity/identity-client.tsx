@@ -132,7 +132,7 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
         return (
           <div className="flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-sm text-gray-700">
             <Fingerprint className="h-4 w-4" />
-            <span>{t('status.notVerified')}</span>
+            <span>{t('status.unverified')}</span>
           </div>
         );
     }

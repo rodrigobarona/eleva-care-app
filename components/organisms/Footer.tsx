@@ -66,7 +66,7 @@ export default function Footer() {
                             <Link
                               href="/legal/security"
                               className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
-                              aria-label="GDPR Compliant"
+                              aria-label={t('compliance.gdpr')}
                             >
                               <span className="text-xs font-semibold text-gray-700">
                                 {t('compliance.gdpr')}
@@ -76,7 +76,7 @@ export default function Footer() {
                             <Link
                               href="/legal/security"
                               className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
-                              aria-label="LGPD Compliant"
+                              aria-label={t('compliance.lgpd')}
                             >
                               <span className="text-xs font-semibold text-gray-700">
                                 {t('compliance.lgpd')}
@@ -86,7 +86,7 @@ export default function Footer() {
                             <Link
                               href="/legal/security"
                               className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
-                              aria-label="HIPAA Ready"
+                              aria-label={t('compliance.hipaa')}
                             >
                               <span className="text-xs font-semibold text-gray-700">
                                 {t('compliance.hipaa')}
@@ -96,7 +96,7 @@ export default function Footer() {
                             <Link
                               href="/legal/security"
                               className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
-                              aria-label="ISO 27001-Aligned Practices"
+                              aria-label={t('compliance.iso27001')}
                             >
                               <span className="text-xs font-semibold text-gray-700">
                                 {t('compliance.iso27001')}
