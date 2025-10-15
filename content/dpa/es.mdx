@@ -67,4 +67,20 @@ Este DPA explica cómo Eleva.care trata los datos personales—de forma clara y 
 
 ---
 
+## 12) Subencargados y avisos de cambio
+
+Dependemos de subencargados cuidadosamente evaluados para operar la plataforma. Cada subencargado está vinculado por un DPA y recibe solo los datos mínimos necesarios.
+
+| Proveedor | Finalidad                      | Datos                                                    | Región/Hosting                 | Salvaguardas                                         |
+| --------- | ------------------------------ | -------------------------------------------------------- | ------------------------------ | ---------------------------------------------------- |
+| Neon      | Base de datos principal        | Datos de plataforma; datos clínicos en reposo (cifrados) | UE (Fráncfort)                 | DPA, SCCs (si aplica), cifrado en reposo/en tránsito |
+| Vercel    | Hosting/app edge               | Metadatos de plataforma, logs                            | Regiones UE cuando disponibles | DPA, SCCs (si aplica)                                |
+| Upstash   | Caché/colas                    | Datos de caché no clínicos                               | UE                             | DPA, SCCs (si aplica)                                |
+| Resend    | Email transaccional            | Metadatos y contenido de email                           | IE/UE                          | DPA, SCCs (si aplica)                                |
+| Novu      | Orquestación de notificaciones | Metadatos de payload de notificación                     | Endpoint UE                    | DPA, SCCs (si aplica)                                |
+| Clerk     | Identidad/SSO                  | Autenticación y metadatos de perfil                      | Opciones UE                    | DPA, SCCs (si aplica)                                |
+| Stripe    | Pagos                          | Metadatos de pagos (no almacenamos PAN)                  | UE/EEE                         | PCI DSS L1, DPA, SCCs                                |
+
+Aviso de cambios: actualizaremos esta lista y daremos aviso con al menos 30 días de antelación antes de añadir o reemplazar un subencargado (salvo cambios inmediatos necesarios por seguridad, cumplimiento o continuidad). Los Responsables pueden oponerse con motivos razonables y documentados. Actuaremos de buena fe para mitigar o, si no se resuelve, permitir la terminación del servicio para el tratamiento afectado sin penalización.
+
 Contacto (DPO): `dpo@eleva.care` · Operador: BÚZIOS E TARTARUGAS – LDA (Eleva.care), NIPC/NIF 515001708, Rua Gil Vicente, 2, 2775‑198 Parede, Portugal. Soporte `support@eleva.care`.

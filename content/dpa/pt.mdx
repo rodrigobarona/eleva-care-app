@@ -67,4 +67,20 @@ Este DPA explica como a Eleva.care trata dados pessoais—de forma clara e simpl
 
 ---
 
+## 12) Subprocessadores e aviso de alterações
+
+Recorremos a subprocessadores cuidadosamente avaliados para operar a plataforma. Cada subprocessador está vinculado por DPA e recebe apenas os dados mínimos necessários.
+
+| Fornecedor | Finalidade                   | Dados                                                     | Região/Hosting                | Salvaguardas                                           |
+| ---------- | ---------------------------- | --------------------------------------------------------- | ----------------------------- | ------------------------------------------------------ |
+| Neon       | Base de dados principal      | Dados da plataforma; dados clínicos em repouso (cifrados) | UE (Frankfurt)                | DPA, SCCs (se aplicável), cifra em repouso/em trânsito |
+| Vercel     | Alojamento/app edge          | Metadados de plataforma, registos                         | Regiões UE quando disponíveis | DPA, SCCs (se aplicável)                               |
+| Upstash    | Cache/filas                  | Dados de cache não clínicos                               | UE                            | DPA, SCCs (se aplicável)                               |
+| Resend     | Email transacional           | Metadados e conteúdo de email                             | IE/UE                         | DPA, SCCs (se aplicável)                               |
+| Novu       | Orquestração de notificações | Metadados de payload de notificação                       | Endpoint UE                   | DPA, SCCs (se aplicável)                               |
+| Clerk      | Identidade/SSO               | Autenticação e metadados de perfil                        | Opções UE                     | DPA, SCCs (se aplicável)                               |
+| Stripe     | Pagamentos                   | Metadados de pagamentos (não guardamos PAN)               | UE/EEE                        | PCI DSS L1, DPA, SCCs                                  |
+
+Aviso de alterações: atualizaremos esta lista e daremos aviso com pelo menos 30 dias de antecedência antes de adicionar/substituir subprocessadores (salvo alterações imediatas por segurança, conformidade ou continuidade). Os Responsáveis podem opor‑se com fundamentos razoáveis e documentados. Agiremos de boa‑fé para mitigar ou, se irresolúvel, permitir a cessação do serviço para o tratamento afetado sem penalização.
+
 Contacto (DPO): `dpo@eleva.care` · Operador: BÚZIOS E TARTARUGAS – LDA (Eleva.care), NIPC/NIF 515001708, Rua Gil Vicente, 2, 2775‑198 Parede, Portugal. Suporte `support@eleva.care`.
