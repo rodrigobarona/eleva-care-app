@@ -234,14 +234,22 @@ All pgAudit documentation is ready but archived for future use:
 
 ## 🔗 Related Documentation
 
-### Live Legal Pages
+### Live Legal & Trust Pages
 
-- **Privacy Policy**: https://eleva.care/legal/privacy ([source](../../content/privacy/))
+**Trust Center** (Security & Compliance):
+
+- **Security & Compliance**: https://eleva.care/trust/security ([source](../../content/trust/security/))
+- **Data Processing Agreement**: https://eleva.care/trust/dpa ([source](../../content/trust/dpa/))
+
+**Legal Documents** (Terms & Policies):
+
 - **Terms of Service**: https://eleva.care/legal/terms ([source](../../content/terms/))
+- **Privacy Policy**: https://eleva.care/legal/privacy ([source](../../content/privacy/))
 - **Cookie Policy**: https://eleva.care/legal/cookie ([source](../../content/cookie/))
-- **Data Processing Agreement**: https://eleva.care/legal/dpa ([source](../../content/dpa/))
 - **Payment Policies**: https://eleva.care/legal/payment-policies ([source](../../content/payment-policies/))
 - **Expert Agreement**: https://eleva.care/legal/expert-agreement ([source](../../content/expert-agreement/))
+
+> 📖 **URL Structure Guide**: See [URL Structure Guide](../04-development/url-structure-guide.md) for details on the `/legal/` vs `/trust/` architecture.
 
 ### Internal Documentation
 

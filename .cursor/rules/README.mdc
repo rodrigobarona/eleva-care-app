@@ -100,6 +100,7 @@ type: 'manual'
    - `architecture.mdc` (always)
    - `error-handling.mdc` (auto: \*_/error.ts_)
    - `performance.mdc` (agent)
+   - `url-structure.mdc` (agent: legal/\*\*, trust/\*\*, middleware.ts)
 
 2. **UI/UX**
    - `atomic-design.mdc` (auto: components/\*\*)

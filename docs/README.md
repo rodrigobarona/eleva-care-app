@@ -122,6 +122,7 @@ Our documentation follows a **hierarchical priority-based system** designed for 
 
 ```
 04-development/
+├── url-structure-guide.md              # /legal/ vs /trust/ architecture
 ├── integrations/
 │   ├── 01-stripe-identity.md
 │   ├── 02-stripe-payouts.md
@@ -255,6 +256,9 @@ archived/
 - ✅ Removed outdated template files
 - ✅ Created organized subdirectory structure (compliance, audit, platform, guides)
 - ✅ Added comprehensive README with compliance status and checklists
+- ✅ **URL Structure Migration**: Migrated from single `/legal/` to hybrid `/legal/` + `/trust/` architecture
+  - See [URL Structure Migration Summary](./URL_STRUCTURE_MIGRATION_SUMMARY.md) for complete details
+  - See [URL Structure Guide](./04-development/url-structure-guide.md) for technical implementation
 
 ## 🤝 Contributing to Documentation
 

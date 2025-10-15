@@ -132,7 +132,7 @@ export default function Page() {
                 Privacy Policy
               </Link>
               , and{' '}
-              <Link href="/legal/dpa" className="underline">
+              <Link href="/trust/dpa" className="underline">
                 Data Processing Agreement
               </Link>
             </label>

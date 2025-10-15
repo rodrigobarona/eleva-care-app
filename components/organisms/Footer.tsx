@@ -64,7 +64,7 @@ export default function Footer() {
                           {/* Compliance Badges - Cal.com style */}
                           <div className="mt-6 flex flex-wrap items-center gap-3">
                             <Link
-                              href="/legal/security"
+                              href="/trust/security"
                               className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
                               aria-label={t('compliance.gdpr')}
                             >
@@ -74,7 +74,7 @@ export default function Footer() {
                             </Link>
 
                             <Link
-                              href="/legal/security"
+                              href="/trust/security"
                               className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
                               aria-label={t('compliance.lgpd')}
                             >
@@ -84,7 +84,7 @@ export default function Footer() {
                             </Link>
 
                             <Link
-                              href="/legal/security"
+                              href="/trust/security"
                               className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
                               aria-label={t('compliance.hipaa')}
                             >
@@ -94,7 +94,7 @@ export default function Footer() {
                             </Link>
 
                             <Link
-                              href="/legal/security"
+                              href="/trust/security"
                               className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
                               aria-label={t('compliance.iso27001')}
                             >
@@ -221,6 +221,28 @@ export default function Footer() {
 
                         <div>
                           <h3 className="text-sm/6 font-medium text-eleva-neutral-900/50">
+                            {t('nav.trust.title')}
+                          </h3>
+                          <ul className="mt-6 space-y-4 text-sm/6">
+                            <li>
+                              <Link
+                                href="/trust/security"
+                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              >
+                                {t('nav.trust.security')}
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                href="/trust/dpa"
+                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              >
+                                {t('nav.trust.dpa')}
+                              </Link>
+                            </li>
+                          </ul>
+
+                          <h3 className="mt-8 text-sm/6 font-medium text-eleva-neutral-900/50">
                             {t('nav.legal.title')}
                           </h3>
                           <ul className="mt-6 space-y-4 text-sm/6">
@@ -253,14 +275,6 @@ export default function Footer() {
                             </li>
                             <li>
                               <Link
-                                href="/legal/dpa"
-                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
-                              >
-                                {t('nav.legal.dpa')}
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
                                 href="/legal/payment-policies"
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
@@ -273,14 +287,6 @@ export default function Footer() {
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
                                 {t('nav.legal.expertAgreement')}
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                href="/legal/security"
-                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
-                              >
-                                {t('nav.legal.security')}
                               </Link>
                             </li>
                           </ul>

@@ -24,6 +24,35 @@
         "siteName": "Eleva Care"
       }
     },
+    "trust": {
+      "title": "Centro de Confianza | Eleva Care",
+      "description": "Conoce las prácticas de seguridad, medidas de protección de datos y certificaciones de cumplimiento de Eleva Care.",
+      "og": {
+        "title": "Centro de Confianza | Eleva Care",
+        "description": "Conoce las prácticas de seguridad, medidas de protección de datos y certificaciones de cumplimiento de Eleva Care.",
+        "siteName": "Eleva Care"
+      },
+      "documents": {
+        "security": {
+          "title": "Seguridad y Cumplimiento | Eleva Care",
+          "description": "Conoce las medidas de seguridad, certificaciones y compromiso de Eleva Care para proteger tus datos de salud con cumplimiento de RGPD, LGPD y preparación HIPAA.",
+          "og": {
+            "title": "Seguridad y Cumplimiento | Eleva Care",
+            "description": "Conoce las medidas de seguridad, certificaciones y compromiso de Eleva Care para proteger tus datos de salud con cumplimiento de RGPD, LGPD y preparación HIPAA.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "dpa": {
+          "title": "Acuerdo de Procesamiento de Datos | Eleva Care",
+          "description": "Revisa el acuerdo de procesamiento de datos de Eleva Care que describe cómo manejamos y protegemos tus datos de salud.",
+          "og": {
+            "title": "Acuerdo de Procesamiento de Datos | Eleva Care",
+            "description": "Revisa el acuerdo de procesamiento de datos de Eleva Care que describe cómo manejamos y protegemos tus datos de salud.",
+            "siteName": "Eleva Care"
+          }
+        }
+      }
+    },
     "legal": {
       "title": "Documentación Legal | Eleva Care",
       "description": "Información importante sobre los términos de servicio, políticas de privacidad y otros documentos legales de Eleva Care.",
@@ -60,15 +89,6 @@
             "siteName": "Eleva Care"
           }
         },
-        "dpa": {
-          "title": "Acuerdo de Procesamiento de Datos | Eleva Care",
-          "description": "Revisa el acuerdo de procesamiento de datos de Eleva Care que describe cómo manejamos y protegemos tus datos de salud.",
-          "og": {
-            "title": "Acuerdo de Procesamiento de Datos | Eleva Care",
-            "description": "Revisa el acuerdo de procesamiento de datos de Eleva Care que describe cómo manejamos y protegemos tus datos de salud.",
-            "siteName": "Eleva Care"
-          }
-        },
         "payment-policies": {
           "title": "Políticas de Pago | Eleva Care",
           "description": "Comprende los términos de pago, políticas de reembolso y procedimientos de facturación de Eleva Care para servicios de salud.",
@@ -84,15 +104,6 @@
           "og": {
             "title": "Acuerdo de Expertos | Eleva Care",
             "description": "Revisa el acuerdo de expertos de Eleva Care que describe los términos y condiciones para expertos independientes que utilizan nuestra plataforma.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "security": {
-          "title": "Seguridad y Cumplimiento | Eleva Care",
-          "description": "Conoce las medidas de seguridad, certificaciones y compromiso de Eleva Care para proteger tus datos de salud con cumplimiento RGPD, LGPD e HIPAA.",
-          "og": {
-            "title": "Seguridad y Cumplimiento | Eleva Care",
-            "description": "Conoce las medidas de seguridad, certificaciones y compromiso de Eleva Care para proteger tus datos de salud con cumplimiento RGPD, LGPD e HIPAA.",
             "siteName": "Eleva Care"
           }
         }
@@ -354,16 +365,19 @@
         "community": "Comunidad",
         "contact": "Contacto"
       },
+      "trust": {
+        "title": "Confianza y Seguridad",
+        "security": "Seguridad",
+        "dpa": "Procesamiento de Datos"
+      },
       "legal": {
         "title": "Legal",
         "terms": "Términos de Servicio",
         "privacy": "Política de Privacidad",
         "cookie": "Política de Cookies",
         "preferences": "Preferencias de Cookies",
-        "dpa": "Procesamiento de Datos",
         "paymentPolicies": "Políticas de Pago",
-        "expertAgreement": "Acuerdo de Expertos",
-        "security": "Seguridad"
+        "expertAgreement": "Acuerdo de Expertos"
       }
     },
     "copyright": "Todos los derechos reservados.",

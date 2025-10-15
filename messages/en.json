@@ -24,6 +24,35 @@
         "siteName": "Eleva Care"
       }
     },
+    "trust": {
+      "title": "Trust Center | Eleva Care",
+      "description": "Learn about Eleva Care's security practices, data protection measures, and compliance certifications.",
+      "og": {
+        "title": "Trust Center | Eleva Care",
+        "description": "Learn about Eleva Care's security practices, data protection measures, and compliance certifications.",
+        "siteName": "Eleva Care"
+      },
+      "documents": {
+        "security": {
+          "title": "Security & Compliance | Eleva Care",
+          "description": "Learn about Eleva Care's security measures, certifications, and commitment to protecting your healthcare data with GDPR, LGPD, and HIPAA compliance.",
+          "og": {
+            "title": "Security & Compliance | Eleva Care",
+            "description": "Learn about Eleva Care's security measures, certifications, and commitment to protecting your healthcare data with GDPR, LGPD, and HIPAA compliance.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "dpa": {
+          "title": "Data Processing Agreement | Eleva Care",
+          "description": "Review Eleva Care's data processing agreement outlining how we handle and protect your healthcare data.",
+          "og": {
+            "title": "Data Processing Agreement | Eleva Care",
+            "description": "Review Eleva Care's data processing agreement outlining how we handle and protect your healthcare data.",
+            "siteName": "Eleva Care"
+          }
+        }
+      }
+    },
     "legal": {
       "title": "Legal Documentation | Eleva Care",
       "description": "Important information about Eleva Care's terms of service, privacy policies, and other legal documents.",
@@ -60,15 +89,6 @@
             "siteName": "Eleva Care"
           }
         },
-        "dpa": {
-          "title": "Data Processing Agreement | Eleva Care",
-          "description": "Review Eleva Care's data processing agreement outlining how we handle and protect your healthcare data.",
-          "og": {
-            "title": "Data Processing Agreement | Eleva Care",
-            "description": "Review Eleva Care's data processing agreement outlining how we handle and protect your healthcare data.",
-            "siteName": "Eleva Care"
-          }
-        },
         "payment-policies": {
           "title": "Payment Policies | Eleva Care",
           "description": "Understand Eleva Care's payment terms, refund policies, and billing procedures for healthcare services.",
@@ -84,15 +104,6 @@
           "og": {
             "title": "Expert Agreement | Eleva Care",
             "description": "Review Eleva Care's expert agreement outlining the terms and conditions for independent experts using our platform.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "security": {
-          "title": "Security & Compliance | Eleva Care",
-          "description": "Learn about Eleva Care's security measures, certifications, and commitment to protecting your healthcare data with GDPR, LGPD, and HIPAA compliance.",
-          "og": {
-            "title": "Security & Compliance | Eleva Care",
-            "description": "Learn about Eleva Care's security measures, certifications, and commitment to protecting your healthcare data with GDPR, LGPD, and HIPAA compliance.",
             "siteName": "Eleva Care"
           }
         }
@@ -355,16 +366,19 @@
         "community": "Community",
         "contact": "Contact"
       },
+      "trust": {
+        "title": "Trust & Security",
+        "security": "Security",
+        "dpa": "Data Processing"
+      },
       "legal": {
         "title": "Legal",
         "terms": "Terms of Service",
         "privacy": "Privacy Policy",
         "cookie": "Cookie Policy",
         "preferences": "Cookies Preferences",
-        "dpa": "Data Processing",
         "paymentPolicies": "Payment Policies",
-        "expertAgreement": "Expert Agreement",
-        "security": "Security"
+        "expertAgreement": "Expert Agreement"
       }
     },
     "copyright": "All rights reserved.",

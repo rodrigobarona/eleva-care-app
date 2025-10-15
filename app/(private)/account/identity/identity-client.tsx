@@ -135,7 +135,7 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
                   {t('privacyPolicy')}
                 </Link>{' '}
                 and{' '}
-                <Link href="/legal/dpa" className="font-medium underline hover:text-blue-900">
+                <Link href="/trust/dpa" className="font-medium underline hover:text-blue-900">
                   {t('dataProcessing')}
                 </Link>
                 .

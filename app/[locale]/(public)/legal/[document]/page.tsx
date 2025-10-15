@@ -9,25 +9,15 @@ interface PageProps {
   params: Promise<{ locale: string; document: string }>;
 }
 
-const validDocuments = [
-  'terms',
-  'privacy',
-  'cookie',
-  'dpa',
-  'payment-policies',
-  'expert-agreement',
-  'security',
-];
+const validDocuments = ['terms', 'privacy', 'cookie', 'payment-policies', 'expert-agreement'];
 
 // Create a mapping of document types to their display names
 const documentDisplayNames = {
   terms: 'Terms of Service',
   privacy: 'Privacy Policy',
   cookie: 'Cookie Policy',
-  dpa: 'Data Processing Agreement',
   'payment-policies': 'Payment Policies',
   'expert-agreement': 'Expert Agreement',
-  security: 'Security',
 };
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -70,13 +60,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         ogDescription = t('cookie.og.description');
         siteName = t('cookie.og.siteName');
         break;
-      case 'dpa':
-        title = t('dpa.title');
-        description = t('dpa.description');
-        ogTitle = t('dpa.og.title');
-        ogDescription = t('dpa.og.description');
-        siteName = t('dpa.og.siteName');
-        break;
       case 'payment-policies':
         title = t('payment-policies.title');
         description = t('payment-policies.description');
@@ -90,13 +73,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         ogTitle = t('expert-agreement.og.title');
         ogDescription = t('expert-agreement.og.description');
         siteName = t('expert-agreement.og.siteName');
-        break;
-      case 'security':
-        title = t('security.title');
-        description = t('security.description');
-        ogTitle = t('security.og.title');
-        ogDescription = t('security.og.description');
-        siteName = t('security.og.siteName');
         break;
       default:
         throw new Error(`Unknown document type: ${document}`);

@@ -55,7 +55,7 @@
 | ----------------------------- | -------------- | -------------------------------- | ------------------ |
 | **Privacy Policy**            | ✅ COMPLIANT   | https://eleva.care/legal/privacy | April 2025         |
 | **Terms & Conditions**        | ✅ COMPLIANT   | https://eleva.care/legal/terms   | April 2025         |
-| **Data Processing Agreement** | ✅ COMPLIANT   | https://eleva.care/legal/dpa     | October 2025       |
+| **Data Processing Agreement** | ✅ COMPLIANT   | https://eleva.care/trust/dpa     | October 2025       |
 | **Cookie Consent**            | ✅ IMPLEMENTED | Cookie banner on website         | Implemented        |
 | **Legal Basis (Art. 6 & 9)**  | ✅ DOCUMENTED  | Explicit consent for health data | Implemented        |
 | **Encryption (Art. 32)**      | ✅ IMPLEMENTED | AES-256-GCM + TLS 1.3            | Implemented        |
@@ -96,7 +96,7 @@
 | **Privacy Policy**            | `/legal/privacy`          | EN, PT, ES, BR    | April 2025   | Annual           |
 | **Terms & Conditions**        | `/legal/terms`            | EN, PT, ES, BR    | April 2025   | Annual           |
 | **Cookie Policy**             | `/legal/cookie`           | EN, PT, ES, BR    | April 2025   | Annual           |
-| **Data Processing Agreement** | `/legal/dpa`              | EN, PT, ES, BR    | October 2025 | Annual           |
+| **Data Processing Agreement** | `/trust/dpa`              | EN, PT, ES, BR    | October 2025 | Annual           |
 | **About Us**                  | `/legal/about`            | EN, PT, ES, BR    | April 2025   | As needed        |
 | **Payment Policies**          | `/legal/payment-policies` | EN, PT, ES, BR    | April 2025   | Annual           |
 

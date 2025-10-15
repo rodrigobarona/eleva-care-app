@@ -204,7 +204,7 @@ Portugal
 | ------------------------------------- | ------- | ------------------------------------ | ----------- |
 | **Legal basis for health data**       | ✅ DONE | Article 9(2)(a) - Explicit consent   | Implemented |
 | **Privacy Policy published**          | ✅ DONE | https://eleva.care/legal/privacy     | April 2025  |
-| **Data Processing Agreement (DPA)**   | ✅ DONE | https://eleva.care/legal/dpa         | April 2025  |
+| **Data Processing Agreement (DPA)**   | ✅ DONE | https://eleva.care/trust/dpa         | April 2025  |
 | **Terms and Conditions**              | ✅ DONE | https://eleva.care/legal/terms       | April 2025  |
 | **Cookie consent**                    | ✅ DONE | Cookie banner implemented            | Implemented |
 | **Encryption (Article 32)**           | ✅ DONE | AES-256-GCM + TLS 1.3                | Implemented |

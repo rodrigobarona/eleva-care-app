@@ -84,7 +84,7 @@ export const PRIVACY_POLICY_CONFIG = {
 export const DPA_CONFIG = {
   version: '1.0',
   effectiveDate: new Date('2024-10-01'),
-  documentPath: '/legal/dpa',
+  documentPath: '/trust/dpa',
   requiresReacceptance: false,
   minimumRequiredVersion: '1.0',
 } as const;
