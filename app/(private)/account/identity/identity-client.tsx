@@ -26,33 +26,6 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
   const [isStartingVerification, setIsStartingVerification] = React.useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = React.useState(false);
 
-  // Rebuild KV data when component mounts
-  React.useEffect(() => {
-    const rebuildKVData = async () => {
-      try {
-        console.log('Rebuilding KV data on identity page load');
-
-        const response = await fetch('/api/user/rebuild-kv', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!response.ok) {
-          const error = await response.json();
-          console.error('Failed to rebuild KV data:', error);
-        } else {
-          console.log('KV data rebuilt successfully');
-        }
-      } catch (error) {
-        console.error('Error rebuilding KV data:', error);
-      }
-    };
-
-    rebuildKVData();
-  }, []);
-
   const handleStartVerification = async () => {
     try {
       setIsStartingVerification(true);
@@ -70,8 +43,7 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
         // For external Stripe URLs, we need to use window.location
         window.location.href = data.url;
       }
-    } catch (error) {
-      console.error('Failed to start identity verification:', error);
+    } catch {
       toast.error('Failed to start identity verification. Please try again.');
     } finally {
       setIsStartingVerification(false);
@@ -95,8 +67,7 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
 
       // Refresh the page to show updated status
       window.location.reload();
-    } catch (error) {
-      console.error('Failed to check verification status:', error);
+    } catch {
       toast.error('Failed to check status. Please try again.');
     } finally {
       setIsCheckingStatus(false);
