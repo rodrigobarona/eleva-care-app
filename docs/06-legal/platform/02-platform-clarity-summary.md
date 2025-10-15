@@ -14,13 +14,13 @@
 
 ### 1. Created New Legal Documents
 
-| Document                           | Location                                         | Purpose                                                     | Status     |
-| ---------------------------------- | ------------------------------------------------ | ----------------------------------------------------------- | ---------- |
-| **Practitioner Agreement**         | `content/practitioner-agreement/en.mdx`          | Complete 15-section agreement for independent practitioners | ✅ CREATED |
-| **Platform vs. Provider Analysis** | `docs/legal/PLATFORM_vs_PROVIDER_ANALYSIS.md`    | Critical distinction documentation                          | ✅ CREATED |
-| **Platform Clarity Updates**       | `docs/legal/PLATFORM_CLARITY_UPDATES.md`         | Implementation documentation                                | ✅ CREATED |
-| **Immediate Actions Guide**        | `docs/legal/IMMEDIATE_ACTIONS_PLATFORM_MODEL.md` | 30-day action plan                                          | ✅ CREATED |
-| **Translation Guide**              | `docs/legal/TRANSLATION_GUIDE.md`                | Complete translation reference                              | ✅ CREATED |
+| Document                           | Location                                            | Purpose                                                     | Status     |
+| ---------------------------------- | --------------------------------------------------- | ----------------------------------------------------------- | ---------- |
+| **Practitioner Agreement**         | `content/practitioner-agreement/en.mdx`             | Complete 15-section agreement for independent practitioners | ✅ CREATED |
+| **Platform vs. Provider Analysis** | `docs/06-legal/PLATFORM_vs_PROVIDER_ANALYSIS.md`    | Critical distinction documentation                          | ✅ CREATED |
+| **Platform Clarity Updates**       | `docs/06-legal/PLATFORM_CLARITY_UPDATES.md`         | Implementation documentation                                | ✅ CREATED |
+| **Immediate Actions Guide**        | `docs/06-legal/IMMEDIATE_ACTIONS_PLATFORM_MODEL.md` | 30-day action plan                                          | ✅ CREATED |
+| **Translation Guide**              | `docs/06-legal/TRANSLATION_GUIDE.md`                | Complete translation reference                              | ✅ CREATED |
 
 ### 2. Updated Existing Documents (English)
 
@@ -120,11 +120,11 @@
 ### Created Files (New)
 
 1. ✅ `content/practitioner-agreement/en.mdx` (8,000 words)
-2. ✅ `docs/legal/PLATFORM_vs_PROVIDER_ANALYSIS.md`
-3. ✅ `docs/legal/PLATFORM_CLARITY_UPDATES.md`
-4. ✅ `docs/legal/IMMEDIATE_ACTIONS_PLATFORM_MODEL.md`
-5. ✅ `docs/legal/TRANSLATION_GUIDE.md`
-6. ✅ `docs/legal/FINAL_PLATFORM_CLARITY_SUMMARY.md` (this file)
+2. ✅ `docs/06-legal/PLATFORM_vs_PROVIDER_ANALYSIS.md`
+3. ✅ `docs/06-legal/PLATFORM_CLARITY_UPDATES.md`
+4. ✅ `docs/06-legal/IMMEDIATE_ACTIONS_PLATFORM_MODEL.md`
+5. ✅ `docs/06-legal/TRANSLATION_GUIDE.md`
+6. ✅ `docs/06-legal/platform/02-platform-clarity-summary.md` (this file)
 
 ### Updated Files (English)
 

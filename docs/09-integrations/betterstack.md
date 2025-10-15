@@ -55,7 +55,7 @@ Eleva Care integrates with BetterStack Uptime to provide real-time system status
 BetterStack API
       ↓
 ServerStatus Component (Server)
-      ↓  (Cached 60s)
+      ↓  (Cached 180s)
 Footer Component (Server)
       ↓  (HTML + Hydration)
 Client (Browser)
@@ -80,7 +80,7 @@ Client (Browser)
 
 - **Zero JavaScript** for status indicator
 - Server-side rendering (instant display)
-- Server-side caching (60s)
+- Server-side caching (180s)
 - No client-side fetch overhead
 - Faster Time to First Byte (TTFB)
 
@@ -246,8 +246,8 @@ export function ClientComponent() {
 
 **Caching**:
 
-- Server-side: 60 seconds (Next.js `revalidate`)
-- HTTP: `Cache-Control: public, s-maxage=60, stale-while-revalidate=30`
+- Server-side: 180 seconds (Next.js `revalidate`)
+- HTTP: `Cache-Control: public, s-maxage=180, stale-while-revalidate=30`
 
 **Middleware Configuration**:
 
@@ -385,7 +385,7 @@ curl -H "Authorization: Bearer $BETTERSTACK_API_KEY" \
 
 **Solution**:
 
-1. Check cache duration (60 seconds)
+1. Check cache duration (180 seconds)
 2. Verify monitors are configured correctly in BetterStack
 3. Review monitor status calculation logic
 

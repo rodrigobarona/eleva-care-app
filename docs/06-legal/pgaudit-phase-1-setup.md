@@ -465,5 +465,5 @@ Beyond pgAudit, ensure:
 
 ---
 
-**Last Updated**: {{ date }}  
+**Last Updated**: October 15, 2025  
 **Next Review**: Phase 2 Planning (after 2-week burn-in)
