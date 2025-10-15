@@ -111,28 +111,28 @@ function IdentityPageContent({ verificationStatus }: IdentityPageClientProps) {
         return (
           <div className="flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-sm text-green-700">
             <BadgeCheck className="h-4 w-4" />
-            <span>Verified</span>
+            <span>{t('status.verified')}</span>
           </div>
         );
       case 'pending':
         return (
           <div className="flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-sm text-amber-700">
             <Clock className="h-4 w-4" />
-            <span>Pending</span>
+            <span>{t('status.pending')}</span>
           </div>
         );
       case 'rejected':
         return (
           <div className="flex items-center gap-2 rounded-full bg-red-50 px-3 py-1 text-sm text-red-700">
             <AlertTriangle className="h-4 w-4" />
-            <span>Rejected</span>
+            <span>{t('status.rejected')}</span>
           </div>
         );
       default:
         return (
           <div className="flex items-center gap-2 rounded-full bg-gray-50 px-3 py-1 text-sm text-gray-700">
             <Fingerprint className="h-4 w-4" />
-            <span>Not Verified</span>
+            <span>{t('status.notVerified')}</span>
           </div>
         );
     }
