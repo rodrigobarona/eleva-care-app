@@ -103,7 +103,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
                   <SidebarMenuButton asChild isActive={pathname === '/appointments/patients'}>
                     <Link href="/appointments/patients" prefetch>
                       <Users className="size-4" />
-                      <span>Patients</span>
+                      <span>Clients</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

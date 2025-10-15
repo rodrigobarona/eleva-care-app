@@ -113,7 +113,7 @@ ExpertNotificationEmail.PreviewProps = {
   expertName: 'Dr. Maria Santos',
   notificationTitle: 'New Appointment Request',
   notificationMessage:
-    'You have received a new appointment request from João Silva for a cardiology consultation. The patient is requesting a 60-minute consultation for next Tuesday at 2:30 PM. Please review the request and confirm your availability.',
+    'You have received a new appointment request from João Silva for a cardiology consultation. The client is requesting a 60-minute consultation for next Tuesday at 2:30 PM. Please review the request and confirm your availability.',
   actionUrl: 'https://eleva.care/dashboard/appointments',
   actionText: 'View Appointments',
 } as ExpertNotificationEmailProps;

@@ -211,7 +211,7 @@
   "mission": {
     "title": "A Nossa Missão",
     "subtitle": "Transformar a saúde feminina através de inovação e compaixão",
-    "description": "Na Eleva Care, estamos dedicados a empoderar mulheres de todas as idades para que assumam o controle da sua saúde e bem-estar. A nossa missão é fornecer uma plataforma de apoio inclusiva que conecte indivíduos com recursos liderados por especialistas, informação baseada em evidências e uma comunidade colaborativa de profissionais de saúde.",
+    "description": "Na Eleva Care, estamos dedicados a empoderar mulheres de todas as idades para que assumam o controle da sua saúde e bem-estar. A nossa missão é fornecer uma plataforma de apoio inclusiva que ligue pessoas a recursos liderados por especialistas, informação baseada em evidências e uma comunidade colaborativa de especialistas em cuidado.",
     "vision": {
       "title": "A Nossa Visão",
       "description": "Construir uma ponte entre a investigação científica e a aplicação prática, oferecendo soluções acessíveis e personalizadas para a saúde feminina em todas as fases da vida."
@@ -219,8 +219,8 @@
     "cta": "Junte-se a nós",
     "stats": [
       { "value": "10K+", "label": "Mulheres Ajudadas" },
-      { "value": "50+", "label": "Profissionais Especializados" },
-      { "value": "95%", "label": "Satisfação das Pacientes" },
+      { "value": "50+", "label": "Especialistas" },
+      { "value": "95%", "label": "Satisfação das Clientes" },
       { "value": "24/7", "label": "Suporte Disponível" }
     ],
     "beliefs": {
@@ -237,7 +237,7 @@
   "team": {
     "title": "Conheça a Nossa Equipa",
     "subtitle": "Fundada por especialistas apaixonados em saúde feminina",
-    "description": "A Eleva Care é liderada por uma equipa de profissionais dedicados que combinam anos de experiência em saúde feminina, tecnologia e cuidados ao paciente. Os nossos fundadores e principais membros estão empenhados em revolucionar o acesso e a experiência de saúde das mulheres.",
+    "description": "A Eleva Care é liderada por uma equipa de profissionais dedicados que combinam anos de experiência em saúde feminina, tecnologia e cuidados liderados por especialistas. Os nossos fundadores e principais membros estão empenhados em revolucionar o acesso e a experiência de saúde das mulheres.",
     "members": [
       {
         "name": "Patricia Mota, PT, PhD",
@@ -384,7 +384,7 @@
   "experts": {
     "title": "Especialistas Independentes",
     "subtitle": "Conecte-se com os Melhores Especialistas",
-    "description": "Encontre e marque especialistas confiáveis em fisioterapia e saúde da mulher. A nossa plataforma conecta-o com profissionais qualificados prontos para apoiar a sua jornada única de saúde e bem-estar.",
+    "description": "Encontre e marque especialistas confiáveis em fisioterapia e saúde da mulher. A nossa plataforma conecta-o com especialistas qualificados prontos para apoiar a sua jornada única de saúde e bem-estar.",
     "disclaimerLink": "Saiba mais sobre a nossa plataforma",
     "topExpertBadge": "Destacado",
     "topExpertDisclaimer": "Os especialistas na Eleva Care são profissionais independentes que auto-certificam as suas credenciais.",
@@ -408,7 +408,7 @@
       "description": "A Eleva Care é uma plataforma confiável que a liga a especialistas independentes e licenciados. Não prestamos serviços médicos; o(a) especialista que escolhe presta os seus cuidados.",
       "weAre": "O que fornecemos",
       "weAreList": {
-        "marketplace": "Uma plataforma tecnológica segura e marketplace",
+        "marketplace": "Uma plataforma confiável",
         "technology": "Marcação, agendamento e pagamentos",
         "secure": "Armazenamento encriptado de notas clínicas"
       },
@@ -458,11 +458,11 @@
     "collision": {
       "title": "Conflito de Marcação - Reembolso Processado",
       "subject": "Marcação de Consulta - Horário Não Disponível",
-      "greeting": "Caro/a {clientName},",
+      "greeting": "Olá {clientName},",
       "conflictMessage": "Lamentamos informar que a sua consulta com {expertName} marcada para {appointmentDateTime} já não está disponível, pois o horário foi reservado por outro cliente.",
       "latePaymentExplanation": "Como este foi um pagamento Multibanco tardio, processámos um reembolso de €{refundAmount} (90% do valor original, com 10% retido como taxa de processamento conforme descrito nas nossas políticas de pagamento).",
       "apologyAndInvitation": "Pedimos desculpa pelo inconveniente e convidamo-lo/a a marcar uma nova consulta à sua conveniência.",
-      "signature": "Cumprimentos,\nEquipa Eleva.care",
+      "signature": "Obrigado,",
       "minimumNoticeViolation": "O horário da consulta já não cumpre o requisito de aviso mínimo do especialista de {minimumNoticeHours} horas.",
       "refundDetails": {
         "originalAmount": "Valor original: €{amount}",
@@ -621,7 +621,7 @@
       "email": {
         "preview": "A sua marcação está confirmada - Pagamento Requerido via Multibanco",
         "title": "Marcação Confirmada - Pagamento Requerido",
-        "greeting": "Caro/a {customerName},",
+        "greeting": "Olá {customerName},",
         "bookingConfirmedText": "A sua marcação foi confirmada e o seu horário de consulta está reservado.",
         "paymentRequired": "Pagamento Requerido via Multibanco",
         "paymentInstructions": "Para completar a sua marcação, por favor pague usando Multibanco com os detalhes abaixo:",
@@ -666,7 +666,7 @@
           "gentle": "💙 Lembrete Amigável: Complete o Seu Pagamento",
           "urgent": "⚠️ URGENTE: Pagamento Requerido - Lembrete Final"
         },
-        "greeting": "Caro/a {customerName},",
+        "greeting": "Olá {customerName},",
         "reminderNotice": "Apenas um lembrete amigável de que tem um pagamento Multibanco pendente para a sua próxima consulta.",
         "timeRemaining": "Ainda tem bastante tempo para completar o seu pagamento.",
         "urgentNotice": "Este é o seu LEMBRETE FINAL para completar o seu pagamento Multibanco.",
@@ -730,7 +730,7 @@
       "email": {
         "preview": "Sua consulta na Eleva.care foi confirmada",
         "appointmentConfirmed": "Sua consulta foi confirmada",
-        "dearExpert": "Caro(a) {expertName}",
+        "dearExpert": "Olá {expertName},",
         "newAppointmentWith": "Você tem uma nova consulta com {clientName} para {eventTitle}. Adicionamos isso ao seu calendário.",
         "appointmentDetails": "Detalhes da Consulta:",
         "type": "Tipo:",
@@ -749,7 +749,7 @@
         "emailReminder15Min": "Lembrete por e-mail 15 minutos antes",
         "popupReminder5Min": "Lembrete pop-up 5 minutos antes",
         "thankYou": "Obrigado por usar a Eleva.care.",
-        "bestRegards": "Atenciosamente,",
+        "bestRegards": "Obrigado,",
         "team": "A Equipa Eleva.care",
         "allRightsReserved": "Todos os direitos reservados."
       }
@@ -773,7 +773,7 @@
       "agreementText": "Li e aceito o",
       "expertAgreement": "Acordo de Especialistas",
       "agreementIncludes": "incluindo padrões de conduta profissional, termos de responsabilidade e obrigações da plataforma",
-      "disclaimer": "Ao publicar o seu perfil, confirma que é um profissional de saúde licenciado e concorda em cumprir todas as leis e regulamentos aplicáveis."
+      "disclaimer": "Ao publicar o seu perfil, confirma que é um especialista licenciado e concorda em cumprir todas as leis e regulamentos aplicáveis."
     },
     "unpublishDialog": {
       "title": "Despublicar o Seu Perfil de Especialista",

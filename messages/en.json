@@ -219,7 +219,7 @@
   "mission": {
     "title": "Our Mission",
     "subtitle": "Transforming women's health care through innovation and compassion",
-    "description": "At Eleva Care, we are dedicated to empowering women of all ages to take control of their health and well-being. Our mission is to provide a supportive and inclusive platform that connects individuals with expert-led resources, evidence-based information, and a collaborative community of healthcare professionals.",
+    "description": "At Eleva Care, we are dedicated to empowering women of all ages to take control of their health and well-being. Our mission is to provide a supportive and inclusive platform that connects individuals with expert-led resources, evidence-based information, and a collaborative community of care experts.",
     "vision": {
       "title": "Our Vision",
       "description": "To bridge the gap between scientific research and practical application, delivering accessible and personalized women's health care solutions throughout every life stage."
@@ -227,8 +227,8 @@
     "cta": "Join Us",
     "stats": [
       { "value": "10K+", "label": "Women Helped" },
-      { "value": "50+", "label": "Expert Providers" },
-      { "value": "95%", "label": "Patient Satisfaction" },
+      { "value": "50+", "label": "Experts" },
+      { "value": "95%", "label": "Client Satisfaction" },
       { "value": "24/7", "label": "Support Available" }
     ],
     "beliefs": {
@@ -245,7 +245,7 @@
   "team": {
     "title": "Meet Our Team",
     "subtitle": "Founded by passionate experts in women's health",
-    "description": "Eleva Care is led by a team of dedicated professionals who bring together years of experience in women's health, technology, and patient care. Our founders and key team members are committed to revolutionizing the way women access and experience healthcare.",
+    "description": "Eleva Care is led by a team of dedicated professionals who bring together years of experience in women's health, technology, and expert-led care. Our founders and key team members are committed to revolutionizing the way women access and experience healthcare.",
     "members": [
       {
         "name": "Patricia Mota, PT, PhD",
@@ -392,7 +392,7 @@
   "experts": {
     "title": "Independent Experts",
     "subtitle": "Connect with Leading Specialists",
-    "description": "Find and book trusted experts specializing in physiotherapy and women's health. Our platform connects you with qualified care professionals ready to support your unique health and wellness journey.",
+    "description": "Find and book trusted experts specializing in physiotherapy and women's health. Our platform connects you with qualified care experts ready to support your unique health and wellness journey.",
     "disclaimerLink": "Learn more about our platform",
     "topExpertBadge": "Featured",
     "topExpertDisclaimer": "Experts on Eleva Care are independent professionals who self-certify their credentials.",
@@ -416,7 +416,7 @@
       "description": "Eleva Care is a trusted platform that connects you with independent, licensed care experts. We don't provide medical services; your chosen expert provides your care.",
       "weAre": "What we provide",
       "weAreList": {
-        "marketplace": "A secure technology platform and marketplace",
+        "marketplace": "A trusted platform",
         "technology": "Booking, scheduling, and payment processing tools",
         "secure": "Encrypted storage for expert clinical notes"
       },
@@ -459,11 +459,11 @@
     "collision": {
       "title": "Appointment Conflict - Refund Processed",
       "subject": "Appointment Booking - Time Slot No Longer Available",
-      "greeting": "Dear {clientName},",
+      "greeting": "Hi {clientName},",
       "conflictMessage": "We regret to inform you that your appointment with {expertName} scheduled for {appointmentDateTime} is no longer available as the time slot has been booked by another client.",
       "latePaymentExplanation": "Since this was a delayed Multibanco payment, we have processed a refund of €{refundAmount} (90% of the original amount, with 10% retained as a processing fee as outlined in our payment policies).",
       "apologyAndInvitation": "We apologize for the inconvenience and invite you to book a new appointment at your convenience.",
-      "signature": "Best regards,\nEleva.care Team",
+      "signature": "Thanks,",
       "minimumNoticeViolation": "The appointment time no longer meets the expert's minimum notice requirement of {minimumNoticeHours} hours.",
       "refundDetails": {
         "originalAmount": "Original amount: €{amount}",
@@ -622,7 +622,7 @@
       "email": {
         "preview": "Your booking is confirmed - Payment Required via Multibanco",
         "title": "Booking Confirmed - Payment Required",
-        "greeting": "Dear {customerName},",
+        "greeting": "Hi {customerName},",
         "bookingConfirmedText": "Your booking has been confirmed and your appointment slot is reserved.",
         "paymentRequired": "Payment Required via Multibanco",
         "paymentInstructions": "To complete your booking, please pay using Multibanco with the details below:",
@@ -667,7 +667,7 @@
           "gentle": "💙 Friendly Reminder: Complete Your Payment",
           "urgent": "⚠️ URGENT: Payment Required - Final Reminder"
         },
-        "greeting": "Dear {customerName},",
+        "greeting": "Hi {customerName},",
         "reminderNotice": "Just a friendly reminder that you have a Multibanco payment pending for your upcoming appointment.",
         "timeRemaining": "You still have plenty of time to complete your payment.",
         "urgentNotice": "This is your FINAL REMINDER to complete your Multibanco payment.",
@@ -731,7 +731,7 @@
       "email": {
         "preview": "Your Eleva.care appointment has been confirmed",
         "appointmentConfirmed": "Your appointment has been confirmed",
-        "dearExpert": "Dear {expertName}",
+        "dearExpert": "Hi {expertName},",
         "newAppointmentWith": "You have a new appointment with {clientName} for {eventTitle}. We've added this to your calendar.",
         "appointmentDetails": "Appointment Details:",
         "type": "Type:",
@@ -750,7 +750,7 @@
         "emailReminder15Min": "Email reminder 15 minutes before",
         "popupReminder5Min": "Popup reminder 5 minutes before",
         "thankYou": "Thank you for using Eleva.care.",
-        "bestRegards": "Best regards,",
+        "bestRegards": "Thanks,",
         "team": "The Eleva.care Team",
         "allRightsReserved": "All rights reserved."
       }
@@ -807,7 +807,7 @@
       "agreementText": "I have read and agree to the",
       "expertAgreement": "Expert Agreement",
       "agreementIncludes": "including professional conduct standards, liability terms, and platform obligations",
-      "disclaimer": "By publishing your profile, you acknowledge that you are a licensed healthcare professional and agree to comply with all applicable laws and regulations."
+      "disclaimer": "By publishing your profile, you acknowledge that you are a licensed care expert and agree to comply with all applicable laws and regulations."
     },
     "unpublishDialog": {
       "title": "Unpublish Your Expert Profile",

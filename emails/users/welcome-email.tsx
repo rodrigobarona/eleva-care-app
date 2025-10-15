@@ -225,10 +225,10 @@ WelcomeEmailTemplate.PreviewProps = {
       actionText: 'Complete Profile',
     },
     {
-      title: 'Browse expert providers',
+      title: 'Browse experts',
       description: 'Find care experts that match your specific needs and preferences',
       actionUrl: '/providers',
-      actionText: 'View Providers',
+      actionText: 'View Experts',
     },
   ],
 } as WelcomeEmailProps;
