@@ -20,6 +20,32 @@ We take security seriously. Below is a clear, concise overview of how we protect
 - Database protections: pgAudit, SSL‑only, row‑level policies, automated backups
 - Payments: processed by Stripe; we never store card data; 3DS supported
 
+### Security headers & CSP
+
+We deploy strict security headers following OWASP guidance:
+
+```
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()
+X-Frame-Options: DENY  # or via CSP frame-ancestors 'none'
+Content-Security-Policy: default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel.app https://*.stripe.com;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  img-src 'self' data: https://res.cloudinary.com;
+  font-src 'self' https://fonts.gstatic.com;
+  connect-src 'self' https://api.stripe.com https://*.posthog.com https://*.upstash.io;
+  frame-src https://*.stripe.com https://*.google.com;
+  frame-ancestors 'none';
+  upgrade-insecure-requests;
+```
+
+Notes:
+
+- We tune sources per environment (prod/stage) and minimize allowances.
+- We prefer frame-ancestors in CSP over X-Frame-Options where supported.
+
 ## 3) Account and access security
 
 - Clerk authentication with SSO, passwordless options, secure sessions

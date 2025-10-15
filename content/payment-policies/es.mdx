@@ -60,17 +60,28 @@ Si hubo un error del sistema o caso especial, contacte con soporte dentro de 48 
 - Usamos cifrado y detección de fraude; transacciones sospechosas pueden retrasarse/rechazarse
 - Puede requerirse verificación adicional en pagos de alto valor
 
-## 9) Pagos fallidos
+## 9) Contracargos y disputas
+
+- Si el titular abre una disputa (chargeback), seguimos el proceso de Stripe y aportamos pruebas (registros de reserva, comunicaciones, políticas). Mientras la disputa esté abierta, los pagos al especialista vinculados pueden retrasarse.
+- La red de tarjetas determina el resultado. Si se resuelve a su favor, se liberan los fondos; de lo contrario, se revierte el cargo según las reglas de la red.
+- Fraude/contracargos repetidos pueden derivar en restricciones temporales o revisión de cuenta.
+
+## 10) Autenticación Reforzada de Cliente (3DS/PSD2)
+
+- Donde sea requerido (p. ej., EEE), usamos 3D Secure para cumplir con PSD2.
+- Si 3DS es desafiado y falla, el pago no puede completarse; puede reintentar con otra tarjeta o método.
+
+## 11) Pagos fallidos
 
 - Los fallos cancelan la reserva automáticamente; notificamos por email
 - Reintente creando un nuevo pago; múltiples fallos pueden restringir temporalmente
 
-## 10) Soporte y reembolsos
+## 12) Soporte y reembolsos
 
 - Pagos: `support@eleva.care` (objetivo de respuesta en 24 h)
 - Reembolsos: solicítelos dentro de 7 días del pago; emergencias médicas caso por caso; cancelaciones según nuestros Términos
 
-## 11) Actualizaciones y cumplimiento
+## 13) Actualizaciones y cumplimiento
 
 - Podemos actualizar estas políticas; seguir usando implica aceptación
 - Cumplimos con la protección al consumidor PT, PSD2 UE, RGPD y términos de Stripe

@@ -31,6 +31,18 @@ Cookies help essential features work and help us understand usage. You can manag
 
 Legal bases include contract performance, legitimate interests (security, product improvement), consent (where required), and legal compliance. For clinical data, experts rely on healthcare bases (e.g., GDPR Art. 9(2)(h)); storage may also rely on your explicit consent.
 
+### Legal basis and retention overview
+
+| Category                                    | Purpose                                  | Legal Basis (GDPR/LGPD)                                            | Retention                                                                         |
+| ------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| Account data (name, email, phone)           | Provide account/services; communications | Contract; Legitimate interests (service/security)                  | While account active; if inactive, notice at 12 months, deletion within 24 months |
+| Booking data (schedules, history, messages) | Booking, support, service quality        | Contract; Legitimate interests                                     | ~24 months after last activity                                                    |
+| Payments metadata                           | Payment processing, refunds, accounting  | Legal obligation; Contract                                         | Up to 10 years (invoices/financial)                                               |
+| Analytics/telemetry                         | Improve product, security monitoring     | Legitimate interests; Consent where required                       | Up to 12 months (then aggregated/anon.)                                           |
+| Security logs                               | Abuse prevention, forensics              | Legitimate interests; Legal obligations                            | Minimum 12 months                                                                 |
+| Backups                                     | Continuity, disaster recovery            | Legitimate interests                                               | ~30 days (encrypted)                                                              |
+| Clinical notes/files                        | Expert-provided care                     | GDPR Art. 9(2)(h) (expert as Controller); Consent where applicable | Per expert instructions and applicable healthcare law                             |
+
 ## 4) Sharing
 
 - With processors who help us run the service (e.g., Stripe, Clerk, Vercel, Neon, Novu, PostHog, Resend, Upstash). They act under contract and can’t use data for their own purposes.

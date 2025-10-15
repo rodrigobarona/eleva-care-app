@@ -10,7 +10,7 @@ Tomamos la seguridad en serio. A continuación, un resumen claro y directo de c�
 - Base de datos preparada para HIPAA (Neon.tech) con BAA firmado
 - Proveedores con certificaciones sólidas: Clerk, Stripe, Vercel, Neon (SOC 2 Type II), Stripe (PCI DSS L1)
 - Prácticas alineadas con ISO 27001 en desarrollo y operaciones
-- Detalles y lista completa de subencargados en nuestro [Acuerdo de Procesamiento de Datos](/legal/dpa)
+- Detalles y lista completa de subencargados en nuestro [Acuerdo de Procesamiento de Datos](/es/legal/dpa)
 
 ## 2) Salvaguardas técnicas
 
@@ -19,6 +19,32 @@ Tomamos la seguridad en serio. A continuación, un resumen claro y directo de c�
 - Red: WAF, mitigación DDoS, rate limiting estricto, gateway de API seguro
 - Base de datos: pgAudit, solo SSL, políticas a nivel de filas, backups automatizados
 - Pagos: procesados por Stripe; no almacenamos tarjetas; soporte 3DS
+
+### Cabeceras de seguridad y CSP
+
+Implementamos cabeceras siguiendo OWASP:
+
+```
+Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+X-Content-Type-Options: nosniff
+Referrer-Policy: strict-origin-when-cross-origin
+Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()
+X-Frame-Options: DENY  # o frame-ancestors 'none' en CSP
+Content-Security-Policy: default-src 'self';
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.vercel.app https://*.stripe.com;
+  style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+  img-src 'self' data: https://res.cloudinary.com;
+  font-src 'self' https://fonts.gstatic.com;
+  connect-src 'self' https://api.stripe.com https://*.posthog.com https://*.upstash.io;
+  frame-src https://*.stripe.com https://*.google.com;
+  frame-ancestors 'none';
+  upgrade-insecure-requests;
+```
+
+Notas:
+
+- Ajustamos orígenes por entorno y reducimos al mínimo lo permitido.
+- Preferimos frame-ancestors en CSP frente a X-Frame-Options donde sea soportado.
 
 ## 3) Cuentas y accesos
 
@@ -53,7 +79,7 @@ Tomamos la seguridad en serio. A continuación, un resumen claro y directo de c�
 
 - Recogemos lo mínimo necesario y retenemos solo el tiempo necesario
 - Puede acceder, rectificar, borrar, limitar, portar u oponerse; contacte `privacy@eleva.care` o `dpo@eleva.care`
-- Consulte nuestra [Política de Privacidad](/legal/privacy)
+- Consulte nuestra [Política de Privacidad](/es/legal/privacy)
 
 ## 9) Resiliencia
 

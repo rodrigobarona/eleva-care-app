@@ -60,17 +60,28 @@ If something went wrong (system error or edge case), contact support within 48 h
 - We use encryption and fraud detection; suspicious transactions may be delayed/declined
 - Additional verification may be required for high‑value payments
 
-## 9) Failed payments
+## 9) Chargebacks and disputes
+
+- If a cardholder opens a dispute (chargeback), we follow Stripe’s process and provide evidence (booking logs, communications, policies). While the dispute is open, payouts for the related appointment may be delayed.
+- Outcomes are determined by the card network. If the dispute is resolved in your favor, funds are released; otherwise, the charge is reversed per network rules.
+- Repeated fraud/chargebacks may result in temporary restrictions or account review.
+
+## 10) Strong Customer Authentication (3DS/PSD2)
+
+- Where required (e.g., EEA), we use 3D Secure to comply with PSD2 Strong Customer Authentication.
+- If 3DS is challenged and fails, the payment cannot be completed; you may retry with a different card or method.
+
+## 11) Failed payments
 
 - Failed payments cancel the booking automatically; you’ll be notified by email
 - Retry by creating a new payment; repeated failures may temporarily restrict booking
 
-## 10) Support and refunds
+## 12) Support and refunds
 
 - Payment questions: `support@eleva.care` (we aim to respond within 24 hours)
 - Refund requests: submit within 7 days of the original payment; medical emergencies are considered case‑by‑case; cancellation rules in our Terms apply
 
-## 11) Updates and compliance
+## 13) Updates and compliance
 
 - We may update these policies; continued use means you accept updates
 - We follow Portuguese consumer protection, EU PSD2, GDPR data requirements, and Stripe terms

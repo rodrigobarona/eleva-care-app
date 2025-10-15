@@ -60,17 +60,28 @@ Se houver erro do sistema ou caso especial, contate o suporte em 48 h com sua re
 - Criptografia e detecção de fraude; transações suspeitas podem atrasar/ser recusadas
 - Verificação adicional pode ser exigida para pagamentos de alto valor
 
-## 9) Pagamentos com falha
+## 9) Chargebacks e disputas
+
+- Se o titular do cartão abrir uma disputa (chargeback), seguimos o processo da Stripe e apresentamos evidências (logs de agendamento, comunicações, políticas). Enquanto a disputa estiver aberta, repasses ao especialista relacionados podem ser atrasados.
+- O resultado é decidido pela bandeira/rede do cartão. Se resolvido a seu favor, os fundos são liberados; caso contrário, o débito é revertido conforme regras da rede.
+- Fraudes/chargebacks recorrentes podem levar a restrições temporárias ou revisão de conta.
+
+## 10) Autenticação Forte do Cliente (3DS/PSD2)
+
+- Onde exigido (p. ex., EEE), utilizamos 3D Secure para conformidade com PSD2.
+- Se o desafio 3DS falhar, o pagamento não pode ser concluído; você pode tentar outro cartão ou método.
+
+## 11) Pagamentos com falha
 
 - Cancelam automaticamente o agendamento; notificamos por e‑mail
 - Tente novamente criando um novo pagamento; falhas repetidas podem restringir temporariamente
 
-## 10) Suporte e reembolsos
+## 12) Suporte e reembolsos
 
 - Pagamentos: `support@eleva.care` (meta de resposta em 24 h)
 - Reembolsos: solicite em até 7 dias do pagamento; emergências médicas caso a caso; cancelamentos conforme nossos Termos
 
-## 11) Atualizações e conformidade
+## 13) Atualizações e conformidade
 
 - Podemos atualizar estas políticas; uso contínuo implica aceitação
 - Cumprimos defesa do consumidor PT, PSD2 UE, GDPR e termos da Stripe
