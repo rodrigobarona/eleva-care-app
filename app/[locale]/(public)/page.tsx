@@ -27,7 +27,7 @@ const FALLBACK_METADATA = {
     'healthcare marketplace',
     'find practitioners',
   ],
-} as const;
+};
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
