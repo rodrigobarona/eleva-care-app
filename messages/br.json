@@ -383,11 +383,11 @@
   },
   "experts": {
     "title": "Especialistas Independentes",
-    "subtitle": "Conecte-se com os Melhores Profissionais",
-    "description": "Encontre e agende especialistas independentes e licenciados especializados em fisioterapia e saúde da mulher. Nossa plataforma conecta você com profissionais qualificados prontos para apoiar sua jornada única de saúde e bem-estar.",
+    "subtitle": "Conecte-se com os Melhores Especialistas",
+    "description": "Encontre e agende especialistas confiáveis em fisioterapia e saúde da mulher. Nossa plataforma conecta você com profissionais qualificados prontos para apoiar sua jornada única de saúde e bem-estar.",
     "disclaimerLink": "Saiba mais sobre nossa plataforma",
     "topExpertBadge": "Destaque",
-    "topExpertDisclaimer": "Os especialistas são profissionais independentes que auto-certificam suas credenciais.",
+    "topExpertDisclaimer": "Os especialistas na Eleva Care são profissionais independentes que auto-certificam suas credenciais.",
     "sessionLabel": "Sessão",
     "expertImageAlt": "Foto de perfil de {name}",
     "verifiedBadgeAlt": "Especialista Auto-Certificado"

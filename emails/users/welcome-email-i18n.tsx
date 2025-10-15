@@ -99,7 +99,7 @@ export default function WelcomeEmailI18nTemplate({
     },
     {
       title: 'Browse Healthcare Experts',
-      description: 'Find and connect with qualified healthcare professionals',
+      description: 'Find and connect with qualified care experts',
       actionUrl: 'https://eleva.care/experts',
       actionText: 'Find Experts',
     },
@@ -287,7 +287,7 @@ WelcomeEmailI18nTemplate.PreviewProps = {
     },
     {
       title: 'Browse expert providers',
-      description: 'Find healthcare professionals that match your specific needs and preferences',
+      description: 'Find care experts that match your specific needs and preferences',
       actionUrl: '/providers',
       actionText: 'View Providers',
     },

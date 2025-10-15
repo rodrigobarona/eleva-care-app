@@ -9,7 +9,7 @@ This DPA explains how Eleva.care handles personal data—clearly and simply.
 - Eleva.care is a healthcare technology marketplace. We are not a healthcare provider.
 - Two roles:
   - Controller (platform operations: accounts, bookings, payments, analytics, support)
-  - Processor (clinical notes/files that practitioners create: we store securely on their instructions)
+  - Processor (clinical notes/files that experts create: we store securely on their instructions)
 
 ## 2) When we are Controller (platform)
 
@@ -20,9 +20,9 @@ This DPA explains how Eleva.care handles personal data—clearly and simply.
   - Analytics: PostHog (EU hosting option)
 - We require DPAs/SCCs, security controls, and EU data residency where available.
 
-## 3) When we are Processor (for practitioners)
+## 3) When we are Processor (for experts)
 
-- Practitioners are Controllers of clinical data; we are their Processor.
+- Experts are Controllers of clinical data; we are their Processor.
 - We act only on documented instructions, keep data encrypted (at rest and in transit), and maintain RBAC and audit logs.
 - Subprocessors for clinical data storage (EU): Neon (DB Frankfurt), Vercel (hosting EU), Upstash (cache EU). We notify before changes.
 
@@ -39,14 +39,14 @@ This DPA explains how Eleva.care handles personal data—clearly and simply.
 ## 6) Retention and deletion
 
 - Platform data: kept only as long as needed or required by law
-- Clinical data: retention is set by the practitioner (e.g., 10 years under PT rules). On instruction/termination, we export and delete following a short grace period and backup window.
+- Clinical data: retention is set by the expert (e.g., 10 years under PT rules). On instruction/termination, we export and delete following a short grace period and backup window.
 
 ## 7) Data subject rights
 
 - Platform (Controller): We handle access, correction, deletion, portability, restriction, and objection requests.
-- Clinical (Processor): We provide tools so practitioners can fulfill patient requests.
+- Clinical (Processor): We provide tools so experts can fulfill patient requests.
 
-## 8) Practitioner responsibilities (as Controller)
+## 8) Expert responsibilities (as Controller)
 
 - Obtain informed consent where needed; ensure lawful basis (e.g., GDPR Art. 9(2)(h))
 - Set retention; respond to rights requests; maintain accuracy; carry malpractice insurance
@@ -58,7 +58,7 @@ This DPA explains how Eleva.care handles personal data—clearly and simply.
 ## 10) Liability
 
 - Eleva.care: liable for platform tech and security as described
-- Practitioners: liable for clinical decisions, patient outcomes, and compliance as Controllers
+- Experts: liable for clinical decisions, patient outcomes, and compliance as Controllers
 
 ## 11) Updates, law, and disputes
 

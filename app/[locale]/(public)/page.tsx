@@ -14,9 +14,9 @@ interface PageProps {
 // Fallback metadata for invalid locales or errors
 const FALLBACK_METADATA = {
   path: '/',
-  title: "Connect with Expert Women's Health Practitioners | Eleva Care",
+  title: "Connect with Expert Women's Health Specialists | Eleva Care",
   description:
-    "Eleva Care: Find and book licensed women's health practitioners for pregnancy, postpartum, menopause, and sexual health. A secure platform connecting you with independent healthcare professionals.",
+    "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
   keywords: [
     'pregnancy care',
     'postpartum support',
@@ -25,7 +25,7 @@ const FALLBACK_METADATA = {
     'healthcare experts',
     'menopause care',
     'healthcare marketplace',
-    'find practitioners',
+    'find experts',
   ],
 };
 

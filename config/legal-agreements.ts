@@ -11,14 +11,17 @@
  */
 
 /**
- * Practitioner Agreement Version Configuration
+ * Expert Agreement Version Configuration
  *
- * The practitioner agreement is required for experts to publish their profiles
+ * The expert agreement is required for experts to publish their profiles
  * and offer services on the Eleva.care platform.
+ *
+ * Note: Variable name kept as PRACTITIONER_AGREEMENT_CONFIG for backward
+ * compatibility with database fields and existing code references.
  */
 export const PRACTITIONER_AGREEMENT_CONFIG = {
   /**
-   * Current version of the practitioner agreement
+   * Current version of the expert agreement
    * Format: Use semantic versioning (e.g., "1.0", "1.1", "2.0")
    * or date-based versioning (e.g., "2024-10-01")
    */
@@ -111,9 +114,10 @@ export function getAgreementMetadata(config: typeof PRACTITIONER_AGREEMENT_CONFI
 
 /**
  * Export all configs for easy import
+ * Note: Key names preserved for backward compatibility
  */
 export const LEGAL_AGREEMENT_CONFIGS = {
-  practitionerAgreement: PRACTITIONER_AGREEMENT_CONFIG,
+  practitionerAgreement: PRACTITIONER_AGREEMENT_CONFIG, // Expert Agreement
   termsOfService: TERMS_OF_SERVICE_CONFIG,
   privacyPolicy: PRIVACY_POLICY_CONFIG,
   dpa: DPA_CONFIG,

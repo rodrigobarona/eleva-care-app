@@ -9,10 +9,10 @@
   },
   "metadata": {
     "title": "Connect with Expert Women's Health Specialists | Eleva Care",
-    "description": "Eleva Care: Find and book licensed women's health experts for pregnancy, postpartum, menopause, and sexual health. A secure platform connecting you with independent healthcare professionals.",
+    "description": "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
     "og": {
       "title": "Connect with Expert Women's Health Specialists | Eleva Care",
-      "description": "Eleva Care: Find and book licensed women's health experts for pregnancy, postpartum, menopause, and sexual health. A secure platform connecting you with independent healthcare professionals.",
+      "description": "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
       "siteName": "Eleva Care"
     },
     "about": {
@@ -374,8 +374,8 @@
       "linkedin": "Follow us on LinkedIn"
     },
     "platformDisclaimer": {
-      "title": "We’re a healthcare technology platform",
-      "description": "We help you connect with independent, licensed healthcare practitioners. We provide the technology; your chosen practitioner provides your care."
+      "title": "We're a healthcare technology platform",
+      "description": "We help you connect with independent, licensed care experts. We provide the technology; your chosen expert provides your care."
     },
     "compliance": {
       "gdpr": "GDPR Compliant",
@@ -391,11 +391,11 @@
   },
   "experts": {
     "title": "Independent Experts",
-    "subtitle": "Connect with Leading Professionals",
-    "description": "Find and book independent, licensed experts specializing in physiotherapy and women's health. Our platform connects you with qualified professionals ready to support your unique health and wellness journey.",
+    "subtitle": "Connect with Leading Specialists",
+    "description": "Find and book trusted experts specializing in physiotherapy and women's health. Our platform connects you with qualified care professionals ready to support your unique health and wellness journey.",
     "disclaimerLink": "Learn more about our platform",
     "topExpertBadge": "Featured",
-    "topExpertDisclaimer": "Experts are independent professionals who self-certify their credentials.",
+    "topExpertDisclaimer": "Experts on Eleva Care are independent professionals who self-certify their credentials.",
     "sessionLabel": "Session",
     "expertImageAlt": "Profile photo of {name}",
     "verifiedBadgeAlt": "Self-Certified Expert"
@@ -413,18 +413,18 @@
     },
     "platform": {
       "title": "How Eleva Care works",
-      "description": "Eleva Care is a technology marketplace that connects you with independent, licensed healthcare experts. We don’t provide medical services; your chosen practitioner provides your care.",
+      "description": "Eleva Care is a trusted platform that connects you with independent, licensed care experts. We don't provide medical services; your chosen expert provides your care.",
       "weAre": "What we provide",
       "weAreList": {
         "marketplace": "A secure technology platform and marketplace",
         "technology": "Booking, scheduling, and payment processing tools",
         "secure": "Encrypted storage for expert clinical notes"
       },
-      "weAreNot": "What we don’t provide",
+      "weAreNot": "What we don't provide",
       "weAreNotList": {
         "provider": "Medical care, diagnoses, or treatment",
         "employer": "Employment or supervision of experts",
-        "responsible": "Medical liability (your practitioner is responsible for your care)"
+        "responsible": "Medical liability (your expert is responsible for your care)"
       },
       "footer": "Experts on Eleva Care are independent professionals who self‑certify their credentials and are solely responsible for the care they provide. For full details, please read our",
       "termsLink": "Terms and Conditions"

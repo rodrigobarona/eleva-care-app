@@ -374,7 +374,7 @@
     },
     "platformDisclaimer": {
       "title": "Somos una plataforma tecnológica de salud",
-      "description": "Te ayudamos a conectar con profesionales de salud independientes y con licencia. Nosotros aportamos la tecnología; tu profesional elegido brinda tu atención."
+      "description": "Te ayudamos a conectar con especialistas independientes y con licencia. Nosotros aportamos la tecnología; tu especialista elegido brinda tu atención."
     },
     "compliance": {
       "gdpr": "Cumple con el RGPD",
@@ -390,11 +390,11 @@
   },
   "experts": {
     "title": "Especialistas Independientes",
-    "subtitle": "Conéctate con los Mejores Profesionales",
-    "description": "Encuentra y reserva especialistas independientes y licenciados especializados en fisioterapia y salud femenina. Nuestra plataforma te conecta con profesionales calificados listos para apoyar tu viaje único de salud y bienestar.",
+    "subtitle": "Conéctate con los Mejores Especialistas",
+    "description": "Encuentra y reserva especialistas confiables en fisioterapia y salud femenina. Nuestra plataforma te conecta con profesionales calificados listos para apoyar tu viaje único de salud y bienestar.",
     "disclaimerLink": "Más información sobre nuestra plataforma",
     "topExpertBadge": "Destacado",
-    "topExpertDisclaimer": "Los especialistas son profesionales independientes que auto-certifican sus credenciales.",
+    "topExpertDisclaimer": "Los especialistas en Eleva Care son profesionales independientes que auto-certifican sus credenciales.",
     "sessionLabel": "Sesión",
     "expertImageAlt": "Foto de perfil de {name}",
     "verifiedBadgeAlt": "Especialista Auto-Certificado"
@@ -412,7 +412,7 @@
     },
     "platform": {
       "title": "Cómo funciona Eleva Care",
-      "description": "Eleva Care es un marketplace tecnológico que te conecta con especialistas de salud independientes y con licencia. Nosotros no prestamos servicios médicos; tu profesional elegido brinda tu atención.",
+      "description": "Eleva Care es una plataforma confiable que te conecta con especialistas independientes y con licencia. Nosotros no prestamos servicios médicos; tu especialista elegido brinda tu atención.",
       "weAre": "Lo que ofrecemos",
       "weAreList": {
         "marketplace": "Una plataforma tecnológica segura y marketplace",
@@ -423,7 +423,7 @@
       "weAreNotList": {
         "provider": "Atención médica, diagnósticos o tratamientos",
         "employer": "Empleo o supervisión de especialistas",
-        "responsible": "Responsabilidad médica (tu profesional es responsable de tu atención)"
+        "responsible": "Responsabilidad médica (tu especialista es responsable de tu atención)"
       },
       "footer": "Los especialistas en Eleva Care son profesionales independientes que auto‑certifican sus credenciales y son responsables de la atención que brindan. Para más detalles, revisa nuestros",
       "termsLink": "Términos y Condiciones"
