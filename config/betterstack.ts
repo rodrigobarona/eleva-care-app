@@ -43,9 +43,9 @@ export const betterstackConfig = {
 
   /**
    * Cache duration for status data (in seconds)
-   * Default: 60 seconds
+   * Default: 180 seconds (3 minutes)
    */
-  cacheDuration: 60,
+  cacheDuration: 180,
 } as const satisfies {
   apiKey: string | undefined;
   statusPageUrl: string | undefined;

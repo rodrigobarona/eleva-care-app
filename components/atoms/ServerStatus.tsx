@@ -1,3 +1,4 @@
+import { betterstackConfig } from '@/config/betterstack';
 import type { UptimeMonitorResponse } from '@/types/betterstack';
 import { getTranslations } from 'next-intl/server';
 
@@ -39,8 +40,8 @@ export async function ServerStatus() {
       headers: {
         Authorization: `Bearer ${process.env.BETTERSTACK_API_KEY}`,
       },
-      // Cache for 180 seconds to avoid excessive API calls
-      next: { revalidate: 180 },
+      // Cache using centralized config duration to avoid excessive API calls
+      next: { revalidate: betterstackConfig.cacheDuration },
     });
 
     if (!response.ok) {
