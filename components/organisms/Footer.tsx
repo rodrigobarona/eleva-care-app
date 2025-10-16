@@ -63,45 +63,32 @@ export default function Footer() {
 
                           {/* Compliance Badges - Cal.com style */}
                           <div className="mt-6 flex flex-wrap items-center gap-3">
-                            <Link
-                              href="/trust/security"
-                              className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
-                              aria-label={t('compliance.gdpr')}
-                            >
-                              <span className="text-xs font-semibold text-gray-700">
-                                {t('compliance.gdpr')}
-                              </span>
-                            </Link>
-
-                            <Link
-                              href="/trust/security"
-                              className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
-                              aria-label={t('compliance.lgpd')}
-                            >
-                              <span className="text-xs font-semibold text-gray-700">
-                                {t('compliance.lgpd')}
-                              </span>
-                            </Link>
-
-                            <Link
-                              href="/trust/security"
-                              className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
-                              aria-label={t('compliance.hipaa')}
-                            >
-                              <span className="text-xs font-semibold text-gray-700">
-                                {t('compliance.hipaa')}
-                              </span>
-                            </Link>
-
-                            <Link
-                              href="/trust/security"
-                              className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
-                              aria-label={t('compliance.iso27001')}
-                            >
-                              <span className="text-xs font-semibold text-gray-700">
-                                {t('compliance.iso27001')}
-                              </span>
-                            </Link>
+                            {(['gdpr', 'lgpd', 'hipaa', 'iso27001'] as const).map((key) => (
+                              <Link
+                                key={key}
+                                href="/trust/security"
+                                className="flex h-12 items-center rounded-lg border border-gray-200/60 bg-white/80 px-3 transition-all hover:border-gray-300 hover:shadow-sm"
+                                aria-label={
+                                  key === 'gdpr'
+                                    ? t('compliance.gdpr')
+                                    : key === 'lgpd'
+                                      ? t('compliance.lgpd')
+                                      : key === 'hipaa'
+                                        ? t('compliance.hipaa')
+                                        : t('compliance.iso27001')
+                                }
+                              >
+                                <span className="text-xs font-semibold text-gray-700">
+                                  {key === 'gdpr'
+                                    ? t('compliance.gdpr')
+                                    : key === 'lgpd'
+                                      ? t('compliance.lgpd')
+                                      : key === 'hipaa'
+                                        ? t('compliance.hipaa')
+                                        : t('compliance.iso27001')}
+                                </span>
+                              </Link>
+                            ))}
                           </div>
 
                           {/* Platform Disclaimer - Compact */}
