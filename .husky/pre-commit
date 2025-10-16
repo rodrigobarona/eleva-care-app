@@ -35,10 +35,12 @@ pnpm lint-staged
 
 # Run tests for modified files
 echo "🧪 Running tests for modified files..."
-FILES=$(git diff --cached --name-only | grep -E '\.(ts|tsx)$' || true)
+# Use --diff-filter=d to exclude deleted files, and handle filenames with spaces safely
+FILES=$(git diff --cached --name-only --diff-filter=d | grep -E '\.(ts|tsx)$' || true)
 if [ -n "$FILES" ]; then
   echo "🔍 Found changed TypeScript files, running related tests..."
-  pnpm exec jest --findRelatedTests "$FILES" --passWithNoTests
+  # Use printf with null delimiter and xargs -0 to safely handle filenames with spaces
+  printf '%s\0' $FILES | xargs -0 pnpm exec jest --findRelatedTests --passWithNoTests --
 else
   echo "📝 No TypeScript files changed, skipping tests"
 fi
