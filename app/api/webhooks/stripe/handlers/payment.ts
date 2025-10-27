@@ -6,7 +6,6 @@ import {
   EventTable,
   MeetingTable,
   PaymentTransferTable,
-  ScheduleTable,
   schedulingSettings,
   SlotReservationTable,
   UserTable,
@@ -177,10 +176,14 @@ function hasTimeOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boo
  *
  * ALL conflicts result in 100% refund under v3.0 customer-first policy
  *
- * Timezone Handling:
- * - Blocked date detection uses the expert's timezone from ScheduleTable
- * - This ensures correct date boundary detection (e.g., EST expert blocking 2025-02-15
- *   will correctly match an appointment at 2025-02-16 04:00 UTC which is 2025-02-15 23:00 EST)
+ * Timezone Handling (Critical):
+ * - Each blocked date has its own timezone field (BlockedDatesTable.timezone)
+ * - We format the appointment time in EACH blocked date's specific timezone
+ * - This correctly handles cases where:
+ *   • Expert changes their schedule timezone after blocking dates
+ *   • Blocked dates were created with different timezones (e.g., expert traveling)
+ * - Example: Blocked date '2025-02-15' in 'America/New_York' will match an appointment
+ *   at 2025-02-16 04:00 UTC (which is 2025-02-15 23:00 EST)
  *
  * @param expertId - Expert's Clerk user ID
  * @param startTime - Appointment start time (UTC)
@@ -219,48 +222,44 @@ async function checkAppointmentConflict(
     );
 
     // 🆕 PRIORITY 1: Check for BLOCKED DATES (Expert's responsibility - 100% refund)
-    // Get expert's timezone from ScheduleTable to ensure timezone-aware date comparison
-    const expertSchedule = await db.query.ScheduleTable.findFirst({
-      where: eq(ScheduleTable.clerkUserId, expertId),
-      columns: { timezone: true },
+    // Get all blocked dates for the expert (with their individual timezones)
+    // Note: Each blocked date has its own timezone field that must be used for accurate detection
+    const blockedDates = await db.query.BlockedDatesTable.findMany({
+      where: eq(BlockedDatesTable.clerkUserId, expertId),
     });
 
-    // Use expert's timezone for date formatting, fallback to UTC if not set
-    const expertTimezone = expertSchedule?.timezone || 'UTC';
+    console.log(`🗓️  Checking ${blockedDates.length} blocked dates for expert ${expertId}`);
 
-    // Format appointment date in expert's timezone to match how blocked dates are stored
-    const appointmentDateString = format(startTime, 'yyyy-MM-dd', { timeZone: expertTimezone });
+    // Check if appointment falls on any blocked date in that date's specific timezone
+    for (const blockedDate of blockedDates) {
+      // Format the appointment time in the blocked date's timezone
+      const appointmentDateInBlockedTz = format(startTime, 'yyyy-MM-dd', {
+        timeZone: blockedDate.timezone,
+      });
 
-    console.log(
-      `🗓️  Checking blocked dates for ${appointmentDateString} (expert timezone: ${expertTimezone})`,
-    );
-
-    const blockedDate = await db.query.BlockedDatesTable.findFirst({
-      where: and(
-        eq(BlockedDatesTable.clerkUserId, expertId),
-        eq(BlockedDatesTable.date, appointmentDateString),
-      ),
-    });
-
-    if (blockedDate) {
-      console.log(
-        `🚫 BLOCKED DATE CONFLICT DETECTED!`,
-        `\n  - Date: ${appointmentDateString}`,
-        `\n  - Expert: ${expertId}`,
-        `\n  - Expert Timezone: ${expertTimezone}`,
-        `\n  - Reason: ${blockedDate.reason || 'Not specified'}`,
-        `\n  - Blocked ID: ${blockedDate.id}`,
-        `\n  - ⚠️  This warrants 100% refund - expert blocked after booking`,
-      );
-      return {
-        hasConflict: true,
-        reason: 'expert_blocked_date',
-        blockedDateReason: blockedDate.reason || undefined,
-      };
+      // If the appointment date matches the blocked date in its timezone, we have a conflict
+      if (appointmentDateInBlockedTz === blockedDate.date) {
+        console.log(
+          `🚫 BLOCKED DATE CONFLICT DETECTED!`,
+          `\n  - Appointment time (UTC): ${startTime.toISOString()}`,
+          `\n  - Appointment date in blocked timezone: ${appointmentDateInBlockedTz}`,
+          `\n  - Blocked date: ${blockedDate.date}`,
+          `\n  - Blocked date timezone: ${blockedDate.timezone}`,
+          `\n  - Expert: ${expertId}`,
+          `\n  - Reason: ${blockedDate.reason || 'Not specified'}`,
+          `\n  - Blocked ID: ${blockedDate.id}`,
+          `\n  - ⚠️  This warrants 100% refund - expert blocked after booking`,
+        );
+        return {
+          hasConflict: true,
+          reason: 'expert_blocked_date',
+          blockedDateReason: blockedDate.reason || undefined,
+        };
+      }
     }
 
     console.log(
-      `✅ No blocked dates found for ${appointmentDateString} (checked in ${expertTimezone})`,
+      `✅ No blocked date conflicts found (checked ${blockedDates.length} blocked dates)`,
     );
 
     // PRIORITY 2: Check for existing confirmed meetings with TIME RANGE OVERLAP
