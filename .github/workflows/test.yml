@@ -3,7 +3,8 @@ name: 🧪 Test Suite
 on:
   push:
     branches: [main, develop]
-  pull_request: # Runs on all PRs regardless of target branch
+  pull_request:
+    branches: [main, develop]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

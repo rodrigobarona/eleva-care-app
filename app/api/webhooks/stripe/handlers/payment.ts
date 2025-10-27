@@ -232,17 +232,31 @@ async function checkAppointmentConflict(
 
     // Check if appointment falls on any blocked date in that date's specific timezone
     for (const blockedDate of blockedDates) {
-      // Format the appointment time in the blocked date's timezone
+      // Format both the appointment start and end times in the blocked date's timezone
       const appointmentDateInBlockedTz = format(startTime, 'yyyy-MM-dd', {
         timeZone: blockedDate.timezone,
       });
 
-      // If the appointment date matches the blocked date in its timezone, we have a conflict
-      if (appointmentDateInBlockedTz === blockedDate.date) {
+      const appointmentEndDateInBlockedTz = format(endTime, 'yyyy-MM-dd', {
+        timeZone: blockedDate.timezone,
+      });
+
+      // Check if the appointment conflicts with the blocked date:
+      // 1. Start date matches blocked date, OR
+      // 2. End date matches blocked date, OR
+      // 3. Appointment spans the blocked date (start and end dates differ, and either matches)
+      const startDateMatches = appointmentDateInBlockedTz === blockedDate.date;
+      const endDateMatches = appointmentEndDateInBlockedTz === blockedDate.date;
+      const spansBlockedDate =
+        appointmentDateInBlockedTz !== appointmentEndDateInBlockedTz &&
+        (startDateMatches || endDateMatches);
+
+      if (startDateMatches || endDateMatches || spansBlockedDate) {
         console.log(
           `🚫 BLOCKED DATE CONFLICT DETECTED!`,
-          `\n  - Appointment time (UTC): ${startTime.toISOString()}`,
-          `\n  - Appointment date in blocked timezone: ${appointmentDateInBlockedTz}`,
+          `\n  - Appointment time (UTC): ${startTime.toISOString()} - ${endTime.toISOString()}`,
+          `\n  - Appointment start date in blocked timezone: ${appointmentDateInBlockedTz}`,
+          `\n  - Appointment end date in blocked timezone: ${appointmentEndDateInBlockedTz}`,
           `\n  - Blocked date: ${blockedDate.date}`,
           `\n  - Blocked date timezone: ${blockedDate.timezone}`,
           `\n  - Expert: ${expertId}`,
@@ -541,15 +555,30 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         console.log(`🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`);
 
         // 🆕 Process refund with conflict type (100% for blocked date, 90% for others)
+        // Map conflict reason to allowed conflictType values
+        let conflictType:
+          | 'expert_blocked_date'
+          | 'time_range_overlap'
+          | 'minimum_notice_violation'
+          | 'unknown_conflict';
+
+        if (conflictResult.reason === 'expert_blocked_date') {
+          conflictType = 'expert_blocked_date';
+        } else if (conflictResult.reason === 'time_range_overlap') {
+          conflictType = 'time_range_overlap';
+        } else if (conflictResult.reason === 'minimum_notice_violation') {
+          conflictType = 'minimum_notice_violation';
+        } else {
+          // Map any other reason (including 'event_not_found') to 'unknown_conflict'
+          conflictType = 'unknown_conflict';
+        }
+
         const refund = await processPartialRefund(
           paymentIntent,
           conflictResult.reason === 'expert_blocked_date'
             ? 'Expert blocked this date after your booking was made'
             : 'Appointment time slot no longer available due to late payment',
-          (conflictResult.reason as
-            | 'expert_blocked_date'
-            | 'time_range_overlap'
-            | 'minimum_notice_violation') || 'unknown_conflict',
+          conflictType,
         );
 
         if (refund) {
