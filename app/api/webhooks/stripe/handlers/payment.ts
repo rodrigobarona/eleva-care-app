@@ -2,6 +2,7 @@ import { triggerWorkflow } from '@/app/utils/novu';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
+  BlockedDatesTable,
   EventTable,
   MeetingTable,
   PaymentTransferTable,
@@ -166,9 +167,26 @@ function hasTimeOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boo
 }
 
 /**
- * Enhanced collision detection that considers both booking conflicts and actual minimum notice periods
+ * Enhanced collision detection that considers blocked dates, booking conflicts, and minimum notice periods
+ *
+ * Priority order (for detection logic):
+ * 1. Blocked dates (expert blocked after booking) → 100% refund
+ * 2. Time range overlaps (slot already booked) → 100% refund
+ * 3. Minimum notice violations (too close to start time) → 100% refund
+ *
+ * ALL conflicts result in 100% refund under v3.0 customer-first policy
+ *
+ * Timezone Handling (Critical):
+ * - Each blocked date has its own timezone field (BlockedDatesTable.timezone)
+ * - We format the appointment time in EACH blocked date's specific timezone
+ * - This correctly handles cases where:
+ *   • Expert changes their schedule timezone after blocking dates
+ *   • Blocked dates were created with different timezones (e.g., expert traveling)
+ * - Example: Blocked date '2025-02-15' in 'America/New_York' will match an appointment
+ *   at 2025-02-16 04:00 UTC (which is 2025-02-15 23:00 EST)
+ *
  * @param expertId - Expert's Clerk user ID
- * @param startTime - Appointment start time
+ * @param startTime - Appointment start time (UTC)
  * @param eventId - Event ID to get duration information
  * @returns Object with conflict info and reason
  */
@@ -176,7 +194,12 @@ async function checkAppointmentConflict(
   expertId: string,
   startTime: Date,
   eventId: string,
-): Promise<{ hasConflict: boolean; reason?: string; minimumNoticeHours?: number }> {
+): Promise<{
+  hasConflict: boolean;
+  reason?: string;
+  minimumNoticeHours?: number;
+  blockedDateReason?: string;
+}> {
   try {
     console.log(`🔍 Enhanced collision check for expert ${expertId} at ${startTime.toISOString()}`);
 
@@ -198,7 +221,62 @@ async function checkAppointmentConflict(
       `📅 New appointment: ${startTime.toISOString()} - ${endTime.toISOString()} (${event.durationInMinutes} min)`,
     );
 
-    // 1. Check for existing confirmed meetings with TIME RANGE OVERLAP
+    // 🆕 PRIORITY 1: Check for BLOCKED DATES (Expert's responsibility - 100% refund)
+    // Get all blocked dates for the expert (with their individual timezones)
+    // Note: Each blocked date has its own timezone field that must be used for accurate detection
+    const blockedDates = await db.query.BlockedDatesTable.findMany({
+      where: eq(BlockedDatesTable.clerkUserId, expertId),
+    });
+
+    console.log(`🗓️  Checking ${blockedDates.length} blocked dates for expert ${expertId}`);
+
+    // Check if appointment falls on any blocked date in that date's specific timezone
+    for (const blockedDate of blockedDates) {
+      // Format both the appointment start and end times in the blocked date's timezone
+      const appointmentDateInBlockedTz = format(startTime, 'yyyy-MM-dd', {
+        timeZone: blockedDate.timezone,
+      });
+
+      const appointmentEndDateInBlockedTz = format(endTime, 'yyyy-MM-dd', {
+        timeZone: blockedDate.timezone,
+      });
+
+      // Check if the appointment conflicts with the blocked date:
+      // 1. Start date matches blocked date, OR
+      // 2. End date matches blocked date, OR
+      // 3. Appointment spans the blocked date (start and end dates differ, and either matches)
+      const startDateMatches = appointmentDateInBlockedTz === blockedDate.date;
+      const endDateMatches = appointmentEndDateInBlockedTz === blockedDate.date;
+      const spansBlockedDate =
+        appointmentDateInBlockedTz !== appointmentEndDateInBlockedTz &&
+        (startDateMatches || endDateMatches);
+
+      if (startDateMatches || endDateMatches || spansBlockedDate) {
+        console.log(
+          `🚫 BLOCKED DATE CONFLICT DETECTED!`,
+          `\n  - Appointment time (UTC): ${startTime.toISOString()} - ${endTime.toISOString()}`,
+          `\n  - Appointment start date in blocked timezone: ${appointmentDateInBlockedTz}`,
+          `\n  - Appointment end date in blocked timezone: ${appointmentEndDateInBlockedTz}`,
+          `\n  - Blocked date: ${blockedDate.date}`,
+          `\n  - Blocked date timezone: ${blockedDate.timezone}`,
+          `\n  - Expert: ${expertId}`,
+          `\n  - Reason: ${blockedDate.reason || 'Not specified'}`,
+          `\n  - Blocked ID: ${blockedDate.id}`,
+          `\n  - ⚠️  This warrants 100% refund - expert blocked after booking`,
+        );
+        return {
+          hasConflict: true,
+          reason: 'expert_blocked_date',
+          blockedDateReason: blockedDate.reason || undefined,
+        };
+      }
+    }
+
+    console.log(
+      `✅ No blocked date conflicts found (checked ${blockedDates.length} blocked dates)`,
+    );
+
+    // PRIORITY 2: Check for existing confirmed meetings with TIME RANGE OVERLAP
     const conflictingMeetings = await db.query.MeetingTable.findMany({
       where: and(
         eq(MeetingTable.clerkUserId, expertId),
@@ -230,7 +308,7 @@ async function checkAppointmentConflict(
 
     console.log('✅ No time range conflicts found');
 
-    // 2. Check actual minimum notice period requirements from expert's settings
+    // PRIORITY 3: Check minimum notice period requirements from expert's settings
     const expertSchedulingSettings = await db.query.schedulingSettings.findFirst({
       where: eq(schedulingSettings.userId, expertId),
     });
@@ -263,26 +341,71 @@ async function checkAppointmentConflict(
     console.log(`✅ No conflicts found for ${startTime.toISOString()}`);
     return { hasConflict: false };
   } catch (error) {
-    console.error('Error in enhanced collision check:', error);
+    // Enhanced error monitoring with structured context for operational visibility
+    console.error(
+      `❌ CRITICAL: Conflict check failed for expert ${expertId} at ${startTime.toISOString()}. ` +
+        `Event ID: ${eventId}. ` +
+        `Defaulting to no conflict to avoid blocking legitimate payment.`,
+      {
+        error,
+        context: {
+          expertId,
+          appointmentTime: startTime.toISOString(),
+          eventId,
+          errorType: error instanceof Error ? error.constructor.name : typeof error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+      },
+    );
+
+    // TODO: Emit metric/alert for monitoring (e.g., to BetterStack, PostHog, or Sentry)
+    // This helps operations teams detect systematic failures that might allow conflicting appointments
+    // Example: await trackMetric('conflict_check_error', { expertId, eventId });
+
     // In case of error, assume no conflict to avoid blocking legitimate payments
+    // Business decision: Prefer false negatives over false positives to maintain user experience
     return { hasConflict: false };
   }
 }
 
 /**
- * Process partial refund for appointment conflicts (90% refund, 10% processing fee)
+ * Process full refund for appointment conflicts
+ *
+ * CUSTOMER-FIRST POLICY (v3.0):
+ * - 100% refund for ALL conflicts (blocked dates, time overlaps, minimum notice)
+ * - No processing fees charged to customers
+ * - Eleva Care absorbs payment processing costs
+ *
+ * @param paymentIntent - Stripe Payment Intent object
+ * @param reason - Human-readable conflict reason
+ * @param conflictType - Type of conflict detected (for logging and analytics)
+ * @returns Stripe Refund object or null if failed
  */
 async function processPartialRefund(
   paymentIntent: Stripe.PaymentIntent,
   reason: string,
+  conflictType:
+    | 'expert_blocked_date'
+    | 'time_range_overlap'
+    | 'minimum_notice_violation'
+    | 'unknown_conflict',
 ): Promise<Stripe.Refund | null> {
   try {
     const originalAmount = paymentIntent.amount;
-    const refundAmount = Math.floor(originalAmount * 0.9); // 90% refund
-    const processingFee = originalAmount - refundAmount; // 10% processing fee
+
+    // 🆕 CUSTOMER-FIRST POLICY (v3.0): Always 100% refund for any conflict
+    // No processing fees charged - Eleva Care absorbs the cost
+    const refundAmount = originalAmount; // Always 100% refund
+    const processingFee = 0; // No fee charged
+    const refundPercentage = '100';
 
     console.log(
-      `💰 Processing partial refund: Original: ${originalAmount}, Refund: ${refundAmount}, Fee: ${processingFee}`,
+      `💰 Processing 🎁 FULL (100%) refund:`,
+      `\n  - Conflict Type: ${conflictType}`,
+      `\n  - Original: €${(originalAmount / 100).toFixed(2)}`,
+      `\n  - Refund: €${(refundAmount / 100).toFixed(2)} (${refundPercentage}%)`,
+      `\n  - Fee Retained: €${(processingFee / 100).toFixed(2)}`,
+      `\n  - Reason: ${reason}`,
     );
 
     const refund = await stripe.refunds.create({
@@ -291,17 +414,24 @@ async function processPartialRefund(
       reason: 'requested_by_customer',
       metadata: {
         reason: reason,
+        conflict_type: conflictType,
         original_amount: originalAmount.toString(),
         processing_fee: processingFee.toString(),
-        refund_percentage: '90',
-        conflict_type: reason,
+        refund_percentage: refundPercentage,
+        policy_version: '3.0', // Customer-first: Always 100% refund
       },
     });
 
-    console.log(`✅ Partial refund processed: ${refund.id} for amount ${refundAmount}`);
+    console.log(
+      `✅ 🎁 Full refund (100%) processed:`,
+      `\n  - Refund ID: ${refund.id}`,
+      `\n  - Amount: €${(refund.amount / 100).toFixed(2)}`,
+      `\n  - Status: ${refund.status}`,
+    );
+
     return refund;
   } catch (error) {
-    console.error('Error processing partial refund:', error);
+    console.error('❌ Error processing refund:', error);
     return null;
   }
 }
@@ -424,10 +554,31 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       if (hasConflict) {
         console.log(`🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`);
 
-        // Process 90% refund
+        // 🆕 Process refund with conflict type (100% for blocked date, 90% for others)
+        // Map conflict reason to allowed conflictType values
+        let conflictType:
+          | 'expert_blocked_date'
+          | 'time_range_overlap'
+          | 'minimum_notice_violation'
+          | 'unknown_conflict';
+
+        if (conflictResult.reason === 'expert_blocked_date') {
+          conflictType = 'expert_blocked_date';
+        } else if (conflictResult.reason === 'time_range_overlap') {
+          conflictType = 'time_range_overlap';
+        } else if (conflictResult.reason === 'minimum_notice_violation') {
+          conflictType = 'minimum_notice_violation';
+        } else {
+          // Map any other reason (including 'event_not_found') to 'unknown_conflict'
+          conflictType = 'unknown_conflict';
+        }
+
         const refund = await processPartialRefund(
           paymentIntent,
-          'Appointment time slot no longer available due to late payment',
+          conflictResult.reason === 'expert_blocked_date'
+            ? 'Expert blocked this date after your booking was made'
+            : 'Appointment time slot no longer available due to late payment',
+          conflictType,
         );
 
         if (refund) {
@@ -454,7 +605,9 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             conflictResult.minimumNoticeHours,
           );
 
-          console.log(`✅ Conflict handled: 90% refund processed for PI ${paymentIntent.id}`);
+          console.log(
+            `✅ Conflict handled: 100% refund processed for PI ${paymentIntent.id} (v3.0 Customer-First policy)`,
+          );
 
           // Mark the meeting as refunded and return early
           await db

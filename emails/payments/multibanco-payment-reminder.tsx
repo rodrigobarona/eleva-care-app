@@ -79,7 +79,7 @@ export default function MultibancoPaymentReminderTemplate({
       completePayment: 'Complete Payment',
       warningTitle: "What happens if I don't pay in time?",
       warningText:
-        'If payment is not received by the expiration date, your appointment will be automatically cancelled and the time slot will become available to other patients.',
+        'If payment is not received by the expiration date, your appointment will be automatically cancelled and the time slot will become available to other clients.',
       support: "Need help with payment? Contact our support team and we'll be happy to assist you.",
       minutes: 'minutes',
       paymentExpiring: 'Payment expiring soon - Secure your appointment now',
@@ -111,7 +111,7 @@ export default function MultibancoPaymentReminderTemplate({
       completePayment: 'Completar Pagamento',
       warningTitle: 'O que acontece se não pagar a tempo?',
       warningText:
-        'Se o pagamento não for recebido até à data de expiração, a sua consulta será automaticamente cancelada e o horário ficará disponível para outros pacientes.',
+        'Se o pagamento não for recebido até à data de expiração, a sua consulta será automaticamente cancelada e o horário ficará disponível para outros clientes.',
       support:
         'Precisa de ajuda com o pagamento? Contacte a nossa equipa de apoio e ficaremos felizes em ajudá-lo.',
       minutes: 'minutos',

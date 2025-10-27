@@ -39,6 +39,11 @@ export const SCHEDULE_UPDATED = 'SCHEDULE_UPDATED' as const;
 export const BLOCKED_DATE_ADDED = 'BLOCKED_DATE_ADDED' as const;
 export const BLOCKED_DATE_REMOVED = 'BLOCKED_DATE_REMOVED' as const;
 
+// Profile & Agreement Management
+export const PROFILE_PUBLISHED = 'PROFILE_PUBLISHED' as const;
+export const PROFILE_UNPUBLISHED = 'PROFILE_UNPUBLISHED' as const;
+export const PRACTITIONER_AGREEMENT_ACCEPTED = 'PRACTITIONER_AGREEMENT_ACCEPTED' as const;
+
 // Security Events
 export const SECURITY_ALERT_NOTIFIED = 'SECURITY_ALERT_NOTIFIED' as const;
 export const SECURITY_ALERT_IGNORED = 'SECURITY_ALERT_IGNORED' as const;
@@ -79,6 +84,11 @@ export type AuditEventType =
   | typeof BLOCKED_DATE_ADDED
   | typeof BLOCKED_DATE_REMOVED
 
+  // Profile & Agreement Management
+  | typeof PROFILE_PUBLISHED
+  | typeof PROFILE_UNPUBLISHED
+  | typeof PRACTITIONER_AGREEMENT_ACCEPTED
+
   // Security Events
   | typeof SECURITY_ALERT_NOTIFIED
   | typeof SECURITY_ALERT_IGNORED
@@ -100,6 +110,8 @@ export type AuditResourceType =
   | 'schedule'
   | 'payment_intent'
   | 'user'
+  | 'profile'
+  | 'legal_agreement'
   | 'system'
   | 'security_event';
 

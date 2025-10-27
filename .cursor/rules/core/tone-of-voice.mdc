@@ -1,0 +1,469 @@
+---
+description: 'Eleva Care Tone of Voice: Human-Friendly, Airbnb-Inspired Communication for all user-facing content'
+type: 'auto'
+globs:
+  - 'content/**/*.mdx'
+  - 'messages/**/*.json'
+  - 'emails/**/*.tsx'
+  - 'app/**/page.tsx'
+  - 'components/**/*.tsx'
+---
+
+# Tone of Voice: Human-Friendly, Airbnb-Inspired Communication
+
+## Overview
+
+**Purpose:** Ensure consistent, warm, human-friendly tone across all user-facing content  
+**Inspiration:** Airbnb's marketplace approach adapted for healthcare  
+**Priority:** High - Voice consistency is critical for brand trust
+
+## Core Philosophy
+
+> **"We're not a hospital. We're a bridge."**
+>
+> Connect people with care experts in a way that feels personal, clear, and empowering—never clinical, corporate, or cold.
+
+---
+
+## Voice Attributes
+
+When creating content, ensure it is:
+
+1. **Warm** - Friendly without being unprofessional
+2. **Clear** - Simple language, no jargon
+3. **Empowering** - User controls their journey
+4. **Human** - Conversational, not corporate
+5. **Trustworthy** - Transparent about roles
+
+---
+
+## Terminology Standards
+
+### ✅ Always Use These Terms
+
+| Term                     | Context                          | Example                                               |
+| ------------------------ | -------------------------------- | ----------------------------------------------------- |
+| `expert` / `care expert` | Healthcare professionals         | "Book a session with an expert"                       |
+| `Experts on Eleva Care`  | Platform identity (Airbnb-style) | "Experts on Eleva Care are independent professionals" |
+| `client`                 | Person booking appointments      | "Clients choose their own expert"                     |
+| `trusted platform`       | What we are                      | "A trusted platform connecting you..."                |
+| `Your expert`            | Personal, empowering             | "Your expert will provide personalized care"          |
+
+### ❌ Never Use These Terms
+
+| Avoid                     | Why                       | Use Instead              |
+| ------------------------- | ------------------------- | ------------------------ |
+| `practitioner`            | Too clinical, formal      | `expert` / `care expert` |
+| `healthcare professional` | Corporate, distant        | `care expert` / `expert` |
+| `technology marketplace`  | Features over emotion     | `trusted platform`       |
+| `patient`                 | Medical, clinical setting | `client`                 |
+| `provider`                | Vague, institutional      | `expert`                 |
+| `user`                    | Technical, impersonal     | `client`                 |
+
+---
+
+## Airbnb-Style Platform Identity
+
+### How We Mirror Airbnb's Approach
+
+| Airbnb             | Eleva Care              | Why It Works             |
+| ------------------ | ----------------------- | ------------------------ |
+| "Hosts on Airbnb"  | "Experts on Eleva Care" | Platform identity, trust |
+| Hosts              | Experts                 | Service providers        |
+| Guests             | Clients                 | Service seekers          |
+| Superhosts         | Featured Experts        | Quality recognition      |
+| "You're in charge" | "Your chosen expert"    | User empowerment         |
+
+### Key Principle
+
+Use "Experts on Eleva Care" consistently (like "Hosts on Airbnb"):
+
+```tsx
+// ✅ GOOD
+<Text>Experts on Eleva Care are independent professionals who self-certify their credentials.</Text>
+
+// ❌ BAD
+<Text>Healthcare practitioners on our platform are independent contractors.</Text>
+```
+
+---
+
+## Content Type Guidelines
+
+### Marketing Content (Homepage, About, etc.)
+
+**Tone:** Warm, inspiring, clear
+
+```tsx
+// ✅ GOOD
+<h1>World-Class Women's Health Experts, on-demand.</h1>
+<p>We connect you with independent, licensed care experts.</p>
+
+// ❌ BAD
+<h1>Access Licensed Healthcare Practitioners</h1>
+<p>Our technology marketplace facilitates healthcare delivery.</p>
+```
+
+### UI Components & Messages
+
+```tsx
+// ✅ GOOD - Human-friendly
+<Button>Find an Expert</Button>
+<Text>Book your appointment</Text>
+<Alert>Oops! Let's try that again.</Alert>
+
+// ❌ BAD - Too formal
+<Button>Initiate Scheduling Process</Button>
+<Text>Schedule consultation</Text>
+<Alert>Error: Operation failed</Alert>
+```
+
+### Email Content
+
+```typescript
+// ✅ GOOD
+{
+  subject: "Your Appointment is Confirmed!",
+  body: "Great news! Your appointment with Dr. Santos is confirmed.",
+  expert: "Your Expert: Dr. Maria Santos"
+}
+
+// ❌ BAD
+{
+  subject: "Appointment Confirmation Notification",
+  body: "Your consultation has been successfully scheduled.",
+  expert: "Healthcare Provider: Dr. Maria Santos"
+}
+```
+
+### Legal Content (Terms, Privacy, etc.)
+
+**Tone:** Clear, precise, but readable (not robotic)
+
+```markdown
+<!-- ✅ GOOD - Clear and human -->
+
+## What we are (and aren't)
+
+- We're a trusted platform that connects you with independent care experts
+- We don't provide medical care—your expert does
+- Your expert is responsible for your care
+
+<!-- ❌ BAD - Too formal -->
+
+## Platform Description
+
+- This platform facilitates connections between users and healthcare practitioners
+- The platform disclaims medical liability per statutory requirements
+```
+
+---
+
+## Writing Rules
+
+### Sentence Structure
+
+**✅ DO:**
+
+- Use short, clear sentences
+- Active voice: "We connect you with experts"
+- Conversational contractions: "We're", "You're"
+- Personal pronouns: "you", "your", "we"
+
+**❌ DON'T:**
+
+- Long, passive sentences
+- Formal language: "Appointments may be scheduled..."
+- Third person: "Users may..."
+
+### Word Choice Examples
+
+```typescript
+// ✅ DO: Human-friendly
+"We're here to help";
+'Your chosen expert';
+'Find trusted experts';
+'Book on your schedule';
+
+// ❌ DON'T: Corporate jargon
+'Our platform facilitates';
+'Practitioners deliver';
+'Access professionals';
+'According to availability';
+```
+
+---
+
+## Code Implementation Examples
+
+### React Components
+
+```tsx
+// ✅ GOOD - Human-friendly messaging
+export function ExpertCard({ expert }: Props) {
+  return (
+    <Card>
+      <Badge>Featured Expert</Badge>
+      <Text>Experts on Eleva Care are independent professionals</Text>
+      <Button>Book with {expert.name}</Button>
+    </Card>
+  );
+}
+
+// ❌ BAD - Formal, clinical
+export function PractitionerCard({ practitioner }: Props) {
+  return (
+    <Card>
+      <Badge>Certified Healthcare Professional</Badge>
+      <Text>Licensed practitioners self-certify credentials</Text>
+      <Button>Schedule with {practitioner.name}</Button>
+    </Card>
+  );
+}
+```
+
+### Email Templates
+
+```tsx
+// ✅ GOOD
+export function AppointmentConfirmation({ clientName, expertName }: Props) {
+  return (
+    <Email>
+      <Heading>Your Appointment is Confirmed! ✅</Heading>
+      <Text>Hi {clientName},</Text>
+      <Text>Great news! Your appointment with {expertName} is confirmed.</Text>
+      <Detail label="Your Expert">{expertName}</Detail>
+      <Button>Join Video Call</Button>
+    </Email>
+  );
+}
+
+// ❌ BAD
+export function AppointmentConfirmation({ clientName, practitionerName }: Props) {
+  return (
+    <Email>
+      <Heading>Appointment Confirmation</Heading>
+      <Text>Dear {clientName},</Text>
+      <Text>Your consultation has been successfully scheduled.</Text>
+      <Detail label="Healthcare Provider">{practitionerName}</Detail>
+      <Button>Access Consultation</Button>
+    </Email>
+  );
+}
+```
+
+### i18n Messages
+
+```json
+// ✅ GOOD - messages/en.json
+{
+  "hero": {
+    "title": "World-Class Women's Health Experts, on-demand.",
+    "subtitle": "Connect with independent, licensed care experts",
+    "cta": "Find an Expert"
+  },
+  "platform": {
+    "description": "Eleva Care is a trusted platform that connects you with independent care experts."
+  }
+}
+
+// ❌ BAD
+{
+  "hero": {
+    "title": "Access Healthcare Practitioners",
+    "subtitle": "Technology marketplace for women's health services",
+    "cta": "Search Providers"
+  },
+  "platform": {
+    "description": "Our platform facilitates connections with healthcare professionals."
+  }
+}
+```
+
+---
+
+## Multi-Language Guidelines
+
+### Spanish (ES)
+
+```json
+// ✅ GOOD
+{
+  "description": "Eleva Care es una plataforma confiable que te conecta con especialistas independientes.",
+  "expert": "Tu especialista",
+  "disclaimer": "Los especialistas en Eleva Care son profesionales independientes."
+}
+```
+
+**Key Points:**
+
+- Use "especialista" (not "profesional de salud")
+- Use "plataforma confiable" (not "marketplace tecnológico")
+- Maintain formal "usted" for healthcare appropriateness
+
+### Portuguese (PT/BR)
+
+```json
+// ✅ GOOD
+{
+  "description": "A Eleva Care é uma plataforma confiável que liga você a especialistas independentes.",
+  "expert": "Seu especialista",
+  "disclaimer": "Os especialistas na Eleva Care são profissionais independentes."
+}
+```
+
+**Key Points:**
+
+- Use "especialista" consistently
+- Natural, flowing sentences
+- Respect PT/BR variations
+
+---
+
+## Common Mistakes to Avoid
+
+### 1. Reverting to Clinical Language
+
+```tsx
+// ❌ WRONG
+<Text>Healthcare practitioners provide clinical interventions</Text>
+
+// ✅ CORRECT
+<Text>Your expert provides personalized care</Text>
+```
+
+### 2. Corporate Jargon
+
+```tsx
+// ❌ WRONG
+<Heading>Our Organization Facilitates Healthcare Delivery</Heading>
+
+// ✅ CORRECT
+<Heading>We Connect You With Expert Care</Heading>
+```
+
+### 3. Passive Voice
+
+```tsx
+// ❌ WRONG
+<Button>Appointments can be scheduled</Button>
+
+// ✅ CORRECT
+<Button>Book your appointment</Button>
+```
+
+### 4. Vague Roles
+
+```tsx
+// ❌ WRONG - Unclear who provides care
+<Text>We provide healthcare services</Text>
+
+// ✅ CORRECT - Clear role definition
+<Text>We connect you with experts. Your chosen expert provides your care.</Text>
+```
+
+---
+
+## Validation Checklist
+
+Before committing content changes, verify:
+
+- [ ] Uses "expert" not "practitioner"
+- [ ] Uses "client" not "patient" or "user"
+- [ ] Uses "trusted platform" not "technology marketplace"
+- [ ] Includes "Experts on Eleva Care" where appropriate
+- [ ] Warm and conversational (not clinical)
+- [ ] Active voice (not passive)
+- [ ] Clear and simple (no jargon)
+- [ ] Empowering language ("your expert", "your choice")
+- [ ] Consistent across all languages
+
+---
+
+## Before & After Examples
+
+### Platform Description
+
+**❌ Before** (Too corporate):
+
+> "Eleva Care is a technology marketplace that connects you with independent, licensed healthcare practitioners for women's health services."
+
+**✅ After** (Human-friendly):
+
+> "Eleva Care is a trusted platform that connects you with independent, licensed care experts. We provide the technology; your chosen expert provides your care."
+
+**Why it works:**
+
+- "Trusted" > "technology" (emotion vs feature)
+- "Care experts" > "practitioners" (human vs clinical)
+- "Your chosen expert" (empowerment)
+- Clear role separation
+
+### Expert Disclaimer
+
+**❌ Before** (Formal):
+
+> "Healthcare practitioners utilizing this platform are independent contractors who self-certify their professional credentials."
+
+**✅ After** (Airbnb-style):
+
+> "Experts on Eleva Care are independent professionals who self-certify their credentials."
+
+**Why it works:**
+
+- "Experts on Eleva Care" (platform identity like Airbnb)
+- Simpler, clearer language
+- More human, less legal
+
+---
+
+## Quick Decision Tree
+
+```
+Is this user-facing content?
+├─ Yes → Apply tone of voice rules
+│  ├─ Is it marketing content?
+│  │  └─ Use warm, inspiring, empowering tone
+│  ├─ Is it legal content?
+│  │  └─ Use clear, precise, but readable tone
+│  ├─ Is it transactional (email)?
+│  │  └─ Use friendly, helpful, clear tone
+│  └─ Is it UI copy?
+│     └─ Use simple, action-oriented, human tone
+└─ No (internal/technical) → Still prefer "expert" over "practitioner"
+```
+
+---
+
+## Pro Tips
+
+1. **Think Airbnb**: How would Airbnb say this about hosts and guests?
+2. **Read aloud**: Does it sound like a human talking?
+3. **Empathy check**: Does it make the user feel supported?
+4. **Role clarity**: Is it clear who does what (platform vs expert)?
+5. **Simplicity**: Could you explain this to a friend?
+
+---
+
+## Additional Resources
+
+### Internal Documentation
+
+- **Full Guide**: `/docs/04-development/tone-of-voice-guide.md`
+- **Terminology Mapping**: `/docs/TERMINOLOGY_REFRESH.md`
+- **Content Audit**: `/docs/CONTENT_AUDIT_REPORT.md`
+- **Examples**: See content files in `/content/` and `/messages/`
+
+### External Inspiration
+
+- [Airbnb Content Style Guide](https://airbnb.design/writing)
+- [Mailchimp Voice & Tone](https://styleguide.mailchimp.com/voice-and-tone/)
+- [GOV.UK Content Design](https://www.gov.uk/guidance/content-design)
+
+---
+
+## Remember
+
+> **The goal isn't perfection—it's connection.**
+>
+> Write like you're helping a friend find the care they need. Be warm, be clear, be human. That's the Eleva Care voice. 🌟

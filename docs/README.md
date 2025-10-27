@@ -110,7 +110,9 @@ Our documentation follows a **hierarchical priority-based system** designed for 
 ├── monitoring/
 │   ├── 01-health-check-monitoring.md
 │   ├── 02-posthog-analytics.md
-│   └── 03-posthog-dashboard.md
+│   ├── 03-posthog-dashboard.md
+│   ├── 04-monitoring-guide.md
+│   └── 05-keep-alive-enhancements.md
 └── scheduling/
     ├── 01-cron-jobs.md
     └── 02-qstash-integration.md
@@ -120,6 +122,7 @@ Our documentation follows a **hierarchical priority-based system** designed for 
 
 ```
 04-development/
+├── url-structure-guide.md              # /legal/ vs /trust/ architecture
 ├── integrations/
 │   ├── 01-stripe-identity.md
 │   ├── 02-stripe-payouts.md
@@ -129,7 +132,9 @@ Our documentation follows a **hierarchical priority-based system** designed for 
 ├── standards/
 │   ├── 01-database-conventions.md
 │   ├── 02-internationalization.md
-│   └── 03-server-actions.md
+│   ├── 03-server-actions.md
+│   ├── 04-bundle-optimization-report.md
+│   └── 05-build-optimization-guide.md
 ├── testing/
 │   ├── 01-testing-guide.md
 │   ├── 02-webhook-testing.md
@@ -164,11 +169,25 @@ Our documentation follows a **hierarchical priority-based system** designed for 
 
 ```
 06-legal/
-├── README.md                         # Legal documentation overview
-├── privacy.md                        # Privacy policy
-├── terms.md                          # Terms of service
-├── terms2.md                         # Alternative terms version
-└── dpa.md                           # Data processing agreement
+├── README.md                         # Legal documentation overview & compliance status
+├── compliance/                      # GDPR, CNPD, DPO, data protection
+│   ├── 01-legal-compliance-summary.md
+│   ├── 02-gdpr-dpia-template.md
+│   ├── 03-dpo-designation.md
+│   ├── 04-cnpd-compliance-guide.md
+│   ├── 05-data-breach-procedures.md
+│   └── 06-eu-health-data-compliance.md
+├── audit/                           # Technical & legal audits
+│   ├── 01-legal-audit-deliverables.md
+│   ├── 02-technical-audit-2025.md
+│   └── 03-audit-quick-reference.md
+├── platform/                        # Platform model & liability
+│   ├── 01-platform-vs-provider-analysis.md
+│   ├── 02-platform-clarity-summary.md
+│   ├── 03-platform-clarity-updates.md
+│   └── 04-immediate-actions.md
+└── guides/                          # Operational guides
+    └── 01-translation-guide.md
 ```
 
 ### 07 - Project Management (Priority: Medium)
@@ -184,7 +203,8 @@ Our documentation follows a **hierarchical priority-based system** designed for 
 ```
 08-deployment/
 ├── README.md                         # Deployment overview
-└── 01-production-migration-guide.md # Production deployment guide
+├── 01-production-migration-guide.md # Production deployment guide
+└── 02-vercel-environment-setup.md   # Vercel environment variables
 ```
 
 ### 09 - Integrations (Priority: Medium)
@@ -210,8 +230,9 @@ archived/
 ## 📊 Documentation Statistics
 
 - **Total sections**: 9 active + 1 archived
-- **Documentation files**: 80+ organized markdown files
-- **Coverage areas**: All major systems and processes
+- **Documentation files**: 75+ organized markdown files (after consolidation)
+- **Legal & Compliance**: 14 specialized documents in 4 categories
+- **Coverage areas**: All major systems, processes, and compliance requirements
 - **Maintenance**: Centralized in `/docs` for easy management
 
 ## 🔄 Recent Organization Changes
@@ -221,10 +242,23 @@ archived/
 - ✅ **Root level files** → Moved to appropriate sections
 - ✅ **Scattered resources** → Organized by category
 - ✅ **Testing documentation** → Consolidated in development section
-- ✅ **Legal documents** → New dedicated legal section
+- ✅ **Legal documents** → Consolidated and organized in 06-legal/
+- ✅ **Legal audit reports** → Moved to 06-legal/audit/
+- ✅ **Compliance guides** → Organized in 06-legal/compliance/
+- ✅ **Platform model docs** → Organized in 06-legal/platform/
 - ✅ **Integration guides** → New integrations section
 - ✅ **Project management** → New PM section
 - ✅ **Deployment guides** → New deployment section
+
+**Latest Update (October 2025)**:
+
+- ✅ Merged duplicate legal folders (`docs/legal/` + `docs/06-legal/`)
+- ✅ Removed outdated template files
+- ✅ Created organized subdirectory structure (compliance, audit, platform, guides)
+- ✅ Added comprehensive README with compliance status and checklists
+- ✅ **URL Structure Migration**: Migrated from single `/legal/` to hybrid `/legal/` + `/trust/` architecture
+  - See [URL Structure Migration Summary](./URL_STRUCTURE_MIGRATION_SUMMARY.md) for complete details
+  - See [URL Structure Guide](./04-development/url-structure-guide.md) for technical implementation
 
 ## 🤝 Contributing to Documentation
 
@@ -236,4 +270,4 @@ archived/
 
 ---
 
-**📍 Last Updated**: Documentation reorganization completed - all markdown files centralized and organized by system area and priority.
+**📍 Last Updated**: October 2025 - Complete documentation reorganization including legal folder consolidation, duplicate removal, and comprehensive compliance documentation structure.

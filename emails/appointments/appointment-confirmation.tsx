@@ -120,7 +120,7 @@ export default function AppointmentConfirmationTemplate({
             <td style={createTableCellStyle(false, 'right')}>{appointmentDuration}</td>
           </tr>
           <tr>
-            <td style={createTableCellStyle(true)}>Healthcare Provider:</td>
+            <td style={createTableCellStyle(true)}>Your Expert:</td>
             <td style={{ ...createTableCellStyle(false, 'right'), color: ELEVA_COLORS.primary }}>
               {expertName}
             </td>

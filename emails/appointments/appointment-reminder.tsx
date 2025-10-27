@@ -87,7 +87,7 @@ export const AppointmentReminderEmail = ({
             fontFamily: 'system-ui, -apple-system, sans-serif',
           }}
         >
-          <strong>Healthcare Provider:</strong> {expertName}
+          <strong>Your Expert:</strong> {expertName}
         </Text>
 
         <Text

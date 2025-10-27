@@ -80,6 +80,7 @@ function createCustomI18nMiddleware() {
         pathname === '/' ||
         pathname.startsWith('/about') ||
         pathname.startsWith('/legal') ||
+        pathname.startsWith('/trust') ||
         pathname.startsWith('/services') ||
         pathname.startsWith('/help') ||
         pathname.startsWith('/contact') ||
@@ -473,6 +474,15 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     }
     // Other special auth routes might have different logic
     return NextResponse.next();
+  }
+
+  // Handle redirects from old /legal/ URLs to new /trust/ URLs for SEO
+  if (path.includes('/legal/security') || path.includes('/legal/dpa')) {
+    const newPath = path
+      .replace('/legal/security', '/trust/security')
+      .replace('/legal/dpa', '/trust/dpa');
+    console.log(`🔀 Redirecting old legal URL to trust: ${path} → ${newPath}`);
+    return NextResponse.redirect(new URL(newPath, req.url), 301); // Permanent redirect
   }
 
   // Check if this is a username route (public access)

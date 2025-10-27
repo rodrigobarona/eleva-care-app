@@ -11,6 +11,24 @@ interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
+// Fallback metadata for invalid locales or errors
+const FALLBACK_METADATA = {
+  path: '/',
+  title: "Connect with Expert Women's Health Specialists | Eleva Care",
+  description:
+    "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
+  keywords: [
+    'pregnancy care',
+    'postpartum support',
+    'sexual health',
+    'women health',
+    'healthcare experts',
+    'menopause care',
+    'healthcare marketplace',
+    'find experts',
+  ],
+};
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
 
@@ -18,18 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // Fallback metadata for invalid locales
     return generatePageMetadata({
       locale: 'en',
-      path: '/',
-      title: 'Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care',
-      description:
-        'Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.',
-      keywords: [
-        'pregnancy care',
-        'postpartum support',
-        'sexual health',
-        'women health',
-        'healthcare experts',
-        'menopause care',
-      ],
+      ...FALLBACK_METADATA,
     });
   }
 
@@ -65,18 +72,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     // Fallback metadata using utility
     return generatePageMetadata({
       locale,
-      path: '/',
-      title: 'Expert care for Pregnancy, Postpartum & Sexual Health | Eleva Care',
-      description:
-        'Eleva Care: Empowering growth, embracing care. Expert care for pregnancy, postpartum, menopause, and sexual health.',
-      keywords: [
-        'pregnancy care',
-        'postpartum support',
-        'sexual health',
-        'women health',
-        'healthcare experts',
-        'menopause care',
-      ],
+      ...FALLBACK_METADATA,
     });
   }
 }

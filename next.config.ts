@@ -2,6 +2,11 @@ import createMDX from '@next/mdx';
 import { withBotId } from 'botid/next/config';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+/**
+ * MDX configuration
+ * Enables .mdx file support in Next.js
+ */
+import remarkGfm from 'remark-gfm';
 
 /**
  * Bundle analyzer configuration
@@ -11,14 +16,10 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
 
-/**
- * MDX configuration
- * Enables .mdx file support in Next.js
- */
 const withMDX = createMDX({
   extension: /\.mdx?$/,
   options: {
-    remarkPlugins: [],
+    remarkPlugins: [remarkGfm],
     rehypePlugins: [],
   },
 });
@@ -110,9 +111,8 @@ const config: NextConfig = {
       'lucide-react',
     ],
 
-    // Use Rust-based MDX compiler for better performance
-    // Significantly speeds up MDX processing during builds
-    mdxRs: true,
+    // Use JS-based MDX compiler to support remark/rehype plugins like remark-gfm
+    mdxRs: false,
   },
 
   webpack: (config, { dev }) => {

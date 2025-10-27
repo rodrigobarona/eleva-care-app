@@ -6,6 +6,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '@/components/molecules/carousel';
+import { PlatformDisclaimer } from '@/components/molecules/PlatformDisclaimer';
 import { db } from '@/drizzle/db';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
@@ -81,7 +82,12 @@ const ExpertsSection = async () => {
           </h3>
         </div>
         <p className="mt-6 text-balance text-base font-light text-eleva-neutral-900 lg:text-xl">
-          {t('description')}
+          {t('description')}{' '}
+          <PlatformDisclaimer>
+            <button className="inline underline decoration-eleva-neutral-900/30 underline-offset-2 transition-colors hover:text-eleva-primary hover:decoration-eleva-primary">
+              {t('disclaimerLink')}
+            </button>
+          </PlatformDisclaimer>
         </p>
         <Carousel
           className="-ml-2 mt-10"

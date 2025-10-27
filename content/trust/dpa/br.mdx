@@ -1,0 +1,86 @@
+# Acordo de Processamento de Dados (DPA)
+
+_Data de vigência: 16 de abril de 2025_
+
+Este DPA explica como a Eleva.care trata dados pessoais—de forma clara e simples.
+
+## 1) Quem faz o quê
+
+- A Eleva.care é um plataforma tecnológica em saúde. Não somos provedor de saúde.
+- Dois papéis:
+  - Controlador (operações da plataforma: contas, agendamentos, pagamentos, analytics, suporte)
+  - Operador (notas/arquivos clínicos criados por profissionais: armazenamos com segurança conforme instruções)
+
+## 2) Quando somos Controlador (plataforma)
+
+- Usamos operadores confiáveis para operar a plataforma:
+  - BD/infra & entrega: Neon (UE), Vercel (regiões UE), Upstash (UE), Resend (Irlanda), Novu (endpoint UE)
+  - Identidade/SSO: Clerk (opções UE), Google SSO
+  - Pagamentos: Stripe (PCI DSS L1)
+  - Analytics: PostHog (opção de hospedagem UE)
+- Exigimos DPAs/SCCs, controles de segurança e residência de dados na UE sempre que possível.
+
+## 3) Quando somos Operador (para especialistas)
+
+- Os especialistas são Controladores dos dados clínicos; nós somos Operador.
+- Agimos apenas sob instruções documentadas, criptografamos dados (em trânsito e em repouso) e aplicamos RBAC e logs de auditoria.
+- Suboperadores para dados clínicos (UE): Neon (DB Frankfurt), Vercel (hosting UE), Upstash (cache UE). Notificamos alterações.
+
+## 4) Segurança em resumo
+
+- TLS 1.3 em trânsito; AES‑256‑GCM em repouso (dados clínicos)
+- Menor privilégio/RBAC; MFA opcional; auditoria; backups criptografados; planos de DR
+- SLA de notificação de incidentes aos Controladores em 24h para dados clínicos
+
+## 5) Transferências internacionais
+
+- Priorizamos residência na UE. Quando provedores fora da UE oferecem hospedagem na UE, usamos SCCs + medidas suplementares (criptografia, chaves, logs, contestar pedidos excessivos).
+
+## 6) Retenção e eliminação
+
+- Dados de plataforma: apenas o necessário ou exigido por lei
+- Dados clínicos: retenção definida pelo especialista (p. ex., 10 anos em PT). Em término/instrução, exportamos e excluímos após período de carência e janela de backups.
+
+## 7) Direitos dos titulares
+
+- Plataforma (Controlador): Tratamos acesso, retificação, exclusão, portabilidade, limitação e oposição.
+- Clínico (Operador): Oferecemos ferramentas para que os especialistas cumpram solicitações dos pacientes.
+
+## 8) Deveres do profissional (como Controlador)
+
+- Obter consentimentos quando necessário; garantir base legal (GDPR art. 9(2)(h))
+- Definir retenção; atender direitos; manter exatidão; seguro de responsabilidade profissional
+
+## 9) Nossos deveres (como Operador)
+
+- Seguir instruções; proteger dados; ajudar com direitos e DPIAs; notificar incidentes sem demora; devolver/excluir dados a pedido; limitar transferências; confidencialidade
+
+## 10) Responsabilidade
+
+- Eleva.care: responsável pela tecnologia e segurança descritas
+- Especialistas: responsáveis por decisões clínicas, resultados e conformidade como Controladores
+
+## 11) Atualizações, lei e disputas
+
+- Podemos atualizar este DPA; notificaremos mudanças materiais
+- Lei aplicável: Portugal; foro: tribunais de Portugal
+
+---
+
+## 12) Subprocessadores e aviso de mudanças
+
+Contamos com subprocessadores cuidadosamente avaliados para operar a plataforma. Cada subprocessador é vinculado por DPA e recebe apenas o mínimo necessário de dados.
+
+| Fornecedor | Finalidade                   | Dados                                                           | Região/Hosting                | Salvaguardas                                                  |
+| ---------- | ---------------------------- | --------------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------- |
+| Neon       | Banco de dados principal     | Dados da plataforma; dados clínicos em repouso (criptografados) | UE (Frankfurt)                | DPA, SCCs (se aplicável), criptografia em repouso/em trânsito |
+| Vercel     | Hospedagem/app edge          | Metadados da plataforma, logs                                   | Regiões UE quando disponíveis | DPA, SCCs (se aplicável)                                      |
+| Upstash    | Cache/filas                  | Dados de cache não clínicos                                     | UE                            | DPA, SCCs (se aplicável)                                      |
+| Resend     | E‑mail transacional          | Metadados e conteúdo de e‑mail                                  | IE/UE                         | DPA, SCCs (se aplicável)                                      |
+| Novu       | Orquestração de notificações | Metadados de payload de notificação                             | Endpoint UE                   | DPA, SCCs (se aplicável)                                      |
+| Clerk      | Identidade/SSO               | Autenticação e metadados de perfil                              | Opções UE                     | DPA, SCCs (se aplicável)                                      |
+| Stripe     | Pagamentos                   | Metadados de pagamentos (não armazenamos PAN)                   | UE/EEE                        | PCI DSS L1, DPA, SCCs                                         |
+
+Aviso de mudanças: atualizaremos esta lista e notificaremos com pelo menos 30 dias de antecedência antes de adicionar ou substituir subprocessadores (exceto mudanças imediatas necessárias por segurança, conformidade ou continuidade). Controladores podem se opor com fundamentos razoáveis e documentados. Atuaremos de boa‑fé para mitigar ou, se não resolvido, permitir a rescisão do serviço para o tratamento afetado sem penalidades.
+
+Contato (DPO): `dpo@eleva.care` · Operadora: BÚZIOS E TARTARUGAS – LDA (Eleva.care), NIPC/NIF 515001708, Rua Gil Vicente, 2, 2775‑198 Parede, Portugal. Suporte `support@eleva.care`.

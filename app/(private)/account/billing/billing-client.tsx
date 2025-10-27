@@ -4,8 +4,10 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/atoms/alert';
 import { Button } from '@/components/atoms/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { getMinimumPayoutDelay } from '@/config/stripe';
+import { Link } from '@/lib/i18n/navigation';
 import { syncIdentityToConnect } from '@/server/actions/billing';
-import { Info } from 'lucide-react';
+import { FileText, Info } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import React, { Suspense, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -23,6 +25,7 @@ interface BillingPageClientProps {
 }
 
 function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
+  const t = useTranslations('account.billing');
   const [isConnecting, setIsConnecting] = React.useState(false);
   const [isLoadingDashboard, setIsLoadingDashboard] = React.useState(false);
   const [isInitializing, setIsInitializing] = React.useState(true);
@@ -479,11 +482,8 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
       <div className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Expert Payment Settings</CardTitle>
-            <CardDescription>
-              Connect your Stripe account to receive payments for your expert services. Eleva takes
-              a 15% service fee, and the remaining 85% will be transferred directly to your account.
-            </CardDescription>
+            <CardTitle>{t('subtitle')}</CardTitle>
+            <CardDescription>{t('description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {dbUser.stripeConnectAccountId ? (
@@ -559,8 +559,23 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
                   You haven&apos;t connected your Stripe account yet. Connect now to start receiving
                   payments.
                 </p>
+                {/* Legal Disclaimer */}
+                <Alert className="border-blue-200 bg-blue-50">
+                  <FileText className="h-4 w-4 text-blue-600" />
+                  <AlertTitle className="text-blue-900">Payment Terms</AlertTitle>
+                  <AlertDescription className="text-blue-800">
+                    {t('legalDisclaimer')}{' '}
+                    <Link
+                      href="/legal/payment-policies"
+                      className="font-medium underline hover:text-blue-900"
+                    >
+                      {t('paymentPolicies')}
+                    </Link>
+                    . {t('learnMore')}
+                  </AlertDescription>
+                </Alert>
                 <Button onClick={handleConnect} disabled={isConnecting} className="w-full">
-                  {isConnecting ? 'Connecting...' : 'Connect with Stripe'}
+                  {isConnecting ? t('buttons.connecting') : t('buttons.connect')}
                 </Button>
               </div>
             )}

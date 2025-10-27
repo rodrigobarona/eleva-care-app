@@ -123,9 +123,45 @@ describe('toggleProfilePublication', () => {
       isPublished: true,
     });
 
-    // Verify the DB operations
-    expect(updateSetMock).toHaveBeenCalledWith({ published: true });
+    // Verify the DB operations - when publishing for the first time,
+    // it should also record practitioner agreement acceptance
+    expect(updateSetMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        published: true,
+        practitionerAgreementAcceptedAt: expect.any(Date),
+        practitionerAgreementVersion: expect.any(String),
+        practitionerAgreementIpAddress: expect.any(String),
+      }),
+    );
     expect(revalidatePathMock).toHaveBeenCalledTimes(5); // Revalidates multiple paths
+  });
+
+  it('should only record agreement data on first publish', async () => {
+    // Arrange - profile that already accepted the agreement
+    findFirstMock.mockResolvedValue({
+      id: 1,
+      clerkUserId: 'test-user-id',
+      published: false,
+      practitionerAgreementAcceptedAt: new Date('2025-01-01'),
+      practitionerAgreementVersion: '1.0',
+      practitionerAgreementIpAddress: '1.2.3.4',
+    });
+
+    // Act
+    const result = await toggleProfilePublication();
+
+    // Assert
+    expect(result).toEqual({
+      success: true,
+      message: 'Profile published successfully',
+      isPublished: true,
+    });
+
+    // Verify the DB operations - should NOT update agreement fields
+    expect(updateSetMock).toHaveBeenCalledWith({
+      published: true,
+    });
+    expect(revalidatePathMock).toHaveBeenCalledTimes(5);
   });
 
   it('should unpublish a profile when it is published', async () => {

@@ -24,6 +24,35 @@
         "siteName": "Eleva Care"
       }
     },
+    "trust": {
+      "title": "Centro de Confianza | Eleva Care",
+      "description": "Conoce las prácticas de seguridad, medidas de protección de datos y certificaciones de cumplimiento de Eleva Care.",
+      "og": {
+        "title": "Centro de Confianza | Eleva Care",
+        "description": "Conoce las prácticas de seguridad, medidas de protección de datos y certificaciones de cumplimiento de Eleva Care.",
+        "siteName": "Eleva Care"
+      },
+      "documents": {
+        "security": {
+          "title": "Seguridad y Cumplimiento | Eleva Care",
+          "description": "Conoce las medidas de seguridad, certificaciones y compromiso de Eleva Care para proteger tus datos de salud con cumplimiento de RGPD, LGPD y preparación HIPAA.",
+          "og": {
+            "title": "Seguridad y Cumplimiento | Eleva Care",
+            "description": "Conoce las medidas de seguridad, certificaciones y compromiso de Eleva Care para proteger tus datos de salud con cumplimiento de RGPD, LGPD y preparación HIPAA.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "dpa": {
+          "title": "Acuerdo de Procesamiento de Datos | Eleva Care",
+          "description": "Revisa el acuerdo de procesamiento de datos de Eleva Care que describe cómo manejamos y protegemos tus datos de salud.",
+          "og": {
+            "title": "Acuerdo de Procesamiento de Datos | Eleva Care",
+            "description": "Revisa el acuerdo de procesamiento de datos de Eleva Care que describe cómo manejamos y protegemos tus datos de salud.",
+            "siteName": "Eleva Care"
+          }
+        }
+      }
+    },
     "legal": {
       "title": "Documentación Legal | Eleva Care",
       "description": "Información importante sobre los términos de servicio, políticas de privacidad y otros documentos legales de Eleva Care.",
@@ -60,21 +89,21 @@
             "siteName": "Eleva Care"
           }
         },
-        "dpa": {
-          "title": "Acuerdo de Procesamiento de Datos | Eleva Care",
-          "description": "Revisa el acuerdo de procesamiento de datos de Eleva Care que describe cómo manejamos y protegemos tus datos de salud.",
-          "og": {
-            "title": "Acuerdo de Procesamiento de Datos | Eleva Care",
-            "description": "Revisa el acuerdo de procesamiento de datos de Eleva Care que describe cómo manejamos y protegemos tus datos de salud.",
-            "siteName": "Eleva Care"
-          }
-        },
         "payment-policies": {
           "title": "Políticas de Pago | Eleva Care",
           "description": "Comprende los términos de pago, políticas de reembolso y procedimientos de facturación de Eleva Care para servicios de salud.",
           "og": {
             "title": "Políticas de Pago | Eleva Care",
             "description": "Comprende los términos de pago, políticas de reembolso y procedimientos de facturación de Eleva Care para servicios de salud.",
+            "siteName": "Eleva Care"
+          }
+        },
+        "expert-agreement": {
+          "title": "Acuerdo de Expertos | Eleva Care",
+          "description": "Revisa el acuerdo de expertos de Eleva Care que describe los términos y condiciones para expertos independientes que utilizan nuestra plataforma.",
+          "og": {
+            "title": "Acuerdo de Expertos | Eleva Care",
+            "description": "Revisa el acuerdo de expertos de Eleva Care que describe los términos y condiciones para expertos independientes que utilizan nuestra plataforma.",
             "siteName": "Eleva Care"
           }
         }
@@ -108,10 +137,12 @@
     "metaDescription": "Información importante sobre los términos de servicio, políticas de privacidad y otros documentos legales de Eleva Care."
   },
   "hero": {
-    "title": "Atención de Clase Mundial para Mujeres, *cuando lo necesites.*",
-    "subtitle": "Reserva con los Principales Especialistas en Salud de la Mujer - A Tu Ritmo.",
+    "title": "Expertos en Salud Femenina de Clase Mundial, *cuando lo necesites.*",
+    "subtitle": "Reserva con las Principales Especialistas en Salud de la Mujer - A Tu Ritmo.",
+    "disclaimer": "Te conectamos con expertas de salud independientes y con licencia.",
+    "disclaimerLink": "Saber más",
     "cta1": "¿Como podemos ayudarte? Haz el Quiz",
-    "cta2": "Reservar ahora",
+    "cta2": "Encontrar una Experta",
     "cta2Help": "Marca tu cita",
     "cta2Help2": "en menos de 3 minutos."
   },
@@ -122,14 +153,14 @@
     "cta": "Escuchar ahora"
   },
   "services": {
-    "title": "Cómo podemos ayudar",
-    "subtitle": "Cuidado especializado, personalizado para ti",
-    "description": "Accede a cuidados personalizados con profesionales altamente cualificados en salud femenina en todo el mundo. Te conectamos con la experiencia que necesitas, desde consultas en línea hasta recursos locales, todo adaptado a tu viaje de salud.",
+    "title": "Cómo te acompañamos",
+    "subtitle": "Cuidado experto, hecho para ti",
+    "description": "Accede a cuidado personalizado de expertas en salud femenina. Te conectamos con la experiencia que necesitas—desde consultas online hasta recursos locales—diseñado para tu propia jornada.",
     "items": [
       {
         "icon": "Baby",
         "title": "Embarazo y Postparto",
-        "description": "Atención integral para apoyar a las mujeres durante el transformador viaje del embarazo y la maternidad temprana.",
+        "description": "Acompañamiento cercano y basado en evidencia durante el embarazo y el postparto.",
         "items": [
           "**Fisioterapia:** Prepárate para el parto, maneja el dolor, recupera tu fuerza, trata la diástasis abdominal y recibe intervenciones centradas en el suelo pélvico para prevenir y tratar disfunciones.",
           "**Cuidado Obstétrico y Ginecológico:** Recibe cuidados especializados durante el embarazo y la recuperación postparto.",
@@ -143,7 +174,7 @@
       {
         "icon": "Droplets",
         "title": "Salud Pélvica",
-        "description": "Cuidado especializado que satisface las necesidades únicas de la salud pélvica de las mujeres a lo largo de su vida.",
+        "description": "Cuidado especializado del suelo pélvico en todas las etapas de la vida.",
         "items": [
           "**Fisioterapia Pélvica:** Tratamiento especializado para incontinencia, prolapso de órganos pélvicos y dolor pélvico, incluyendo dolor durante las relaciones sexuales.",
           "**Cuidados Obstétricos y Ginecológicos Especializados:** Diagnóstico y tratamiento especializado para una amplia gama de problemas de salud pélvica, como el prolapso, la endometriosis y la disfunción sexual.",
@@ -155,7 +186,7 @@
       {
         "icon": "Flower2",
         "title": "En Todas las Etapas",
-        "description": "Apoyo holístico para las preocupaciones de salud femenina, desde la adolescencia hasta la menopausia y más allá.",
+        "description": "Apoyo integral desde la adolescencia hasta la menopausia—y más allá.",
         "items": [
           "**Salud Adolescente:** Enfrenta con confianza la pubertad, la menstruación y los primeros años de la adultez femenina con el apoyo adecuado.",
           "**Gestión de la Menopausia:** Enfrenta los cambios hormonales, gestiona los síntomas y prioriza tu bienestar.",
@@ -169,7 +200,7 @@
       {
         "icon": "Ribbon",
         "title": "Acompañándote en tu jornada contra el Cáncer",
-        "description": "Apoyo especializado para mujeres que se enfrentan al cáncer de mama y ginecológico, proporcionando atención integral desde el diagnóstico hasta la supervivencia.",
+        "description": "Apoyo especializado en cáncer de mama y ginecológico—del diagnóstico a la supervivencia.",
         "items": [
           "**Fisioterapia:** Optimiza tu recuperación con preparación prequirúrgica, rehabilitación postratamiento, manejo del linfedema y programas de ejercicios específicos diseñados para cada fase de tu proceso oncológico.",
           "**Control del Dolor:** Accede a técnicas basadas en la evidencia para manejar el dolor relacionado con el tratamiento, incluyendo terapia manual, ejercicio terapéutico y tratamiento del tejido cicatricial.",
@@ -198,7 +229,7 @@
   "mission": {
     "title": "Nuestra Misión",
     "subtitle": "Transformar la salud femenina a través de la innovación y la compasión",
-    "description": "En Eleva Care, nos dedicamos a empoderar a las mujeres de todas las edades para que tomen el control de su salud y bienestar. Nuestra misión es proporcionar una plataforma de apoyo inclusiva que conecte a los individuos con recursos liderados por expertos, información basada en evidencia y una comunidad colaborativa de profesionales de la salud.",
+    "description": "En Eleva Care, nos dedicamos a empoderar a las mujeres de todas las edades para que tomen el control de su salud y bienestar. Nuestra misión es proporcionar una plataforma de apoyo inclusiva que conecte a las personas con recursos liderados por especialistas, información basada en evidencia y una comunidad colaborativa de especialistas en cuidado.",
     "vision": {
       "title": "Nuestra Visión",
       "description": "Construir un puente entre la investigación científica y la aplicación práctica, ofreciendo soluciones accesibles y personalizadas para la salud femenina en todas las etapas de la vida."
@@ -206,8 +237,8 @@
     "cta": "Únete a nosotros",
     "stats": [
       { "value": "10K+", "label": "Mujeres Ayudadas" },
-      { "value": "50+", "label": "Profesionales Especializados" },
-      { "value": "95%", "label": "Satisfacción de las Pacientes" },
+      { "value": "50+", "label": "Especialistas" },
+      { "value": "95%", "label": "Satisfacción de Clientes" },
       { "value": "24/7", "label": "Soporte Disponible" }
     ],
     "beliefs": {
@@ -224,7 +255,7 @@
   "team": {
     "title": "Conoce a Nuestro Equipo",
     "subtitle": "Fundado por expertos apasionados en salud femenina",
-    "description": "Eleva Care está liderado por un equipo de profesionales dedicados que combinan años de experiencia en salud femenina, tecnología y cuidado del paciente. Nuestros fundadores y miembros clave están comprometidos en revolucionar el acceso y la experiencia de las mujeres en el sistema de salud.",
+    "description": "Eleva Care está liderado por un equipo de profesionales dedicados que combinan años de experiencia en salud femenina, tecnología y cuidado liderado por especialistas. Nuestros fundadores y miembros clave están comprometidos con revolucionar el acceso y la experiencia de las mujeres en el sistema de salud.",
     "members": [
       {
         "name": "Patricia Mota, PT, PhD",
@@ -298,6 +329,14 @@
     "twitter": "Twitter",
     "scholar": "Google Scholar"
   },
+  "status": {
+    "allSystemsNormal": "Todos los sistemas normales",
+    "partialOutage": "Interrupción parcial",
+    "degradedPerformance": "Rendimiento degradado",
+    "unableToFetch": "No se puede obtener el estado",
+    "noMonitorsConfigured": "No hay monitores configurados",
+    "ariaLabel": "Estado del Sistema: {status}"
+  },
   "footer": {
     "cta": {
       "title": "Únete a Nuestra Red",
@@ -326,14 +365,19 @@
         "community": "Comunidad",
         "contact": "Contacto"
       },
+      "trust": {
+        "title": "Confianza y Seguridad",
+        "security": "Seguridad",
+        "dpa": "Procesamiento de Datos"
+      },
       "legal": {
         "title": "Legal",
         "terms": "Términos de Servicio",
         "privacy": "Política de Privacidad",
         "cookie": "Política de Cookies",
         "preferences": "Preferencias de Cookies",
-        "dpa": "Procesamiento de Datos",
-        "paymentPolicies": "Políticas de Pago"
+        "paymentPolicies": "Políticas de Pago",
+        "expertAgreement": "Acuerdo de Expertos"
       }
     },
     "copyright": "Todos los derechos reservados.",
@@ -341,16 +385,63 @@
       "instagram": "Síguenos en Instagram",
       "twitter": "Síguenos en Twitter",
       "linkedin": "Síguenos en LinkedIn"
+    },
+    "platformDisclaimer": {
+      "title": "Somos una plataforma tecnológica de salud",
+      "description": "Te ayudamos a conectar con especialistas independientes y con licencia. Nosotros aportamos la tecnología; tu especialista elegido brinda tu atención."
+    },
+    "compliance": {
+      "gdpr": "Cumple con el RGPD",
+      "lgpd": "Cumple con la LGPD",
+      "encryption": "Cifrado AES-256",
+      "euData": "Datos Almacenados en la UE",
+      "hipaa": "Infraestructura Preparada para HIPAA",
+      "secureEmail": "Email Seguro (TLS 1.3)",
+      "iso27001": "Alineado con ISO 27001",
+      "soc2": "Infraestructura SOC 2",
+      "ccpa": "Cumple con el CCPA"
     }
   },
   "experts": {
-    "title": "Expertos Destacados",
-    "subtitle": "El acceso a los mejores nunca ha sido más fácil",
-    "description": "Conéctate con expertos de primera clase en fisioterapia y salud femenina. Nuestra plataforma ofrece acceso a profesionales líderes listos para apoyar tu viaje único de salud y bienestar.",
-    "topExpertBadge": "Experto Destacado",
+    "title": "Especialistas Independientes",
+    "subtitle": "Conéctate con los Mejores Especialistas",
+    "description": "Encuentra y reserva especialistas confiables en fisioterapia y salud femenina. Nuestra plataforma te conecta con especialistas calificados listos para apoyar tu viaje único de salud y bienestar.",
+    "disclaimerLink": "Más información sobre nuestra plataforma",
+    "topExpertBadge": "Destacado",
+    "topExpertDisclaimer": "Los especialistas en Eleva Care son profesionales independientes que auto-certifican sus credenciales.",
     "sessionLabel": "Sesión",
     "expertImageAlt": "Foto de perfil de {name}",
-    "verifiedBadgeAlt": "Insignia de Experto Verificado"
+    "verifiedBadgeAlt": "Especialista Auto-Certificado"
+  },
+  "platformDisclaimer": {
+    "modal": {
+      "title": "Sobre la plataforma de Eleva Care",
+      "description": "Una nota cercana sobre cómo funciona Eleva Care y qué hacer en una emergencia."
+    },
+    "emergency": {
+      "title": "⚠️ No es para emergencias médicas",
+      "description": "Si vives una emergencia médica, por favor no uses Eleva Care. Contacta a los servicios de emergencia:",
+      "eu": "UE",
+      "usa": "EE.UU."
+    },
+    "platform": {
+      "title": "Cómo funciona Eleva Care",
+      "description": "Eleva Care es una plataforma confiable que te conecta con especialistas independientes y con licencia. Nosotros no prestamos servicios médicos; tu especialista elegido brinda tu atención.",
+      "weAre": "Lo que ofrecemos",
+      "weAreList": {
+        "marketplace": "Una plataforma confiable",
+        "technology": "Herramientas de reserva, agenda y pagos",
+        "secure": "Almacenamiento encriptado de notas clínicas"
+      },
+      "weAreNot": "Lo que no ofrecemos",
+      "weAreNotList": {
+        "provider": "Atención médica, diagnósticos o tratamientos",
+        "employer": "Empleo o supervisión de especialistas",
+        "responsible": "Responsabilidad médica (tu especialista es responsable de tu atención)"
+      },
+      "footer": "Los especialistas en Eleva Care son profesionales independientes que auto‑certifican sus credenciales y son responsables de la atención que brindan. Para más detalles, revisa nuestros",
+      "termsLink": "Términos y Condiciones"
+    }
   },
   "cookie": {
     "title": "Preferencias de Cookies",
@@ -379,18 +470,18 @@
   },
   "Payments": {
     "collision": {
-      "title": "Conflicto de Cita - Reembolso Procesado",
+      "title": "Conflicto de Cita - Reembolso Total Procesado",
       "subject": "Reserva de Cita - Horario No Disponible",
-      "greeting": "Estimado/a {clientName},",
+      "greeting": "Hola {clientName},",
       "conflictMessage": "Lamentamos informarle que su cita con {expertName} programada para {appointmentDateTime} ya no está disponible ya que el horario ha sido reservado por otro cliente.",
-      "latePaymentExplanation": "Como este fue un pago Multibanco tardío, hemos procesado un reembolso de €{refundAmount} (90% del monto original, con 10% retenido como tarifa de procesamiento según se describe en nuestras políticas de pago).",
+      "latePaymentExplanation": "Como este fue un pago Multibanco tardío y el horario ya no está disponible, hemos procesado un reembolso total de €{refundAmount} (100% del monto original). Creemos en tratar a nuestros clientes de manera justa, por lo que no se cobran tarifas de procesamiento.",
       "apologyAndInvitation": "Nos disculpamos por las molestias y le invitamos a reservar una nueva cita a su conveniencia.",
-      "signature": "Saludos cordiales,\nEquipo Eleva.care",
+      "signature": "Gracias,",
       "minimumNoticeViolation": "El horario de la cita ya no cumple con el requisito de aviso mínimo del especialista de {minimumNoticeHours} horas.",
       "refundDetails": {
         "originalAmount": "Monto original: €{amount}",
-        "refundAmount": "Monto reembolsado: €{amount} (90%)",
-        "processingFee": "Tarifa de procesamiento retenida: €{amount} (10%)"
+        "refundAmount": "Monto reembolsado: €{amount} (100% - Reembolso completo)",
+        "processingFee": "Tarifa de procesamiento: €{amount} (Sin tarifa cobrada)"
       }
     },
     "checkout": {
@@ -544,7 +635,7 @@
       "email": {
         "preview": "Su reserva está confirmada - Pago Requerido vía Multibanco",
         "title": "Reserva Confirmada - Pago Requerido",
-        "greeting": "Estimado/a {customerName},",
+        "greeting": "Hola {customerName},",
         "bookingConfirmedText": "Su reserva ha sido confirmada y su horario de cita está reservado.",
         "paymentRequired": "Pago Requerido vía Multibanco",
         "paymentInstructions": "Para completar su reserva, por favor pague usando Multibanco con los detalles a continuación:",
@@ -589,7 +680,7 @@
           "gentle": "💙 Recordatorio Amigable: Complete su Pago",
           "urgent": "⚠️ URGENTE: Pago Requerido - Recordatorio Final"
         },
-        "greeting": "Estimado/a {customerName},",
+        "greeting": "Hola {customerName},",
         "reminderNotice": "Solo un recordatorio amigable de que tiene un pago Multibanco pendiente para su próxima cita.",
         "timeRemaining": "Todavía tiene mucho tiempo para completar su pago.",
         "urgentNotice": "Este es su RECORDATORIO FINAL para completar su pago Multibanco.",
@@ -653,7 +744,7 @@
       "email": {
         "preview": "Su cita de Eleva.care ha sido confirmada",
         "appointmentConfirmed": "Su cita ha sido confirmada",
-        "dearExpert": "Estimado/a {expertName}",
+        "dearExpert": "Hola {expertName},",
         "newAppointmentWith": "Tiene una nueva cita con {clientName} para {eventTitle}. Hemos añadido esto a su calendario.",
         "appointmentDetails": "Detalles de la Cita:",
         "type": "Tipo:",
@@ -672,7 +763,7 @@
         "emailReminder15Min": "Recordatorio por correo electrónico 15 minutos antes",
         "popupReminder5Min": "Recordatorio emergente 5 minutos antes",
         "thankYou": "Gracias por usar Eleva.care.",
-        "bestRegards": "Saludos cordiales,",
+        "bestRegards": "Gracias,",
         "team": "El Equipo de Eleva.care",
         "allRightsReserved": "Todos los derechos reservados."
       }
@@ -682,6 +773,93 @@
     },
     "expertNotification": {
       "subject": "{notificationTitle} - Eleva Care"
+    }
+  },
+  "profilePublish": {
+    "status": {
+      "published": "Perfil Publicado",
+      "notPublished": "Perfil No Publicado"
+    },
+    "publishDialog": {
+      "title": "Publicar Tu Perfil de Experto",
+      "description": "Publicar tu perfil lo hará visible para clientes que buscan expertos. Tu perfil, servicios y disponibilidad serán públicos.",
+      "agreementRequired": "Acuerdo Requerido",
+      "agreementText": "He leído y acepto el",
+      "expertAgreement": "Acuerdo de Expertos",
+      "agreementIncludes": "incluyendo estándares de conducta profesional, términos de responsabilidad y obligaciones de la plataforma",
+      "disclaimer": "Al publicar tu perfil, reconoces que eres un especialista con licencia y aceptas cumplir con todas las leyes y regulaciones aplicables."
+    },
+    "unpublishDialog": {
+      "title": "Despublicar Tu Perfil de Experto",
+      "description": "Despublicar tu perfil lo ocultará de los clientes. No aparecerás en los resultados de búsqueda y los clientes no podrán reservar tus servicios hasta que publiques nuevamente."
+    },
+    "incompleteDialog": {
+      "title": "Completa Todos los Pasos Primero",
+      "description": "Tu perfil no puede ser publicado hasta que se completen todos los pasos requeridos. Por favor completa los siguientes pasos:"
+    },
+    "buttons": {
+      "cancel": "Cancelar",
+      "publish": "Publicar Perfil",
+      "unpublish": "Despublicar Perfil"
+    }
+  },
+  "account": {
+    "billing": {
+      "title": "Facturación",
+      "subtitle": "Configuración de Pagos de Experto",
+      "description": "Conecta tu cuenta de Stripe para recibir pagos por tus servicios de experto. Eleva cobra una tarifa de servicio del 15% y el 85% restante se transferirá directamente a tu cuenta.",
+      "legalDisclaimer": "Al conectar tu cuenta de pago, aceptas nuestras",
+      "paymentPolicies": "Políticas de Pago",
+      "refundPolicy": "Política de Reembolso",
+      "and": "y",
+      "learnMore": "Obtén más información sobre tarifas, reembolsos y cronogramas de pago en nuestras Políticas de Pago.",
+      "accountStatus": {
+        "title": "Estado de la Cuenta",
+        "setup": "Configuración de Cuenta",
+        "payments": "Pagos Habilitados",
+        "payouts": "Transferencias Habilitadas",
+        "complete": "Completo",
+        "incomplete": "Incompleto",
+        "yes": "Sí",
+        "no": "No"
+      },
+      "buttons": {
+        "connect": "Conectar con Stripe",
+        "connecting": "Conectando...",
+        "dashboard": "Ver Panel de Stripe",
+        "completeSetup": "Completar Configuración de Stripe",
+        "loading": "Cargando..."
+      }
+    },
+    "identity": {
+      "title": "Verificación de Identidad",
+      "subtitle": "Estado de Verificación de Identidad",
+      "description": "Verifica tu identidad para desbloquear funciones adicionales y generar confianza con tus clientes",
+      "privacyNotice": "Usamos Stripe Identity para verificación segura. Tus datos se procesan de acuerdo con nuestra",
+      "privacyPolicy": "Política de Privacidad",
+      "dataProcessing": "Acuerdo de Procesamiento de Datos",
+      "securityInfo": "Tu información de identidad está encriptada y almacenada de forma segura de acuerdo con los estándares GDPR, LGPD y HIPAA.",
+      "dataUsage": "Los datos de verificación de identidad solo se utilizan para:",
+      "dataUsageItems": {
+        "fraud": "Prevención de fraude y seguridad",
+        "compliance": "Cumplimiento regulatorio",
+        "trust": "Generar confianza con los clientes",
+        "payments": "Verificación de cuenta de pago"
+      },
+      "status": {
+        "unverified": "No Verificado",
+        "pending": "Pendiente",
+        "verified": "Verificado",
+        "rejected": "Rechazado"
+      },
+      "buttons": {
+        "start": "Iniciar Verificación",
+        "starting": "Iniciando...",
+        "checkStatus": "Verificar Estado",
+        "checking": "Verificando...",
+        "resume": "Reanudar Verificación",
+        "tryAgain": "Intentar Nuevamente"
+      }
     }
   }
 }

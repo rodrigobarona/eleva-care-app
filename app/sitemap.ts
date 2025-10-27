@@ -8,7 +8,10 @@ import { MetadataRoute } from 'next';
 const publicRoutes: string[] = ['/', '/about', '/history'];
 
 // Available legal documents from the dynamic route
-const legalDocuments = ['terms', 'privacy', 'cookie', 'dpa', 'payment-policies'];
+const legalDocuments = ['terms', 'privacy', 'cookie', 'payment-policies', 'expert-agreement'];
+
+// Trust center documents (security & compliance)
+const trustDocuments = ['security', 'dpa'];
 
 // Known usernames from your working sitemap - these will be used as fallback
 // if database queries fail, ensuring the sitemap always includes the key profiles
@@ -241,6 +244,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       });
     });
 
+    // Add trust center document routes (/trust/document)
+    trustDocuments.forEach((document) => {
+      const route = `/trust/${document}`;
+      sitemapEntries.push({
+        url: `${baseUrl}${route}`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly', // Trust documents change less frequently
+        priority: 0.7, // Slightly higher priority than legal (security & compliance)
+        alternates: {
+          languages: generateLanguageAlternates(route),
+        },
+      });
+    });
+
     return sitemapEntries;
   } catch (error) {
     console.error('🗺️ [Sitemap] Error generating sitemap:', error);
@@ -265,6 +282,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: new Date(),
         changeFrequency: 'monthly',
         priority: 0.6,
+        alternates: {
+          languages: generateLanguageAlternates(route),
+        },
+      });
+    });
+
+    trustDocuments.forEach((document) => {
+      const route = `/trust/${document}`;
+      sitemapEntries.push({
+        url: `${baseUrl}${route}`,
+        lastModified: new Date(),
+        changeFrequency: 'monthly',
+        priority: 0.7,
         alternates: {
           languages: generateLanguageAlternates(route),
         },

@@ -1,9 +1,17 @@
 'use server';
 
+import { PRACTITIONER_AGREEMENT_CONFIG } from '@/config/legal-agreements';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { hasRole } from '@/lib/auth/roles.server';
+import { logAuditEvent } from '@/lib/logAuditEvent';
+import { getRequestMetadata } from '@/lib/server-utils';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
+import {
+  PRACTITIONER_AGREEMENT_ACCEPTED,
+  PROFILE_PUBLISHED,
+  PROFILE_UNPUBLISHED,
+} from '@/types/audit';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -64,11 +72,88 @@ export async function toggleProfilePublication() {
     }
     // If unpublishing, we don't need to check for completion status - allow it regardless
 
-    // Update the published status
-    await db
-      .update(ProfileTable)
-      .set({ published: targetPublishedStatus })
-      .where(eq(ProfileTable.clerkUserId, userId));
+    // Get request metadata for audit logging
+    const { ipAddress, userAgent } = await getRequestMetadata();
+
+    // Prepare update data
+    const updateData: {
+      published: boolean;
+      practitionerAgreementAcceptedAt?: Date;
+      practitionerAgreementVersion?: string;
+      practitionerAgreementIpAddress?: string;
+    } = {
+      published: targetPublishedStatus,
+    };
+
+    // If publishing for the first time, record agreement acceptance
+    if (targetPublishedStatus === true && !profile.practitionerAgreementAcceptedAt) {
+      updateData.practitionerAgreementAcceptedAt = new Date();
+      updateData.practitionerAgreementVersion = PRACTITIONER_AGREEMENT_CONFIG.version;
+      updateData.practitionerAgreementIpAddress = ipAddress;
+    }
+
+    // Update the published status (and agreement data if first time publishing)
+    await db.update(ProfileTable).set(updateData).where(eq(ProfileTable.clerkUserId, userId));
+
+    // Log to audit database
+    try {
+      if (targetPublishedStatus === true) {
+        // Log profile publication
+        await logAuditEvent(
+          userId,
+          PROFILE_PUBLISHED,
+          'profile',
+          profile.id,
+          { published: false },
+          {
+            published: true,
+            publishedAt: new Date().toISOString(),
+            expertName: `${user.firstName} ${user.lastName}`,
+          },
+          ipAddress,
+          userAgent,
+        );
+
+        // Log agreement acceptance (if first time)
+        if (!profile.practitionerAgreementAcceptedAt) {
+          await logAuditEvent(
+            userId,
+            PRACTITIONER_AGREEMENT_ACCEPTED,
+            'legal_agreement',
+            `expert-agreement-${profile.id}`,
+            null,
+            {
+              agreementType: 'practitioner_agreement',
+              version: PRACTITIONER_AGREEMENT_CONFIG.version,
+              acceptedAt: new Date().toISOString(),
+              documentPath: PRACTITIONER_AGREEMENT_CONFIG.documentPath,
+              expertName: `${user.firstName} ${user.lastName}`,
+            },
+            ipAddress,
+            userAgent,
+          );
+        }
+      } else {
+        // Log profile unpublication
+        await logAuditEvent(
+          userId,
+          PROFILE_UNPUBLISHED,
+          'profile',
+          profile.id,
+          { published: true },
+          {
+            published: false,
+            unpublishedAt: new Date().toISOString(),
+            expertName: `${user.firstName} ${user.lastName}`,
+          },
+          ipAddress,
+          userAgent,
+        );
+      }
+    } catch (auditError) {
+      // Log error but don't fail the operation
+      console.error('Failed to log audit event for profile publication:', auditError);
+    }
 
     // Revalidate paths where profile data might be displayed
     revalidatePath('/');

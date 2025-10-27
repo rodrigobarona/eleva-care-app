@@ -15,15 +15,20 @@ const customJestConfig = {
     '^svix$': '<rootDir>/tests/__mocks__/svix.ts',
     // Mock next-intl modules to prevent ESM parsing issues
     '^next-intl/server$': '<rootDir>/tests/__mocks__/next-intl-server.ts',
+    '^next-intl/navigation$': '<rootDir>/tests/__mocks__/next-intl-navigation.ts',
+    '^next-intl/routing$': '<rootDir>/tests/__mocks__/next-intl-routing.ts',
     '^next-intl$': '<rootDir>/tests/__mocks__/next-intl.ts',
+    // Mock Upstash modules to prevent uncrypto/jose ESM parsing issues
+    '^@upstash/redis$': '<rootDir>/tests/__mocks__/@upstash__redis.ts',
+    '^@upstash/qstash$': '<rootDir>/tests/__mocks__/@upstash__qstash.ts',
   },
   testPathIgnorePatterns: [
     '/node_modules/',
     '/tests/deprecated/', // Ignore deprecated tests by default
-    '/tests/integration/services/redis.test.ts', // Skip due to uncrypto ESM issues
-    '/tests/integration/services/locale-detection.test.ts', // Skip due to next-intl ESM issues
-    '/tests/integration/services/keep-alive.test.ts', // Skip due to jose ESM issues
-    '/tests/integration/services/email.test.ts', // Skip until mocking issues are resolved
+    // Temporarily skip tests with logic issues (not ESM issues - those are fixed!)
+    '/tests/integration/services/locale-detection.test.ts', // Test logic issues - need to fix test expectations
+    '/tests/integration/services/keep-alive.test.ts', // Test logic issues - 1 test failing
+    '/tests/integration/services/email.test.ts', // Test logic issues - mock setup needs work
   ],
   // Transform ESM modules that Jest can't handle
   transformIgnorePatterns: ['node_modules/(?!(jose|@upstash|uncrypto|next-intl)/)'],
