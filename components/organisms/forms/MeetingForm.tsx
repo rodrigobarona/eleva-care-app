@@ -14,12 +14,12 @@ import {
   FormMessage,
 } from '@/components/molecules/form';
 import { BookingLayout } from '@/components/organisms/BookingLayout';
+import { generateFormCacheKey } from '@/lib/cache-keys';
 import {
   DEFAULT_AFTER_EVENT_BUFFER,
   DEFAULT_BEFORE_EVENT_BUFFER,
 } from '@/lib/constants/scheduling';
 import { hasValidTokens } from '@/lib/googleCalendarClient';
-import { FormCache } from '@/lib/redis';
 import { meetingFormSchema } from '@/schema/meetings';
 import { createMeeting } from '@/server/actions/meetings';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -520,13 +520,13 @@ export function MeetingFormContent({
     }
 
     // **CLIENT-SIDE DUPLICATE PREVENTION: Generate cache key for server-side use only**
-    const formCacheKey = FormCache.generateKey(
+    const formCacheKey = generateFormCacheKey(
       eventId,
       formValues.guestEmail,
       formValues.startTime.toISOString(),
     );
 
-    // **NOTE: FormCache.isProcessing() can't be called client-side (Redis is server-only)**
+    // **NOTE: Redis operations are handled server-side in the API endpoint**
     // Server-side duplicate prevention will be handled by the API endpoint
     console.log('🔍 Generated cache key for server-side deduplication:', formCacheKey);
 
@@ -626,8 +626,9 @@ export function MeetingFormContent({
       // **SECURITY: Validate checkout URL before storing**
       try {
         const urlObject = new URL(url);
-        // Ensure it's a Stripe checkout URL
-        if (!urlObject.hostname.includes('checkout.stripe.com')) {
+        // Ensure it's a Stripe checkout URL with strict allowlist
+        const allowedHosts = new Set(['checkout.stripe.com']);
+        if (!allowedHosts.has(urlObject.hostname)) {
           throw new Error('Invalid checkout URL domain');
         }
         console.log('✅ Checkout URL validated:', urlObject.hostname);
@@ -887,7 +888,8 @@ export function MeetingFormContent({
         // **SECURITY: Validate existing URL before redirect**
         try {
           const urlObject = new URL(checkoutUrl);
-          if (!urlObject.hostname.includes('checkout.stripe.com')) {
+          const allowedHosts = new Set(['checkout.stripe.com']);
+          if (!allowedHosts.has(urlObject.hostname)) {
             throw new Error('Invalid existing checkout URL domain');
           }
           console.log('🚀 Redirecting to existing checkout:', checkoutUrl);
@@ -925,7 +927,8 @@ export function MeetingFormContent({
           // **SECURITY: Validate URL before redirect**
           try {
             const urlObject = new URL(url);
-            if (!urlObject.hostname.includes('checkout.stripe.com')) {
+            const allowedHosts = new Set(['checkout.stripe.com']);
+            if (!allowedHosts.has(urlObject.hostname)) {
               throw new Error('Invalid checkout URL domain');
             }
           } catch (urlError) {
