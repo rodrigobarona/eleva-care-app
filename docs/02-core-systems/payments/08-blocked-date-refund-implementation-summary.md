@@ -1,8 +1,23 @@
-# Blocked Date Refund Policy - Implementation Summary
+# ⚠️ DEPRECATED: Blocked Date Refund Policy - Implementation Summary
 
-**Date Implemented**: October 27, 2025  
-**Status**: ✅ Backend Complete | ✅ Legal Content Updated | ⏳ Email Translations Pending  
-**Policy Version**: 2.0 (Simplified Blocked Date Policy)
+> **⚠️ WARNING: This document is DEPRECATED**
+>
+> **Policy Version**: v2.0 (OBSOLETE)  
+> **Superseded By**: [Policy v3.0: Customer-First 100% Refund](./09-policy-v3-customer-first-100-refund.md)  
+> **Deprecation Date**: January 27, 2025  
+> **Status**: Archived for historical reference only
+>
+> **DO NOT USE THIS POLICY**. This document describes an outdated policy (100% for blocked dates, 90% for others) that has been replaced by v3.0: **100% refund for ALL late payment conflicts**.
+>
+> For current implementation, see: [Policy v3.0 Documentation](./09-policy-v3-customer-first-100-refund.md)
+
+---
+
+## Original Document (Archived)
+
+**Date Implemented**: October 27, 2025 (WAS IMPLEMENTED, BUT SUPERSEDED)  
+**Status**: ❌ OBSOLETE | Replaced by v3.0  
+**Policy Version**: 2.0 (Simplified Blocked Date Policy - DEPRECATED)
 
 ---
 

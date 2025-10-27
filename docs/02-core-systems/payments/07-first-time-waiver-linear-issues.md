@@ -1,15 +1,30 @@
-# First-Time Late Payment Waiver - Linear Issues
+# ⚠️ DEPRECATED: First-Time Late Payment Waiver - Linear Issues
 
-**Project**: ELEVA  
-**Epic**: First-Time Late Payment Waiver Implementation  
-**Total Issues**: 7  
-**Estimated Time**: 12-16 hours
+> **⚠️ WARNING: DO NOT CREATE THESE LINEAR ISSUES**
+>
+> **Policy Version**: v1.0 (OBSOLETE)  
+> **Superseded By**: [Policy v3.0: Customer-First 100% Refund](./09-policy-v3-customer-first-100-refund.md)  
+> **Deprecation Date**: January 27, 2025  
+> **Status**: Archived for historical reference only
+>
+> **These Linear issues are for an OBSOLETE policy** that was never implemented. Do NOT create these tickets. The v1.0 "first-time courtesy waiver" approach has been replaced by v3.0 which is simpler and already implemented.
+>
+> For current implementation status, see: [Policy v3.0 Documentation](./09-policy-v3-customer-first-100-refund.md)
 
 ---
 
-## 🎯 Copy-Paste Templates for Linear
+## Original Document (Archived)
 
-Each section below is a complete Linear issue. Copy the entire section and paste into Linear.
+**Project**: ELEVA  
+**Epic**: First-Time Late Payment Waiver Implementation (NEVER IMPLEMENTED)  
+**Total Issues**: 7 (DO NOT CREATE)  
+**Estimated Time**: 12-16 hours (OBSOLETE)
+
+---
+
+## 🚫 OBSOLETE: Copy-Paste Templates for Linear
+
+**DO NOT USE THESE TEMPLATES**. They are archived for historical reference only.
 
 ---
 

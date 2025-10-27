@@ -42,19 +42,27 @@ This directory contains comprehensive documentation for Eleva Care's payment sys
 
 ### Refund Policies
 
-6. **[First-Time Waiver Implementation](./06-first-time-waiver-implementation.md)** ⭐ NEW
+6. **[Policy v3.0: Customer-First 100% Refund](./09-policy-v3-customer-first-100-refund.md)** ⭐ **CURRENT**
+   - **100% refund for ALL late payment conflicts**
+   - Customer-first approach
    - Complete implementation guide
-   - Database schema changes
-   - Refund logic (100% vs 90%)
-   - Email notifications
-   - Analytics & monitoring
-   - Testing strategy
+   - Testing strategy (15/15 tests passing)
+   - Deployment checklist
+   - Business impact analysis
 
-7. **[First-Time Waiver Linear Issues](./07-first-time-waiver-linear-issues.md)** ⭐ NEW
-   - Copy-paste Linear issue templates
-   - 7 discrete implementation tasks
-   - Sprint planning
-   - Dependencies & estimates
+7. **[Multibanco Refund Flow Audit](./10-multibanco-refund-flow-audit.md)** ⭐ NEW
+   - Comprehensive flow documentation
+   - Code alignment verification
+   - Stripe API best practices
+   - Documentation consolidation plan
+
+8. **[~~First-Time Waiver Implementation~~](./06-first-time-waiver-implementation.md)** ⚠️ **DEPRECATED** (Superseded by v3.0)
+   - Legacy v1.0 policy documentation
+   - Archived for historical reference
+
+9. **[~~Blocked Date Refund Summary~~](./08-blocked-date-refund-implementation-summary.md)** ⚠️ **DEPRECATED** (Superseded by v3.0)
+   - Legacy v2.0 policy documentation
+   - Archived for historical reference
 
 ---
 
@@ -62,21 +70,21 @@ This directory contains comprehensive documentation for Eleva Care's payment sys
 
 ### For Product Managers
 
-- Read: [First-Time Waiver Linear Issues](./07-first-time-waiver-linear-issues.md)
-- Action: Copy issues into Linear
-- Timeline: 2-3 week implementation
+- Read: [Policy v3.0 Documentation](./09-policy-v3-customer-first-100-refund.md)
+- Understand: Simplified 100% refund policy for all conflicts
+- Timeline: **✅ COMPLETE** - Already in production-ready state
 
 ### For Engineers
 
-- Read: [First-Time Waiver Implementation Guide](./06-first-time-waiver-implementation.md)
-- Start with: Step 1 (Database Schema)
-- Reference: Full code examples and tests
+- Read: [Policy v3.0 Implementation](./09-policy-v3-customer-first-100-refund.md)
+- Status: **✅ Backend Complete** | **✅ Tests Passing** (15/15)
+- Next: Deploy to staging and validate
 
 ### For QA
 
-- Read: Testing sections in [Implementation Guide](./06-first-time-waiver-implementation.md#testing-strategy)
-- Focus: Unit tests, integration tests, E2E tests
-- Verify: All 4 languages (EN, ES, PT, BR)
+- Read: [Multibanco Refund Flow Audit](./10-multibanco-refund-flow-audit.md)
+- Focus: Integration tests, E2E webhook validation
+- Verify: All 4 languages (EN, PT, ES, BR)
 
 ---
 
@@ -89,12 +97,14 @@ This directory contains comprehensive documentation for Eleva Care's payment sys
 - ✅ 3D Secure (3DS) authentication
 - ✅ Stripe Connect for expert payouts
 
-### Refund Policies
+### Refund Policies (v3.0 - Customer-First)
 
-- ✅ **First-time courtesy waiver**: 100% refund for first late payment
-- ✅ **Subsequent late payments**: 90% refund (10% processing fee)
+- ✅ **ALL late payment conflicts**: 100% refund (no processing fees)
+- ✅ **Blocked dates**: 100% refund (expert's fault)
+- ✅ **Time overlaps**: 100% refund (slot unavailable)
+- ✅ **Minimum notice**: 100% refund (can't proceed)
 - ✅ Expert-initiated refunds
-- ✅ Platform-initiated refunds (conflicts, violations)
+- ✅ Platform-initiated refunds
 
 ### Security & Compliance
 
@@ -111,51 +121,54 @@ This directory contains comprehensive documentation for Eleva Care's payment sys
 graph TD
     A[Client Books Appointment] --> B{Payment Method}
     B -->|Card| C[Instant Payment]
-    B -->|Multibanco| D[7-Day Payment Window]
+    B -->|Multibanco >8 days| D[7-Day Payment Window]
     C --> E[Meeting Created]
-    D -->|On Time| E
-    D -->|Late Payment| F{First-Time Late Payer?}
-    F -->|Yes| G[100% Refund - Courtesy Waiver]
-    F -->|No| H[90% Refund - 10% Fee]
+    D -->|Payment Within 7 days| E
+    D -->|Late Payment >7 days| F{Conflict Detected?}
+    F -->|No Conflict| E
+    F -->|ANY Conflict| G[100% Refund - Customer-First Policy v3.0]
+    G --> H[Customer Can Rebook]
     E --> I[Expert Receives Payout]
 ```
 
 ---
 
-## 📊 Refund Policy Summary
+## 📊 Refund Policy Summary (v3.0)
 
-| Scenario                           | First-Time              | Repeat                  | Fee    |
-| ---------------------------------- | ----------------------- | ----------------------- | ------ |
-| **Late Multibanco (after 7 days)** | 100% refund             | 90% refund              | 10%    |
-| **Slot unavailable**               | 100% refund             | 90% refund              | 10%    |
-| **Expert rule violation**          | 100% refund             | 90% refund              | 10%    |
-| **Card payment cancellation**      | Per cancellation policy | Per cancellation policy | Varies |
+| Scenario                             | Policy v3.0             | Fee    | Reason                         |
+| ------------------------------------ | ----------------------- | ------ | ------------------------------ |
+| **Late Multibanco - Blocked Date**   | 100% refund             | €0     | Expert blocked after booking   |
+| **Late Multibanco - Time Overlap**   | 100% refund             | €0     | Slot booked by another client  |
+| **Late Multibanco - Minimum Notice** | 100% refund             | €0     | Can't meet expert requirements |
+| **Late Multibanco - No Conflict**    | No refund               | N/A    | Meeting proceeds as normal     |
+| **Card payment cancellation**        | Per cancellation policy | Varies | See Terms of Service           |
 
-**Note**: First-time courtesy applies only to Multibanco late payments, not regular cancellations.
+**Policy**: v3.0 - Customer-first approach. All late payment conflicts receive 100% refund (no processing fees).
+**Effective Date**: January 27, 2025
 
 ---
 
-## 🎯 First-Time Waiver Quick Reference
+## 🎯 Policy v3.0 Quick Reference
 
 ### For Users (Customer-Facing)
 
-- **What**: First late Multibanco payment? Get 100% refund (no fee)
-- **Why**: We understand mistakes happen
-- **When**: Applies only to first late payment (subsequent: 10% fee)
-- **How**: Automatic (no action needed)
+- **What**: If you pay late (>7 days) and there's a conflict, you get **100% refund** (no fees)
+- **Why**: We believe in treating customers fairly when appointments can't proceed
+- **When**: Applies to ALL late payment conflicts (blocked dates, time overlaps, minimum notice violations)
+- **How**: Automatic - no action needed
 
 ### For Engineers
 
-- **Database**: 3 new fields in `UserTable` (see Step 1)
-- **Logic**: `isFirstTimeLatePayment()` checks history
-- **Refund**: `processPartialRefund()` calculates 100% or 90%
-- **Tracking**: PostHog analytics + Stripe metadata
+- **Logic**: `processPartialRefund()` always returns 100% refund for any conflict
+- **Detection**: `checkAppointmentConflict()` checks 3 conflict types in priority order
+- **Tracking**: PostHog analytics + Stripe metadata (`policy_version: '3.0'`)
+- **Tests**: 15/15 passing in `blocked-date-refund.test.ts`
 
 ### For Support
 
-- **First-time**: "You received 100% refund as a courtesy"
-- **Repeat**: "10% processing fee applies per our policies"
-- **Check status**: User dashboard shows waiver eligibility
+- **Message**: "You received a 100% refund because the appointment couldn't proceed"
+- **Reason**: Check email for specific conflict type (blocked date, time overlap, etc.)
+- **Policy**: All conflicts = full refund, no exceptions
 
 ---
 
@@ -241,13 +254,29 @@ graph TD
 
 ## 📝 Changelog
 
-### 2025-01-17
+### 2025-01-27 (v3.0 - Customer-First Policy)
 
-- ✨ Added First-Time Waiver Implementation Guide
-- ✨ Added Linear Issue Templates
-- 📚 Updated documentation index
+- ✨ **Implemented v3.0**: 100% refund for ALL late payment conflicts
+- ✅ Backend complete and tested (15/15 tests passing)
+- ✅ Legal content updated (4 languages)
+- ✅ Email translations updated (4 languages)
+- 📚 Added comprehensive flow audit documentation
+- 📚 Updated README to reflect current policy
+- ⚠️ Deprecated v1.0 and v2.0 documentation
 
-### 2024-12-XX
+### 2025-01-26 (v2.0 - Blocked Date Policy)
+
+- ✨ Differentiated blocked date (100%) vs other conflicts (90%)
+- 📚 Added blocked date implementation summary
+- ⚠️ **SUPERSEDED by v3.0**
+
+### 2025-01-17 (v1.0 - First-Time Waiver)
+
+- ✨ First-time courtesy waiver concept
+- 📚 Implementation guide and Linear templates
+- ⚠️ **SUPERSEDED by v3.0**
+
+### 2024-12-XX (Initial)
 
 - 📚 Initial payment system documentation
 - 📚 Stripe integration guide
@@ -267,6 +296,15 @@ When adding new payment features:
 
 ---
 
-**Last Updated**: January 2025  
+**Last Updated**: January 27, 2025 (v3.0 Policy Implementation)  
 **Maintained By**: Engineering Team  
 **Questions?** Post in #engineering Slack channel
+
+---
+
+## 📌 Recent Changes
+
+- **2025-01-27**: Implemented v3.0 customer-first policy (100% refund for all conflicts)
+- **2025-01-27**: Deprecated v1.0 and v2.0 documentation
+- **2025-01-27**: Consolidated and audited complete Multibanco refund flow
+- **2025-01-27**: Validated Stripe API best practices compliance

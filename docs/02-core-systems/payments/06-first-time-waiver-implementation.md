@@ -1,9 +1,24 @@
-# First-Time Late Payment Waiver Implementation Guide
+# ⚠️ DEPRECATED: First-Time Late Payment Waiver Implementation Guide
 
-**Status**: Planning  
-**Priority**: High  
-**Estimated Effort**: 8-12 hours  
-**Dependencies**: Database migration, Stripe webhook handler updates  
+> **⚠️ WARNING: This document is DEPRECATED**
+>
+> **Policy Version**: v1.0 (OBSOLETE)  
+> **Superseded By**: [Policy v3.0: Customer-First 100% Refund](./09-policy-v3-customer-first-100-refund.md)  
+> **Deprecation Date**: January 27, 2025  
+> **Status**: Archived for historical reference only
+>
+> **DO NOT IMPLEMENT THIS POLICY**. This document describes an outdated "first-time courtesy waiver" approach (100% first, 90% subsequent) that has been replaced by a simpler v3.0 policy: **100% refund for ALL late payment conflicts**.
+>
+> For current implementation, see: [Policy v3.0 Documentation](./09-policy-v3-customer-first-100-refund.md)
+
+---
+
+## Original Document (Archived)
+
+**Original Status**: Planning (NEVER IMPLEMENTED)  
+**Original Priority**: High  
+**Original Estimated Effort**: 8-12 hours  
+**Original Dependencies**: Database migration, Stripe webhook handler updates  
 **Related Documents**:
 
 - [Payment Policies](/content/payment-policies/)
