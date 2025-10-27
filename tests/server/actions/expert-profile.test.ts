@@ -27,27 +27,27 @@ const revalidatePathMock = jest.fn();
 
 // Mock all dependencies before importing the function to test
 jest.mock('@clerk/nextjs/server', () => ({
-  auth: (...args) => authMock(...args),
-  currentUser: (...args) => currentUserMock(...args),
+  auth: jest.fn((...args: any[]) => authMock(...(args as []))),
+  currentUser: jest.fn((...args: any[]) => currentUserMock(...(args as []))),
 }));
 
 jest.mock('@/lib/auth/roles.server', () => ({
-  hasRole: (...args) => hasRoleMock(...args),
+  hasRole: jest.fn((...args: any[]) => hasRoleMock(...(args as []))),
 }));
 
 jest.mock('@/server/actions/expert-setup', () => ({
-  checkExpertSetupStatus: (...args) => checkExpertSetupStatusMock(...args),
+  checkExpertSetupStatus: jest.fn((...args: any[]) => checkExpertSetupStatusMock(...(args as []))),
 }));
 
 // DB operations with chainable update mocks
 const updateSetMock = jest.fn();
 const updateWhereMock = jest.fn();
 const updateChain = {
-  set: (...args) => {
+  set: (...args: any[]) => {
     updateSetMock(...args);
     return updateChain;
   },
-  where: (...args) => {
+  where: (...args: any[]) => {
     updateWhereMock(...args);
     return updateChain;
   },
@@ -58,7 +58,7 @@ jest.mock('@/drizzle/db', () => {
     db: {
       query: {
         ProfileTable: {
-          findFirst: (...args) => findFirstMock(...args),
+          findFirst: (...args: any[]) => findFirstMock(...args),
         },
       },
       update: () => updateChain,
@@ -67,12 +67,12 @@ jest.mock('@/drizzle/db', () => {
 });
 
 jest.mock('next/cache', () => ({
-  revalidatePath: (...args) => revalidatePathMock(...args),
+  revalidatePath: (...args: any[]) => revalidatePathMock(...args),
 }));
 
 // Mock drizzle-orm
 jest.mock('drizzle-orm', () => ({
-  eq: (field, value) => value,
+  eq: (field: any, value: any) => value,
   relations: () => ({}),
 }));
 
@@ -190,8 +190,8 @@ describe('toggleProfilePublication', () => {
 
   it('should return error if user is not authenticated', async () => {
     // Arrange - mock unauthenticated user
-    authMock.mockResolvedValueOnce({ userId: null });
-    currentUserMock.mockResolvedValueOnce(null);
+    authMock.mockResolvedValueOnce({ userId: null as any });
+    currentUserMock.mockResolvedValueOnce(null as any);
 
     // Act
     const result = await toggleProfilePublication();

@@ -85,8 +85,8 @@
     "@mdx-js/loader": "^3.1.0",
     "@mdx-js/react": "^3.1.0",
     "@neondatabase/serverless": "^0.10.4",
-    "@next/eslint-plugin-next": "15.1.7",
-    "@next/mdx": "^15.3.1",
+    "@next/eslint-plugin-next": "15.4.7",
+    "@next/mdx": "^15.4.7",
     "@novu/api": "^1.6.0",
     "@novu/framework": "^2.6.7",
     "@novu/nextjs": "^3.5.0",
@@ -160,7 +160,7 @@
     "drizzle-orm": "^0.35.3",
     "dub": "^0.61.8",
     "embla-carousel-react": "^8.6.0",
-    "eslint-config-next": "15.1.7",
+    "eslint-config-next": "15.4.7",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
     "globals": "^15.15.0",
@@ -169,7 +169,7 @@
     "lodash": "^4.17.21",
     "lucide-react": "^0.453.0",
     "motion": "^12.9.2",
-    "next": "15.3.3",
+    "next": "15.4.7",
     "next-intl": "^4.1.0",
     "next-themes": "^0.4.6",
     "nuqs": "^2.4.3",
@@ -204,7 +204,7 @@
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.25.1",
     "@jest/globals": "^29.7.0",
-    "@next/bundle-analyzer": "^15.3.4",
+    "@next/bundle-analyzer": "^15.4.7",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.3",
@@ -250,7 +250,8 @@
   "pnpm": {
     "overrides": {
       "@types/react": "19.0.10",
-      "@types/react-dom": "19.0.4"
+      "@types/react-dom": "19.0.4",
+      "prismjs": "^1.30.0"
     }
   },
   "lint-staged": {

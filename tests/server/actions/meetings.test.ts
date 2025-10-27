@@ -127,6 +127,7 @@ describe('Meeting Actions', () => {
     guestName: 'John Doe',
     startTime: mockDate,
     timezone: 'America/New_York',
+    locale: 'en',
     stripePaymentIntentId: 'pi_123',
     stripePaymentStatus: 'succeeded' as const,
     stripeAmount: 5000,
