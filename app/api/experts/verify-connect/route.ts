@@ -1,5 +1,6 @@
+import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import { verifyExpertConnectAccount } from '@/server/actions/experts';
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -13,9 +14,12 @@ export async function POST() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify if the user is an expert
-    const clerk = await clerkClient();
-    const user = await clerk.users.getUser(userId);
+    // Verify if the user is an expert using cached lookup
+    const user = await getCachedUserById(userId);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
     const isExpert = user.publicMetadata?.role === 'expert';
 
     if (!isExpert) {

@@ -11,6 +11,7 @@ import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/Pr
 import { BookingLoadingSkeleton } from '@/components/molecules/BookingLoadingSkeleton';
 import { MeetingForm } from '@/components/organisms/forms/MeetingForm';
 import { db } from '@/drizzle/db';
+import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import {
   DEFAULT_AFTER_EVENT_BUFFER,
   DEFAULT_BEFORE_EVENT_BUFFER,
@@ -22,7 +23,6 @@ import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { Link } from '@/lib/i18n/navigation';
 import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
 import GoogleCalendarService from '@/server/googleCalendar';
-import { createClerkClient } from '@clerk/nextjs/server';
 import type { User } from '@clerk/nextjs/server';
 import {
   addDays,
@@ -103,10 +103,13 @@ async function BookEventPageContent({
 
   if (event == null) return notFound();
 
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-  const calendarUser = await clerk.users.getUser(user.id);
+  // Use cached Clerk user lookup instead of direct API call
+  const calendarUser = await getCachedUserById(user.id);
+
+  // Handle case where user is not found
+  if (!calendarUser) {
+    return notFound();
+  }
 
   return (
     <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center p-4 md:mt-0 md:h-dvh md:p-6">

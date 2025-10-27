@@ -1,5 +1,7 @@
 'use server';
 
+import { getCachedUserById } from '@/lib/cache/clerk-cache';
+import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
 import { clerkClient } from '@clerk/nextjs/server';
 
 /**
@@ -8,9 +10,13 @@ import { clerkClient } from '@clerk/nextjs/server';
  */
 export async function fixInconsistentMetadata(userId: string) {
   try {
-    // Get the user
+    // Get the user using cached lookup
     const clerk = await clerkClient();
-    const user = await clerk.users.getUser(userId);
+    const user = await getCachedUserById(userId);
+
+    if (!user) {
+      return { success: false, error: 'User not found' };
+    }
 
     // Create a clean metadata object without completion flags
     const cleanMetadata: Record<string, unknown> = {};
@@ -30,6 +36,9 @@ export async function fixInconsistentMetadata(userId: string) {
     await clerk.users.updateUser(userId, {
       unsafeMetadata: cleanMetadata,
     });
+
+    // Invalidate cache after updating user metadata
+    await invalidateUserCache(userId);
 
     return { success: true };
   } catch (error) {

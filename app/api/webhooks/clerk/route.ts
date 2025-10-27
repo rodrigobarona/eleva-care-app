@@ -1,5 +1,6 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
+import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
 import {
   analyzeSessionSecurity,
   type ClerkSessionData,
@@ -134,6 +135,12 @@ async function handleClerkEvent(evt: WebhookEvent) {
       case 'user.updated':
         console.log('User updated:', id);
 
+        // Invalidate cache when user data is updated
+        if (typeof id === 'string') {
+          await invalidateUserCache(id);
+          console.log(`✅ Invalidated cache for user ${id}`);
+        }
+
         // Handle Google account connection updates for expert users
         if (evt.data && typeof evt.data === 'object' && 'external_accounts' in evt.data) {
           const user = evt.data as UserWithExternalAccounts;
@@ -143,6 +150,12 @@ async function handleClerkEvent(evt: WebhookEvent) {
 
       case 'user.deleted':
         console.log('User deleted:', id);
+
+        // Invalidate cache when user is deleted
+        if (typeof id === 'string') {
+          await invalidateUserCache(id);
+          console.log(`✅ Invalidated cache for deleted user ${id}`);
+        }
         break;
 
       case 'session.created':

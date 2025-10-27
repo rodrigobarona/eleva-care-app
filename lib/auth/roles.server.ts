@@ -1,3 +1,5 @@
+import { getCachedUserById } from '@/lib/cache/clerk-cache';
+import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
 import {
   ADMIN_ROLES,
   ROLE_ADMIN,
@@ -59,8 +61,9 @@ export async function hasAnyRole(roles: UserRole[]): Promise<boolean> {
   const { userId } = await auth();
   if (!userId) return false;
 
-  const clerk = await clerkClient();
-  const user = await clerk.users.getUser(userId);
+  const user = await getCachedUserById(userId);
+  if (!user) return false;
+
   const userRoles = user.publicMetadata.role as UserRoles;
 
   if (!userRoles) return false;
@@ -81,8 +84,9 @@ export async function hasRole(role: UserRole): Promise<boolean> {
   const { userId } = await auth();
   if (!userId) return false;
 
-  const clerk = await clerkClient();
-  const user = await clerk.users.getUser(userId);
+  const user = await getCachedUserById(userId);
+  if (!user) return false;
+
   const userRoles = user.publicMetadata.role as UserRoles;
 
   return userHasRole(userRoles, role);
@@ -123,8 +127,9 @@ export async function getUserRole(): Promise<UserRoles> {
   const { userId } = await auth();
   if (!userId) return ROLE_USER;
 
-  const clerk = await clerkClient();
-  const user = await clerk.users.getUser(userId);
+  const user = await getCachedUserById(userId);
+  if (!user) return ROLE_USER;
+
   return (user.publicMetadata.role as UserRoles) || ROLE_USER;
 }
 
@@ -135,9 +140,11 @@ export async function updateUserRole(userId: string, roles: UserRoles): Promise<
   const { userId: currentUserId } = await auth();
   if (!currentUserId) throw new Error('Unauthorized');
 
-  // Check if current user has permission to update roles
+  // Check if current user has permission to update roles using cached lookup
   const clerk = await clerkClient();
-  const currentUser = await clerk.users.getUser(currentUserId);
+  const currentUser = await getCachedUserById(currentUserId);
+  if (!currentUser) throw new Error('User not found');
+
   const currentUserRoles = currentUser.publicMetadata.role as UserRoles;
 
   const isAdmin = userHasRole(currentUserRoles, ROLE_ADMIN);
@@ -157,4 +164,7 @@ export async function updateUserRole(userId: string, roles: UserRoles): Promise<
   await clerk.users.updateUser(userId, {
     publicMetadata: { role: roles },
   });
+
+  // Invalidate cache after updating user roles
+  await invalidateUserCache(userId);
 }
