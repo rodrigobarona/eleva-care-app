@@ -540,21 +540,52 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
     // Check if this is a Multibanco payment and if it's potentially late
     const isMultibancoPayment = paymentIntent.payment_method_types?.includes('multibanco');
 
-    // If it's a Multibanco payment and we have session timing info, check for conflicts
-    let hasConflict = false;
+    // 🆕 CRITICAL FIX: For Multibanco payments, recalculate transfer schedule
+    // based on ACTUAL payment time, not the initial booking time
+    let recalculatedTransferTime: Date | null = null;
+
     if (isMultibancoPayment && meetingData.expert && meetingData.start) {
       const appointmentStart = new Date(meetingData.start);
+      const appointmentEnd = new Date(appointmentStart.getTime() + meetingData.dur * 60 * 1000);
+      const paymentTime = new Date(); // When payment actually succeeded
+
+      // Calculate the earliest transfer date based on BOTH requirements:
+      // 1. At least 24h after appointment ends (customer complaint window)
+      // 2. At least 7 days after payment succeeds (regulatory compliance)
+      const minimumTransferDate = new Date(appointmentEnd.getTime() + 24 * 60 * 60 * 1000);
+      const paymentAgeBasedTransferDate = new Date(paymentTime.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      // Use the LATER of the two dates
+      recalculatedTransferTime = new Date(
+        Math.max(minimumTransferDate.getTime(), paymentAgeBasedTransferDate.getTime()),
+      );
+      recalculatedTransferTime.setHours(4, 0, 0, 0);
+
+      console.log('🔄 Recalculated Multibanco transfer schedule:', {
+        paymentTime: paymentTime.toISOString(),
+        appointmentStart: appointmentStart.toISOString(),
+        appointmentEnd: appointmentEnd.toISOString(),
+        minimumTransferDate: minimumTransferDate.toISOString(),
+        paymentAgeBasedTransferDate: paymentAgeBasedTransferDate.toISOString(),
+        recalculatedTransferTime: recalculatedTransferTime.toISOString(),
+        hoursAfterAppointmentEnd: Math.floor(
+          (recalculatedTransferTime.getTime() - appointmentEnd.getTime()) / (60 * 60 * 1000),
+        ),
+        daysFromPayment: Math.floor(
+          (recalculatedTransferTime.getTime() - paymentTime.getTime()) / (24 * 60 * 60 * 1000),
+        ),
+      });
+
+      // Check for conflicts (blocked dates, overlaps, minimum notice)
       const conflictResult = await checkAppointmentConflict(
         meetingData.expert,
         appointmentStart,
         meetingData.id,
       );
-      hasConflict = conflictResult.hasConflict;
 
-      if (hasConflict) {
+      if (conflictResult.hasConflict) {
         console.log(`🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`);
 
-        // 🆕 Process refund with conflict type (100% for blocked date, 90% for others)
         // Map conflict reason to allowed conflictType values
         let conflictType:
           | 'expert_blocked_date'
@@ -569,7 +600,6 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         } else if (conflictResult.reason === 'minimum_notice_violation') {
           conflictType = 'minimum_notice_violation';
         } else {
-          // Map any other reason (including 'event_not_found') to 'unknown_conflict'
           conflictType = 'unknown_conflict';
         }
 
@@ -788,12 +818,26 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           }
 
           // Validate scheduled transfer time
-          const scheduledTime = new Date(transferData.scheduled);
+          // 🆕 CRITICAL FIX: For Multibanco, use recalculated time if available
+          const originalScheduledTime = new Date(transferData.scheduled);
+          const scheduledTime = recalculatedTransferTime || originalScheduledTime;
+
           if (Number.isNaN(scheduledTime.getTime())) {
             console.error(
               `Invalid scheduled transfer time in metadata for PI ${paymentIntent.id}: ${transferData.scheduled}`,
             );
             return;
+          }
+
+          if (recalculatedTransferTime) {
+            console.log(`✅ Using recalculated transfer time for Multibanco payment:`, {
+              original: originalScheduledTime.toISOString(),
+              recalculated: recalculatedTransferTime.toISOString(),
+              diffHours: Math.floor(
+                (recalculatedTransferTime.getTime() - originalScheduledTime.getTime()) /
+                  (60 * 60 * 1000),
+              ),
+            });
           }
 
           // All validations passed, create transfer record
@@ -807,7 +851,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             platformFee: fee,
             currency: 'eur',
             sessionStartTime: meeting.startTime,
-            scheduledTransferTime: scheduledTime,
+            scheduledTransferTime: scheduledTime, // 🆕 Uses recalculated time if available
             status: PAYMENT_TRANSFER_STATUS_READY,
             created: new Date(),
             updated: new Date(),
