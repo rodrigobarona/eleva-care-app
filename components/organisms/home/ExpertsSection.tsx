@@ -8,7 +8,7 @@ import {
 } from '@/components/molecules/carousel';
 import { PlatformDisclaimer } from '@/components/molecules/PlatformDisclaimer';
 import { db } from '@/drizzle/db';
-import { createClerkClient } from '@clerk/nextjs/server';
+import { getCachedUsersByIds } from '@/lib/cache/clerk-cache';
 import { eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
@@ -17,26 +17,26 @@ import Link from 'next/link';
 const ExpertsSection = async () => {
   const t = await getTranslations('experts');
 
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-
-  // First get all profiles from the database that are published
+  // Optimize: Get only published profiles with necessary fields and limit to top experts
   const profiles = await db.query.ProfileTable.findMany({
     where: ({ published }) => eq(published, true),
     with: {
       primaryCategory: true,
     },
     orderBy: ({ order }) => order,
+    limit: 12, // Limit to top 12 experts for better performance
   });
 
-  // Get only the users that have profiles
-  const users = await clerk.users.getUserList({
-    userId: profiles.map((profile) => profile.clerkUserId),
-  });
+  // Early return if no profiles
+  if (profiles.length === 0) {
+    return null;
+  }
+
+  // Get only the users that have profiles (batch request with caching)
+  const users = await getCachedUsersByIds(profiles.map((profile) => profile.clerkUserId));
 
   const expertsData = await Promise.all(
-    users.data.map(async (user) => {
+    users.map(async (user) => {
       // Get the corresponding profile
       const profile = profiles.find((p) => p.clerkUserId === user.id);
 
@@ -105,7 +105,7 @@ const ExpertsSection = async () => {
                 <Link
                   href={`/${expert.username}`}
                   className="group overflow-visible"
-                  prefetch={true}
+                  prefetch={false}
                 >
                   <Card className="overflow-visible border-none bg-transparent shadow-none">
                     {/* Image Container */}
@@ -113,11 +113,14 @@ const ExpertsSection = async () => {
                       <Image
                         src={expert.image}
                         alt={t('expertImageAlt', { name: expert.name })}
-                        width={1200}
-                        height={1200}
+                        width={400}
+                        height={520}
                         className="absolute inset-0 h-full w-full overflow-hidden rounded-xl object-cover"
                         loading="lazy"
-                        sizes="(max-width: 767px) 90vw, (max-width: 1023px) 45vw, 320px"
+                        quality={85}
+                        sizes="(max-width: 767px) 85vw, (max-width: 1023px) 45vw, 22vw"
+                        placeholder="blur"
+                        blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUyMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iNDAwIiBoZWlnaHQ9IjUyMCIgZmlsbD0iI2YzZjRmNiIvPjwvc3ZnPg=="
                       />
                       {/* Top Expert Badge */}
                       {expert.isTopExpert && (

@@ -1,5 +1,6 @@
 import { db } from '@/drizzle/db';
-import { auth, createClerkClient } from '@clerk/nextjs/server';
+import { getCachedUserByUsername } from '@/lib/cache/clerk-cache';
+import { auth } from '@clerk/nextjs/server';
 import { notFound } from 'next/navigation';
 import { ReactNode } from 'react';
 
@@ -37,15 +38,8 @@ export async function ProfileAccessControl({
   context = 'ProfileAccessControl',
   additionalPath = '',
 }: ProfileAccessControlProps) {
-  // Fetch user data
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-
-  const users = await clerk.users.getUserList({
-    username: [username],
-  });
-  const user = users.data[0];
+  // Fetch user data with caching
+  const user = await getCachedUserByUsername(username);
 
   if (!user) {
     console.log(`[${context}] User not found for username: ${username}`);
@@ -87,14 +81,7 @@ export async function ProfileAccessControl({
  * Use this when you need the user/profile data in your component logic
  */
 export async function getProfileAccessData(username: string) {
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-
-  const users = await clerk.users.getUserList({
-    username: [username],
-  });
-  const user = users.data[0];
+  const user = await getCachedUserByUsername(username);
 
   if (!user) {
     return null;

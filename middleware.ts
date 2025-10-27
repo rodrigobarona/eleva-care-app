@@ -401,6 +401,7 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   if (
     /\.(.*)$/.test(path) ||
     path.startsWith('/_next') ||
+    path.startsWith('/.well-known') || // Standard web convention paths (security.txt, app links, etc.)
     path.startsWith('/api/webhooks/') ||
     path.startsWith('/api/cron/') ||
     path.startsWith('/api/qstash/') ||
