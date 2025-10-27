@@ -6,6 +6,7 @@ import {
   EventTable,
   MeetingTable,
   PaymentTransferTable,
+  ScheduleTable,
   schedulingSettings,
   SlotReservationTable,
   UserTable,
@@ -176,8 +177,13 @@ function hasTimeOverlap(start1: Date, end1: Date, start2: Date, end2: Date): boo
  *
  * ALL conflicts result in 100% refund under v3.0 customer-first policy
  *
+ * Timezone Handling:
+ * - Blocked date detection uses the expert's timezone from ScheduleTable
+ * - This ensures correct date boundary detection (e.g., EST expert blocking 2025-02-15
+ *   will correctly match an appointment at 2025-02-16 04:00 UTC which is 2025-02-15 23:00 EST)
+ *
  * @param expertId - Expert's Clerk user ID
- * @param startTime - Appointment start time
+ * @param startTime - Appointment start time (UTC)
  * @param eventId - Event ID to get duration information
  * @returns Object with conflict info and reason
  */
@@ -213,9 +219,21 @@ async function checkAppointmentConflict(
     );
 
     // 🆕 PRIORITY 1: Check for BLOCKED DATES (Expert's responsibility - 100% refund)
-    const appointmentDateString = format(startTime, 'yyyy-MM-dd', { timeZone: 'UTC' });
+    // Get expert's timezone from ScheduleTable to ensure timezone-aware date comparison
+    const expertSchedule = await db.query.ScheduleTable.findFirst({
+      where: eq(ScheduleTable.clerkUserId, expertId),
+      columns: { timezone: true },
+    });
 
-    console.log(`🗓️  Checking blocked dates for ${appointmentDateString}`);
+    // Use expert's timezone for date formatting, fallback to UTC if not set
+    const expertTimezone = expertSchedule?.timezone || 'UTC';
+
+    // Format appointment date in expert's timezone to match how blocked dates are stored
+    const appointmentDateString = format(startTime, 'yyyy-MM-dd', { timeZone: expertTimezone });
+
+    console.log(
+      `🗓️  Checking blocked dates for ${appointmentDateString} (expert timezone: ${expertTimezone})`,
+    );
 
     const blockedDate = await db.query.BlockedDatesTable.findFirst({
       where: and(
@@ -229,6 +247,7 @@ async function checkAppointmentConflict(
         `🚫 BLOCKED DATE CONFLICT DETECTED!`,
         `\n  - Date: ${appointmentDateString}`,
         `\n  - Expert: ${expertId}`,
+        `\n  - Expert Timezone: ${expertTimezone}`,
         `\n  - Reason: ${blockedDate.reason || 'Not specified'}`,
         `\n  - Blocked ID: ${blockedDate.id}`,
         `\n  - ⚠️  This warrants 100% refund - expert blocked after booking`,
@@ -240,7 +259,9 @@ async function checkAppointmentConflict(
       };
     }
 
-    console.log(`✅ No blocked dates found for ${appointmentDateString}`);
+    console.log(
+      `✅ No blocked dates found for ${appointmentDateString} (checked in ${expertTimezone})`,
+    );
 
     // PRIORITY 2: Check for existing confirmed meetings with TIME RANGE OVERLAP
     const conflictingMeetings = await db.query.MeetingTable.findMany({
@@ -535,7 +556,9 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             conflictResult.minimumNoticeHours,
           );
 
-          console.log(`✅ Conflict handled: 90% refund processed for PI ${paymentIntent.id}`);
+          console.log(
+            `✅ Conflict handled: 100% refund processed for PI ${paymentIntent.id} (v3.0 Customer-First policy)`,
+          );
 
           // Mark the meeting as refunded and return early
           await db

@@ -1,6 +1,6 @@
 ---
 description: 'URL Structure: /legal/ vs /trust/ Architecture'
-type: 'agent'
+type: 'auto'
 globs:
   ['app/**/legal/**', 'app/**/trust/**', 'content/legal/**', 'content/trust/**', 'middleware.ts']
 alwaysApply: false

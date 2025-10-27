@@ -1,5 +1,6 @@
 ---
 description: 'Eleva Care Tone of Voice: Human-Friendly, Airbnb-Inspired Communication for all user-facing content'
+type: 'auto'
 globs:
   - 'content/**/*.mdx'
   - 'messages/**/*.json'

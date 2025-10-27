@@ -19,16 +19,17 @@ import { getTranslations } from 'next-intl/server';
  * <ServerStatus />
  * ```
  *
- * Required environment variables:
- * - BETTERSTACK_API_KEY: Your BetterStack API key
- * - BETTERSTACK_URL: Your BetterStack status page URL
+ * Configuration:
+ * - Uses betterstackConfig for centralized configuration
+ * - Requires betterstackConfig.apiKey and betterstackConfig.statusPageUrl
+ * - See config/betterstack.ts for required environment variables
  */
 export async function ServerStatus() {
   // Get translations for the current locale
   const t = await getTranslations('status');
 
-  // Return null if required environment variables are not set
-  if (!process.env.BETTERSTACK_API_KEY || !process.env.BETTERSTACK_URL) {
+  // Return null if required configuration is not set
+  if (!betterstackConfig.apiKey || !betterstackConfig.statusPageUrl) {
     return null;
   }
 
@@ -36,9 +37,9 @@ export async function ServerStatus() {
   let statusLabel = t('unableToFetch');
 
   try {
-    const response = await fetch('https://uptime.betterstack.com/api/v2/monitors', {
+    const response = await fetch(betterstackConfig.apiEndpoint, {
       headers: {
-        Authorization: `Bearer ${process.env.BETTERSTACK_API_KEY}`,
+        Authorization: `Bearer ${betterstackConfig.apiKey}`,
       },
       // Cache using centralized config duration to avoid excessive API calls
       next: { revalidate: betterstackConfig.cacheDuration },
@@ -84,8 +85,8 @@ export async function ServerStatus() {
     <a
       className="flex items-center gap-3 text-xs font-medium transition-opacity hover:opacity-80"
       target="_blank"
-      rel="noreferrer"
-      href={process.env.BETTERSTACK_URL}
+      rel="noopener noreferrer"
+      href={betterstackConfig.statusPageUrl}
       aria-label={t('ariaLabel', { status: statusLabel })}
     >
       <span className="relative flex h-2 w-2">
