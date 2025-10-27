@@ -220,6 +220,8 @@ import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
 
 // server/actions/profile.ts
 
+// server/actions/profile.ts
+
 export async function updateProfile(userId: string, data: ProfileData) {
   // Use cached lookup to verify user exists
   const user = await getCachedUserById(userId);
