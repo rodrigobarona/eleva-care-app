@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 # Add common Node.js paths to PATH for GitHub Desktop and other GUI apps
 # Dynamically resolve NVM node bin path
 if [ -n "$NVM_DIR" ]; then

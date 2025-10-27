@@ -470,18 +470,18 @@
   },
   "Payments": {
     "collision": {
-      "title": "Conflito de Agendamento - Reembolso Processado",
+      "title": "Conflito de Agendamento - Reembolso Total Processado",
       "subject": "Agendamento de Consulta - Horário Não Disponível",
       "greeting": "Olá {clientName},",
       "conflictMessage": "Lamentamos informar que sua consulta com {expertName} agendada para {appointmentDateTime} não está mais disponível, pois o horário foi reservado por outro cliente.",
-      "latePaymentExplanation": "Como este foi um pagamento Multibanco tardio, processamos um reembolso de €{refundAmount} (90% do valor original, com 10% retido como taxa de processamento conforme descrito em nossas políticas de pagamento).",
+      "latePaymentExplanation": "Como este foi um pagamento Multibanco tardio e o horário não está mais disponível, processamos um reembolso total de €{refundAmount} (100% do valor original). Acreditamos em tratar nossos clientes de forma justa, por isso não são cobradas taxas de processamento.",
       "apologyAndInvitation": "Pedimos desculpas pelo inconveniente e convidamos você a agendar uma nova consulta quando for conveniente.",
       "signature": "Obrigado,",
       "minimumNoticeViolation": "O horário da consulta não atende mais ao requisito de aviso mínimo do especialista de {minimumNoticeHours} horas.",
       "refundDetails": {
         "originalAmount": "Valor original: €{amount}",
-        "refundAmount": "Valor reembolsado: €{amount} (90%)",
-        "processingFee": "Taxa de processamento retida: €{amount} (10%)"
+        "refundAmount": "Valor reembolsado: €{amount} (100% - Reembolso total)",
+        "processingFee": "Taxa de processamento: €{amount} (Sem taxa cobrada)"
       }
     },
     "checkout": {
