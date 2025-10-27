@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
 import { Textarea } from '@/components/atoms/textarea';
+import { BookingLoadingSkeleton } from '@/components/molecules/BookingLoadingSkeleton';
 import {
   Form,
   FormControl,
@@ -1247,7 +1248,7 @@ export function MeetingFormContent({
 
 export function MeetingForm(props: MeetingFormProps) {
   return (
-    <Suspense fallback={<div>Loading meeting form...</div>}>
+    <Suspense fallback={<BookingLoadingSkeleton />}>
       <MeetingFormContent {...props} />
     </Suspense>
   );
