@@ -72,15 +72,24 @@ export const ENV_CONFIG = {
   POSTHOG_PROJECT_ID: process.env.POSTHOG_PROJECT_ID || '',
 
   // BetterStack Heartbeat Configuration
-  // Phase 1: Critical Financial Jobs
+  // Phase 1: Critical Financial Jobs (Currently using 2/10 heartbeats)
   BETTERSTACK_EXPERT_TRANSFERS_HEARTBEAT: process.env.BETTERSTACK_EXPERT_TRANSFERS_HEARTBEAT || '',
   BETTERSTACK_PENDING_PAYOUTS_HEARTBEAT: process.env.BETTERSTACK_PENDING_PAYOUTS_HEARTBEAT || '',
 
-  // Future heartbeats (ready to use)
+  // Phase 2: Critical Revenue Protection Jobs (Recommended: 3 more heartbeats → 5/10 total)
   BETTERSTACK_PAYMENT_REMINDERS_HEARTBEAT:
     process.env.BETTERSTACK_PAYMENT_REMINDERS_HEARTBEAT || '',
+  BETTERSTACK_CLEANUP_RESERVATIONS_HEARTBEAT:
+    process.env.BETTERSTACK_CLEANUP_RESERVATIONS_HEARTBEAT || '',
+  BETTERSTACK_UPCOMING_PAYOUTS_HEARTBEAT: process.env.BETTERSTACK_UPCOMING_PAYOUTS_HEARTBEAT || '',
+
+  // Phase 3: User Experience Jobs (Optional: 2 more heartbeats → 7/10 total)
   BETTERSTACK_APPOINTMENT_REMINDERS_HEARTBEAT:
     process.env.BETTERSTACK_APPOINTMENT_REMINDERS_HEARTBEAT || '',
+  BETTERSTACK_APPOINTMENT_REMINDERS_1HR_HEARTBEAT:
+    process.env.BETTERSTACK_APPOINTMENT_REMINDERS_1HR_HEARTBEAT || '',
+
+  // Phase 4: Operational Jobs (Optional: 1 more heartbeat → 8/10 total)
   BETTERSTACK_TASKS_HEARTBEAT: process.env.BETTERSTACK_TASKS_HEARTBEAT || '',
 } as const;
 

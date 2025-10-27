@@ -1,6 +1,8 @@
+import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { EventTable, SlotReservationTable, UserTable } from '@/drizzle/schema';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
+import { sendHeartbeatFailure, sendHeartbeatSuccess } from '@/lib/betterstack-heartbeat';
 import { sendEmail } from '@/lib/email';
 import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
 import { render } from '@react-email/components';
@@ -281,6 +283,12 @@ export async function GET(request: NextRequest) {
       timestamp: currentTime.toISOString(),
     });
 
+    // Send success heartbeat to BetterStack
+    await sendHeartbeatSuccess({
+      url: ENV_CONFIG.BETTERSTACK_PAYMENT_REMINDERS_HEARTBEAT,
+      jobName: 'Multibanco Payment Reminders',
+    });
+
     return NextResponse.json({
       success: true,
       totalRemindersSent,
@@ -289,6 +297,16 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[CRON] Error during payment reminders job:', error);
+
+    // Send failure heartbeat to BetterStack
+    await sendHeartbeatFailure(
+      {
+        url: ENV_CONFIG.BETTERSTACK_PAYMENT_REMINDERS_HEARTBEAT,
+        jobName: 'Multibanco Payment Reminders',
+      },
+      error,
+    );
+
     return NextResponse.json(
       { error: 'Failed to process payment reminders', details: String(error) },
       { status: 500 },

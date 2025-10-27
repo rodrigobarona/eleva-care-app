@@ -1,6 +1,8 @@
+import { ENV_CONFIG } from '@/config/env';
 import { PAYOUT_DELAY_DAYS } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
+import { sendHeartbeatFailure, sendHeartbeatSuccess } from '@/lib/betterstack-heartbeat';
 import { createUpcomingPayoutNotification } from '@/lib/payment-notifications';
 import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
 import { getUserByClerkId } from '@/lib/users';
@@ -160,9 +162,26 @@ export async function GET(request: Request) {
     }
 
     console.log('Completed upcoming payouts check. Results:', results);
+
+    // Send success heartbeat to BetterStack
+    await sendHeartbeatSuccess({
+      url: ENV_CONFIG.BETTERSTACK_UPCOMING_PAYOUTS_HEARTBEAT,
+      jobName: 'Check Upcoming Payouts',
+    });
+
     return NextResponse.json(results);
   } catch (error) {
     console.error('Error in check-upcoming-payouts CRON job:', error);
+
+    // Send failure heartbeat to BetterStack
+    await sendHeartbeatFailure(
+      {
+        url: ENV_CONFIG.BETTERSTACK_UPCOMING_PAYOUTS_HEARTBEAT,
+        jobName: 'Check Upcoming Payouts',
+      },
+      error,
+    );
+
     return NextResponse.json({ error: 'Failed to process upcoming payouts' }, { status: 500 });
   }
 }

@@ -1,5 +1,7 @@
+import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { SlotReservationTable } from '@/drizzle/schema';
+import { sendHeartbeatFailure, sendHeartbeatSuccess } from '@/lib/betterstack-heartbeat';
 import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
 import { lt, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -165,6 +167,12 @@ export async function GET(request: NextRequest) {
       timestamp: currentTime.toISOString(),
     });
 
+    // Send success heartbeat to BetterStack
+    await sendHeartbeatSuccess({
+      url: ENV_CONFIG.BETTERSTACK_CLEANUP_RESERVATIONS_HEARTBEAT,
+      jobName: 'Cleanup Expired Reservations',
+    });
+
     return NextResponse.json({
       success: true,
       expiredCleaned: deletedExpiredReservations.length,
@@ -176,6 +184,16 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('[CRON] Error during slot reservations cleanup:', error);
+
+    // Send failure heartbeat to BetterStack
+    await sendHeartbeatFailure(
+      {
+        url: ENV_CONFIG.BETTERSTACK_CLEANUP_RESERVATIONS_HEARTBEAT,
+        jobName: 'Cleanup Expired Reservations',
+      },
+      error,
+    );
+
     return NextResponse.json(
       { error: 'Failed to cleanup reservations', details: String(error) },
       { status: 500 },
