@@ -545,115 +545,144 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
     let recalculatedTransferTime: Date | null = null;
 
     if (isMultibancoPayment && meetingData.expert && meetingData.start) {
-      const appointmentStart = new Date(meetingData.start);
-      const appointmentEnd = new Date(appointmentStart.getTime() + meetingData.dur * 60 * 1000);
-      const paymentTime = new Date(); // When payment actually succeeded
+      // 🛡️ VALIDATION: Ensure meetingData.dur is a finite number before date calculations
+      // This prevents NaN from breaking date math and transfer scheduling
+      if (!Number.isFinite(meetingData.dur) || meetingData.dur <= 0) {
+        console.warn(
+          '⚠️ MULTIBANCO TRANSFER RECALCULATION ABORTED: Invalid duration in payment metadata',
+          {
+            paymentIntentId: paymentIntent.id,
+            meetingId: meetingData.id || 'unknown',
+            expertId: meetingData.expert,
+            appointmentStart: meetingData.start,
+            invalidDuration: meetingData.dur,
+            durationType: typeof meetingData.dur,
+            reason: !Number.isFinite(meetingData.dur)
+              ? 'Duration is not a finite number (undefined, null, NaN, or Infinity)'
+              : 'Duration is zero or negative',
+            impact:
+              'Skipping transfer time recalculation AND conflict checks - will use original scheduled time from metadata',
+            action:
+              'Verify payment intent metadata structure and ensure "dur" field contains valid positive number',
+          },
+        );
+        // Abort recalculation - leave recalculatedTransferTime as null
+        // The code will fall back to using originalScheduledTime from transferData.scheduled
+        // Skip conflict checks as well since we can't reliably calculate appointment end time
+      } else {
+        const appointmentStart = new Date(meetingData.start);
+        const appointmentEnd = new Date(appointmentStart.getTime() + meetingData.dur * 60 * 1000);
+        const paymentTime = new Date(); // When payment actually succeeded
 
-      // Calculate the earliest transfer date based on BOTH requirements:
-      // 1. At least 24h after appointment ends (customer complaint window)
-      // 2. At least 7 days after payment succeeds (regulatory compliance)
-      const minimumTransferDate = new Date(appointmentEnd.getTime() + 24 * 60 * 60 * 1000);
-      const paymentAgeBasedTransferDate = new Date(paymentTime.getTime() + 7 * 24 * 60 * 60 * 1000);
-
-      // Use the LATER of the two dates
-      recalculatedTransferTime = new Date(
-        Math.max(minimumTransferDate.getTime(), paymentAgeBasedTransferDate.getTime()),
-      );
-      recalculatedTransferTime.setHours(4, 0, 0, 0);
-
-      console.log('🔄 Recalculated Multibanco transfer schedule:', {
-        paymentTime: paymentTime.toISOString(),
-        appointmentStart: appointmentStart.toISOString(),
-        appointmentEnd: appointmentEnd.toISOString(),
-        minimumTransferDate: minimumTransferDate.toISOString(),
-        paymentAgeBasedTransferDate: paymentAgeBasedTransferDate.toISOString(),
-        recalculatedTransferTime: recalculatedTransferTime.toISOString(),
-        hoursAfterAppointmentEnd: Math.floor(
-          (recalculatedTransferTime.getTime() - appointmentEnd.getTime()) / (60 * 60 * 1000),
-        ),
-        daysFromPayment: Math.floor(
-          (recalculatedTransferTime.getTime() - paymentTime.getTime()) / (24 * 60 * 60 * 1000),
-        ),
-      });
-
-      // Check for conflicts (blocked dates, overlaps, minimum notice)
-      const conflictResult = await checkAppointmentConflict(
-        meetingData.expert,
-        appointmentStart,
-        meetingData.id,
-      );
-
-      if (conflictResult.hasConflict) {
-        console.log(`🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`);
-
-        // Map conflict reason to allowed conflictType values
-        let conflictType:
-          | 'expert_blocked_date'
-          | 'time_range_overlap'
-          | 'minimum_notice_violation'
-          | 'unknown_conflict';
-
-        if (conflictResult.reason === 'expert_blocked_date') {
-          conflictType = 'expert_blocked_date';
-        } else if (conflictResult.reason === 'time_range_overlap') {
-          conflictType = 'time_range_overlap';
-        } else if (conflictResult.reason === 'minimum_notice_violation') {
-          conflictType = 'minimum_notice_violation';
-        } else {
-          conflictType = 'unknown_conflict';
-        }
-
-        const refund = await processPartialRefund(
-          paymentIntent,
-          conflictResult.reason === 'expert_blocked_date'
-            ? 'Expert blocked this date after your booking was made'
-            : 'Appointment time slot no longer available due to late payment',
-          conflictType,
+        // Calculate the earliest transfer date based on BOTH requirements:
+        // 1. At least 24h after appointment ends (customer complaint window)
+        // 2. At least 7 days after payment succeeds (regulatory compliance)
+        const minimumTransferDate = new Date(appointmentEnd.getTime() + 24 * 60 * 60 * 1000);
+        const paymentAgeBasedTransferDate = new Date(
+          paymentTime.getTime() + 7 * 24 * 60 * 60 * 1000,
         );
 
-        if (refund) {
-          // Get expert's name for notification
-          const expertUser = await db.query.UserTable.findFirst({
-            where: eq(UserTable.clerkUserId, meetingData.expert),
-            columns: { firstName: true, lastName: true },
-          });
+        // Use the LATER of the two dates
+        recalculatedTransferTime = new Date(
+          Math.max(minimumTransferDate.getTime(), paymentAgeBasedTransferDate.getTime()),
+        );
+        recalculatedTransferTime.setHours(4, 0, 0, 0);
 
-          const expertName = expertUser
-            ? `${expertUser.firstName || ''} ${expertUser.lastName || ''}`.trim() || 'Expert'
-            : 'Expert';
+        console.log('🔄 Recalculated Multibanco transfer schedule:', {
+          paymentTime: paymentTime.toISOString(),
+          appointmentStart: appointmentStart.toISOString(),
+          appointmentEnd: appointmentEnd.toISOString(),
+          minimumTransferDate: minimumTransferDate.toISOString(),
+          paymentAgeBasedTransferDate: paymentAgeBasedTransferDate.toISOString(),
+          recalculatedTransferTime: recalculatedTransferTime.toISOString(),
+          hoursAfterAppointmentEnd: Math.floor(
+            (recalculatedTransferTime.getTime() - appointmentEnd.getTime()) / (60 * 60 * 1000),
+          ),
+          daysFromPayment: Math.floor(
+            (recalculatedTransferTime.getTime() - paymentTime.getTime()) / (24 * 60 * 60 * 1000),
+          ),
+        });
 
-          // Notify all parties about the conflict
-          await notifyAppointmentConflict(
-            meetingData.guest,
-            meetingData.guestName || 'Guest',
-            expertName,
-            appointmentStart,
-            refund.amount,
-            paymentIntent.amount,
-            extractLocaleFromPaymentIntent(paymentIntent),
-            conflictResult.reason || 'unknown_conflict',
-            conflictResult.minimumNoticeHours,
+        // Check for conflicts (blocked dates, overlaps, minimum notice)
+        // Only perform conflict check if we have valid duration data
+        const conflictResult = await checkAppointmentConflict(
+          meetingData.expert,
+          appointmentStart,
+          meetingData.id,
+        );
+
+        if (conflictResult.hasConflict) {
+          console.log(`🚨 Late Multibanco payment conflict detected for PI ${paymentIntent.id}`);
+
+          // Map conflict reason to allowed conflictType values
+          let conflictType:
+            | 'expert_blocked_date'
+            | 'time_range_overlap'
+            | 'minimum_notice_violation'
+            | 'unknown_conflict';
+
+          if (conflictResult.reason === 'expert_blocked_date') {
+            conflictType = 'expert_blocked_date';
+          } else if (conflictResult.reason === 'time_range_overlap') {
+            conflictType = 'time_range_overlap';
+          } else if (conflictResult.reason === 'minimum_notice_violation') {
+            conflictType = 'minimum_notice_violation';
+          } else {
+            conflictType = 'unknown_conflict';
+          }
+
+          const refund = await processPartialRefund(
+            paymentIntent,
+            conflictResult.reason === 'expert_blocked_date'
+              ? 'Expert blocked this date after your booking was made'
+              : 'Appointment time slot no longer available due to late payment',
+            conflictType,
           );
 
-          console.log(
-            `✅ Conflict handled: 100% refund processed for PI ${paymentIntent.id} (v3.0 Customer-First policy)`,
-          );
+          if (refund) {
+            // Get expert's name for notification
+            const expertUser = await db.query.UserTable.findFirst({
+              where: eq(UserTable.clerkUserId, meetingData.expert),
+              columns: { firstName: true, lastName: true },
+            });
 
-          // Mark the meeting as refunded and return early
-          await db
-            .update(MeetingTable)
-            .set({
-              stripePaymentStatus: 'refunded',
-              updatedAt: new Date(),
-            })
-            .where(eq(MeetingTable.stripePaymentIntentId, paymentIntent.id));
+            const expertName = expertUser
+              ? `${expertUser.firstName || ''} ${expertUser.lastName || ''}`.trim() || 'Expert'
+              : 'Expert';
 
-          return; // Exit early - don't create calendar event or proceed with normal flow
+            // Notify all parties about the conflict
+            await notifyAppointmentConflict(
+              meetingData.guest,
+              meetingData.guestName || 'Guest',
+              expertName,
+              appointmentStart,
+              refund.amount,
+              paymentIntent.amount,
+              extractLocaleFromPaymentIntent(paymentIntent),
+              conflictResult.reason || 'unknown_conflict',
+              conflictResult.minimumNoticeHours,
+            );
+
+            console.log(
+              `✅ Conflict handled: 100% refund processed for PI ${paymentIntent.id} (v3.0 Customer-First policy)`,
+            );
+
+            // Mark the meeting as refunded and return early
+            await db
+              .update(MeetingTable)
+              .set({
+                stripePaymentStatus: 'refunded',
+                updatedAt: new Date(),
+              })
+              .where(eq(MeetingTable.stripePaymentIntentId, paymentIntent.id));
+
+            return; // Exit early - don't create calendar event or proceed with normal flow
+          }
+        } else {
+          console.log(`✅ Multibanco payment ${paymentIntent.id} processed without conflicts`);
         }
-      } else {
-        console.log(`✅ Multibanco payment ${paymentIntent.id} processed without conflicts`);
-      }
-    }
+      } // End of valid duration check
+    } // End of Multibanco payment check
 
     // If no conflict or not a Multibanco payment, proceed with normal flow
     // Update Meeting status
