@@ -327,8 +327,29 @@ async function checkAppointmentConflict(
     console.log(`✅ No conflicts found for ${startTime.toISOString()}`);
     return { hasConflict: false };
   } catch (error) {
-    console.error('Error in enhanced collision check:', error);
+    // Enhanced error monitoring with structured context for operational visibility
+    console.error(
+      `❌ CRITICAL: Conflict check failed for expert ${expertId} at ${startTime.toISOString()}. ` +
+        `Event ID: ${eventId}. ` +
+        `Defaulting to no conflict to avoid blocking legitimate payment.`,
+      {
+        error,
+        context: {
+          expertId,
+          appointmentTime: startTime.toISOString(),
+          eventId,
+          errorType: error instanceof Error ? error.constructor.name : typeof error,
+          errorMessage: error instanceof Error ? error.message : String(error),
+        },
+      },
+    );
+
+    // TODO: Emit metric/alert for monitoring (e.g., to BetterStack, PostHog, or Sentry)
+    // This helps operations teams detect systematic failures that might allow conflicting appointments
+    // Example: await trackMetric('conflict_check_error', { expertId, eventId });
+
     // In case of error, assume no conflict to avoid blocking legitimate payments
+    // Business decision: Prefer false negatives over false positives to maintain user experience
     return { hasConflict: false };
   }
 }
