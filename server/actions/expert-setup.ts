@@ -144,6 +144,9 @@ export async function markStepCompleteNoRevalidate(step: ExpertSetupStep) {
       },
     });
 
+    // Invalidate cache after updating user metadata
+    await invalidateUserCache(user.id);
+
     return {
       success: true,
       setupStatus: updatedSetup,
