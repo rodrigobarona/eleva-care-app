@@ -45,6 +45,10 @@ export async function sendEmail({
   bcc,
 }: SendEmailParams) {
   try {
+    if (!from) {
+      throw new Error('From address is not configured');
+    }
+
     if (!html && !text) {
       throw new Error('Either HTML or text content must be provided');
     }
@@ -85,7 +89,9 @@ export async function sendEmail({
       messageId: data?.id,
     };
   } catch (error: unknown) {
-    console.error('Failed to send email:', error);
+    console.error('Failed to send email', {
+      err: error instanceof Error ? error.message : String(error),
+    });
     return {
       success: false,
       error:

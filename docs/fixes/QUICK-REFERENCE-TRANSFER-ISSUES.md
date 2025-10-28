@@ -58,14 +58,26 @@ WHERE payment_intent_id = 'pi_xxxxx';
 
 ### Via Stripe API (curl)
 
+> **⚠️ Security Warning:** The examples below use raw API keys in curl commands, which can expose secrets in shell history and process listings. **Recommended:** Use the [Stripe CLI](https://stripe.com/docs/stripe-cli) instead (e.g., `stripe charges retrieve ch_xxx`) to avoid handling raw secrets directly.
+
 ```bash
 # Get the payment intent
 curl https://api.stripe.com/v1/payment_intents/pi_xxxxx \
-  -u "${STRIPE_SECRET_KEY}:"
+  -H "Authorization: Bearer ${STRIPE_SECRET_KEY}"
 
 # Get the charge with transfer expanded
 curl https://api.stripe.com/v1/charges/py_xxxxx?expand[]=transfer \
-  -u "${STRIPE_SECRET_KEY}:"
+  -H "Authorization: Bearer ${STRIPE_SECRET_KEY}"
+```
+
+**Safer alternative with Stripe CLI:**
+
+```bash
+# Get the payment intent
+stripe payment_intents retrieve pi_xxxxx
+
+# Get the charge with transfer expanded
+stripe charges retrieve py_xxxxx --expand transfer
 ```
 
 ---
@@ -76,25 +88,35 @@ curl https://api.stripe.com/v1/charges/py_xxxxx?expand[]=transfer \
 
 **Scenario:** Cron fails, database out of sync with Stripe
 
+> **⚠️ Security Note:** Prefer using the Stripe CLI when available to avoid exposing secrets. The curl examples below are provided for reference but can leak secrets via shell history.
+
 **Steps:**
 
-1. **Get the charge ID:**
+#### Step 1: Get the charge ID
 
 ```bash
+# Using curl (less secure)
 curl https://api.stripe.com/v1/payment_intents/pi_xxxxx \
-  -u "${STRIPE_SECRET_KEY}:" \
+  -H "Authorization: Bearer ${STRIPE_SECRET_KEY}" \
   | jq '.latest_charge'
+
+# Using Stripe CLI (recommended)
+stripe payment_intents retrieve pi_xxxxx --format json | jq '.latest_charge'
 ```
 
-2. **Get the transfer ID:**
+#### Step 2: Get the transfer ID
 
 ```bash
+# Using curl (less secure)
 curl https://api.stripe.com/v1/charges/py_xxxxx?expand[]=transfer \
-  -u "${STRIPE_SECRET_KEY}:" \
+  -H "Authorization: Bearer ${STRIPE_SECRET_KEY}" \
   | jq '.transfer.id'
+
+# Using Stripe CLI (recommended)
+stripe charges retrieve py_xxxxx --expand transfer --format json | jq '.transfer.id'
 ```
 
-3. **Update database:**
+#### Step 3: Update database
 
 ```sql
 UPDATE payment_transfers
@@ -105,7 +127,7 @@ SET
 WHERE payment_intent_id = 'pi_xxxxx';
 ```
 
-4. **Verify:**
+#### Step 4: Verify
 
 ```bash
 # Next cron run should show: "✅ Updated database with existing transfer ID"

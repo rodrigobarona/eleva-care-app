@@ -34,7 +34,10 @@ export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
 // Initialize Stripe
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
+if (!process.env.STRIPE_SECRET_KEY) {
+  throw new Error('STRIPE_SECRET_KEY is not configured');
+}
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
@@ -63,11 +66,11 @@ type TransferResult = SuccessResult | ErrorResult;
  * This endpoint is called by QStash every 2 hours
  */
 export async function GET(request: Request) {
-  // Log all headers for debugging
-  console.log(
-    'Received request to process-expert-transfers with headers:',
-    Object.fromEntries(request.headers.entries()),
-  );
+  // Log minimal request info without exposing sensitive headers
+  console.log('Received request to process-expert-transfers', {
+    ua: request.headers.get('user-agent') || 'unknown',
+    time: new Date().toISOString(),
+  });
 
   // Enhanced authentication with multiple fallbacks
   // First try QStash verification
@@ -91,11 +94,18 @@ export async function GET(request: Request) {
   const allowFallback = process.env.ENABLE_CRON_FALLBACK === 'true';
 
   // Allow the request if any authentication method succeeds
+  // Fallback requires a secret token, not just user-agent (which is spoofable)
+  const hasFallbackToken =
+    allowFallback &&
+    isUpstashUserAgent &&
+    apiKey === process.env.CRON_FALLBACK_TOKEN &&
+    process.env.CRON_FALLBACK_TOKEN;
+
   if (
     verifiedQStash ||
     isValidApiKey ||
     (hasUpstashSignature && isUpstashUserAgent) ||
-    (isProduction && allowFallback && isUpstashUserAgent)
+    (isProduction && hasFallbackToken)
   ) {
     console.log('🔓 Authentication successful for process-expert-transfers');
   } else {
@@ -267,20 +277,23 @@ export async function GET(request: Request) {
           }
 
           // Create a transfer to the expert's Connect account
-          const stripeTransfer = await stripe.transfers.create({
-            amount: transfer.amount,
-            currency: transfer.currency,
-            destination: transfer.expertConnectAccountId,
-            source_transaction: chargeId, // ✅ Use charge ID, not payment intent ID
-            metadata: {
-              paymentTransferId: transfer.id.toString(),
-              eventId: transfer.eventId,
-              expertClerkUserId: transfer.expertClerkUserId,
-              sessionStartTime: transfer.sessionStartTime.toISOString(),
-              scheduledTransferTime: transfer.scheduledTransferTime.toISOString(),
+          const stripeTransfer = await stripe.transfers.create(
+            {
+              amount: transfer.amount,
+              currency: transfer.currency,
+              destination: transfer.expertConnectAccountId,
+              source_transaction: chargeId, // ✅ Use charge ID, not payment intent ID
+              metadata: {
+                paymentTransferId: transfer.id.toString(),
+                eventId: transfer.eventId,
+                expertClerkUserId: transfer.expertClerkUserId,
+                sessionStartTime: transfer.sessionStartTime.toISOString(),
+                scheduledTransferTime: transfer.scheduledTransferTime.toISOString(),
+              },
+              description: `Expert payout for session ${transfer.eventId}`,
             },
-            description: `Expert payout for session ${transfer.eventId}`,
-          });
+            { idempotencyKey: `transfer:${transfer.id}` },
+          );
 
           // Update the transfer record with success
           await db
