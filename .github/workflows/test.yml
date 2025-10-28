@@ -204,7 +204,7 @@ jobs:
       - name: 🗄️ Setup test database
         run: |
           pnpm generate
-          pnpm push
+          pnpm exec drizzle-kit push --force
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
 
@@ -252,14 +252,18 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           AUDIT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/audit_db
           # Clerk keys (required for middleware and auth checks)
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_fake_key_for_build
-          CLERK_SECRET_KEY: sk_test_fake_key_for_build
-          # Stripe keys (required for payment routes)
-          STRIPE_SECRET_KEY: sk_test_fake_key_for_build
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_fake_key_for_build
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmstZmFrZS1rZXktZm9yLWJ1aWxkLXRlc3RpbmctMTIzNDU2Nzg5MA==
+          CLERK_SECRET_KEY: sk_test_abcdefghijklmnopqrstuvwxyz1234567890ABCD
+          # Stripe keys (required for payment routes) - TEST PLACEHOLDER KEYS FOR CI ONLY
+          STRIPE_SECRET_KEY: sk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
           # Other required keys
           UPSTASH_REDIS_REST_URL: https://fake-redis.upstash.io
-          UPSTASH_REDIS_REST_TOKEN: fake_token_for_build
+          UPSTASH_REDIS_REST_TOKEN: fake_token_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+          # QStash keys (required for cron route signature verification at build time)
+          QSTASH_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ
+          QSTASH_CURRENT_SIGNING_KEY: fake_signing_key_for_build_min_32_chars_long_12345678
+          QSTASH_NEXT_SIGNING_KEY: fake_next_signing_key_for_build_min_32_chars_long_12345678
 
       - name: 🧪 Test built application starts
         run: |
@@ -271,12 +275,16 @@ jobs:
           # Runtime environment variables
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           AUDIT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/audit_db
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_fake_key_for_build
-          CLERK_SECRET_KEY: sk_test_fake_key_for_build
-          STRIPE_SECRET_KEY: sk_test_fake_key_for_build
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_fake_key_for_build
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmstZmFrZS1rZXktZm9yLWJ1aWxkLXRlc3RpbmctMTIzNDU2Nzg5MA==
+          CLERK_SECRET_KEY: sk_test_abcdefghijklmnopqrstuvwxyz1234567890ABCD
+          STRIPE_SECRET_KEY: sk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
           UPSTASH_REDIS_REST_URL: https://fake-redis.upstash.io
-          UPSTASH_REDIS_REST_TOKEN: fake_token_for_build
+          UPSTASH_REDIS_REST_TOKEN: fake_token_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+          # QStash keys (required for cron routes)
+          QSTASH_TOKEN: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ
+          QSTASH_CURRENT_SIGNING_KEY: fake_signing_key_for_build_min_32_chars_long_12345678
+          QSTASH_NEXT_SIGNING_KEY: fake_next_signing_key_for_build_min_32_chars_long_12345678
 
   security-scan:
     name: 🔒 Security Scan

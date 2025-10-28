@@ -4,10 +4,20 @@ import { checkAllServices, ServiceHealthResult } from '@/lib/service-health';
 import { NextResponse } from 'next/server';
 import { PostHog } from 'posthog-node';
 
-// Initialize PostHog client
-const posthog = new PostHog(ENV_CONFIG.NEXT_PUBLIC_POSTHOG_KEY, {
-  host: ENV_CONFIG.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
-});
+// Lazy initialization of PostHog client
+let posthog: PostHog | null = null;
+
+function getPostHogClient(): PostHog | null {
+  if (!ENV_CONFIG.NEXT_PUBLIC_POSTHOG_KEY) {
+    return null;
+  }
+  if (!posthog) {
+    posthog = new PostHog(ENV_CONFIG.NEXT_PUBLIC_POSTHOG_KEY, {
+      host: ENV_CONFIG.NEXT_PUBLIC_POSTHOG_HOST || 'https://app.posthog.com',
+    });
+  }
+  return posthog;
+}
 
 // Add route segment config
 export const runtime = 'nodejs';
@@ -75,12 +85,13 @@ interface HealthCheckData {
  */
 async function trackHealthCheck(data: HealthCheckData, isError = false) {
   try {
-    if (!ENV_CONFIG.NEXT_PUBLIC_POSTHOG_KEY) {
+    const client = getPostHogClient();
+    if (!client) {
       console.warn('PostHog tracking disabled - missing API key');
       return;
     }
 
-    await posthog.capture({
+    await client.capture({
       distinctId: 'system',
       event: isError ? 'health_check_failed' : 'health_check_success',
       properties: {

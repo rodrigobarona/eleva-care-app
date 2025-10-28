@@ -1,20 +1,32 @@
 'use server';
 
 import { getTranslations } from 'next-intl/server';
+import type { CreateEmailOptions } from 'resend';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to avoid build-time errors
+let resendClient: Resend | null = null;
 
-// Define a type for Resend options
+function getResendClient(): Resend {
+  if (!resendClient) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not configured');
+    }
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
+
+// Define a type for Resend options matching Resend v4.8.0 API
 type SendEmailParams = {
-  to: string;
+  from?: string;
+  to: string | string[];
   subject: string;
   html?: string;
   text?: string;
-  from?: string;
   replyTo?: string;
-  cc?: string[];
-  bcc?: string[];
+  cc?: string | string[];
+  bcc?: string | string[];
 };
 
 /**
@@ -24,42 +36,47 @@ type SendEmailParams = {
  * @returns Object with success status and message or error
  */
 export async function sendEmail({
+  from,
   to,
   subject,
   html,
   text,
-  from = process.env.RESEND_EMAIL_BOOKINGS_FROM,
   replyTo,
   cc,
   bcc,
 }: SendEmailParams) {
   try {
+    // Use default from address if not provided
+    const fromAddress = from || process.env.RESEND_EMAIL_BOOKINGS_FROM;
+
+    if (!fromAddress) {
+      throw new Error('From address is not configured');
+    }
+
     if (!html && !text) {
       throw new Error('Either HTML or text content must be provided');
     }
 
     // Check recipient email
-    if (!to || !to.includes('@')) {
+    const toArray = Array.isArray(to) ? to : [to];
+    if (!toArray.length || !toArray.every((email) => email.includes('@'))) {
       throw new Error('Invalid recipient email address');
     }
 
-    // Construct the email options object
-    const emailParams = {
-      from,
+    // Construct the email options object, filtering out undefined values
+    const emailParams: Partial<CreateEmailOptions> = {
+      from: fromAddress,
       to,
       subject,
-      html,
-      text,
-      replyTo,
-      cc,
-      bcc,
     };
 
-    // Use type assertion to match Resend's expected shape
-    // This is necessary because the Resend types in the installed version
-    // have a conflict with our usage pattern
-    // @ts-expect-error Resend types don't perfectly match our current usage
-    const { data, error } = await resend.emails.send(emailParams);
+    if (html) emailParams.html = html;
+    if (text) emailParams.text = text;
+    if (replyTo) emailParams.replyTo = replyTo;
+    if (cc) emailParams.cc = cc;
+    if (bcc) emailParams.bcc = bcc;
+
+    const { data, error } = await getResendClient().emails.send(emailParams as CreateEmailOptions);
 
     if (error) {
       console.error('Error sending email via Resend:', error);
@@ -74,7 +91,9 @@ export async function sendEmail({
       messageId: data?.id,
     };
   } catch (error: unknown) {
-    console.error('Failed to send email:', error);
+    console.error('Failed to send email', {
+      err: error instanceof Error ? error.message : String(error),
+    });
     return {
       success: false,
       error:
