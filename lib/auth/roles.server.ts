@@ -1,3 +1,5 @@
+import { getCachedUserById } from '@/lib/cache/clerk-cache';
+import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
 import {
   ADMIN_ROLES,
   ROLE_ADMIN,
@@ -7,6 +9,7 @@ import {
   ROLE_USER,
 } from '@/lib/constants/roles';
 import { auth, clerkClient } from '@clerk/nextjs/server';
+import type { User } from '@clerk/nextjs/server';
 
 import type { UserRole, UserRoles } from './roles';
 
@@ -14,6 +17,20 @@ import type { UserRole, UserRoles } from './roles';
  * Server-side role management functions
  * These functions should only be used in Server Components or API routes
  */
+
+/**
+ * Helper function to get user by ID with fallback to Clerk on cache miss
+ * This prevents false negatives when cache is cold or degraded
+ */
+async function getUserByIdWithFallback(userId: string): Promise<User | null> {
+  let user = await getCachedUserById(userId);
+  if (!user) {
+    // Cold cache or eviction: fall back to Clerk to avoid false negatives
+    const clerk = await clerkClient();
+    user = await clerk.users.getUser(userId).catch(() => null);
+  }
+  return user;
+}
 
 /**
  * Helper function to check if a user has a specific role
@@ -59,8 +76,9 @@ export async function hasAnyRole(roles: UserRole[]): Promise<boolean> {
   const { userId } = await auth();
   if (!userId) return false;
 
-  const clerk = await clerkClient();
-  const user = await clerk.users.getUser(userId);
+  const user = await getUserByIdWithFallback(userId);
+  if (!user) return false;
+
   const userRoles = user.publicMetadata.role as UserRoles;
 
   if (!userRoles) return false;
@@ -81,8 +99,9 @@ export async function hasRole(role: UserRole): Promise<boolean> {
   const { userId } = await auth();
   if (!userId) return false;
 
-  const clerk = await clerkClient();
-  const user = await clerk.users.getUser(userId);
+  const user = await getUserByIdWithFallback(userId);
+  if (!user) return false;
+
   const userRoles = user.publicMetadata.role as UserRoles;
 
   return userHasRole(userRoles, role);
@@ -123,8 +142,9 @@ export async function getUserRole(): Promise<UserRoles> {
   const { userId } = await auth();
   if (!userId) return ROLE_USER;
 
-  const clerk = await clerkClient();
-  const user = await clerk.users.getUser(userId);
+  const user = await getUserByIdWithFallback(userId);
+  if (!user) return ROLE_USER;
+
   return (user.publicMetadata.role as UserRoles) || ROLE_USER;
 }
 
@@ -135,9 +155,11 @@ export async function updateUserRole(userId: string, roles: UserRoles): Promise<
   const { userId: currentUserId } = await auth();
   if (!currentUserId) throw new Error('Unauthorized');
 
-  // Check if current user has permission to update roles
+  // Check if current user has permission to update roles with fallback
   const clerk = await clerkClient();
-  const currentUser = await clerk.users.getUser(currentUserId);
+  const currentUser = await getUserByIdWithFallback(currentUserId);
+  if (!currentUser) throw new Error('User not found');
+
   const currentUserRoles = currentUser.publicMetadata.role as UserRoles;
 
   const isAdmin = userHasRole(currentUserRoles, ROLE_ADMIN);
@@ -157,4 +179,7 @@ export async function updateUserRole(userId: string, roles: UserRoles): Promise<
   await clerk.users.updateUser(userId, {
     publicMetadata: { role: roles },
   });
+
+  // Invalidate cache after updating user roles
+  await invalidateUserCache(userId);
 }

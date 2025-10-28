@@ -2,6 +2,8 @@
 
 import { db } from '@/drizzle/db';
 import { ProfileTable, UserTable } from '@/drizzle/schema';
+import { getCachedUserById } from '@/lib/cache/clerk-cache';
+import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
 import { auth, clerkClient, currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -63,8 +65,8 @@ async function updateSetupCompleteFlag(userId: string, setupStatus: Record<strin
     // Initialize Clerk client
     const clerk = await clerkClient();
 
-    // Get user by ID
-    const user = await clerk.users.getUser(userId);
+    // Get user by ID using cached lookup
+    const user = await getCachedUserById(userId);
 
     if (!user) {
       console.error('User not found when updating setup complete flag');
@@ -81,6 +83,9 @@ async function updateSetupCompleteFlag(userId: string, setupStatus: Record<strin
           setupComplete: isComplete,
         },
       });
+
+      // Invalidate cache after updating user metadata
+      await invalidateUserCache(userId);
 
       console.log(`Updated setupComplete flag to ${isComplete} for user ${userId}`);
     }
@@ -138,6 +143,9 @@ export async function markStepCompleteNoRevalidate(step: ExpertSetupStep) {
         expertSetup: updatedSetup,
       },
     });
+
+    // Invalidate cache after updating user metadata
+    await invalidateUserCache(user.id);
 
     return {
       success: true,
@@ -247,8 +255,8 @@ export async function markStepCompleteForUser(step: ExpertSetupStep, userId: str
     // Initialize Clerk client
     const clerk = await clerkClient();
 
-    // Get user by ID
-    const user = await clerk.users.getUser(userId);
+    // Get user by ID using cached lookup
+    const user = await getCachedUserById(userId);
 
     if (!user) {
       return { success: false, error: 'User not found' };
@@ -285,6 +293,9 @@ export async function markStepCompleteForUser(step: ExpertSetupStep, userId: str
         expertSetup: updatedSetup,
       },
     });
+
+    // Invalidate cache after updating user metadata
+    await invalidateUserCache(userId);
 
     // Check if all steps are completed and update the setupComplete flag
     await updateSetupCompleteFlag(userId, updatedSetup);
@@ -340,6 +351,9 @@ export async function updateSetupStepStatus(stepId: string, completed: boolean) 
     await clerk.users.updateUser(user.id, {
       unsafeMetadata: currentMetadata,
     });
+
+    // Invalidate cache after updating user metadata
+    await invalidateUserCache(user.id);
 
     revalidatePath('/setup');
 
@@ -449,9 +463,9 @@ export async function handleGoogleAccountConnection(): Promise<ActionResult<bool
 
     console.log(`🔍 Checking Google account connection for user ${userId}`);
 
-    // Get the current user to check for external accounts and roles
+    // Get the current user to check for external accounts and roles using cached lookup
     const clerk = await clerkClient();
-    const user = await clerk.users.getUser(userId);
+    const user = await getCachedUserById(userId);
 
     if (!user) {
       return {
@@ -499,6 +513,9 @@ export async function handleGoogleAccountConnection(): Promise<ActionResult<bool
         },
       });
 
+      // Invalidate cache after updating user metadata
+      await invalidateUserCache(userId);
+
       console.log(
         `✅ Updated Google account connection status to ${hasVerifiedGoogleAccount} for expert user ${userId}`,
       );
@@ -540,8 +557,8 @@ export async function updateSetupStepForUser(
     // Initialize Clerk client
     const clerk = await clerkClient();
 
-    // Get user by ID
-    const user = await clerk.users.getUser(userId);
+    // Get user by ID using cached lookup
+    const user = await getCachedUserById(userId);
 
     if (!user) {
       return { success: false, error: 'User not found' };
@@ -578,6 +595,9 @@ export async function updateSetupStepForUser(
         expertSetup: updatedSetup,
       },
     });
+
+    // Invalidate cache after updating user metadata
+    await invalidateUserCache(userId);
 
     // Check if all steps are completed and update the setupComplete flag
     await updateSetupCompleteFlag(userId, updatedSetup);

@@ -1,7 +1,7 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
+import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import { getOrCreateStripeCustomer, syncStripeDataToKV } from '@/lib/stripe';
-import { createClerkClient } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
@@ -20,14 +20,10 @@ export async function getUserByClerkId(clerkUserId: string) {
 }
 
 /**
- * Get a user from Clerk by their ID
+ * Get a user from Clerk by their ID using cache
  */
 export async function getUserFromClerk(clerkUserId: string) {
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-
-  return clerk.users.getUser(clerkUserId);
+  return getCachedUserById(clerkUserId);
 }
 
 /**

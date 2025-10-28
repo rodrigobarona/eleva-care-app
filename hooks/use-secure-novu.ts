@@ -70,6 +70,7 @@ export function useSecureNovu(): UseSecureNovuResult {
 
   useEffect(() => {
     fetchSubscriberData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, isLoaded]);
 
   return {

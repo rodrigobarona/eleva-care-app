@@ -3,6 +3,8 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
+import { getCachedUserById } from '@/lib/cache/clerk-cache';
+import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
 import { createStripeConnectAccount, getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
@@ -48,7 +50,7 @@ export async function handleConnectStripe(clerkUserId: string): Promise<string |
     try {
       const clerk = await clerkClient();
       const [clerkUser, dbUser] = await Promise.all([
-        clerk.users.getUser(clerkUserId).catch((error: Error) => {
+        getCachedUserById(clerkUserId).catch((error: Error) => {
           console.error('Failed to fetch Clerk user:', error);
           return null;
         }),
@@ -105,6 +107,9 @@ export async function handleConnectStripe(clerkUserId: string): Promise<string |
           },
         }),
       ]);
+
+      // Invalidate cache after updating user metadata
+      await invalidateUserCache(clerkUserId);
 
       // Generate the onboarding URL
       const url = await getStripeConnectSetupOrLoginLink(accountId);

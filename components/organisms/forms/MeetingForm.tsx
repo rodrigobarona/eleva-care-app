@@ -4,6 +4,7 @@ import * as React from 'react';
 import { Button } from '@/components/atoms/button';
 import { Input } from '@/components/atoms/input';
 import { Textarea } from '@/components/atoms/textarea';
+import { BookingLoadingSkeleton } from '@/components/molecules/BookingLoadingSkeleton';
 import {
   Form,
   FormControl,
@@ -13,12 +14,12 @@ import {
   FormMessage,
 } from '@/components/molecules/form';
 import { BookingLayout } from '@/components/organisms/BookingLayout';
+import { generateFormCacheKey } from '@/lib/cache-keys';
 import {
   DEFAULT_AFTER_EVENT_BUFFER,
   DEFAULT_BEFORE_EVENT_BUFFER,
 } from '@/lib/constants/scheduling';
 import { hasValidTokens } from '@/lib/googleCalendarClient';
-import { FormCache } from '@/lib/redis';
 import { meetingFormSchema } from '@/schema/meetings';
 import { createMeeting } from '@/server/actions/meetings';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -38,6 +39,35 @@ import { flushSync } from 'react-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import type { UseFormReturn } from 'react-hook-form';
 import type { z } from 'zod';
+
+// Stripe checkout URL validation
+const ALLOWED_CHECKOUT_HOSTS = new Set(['checkout.stripe.com']);
+
+/**
+ * Validates a Stripe checkout URL
+ * @param url - The URL to validate
+ * @throws Error if the URL is invalid, not HTTPS, or not from an allowed host
+ */
+function validateCheckoutUrl(url: string): void {
+  try {
+    const urlObject = new URL(url);
+
+    // Ensure HTTPS protocol
+    if (urlObject.protocol !== 'https:') {
+      throw new Error('Checkout URL must use HTTPS protocol');
+    }
+
+    // Ensure it's from an allowed host
+    if (!ALLOWED_CHECKOUT_HOSTS.has(urlObject.hostname)) {
+      throw new Error('Invalid checkout URL domain');
+    }
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error('Malformed checkout URL');
+    }
+    throw error;
+  }
+}
 
 interface BlockedDate {
   id: number;
@@ -519,13 +549,14 @@ export function MeetingFormContent({
     }
 
     // **CLIENT-SIDE DUPLICATE PREVENTION: Generate cache key for server-side use only**
-    const formCacheKey = FormCache.generateKey(
+    // Note: Email normalization is handled inside generateFormCacheKey
+    const formCacheKey = generateFormCacheKey(
       eventId,
       formValues.guestEmail,
       formValues.startTime.toISOString(),
     );
 
-    // **NOTE: FormCache.isProcessing() can't be called client-side (Redis is server-only)**
+    // **NOTE: Redis operations are handled server-side in the API endpoint**
     // Server-side duplicate prevention will be handled by the API endpoint
     console.log('🔍 Generated cache key for server-side deduplication:', formCacheKey);
 
@@ -624,15 +655,15 @@ export function MeetingFormContent({
 
       // **SECURITY: Validate checkout URL before storing**
       try {
-        const urlObject = new URL(url);
-        // Ensure it's a Stripe checkout URL
-        if (!urlObject.hostname.includes('checkout.stripe.com')) {
-          throw new Error('Invalid checkout URL domain');
-        }
-        console.log('✅ Checkout URL validated:', urlObject.hostname);
-      } catch (urlError) {
-        console.error('❌ Invalid checkout URL received:', url, urlError);
-        throw new Error('Invalid checkout URL received from server');
+        validateCheckoutUrl(url);
+        console.log('✅ Checkout URL validated');
+      } catch (validationError) {
+        console.error('❌ Invalid checkout URL received:', url, validationError);
+        throw new Error(
+          validationError instanceof Error
+            ? validationError.message
+            : 'Invalid checkout URL received from server',
+        );
       }
 
       console.log('✅ Payment intent created successfully');
@@ -885,10 +916,7 @@ export function MeetingFormContent({
 
         // **SECURITY: Validate existing URL before redirect**
         try {
-          const urlObject = new URL(checkoutUrl);
-          if (!urlObject.hostname.includes('checkout.stripe.com')) {
-            throw new Error('Invalid existing checkout URL domain');
-          }
+          validateCheckoutUrl(checkoutUrl);
           console.log('🚀 Redirecting to existing checkout:', checkoutUrl);
 
           // **FIX: Add timeout fallback to reset state if redirect fails**
@@ -903,8 +931,8 @@ export function MeetingFormContent({
 
           window.location.href = checkoutUrl;
           return;
-        } catch (urlError) {
-          console.error('❌ Invalid existing checkout URL:', checkoutUrl, urlError);
+        } catch (validationError) {
+          console.error('❌ Invalid existing checkout URL:', checkoutUrl, validationError);
           // Clear the invalid URL and reset state, then continue to create a new one
           setCheckoutUrl(null);
           isProcessingRef.current = false;
@@ -923,13 +951,14 @@ export function MeetingFormContent({
 
           // **SECURITY: Validate URL before redirect**
           try {
-            const urlObject = new URL(url);
-            if (!urlObject.hostname.includes('checkout.stripe.com')) {
-              throw new Error('Invalid checkout URL domain');
-            }
-          } catch (urlError) {
-            console.error('❌ Refusing to redirect to invalid URL:', url, urlError);
-            throw new Error('Invalid checkout URL - redirect blocked for security');
+            validateCheckoutUrl(url);
+          } catch (validationError) {
+            console.error('❌ Refusing to redirect to invalid URL:', url, validationError);
+            throw new Error(
+              validationError instanceof Error
+                ? validationError.message
+                : 'Invalid checkout URL - redirect blocked for security',
+            );
           }
 
           // **OPTIMIZED: Redirect immediately without transitioning to step 3**
@@ -1247,7 +1276,7 @@ export function MeetingFormContent({
 
 export function MeetingForm(props: MeetingFormProps) {
   return (
-    <Suspense fallback={<div>Loading meeting form...</div>}>
+    <Suspense fallback={<BookingLoadingSkeleton />}>
       <MeetingFormContent {...props} />
     </Suspense>
   );

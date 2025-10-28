@@ -18,6 +18,7 @@
  *   help      - Show this help message
  */
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 require('dotenv').config();
 
 // Since we can't import ES modules easily in Node.js script,
@@ -188,11 +189,9 @@ async function scheduleAllJobs() {
   // Get the base URL
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL
     ? process.env.NEXT_PUBLIC_APP_URL
-    : process.env.NEXT_PUBLIC_APP_URL
-      ? process.env.NEXT_PUBLIC_APP_URL
-      : process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : 'http://localhost:3000';
+    : process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000';
 
   const results = [];
 
@@ -292,7 +291,7 @@ async function showStats() {
       unknown: 0,
     };
 
-    schedules.forEach((schedule) => {
+    schedules.forEach((_schedule) => {
       // Try to extract priority from destination URL or use unknown
       const priority = 'unknown'; // We can't easily get headers from list response
       priorityCounts[priority]++;
@@ -304,11 +303,9 @@ async function showStats() {
     // Compute baseUrl using the same precedence as elsewhere
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL
       ? process.env.NEXT_PUBLIC_APP_URL
-      : process.env.NEXT_PUBLIC_APP_URL
-        ? process.env.NEXT_PUBLIC_APP_URL
-        : process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3000';
+      : process.env.VERCEL_URL
+        ? `https://${process.env.VERCEL_URL}`
+        : 'http://localhost:3000';
 
     console.log(`🌐 Base URL: ${baseUrl}`);
 

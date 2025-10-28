@@ -11,19 +11,23 @@
 
 export const WORKFLOW_IDS = {
   // User & Authentication
-  USER_LIFECYCLE: 'user-lifecycle',
+  // NOTE: user-lifecycle handles welcome emails with idempotency via welcomeEmailSentAt field
+  // Only triggers on user.created event and checks database before sending
+  USER_LIFECYCLE: 'user-lifecycle', // Includes welcome email (idempotent via UserTable.welcomeEmailSentAt)
   SECURITY_AUTH: 'security-auth',
-  USER_WELCOME: 'user-welcome', // Used by webhooks
-  USER_LOGIN_NOTIFICATION: 'user-login-notification', // Used by webhooks
+
+  // DEPRECATED: Use USER_LIFECYCLE instead - kept for backwards compatibility
+  USER_WELCOME: 'user-lifecycle', // Maps to USER_LIFECYCLE (same workflow ID)
+  USER_LOGIN_NOTIFICATION: 'user-login-notification',
 
   // Payments & Payouts
   PAYMENT_UNIVERSAL: 'payment-universal',
-  PAYMENT_SUCCESS: 'payment-success', // Used by webhooks
-  PAYMENT_FAILED: 'payment-failed', // Used by webhooks
+  PAYMENT_SUCCESS: 'payment-success',
+  PAYMENT_FAILED: 'payment-failed',
   EXPERT_PAYOUT_NOTIFICATION: 'expert-payout-notification',
 
   // Appointments
-  APPOINTMENT_UNIVERSAL: 'appointment-universal', // Used by cron jobs
+  APPOINTMENT_UNIVERSAL: 'appointment-universal',
   APPOINTMENT_CONFIRMATION: 'appointment-confirmation',
   APPOINTMENT_REMINDER_24HR: 'appointment-reminder-24hr',
 
@@ -33,13 +37,13 @@ export const WORKFLOW_IDS = {
 
   // Expert Management
   EXPERT_MANAGEMENT: 'expert-management',
-  EXPERT_ACCOUNT_UPDATED: 'expert-account-updated', // Used by webhooks
+  EXPERT_ACCOUNT_UPDATED: 'expert-account-updated',
 
   // Marketplace
   MARKETPLACE_UNIVERSAL: 'marketplace-universal',
 
   // System Health
-  SYSTEM_HEALTH: 'system-health', // Used by healthcheck
+  SYSTEM_HEALTH: 'system-health',
 } as const;
 
 /**
@@ -50,6 +54,9 @@ export type WorkflowId = (typeof WORKFLOW_IDS)[keyof typeof WORKFLOW_IDS];
 /**
  * Mapping from old/inconsistent workflow IDs to new standardized ones
  * Use this to migrate existing code gradually
+ *
+ * NOTE: user-welcome is DEPRECATED - it maps to user-lifecycle
+ * The user-lifecycle workflow has built-in idempotency via UserTable.welcomeEmailSentAt
  */
 export const WORKFLOW_ID_MAPPINGS = {
   // Old ID -> New standardized ID
@@ -57,6 +64,7 @@ export const WORKFLOW_ID_MAPPINGS = {
   'appointment-reminder': WORKFLOW_IDS.APPOINTMENT_UNIVERSAL,
   'user-created': WORKFLOW_IDS.USER_LIFECYCLE,
   'recent-login-v2': WORKFLOW_IDS.USER_LOGIN_NOTIFICATION,
+  'user-welcome': WORKFLOW_IDS.USER_LIFECYCLE, // DEPRECATED: Maps to user-lifecycle
 } as const;
 
 /**
@@ -88,13 +96,16 @@ export function getStandardWorkflowId(workflowId: string): WorkflowId | undefine
 
 /**
  * Workflow categories for organization
+ *
+ * NOTE: USER_WELCOME is deprecated and maps to USER_LIFECYCLE
+ * All welcome emails use USER_LIFECYCLE with idempotency tracking
  */
 export const WORKFLOW_CATEGORIES = {
   AUTH: [
-    WORKFLOW_IDS.USER_LIFECYCLE,
+    WORKFLOW_IDS.USER_LIFECYCLE, // Handles welcome emails (idempotent)
     WORKFLOW_IDS.SECURITY_AUTH,
-    WORKFLOW_IDS.USER_WELCOME,
     WORKFLOW_IDS.USER_LOGIN_NOTIFICATION,
+    // USER_WELCOME is deprecated - use USER_LIFECYCLE
   ],
   PAYMENTS: [
     WORKFLOW_IDS.PAYMENT_UNIVERSAL,

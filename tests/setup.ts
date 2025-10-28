@@ -6,7 +6,6 @@ import '@testing-library/jest-dom';
 
 // Declare types for global mocks
 declare global {
-  // eslint-disable-next-line no-var
   var __mocks: {
     db: never;
     clerkUser: never;
@@ -315,7 +314,7 @@ jest.mock('@/lib/getValidTimesFromSchedule', () => ({
 
 // Mock audit logging
 jest.mock('@/lib/logAuditEvent', () => ({
-  logAuditEvent: jest.fn(),
+  logAuditEvent: jest.fn().mockImplementation(() => Promise.resolve()),
 }));
 
 // Add global fetch mock for Stripe

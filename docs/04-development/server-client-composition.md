@@ -409,6 +409,10 @@ import { ServerComponent } from './ServerComponent';
 // ❌ Bad
 
 // ❌ Bad
+
+// ❌ Bad
+
+// ❌ Bad
 // Error!
 
 // ✅ Good

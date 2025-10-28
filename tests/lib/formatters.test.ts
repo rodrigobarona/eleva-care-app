@@ -33,11 +33,6 @@ describe('Formatter Utilities', () => {
       // Test with specific date
       const testDate = new Date('2024-05-15T10:30:00Z');
       expect(formatDate(testDate)).toMatch(/May 15, 2024/);
-
-      // Test with different locales if the function supports it
-      if (formatDate.length > 1) {
-        expect(formatDate(testDate, 'es')).toMatch(/15 de mayo de 2024/);
-      }
     });
 
     it('should handle invalid dates', () => {

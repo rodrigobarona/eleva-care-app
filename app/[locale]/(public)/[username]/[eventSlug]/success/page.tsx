@@ -2,8 +2,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/car
 import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
+import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import { formatDateTime } from '@/lib/formatters';
-import { createClerkClient } from '@clerk/nextjs/server';
 import { Calendar, CheckCircle, Clock, CreditCard, User } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { cookies } from 'next/headers';
@@ -79,10 +79,13 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
     },
   });
 
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-  const calendarUser = await clerk.users.getUser(user.id);
+  // Use cached Clerk user lookup instead of direct API call
+  const calendarUser = await getCachedUserById(user.id);
+
+  // Handle case where user is not found
+  if (!calendarUser) {
+    return notFound();
+  }
 
   // Validate startTime before creating Date object
   let startTimeDate: Date;

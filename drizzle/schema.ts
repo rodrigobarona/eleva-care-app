@@ -254,10 +254,6 @@ export const ProfileTable = pgTable(
     practitionerAgreementVersion: text('practitioner_agreement_version'),
     practitionerAgreementIpAddress: text('practitioner_agreement_ip_address'),
     order: integer('order').notNull().default(0),
-    // Practitioner agreement tracking (from other branch)
-    practitionerAgreementAcceptedAt: timestamp('practitioner_agreement_accepted_at'),
-    practitionerAgreementVersion: text('practitioner_agreement_version'),
-    practitionerAgreementIpAddress: text('practitioner_agreement_ip_address'),
     createdAt,
     updatedAt,
   },

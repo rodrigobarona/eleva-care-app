@@ -7,10 +7,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/atoms/card';
-import { Skeleton } from '@/components/atoms/skeleton';
 import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
+import { BookingLoadingSkeleton } from '@/components/molecules/BookingLoadingSkeleton';
 import { MeetingForm } from '@/components/organisms/forms/MeetingForm';
 import { db } from '@/drizzle/db';
+import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import {
   DEFAULT_AFTER_EVENT_BUFFER,
   DEFAULT_BEFORE_EVENT_BUFFER,
@@ -22,7 +23,6 @@ import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { Link } from '@/lib/i18n/navigation';
 import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
 import GoogleCalendarService from '@/server/googleCalendar';
-import { createClerkClient } from '@clerk/nextjs/server';
 import type { User } from '@clerk/nextjs/server';
 import {
   addDays,
@@ -103,10 +103,13 @@ async function BookEventPageContent({
 
   if (event == null) return notFound();
 
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-  const calendarUser = await clerk.users.getUser(user.id);
+  // Use cached Clerk user lookup instead of direct API call
+  const calendarUser = await getCachedUserById(user.id);
+
+  // Handle case where user is not found
+  if (!calendarUser) {
+    return notFound();
+  }
 
   return (
     <div className="mx-auto mt-10 flex max-w-5xl flex-col items-center justify-center p-4 md:mt-0 md:h-dvh md:p-6">
@@ -307,72 +310,9 @@ async function CalendarWithAvailability({
   );
 }
 
-// Add a loading skeleton for the calendar
+// Use the reusable booking loading skeleton
 function CalendarLoadingSkeleton() {
-  // Generate non-index based keys for calendar days
-  const generateCalendarDayKeys = () => {
-    return Array.from({ length: 35 }).map(
-      (_, i) => `cal-day-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 7)}`,
-    );
-  };
-
-  // Generate non-index based keys for time slots
-  const generateTimeSlotKeys = () => {
-    return Array.from({ length: 6 }).map(
-      (_, i) => `time-slot-${Date.now()}-${i}-${Math.random().toString(36).substring(2, 7)}`,
-    );
-  };
-
-  const calendarDayKeys = generateCalendarDayKeys();
-  const timeSlotKeys = generateTimeSlotKeys();
-
-  return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-[300px,1fr,300px]">
-      {/* Expert profile skeleton */}
-      <div className="flex flex-col space-y-4 rounded-lg border p-6">
-        <div className="flex items-center space-x-4">
-          <Skeleton className="h-10 w-10 rounded-full" />
-          <div>
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="mt-1 h-3 w-20" />
-          </div>
-        </div>
-        <Skeleton className="h-6 w-48" />
-        <Skeleton className="h-32 w-full" />
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-32" />
-          <Skeleton className="h-4 w-40" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-      </div>
-
-      {/* Calendar skeleton */}
-      <div className="rounded-lg border p-6">
-        <div className="mb-6 flex items-center justify-between">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-9 w-60" />
-        </div>
-        <div className="grid grid-cols-7 gap-2">
-          {Array.from({ length: 35 }).map((_, i) => (
-            <Skeleton key={calendarDayKeys[i]} className="h-14 w-full rounded-md" />
-          ))}
-        </div>
-      </div>
-
-      {/* Time slots skeleton */}
-      <div className="rounded-lg border p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-8 w-20 rounded-full" />
-        </div>
-        <div className="space-y-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={timeSlotKeys[i]} className="h-12 w-full rounded-md" />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
+  return <BookingLoadingSkeleton />;
 }
 
 function NoTimeSlots({

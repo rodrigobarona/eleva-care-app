@@ -24,6 +24,8 @@ const lora = Lora({
   display: 'swap',
   weight: ['400', '600'], // 400: regular, 600: semibold
   variable: '--font-lora',
+  preload: true,
+  adjustFontFallback: true,
 });
 
 // ### DM Sans (Sans-Serif)
@@ -36,6 +38,8 @@ const dmSans = DM_Sans({
   display: 'swap',
   weight: ['400', '500', '700'], // 400: regular, 500: medium, 700: bold
   variable: '--font-dm-sans',
+  preload: true,
+  adjustFontFallback: true,
 });
 
 // ### IBM Plex Mono (Mono)
@@ -48,6 +52,8 @@ const ibmPlexMono = IBM_Plex_Mono({
   display: 'swap',
   weight: ['400', '500'], // 400: regular, 500: medium
   variable: '--font-ibm-plex-mono',
+  preload: true,
+  adjustFontFallback: true,
 });
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -63,7 +69,47 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={cn(`${dmSans.variable} ${lora.variable} ${ibmPlexMono.variable}`, 'scroll-smooth')}
       suppressHydrationWarning
     >
-      <head />
+      <head>
+        {/* DNS Prefetch and Preconnect for external services */}
+
+        {/* Clerk Authentication */}
+        <link rel="dns-prefetch" href="https://clerk.eleva.care" />
+        <link rel="dns-prefetch" href="https://api.clerk.com" />
+        <link rel="preconnect" href="https://clerk.eleva.care" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://api.clerk.com" crossOrigin="anonymous" />
+
+        {/* Vercel Analytics & Speed Insights */}
+        <link rel="dns-prefetch" href="https://vercel-insights.com" />
+        <link rel="dns-prefetch" href="https://vitals.vercel-insights.com" />
+        <link rel="preconnect" href="https://vercel-insights.com" crossOrigin="anonymous" />
+
+        {/* Stripe Payments */}
+        <link rel="dns-prefetch" href="https://js.stripe.com" />
+        <link rel="dns-prefetch" href="https://api.stripe.com" />
+        <link rel="preconnect" href="https://js.stripe.com" crossOrigin="anonymous" />
+
+        {/* PostHog Analytics (EU Region) */}
+        <link rel="dns-prefetch" href="https://eu.posthog.com" />
+        <link rel="dns-prefetch" href="https://eu-assets.i.posthog.com" />
+        <link rel="preconnect" href="https://eu.posthog.com" crossOrigin="anonymous" />
+
+        {/* Novu Notifications (EU region) */}
+        <link rel="dns-prefetch" href="https://eu.api.novu.co" />
+        <link rel="dns-prefetch" href="https://eu.ws.novu.co" />
+        <link rel="preconnect" href="https://eu.api.novu.co" crossOrigin="anonymous" />
+
+        {/* Google Fonts (Next.js handles this automatically, but explicit is better) */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+
+        {/* Preload critical assets */}
+        <link
+          rel="preload"
+          href="/img/videos/eleva-care-intro-banner-poster.webp"
+          as="image"
+          type="image/webp"
+        />
+      </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <ErrorBoundaryWrapper>
           <NuqsAdapter>

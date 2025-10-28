@@ -1,6 +1,6 @@
-import { Skeleton } from '@/components/atoms/skeleton';
 import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
 import { EventBookingList } from '@/components/molecules/EventBookingList';
+import { ProfileColumnSkeleton } from '@/components/molecules/ProfilePageLoadingSkeleton';
 import { db } from '@/drizzle/db';
 import { generateUserProfileMetadata } from '@/lib/seo/metadata-utils';
 import { auth } from '@clerk/nextjs/server';
@@ -21,41 +21,8 @@ const SOCIAL_ICONS = {
 
 export const revalidate = 60; // Changed from 0 to 60 seconds
 
-function ProfileSkeleton() {
-  return (
-    <div className="space-y-6">
-      {/* Profile Image Skeleton */}
-      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg">
-        <Skeleton className="h-full w-full" />
-      </div>
-
-      <div className="space-y-4">
-        {/* Name Skeleton */}
-        <div>
-          <Skeleton className="mb-2 h-9 w-48" /> {/* For the name */}
-          <Skeleton className="h-5 w-32" /> {/* For the username */}
-        </div>
-
-        {/* Headline Skeleton */}
-        <Skeleton className="h-6 w-full" />
-
-        {/* Short Bio Skeleton */}
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-[90%]" />
-          <Skeleton className="h-4 w-[80%]" />
-        </div>
-
-        {/* Social Links Skeleton */}
-        <div className="flex gap-4">
-          <Skeleton className="h-5 w-5 rounded-full" />
-          <Skeleton className="h-5 w-5 rounded-full" />
-          <Skeleton className="h-5 w-5 rounded-full" />
-        </div>
-      </div>
-    </div>
-  );
-}
+// ProfileSkeleton moved to reusable component: ProfileColumnSkeleton
+// Import from @/components/molecules/ProfilePageLoadingSkeleton
 
 // Updated PageProps type with proper next params - params as Promise
 interface PageProps {
@@ -172,7 +139,7 @@ async function UserLayoutContent({ username, locale }: { username: string; local
       <div className="container max-w-7xl pb-10 pt-32">
         <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
           {/* Left Column - Profile Info with Suspense */}
-          <React.Suspense fallback={<ProfileSkeleton />}>
+          <React.Suspense fallback={<ProfileColumnSkeleton />}>
             <ProfileInfo
               username={username}
               locale={locale}

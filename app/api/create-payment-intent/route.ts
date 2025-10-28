@@ -209,9 +209,9 @@ function createSharedMetadata({
   expertStripeAccountId,
   expertCountry,
   paymentAgingDays,
-  remainingDelayDays,
   requiredPayoutDelay,
   scheduledTransferTime,
+  appointmentEndTime,
   requiresApproval,
   meetingData,
 }: {
@@ -228,9 +228,9 @@ function createSharedMetadata({
   expertStripeAccountId: string;
   expertCountry: string;
   paymentAgingDays: number;
-  remainingDelayDays: number;
   requiredPayoutDelay: number;
   scheduledTransferTime: Date;
+  appointmentEndTime: Date;
   requiresApproval: boolean;
   meetingData: {
     timezone?: string;
@@ -262,10 +262,10 @@ function createSharedMetadata({
       country: expertCountry || 'Unknown',
       delay: {
         aging: paymentAgingDays,
-        remaining: remainingDelayDays,
         required: requiredPayoutDelay,
       },
       scheduled: scheduledTransferTime.toISOString(),
+      appointmentEnd: appointmentEndTime.toISOString(), // 🆕 Added for late payment validation
     }),
     approval: requiresApproval.toString(),
     // Add tax and locale handling at root level of metadata
@@ -649,6 +649,9 @@ export async function POST(request: NextRequest) {
       ? meetingData.duration * 60 * 1000
       : 60 * 60 * 1000;
 
+    // Calculate appointment end time (session start + duration)
+    const appointmentEndTime = new Date(sessionStartTime.getTime() + sessionDurationMs);
+
     // Calculate how many days between payment (now) and session
     const currentDate = new Date();
     const paymentAgingDays = Math.max(
@@ -656,26 +659,44 @@ export async function POST(request: NextRequest) {
       Math.floor((sessionStartTime.getTime() - currentDate.getTime()) / (24 * 60 * 60 * 1000)),
     );
 
-    // Calculate the remaining required delay after session
-    // Ensure at least 1 day after session, but respect remaining Stripe requirements
-    const remainingDelayDays = Math.max(1, requiredPayoutDelay - paymentAgingDays);
+    // 🆕 CRITICAL FIX: Transfer must ALWAYS be at least 24h after appointment ends
+    // This is a customer complaint window requirement (like Airbnb's first-night hold)
+    // Separate from the 7-day payment aging requirement
+    const minimumTransferDate = new Date(appointmentEndTime.getTime() + 24 * 60 * 60 * 1000);
 
-    // Set transfer date based on session date plus remaining delay
+    // Calculate earliest possible transfer date based on payment aging
+    // For immediate payments (Credit Card), this is 7 days from now
+    // For delayed payments (Multibanco), this is 7 days from when payment actually succeeds
+    const paymentAgeBasedTransferDate = new Date(
+      currentDate.getTime() + requiredPayoutDelay * 24 * 60 * 60 * 1000,
+    );
+
+    // Use the LATER of the two dates to ensure BOTH conditions are met:
+    // 1. Payment must be aged enough (7 days from payment date)
+    // 2. Appointment must have ended + 24h complaint window
     const transferDate = new Date(
-      sessionStartTime.getTime() + sessionDurationMs + remainingDelayDays * 24 * 60 * 60 * 1000,
+      Math.max(minimumTransferDate.getTime(), paymentAgeBasedTransferDate.getTime()),
     );
 
     // Set to 4 AM on the scheduled day (matching CRON job time)
     transferDate.setHours(4, 0, 0, 0);
 
-    console.log('Scheduled transfer with payment aging consideration:', {
+    console.log('📅 Scheduled transfer with dual-requirement compliance:', {
       currentDate: currentDate.toISOString(),
       sessionStartTime: sessionStartTime.toISOString(),
+      appointmentEndTime: appointmentEndTime.toISOString(),
       expertCountry,
       requiredPayoutDelay,
       paymentAgingDays,
-      remainingDelayDays,
+      minimumTransferDate: minimumTransferDate.toISOString(),
+      paymentAgeBasedTransferDate: paymentAgeBasedTransferDate.toISOString(),
       transferDate: transferDate.toISOString(),
+      daysFromPayment: Math.floor(
+        (transferDate.getTime() - currentDate.getTime()) / (24 * 60 * 60 * 1000),
+      ),
+      hoursAfterAppointmentEnd: Math.floor(
+        (transferDate.getTime() - appointmentEndTime.getTime()) / (60 * 60 * 1000),
+      ),
     });
 
     // Calculate payment expiration and determine payment methods based on timing
@@ -740,9 +761,9 @@ export async function POST(request: NextRequest) {
       expertStripeAccountId,
       expertCountry,
       paymentAgingDays,
-      remainingDelayDays,
       requiredPayoutDelay,
       scheduledTransferTime,
+      appointmentEndTime,
       requiresApproval,
       meetingData,
     });

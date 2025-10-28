@@ -8,6 +8,12 @@ on:
       - synchronize
       - closed
 
+# Required permissions for commenting on PRs
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
@@ -65,13 +71,13 @@ jobs:
           if [ -n "$NEON_DATABASE_USERNAME" ]; then
             echo "✅ Database Username set: YES"
           else
-            echo "⚠️  Database Username set: NO (Optional: Will use 'neondb_owner' as default)"
+            echo "⚠️  Database Username set: NO (Optional: Will use 'elevadb_owner' as default)"
           fi
 
           if [ -n "$NEON_DATABASE_NAME" ]; then
             echo "✅ Database Name set: YES ($NEON_DATABASE_NAME)"
           else
-            echo "⚠️  Database Name set: NO (Optional: Will use 'neondb' as default)"
+            echo "⚠️  Database Name set: NO (Optional: Will use 'elevadb' as default)"
           fi
 
           echo ""
@@ -112,7 +118,7 @@ jobs:
           echo "- Project ID: $([ -n "$NEON_PROJECT_ID" ] && echo "✅ Set" || echo "❌ Missing")"
           echo "- API Key: $([ -n "$NEON_API_KEY" ] && echo "✅ Set" || echo "❌ Missing")"
           echo "- Username: $([ -n "$NEON_DATABASE_USERNAME" ] && echo "✅ Set" || echo "⚠️  Using default")"
-          echo "- Database: $([ -n "$NEON_DATABASE_NAME" ] && echo "✅ Set ($NEON_DATABASE_NAME)" || echo "⚠️  Using default (neondb)")"
+          echo "- Database: $([ -n "$NEON_DATABASE_NAME" ] && echo "✅ Set ($NEON_DATABASE_NAME)" || echo "⚠️  Using default (elevadb)")"
 
       - name: 🧹 Clean up existing branch if it exists
         id: cleanup_existing_branch
@@ -136,8 +142,8 @@ jobs:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch_name: ${{ env.PREVIEW_BRANCH_NAME }}
           api_key: ${{ secrets.NEON_API_KEY }}
-          username: ${{ secrets.NEON_DATABASE_USERNAME || 'neondb_owner' }}
-          database: ${{ vars.NEON_DATABASE_NAME || 'neondb' }}
+          username: ${{ secrets.NEON_DATABASE_USERNAME || 'elevadb_owner' }}
+          database: ${{ vars.NEON_DATABASE_NAME || 'elevadb' }}
         continue-on-error: true
         timeout-minutes: 5
 
@@ -158,8 +164,32 @@ jobs:
         env:
           NEON_API_KEY: ${{ secrets.NEON_API_KEY }}
 
+      - name: ✅ Validate branch creation outputs
+        id: validate_outputs
+        run: |
+          echo "🔍 Validating Neon branch creation outputs..."
+
+          BRANCH_ID="${{ steps.create_neon_branch.outputs.branch_id }}"
+          DB_URL="${{ steps.create_neon_branch.outputs.db_url }}"
+          DB_URL_POOLER="${{ steps.create_neon_branch.outputs.db_url_with_pooler }}"
+
+          if [ -z "$BRANCH_ID" ] || [ -z "$DB_URL" ] || [ -z "$DB_URL_POOLER" ]; then
+            echo "❌ ERROR: Branch creation succeeded but outputs are missing!"
+            echo "Branch ID: ${BRANCH_ID:-[empty]}"
+            echo "DB URL: ${DB_URL:-[empty]}"
+            echo "DB URL with pooler: ${DB_URL_POOLER:-[empty]}"
+            echo ""
+            echo "This usually means the Neon action didn't complete successfully."
+            exit 1
+          fi
+
+          echo "✅ All outputs are present:"
+          echo "Branch ID: $BRANCH_ID"
+          echo "DB URL: ${DB_URL:0:50}..."
+          echo "DB URL with pooler: ${DB_URL_POOLER:0:50}..."
+
       - name: 🎉 Comment on PR with branch info
-        if: steps.create_neon_branch.outcome == 'success' || steps.create_neon_branch.outputs.branch_id != ''
+        if: steps.validate_outputs.outcome == 'success'
         uses: actions/github-script@v7
         with:
           script: |
@@ -187,15 +217,13 @@ jobs:
     name: 🚀 Migrate Preview Database
     needs: [setup, create_neon_branch]
     runs-on: ubuntu-latest
-    if: needs.create_neon_branch.result != 'cancelled' && needs.create_neon_branch.outputs.branch_id != ''
+    if: needs.create_neon_branch.result == 'success' && needs.create_neon_branch.outputs.branch_id != '' && needs.create_neon_branch.outputs.db_url_with_pooler != ''
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
       - name: 📦 Setup PNPM
         uses: pnpm/action-setup@v4
-        with:
-          version: 8
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
@@ -206,9 +234,30 @@ jobs:
       - name: 📦 Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: 🔍 Validate Database URL
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ DATABASE_URL is empty or not set"
+            echo "This usually means the Neon branch creation failed or didn't provide a database URL"
+            exit 1
+          fi
+          echo "✅ DATABASE_URL is set"
+        env:
+          DATABASE_URL: ${{ needs.create_neon_branch.outputs.db_url_with_pooler }}
+
       - name: 🗄️ Generate and run migrations
         run: |
+          echo "🔍 Checking DATABASE_URL before migration..."
+          if [ -z "$DATABASE_URL" ]; then
+            echo "❌ ERROR: DATABASE_URL is empty at migration time!"
+            echo "Branch ID: ${{ needs.create_neon_branch.outputs.branch_id }}"
+            echo "DB URL output: ${{ needs.create_neon_branch.outputs.db_url_with_pooler }}"
+            exit 1
+          fi
+          echo "✅ DATABASE_URL is set: ${DATABASE_URL:0:30}..."
+          echo "📝 Generating migrations..."
           pnpm generate
+          echo "🚀 Running migrations..."
           pnpm migrate
         env:
           DATABASE_URL: ${{ needs.create_neon_branch.outputs.db_url_with_pooler }}
@@ -235,8 +284,6 @@ jobs:
 
       - name: 📦 Setup PNPM
         uses: pnpm/action-setup@v4
-        with:
-          version: 8
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4

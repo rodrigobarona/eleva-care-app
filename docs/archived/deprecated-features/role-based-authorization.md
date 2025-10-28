@@ -240,6 +240,10 @@ import { useIsAdmin, useIsExpert } from '@/components/molecules/AuthorizationPro
 
 // components/ExampleProtectedComponent.tsx
 
+// components/ExampleProtectedComponent.tsx
+
+// components/ExampleProtectedComponent.tsx
+
 export function ExampleProtectedComponent() {
   const isAdmin = useIsAdmin();
   const isExpert = useIsExpert();

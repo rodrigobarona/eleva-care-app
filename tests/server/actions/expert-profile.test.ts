@@ -27,30 +27,38 @@ const revalidatePathMock = jest.fn();
 
 // Mock all dependencies before importing the function to test
 jest.mock('@clerk/nextjs/server', () => ({
-  auth: (...args) => authMock(...args),
-  currentUser: (...args) => currentUserMock(...args),
+  auth: jest.fn().mockImplementation((...args: Parameters<typeof authMock>) => authMock(...args)),
+  currentUser: jest
+    .fn()
+    .mockImplementation((...args: Parameters<typeof currentUserMock>) => currentUserMock(...args)),
 }));
 
 jest.mock('@/lib/auth/roles.server', () => ({
-  hasRole: (...args) => hasRoleMock(...args),
+  hasRole: jest
+    .fn()
+    .mockImplementation((...args: Parameters<typeof hasRoleMock>) => hasRoleMock(...args)),
 }));
 
 jest.mock('@/server/actions/expert-setup', () => ({
-  checkExpertSetupStatus: (...args) => checkExpertSetupStatusMock(...args),
+  checkExpertSetupStatus: jest
+    .fn()
+    .mockImplementation((...args: Parameters<typeof checkExpertSetupStatusMock>) =>
+      checkExpertSetupStatusMock(...args),
+    ),
 }));
 
 // DB operations with chainable update mocks
 const updateSetMock = jest.fn();
 const updateWhereMock = jest.fn();
-const updateChain = {
-  set: (...args) => {
+const updateChain: { set: jest.Mock; where: jest.Mock } = {
+  set: jest.fn().mockImplementation((...args: Parameters<typeof updateSetMock>) => {
     updateSetMock(...args);
     return updateChain;
-  },
-  where: (...args) => {
+  }),
+  where: jest.fn().mockImplementation((...args: Parameters<typeof updateWhereMock>) => {
     updateWhereMock(...args);
     return updateChain;
-  },
+  }),
 };
 
 jest.mock('@/drizzle/db', () => {
@@ -58,7 +66,11 @@ jest.mock('@/drizzle/db', () => {
     db: {
       query: {
         ProfileTable: {
-          findFirst: (...args) => findFirstMock(...args),
+          findFirst: jest
+            .fn()
+            .mockImplementation((...args: Parameters<typeof findFirstMock>) =>
+              findFirstMock(...args),
+            ),
         },
       },
       update: () => updateChain,
@@ -67,12 +79,16 @@ jest.mock('@/drizzle/db', () => {
 });
 
 jest.mock('next/cache', () => ({
-  revalidatePath: (...args) => revalidatePathMock(...args),
+  revalidatePath: jest
+    .fn()
+    .mockImplementation((...args: Parameters<typeof revalidatePathMock>) =>
+      revalidatePathMock(...args),
+    ),
 }));
 
 // Mock drizzle-orm
 jest.mock('drizzle-orm', () => ({
-  eq: (field, value) => value,
+  eq: (field: any, value: any) => value,
   relations: () => ({}),
 }));
 
@@ -190,8 +206,8 @@ describe('toggleProfilePublication', () => {
 
   it('should return error if user is not authenticated', async () => {
     // Arrange - mock unauthenticated user
-    authMock.mockResolvedValueOnce({ userId: null });
-    currentUserMock.mockResolvedValueOnce(null);
+    authMock.mockResolvedValueOnce({ userId: null as any });
+    currentUserMock.mockResolvedValueOnce(null as any);
 
     // Act
     const result = await toggleProfilePublication();

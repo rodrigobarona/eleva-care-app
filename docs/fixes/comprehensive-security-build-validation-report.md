@@ -258,6 +258,7 @@ GET /api/healthcheck          # Basic health status
    ```
 
 2. **Production Logging Setup:**
+
    ```typescript
    // Implement structured logging
    import { Logger } from '@your/logger';

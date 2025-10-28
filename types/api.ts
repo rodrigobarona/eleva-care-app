@@ -1,4 +1,4 @@
-import type { UserRole, UserRoles } from '@/lib/auth/roles';
+import type { UserRoles } from '@/lib/auth/roles';
 
 export interface ApiResponse<T> {
   success?: boolean;

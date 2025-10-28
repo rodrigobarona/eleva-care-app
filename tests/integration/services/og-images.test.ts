@@ -1,12 +1,16 @@
 import { describe, expect, jest, test } from '@jest/globals';
 
 // Mock the OG image route handler
-const mockGET = jest.fn();
+const mockGET = jest.fn<() => Promise<Response>>();
 jest.mock('@/app/api/og/image/route', () => ({
   GET: mockGET,
 }));
 
 describe('OG Image Generation Integration Tests', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   const testCases = [
     {
       name: 'Profile Image',
@@ -28,17 +32,19 @@ describe('OG Image Generation Integration Tests', () => {
   test.each(testCases)(
     'should generate $name correctly',
     async ({ expectedStatus, expectedContentType }) => {
-      // Mock the response
-      const mockResponse = {
-        status: expectedStatus,
-        headers: {
-          get: jest.fn().mockImplementation((key: string) => {
-            if (key === 'content-type') return expectedContentType;
-            if (key === 'cache-control') return 's-maxage=3600, stale-while-revalidate=86400';
-            return null;
-          }),
+      // Mock proper Response object with headers
+      const mockHeaders = {
+        get: (key: string) => {
+          if (key === 'content-type') return expectedContentType;
+          if (key === 'cache-control') return 's-maxage=3600, stale-while-revalidate=86400';
+          return null;
         },
       };
+
+      const mockResponse = {
+        status: expectedStatus,
+        headers: mockHeaders,
+      } as Response;
 
       mockGET.mockResolvedValueOnce(mockResponse);
 
@@ -115,16 +121,18 @@ describe('OG Image Generation Integration Tests', () => {
 
   describe('Image Dimensions', () => {
     test('should generate images with correct dimensions', async () => {
-      // Mock success response
-      const mockResponse = {
-        status: 200,
-        headers: {
-          get: jest.fn().mockImplementation((key: string) => {
-            if (key === 'content-type') return 'image/png';
-            return null;
-          }),
+      // Mock success response with headers
+      const mockHeaders = {
+        get: (key: string) => {
+          if (key === 'content-type') return 'image/png';
+          return null;
         },
       };
+
+      const mockResponse = {
+        status: 200,
+        headers: mockHeaders,
+      } as Response;
 
       mockGET.mockResolvedValueOnce(mockResponse);
 

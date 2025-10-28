@@ -402,21 +402,21 @@ If consultation becomes required:
 - Name: [Name]
 - Position: [Position]
 - Date: [Date]
-- Signature: **********\_\_\_**********
+- Signature: \***\*\*\*\*\***\_\_\_\***\*\*\*\*\***
 
 **Reviewed By (DPO)**:
 
 - Name: [Name]
 - Position: Data Protection Officer
 - Date: [Date]
-- Signature: **********\_\_\_**********
+- Signature: \***\*\*\*\*\***\_\_\_\***\*\*\*\*\***
 
 **Approved By**:
 
 - Name: [Name]
 - Position: Managing Director
 - Date: [Date]
-- Signature: **********\_\_\_**********
+- Signature: \***\*\*\*\*\***\_\_\_\***\*\*\*\*\***
 
 ### 6.2 Review Cycle
 

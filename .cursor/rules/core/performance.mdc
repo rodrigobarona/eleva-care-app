@@ -3,11 +3,13 @@ description:
 globs:
 alwaysApply: false
 ---
+
 # Performance Optimization Guidelines
 
 ## 1. Server Components Optimization
 
 ### Use Server Components by Default
+
 ```typescript
 // Good: Server Component
 export default async function ExpertList() {
@@ -26,6 +28,7 @@ export default function ExpertList() {
 ## 2. Image Optimization
 
 ### Next.js Image Component
+
 ```typescript
 // Good: Optimized Image
 import Image from 'next/image';
@@ -46,6 +49,7 @@ export function Avatar({ src }) {
 ## 3. Route Optimization
 
 ### Route Segments
+
 - Use route groups for code organization
 - Implement parallel routes for complex layouts
 - Use loading.tsx for streaming
@@ -53,6 +57,7 @@ export function Avatar({ src }) {
 ## 4. Data Fetching
 
 ### Parallel Data Fetching
+
 ```typescript
 // Good: Parallel requests
 const [user, posts] = await Promise.all([
@@ -68,6 +73,7 @@ const posts = await getUserPosts(userId);
 ## 5. Bundle Optimization
 
 ### Dynamic Imports
+
 ```typescript
 // Good: Dynamic import
 const Chart = dynamic(() => import('@/components/Chart'), {
@@ -77,7 +83,61 @@ const Chart = dynamic(() => import('@/components/Chart'), {
 
 ## 6. Caching Strategy
 
+### React Cache + Distributed Caching
+
+**Two-Layer Caching Pattern:**
+
+```typescript
+import { redisManager } from '@/lib/redis';
+import { cache } from 'react';
+
+// Layer 1: React cache (request-level memoization)
+// Layer 2: Redis (distributed caching)
+const _getDataImpl = async (id: string) => {
+  // Try Redis first
+  const cached = await redisManager.get(`data:${id}`);
+  if (cached) return JSON.parse(cached);
+
+  // Fetch from source
+  const data = await fetchData(id);
+
+  // Store in Redis with TTL
+  await redisManager.set(`data:${id}`, JSON.stringify(data), 300);
+
+  return data;
+};
+
+// Wrap with React.cache for request deduplication
+export const getData = cache(_getDataImpl);
+```
+
+### Clerk User Caching (Required)
+
+**ALWAYS use caching utilities for Clerk user data:**
+
+```typescript
+// ✅ GOOD: Use centralized cache
+import { getCachedUserById } from '@/lib/cache/clerk-cache';
+
+const user = await getCachedUserById(userId);
+if (!user) return notFound();
+
+// ❌ BAD: Direct API calls
+const clerk = createClerkClient({ ... });
+const user = await clerk.users.getUser(userId); // NEVER DO THIS
+```
+
+**Benefits:**
+
+- 70% reduction in API calls
+- Request-level deduplication
+- 5-minute distributed cache
+- Automatic invalidation on updates
+
+See [@file ../security/clerk-cache.mdc](mdc:../security/clerk-cache.mdc) for complete guidelines.
+
 ### Route Cache
+
 ```typescript
 // Good: Route segment config
 export const revalidate = 3600; // Revalidate every hour
@@ -96,6 +156,7 @@ export async function generateMetadata() {
 ## 7. Database Optimization
 
 ### Query Optimization
+
 ```typescript
 // Good: Optimized query
 const result = await db
@@ -123,10 +184,12 @@ const result = await db
    - Minimize client-side JavaScript
 
 2. **Data Level**
-   - Implement proper caching
+   - Implement two-layer caching (React cache + distributed)
+   - **ALWAYS use Clerk cache utilities** (never direct API calls)
    - Use parallel data fetching
    - Optimize database queries
    - Implement pagination
+   - Invalidate cache after mutations
 
 3. **Build Level**
    - Minimize bundle size
@@ -139,3 +202,15 @@ const result = await db
    - Monitor server response times
    - Track client-side performance
    - Set up alerts for degradation
+   - Monitor cache hit rates
+
+## Caching Checklist
+
+Before committing code that interacts with external APIs:
+
+- [ ] Are you using React's `cache()` for request-level memoization?
+- [ ] Are you using distributed caching (Redis) for cross-request caching?
+- [ ] For Clerk user data: Are you using `getCachedUserById` instead of direct API calls?
+- [ ] After user updates: Are you calling `invalidateUserCache()`?
+- [ ] Are you handling null returns from cache functions?
+- [ ] Are you using batch functions for multiple items?

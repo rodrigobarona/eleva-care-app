@@ -4,8 +4,7 @@ import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 
 describe('Keep-Alive Service Integration Tests', () => {
   beforeAll(async () => {
-    // Ensure services are initialized
-    await redisManager.initializeRedis();
+    // Services initialize on first use - health check will trigger initialization
   });
 
   afterAll(async () => {

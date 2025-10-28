@@ -1,10 +1,16 @@
 import { isValidLocale } from '@/app/i18n';
+import {
+  ApproachSkeleton,
+  ExpertsSkeleton,
+  ServicesSkeleton,
+} from '@/components/molecules/HomePageSkeletons';
 import ExpertsSection from '@/components/organisms/home/ExpertsSection';
 import Hero from '@/components/organisms/home/Hero';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import dynamic from 'next/dynamic';
+import { Suspense } from 'react';
 
 // Define the page props
 interface PageProps {
@@ -77,37 +83,35 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-// Skeleton loading components for dynamic sections
-const SectionSkeleton = () => (
-  <div className="container mx-auto my-16">
-    <div className="h-12 w-1/3 animate-pulse rounded-lg bg-gray-100" />
-    <div className="mt-8 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-      {['card-1', 'card-2', 'card-3'].map((id) => (
-        <div key={id} className="space-y-4">
-          <div className="h-48 animate-pulse rounded-2xl bg-gray-100" />
-          <div className="h-4 w-2/3 animate-pulse rounded bg-gray-100" />
-          <div className="h-4 w-5/6 animate-pulse rounded bg-gray-100" />
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
+// Dynamic imports with proper loading states
+// Services and Approach are client components that don't fetch data, use dynamic() to code-split
 const ServicesSection = dynamic(() => import('@/components/organisms/home/Services'), {
-  loading: () => <SectionSkeleton />,
+  loading: () => <ServicesSkeleton />,
+  ssr: true, // Enable SSR for SEO
 });
 
 const ApproachSection = dynamic(() => import('@/components/organisms/home/ApproachSection'), {
-  loading: () => <SectionSkeleton />,
+  loading: () => <ApproachSkeleton />,
+  ssr: true, // Enable SSR for SEO
 });
 
 export default function HomePage() {
   return (
     <main>
+      {/* Hero: Static content, no data fetching, renders immediately */}
       <Hero />
+
+      {/* Services: Client component, code-split with dynamic import */}
       <ServicesSection />
+
+      {/* Approach: Client component, code-split with dynamic import */}
       <ApproachSection />
-      <ExpertsSection />
+
+      {/* Experts: Server component with database queries, wrapped in Suspense */}
+      {/* This enables streaming - page shows immediately while experts data loads */}
+      <Suspense fallback={<ExpertsSkeleton />}>
+        <ExpertsSection />
+      </Suspense>
     </main>
   );
 }
