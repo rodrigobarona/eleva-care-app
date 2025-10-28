@@ -1,7 +1,8 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { BlockedDatesTable } from '@/drizzle/schema';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- ScheduleTable used in db.query.ScheduleTable (Drizzle ORM pattern)
+import { BlockedDatesTable, ScheduleTable } from '@/drizzle/schema';
 import { auth } from '@clerk/nextjs/server';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
