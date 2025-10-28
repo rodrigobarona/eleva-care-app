@@ -8,6 +8,8 @@ export default defineConfig({
   verbose: true,
   strict: true,
   dbCredentials: {
-    url: process.env.DATABASE_URL || '',
+    // Use placeholder URL if DATABASE_URL is not set (e.g., during generation without migration)
+    url:
+      process.env.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder',
   },
 });

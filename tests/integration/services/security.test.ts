@@ -2,51 +2,62 @@ import { analyzeSessionSecurity, shouldSendSecurityNotification } from '@/lib/cl
 import { describe, expect, jest, test } from '@jest/globals';
 
 // Mock Clerk client
+const mockGetUser = jest.fn();
+const mockUpdateUserMetadata = jest.fn();
+
 jest.mock('@clerk/nextjs/server', () => ({
-  clerkClient: {
+  clerkClient: jest.fn(() => ({
     users: {
-      updateUserMetadata: jest.fn().mockResolvedValue({}),
-      getUser: jest.fn().mockImplementation((userId: string) => {
-        const mockUsers = {
-          user_123: {
-            id: 'user_123',
-            email: 'test@example.com',
-            publicMetadata: {
-              securityPreferences: {
-                securityAlerts: true,
-                newDeviceAlerts: true,
-                locationChangeAlerts: true,
-                unusualTimingAlerts: true,
-                emailNotifications: true,
-                inAppNotifications: true,
-              },
-            },
-            privateMetadata: {
-              deviceHistory: [
-                {
-                  clientId: 'client_abc123',
-                  firstSeen: Date.now() - 86400000,
-                  lastSeen: Date.now() - 3600000,
-                },
-              ],
-              loginPattern: {
-                userId: 'user_123',
-                typicalHours: [9, 10, 14, 15, 16],
-                typicalDays: [1, 2, 3, 4, 5],
-                averageFrequency: 8,
-                lastLoginTime: Date.now() - 28800000,
-                recentLocations: ['Dublin, L IE', 'London, ENG GB'],
-              },
-            },
-          },
-        };
-        return Promise.resolve(mockUsers[userId as keyof typeof mockUsers]);
-      }),
+      updateUserMetadata: mockUpdateUserMetadata,
+      getUser: mockGetUser,
     },
-  },
+  })),
 }));
 
 describe('Enhanced Security System Integration Tests', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+
+    // Setup default mock implementations
+    mockUpdateUserMetadata.mockResolvedValue({} as never);
+    mockGetUser.mockImplementation(async (userId: unknown) => {
+      const uid = userId as string;
+      const mockUsers = {
+        user_123: {
+          id: 'user_123',
+          email: 'test@example.com',
+          publicMetadata: {
+            securityPreferences: {
+              securityAlerts: true,
+              newDeviceAlerts: true,
+              locationChangeAlerts: true,
+              unusualTimingAlerts: true,
+              emailNotifications: true,
+              inAppNotifications: true,
+            },
+          },
+          privateMetadata: {
+            deviceHistory: [
+              {
+                clientId: 'client_abc123',
+                firstSeen: Date.now() - 86400000,
+                lastSeen: Date.now() - 3600000,
+              },
+            ],
+            loginPattern: {
+              userId: 'user_123',
+              typicalHours: [9, 10, 14, 15, 16],
+              typicalDays: [1, 2, 3, 4, 5],
+              averageFrequency: 8,
+              lastLoginTime: Date.now() - 28800000,
+              recentLocations: ['Dublin, L IE', 'London, ENG GB'],
+            },
+          },
+        },
+      };
+      return Promise.resolve(mockUsers[uid as keyof typeof mockUsers]);
+    });
+  });
   const testScenarios = [
     {
       name: 'Normal Login - Same Device, Typical Time',

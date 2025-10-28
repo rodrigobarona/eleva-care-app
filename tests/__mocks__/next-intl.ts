@@ -44,14 +44,17 @@ const createMockTranslation =
     if (!namespace) return key;
 
     const keys = key.split('.');
-    let value: string | TranslationValue = translations[namespace];
+    let value: unknown = translations[namespace];
 
     for (const k of keys) {
-      value = value?.[k];
-      if (value === undefined) return key;
+      if (value && typeof value === 'object' && k in value) {
+        value = (value as Record<string, unknown>)[k];
+      } else {
+        return key;
+      }
     }
 
-    return value || key;
+    return typeof value === 'string' ? value : key;
   };
 
 export const useTranslations = jest.fn((namespace?: string) => createMockTranslation(namespace));

@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { BlockedDatesTable, ScheduleTable } from '@/drizzle/schema';
+import { BlockedDatesTable } from '@/drizzle/schema';
 import { auth } from '@clerk/nextjs/server';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';

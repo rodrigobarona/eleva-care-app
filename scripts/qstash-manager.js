@@ -18,6 +18,7 @@
  *   help      - Show this help message
  */
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 require('dotenv').config();
 
 // Since we can't import ES modules easily in Node.js script,
@@ -292,7 +293,7 @@ async function showStats() {
       unknown: 0,
     };
 
-    schedules.forEach((schedule) => {
+    schedules.forEach((_schedule) => {
       // Try to extract priority from destination URL or use unknown
       const priority = 'unknown'; // We can't easily get headers from list response
       priorityCounts[priority]++;

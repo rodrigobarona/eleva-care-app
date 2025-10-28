@@ -6,10 +6,11 @@ on:
   pull_request:
     branches: [main, develop]
 
-# Required permissions for creating issues on failure
+# Required permissions for creating issues on failure and code scanning
 permissions:
   contents: read
   issues: write
+  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -308,6 +309,7 @@ jobs:
 
       - name: 🔍 Run CodeQL analysis
         uses: github/codeql-action/analyze@v3
+        continue-on-error: true # Allow to fail on fork PRs with restricted permissions
 
   test-summary:
     name: 📋 Test Summary

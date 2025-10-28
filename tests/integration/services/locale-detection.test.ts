@@ -1,15 +1,55 @@
 import { detectLocaleFromHeaders } from '@/lib/i18n/utils';
 import { describe, expect, test } from '@jest/globals';
 
-class MockHeaders {
+class MockHeaders implements Headers {
   private headers: Map<string, string>;
 
   constructor(headers: Record<string, string>) {
-    this.headers = new Map(Object.entries(headers));
+    this.headers = new Map(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
   }
 
   get(name: string): string | null {
     return this.headers.get(name.toLowerCase()) || null;
+  }
+
+  has(name: string): boolean {
+    return this.headers.has(name.toLowerCase());
+  }
+
+  forEach(callbackfn: (value: string, key: string, parent: Headers) => void): void {
+    this.headers.forEach((value, key) => callbackfn(value, key, this));
+  }
+
+  append(): void {
+    throw new Error('Method not implemented');
+  }
+
+  delete(): void {
+    throw new Error('Method not implemented');
+  }
+
+  set(): void {
+    throw new Error('Method not implemented');
+  }
+
+  entries(): IterableIterator<[string, string]> {
+    return this.headers.entries();
+  }
+
+  keys(): IterableIterator<string> {
+    return this.headers.keys();
+  }
+
+  values(): IterableIterator<string> {
+    return this.headers.values();
+  }
+
+  [Symbol.iterator](): IterableIterator<[string, string]> {
+    return this.headers.entries();
+  }
+
+  getSetCookie(): string[] {
+    return [];
   }
 }
 

@@ -41,7 +41,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'pnpm'
+          # No cache - this is a debug job without dependency installation
 
       - name: 📦 Test PNPM Installation
         run: |

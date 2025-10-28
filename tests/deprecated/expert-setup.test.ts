@@ -66,9 +66,9 @@ jest.mock('@/drizzle/db', () => ({
 }));
 
 jest.mock('drizzle-orm', () => ({
-  eq: (field, value) => ({ field, value }),
+  eq: (field: any, value: any) => ({ field, value }),
   count: jest.fn().mockReturnValue({ count: true }),
-  and: (...conditions) => ({ conditions }),
+  and: (...conditions: any[]) => ({ conditions }),
 }));
 
 describe('Expert Setup Actions', () => {

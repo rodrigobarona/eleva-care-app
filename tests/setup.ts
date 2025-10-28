@@ -6,7 +6,6 @@ import '@testing-library/jest-dom';
 
 // Declare types for global mocks
 declare global {
-  // eslint-disable-next-line no-var
   var __mocks: {
     db: never;
     clerkUser: never;

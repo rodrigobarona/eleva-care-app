@@ -9,7 +9,9 @@
  * Note: These variables are also defined in config/env.ts for centralized access
  */
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const fs = require('fs');
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const path = require('path');
 
 // PostHog API configuration
