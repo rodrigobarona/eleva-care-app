@@ -14,6 +14,7 @@ import {
   createPayoutFailedNotification,
 } from '@/lib/payment-notifications';
 import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
+import { checkExistingTransfer } from '@/lib/stripe/transfer-utils';
 import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -251,37 +252,16 @@ export async function GET(request: Request) {
 
           // ✅ CRITICAL FIX: Check if a Stripe transfer already exists for this charge
           // This prevents duplicate transfers when webhooks have already processed the payment
-          // Retrieve the charge to check if it has any transfers already
-          const charge = await stripe.charges.retrieve(chargeId, {
-            expand: ['transfer'],
-          });
+          const { existingTransferId, shouldCreateTransfer } = await checkExistingTransfer(
+            stripe,
+            chargeId,
+            { id: transfer.id, paymentIntentId: transfer.paymentIntentId },
+          );
 
-          // Check if a transfer already exists for this charge
-          if (charge.transfer) {
-            const existingTransferId =
-              typeof charge.transfer === 'string' ? charge.transfer : charge.transfer.id;
-
-            console.log(
-              `⚠️ Transfer ${existingTransferId} already exists for charge ${chargeId}, skipping creation`,
-            );
-
-            // Update our database record with the existing transfer ID
-            await db
-              .update(PaymentTransferTable)
-              .set({
-                status: PAYMENT_TRANSFER_STATUS_COMPLETED,
-                transferId: existingTransferId,
-                updated: new Date(),
-              })
-              .where(eq(PaymentTransferTable.id, transfer.id));
-
-            console.log(
-              `✅ Updated database record ${transfer.id} with existing transfer ID: ${existingTransferId}`,
-            );
-
+          if (!shouldCreateTransfer) {
             return {
               success: true,
-              transferId: existingTransferId,
+              transferId: existingTransferId!,
               paymentTransferId: transfer.id,
             } as SuccessResult;
           }

@@ -300,11 +300,6 @@ function isHomePage(path: string): boolean {
  * This allows public access to username profile pages
  */
 function isUsernameRoute(path: string): boolean {
-  // Explicitly exclude .well-known paths
-  if (path.startsWith('/.well-known')) {
-    return false;
-  }
-
   // Get path segments
   const segments = path.split('/').filter(Boolean);
 

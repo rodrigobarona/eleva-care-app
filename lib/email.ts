@@ -3,7 +3,18 @@
 import { getTranslations } from 'next-intl/server';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Lazy initialization to avoid build-time errors
+let resendClient: Resend | null = null;
+
+function getResendClient(): Resend {
+  if (!resendClient) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error('RESEND_API_KEY is not configured');
+    }
+    resendClient = new Resend(process.env.RESEND_API_KEY);
+  }
+  return resendClient;
+}
 
 // Define a type for Resend options
 type SendEmailParams = {
@@ -59,7 +70,7 @@ export async function sendEmail({
     // This is necessary because the Resend types in the installed version
     // have a conflict with our usage pattern
     // @ts-expect-error Resend types don't perfectly match our current usage
-    const { data, error } = await resend.emails.send(emailParams);
+    const { data, error } = await getResendClient().emails.send(emailParams);
 
     if (error) {
       console.error('Error sending email via Resend:', error);

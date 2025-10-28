@@ -24,7 +24,7 @@ this source, amounting to €XX.XX.)
 
 **Prevention:**
 
-- ✅ **FIXED** in v1.1.0 (October 28, 2025)
+- ✅ **FIXED** — pending v1.1.0 release
 - Both cron jobs now check Stripe before creating transfers
 - Self-healing: syncs database with Stripe automatically
 
