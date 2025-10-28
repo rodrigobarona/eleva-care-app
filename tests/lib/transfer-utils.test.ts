@@ -27,9 +27,9 @@ describe('Transfer Utils', () => {
       jest.clearAllMocks();
 
       // Mock the db update chain
-      mockWhere = jest.fn().mockResolvedValue(undefined);
-      mockSet = jest.fn().mockReturnValue({ where: mockWhere });
-      mockUpdate = jest.fn().mockReturnValue({ set: mockSet });
+      mockWhere = jest.fn<() => Promise<unknown>>().mockResolvedValue(undefined);
+      mockSet = jest.fn<() => { where: typeof mockWhere }>().mockReturnValue({ where: mockWhere });
+      mockUpdate = jest.fn<() => { set: typeof mockSet }>().mockReturnValue({ set: mockSet });
 
       (db.update as jest.MockedFunction<typeof db.update>) = mockUpdate as never;
 

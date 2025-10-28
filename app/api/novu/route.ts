@@ -2,15 +2,13 @@ import { ENV_CONFIG } from '@/config/env';
 import { workflows } from '@/config/novu';
 import { Client as NovuFrameworkClient } from '@novu/framework';
 import { serve } from '@novu/framework/next';
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // Create explicit Novu Framework client for Next.js 15 compatibility
 // Only initialize if secret key is available (skip during build time)
 const hasSecretKey = ENV_CONFIG.NOVU_SECRET_KEY && ENV_CONFIG.NOVU_SECRET_KEY.length > 0;
 
-type RouteHandler = (request: NextRequest) => Promise<NextResponse> | NextResponse;
-
-let handlers: { GET: RouteHandler; POST: RouteHandler; OPTIONS: RouteHandler };
+let handlers: ReturnType<typeof serve>;
 
 if (hasSecretKey) {
   const client = new NovuFrameworkClient({
@@ -35,7 +33,7 @@ if (hasSecretKey) {
     GET: fallbackHandler,
     POST: fallbackHandler,
     OPTIONS: fallbackHandler,
-  };
+  } as unknown as ReturnType<typeof serve>;
 }
 
 export const { GET, POST, OPTIONS } = handlers;
