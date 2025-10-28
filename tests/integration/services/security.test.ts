@@ -14,48 +14,65 @@ jest.mock('@clerk/nextjs/server', () => ({
   })),
 }));
 
+// Helper to manage current user mock state
+let currentUserMock: Record<string, unknown> | undefined;
+
+// Export helper for tests to customize user mock
+// Usage: Call setupCustomUserMock({ id: 'user_456', ... }) in individual tests
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function setupCustomUserMock(user: Record<string, unknown> | undefined): void {
+  currentUserMock = user;
+}
+
 describe('Enhanced Security System Integration Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Reset to default user
+    currentUserMock = {
+      id: 'user_123',
+      email: 'test@example.com',
+      publicMetadata: {
+        securityPreferences: {
+          securityAlerts: true,
+          newDeviceAlerts: true,
+          locationChangeAlerts: true,
+          unusualTimingAlerts: true,
+          emailNotifications: true,
+          inAppNotifications: true,
+        },
+      },
+      privateMetadata: {
+        deviceHistory: [
+          {
+            clientId: 'client_abc123',
+            firstSeen: Date.now() - 86400000,
+            lastSeen: Date.now() - 3600000,
+          },
+        ],
+        loginPattern: {
+          userId: 'user_123',
+          typicalHours: [9, 10, 14, 15, 16],
+          typicalDays: [1, 2, 3, 4, 5],
+          averageFrequency: 8,
+          lastLoginTime: Date.now() - 28800000,
+          recentLocations: ['Dublin, L IE', 'London, ENG GB'],
+        },
+      },
+    };
 
     // Setup default mock implementations
     mockUpdateUserMetadata.mockResolvedValue({} as never);
     mockGetUser.mockImplementation(async (userId: unknown) => {
       const uid = userId as string;
-      const mockUsers = {
-        user_123: {
-          id: 'user_123',
-          email: 'test@example.com',
-          publicMetadata: {
-            securityPreferences: {
-              securityAlerts: true,
-              newDeviceAlerts: true,
-              locationChangeAlerts: true,
-              unusualTimingAlerts: true,
-              emailNotifications: true,
-              inAppNotifications: true,
-            },
-          },
-          privateMetadata: {
-            deviceHistory: [
-              {
-                clientId: 'client_abc123',
-                firstSeen: Date.now() - 86400000,
-                lastSeen: Date.now() - 3600000,
-              },
-            ],
-            loginPattern: {
-              userId: 'user_123',
-              typicalHours: [9, 10, 14, 15, 16],
-              typicalDays: [1, 2, 3, 4, 5],
-              averageFrequency: 8,
-              lastLoginTime: Date.now() - 28800000,
-              recentLocations: ['Dublin, L IE', 'London, ENG GB'],
-            },
-          },
-        },
-      };
-      return Promise.resolve(mockUsers[uid as keyof typeof mockUsers]);
+
+      // If a custom mock is set and matches the requested user, return it
+      if (currentUserMock && currentUserMock.id === uid) {
+        return Promise.resolve(currentUserMock);
+      }
+
+      // Otherwise return undefined (user not found)
+      return Promise.resolve(undefined);
     });
   });
   const testScenarios = [

@@ -2,14 +2,15 @@ import { detectLocaleFromHeaders } from '@/lib/i18n/utils';
 import { describe, expect, test } from '@jest/globals';
 
 class MockHeaders implements Headers {
-  private headers: Map<string, string>;
+  private headers: Map<string, string[]>;
 
   constructor(headers: Record<string, string>) {
-    this.headers = new Map(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
+    this.headers = new Map(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), [v]]));
   }
 
   get(name: string): string | null {
-    return this.headers.get(name.toLowerCase()) || null;
+    const values = this.headers.get(name.toLowerCase());
+    return values && values.length > 0 ? values[0] : null;
   }
 
   has(name: string): boolean {
@@ -17,23 +18,37 @@ class MockHeaders implements Headers {
   }
 
   forEach(callbackfn: (value: string, key: string, parent: Headers) => void): void {
-    this.headers.forEach((value, key) => callbackfn(value, key, this));
+    this.headers.forEach((values, key) => {
+      // For forEach, we return the concatenated values (standard Headers behavior)
+      callbackfn(values.join(', '), key, this);
+    });
   }
 
-  append(): void {
-    throw new Error('Method not implemented');
+  append(name: string, value: string): void {
+    const normalizedName = name.toLowerCase();
+    const existing = this.headers.get(normalizedName);
+    if (existing) {
+      existing.push(value);
+    } else {
+      this.headers.set(normalizedName, [value]);
+    }
   }
 
-  delete(): void {
-    throw new Error('Method not implemented');
+  delete(name: string): void {
+    this.headers.delete(name.toLowerCase());
   }
 
-  set(): void {
-    throw new Error('Method not implemented');
+  set(name: string, value: string): void {
+    this.headers.set(name.toLowerCase(), [value]);
   }
 
   entries(): IterableIterator<[string, string]> {
-    return this.headers.entries();
+    // Convert Map<string, string[]> to IterableIterator<[string, string]>
+    const entriesArray: [string, string][] = [];
+    this.headers.forEach((values, key) => {
+      entriesArray.push([key, values.join(', ')]);
+    });
+    return entriesArray[Symbol.iterator]();
   }
 
   keys(): IterableIterator<string> {
@@ -41,11 +56,15 @@ class MockHeaders implements Headers {
   }
 
   values(): IterableIterator<string> {
-    return this.headers.values();
+    const valuesArray: string[] = [];
+    this.headers.forEach((values) => {
+      valuesArray.push(values.join(', '));
+    });
+    return valuesArray[Symbol.iterator]();
   }
 
   [Symbol.iterator](): IterableIterator<[string, string]> {
-    return this.headers.entries();
+    return this.entries();
   }
 
   getSetCookie(): string[] {

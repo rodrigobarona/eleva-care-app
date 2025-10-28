@@ -366,12 +366,14 @@ describe('Novu Workflow Execution Integration Tests', () => {
 
       // Act & Assert
       if (INTEGRATION_MODE) {
-        // Real API might handle this differently
-        const result = await novu.trigger('user-lifecycle', {
-          to: invalidSubscriber,
-          payload,
-        });
-        expect(result).toBeDefined();
+        // Real API should reject missing email
+        await expect(
+          novu.trigger('user-lifecycle', {
+            to: invalidSubscriber,
+            payload,
+          }),
+        ).rejects.toThrow();
+        return;
       } else {
         // Mock should still work
         await expect(
