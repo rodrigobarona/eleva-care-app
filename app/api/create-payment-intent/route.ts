@@ -284,18 +284,27 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  if (botVerification.isBot) {
+  // Type assertion for complete BotID response
+  // The botid package type is incomplete - it should include verifiedBotName and verifiedBotCategory
+  // See: https://vercel.com/docs/botid/verified-bots
+  const botResult = botVerification as {
+    isBot: boolean;
+    isVerifiedBot: boolean;
+    verifiedBotName?: string;
+    verifiedBotCategory?: string;
+  };
+
+  if (botResult.isBot) {
     console.warn('🚫 Bot detected in payment intent creation:', {
-      isVerifiedBot: botVerification.isVerifiedBot,
-      verifiedBotName: botVerification.verifiedBotName,
-      verifiedBotCategory: botVerification.verifiedBotCategory,
+      isVerifiedBot: botResult.isVerifiedBot,
+      verifiedBotName: botResult.verifiedBotName,
+      verifiedBotCategory: botResult.verifiedBotCategory,
     });
 
     // Allow verified bots that might be legitimate (e.g., monitoring services)
     const allowedVerifiedBots = ['pingdom-bot', 'uptime-robot', 'checkly'];
     const isAllowedBot =
-      botVerification.isVerifiedBot &&
-      allowedVerifiedBots.includes(botVerification.verifiedBotName || '');
+      botResult.isVerifiedBot && allowedVerifiedBots.includes(botResult.verifiedBotName || '');
 
     if (!isAllowedBot) {
       return NextResponse.json(

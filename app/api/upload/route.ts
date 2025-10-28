@@ -17,11 +17,11 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     // 🛡️ BotID Protection: Check for bot traffic before processing file uploads
-    const botVerification = await checkBotId({
+    const botVerification = (await checkBotId({
       advancedOptions: {
         checkLevel: 'basic', // Free on all Vercel plans including Hobby
       },
-    });
+    })) as import('@/types/botid').BotIdVerificationResult;
 
     if (botVerification.isBot) {
       console.warn('🚫 Bot detected in file upload:', {

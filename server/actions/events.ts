@@ -37,11 +37,11 @@ export async function createEvent(
   unsafeData: z.infer<typeof eventFormSchema>,
 ): Promise<{ error: boolean; message?: string } | undefined> {
   // 🛡️ BotID Protection: Check for bot traffic before creating events
-  const botVerification = await checkBotId({
+  const botVerification = (await checkBotId({
     advancedOptions: {
       checkLevel: 'basic',
     },
-  });
+  })) as import('@/types/botid').BotIdVerificationResult;
 
   if (botVerification.isBot) {
     console.warn('🚫 Bot detected in event creation:', {
