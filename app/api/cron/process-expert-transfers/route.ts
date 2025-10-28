@@ -249,6 +249,43 @@ export async function GET(request: Request) {
 
           console.log(`Using charge ID ${chargeId} for transfer`);
 
+          // ✅ CRITICAL FIX: Check if a Stripe transfer already exists for this charge
+          // This prevents duplicate transfers when webhooks have already processed the payment
+          // Retrieve the charge to check if it has any transfers already
+          const charge = await stripe.charges.retrieve(chargeId, {
+            expand: ['transfer'],
+          });
+
+          // Check if a transfer already exists for this charge
+          if (charge.transfer) {
+            const existingTransferId =
+              typeof charge.transfer === 'string' ? charge.transfer : charge.transfer.id;
+
+            console.log(
+              `⚠️ Transfer ${existingTransferId} already exists for charge ${chargeId}, skipping creation`,
+            );
+
+            // Update our database record with the existing transfer ID
+            await db
+              .update(PaymentTransferTable)
+              .set({
+                status: PAYMENT_TRANSFER_STATUS_COMPLETED,
+                transferId: existingTransferId,
+                updated: new Date(),
+              })
+              .where(eq(PaymentTransferTable.id, transfer.id));
+
+            console.log(
+              `✅ Updated database record ${transfer.id} with existing transfer ID: ${existingTransferId}`,
+            );
+
+            return {
+              success: true,
+              transferId: existingTransferId,
+              paymentTransferId: transfer.id,
+            } as SuccessResult;
+          }
+
           // Create a transfer to the expert's Connect account
           const stripeTransfer = await stripe.transfers.create({
             amount: transfer.amount,
