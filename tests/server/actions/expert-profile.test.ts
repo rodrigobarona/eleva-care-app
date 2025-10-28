@@ -50,7 +50,7 @@ jest.mock('@/server/actions/expert-setup', () => ({
 // DB operations with chainable update mocks
 const updateSetMock = jest.fn();
 const updateWhereMock = jest.fn();
-const updateChain = {
+const updateChain: { set: jest.Mock; where: jest.Mock } = {
   set: jest.fn().mockImplementation((...args: Parameters<typeof updateSetMock>) => {
     updateSetMock(...args);
     return updateChain;

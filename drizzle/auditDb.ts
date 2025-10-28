@@ -11,8 +11,14 @@ import * as auditSchema from './auditSchema';
 function getAuditDatabaseUrl(): string {
   const url = process.env.AUDITLOG_DATABASE_URL;
   const nodeEnv = process.env.NODE_ENV;
+  const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
 
-  // In production, the audit database URL MUST be configured
+  // During build phase, allow placeholder (we don't actually connect to DB during build)
+  if (isBuildPhase) {
+    return url || 'postgresql://placeholder:placeholder@localhost:5432/placeholder_audit';
+  }
+
+  // In production runtime, the audit database URL MUST be configured
   if (nodeEnv === 'production') {
     if (!url) {
       throw new Error(

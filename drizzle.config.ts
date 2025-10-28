@@ -10,7 +10,7 @@ function requiresDatabaseConnection(): boolean {
   const args = process.argv.slice(2);
 
   // Operations that only generate SQL/types and don't need a live DB connection
-  const generateOnlyCommands = ['generate', 'generate:sql'];
+  const generateOnlyCommands = ['generate', 'generate:sql', 'check'];
 
   // Check if the command is a generation-only operation
   return !args.some((arg) => generateOnlyCommands.includes(arg));

@@ -71,13 +71,13 @@ jobs:
           if [ -n "$NEON_DATABASE_USERNAME" ]; then
             echo "✅ Database Username set: YES"
           else
-            echo "⚠️  Database Username set: NO (Optional: Will use 'neondb_owner' as default)"
+            echo "⚠️  Database Username set: NO (Optional: Will use 'elevadb_owner' as default)"
           fi
 
           if [ -n "$NEON_DATABASE_NAME" ]; then
             echo "✅ Database Name set: YES ($NEON_DATABASE_NAME)"
           else
-            echo "⚠️  Database Name set: NO (Optional: Will use 'neondb' as default)"
+            echo "⚠️  Database Name set: NO (Optional: Will use 'elevadb' as default)"
           fi
 
           echo ""
@@ -118,7 +118,7 @@ jobs:
           echo "- Project ID: $([ -n "$NEON_PROJECT_ID" ] && echo "✅ Set" || echo "❌ Missing")"
           echo "- API Key: $([ -n "$NEON_API_KEY" ] && echo "✅ Set" || echo "❌ Missing")"
           echo "- Username: $([ -n "$NEON_DATABASE_USERNAME" ] && echo "✅ Set" || echo "⚠️  Using default")"
-          echo "- Database: $([ -n "$NEON_DATABASE_NAME" ] && echo "✅ Set ($NEON_DATABASE_NAME)" || echo "⚠️  Using default (neondb)")"
+          echo "- Database: $([ -n "$NEON_DATABASE_NAME" ] && echo "✅ Set ($NEON_DATABASE_NAME)" || echo "⚠️  Using default (elevadb)")"
 
       - name: 🧹 Clean up existing branch if it exists
         id: cleanup_existing_branch
@@ -142,8 +142,8 @@ jobs:
           project_id: ${{ vars.NEON_PROJECT_ID }}
           branch_name: ${{ env.PREVIEW_BRANCH_NAME }}
           api_key: ${{ secrets.NEON_API_KEY }}
-          username: ${{ secrets.NEON_DATABASE_USERNAME || 'neondb_owner' }}
-          database: ${{ vars.NEON_DATABASE_NAME || 'neondb' }}
+          username: ${{ secrets.NEON_DATABASE_USERNAME || 'elevadb_owner' }}
+          database: ${{ vars.NEON_DATABASE_NAME || 'elevadb' }}
         continue-on-error: true
         timeout-minutes: 5
 

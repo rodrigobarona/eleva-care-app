@@ -1,11 +1,15 @@
 import { detectLocaleFromHeaders } from '@/lib/i18n/utils';
 import { describe, expect, test } from '@jest/globals';
 
-class MockHeaders implements Headers {
+class MockHeaders {
   private headers: Map<string, string[]>;
 
-  constructor(headers: Record<string, string>) {
-    this.headers = new Map(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), [v]]));
+  constructor(headers: Record<string, string | undefined>) {
+    this.headers = new Map(
+      Object.entries(headers)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [k.toLowerCase(), [v as string]]),
+    );
   }
 
   get(name: string): string | null {
@@ -20,7 +24,7 @@ class MockHeaders implements Headers {
   forEach(callbackfn: (value: string, key: string, parent: Headers) => void): void {
     this.headers.forEach((values, key) => {
       // For forEach, we return the concatenated values (standard Headers behavior)
-      callbackfn(values.join(', '), key, this);
+      callbackfn(values.join(', '), key, this as unknown as Headers);
     });
   }
 
@@ -123,7 +127,7 @@ describe('Locale Detection Integration Tests', () => {
 
   test.each(testCases)('$name', ({ headers, expected }) => {
     const mockHeaders = new MockHeaders(headers);
-    const result = detectLocaleFromHeaders(mockHeaders);
+    const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
     expect(result).toBe(expected);
   });
 
@@ -132,7 +136,7 @@ describe('Locale Detection Integration Tests', () => {
       const mockHeaders = new MockHeaders({
         'x-vercel-ip-country': 'PT',
       });
-      const result = detectLocaleFromHeaders(mockHeaders);
+      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
       expect(result).toBe('pt'); // Should still detect PT based on country
     });
 
@@ -140,13 +144,13 @@ describe('Locale Detection Integration Tests', () => {
       const mockHeaders = new MockHeaders({
         'accept-language': 'invalid-format',
       });
-      const result = detectLocaleFromHeaders(mockHeaders);
+      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
       expect(result).toBeNull(); // Should fallback to default
     });
 
     test('should handle empty headers', () => {
       const mockHeaders = new MockHeaders({});
-      const result = detectLocaleFromHeaders(mockHeaders);
+      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
       expect(result).toBeNull(); // Should fallback to default
     });
   });
@@ -157,7 +161,7 @@ describe('Locale Detection Integration Tests', () => {
         'x-vercel-ip-country': 'PT',
         'accept-language': 'en-US,en;q=0.9', // User prefers English but is in Portugal
       });
-      const result = detectLocaleFromHeaders(mockHeaders);
+      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
       expect(result).toBe('pt');
     });
 
@@ -166,7 +170,7 @@ describe('Locale Detection Integration Tests', () => {
         'x-vercel-ip-country': 'BR',
         'accept-language': 'en-US,en;q=0.9', // User prefers English but is in Brazil
       });
-      const result = detectLocaleFromHeaders(mockHeaders);
+      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
       expect(result).toBe('pt-BR');
     });
   });

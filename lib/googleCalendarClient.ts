@@ -1,28 +1,7 @@
-/**
- * Google Calendar Client Wrapper
- *
- * This module provides server-side functions for interacting with Google Calendar.
- * It acts as a wrapper around the GoogleCalendarService, exposing simplified
- * functions for the most common calendar operations. All functions are server actions
- * that can be imported and called from client components.
- *
- * @module googleCalendarClient
- */
-
 'use server';
 
 import GoogleCalendarService from '@/server/googleCalendar';
 
-/**
- * Google Calendar Client Wrapper
- *
- * This module provides server-side functions for interacting with Google Calendar.
- * It acts as a wrapper around the GoogleCalendarService, exposing simplified
- * functions for the most common calendar operations. All functions are server actions
- * that can be imported and called from client components.
- *
- * @module googleCalendarClient
- */
 
 /**
  * Google Calendar Client Wrapper
@@ -35,49 +14,6 @@ import GoogleCalendarService from '@/server/googleCalendar';
  * @module googleCalendarClient
  */
 
-/**
- * Google Calendar Client Wrapper
- *
- * This module provides server-side functions for interacting with Google Calendar.
- * It acts as a wrapper around the GoogleCalendarService, exposing simplified
- * functions for the most common calendar operations. All functions are server actions
- * that can be imported and called from client components.
- *
- * @module googleCalendarClient
- */
-
-/**
- * Google Calendar Client Wrapper
- *
- * This module provides server-side functions for interacting with Google Calendar.
- * It acts as a wrapper around the GoogleCalendarService, exposing simplified
- * functions for the most common calendar operations. All functions are server actions
- * that can be imported and called from client components.
- *
- * @module googleCalendarClient
- */
-
-/**
- * Google Calendar Client Wrapper
- *
- * This module provides server-side functions for interacting with Google Calendar.
- * It acts as a wrapper around the GoogleCalendarService, exposing simplified
- * functions for the most common calendar operations. All functions are server actions
- * that can be imported and called from client components.
- *
- * @module googleCalendarClient
- */
-
-/**
- * Google Calendar Client Wrapper
- *
- * This module provides server-side functions for interacting with Google Calendar.
- * It acts as a wrapper around the GoogleCalendarService, exposing simplified
- * functions for the most common calendar operations. All functions are server actions
- * that can be imported and called from client components.
- *
- * @module googleCalendarClient
- */
 
 /**
  * Checks if a user has valid Google OAuth tokens

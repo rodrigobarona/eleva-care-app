@@ -265,6 +265,10 @@ import ReactDOM from 'react-dom';
 
 // Client Component Example
 
+// Client Component Example
+
+// Client Component Example
+
 export function PreloadResources() {
   ReactDOM.preload('...', { as: '...' });
   ReactDOM.preconnect('...', { crossOrigin: '...' });
