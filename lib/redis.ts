@@ -88,16 +88,31 @@ class RedisManager {
       try {
         const result = await this.redis.get(key);
 
-        // Validate that result is null or a string
-        if (result !== null && typeof result !== 'string') {
-          console.error(
-            `RedisManager.get: Invalid value type for key "${key}". Expected string or null, got ${typeof result}. Deleting invalid cache.`,
-          );
-          await this.redis.del(key);
+        // Handle null case
+        if (result === null) {
           return null;
         }
 
-        return result as string | null;
+        // If result is already a string, return it
+        if (typeof result === 'string') {
+          return result;
+        }
+
+        // If result is an object, it means Upstash returned parsed JSON
+        // We need to re-stringify it to maintain consistency with our API contract
+        if (typeof result === 'object') {
+          console.warn(
+            `RedisManager.get: Received object from Redis for key "${key}". Re-stringifying to maintain consistency.`,
+          );
+          return JSON.stringify(result);
+        }
+
+        // For any other unexpected type, log error and delete
+        console.error(
+          `RedisManager.get: Invalid value type for key "${key}". Expected string, null, or object, got ${typeof result}. Deleting invalid cache.`,
+        );
+        await this.redis.del(key);
+        return null;
       } catch (error) {
         console.error('Redis GET error:', error);
         // Fallback to in-memory cache
