@@ -13,7 +13,6 @@ import { useParams, usePathname } from 'next/navigation';
 import { posthog, PostHog, PostHogConfig } from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { useEffect, useState } from 'react';
-import 'react-cookie-manager/style.css';
 import { Toaster } from 'sonner';
 
 // Import the createCookieTranslations function
