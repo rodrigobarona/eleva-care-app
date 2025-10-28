@@ -19,7 +19,7 @@ function getResendClient(): Resend {
 
 // Define a type for Resend options matching Resend v4.8.0 API
 type SendEmailParams = {
-  from: string;
+  from?: string;
   to: string | string[];
   subject: string;
   html?: string;
@@ -46,6 +46,13 @@ export async function sendEmail({
   bcc,
 }: SendEmailParams) {
   try {
+    // Use default from address if not provided
+    const fromAddress = from || process.env.RESEND_EMAIL_BOOKINGS_FROM;
+
+    if (!fromAddress) {
+      throw new Error('From address is not configured');
+    }
+
     if (!html && !text) {
       throw new Error('Either HTML or text content must be provided');
     }
@@ -58,7 +65,7 @@ export async function sendEmail({
 
     // Construct the email options object, filtering out undefined values
     const emailParams: Partial<CreateEmailOptions> = {
-      from,
+      from: fromAddress,
       to,
       subject,
     };
