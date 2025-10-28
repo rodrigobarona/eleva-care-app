@@ -68,11 +68,7 @@ export async function GET(request: Request) {
   const apiKey = request.headers.get('x-api-key');
   const isValidApiKey = apiKey && apiKey === process.env.CRON_API_KEY;
 
-  // Check for Upstash signatures directly
-  const hasUpstashSignature =
-    request.headers.has('upstash-signature') || request.headers.has('x-upstash-signature');
-
-  // Check for Upstash user agent
+  // Check for Upstash user agent (used for fallback token validation)
   const userAgent = request.headers.get('user-agent') || '';
   const isUpstashUserAgent =
     userAgent.toLowerCase().includes('upstash') || userAgent.toLowerCase().includes('qstash');
@@ -93,13 +89,7 @@ export async function GET(request: Request) {
     apiKey === process.env.CRON_FALLBACK_TOKEN &&
     process.env.CRON_FALLBACK_TOKEN;
 
-  if (
-    verifiedQStash ||
-    isValidApiKey ||
-    isValidCronSecret ||
-    (hasUpstashSignature && isUpstashUserAgent) ||
-    (isProduction && hasFallbackToken)
-  ) {
+  if (verifiedQStash || isValidApiKey || isValidCronSecret || (isProduction && hasFallbackToken)) {
     console.log('🔓 Authentication successful for process-tasks');
   } else {
     console.error('❌ Unauthorized access attempt to process-tasks');
@@ -107,8 +97,6 @@ export async function GET(request: Request) {
       verifiedQStash,
       isValidApiKey,
       isValidCronSecret,
-      hasUpstashSignature,
-      isUpstashUserAgent,
       isProduction,
       allowFallback,
     });
