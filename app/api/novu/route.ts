@@ -2,18 +2,40 @@ import { ENV_CONFIG } from '@/config/env';
 import { workflows } from '@/config/novu';
 import { Client as NovuFrameworkClient } from '@novu/framework';
 import { serve } from '@novu/framework/next';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Create explicit Novu Framework client for Next.js 15 compatibility
-const client = new NovuFrameworkClient({
-  secretKey: ENV_CONFIG.NOVU_SECRET_KEY!,
-  strictAuthentication: false, // Allows flexible authentication for development
-});
+// Only initialize if secret key is available (skip during build time)
+const hasSecretKey = ENV_CONFIG.NOVU_SECRET_KEY && ENV_CONFIG.NOVU_SECRET_KEY.length > 0;
 
-console.log('[Novu] Bridge endpoint initialized with', workflows.length, 'workflows');
+type RouteHandler = (request: NextRequest) => Promise<NextResponse> | NextResponse;
 
-// Export the handlers for the Novu framework
-// The serve function automatically handles GET, POST, and OPTIONS methods
-export const { GET, POST, OPTIONS } = serve({
-  client,
-  workflows,
-});
+let handlers: { GET: RouteHandler; POST: RouteHandler; OPTIONS: RouteHandler };
+
+if (hasSecretKey) {
+  const client = new NovuFrameworkClient({
+    secretKey: ENV_CONFIG.NOVU_SECRET_KEY!,
+    strictAuthentication: false, // Allows flexible authentication for development
+  });
+
+  console.log('[Novu] Bridge endpoint initialized with', workflows.length, 'workflows');
+
+  // Export the handlers for the Novu framework
+  // The serve function automatically handles GET, POST, and OPTIONS methods
+  handlers = serve({
+    client,
+    workflows,
+  });
+} else {
+  // Provide fallback handlers when Novu is not configured (e.g., during build)
+  console.warn('[Novu] Bridge endpoint skipped - NOVU_SECRET_KEY not configured');
+  const fallbackHandler = () =>
+    NextResponse.json({ error: 'Novu not configured' }, { status: 503 });
+  handlers = {
+    GET: fallbackHandler,
+    POST: fallbackHandler,
+    OPTIONS: fallbackHandler,
+  };
+}
+
+export const { GET, POST, OPTIONS } = handlers;
