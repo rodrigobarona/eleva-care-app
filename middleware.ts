@@ -300,6 +300,11 @@ function isHomePage(path: string): boolean {
  * This allows public access to username profile pages
  */
 function isUsernameRoute(path: string): boolean {
+  // Explicitly exclude .well-known paths
+  if (path.startsWith('/.well-known')) {
+    return false;
+  }
+
   // Get path segments
   const segments = path.split('/').filter(Boolean);
 
@@ -318,6 +323,7 @@ function isUsernameRoute(path: string): boolean {
       'sign-up',
       'unauthorized',
       'onboarding',
+      '.well-known', // Explicitly exclude well-known paths
       ...locales,
     ].includes(segment);
 
@@ -340,6 +346,7 @@ function isUsernameRoute(path: string): boolean {
       'unauthorized',
       'onboarding',
       'dev', // Add dev directory to reserved paths
+      '.well-known', // Explicitly exclude well-known paths
     ].includes(segments[0]);
 
     // Skip locale-prefixed reserved paths like /en/dashboard
@@ -718,6 +725,7 @@ export const config = {
     // - _next/static    (Next.js static files)
     // - _next/image     (Next.js image optimization files)
     // - favicon.ico, robots.txt, etc. (static files)
+    // - .well-known/    (standard web convention paths)
     // - api/webhooks/   (webhook endpoints)
     // - api/cron/       (scheduled jobs endpoints)
     // - api/qstash/     (qstash verification endpoint)
@@ -725,6 +733,6 @@ export const config = {
     // - api/healthcheck (health monitoring endpoints)
     // - api/create-payment-intent (payment processing endpoint)
     // - api/novu$       (Novu Framework bridge endpoint only, not subpaths)
-    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/create-payment-intent|api/novu$).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|\\.well-known|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/create-payment-intent|api/novu$).*)',
   ],
 };
