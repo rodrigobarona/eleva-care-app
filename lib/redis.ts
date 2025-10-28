@@ -15,6 +15,13 @@ class RedisManager {
 
   private initializeRedis() {
     try {
+      // Allow disabling Redis via environment variable (useful for clearing cache)
+      if (process.env.DISABLE_REDIS === 'true') {
+        console.warn('⚠️ Redis disabled via DISABLE_REDIS=true, using in-memory cache');
+        this.isRedisAvailable = false;
+        return;
+      }
+
       const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
       const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
@@ -41,6 +48,15 @@ class RedisManager {
    * Set a key-value pair with optional expiration in seconds
    */
   async set(key: string, value: string, expirationSeconds?: number): Promise<void> {
+    // Validate that value is a string
+    if (typeof value !== 'string') {
+      console.error(
+        `RedisManager.set: Invalid value type for key "${key}". Expected string, got ${typeof value}. Value will be coerced to string.`,
+      );
+      // Coerce to string to prevent "[object Object]" issue
+      value = String(value);
+    }
+
     if (this.isRedisAvailable && this.redis) {
       try {
         if (expirationSeconds) {
@@ -71,6 +87,16 @@ class RedisManager {
     if (this.isRedisAvailable && this.redis) {
       try {
         const result = await this.redis.get(key);
+
+        // Validate that result is null or a string
+        if (result !== null && typeof result !== 'string') {
+          console.error(
+            `RedisManager.get: Invalid value type for key "${key}". Expected string or null, got ${typeof result}. Deleting invalid cache.`,
+          );
+          await this.redis.del(key);
+          return null;
+        }
+
         return result as string | null;
       } catch (error) {
         console.error('Redis GET error:', error);

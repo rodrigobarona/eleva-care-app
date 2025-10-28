@@ -19,6 +19,15 @@ const _getCachedUserByUsernameImpl = async (username: string): Promise<User | nu
   const cached = await redisManager.get(cacheKey);
   if (cached) {
     try {
+      // Ensure cached is a string before parsing
+      if (typeof cached !== 'string') {
+        console.error(
+          `Invalid cache format for clerk user by username: expected string but got ${typeof cached}. Deleting invalid cache.`,
+        );
+        await redisManager.del(cacheKey);
+        return null;
+      }
+
       return JSON.parse(cached) as User;
     } catch (error) {
       console.error('Failed to parse cached Clerk user by username:', error);
@@ -61,6 +70,15 @@ const _getCachedUserByIdImpl = async (userId: string): Promise<User | null> => {
   const cached = await redisManager.get(cacheKey);
   if (cached) {
     try {
+      // Ensure cached is a string before parsing
+      if (typeof cached !== 'string') {
+        console.error(
+          `Invalid cache format for clerk user by ID: expected string but got ${typeof cached}. Deleting invalid cache.`,
+        );
+        await redisManager.del(cacheKey);
+        return null;
+      }
+
       return JSON.parse(cached) as User;
     } catch (error) {
       console.error('Failed to parse cached Clerk user by ID:', error);
@@ -110,7 +128,15 @@ const _getCachedUsersByIdsImpl = async (userIds: string[]): Promise<User[]> => {
     const cached = await redisManager.get(cacheKey);
     if (cached) {
       try {
-        return JSON.parse(cached) as User[];
+        // Ensure cached is a string before parsing
+        if (typeof cached !== 'string') {
+          console.error(
+            `Invalid cache format for clerk users by IDs: expected string but got ${typeof cached}. Deleting invalid cache.`,
+          );
+          await redisManager.del(cacheKey);
+        } else {
+          return JSON.parse(cached) as User[];
+        }
       } catch (error) {
         console.error('Failed to parse cached Clerk users by IDs:', error);
         await redisManager.del(cacheKey);
