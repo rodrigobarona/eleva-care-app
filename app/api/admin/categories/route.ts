@@ -30,14 +30,17 @@ export async function GET() {
 
 export async function POST(request: Request) {
   // 🛡️ BotID Protection: Check for bot traffic before admin operations
-  const botVerification = await checkBotId({
+  const botVerification = (await checkBotId({
     advancedOptions: {
       checkLevel: 'basic',
     },
-  });
+  })) as import('@/types/botid').BotIdVerificationResult;
 
   if (botVerification.isBot && !botVerification.isVerifiedBot) {
-    console.warn('🚫 Bot detected in admin category creation');
+    console.warn('🚫 Bot detected in admin category creation:', {
+      isVerifiedBot: botVerification.isVerifiedBot,
+      verifiedBotName: botVerification.verifiedBotName,
+    });
     return NextResponse.json(
       {
         success: false,

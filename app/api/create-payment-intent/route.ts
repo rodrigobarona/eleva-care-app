@@ -278,21 +278,11 @@ export async function POST(request: NextRequest) {
   console.log('Starting payment intent creation process');
 
   // 🛡️ BotID Protection: Check for bot traffic before processing payment
-  const botVerification = await checkBotId({
+  const botResult = (await checkBotId({
     advancedOptions: {
       checkLevel: 'basic', // Free on all Vercel plans including Hobby
     },
-  });
-
-  // Type assertion for complete BotID response
-  // The botid package type is incomplete - it should include verifiedBotName and verifiedBotCategory
-  // See: https://vercel.com/docs/botid/verified-bots
-  const botResult = botVerification as {
-    isBot: boolean;
-    isVerifiedBot: boolean;
-    verifiedBotName?: string;
-    verifiedBotCategory?: string;
-  };
+  })) as import('@/types/botid').BotIdVerificationResult;
 
   if (botResult.isBot) {
     console.warn('🚫 Bot detected in payment intent creation:', {
@@ -302,9 +292,13 @@ export async function POST(request: NextRequest) {
     });
 
     // Allow verified bots that might be legitimate (e.g., monitoring services)
-    const allowedVerifiedBots = ['pingdom-bot', 'uptime-robot', 'checkly'];
+    // Using the predefined list from types/botid.ts
+    const { COMMON_ALLOWED_BOTS } = await import('@/types/botid');
+    const allowedVerifiedBots = [...COMMON_ALLOWED_BOTS];
     const isAllowedBot =
-      botResult.isVerifiedBot && allowedVerifiedBots.includes(botResult.verifiedBotName || '');
+      botResult.isVerifiedBot &&
+      botResult.verifiedBotName !== undefined &&
+      allowedVerifiedBots.includes(botResult.verifiedBotName);
 
     if (!isAllowedBot) {
       return NextResponse.json(
