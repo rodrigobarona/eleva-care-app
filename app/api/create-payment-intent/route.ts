@@ -294,7 +294,7 @@ export async function POST(request: NextRequest) {
     // Allow verified bots that might be legitimate (e.g., monitoring services)
     // Using the predefined list from types/botid.ts
     const { COMMON_ALLOWED_BOTS } = await import('@/types/botid');
-    const allowedVerifiedBots = [...COMMON_ALLOWED_BOTS];
+    const allowedVerifiedBots = COMMON_ALLOWED_BOTS as readonly string[];
     const isAllowedBot =
       botResult.isVerifiedBot &&
       botResult.verifiedBotName !== undefined &&
