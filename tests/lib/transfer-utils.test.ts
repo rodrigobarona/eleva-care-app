@@ -6,7 +6,11 @@ import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import Stripe from 'stripe';
 
 // Mock the dependencies
-jest.mock('@/drizzle/db');
+jest.mock('@/drizzle/db', () => ({
+  db: {
+    update: jest.fn(),
+  },
+}));
 jest.mock('@/drizzle/schema', () => ({
   PaymentTransferTable: {
     id: 'id',
