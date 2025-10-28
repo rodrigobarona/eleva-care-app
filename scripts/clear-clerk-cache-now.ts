@@ -41,7 +41,7 @@ async function clearClerkCacheNow() {
       try {
         // Use SCAN to find keys matching pattern
         // SCAN is safer than KEYS as it doesn't block the server
-        let cursor = 0;
+        let cursor: number | string = 0;
         const keysToDelete: string[] = [];
 
         do {
@@ -51,7 +51,7 @@ async function clearClerkCacheNow() {
             count: 100,
           });
 
-          cursor = result[0];
+          cursor = typeof result[0] === 'string' ? parseInt(result[0], 10) : result[0];
           const keys = result[1] as string[];
 
           if (keys.length > 0) {
