@@ -9,10 +9,12 @@
  * Generate a cache key for form submission deduplication
  *
  * @param eventId - The event ID
- * @param email - The guest email
+ * @param email - The guest email (will be normalized to lowercase)
  * @param isoStart - ISO string of the start time
  * @returns A sanitized cache key string
  */
 export function generateFormCacheKey(eventId: string, email: string, isoStart: string): string {
-  return `${eventId}-${email}-${isoStart}`.replace(/[^a-zA-Z0-9-_]/g, '_');
+  // Normalize email to lowercase to ensure consistent cache keys regardless of casing
+  const lowercasedEmail = email.toLowerCase();
+  return `${eventId}-${lowercasedEmail}-${isoStart}`.replace(/[^a-zA-Z0-9-_]/g, '_');
 }
