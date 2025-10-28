@@ -19,6 +19,8 @@ describe('Transfer Utils', () => {
     let mockUpdate: jest.MockedFunction<() => unknown>;
     let mockSet: jest.MockedFunction<() => unknown>;
     let mockWhere: jest.MockedFunction<() => unknown>;
+    let mockChargesRetrieve: jest.MockedFunction<typeof Stripe.prototype.charges.retrieve>;
+    let mockTransfersList: jest.MockedFunction<typeof Stripe.prototype.transfers.list>;
 
     beforeEach(() => {
       // Reset all mocks
@@ -31,13 +33,19 @@ describe('Transfer Utils', () => {
 
       (db.update as jest.MockedFunction<typeof db.update>) = mockUpdate as never;
 
+      // Create properly typed mock functions
+      mockChargesRetrieve = jest.fn() as jest.MockedFunction<
+        typeof Stripe.prototype.charges.retrieve
+      >;
+      mockTransfersList = jest.fn() as jest.MockedFunction<typeof Stripe.prototype.transfers.list>;
+
       // Mock Stripe instance
       mockStripe = {
         charges: {
-          retrieve: jest.fn(),
+          retrieve: mockChargesRetrieve,
         },
         transfers: {
-          list: jest.fn(),
+          list: mockTransfersList,
         },
       } as unknown as jest.Mocked<Stripe>;
     });
@@ -49,12 +57,10 @@ describe('Transfer Utils', () => {
         transfer: null,
       };
 
-      (mockStripe.charges.retrieve as jest.MockedFunction<never>).mockResolvedValue(
-        mockCharge as never,
-      );
+      mockChargesRetrieve.mockResolvedValue(mockCharge as never);
 
       // Mock empty transfers list
-      (mockStripe.transfers.list as jest.MockedFunction<never>).mockResolvedValue({
+      mockTransfersList.mockResolvedValue({
         data: [],
       } as never);
 
@@ -90,9 +96,7 @@ describe('Transfer Utils', () => {
         transfer: 'tr_existing123',
       };
 
-      (mockStripe.charges.retrieve as jest.MockedFunction<never>).mockResolvedValue(
-        mockCharge as never,
-      );
+      mockChargesRetrieve.mockResolvedValue(mockCharge as never);
 
       const transferRecord = {
         id: 1,
@@ -131,9 +135,7 @@ describe('Transfer Utils', () => {
         },
       };
 
-      (mockStripe.charges.retrieve as jest.MockedFunction<never>).mockResolvedValue(
-        mockCharge as never,
-      );
+      mockChargesRetrieve.mockResolvedValue(mockCharge as never);
 
       const transferRecord = {
         id: 2,
@@ -164,7 +166,7 @@ describe('Transfer Utils', () => {
     it('should handle Stripe API errors gracefully', async () => {
       // Mock Stripe API error
       const stripeError = new Error('Stripe API error');
-      (mockStripe.charges.retrieve as jest.MockedFunction<never>).mockRejectedValue(stripeError);
+      mockChargesRetrieve.mockRejectedValue(stripeError);
 
       await expect(
         checkExistingTransfer(mockStripe, 'ch_invalid', {
@@ -183,9 +185,7 @@ describe('Transfer Utils', () => {
         transfer: 'tr_existing789',
       };
 
-      (mockStripe.charges.retrieve as jest.MockedFunction<never>).mockResolvedValue(
-        mockCharge as never,
-      );
+      mockChargesRetrieve.mockResolvedValue(mockCharge as never);
 
       const transferRecord = {
         id: 999,
@@ -205,12 +205,10 @@ describe('Transfer Utils', () => {
         transfer: null,
       };
 
-      (mockStripe.charges.retrieve as jest.MockedFunction<never>).mockResolvedValue(
-        mockCharge as never,
-      );
+      mockChargesRetrieve.mockResolvedValue(mockCharge as never);
 
       // Mock empty transfers list
-      (mockStripe.transfers.list as jest.MockedFunction<never>).mockResolvedValue({
+      mockTransfersList.mockResolvedValue({
         data: [],
       } as never);
 
@@ -230,12 +228,10 @@ describe('Transfer Utils', () => {
         // transfer is undefined
       };
 
-      (mockStripe.charges.retrieve as jest.MockedFunction<never>).mockResolvedValue(
-        mockCharge as never,
-      );
+      mockChargesRetrieve.mockResolvedValue(mockCharge as never);
 
       // Mock empty transfers list
-      (mockStripe.transfers.list as jest.MockedFunction<never>).mockResolvedValue({
+      mockTransfersList.mockResolvedValue({
         data: [],
       } as never);
 
@@ -257,12 +253,10 @@ describe('Transfer Utils', () => {
         transfer: null,
       };
 
-      (mockStripe.charges.retrieve as jest.MockedFunction<never>).mockResolvedValue(
-        mockCharge as never,
-      );
+      mockChargesRetrieve.mockResolvedValue(mockCharge as never);
 
       // Mock transfers list with matching transfer
-      (mockStripe.transfers.list as jest.MockedFunction<never>).mockResolvedValue({
+      mockTransfersList.mockResolvedValue({
         data: [
           {
             id: 'tr_separate123',
@@ -307,12 +301,10 @@ describe('Transfer Utils', () => {
         transfer: null,
       };
 
-      (mockStripe.charges.retrieve as jest.MockedFunction<never>).mockResolvedValue(
-        mockCharge as never,
-      );
+      mockChargesRetrieve.mockResolvedValue(mockCharge as never);
 
       // Mock transfers list with matching transfer (by paymentIntentId)
-      (mockStripe.transfers.list as jest.MockedFunction<never>).mockResolvedValue({
+      mockTransfersList.mockResolvedValue({
         data: [
           {
             id: 'tr_separate456',
@@ -351,12 +343,10 @@ describe('Transfer Utils', () => {
         transfer: null,
       };
 
-      (mockStripe.charges.retrieve as jest.MockedFunction<never>).mockResolvedValue(
-        mockCharge as never,
-      );
+      mockChargesRetrieve.mockResolvedValue(mockCharge as never);
 
       // Mock transfers list with non-matching transfers
-      (mockStripe.transfers.list as jest.MockedFunction<never>).mockResolvedValue({
+      mockTransfersList.mockResolvedValue({
         data: [
           {
             id: 'tr_other1',
@@ -397,12 +387,10 @@ describe('Transfer Utils', () => {
         transfer: null,
       };
 
-      (mockStripe.charges.retrieve as jest.MockedFunction<never>).mockResolvedValue(
-        mockCharge as never,
-      );
+      mockChargesRetrieve.mockResolvedValue(mockCharge as never);
 
       // Mock transfers list with transfers missing metadata
-      (mockStripe.transfers.list as jest.MockedFunction<never>).mockResolvedValue({
+      mockTransfersList.mockResolvedValue({
         data: [
           {
             id: 'tr_nometadata',
