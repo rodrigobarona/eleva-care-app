@@ -1,11 +1,14 @@
+// Import after mock
+import { auditDb } from '@/drizzle/auditDb';
+import { logAuditEvent } from '@/lib/logAuditEvent';
+
 /**
  * @jest-environment node
  *
  * Integration tests to verify that audit logging failures don't break operations
  */
-// Import after mock
-import { auditDb } from '@/drizzle/auditDb';
-import { logAuditEvent } from '@/lib/logAuditEvent';
+// Unmock logAuditEvent to test the real implementation
+jest.unmock('@/lib/logAuditEvent');
 
 // Mock the audit schema module
 jest.mock('@/drizzle/auditSchema', () => ({
@@ -203,7 +206,7 @@ describe('Audit Logging - Non-Blocking Behavior', () => {
           resourceId: 'evt_1',
         },
         {
-          action: 'PROFILE_UPDATED' as const,
+          action: 'PROFILE_PUBLISHED' as const,
           resourceType: 'profile' as const,
           resourceId: 'prof_1',
         },
