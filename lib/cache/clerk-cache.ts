@@ -1,9 +1,11 @@
-import { redisManager } from '@/lib/redis';
+import { RedisErrorBoundary } from '@/lib/cache/redis-error-boundary';
 import { createClerkClient } from '@clerk/nextjs/server';
 import type { User } from '@clerk/nextjs/server';
 import { cache } from 'react';
 
-// Cache key prefixes
+import { ClerkCacheKeys } from './clerk-cache-keys';
+
+// Cache constants
 const CLERK_CACHE_PREFIX = 'clerk:';
 const CLERK_CACHE_TTL = 300; // 5 minutes
 
@@ -13,10 +15,10 @@ const CLERK_CACHE_TTL = 300; // 5 minutes
  * Cache is revalidated every 5 minutes
  */
 const _getCachedUserByUsernameImpl = async (username: string): Promise<User | null> => {
-  const cacheKey = `${CLERK_CACHE_PREFIX}username:${username}`;
+  const cacheKey = ClerkCacheKeys.username(username);
 
   // Try to get from Redis first
-  const cached = await redisManager.get(cacheKey);
+  const cached = await RedisErrorBoundary.get(cacheKey);
   if (cached) {
     try {
       // Ensure cached is a string before parsing
@@ -24,14 +26,14 @@ const _getCachedUserByUsernameImpl = async (username: string): Promise<User | nu
         console.error(
           `Invalid cache format for clerk user by username: expected string but got ${typeof cached}. Deleting invalid cache.`,
         );
-        await redisManager.del(cacheKey);
+        await RedisErrorBoundary.del(cacheKey);
         return null;
       }
 
       return JSON.parse(cached) as User;
     } catch (error) {
       console.error('Failed to parse cached Clerk user by username:', error);
-      await redisManager.del(cacheKey);
+      await RedisErrorBoundary.del(cacheKey);
     }
   }
 
@@ -49,7 +51,7 @@ const _getCachedUserByUsernameImpl = async (username: string): Promise<User | nu
 
   // Store in Redis if found
   if (user) {
-    await redisManager.set(cacheKey, JSON.stringify(user), CLERK_CACHE_TTL);
+    await RedisErrorBoundary.set(cacheKey, JSON.stringify(user), CLERK_CACHE_TTL);
   }
 
   return user;
@@ -64,10 +66,10 @@ export const getCachedUserByUsername = cache(_getCachedUserByUsernameImpl);
  * Cache is revalidated every 5 minutes
  */
 const _getCachedUserByIdImpl = async (userId: string): Promise<User | null> => {
-  const cacheKey = `${CLERK_CACHE_PREFIX}id:${userId}`;
+  const cacheKey = ClerkCacheKeys.userId(userId);
 
   // Try to get from Redis first
-  const cached = await redisManager.get(cacheKey);
+  const cached = await RedisErrorBoundary.get(cacheKey);
   if (cached) {
     try {
       // Ensure cached is a string before parsing
@@ -75,14 +77,14 @@ const _getCachedUserByIdImpl = async (userId: string): Promise<User | null> => {
         console.error(
           `Invalid cache format for clerk user by ID: expected string but got ${typeof cached}. Deleting invalid cache.`,
         );
-        await redisManager.del(cacheKey);
+        await RedisErrorBoundary.del(cacheKey);
         return null;
       }
 
       return JSON.parse(cached) as User;
     } catch (error) {
       console.error('Failed to parse cached Clerk user by ID:', error);
-      await redisManager.del(cacheKey);
+      await RedisErrorBoundary.del(cacheKey);
     }
   }
 
@@ -95,7 +97,7 @@ const _getCachedUserByIdImpl = async (userId: string): Promise<User | null> => {
     const user = await clerk.users.getUser(userId);
 
     // Store in Redis
-    await redisManager.set(cacheKey, JSON.stringify(user), CLERK_CACHE_TTL);
+    await RedisErrorBoundary.set(cacheKey, JSON.stringify(user), CLERK_CACHE_TTL);
 
     return user;
   } catch (error) {
@@ -119,62 +121,97 @@ const _getCachedUsersByIdsImpl = async (userIds: string[]): Promise<User[]> => {
     return [];
   }
 
-  // Create a cache key based on sorted user IDs to ensure consistency
-  const sortedIds = [...userIds].sort();
-  const cacheKey = `${CLERK_CACHE_PREFIX}ids:${sortedIds.join(',')}`;
+  const uniqueIds = [...new Set(userIds)];
+  const allUsers: User[] = [];
+  const missingIds: string[] = [];
 
-  // Try to get from Redis first (only for small batches to avoid huge cache keys)
-  if (userIds.length <= 10) {
-    const cached = await redisManager.get(cacheKey);
+  // For small batches (≤10), try to get from combined cache first
+  if (uniqueIds.length <= 10) {
+    const sortedIds = [...uniqueIds].sort();
+    const cacheKey = `${CLERK_CACHE_PREFIX}ids:${sortedIds.join(',')}`;
+    const cached = await RedisErrorBoundary.get(cacheKey);
     if (cached) {
       try {
-        // Ensure cached is a string before parsing
-        if (typeof cached !== 'string') {
-          console.error(
-            `Invalid cache format for clerk users by IDs: expected string but got ${typeof cached}. Deleting invalid cache.`,
-          );
-          await redisManager.del(cacheKey);
-        } else {
-          return JSON.parse(cached) as User[];
-        }
+        return JSON.parse(cached) as User[];
       } catch (error) {
-        console.error('Failed to parse cached Clerk users by IDs:', error);
-        await redisManager.del(cacheKey);
+        console.error('Failed to parse cached Clerk users:', error);
+        await RedisErrorBoundary.del(cacheKey);
       }
     }
   }
 
-  // Fetch from Clerk API with batching
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
+  // For large batches, don't try individual caching - fetch directly
+  if (uniqueIds.length > 10) {
+    missingIds.push(...uniqueIds);
+  } else {
+    // Try to get users from Redis individually for small batches
+    const cachePromises = uniqueIds.map(async (userId) => {
+      const cacheKey = ClerkCacheKeys.userId(userId);
+      const cached = await RedisErrorBoundary.get(cacheKey);
 
-  const BATCH_SIZE = 500; // Clerk API limit
-  const allUsers: User[] = [];
+      if (cached) {
+        try {
+          return JSON.parse(cached) as User;
+        } catch (error) {
+          console.error('Failed to parse cached Clerk user:', error);
+          await RedisErrorBoundary.del(cacheKey);
+        }
+      }
 
-  // Split userIds into chunks of max 500
-  for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
-    const chunk = userIds.slice(i, i + BATCH_SIZE);
+      missingIds.push(userId);
+      return null;
+    });
 
-    try {
-      const response = await clerk.users.getUserList({
-        userId: chunk,
-        limit: chunk.length,
-      });
+    // Get all cached users
+    const cachedUsers = await Promise.all(cachePromises);
+    allUsers.push(...cachedUsers.filter((user): user is User => user !== null));
+  }
 
-      allUsers.push(...response.data);
-    } catch (error) {
-      console.error(`Error fetching users batch ${i / BATCH_SIZE + 1}:`, error);
-      // Continue with other batches even if one fails
+  // If we have missing users, fetch them in batches
+  if (missingIds.length > 0) {
+    const clerk = createClerkClient({
+      secretKey: process.env.CLERK_SECRET_KEY,
+    });
+
+    const BATCH_SIZE = 500; // Clerk API limit
+
+    // Split missingIds into chunks of max 500
+    for (let i = 0; i < missingIds.length; i += BATCH_SIZE) {
+      const chunk = missingIds.slice(i, i + BATCH_SIZE);
+
+      try {
+        const response = await clerk.users.getUserList({
+          userId: chunk,
+          limit: chunk.length,
+        });
+
+        // Cache only small batches
+        if (chunk.length <= 10) {
+          const sortedChunk = [...chunk].sort();
+          await Promise.all([
+            ...response.data.map(async (user) => {
+              const cacheKey = ClerkCacheKeys.userId(user.id);
+              await RedisErrorBoundary.set(cacheKey, JSON.stringify(user), CLERK_CACHE_TTL);
+            }),
+            RedisErrorBoundary.set(
+              `${CLERK_CACHE_PREFIX}ids:${sortedChunk.join(',')}`,
+              JSON.stringify(response.data),
+              CLERK_CACHE_TTL,
+            ),
+          ]);
+        }
+
+        allUsers.push(...response.data);
+      } catch (error) {
+        console.error(`Error fetching users batch ${i / BATCH_SIZE + 1}:`, error);
+        // Continue with other batches even if one fails
+      }
     }
   }
 
-  // Store in Redis only for small batches
-  if (userIds.length <= 10 && allUsers.length > 0) {
-    await redisManager.set(cacheKey, JSON.stringify(allUsers), CLERK_CACHE_TTL);
-  }
-
-  return allUsers;
+  // Sort users to match the original order
+  const userMap = new Map(allUsers.map((user) => [user.id, user]));
+  return userIds.map((id) => userMap.get(id)).filter((user): user is User => user !== undefined);
 };
 
 // Wrap with React.cache for request-level memoization

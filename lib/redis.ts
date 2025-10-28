@@ -98,12 +98,9 @@ class RedisManager {
           return result;
         }
 
-        // If result is an object, it means Upstash returned parsed JSON
-        // We need to re-stringify it to maintain consistency with our API contract
+        // If result is an object, it's likely already parsed JSON from Upstash
+        // Re-stringify it to maintain API contract
         if (typeof result === 'object') {
-          console.warn(
-            `RedisManager.get: Received object from Redis for key "${key}". Re-stringifying to maintain consistency.`,
-          );
           return JSON.stringify(result);
         }
 
