@@ -6,6 +6,7 @@
  *
  * @see https://betterstack.com/docs/uptime/api
  */
+import { ENV_CONFIG } from './env';
 
 /**
  * BetterStack API Configuration
@@ -29,12 +30,12 @@ export const betterstackConfig = {
   /**
    * BetterStack API key for authentication
    */
-  apiKey: process.env.BETTERSTACK_API_KEY,
+  apiKey: ENV_CONFIG.BETTERSTACK_API_KEY || undefined,
 
   /**
    * BetterStack status page URL
    */
-  statusPageUrl: process.env.BETTERSTACK_URL,
+  statusPageUrl: ENV_CONFIG.BETTERSTACK_URL || undefined,
 
   /**
    * API endpoint for fetching monitor status

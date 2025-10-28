@@ -91,6 +91,10 @@ export const ENV_CONFIG = {
 
   // Phase 4: Operational Jobs (Optional: 1 more heartbeat → 8/10 total)
   BETTERSTACK_TASKS_HEARTBEAT: process.env.BETTERSTACK_TASKS_HEARTBEAT || '',
+
+  // BetterStack Status Page Configuration (for ServerStatus component)
+  BETTERSTACK_API_KEY: process.env.BETTERSTACK_API_KEY || '',
+  BETTERSTACK_URL: process.env.BETTERSTACK_URL || '',
 } as const;
 
 /**
@@ -254,6 +258,25 @@ export const ENV_VALIDATORS = {
         missingVars.length > 0
           ? `Missing Novu environment variables: ${missingVars.join(', ')}`
           : 'Novu configuration is valid',
+      missingVars,
+    };
+  },
+
+  /**
+   * Validate BetterStack Status Page environment variables
+   */
+  betterstackStatus(): EnvValidationResult {
+    const missingVars: string[] = [];
+
+    if (!ENV_CONFIG.BETTERSTACK_API_KEY) missingVars.push('BETTERSTACK_API_KEY');
+    if (!ENV_CONFIG.BETTERSTACK_URL) missingVars.push('BETTERSTACK_URL');
+
+    return {
+      isValid: missingVars.length === 0,
+      message:
+        missingVars.length > 0
+          ? `Missing BetterStack Status Page environment variables: ${missingVars.join(', ')}. Status indicator will not be displayed.`
+          : 'BetterStack Status Page configuration is valid',
       missingVars,
     };
   },
