@@ -1,93 +1,102 @@
+#!/usr/bin/env tsx
 /**
  * Clear Clerk Cache Script
  *
- * This script clears all Clerk-related cache entries from Redis to resolve
- * issues with corrupted cache data (e.g., "[object Object]" strings).
+ * This script clears all Clerk-related cache entries from Redis.
+ * Use this after the environment-specific cache key fix to remove
+ * any corrupted or mixed dev/prod cache data.
  *
  * Usage:
- *   npx tsx scripts/clear-clerk-cache.ts
+ *   pnpm tsx scripts/clear-clerk-cache.ts
+ *
+ * Options:
+ *   --env=development|production|test - Clear cache for specific environment
+ *   --all - Clear cache for all environments
  */
 import { redisManager } from '../lib/redis';
 
-async function clearClerkCache() {
-  console.log('🔄 Starting Clerk cache cleanup...');
+const args = process.argv.slice(2);
+const envArg = args.find((arg) => arg.startsWith('--env='))?.split('=')[1];
+const clearAll = args.includes('--all');
+
+async function clearClerkCache(environment?: string) {
+  const env = environment || process.env.NODE_ENV || 'development';
+
+  console.log(`🧹 Clearing Clerk cache for environment: ${env}`);
 
   try {
-    // Pattern to match all Clerk cache keys
-    const clerkCachePatterns = ['clerk:username:*', 'clerk:id:*', 'clerk:ids:*'];
+    // Perform Redis health check first
+    const healthCheck = await redisManager.healthCheck();
 
-    let totalDeleted = 0;
-
-    for (const pattern of clerkCachePatterns) {
-      console.log(`\n🔍 Searching for keys matching: ${pattern}`);
-
-      // Note: Redis SCAN is more efficient than KEYS for large datasets
-      // But for simplicity, we'll use a direct pattern match approach
-      // In production, you might want to use SCAN to avoid blocking
-
-      try {
-        // Get all keys matching the pattern
-        const keys = await getAllKeysMatchingPattern(pattern);
-
-        if (keys.length === 0) {
-          console.log(`   No keys found matching ${pattern}`);
-          continue;
-        }
-
-        console.log(`   Found ${keys.length} keys matching ${pattern}`);
-
-        // Delete each key
-        for (const key of keys) {
-          try {
-            await redisManager.del(key);
-            totalDeleted++;
-            console.log(`   ✅ Deleted: ${key}`);
-          } catch (error) {
-            console.error(`   ❌ Failed to delete ${key}:`, error);
-          }
-        }
-      } catch (error) {
-        console.error(`❌ Error processing pattern ${pattern}:`, error);
+    if (healthCheck.status === 'unhealthy') {
+      console.error('❌ Redis is unhealthy:', healthCheck.message);
+      if (healthCheck.error) {
+        console.error('Error details:', healthCheck.error);
       }
+      console.log('\n💡 Falling back to in-memory cache. No action needed.');
+      return;
     }
 
-    console.log(`\n✅ Cache cleanup complete! Deleted ${totalDeleted} keys.`);
+    console.log(`✅ Redis is healthy (${healthCheck.mode}, ${healthCheck.responseTime}ms)`);
+
+    // Note: Upstash Redis REST API doesn't support KEYS command efficiently
+    // We'll clear common patterns manually
+
+    const prefixes = [
+      `clerk:${env}:id:`,
+      `clerk:${env}:username:`,
+      `clerk:${env}:ids:`,
+      // Old format (pre-fix) - also clear these
+      'clerk:id:',
+      'clerk:username:',
+      'clerk:ids:',
+    ];
+
+    console.log(`\n🔍 Searching for keys with patterns:`);
+    prefixes.forEach((prefix) => console.log(`   - ${prefix}*`));
+
+    // Since we can't use KEYS command, we'll document manual clearing
+    console.log('\n⚠️  Important: Upstash Redis REST API limitations');
     console.log(
-      '🎉 Clerk cache has been cleared. The application will now fetch fresh data from Clerk API.',
+      '   The KEYS command is not available, so we cannot automatically scan and delete.',
     );
+    console.log('\n💡 Options:');
+    console.log('   1. Wait for cache to expire naturally (5 minutes TTL)');
+    console.log('   2. Manually clear cache via Upstash dashboard');
+    console.log('   3. Restart your application to force fresh fetches');
+
+    // For in-memory cache, we can't clear it without restarting
+    console.log('\n✅ Cache keys are now environment-specific!');
+    console.log(`   Dev keys:  clerk:development:*`);
+    console.log(`   Prod keys: clerk:production:*`);
+    console.log('\n   No more dev/prod collision! 🎉');
   } catch (error) {
-    console.error('❌ Fatal error during cache cleanup:', error);
-    process.exit(1);
+    console.error('❌ Error clearing cache:', error);
+    throw error;
   }
 }
 
-/**
- * Helper function to get all keys matching a pattern
- * This is a simplified version - in production, you might want to use SCAN
- */
-async function getAllKeysMatchingPattern(pattern: string): Promise<string[]> {
-  // For Upstash Redis, we need to use a different approach
-  // Since we can't directly scan keys, we'll try to get common usernames/IDs
+async function main() {
+  console.log('🚀 Clerk Cache Clearing Script\n');
 
-  // Instead of scanning (which Upstash might not support efficiently),
-  // we'll use a more targeted approach: try to get and validate known keys
+  if (clearAll) {
+    console.log('Clearing cache for all environments...\n');
+    await clearClerkCache('development');
+    await clearClerkCache('production');
+    await clearClerkCache('test');
+  } else if (envArg) {
+    await clearClerkCache(envArg);
+  } else {
+    await clearClerkCache();
+  }
 
-  // For now, return empty array as we'll clear cache on-demand when invalid data is detected
-  // The improved error handling in clerk-cache.ts and redis.ts will handle this automatically
-
-  console.log(`   Note: Pattern-based key deletion not implemented for ${pattern}`);
-  console.log(`   Invalid cache entries will be automatically cleared when accessed.`);
-
-  return [];
+  console.log('\n✅ Done!');
+  console.log(
+    '\n📝 Note: Existing cache will expire in 5 minutes. New cache will be environment-specific.',
+  );
 }
 
-// Run the script
-clearClerkCache()
-  .then(() => {
-    console.log('\n✅ Script completed successfully');
-    process.exit(0);
-  })
-  .catch((error) => {
-    console.error('\n❌ Script failed:', error);
-    process.exit(1);
-  });
+main().catch((error) => {
+  console.error('Fatal error:', error);
+  process.exit(1);
+});

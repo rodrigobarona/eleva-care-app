@@ -3,9 +3,11 @@ import { redisManager } from '@/lib/redis';
 /**
  * Clerk Cache Utilities
  * Helper functions for managing Clerk user cache
+ *
+ * IMPORTANT: Uses environment-specific cache keys to prevent dev/prod collision
  */
 
-const CLERK_CACHE_PREFIX = 'clerk:';
+const CLERK_CACHE_PREFIX = `clerk:${process.env.NODE_ENV || 'development'}:`;
 
 /**
  * Invalidate cached user data by user ID

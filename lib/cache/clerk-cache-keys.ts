@@ -1,9 +1,17 @@
 /**
  * Clerk cache key management
  * Provides consistent key structure and validation for Clerk caching
+ *
+ * IMPORTANT: Cache keys are environment-specific to prevent dev/prod collision
  */
 export class ClerkCacheKeys {
-  private static readonly PREFIX = 'clerk';
+  /**
+   * Get environment-specific prefix
+   * Development: 'clerk:dev'
+   * Production: 'clerk:prod'
+   * Test: 'clerk:test'
+   */
+  private static readonly PREFIX = `clerk:${process.env.NODE_ENV || 'development'}`;
   private static readonly SEPARATOR = ':';
   private static readonly MAX_KEY_LENGTH = 512;
 

@@ -50,7 +50,7 @@ describe('Clerk Cache', () => {
       const result = await getCachedUserByUsername('testuser');
 
       expect(result).toEqual(mockUser);
-      expect(redisManager.get).toHaveBeenCalledWith('clerk:username:testuser');
+      expect(redisManager.get).toHaveBeenCalledWith('clerk:test:username:testuser');
       expect(mockClerkClient.users.getUserList).not.toHaveBeenCalled();
     });
 
@@ -68,7 +68,7 @@ describe('Clerk Cache', () => {
         limit: 1,
       });
       expect(redisManager.set).toHaveBeenCalledWith(
-        'clerk:username:testuser',
+        'clerk:test:username:testuser',
         JSON.stringify(mockUser),
         300,
       );
@@ -95,7 +95,7 @@ describe('Clerk Cache', () => {
       const result = await getCachedUserByUsername('testuser');
 
       expect(result).toEqual(mockUser);
-      expect(redisManager.del).toHaveBeenCalledWith('clerk:username:testuser');
+      expect(redisManager.del).toHaveBeenCalledWith('clerk:test:username:testuser');
     });
   });
 
@@ -106,7 +106,7 @@ describe('Clerk Cache', () => {
       const result = await getCachedUserById('user_123');
 
       expect(result).toEqual(mockUser);
-      expect(redisManager.get).toHaveBeenCalledWith('clerk:id:user_123');
+      expect(redisManager.get).toHaveBeenCalledWith('clerk:test:id:user_123');
       expect(mockClerkClient.users.getUser).not.toHaveBeenCalled();
     });
 
@@ -119,7 +119,7 @@ describe('Clerk Cache', () => {
       expect(result).toEqual(mockUser);
       expect(mockClerkClient.users.getUser).toHaveBeenCalledWith('user_123');
       expect(redisManager.set).toHaveBeenCalledWith(
-        'clerk:id:user_123',
+        'clerk:test:id:user_123',
         JSON.stringify(mockUser),
         300,
       );

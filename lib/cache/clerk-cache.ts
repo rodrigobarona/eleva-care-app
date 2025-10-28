@@ -6,7 +6,8 @@ import { cache } from 'react';
 import { ClerkCacheKeys } from './clerk-cache-keys';
 
 // Cache constants
-const CLERK_CACHE_PREFIX = 'clerk:';
+// IMPORTANT: Prefix is environment-specific (includes NODE_ENV)
+const CLERK_CACHE_PREFIX = `clerk:${process.env.NODE_ENV || 'development'}:`;
 const CLERK_CACHE_TTL = 300; // 5 minutes
 
 /**
