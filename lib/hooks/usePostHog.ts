@@ -64,7 +64,7 @@ export function usePostHogEvents() {
         ...properties,
         timestamp: new Date().toISOString(),
         user_id: user?.id,
-        session_id: posthog.sessionRecording?.['_sessionId'],
+        session_id: posthog.get_session_id(),
       };
 
       posthog.capture(eventName, enrichedProperties);

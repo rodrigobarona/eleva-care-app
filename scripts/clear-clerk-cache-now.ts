@@ -46,7 +46,7 @@ async function clearClerkCacheNow() {
 
         do {
           // Upstash Redis supports SCAN
-          const result = await redis.scan(cursor, {
+          const result: [number | string, string[]] = await redis.scan(cursor, {
             match: pattern,
             count: 100,
           });
