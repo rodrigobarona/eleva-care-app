@@ -254,9 +254,9 @@ jobs:
           # Clerk keys (required for middleware and auth checks)
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmstZmFrZS1rZXktZm9yLWJ1aWxkLXRlc3RpbmctMTIzNDU2Nzg5MA==
           CLERK_SECRET_KEY: sk_test_abcdefghijklmnopqrstuvwxyz1234567890ABCD
-          # Stripe keys (required for payment routes) - PLACEHOLDER KEYS FOR CI BUILD ONLY
-          STRIPE_SECRET_KEY: fake_stripe_secret_key_for_ci_build_only_do_not_use_in_production_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: fake_stripe_public_key_for_ci_build_only_do_not_use_in_production_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+          # Stripe keys (required for payment routes) - TEST PLACEHOLDER KEYS FOR CI ONLY
+          STRIPE_SECRET_KEY: sk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
           # Other required keys
           UPSTASH_REDIS_REST_URL: https://fake-redis.upstash.io
           UPSTASH_REDIS_REST_TOKEN: fake_token_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -277,8 +277,8 @@ jobs:
           AUDIT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/audit_db
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmstZmFrZS1rZXktZm9yLWJ1aWxkLXRlc3RpbmctMTIzNDU2Nzg5MA==
           CLERK_SECRET_KEY: sk_test_abcdefghijklmnopqrstuvwxyz1234567890ABCD
-          STRIPE_SECRET_KEY: fake_stripe_secret_key_for_ci_build_only_do_not_use_in_production_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: fake_stripe_public_key_for_ci_build_only_do_not_use_in_production_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+          STRIPE_SECRET_KEY: sk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
           UPSTASH_REDIS_REST_URL: https://fake-redis.upstash.io
           UPSTASH_REDIS_REST_TOKEN: fake_token_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
           # QStash keys (required for cron routes)

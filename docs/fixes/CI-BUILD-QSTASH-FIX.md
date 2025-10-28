@@ -68,10 +68,10 @@ Also updated the Clerk and Stripe stub keys to use properly formatted values tha
 - `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`: `pk_test_Y2xlcmstZmFrZS1rZXktZm9yLWJ1aWxkLXRlc3RpbmctMTIzNDU2Nzg5MA==`
 - `CLERK_SECRET_KEY`: `sk_test_abcdefghijklmnopqrstuvwxyz1234567890ABCD`
 
-**Stripe** (Placeholder keys for CI only - not real Stripe format):
+**Stripe** (Test placeholder keys for CI only):
 
-- `STRIPE_SECRET_KEY`: `fake_stripe_secret_key_for_ci_build_only_do_not_use_in_production_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`
-- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: `fake_stripe_public_key_for_ci_build_only_do_not_use_in_production_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`
+- `STRIPE_SECRET_KEY`: `sk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: `pk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX`
 
 ## Why This Approach?
 
