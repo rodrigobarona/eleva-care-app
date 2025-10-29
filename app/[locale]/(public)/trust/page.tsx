@@ -30,9 +30,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function TrustPage({ params }: PageProps) {
   const { locale } = await params;
 
-  // Handle invalid locale
+  // Handle invalid locale - redirect to default locale
   if (!isValidLocale(locale)) {
-    redirect('/trust/security');
+    redirect('/trust/security'); // Default locale (en) has no prefix
   }
 
   // Redirect to the default trust document (security)

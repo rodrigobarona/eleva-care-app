@@ -20,6 +20,16 @@ const compat = new FlatCompat({
 });
 
 const config = [
+  {
+    ignores: [
+      '**/node_modules/**',
+      '.next/**',
+      'out/**',
+      'coverage/**',
+      '**/.next/**',
+      '**/dist/**',
+    ],
+  },
   js.configs.recommended,
   ...compat.extends(
     'next/core-web-vitals',
@@ -34,7 +44,6 @@ const config = [
   ),
   {
     files: ['**/*.{js,jsx,ts,tsx}'],
-    ignores: ['**/node_modules/**', '.next/**', 'out/**'],
     languageOptions: {
       ecmaVersion: 2021,
       sourceType: 'module',

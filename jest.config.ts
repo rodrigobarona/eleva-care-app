@@ -21,6 +21,12 @@ const customJestConfig = {
     // Mock Upstash modules to prevent uncrypto/jose ESM parsing issues
     '^@upstash/redis$': '<rootDir>/tests/__mocks__/@upstash__redis.ts',
     '^@upstash/qstash$': '<rootDir>/tests/__mocks__/@upstash__qstash.ts',
+    // Mock next-mdx-remote to prevent ESM parsing issues
+    '^next-mdx-remote/rsc$': '<rootDir>/tests/__mocks__/next-mdx-remote-rsc.ts',
+    // Mock remark-gfm to prevent ESM parsing issues
+    '^remark-gfm$': '<rootDir>/tests/__mocks__/remark-gfm.ts',
+    // Mock fs/promises to prevent file system access during tests
+    '^fs/promises$': '<rootDir>/tests/__mocks__/fs-promises.ts',
   },
   testPathIgnorePatterns: [
     '/node_modules/',

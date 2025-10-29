@@ -1,27 +1,36 @@
 import { isValidLocale } from '@/app/i18n';
-import MDXContentWrapper from '@/components/atoms/MDXContentWrapper';
+import { Button } from '@/components/atoms/button';
+import { Separator } from '@/components/atoms/separator';
+import SmoothLink from '@/components/atoms/SmoothLink';
+import { Link } from '@/lib/i18n/navigation';
+import { locales } from '@/lib/i18n/routing';
+import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
+import { mdxComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { redirect } from 'next/navigation';
+import Image from 'next/image';
+import { notFound, redirect } from 'next/navigation';
 
 // Define the page props
 interface PageProps {
   params: Promise<{ locale: string }>;
 }
 
+// Revalidate every 24 hours (content rarely changes)
+export const revalidate = 86400;
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
 
-  if (!isValidLocale(locale)) {
-    redirect('/history');
-  }
+  // Use default locale for metadata if invalid (page component handles redirect)
+  const safeLocale = isValidLocale(locale) ? locale : 'en';
 
   try {
-    const t = await getTranslations({ locale, namespace: 'metadata.history' });
+    const t = await getTranslations({ locale: safeLocale, namespace: 'metadata.history' });
 
     return generatePageMetadata({
-      locale,
+      locale: safeLocale,
       path: '/history',
       title: t('title'),
       description: t('description'),
@@ -40,7 +49,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     console.error('Error generating metadata:', error);
 
     return generatePageMetadata({
-      locale,
+      locale: safeLocale,
       path: '/history',
       title: 'Our Story - Eleva Care',
       description:
@@ -56,11 +65,36 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
+export async function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
+
 export default async function HistoryPage({ params }: PageProps) {
   const { locale } = await params;
 
   if (!isValidLocale(locale)) {
-    redirect('/history');
+    redirect('/history'); // Default locale (en) has no prefix
+  }
+
+  // Merge base MDX components with custom components
+  const components = {
+    ...mdxComponents,
+    Button,
+    Separator,
+    SmoothLink,
+    Link,
+    Image,
+  };
+
+  const content = await renderMDXContent({
+    namespace: 'history',
+    locale,
+    fallbackLocale: 'en',
+    components,
+  });
+
+  if (!content) {
+    return notFound();
   }
 
   return (
@@ -72,9 +106,7 @@ export default async function HistoryPage({ params }: PageProps) {
 
       <div className="px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:max-w-3xl">
-          <div className="mt-16">
-            <MDXContentWrapper locale={locale} namespace="history" />
-          </div>
+          <div className="mt-16">{content}</div>
         </div>
       </div>
     </main>
