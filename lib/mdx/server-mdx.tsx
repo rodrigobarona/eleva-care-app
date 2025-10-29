@@ -25,22 +25,100 @@ interface MDXContentResult {
 }
 
 /**
+ * Strict whitelist regex for namespace and locale validation
+ * Only allows: letters, numbers, hyphens, and underscores
+ */
+const SAFE_PATH_REGEX = /^[a-zA-Z0-9_-]+$/;
+
+/**
+ * Validates that a string contains only safe characters
+ * Prevents path traversal attacks by enforcing strict whitelist
+ */
+function validateSafeString(value: string, fieldName: string): void {
+  if (!value || typeof value !== 'string') {
+    throw new Error(`Invalid ${fieldName}: must be a non-empty string`);
+  }
+
+  if (!SAFE_PATH_REGEX.test(value)) {
+    console.error(`Path traversal attempt detected in ${fieldName}: "${value}"`);
+    throw new Error(
+      `Invalid ${fieldName}: only letters, numbers, hyphens, and underscores are allowed`,
+    );
+  }
+
+  // Additional check for suspicious patterns
+  if (value.includes('..') || value.includes('/') || value.includes('\\')) {
+    console.error(`Path traversal pattern detected in ${fieldName}: "${value}"`);
+    throw new Error(`Invalid ${fieldName}: path traversal patterns are not allowed`);
+  }
+}
+
+/**
+ * Validates and normalizes a file path to prevent traversal attacks
+ * Ensures the normalized path stays within the base directory
+ */
+function validateSecurePath(constructedPath: string, baseDir: string): string {
+  // Normalize the path to resolve any .. or . segments
+  const normalized = path.normalize(constructedPath);
+
+  // Ensure the normalized path starts with the base directory
+  if (!normalized.startsWith(baseDir)) {
+    console.error(
+      `Path traversal attempt detected: normalized path "${normalized}" does not start with base "${baseDir}"`,
+    );
+    throw new Error('Invalid path: attempted directory traversal detected');
+  }
+
+  return normalized;
+}
+
+/**
  * Read MDX file from the filesystem
  * Handles locale fallback automatically
+ * Includes path traversal protection
  */
 export async function getMDXFileContent({
   namespace,
   locale,
   fallbackLocale = 'en',
 }: MDXContentOptions): Promise<MDXContentResult> {
+  // Validate inputs before constructing paths
+  try {
+    validateSafeString(namespace, 'namespace');
+    validateSafeString(locale, 'locale');
+    validateSafeString(fallbackLocale, 'fallbackLocale');
+  } catch (error) {
+    console.error('MDX file content validation failed:', error);
+    return {
+      content: '',
+      exists: false,
+      usedFallback: false,
+      locale,
+    };
+  }
+
   const fileLocale = getFileLocale(locale);
   const contentDir = path.join(process.cwd(), 'content');
 
-  // Try primary locale first
+  // Construct and validate primary path
   const primaryPath = path.join(contentDir, namespace, `${fileLocale}.mdx`);
+  let validatedPrimaryPath: string;
 
   try {
-    const content = await fs.readFile(primaryPath, 'utf-8');
+    validatedPrimaryPath = validateSecurePath(primaryPath, contentDir);
+  } catch (error) {
+    console.error('Primary path validation failed:', error);
+    return {
+      content: '',
+      exists: false,
+      usedFallback: false,
+      locale: fileLocale,
+    };
+  }
+
+  // Try primary locale first
+  try {
+    const content = await fs.readFile(validatedPrimaryPath, 'utf-8');
     return {
       content,
       exists: true,
@@ -48,11 +126,25 @@ export async function getMDXFileContent({
       locale: fileLocale,
     };
   } catch {
-    // Try fallback locale
+    // Construct and validate fallback path
     const fallbackPath = path.join(contentDir, namespace, `${fallbackLocale}.mdx`);
+    let validatedFallbackPath: string;
 
     try {
-      const content = await fs.readFile(fallbackPath, 'utf-8');
+      validatedFallbackPath = validateSecurePath(fallbackPath, contentDir);
+    } catch (error) {
+      console.error('Fallback path validation failed:', error);
+      return {
+        content: '',
+        exists: false,
+        usedFallback: false,
+        locale: fileLocale,
+      };
+    }
+
+    // Try fallback locale
+    try {
+      const content = await fs.readFile(validatedFallbackPath, 'utf-8');
       console.warn(
         `MDX file not found for locale "${fileLocale}" in namespace "${namespace}", using fallback "${fallbackLocale}"`,
       );
@@ -93,10 +185,8 @@ export async function renderMDXContent({
   rehypePlugins = [],
 }: MDXContentOptions & {
   components?: MDXComponents;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  remarkPlugins?: any[];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  rehypePlugins?: any[];
+  remarkPlugins?: import('unified').PluggableList;
+  rehypePlugins?: import('unified').PluggableList;
 }): Promise<React.ReactElement | null> {
   const { content, exists } = await getMDXFileContent({
     namespace,
@@ -124,9 +214,12 @@ export async function renderMDXContent({
 
 /**
  * Cache for MDX namespaces to reduce filesystem I/O
- * Cleared on dev server restart, persisted during build
+ * In development: cache expires after 5 seconds for hot-reload support
+ * In production: cache persists indefinitely for optimal performance
  */
-const namespaceCache = new Map<string, string[]>();
+let namespaceCacheValue: string[] | null = null;
+let namespaceCacheTime = 0;
+const NAMESPACE_CACHE_TTL = process.env.NODE_ENV === 'development' ? 5000 : Infinity; // 5s in dev, permanent in prod
 
 /**
  * Get all available MDX namespaces from the content directory
@@ -136,17 +229,19 @@ const namespaceCache = new Map<string, string[]>();
 export async function getAllMDXNamespaces(): Promise<string[]> {
   const contentDir = path.join(process.cwd(), 'content');
 
-  // Return cached result if available
-  if (namespaceCache.has(contentDir)) {
-    return namespaceCache.get(contentDir)!;
+  // Return cached result if still valid
+  const now = Date.now();
+  if (namespaceCacheValue && now - namespaceCacheTime < NAMESPACE_CACHE_TTL) {
+    return namespaceCacheValue;
   }
 
   try {
     const entries = await fs.readdir(contentDir, { withFileTypes: true });
     const namespaces = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
 
-    // Cache the result
-    namespaceCache.set(contentDir, namespaces);
+    // Update cache
+    namespaceCacheValue = namespaces;
+    namespaceCacheTime = now;
 
     return namespaces;
   } catch (error) {
@@ -156,15 +251,55 @@ export async function getAllMDXNamespaces(): Promise<string[]> {
 }
 
 /**
+ * Cache for locale lists per namespace
+ * In development: cache expires after 5 seconds for hot-reload support
+ * In production: cache persists indefinitely for optimal performance
+ */
+const localesCache = new Map<string, { value: string[]; timestamp: number }>();
+const LOCALES_CACHE_TTL = process.env.NODE_ENV === 'development' ? 5000 : Infinity; // 5s in dev, permanent in prod
+
+/**
  * Get all available locales for a specific namespace
  * Useful for static generation
+ * Includes path traversal protection and caching
  */
 export async function getAvailableLocalesForNamespace(namespace: string): Promise<string[]> {
-  const contentDir = path.join(process.cwd(), 'content', namespace);
+  // Validate namespace input
+  try {
+    validateSafeString(namespace, 'namespace');
+  } catch (error) {
+    console.error('Namespace validation failed:', error);
+    return [];
+  }
+
+  // Check cache
+  const cached = localesCache.get(namespace);
+  const now = Date.now();
+  if (cached && now - cached.timestamp < LOCALES_CACHE_TTL) {
+    return cached.value;
+  }
+
+  const baseDir = path.join(process.cwd(), 'content');
+  const contentDir = path.join(baseDir, namespace);
+
+  // Validate the constructed path
+  try {
+    validateSecurePath(contentDir, baseDir);
+  } catch (error) {
+    console.error('Path validation failed for namespace directory:', error);
+    return [];
+  }
 
   try {
     const files = await fs.readdir(contentDir);
-    return files.filter((file) => file.endsWith('.mdx')).map((file) => file.replace('.mdx', ''));
+    const locales = files
+      .filter((file) => file.endsWith('.mdx'))
+      .map((file) => file.replace('.mdx', ''));
+
+    // Update cache
+    localesCache.set(namespace, { value: locales, timestamp: now });
+
+    return locales;
   } catch (error) {
     console.error(`Failed to read locales for namespace "${namespace}":`, error);
     return [];
@@ -173,13 +308,26 @@ export async function getAvailableLocalesForNamespace(namespace: string): Promis
 
 /**
  * Check if an MDX file exists for a given namespace and locale
+ * Includes path traversal protection
  */
 export async function mdxFileExists(namespace: string, locale: string): Promise<boolean> {
-  const fileLocale = getFileLocale(locale);
-  const filePath = path.join(process.cwd(), 'content', namespace, `${fileLocale}.mdx`);
-
+  // Validate inputs
   try {
-    await fs.access(filePath);
+    validateSafeString(namespace, 'namespace');
+    validateSafeString(locale, 'locale');
+  } catch (error) {
+    console.error('Input validation failed in mdxFileExists:', error);
+    return false;
+  }
+
+  const fileLocale = getFileLocale(locale);
+  const baseDir = path.join(process.cwd(), 'content');
+  const filePath = path.join(baseDir, namespace, `${fileLocale}.mdx`);
+
+  // Validate the constructed path
+  try {
+    const validatedPath = validateSecurePath(filePath, baseDir);
+    await fs.access(validatedPath);
     return true;
   } catch {
     return false;
