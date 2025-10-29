@@ -51,27 +51,71 @@ export const mdxComponents: MDXComponents = {
   li: ({ children }) => <li className="mb-1 font-light">{children}</li>,
 
   // Links
-  a: ({ href, children }) => (
-    <Link
-      href={href || '#'}
-      className="font-medium text-eleva-primary underline-offset-2 hover:underline"
-    >
-      {children}
-    </Link>
-  ),
+  a: ({ href, children }) => {
+    const actualHref = href || '#';
+    const className = 'font-medium text-eleva-primary underline-offset-2 hover:underline';
+
+    // External links
+    if (actualHref.startsWith('http://') || actualHref.startsWith('https://')) {
+      return (
+        <a href={actualHref} className={className} target="_blank" rel="noopener noreferrer">
+          {children}
+        </a>
+      );
+    }
+
+    // Special protocol links (mailto, tel, hash)
+    if (
+      actualHref.startsWith('mailto:') ||
+      actualHref.startsWith('tel:') ||
+      actualHref.startsWith('#')
+    ) {
+      return (
+        <a href={actualHref} className={className}>
+          {children}
+        </a>
+      );
+    }
+
+    // Internal links
+    return (
+      <Link href={actualHref} className={className}>
+        {children}
+      </Link>
+    );
+  },
 
   // Images - with next/image optimization
   img: (props) => {
-    // Extract src and alt, with rest containing the remaining props
-    const { src, alt = '', ...rest } = props as ImageProps & { src: string };
+    // Extract src, alt, width, height, with rest containing remaining props
+    const { src, alt = '', width, height, ...rest } = props as ImageProps & { src: string };
 
+    // If width and height are provided, use them
+    if (width && height) {
+      return (
+        <div className="my-6 overflow-hidden rounded-xl shadow-xl outline-1 -outline-offset-1 outline-black/10">
+          <Image
+            className="h-auto w-full object-cover"
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            src={src}
+            alt={alt}
+            width={width}
+            height={height}
+            {...rest}
+          />
+        </div>
+      );
+    }
+
+    // Otherwise use fill with relative positioning
     return (
-      <div className="my-6 overflow-hidden rounded-xl shadow-xl outline-1 -outline-offset-1 outline-black/10">
+      <div className="relative my-6 aspect-video overflow-hidden rounded-xl shadow-xl outline-1 -outline-offset-1 outline-black/10">
         <Image
-          className="h-auto w-full object-cover"
+          className="object-cover"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           src={src}
           alt={alt}
+          fill
           {...rest}
         />
       </div>
