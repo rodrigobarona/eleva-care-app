@@ -25,31 +25,51 @@ interface MDXContentResult {
 }
 
 /**
- * Strict whitelist regex for namespace and locale validation
+ * Strict whitelist regex for namespace validation
+ * Allows: letters, numbers, hyphens, underscores, and forward slashes (for nested namespaces)
+ * Does not allow: backslashes, dots (except in file extensions), or other special characters
+ */
+const SAFE_NAMESPACE_REGEX = /^[a-zA-Z0-9_/-]+$/;
+
+/**
+ * Strict whitelist regex for locale validation
  * Only allows: letters, numbers, hyphens, and underscores
  */
-const SAFE_PATH_REGEX = /^[a-zA-Z0-9_-]+$/;
+const SAFE_LOCALE_REGEX = /^[a-zA-Z0-9_-]+$/;
 
 /**
  * Validates that a string contains only safe characters
  * Prevents path traversal attacks by enforcing strict whitelist
+ * Namespaces can contain forward slashes for nested structures (e.g., "trust/security")
+ * Locales cannot contain slashes
  */
 function validateSafeString(value: string, fieldName: string): void {
   if (!value || typeof value !== 'string') {
     throw new Error(`Invalid ${fieldName}: must be a non-empty string`);
   }
 
-  if (!SAFE_PATH_REGEX.test(value)) {
+  // Use different regex based on field type
+  const isNamespace = fieldName.toLowerCase().includes('namespace');
+  const regex = isNamespace ? SAFE_NAMESPACE_REGEX : SAFE_LOCALE_REGEX;
+  const allowedChars = isNamespace
+    ? 'letters, numbers, hyphens, underscores, and forward slashes'
+    : 'letters, numbers, hyphens, and underscores';
+
+  if (!regex.test(value)) {
     console.error(`Path traversal attempt detected in ${fieldName}: "${value}"`);
-    throw new Error(
-      `Invalid ${fieldName}: only letters, numbers, hyphens, and underscores are allowed`,
-    );
+    throw new Error(`Invalid ${fieldName}: only ${allowedChars} are allowed`);
   }
 
-  // Additional check for suspicious patterns
-  if (value.includes('..') || value.includes('/') || value.includes('\\')) {
+  // Check for path traversal patterns (.. sequences and backslashes)
+  if (value.includes('..') || value.includes('\\')) {
     console.error(`Path traversal pattern detected in ${fieldName}: "${value}"`);
     throw new Error(`Invalid ${fieldName}: path traversal patterns are not allowed`);
+  }
+
+  // Prevent absolute paths
+  if (value.startsWith('/')) {
+    console.error(`Absolute path detected in ${fieldName}: "${value}"`);
+    throw new Error(`Invalid ${fieldName}: absolute paths are not allowed`);
   }
 }
 
