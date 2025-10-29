@@ -1,11 +1,11 @@
 import { isValidLocale } from '@/app/i18n';
-import { locales } from '@/lib/i18n/routing';
+import { defaultLocale, locales } from '@/lib/i18n/routing';
 import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import { mdxComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 interface PageProps {
   params: Promise<{ locale: string; document: string }>;
@@ -126,7 +126,7 @@ export default async function LegalDocumentPage({ params }: PageProps) {
   const { locale, document } = await params;
 
   if (!isValidLocale(locale)) {
-    notFound();
+    redirect(`/${defaultLocale}/legal/${document}`);
   }
 
   if (!validDocuments.includes(document)) {

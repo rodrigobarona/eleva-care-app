@@ -1,6 +1,7 @@
 import { isValidLocale } from '@/app/i18n';
+import { defaultLocale } from '@/lib/i18n/routing';
 import type { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -30,9 +31,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function LegalPage({ params }: PageProps) {
   const { locale } = await params;
 
-  // Handle invalid locale
+  // Handle invalid locale - redirect to default locale
   if (!isValidLocale(locale)) {
-    notFound();
+    redirect(`/${defaultLocale}/legal/terms`);
   }
 
   // Redirect to the default legal document (terms)
