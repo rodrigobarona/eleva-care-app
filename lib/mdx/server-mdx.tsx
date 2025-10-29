@@ -55,21 +55,30 @@ function validateSafeString(value: string, fieldName: string): void {
 
 /**
  * Validates and normalizes a file path to prevent traversal attacks
- * Ensures the normalized path stays within the base directory
+ * Uses resolve+relative approach to detect directory escapes
  */
 function validateSecurePath(constructedPath: string, baseDir: string): string {
-  // Normalize the path to resolve any .. or . segments
-  const normalized = path.normalize(constructedPath);
+  // Resolve both paths to absolute form
+  const resolvedBase = path.resolve(baseDir);
+  const resolvedPath = path.resolve(constructedPath);
 
-  // Ensure the normalized path starts with the base directory
-  if (!normalized.startsWith(baseDir)) {
+  // Compute relative path from base to target
+  const relativePath = path.relative(resolvedBase, resolvedPath);
+
+  // Check if path escapes the base directory
+  // Invalid if: exactly '..', starts with '../', or starts with '..\' on Windows
+  if (
+    relativePath === '..' ||
+    relativePath.startsWith('..' + path.sep) ||
+    relativePath.startsWith('..')
+  ) {
     console.error(
-      `Path traversal attempt detected: normalized path "${normalized}" does not start with base "${baseDir}"`,
+      `Path traversal attempt detected: relative path "${relativePath}" escapes base directory "${resolvedBase}"`,
     );
     throw new Error('Invalid path: attempted directory traversal detected');
   }
 
-  return normalized;
+  return resolvedPath;
 }
 
 /**
@@ -126,8 +135,9 @@ export async function getMDXFileContent({
       locale: fileLocale,
     };
   } catch {
-    // Construct and validate fallback path
-    const fallbackPath = path.join(contentDir, namespace, `${fallbackLocale}.mdx`);
+    // Normalize fallback locale to file format (consistent with primary locale)
+    const fallbackFileLocale = getFileLocale(fallbackLocale);
+    const fallbackPath = path.join(contentDir, namespace, `${fallbackFileLocale}.mdx`);
     let validatedFallbackPath: string;
 
     try {
@@ -146,17 +156,17 @@ export async function getMDXFileContent({
     try {
       const content = await fs.readFile(validatedFallbackPath, 'utf-8');
       console.warn(
-        `MDX file not found for locale "${fileLocale}" in namespace "${namespace}", using fallback "${fallbackLocale}"`,
+        `MDX file not found for locale "${fileLocale}" in namespace "${namespace}", using fallback "${fallbackFileLocale}"`,
       );
       return {
         content,
         exists: true,
         usedFallback: true,
-        locale: fallbackLocale,
+        locale: fallbackFileLocale,
       };
     } catch (fallbackError) {
       console.error(
-        `Failed to load MDX content for namespace "${namespace}" in both "${fileLocale}" and "${fallbackLocale}"`,
+        `Failed to load MDX content for namespace "${namespace}" in both "${fileLocale}" and "${fallbackFileLocale}"`,
         fallbackError,
       );
       return {
@@ -173,7 +183,7 @@ export async function getMDXFileContent({
  * Render MDX content as a React Server Component
  * Returns the MDXRemote component ready to be rendered
  *
- * @param remarkPlugins - Additional remark plugins to apply (remarkGfm is always included)
+ * @param remarkPlugins - Additional remark plugins to apply (remarkGfm is included by default unless present)
  * @param rehypePlugins - Rehype plugins for HTML transformation
  */
 export async function renderMDXContent({
@@ -198,12 +208,21 @@ export async function renderMDXContent({
     return null;
   }
 
+  // Deduplicate remarkGfm if already included in remarkPlugins
+  const hasRemarkGfm = remarkPlugins.some((plugin) => {
+    // Handle both plugin and [plugin, options] formats
+    const pluginFn = Array.isArray(plugin) ? plugin[0] : plugin;
+    return pluginFn === remarkGfm;
+  });
+
+  const finalRemarkPlugins = hasRemarkGfm ? remarkPlugins : [remarkGfm, ...remarkPlugins];
+
   return (
     <MDXRemote
       source={content}
       options={{
         mdxOptions: {
-          remarkPlugins: [remarkGfm, ...remarkPlugins],
+          remarkPlugins: finalRemarkPlugins,
           rehypePlugins,
         },
       }}
@@ -216,10 +235,14 @@ export async function renderMDXContent({
  * Cache for MDX namespaces to reduce filesystem I/O
  * In development: cache expires after 5 seconds for hot-reload support
  * In production: cache persists indefinitely for optimal performance
+ * Note: For runtime content updates in production, set a finite TTL via environment variable
  */
 let namespaceCacheValue: string[] | null = null;
 let namespaceCacheTime = 0;
-const NAMESPACE_CACHE_TTL = process.env.NODE_ENV === 'development' ? 5000 : Infinity; // 5s in dev, permanent in prod
+const NAMESPACE_CACHE_TTL =
+  process.env.NODE_ENV === 'development'
+    ? 5000 // 5 seconds in dev
+    : parseInt(process.env.MDX_CACHE_TTL || '0', 10) || Infinity; // Configurable in prod, defaults to permanent
 
 /**
  * Get all available MDX namespaces from the content directory
@@ -254,9 +277,13 @@ export async function getAllMDXNamespaces(): Promise<string[]> {
  * Cache for locale lists per namespace
  * In development: cache expires after 5 seconds for hot-reload support
  * In production: cache persists indefinitely for optimal performance
+ * Note: For runtime content updates in production, set a finite TTL via environment variable
  */
 const localesCache = new Map<string, { value: string[]; timestamp: number }>();
-const LOCALES_CACHE_TTL = process.env.NODE_ENV === 'development' ? 5000 : Infinity; // 5s in dev, permanent in prod
+const LOCALES_CACHE_TTL =
+  process.env.NODE_ENV === 'development'
+    ? 5000 // 5 seconds in dev
+    : parseInt(process.env.MDX_CACHE_TTL || '0', 10) || Infinity; // Configurable in prod, defaults to permanent
 
 /**
  * Get all available locales for a specific namespace
@@ -294,7 +321,8 @@ export async function getAvailableLocalesForNamespace(namespace: string): Promis
     const files = await fs.readdir(contentDir);
     const locales = files
       .filter((file) => file.endsWith('.mdx'))
-      .map((file) => file.replace('.mdx', ''));
+      .map((file) => file.replace('.mdx', ''))
+      .sort(); // Sort for deterministic output (useful for tests and SSG)
 
     // Update cache
     localesCache.set(namespace, { value: locales, timestamp: now });

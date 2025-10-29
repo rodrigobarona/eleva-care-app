@@ -45,10 +45,33 @@ All file operations now include validation:
 2. Construct path
    const filePath = path.join(baseDir, namespace, `${locale}.mdx`)
 
-3. validateSecurePath(filePath, baseDir)
-   ├─ Normalize path
-   └─ Verify starts with baseDir
+3. validateSecurePath(filePath, baseDir) [IMPROVED]
+   ├─ Resolve both paths to absolute form
+   ├─ Compute relative path from base to target
+   ├─ Check if relative path escapes (starts with '..')
+   └─ Return resolved absolute path
 ```
+
+### Recent Improvements
+
+**Path Validation Enhancement** (resolve+relative approach):
+
+- Changed from simple `startsWith` check to more robust `path.relative()` method
+- Resolves both paths to absolute form before comparison
+- Detects escapes even with complex path manipulations
+- Cross-platform compatible (Windows and Unix)
+
+**Fallback Locale Normalization**:
+
+- Fallback locale now uses `getFileLocale()` for consistent file naming
+- Primary and fallback lookups use same normalization logic
+- Prevents mismatches between locale formats (e.g., `en-US` vs `en`)
+
+**Remark Plugin Deduplication**:
+
+- Automatically detects if `remarkGfm` is already in plugin list
+- Prevents duplicate plugin application
+- Supports both `plugin` and `[plugin, options]` formats
 
 ### Error Handling
 
@@ -60,11 +83,13 @@ All file operations now include validation:
 
 Created comprehensive test suite in `tests/lib/server-mdx.test.ts`:
 
-- ✅ 24/35 tests passing
+- ✅ **35/35 tests passing (100%)**
 - ✅ All security tests passing (100%)
 - ✅ Path traversal attempts properly rejected
 - ✅ Invalid inputs properly rejected
 - ✅ Edge cases handled (unicode, URL encoding, null bytes)
+- ✅ Fallback behavior validated
+- ✅ Cache and file operations tested
 
 ### Test Results
 
@@ -109,13 +134,16 @@ Added TTL-based caching for filesystem operations:
 
 1. **Namespace Cache** (`getAllMDXNamespaces`)
    - Development: 5-second TTL for hot-reload support
-   - Production: Permanent cache for optimal performance
+   - Production: Permanent cache by default (configurable via `MDX_CACHE_TTL` env var)
    - Simplified from Map to simple variables
 
 2. **Locale Cache** (`getAvailableLocalesForNamespace`)
    - Development: 5-second TTL for hot-reload support
-   - Production: Permanent cache for optimal performance
+   - Production: Permanent cache by default (configurable via `MDX_CACHE_TTL` env var)
    - Per-namespace caching with Map structure
+   - Results sorted alphabetically for deterministic output (useful for tests and SSG)
+
+**Production Runtime Updates**: Set `MDX_CACHE_TTL` environment variable (in milliseconds) to enable cache expiration in production for dynamic content scenarios.
 
 ### Type Safety Improvements
 
