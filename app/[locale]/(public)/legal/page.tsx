@@ -1,7 +1,6 @@
 import { isValidLocale } from '@/app/i18n';
-import { defaultLocale } from '@/lib/i18n/routing';
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 interface PageProps {
   params: Promise<{ locale: string }>;
@@ -33,7 +32,7 @@ export default async function LegalPage({ params }: PageProps) {
 
   // Handle invalid locale
   if (!isValidLocale(locale)) {
-    redirect(`/${defaultLocale}/legal/terms`);
+    notFound();
   }
 
   // Redirect to the default legal document (terms)
