@@ -19,6 +19,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React from 'react';
 
+// Force dynamic rendering for this page as it requires authentication
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface Customer {
   id: string;
   name: string;

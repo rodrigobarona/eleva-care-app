@@ -39,6 +39,10 @@ import { useRouter } from 'next/navigation';
 import React, { useCallback, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
+// Force dynamic rendering for this page as it requires authentication
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 // Clerk Core 2 (v6) - Using proper component-based OAuth handling
 // No need for global Clerk object declarations
 

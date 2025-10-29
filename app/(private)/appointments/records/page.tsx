@@ -7,6 +7,10 @@ import { format } from 'date-fns';
 import { FileText } from 'lucide-react';
 import React from 'react';
 
+// Force dynamic rendering for this page as it requires authentication
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 interface PatientRecord {
   id: string;
   meetingId: string;

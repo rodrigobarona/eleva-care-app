@@ -23,24 +23,33 @@ describe('Transfer Utils', () => {
     let mockUpdate: jest.Mock;
     let mockSet: jest.Mock;
     let mockWhere: jest.Mock;
-    let retrieveMock: jest.Mock;
-    let listMock: jest.Mock;
+    let retrieveMock: jest.MockedFunction<
+      (id: string, params?: Stripe.ChargeRetrieveParams) => Promise<Stripe.Charge>
+    >;
+    let listMock: jest.MockedFunction<
+      (params?: Stripe.TransferListParams) => Promise<Stripe.ApiList<Stripe.Transfer>>
+    >;
 
     beforeEach(() => {
       // Reset all mocks
       jest.clearAllMocks();
 
-      // Mock the db update chain
-      mockWhere = jest.fn().mockResolvedValue(undefined);
+      // Mock the db update chain - use any to avoid type inference issues
+      mockWhere = jest.fn() as jest.Mock;
+      (mockWhere.mockResolvedValue as any)(undefined);
       mockSet = jest.fn().mockReturnValue({ where: mockWhere });
       mockUpdate = jest.fn().mockReturnValue({ set: mockSet });
 
       // Configure the existing db.update mock
       (db.update as jest.Mock).mockImplementation(() => mockUpdate());
 
-      // Create mock functions for Stripe methods
-      retrieveMock = jest.fn();
-      listMock = jest.fn();
+      // Create mock functions for Stripe methods with explicit types
+      retrieveMock = jest.fn() as jest.MockedFunction<
+        (id: string, params?: Stripe.ChargeRetrieveParams) => Promise<Stripe.Charge>
+      >;
+      listMock = jest.fn() as jest.MockedFunction<
+        (params?: Stripe.TransferListParams) => Promise<Stripe.ApiList<Stripe.Transfer>>
+      >;
 
       // Mock Stripe instance
       mockStripe = {
@@ -58,14 +67,14 @@ describe('Transfer Utils', () => {
       const mockCharge = {
         id: 'ch_123',
         transfer: null,
-      };
+      } as unknown as Stripe.Charge;
 
       retrieveMock.mockResolvedValue(mockCharge);
 
       // Mock empty transfers list
       listMock.mockResolvedValue({
         data: [],
-      });
+      } as unknown as Stripe.ApiList<Stripe.Transfer>);
 
       const result = await checkExistingTransfer(mockStripe, 'ch_123', {
         id: 1,
@@ -97,7 +106,7 @@ describe('Transfer Utils', () => {
       const mockCharge = {
         id: 'ch_123',
         transfer: 'tr_existing123',
-      };
+      } as unknown as Stripe.Charge;
 
       retrieveMock.mockResolvedValue(mockCharge);
 
@@ -135,8 +144,8 @@ describe('Transfer Utils', () => {
           id: 'tr_existing456',
           amount: 10000,
           destination: 'acct_123',
-        },
-      };
+        } as unknown as Stripe.Transfer,
+      } as unknown as Stripe.Charge;
 
       retrieveMock.mockResolvedValue(mockCharge);
 
@@ -168,7 +177,7 @@ describe('Transfer Utils', () => {
 
     it('should handle Stripe API errors gracefully', async () => {
       // Mock Stripe API error
-      const stripeError = new Error('Stripe API error');
+      const stripeError = new Error('Stripe API error') as Error;
       retrieveMock.mockRejectedValue(stripeError);
 
       await expect(
@@ -186,7 +195,7 @@ describe('Transfer Utils', () => {
       const mockCharge = {
         id: 'ch_123',
         transfer: 'tr_existing789',
-      };
+      } as unknown as Stripe.Charge;
 
       retrieveMock.mockResolvedValue(mockCharge);
 
@@ -206,14 +215,14 @@ describe('Transfer Utils', () => {
       const mockCharge = {
         id: 'ch_123',
         transfer: null,
-      };
+      } as unknown as Stripe.Charge;
 
       retrieveMock.mockResolvedValue(mockCharge);
 
       // Mock empty transfers list
       listMock.mockResolvedValue({
         data: [],
-      });
+      } as unknown as Stripe.ApiList<Stripe.Transfer>);
 
       const result = await checkExistingTransfer(mockStripe, 'ch_123', {
         id: 4,
@@ -229,14 +238,14 @@ describe('Transfer Utils', () => {
       const mockCharge = {
         id: 'ch_123',
         // transfer is undefined
-      };
+      } as unknown as Stripe.Charge;
 
       retrieveMock.mockResolvedValue(mockCharge);
 
       // Mock empty transfers list
       listMock.mockResolvedValue({
         data: [],
-      });
+      } as unknown as Stripe.ApiList<Stripe.Transfer>);
 
       const result = await checkExistingTransfer(mockStripe, 'ch_123', {
         id: 5,
@@ -254,7 +263,7 @@ describe('Transfer Utils', () => {
       const mockCharge = {
         id: 'ch_separate123',
         transfer: null,
-      };
+      } as unknown as Stripe.Charge;
 
       retrieveMock.mockResolvedValue(mockCharge);
 
@@ -267,9 +276,9 @@ describe('Transfer Utils', () => {
               paymentTransferId: '100',
               paymentIntentId: 'pi_other',
             },
-          },
+          } as unknown as Stripe.Transfer,
         ],
-      });
+      } as unknown as Stripe.ApiList<Stripe.Transfer>);
 
       const transferRecord = {
         id: 100,
@@ -302,7 +311,7 @@ describe('Transfer Utils', () => {
       const mockCharge = {
         id: 'ch_separate456',
         transfer: null,
-      };
+      } as unknown as Stripe.Charge;
 
       retrieveMock.mockResolvedValue(mockCharge);
 
@@ -315,9 +324,9 @@ describe('Transfer Utils', () => {
               paymentTransferId: '999', // Different ID
               paymentIntentId: 'pi_separate456', // Matches!
             },
-          },
+          } as unknown as Stripe.Transfer,
         ],
-      });
+      } as unknown as Stripe.ApiList<Stripe.Transfer>);
 
       const transferRecord = {
         id: 200,
@@ -344,7 +353,7 @@ describe('Transfer Utils', () => {
       const mockCharge = {
         id: 'ch_nomatch',
         transfer: null,
-      };
+      } as unknown as Stripe.Charge;
 
       retrieveMock.mockResolvedValue(mockCharge);
 
@@ -357,16 +366,16 @@ describe('Transfer Utils', () => {
               paymentTransferId: '888',
               paymentIntentId: 'pi_other1',
             },
-          },
+          } as unknown as Stripe.Transfer,
           {
             id: 'tr_other2',
             metadata: {
               paymentTransferId: '777',
               paymentIntentId: 'pi_other2',
             },
-          },
+          } as unknown as Stripe.Transfer,
         ],
-      });
+      } as unknown as Stripe.ApiList<Stripe.Transfer>);
 
       const transferRecord = {
         id: 300,
@@ -388,7 +397,7 @@ describe('Transfer Utils', () => {
       const mockCharge = {
         id: 'ch_nometadata',
         transfer: null,
-      };
+      } as unknown as Stripe.Charge;
 
       retrieveMock.mockResolvedValue(mockCharge);
 
@@ -398,9 +407,9 @@ describe('Transfer Utils', () => {
           {
             id: 'tr_nometadata',
             metadata: undefined,
-          },
+          } as unknown as Stripe.Transfer,
         ],
-      });
+      } as unknown as Stripe.ApiList<Stripe.Transfer>);
 
       const transferRecord = {
         id: 400,

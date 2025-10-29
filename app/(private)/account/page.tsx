@@ -4,6 +4,10 @@ import { AccountForm } from '@/components/organisms/forms/AccountForm';
 import { useUser } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
 
+// Force dynamic rendering for this page as it requires authentication
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default function ProfilePage() {
   const { user, isLoaded } = useUser();
 
