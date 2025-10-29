@@ -83,13 +83,14 @@ All file operations now include validation:
 
 Created comprehensive test suite in `tests/lib/server-mdx.test.ts`:
 
-- ✅ **35/35 tests passing (100%)**
+- ✅ **36/36 tests passing (100%)**
 - ✅ All security tests passing (100%)
 - ✅ Path traversal attempts properly rejected
-- ✅ Invalid inputs properly rejected
+- ✅ Invalid inputs properly rejected (with FS non-invocation assertions)
 - ✅ Edge cases handled (unicode, URL encoding, null bytes)
-- ✅ Fallback behavior validated
+- ✅ Fallback behavior validated (including locale normalization)
 - ✅ Cache and file operations tested
+- ✅ Type-safe mocks using `jest.SpyInstance`
 
 ### Test Results
 

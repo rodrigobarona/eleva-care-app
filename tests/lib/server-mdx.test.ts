@@ -5,10 +5,10 @@ import {
 } from '@/lib/mdx/server-mdx';
 import fs from 'fs/promises';
 
-// Create spies on fs/promises methods
-const mockReadFile = jest.spyOn(fs, 'readFile') as jest.Mock;
-const mockAccess = jest.spyOn(fs, 'access') as jest.Mock;
-const mockReaddir = jest.spyOn(fs, 'readdir') as jest.Mock;
+// Create spies on fs/promises methods with precise types
+const mockReadFile = jest.spyOn(fs, 'readFile') as jest.SpyInstance;
+const mockAccess = jest.spyOn(fs, 'access') as jest.SpyInstance;
+const mockReaddir = jest.spyOn(fs, 'readdir') as jest.SpyInstance;
 
 describe('MDX Server - Path Traversal Protection', () => {
   const mockFileContent = '# Test Content\n\nThis is a test.';
@@ -137,6 +137,7 @@ describe('MDX Server - Path Traversal Protection', () => {
         });
 
         expect(result.exists).toBe(false);
+        expect(mockReadFile).not.toHaveBeenCalled();
       });
 
       it('should reject empty locale', async () => {
@@ -146,6 +147,7 @@ describe('MDX Server - Path Traversal Protection', () => {
         });
 
         expect(result.exists).toBe(false);
+        expect(mockReadFile).not.toHaveBeenCalled();
       });
 
       it('should reject namespace with special characters', async () => {
@@ -155,6 +157,7 @@ describe('MDX Server - Path Traversal Protection', () => {
         });
 
         expect(result.exists).toBe(false);
+        expect(mockReadFile).not.toHaveBeenCalled();
       });
 
       it('should reject locale with special characters', async () => {
@@ -164,6 +167,7 @@ describe('MDX Server - Path Traversal Protection', () => {
         });
 
         expect(result.exists).toBe(false);
+        expect(mockReadFile).not.toHaveBeenCalled();
       });
     });
 
@@ -195,6 +199,24 @@ describe('MDX Server - Path Traversal Protection', () => {
 
         expect(result.exists).toBe(false);
         expect(result.content).toBe('');
+      });
+
+      it('should normalize hyphenated fallbackLocale (en-US → us)', async () => {
+        mockReadFile
+          .mockRejectedValueOnce(new Error('File not found')) // primary locale fails
+          .mockResolvedValueOnce(mockFileContent); // fallback succeeds
+
+        const result = await getMDXFileContent({
+          namespace: 'terms',
+          locale: 'fr',
+          fallbackLocale: 'en-US',
+        });
+
+        expect(result.exists).toBe(true);
+        expect(result.usedFallback).toBe(true);
+        expect(result.content).toBe(mockFileContent);
+        // Verify the fallback locale was normalized via getFileLocale
+        expect(result.locale).toBe('us'); // en-US → us per getFileLocale normalization
       });
     });
   });
