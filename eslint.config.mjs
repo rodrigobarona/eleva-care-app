@@ -21,7 +21,14 @@ const compat = new FlatCompat({
 
 const config = [
   {
-    ignores: ['**/node_modules/**', '.next/**', 'out/**', 'coverage/**', '**/.next/**', '**/dist/**'],
+    ignores: [
+      '**/node_modules/**',
+      '.next/**',
+      'out/**',
+      'coverage/**',
+      '**/.next/**',
+      '**/dist/**',
+    ],
   },
   js.configs.recommended,
   ...compat.extends(
