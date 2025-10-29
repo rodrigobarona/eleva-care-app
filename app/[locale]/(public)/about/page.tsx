@@ -1,14 +1,28 @@
 import { isValidLocale } from '@/app/i18n';
-import MDXContentWrapper from '@/components/atoms/MDXContentWrapper';
+import { Button } from '@/components/atoms/button';
+import { Separator } from '@/components/atoms/separator';
+import TextBlock from '@/components/atoms/TextBlock';
+import HeadlineSection from '@/components/molecules/HeadlineSection';
+import AdvisorsSection from '@/components/organisms/about/AdvisorsSection';
+import BeliefsSection from '@/components/organisms/about/BeliefsSection';
+import JoinNetworkSection from '@/components/organisms/about/JoinNetworkSection';
+import MissionSection from '@/components/organisms/about/MissionSection';
+import TeamSection from '@/components/organisms/about/TeamSection';
+import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generateGenericPageMetadata } from '@/lib/seo/metadata-utils';
+import { mdxComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
-import { redirect } from 'next/navigation';
+import Image from 'next/image';
+import { notFound, redirect } from 'next/navigation';
 
 // Define the page props
 interface PageProps {
   params: Promise<{ locale: string }>;
 }
+
+// Revalidate every 24 hours (content rarely changes)
+export const revalidate = 86400;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
@@ -42,6 +56,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
+export async function generateStaticParams() {
+  return [{ locale: 'en' }, { locale: 'pt' }, { locale: 'es' }, { locale: 'br' }];
+}
+
 export default async function AboutPage({ params }: PageProps) {
   const { locale } = await params;
 
@@ -49,12 +67,36 @@ export default async function AboutPage({ params }: PageProps) {
     redirect('/about');
   }
 
+  // Merge base MDX components with custom components
+  const components = {
+    ...mdxComponents,
+    Button,
+    Separator,
+    Image,
+    TextBlock,
+    HeadlineSection,
+    AdvisorsSection,
+    BeliefsSection,
+    JoinNetworkSection,
+    MissionSection,
+    TeamSection,
+  };
+
+  const content = await renderMDXContent({
+    namespace: 'about',
+    locale,
+    fallbackLocale: 'en',
+    components,
+  });
+
+  if (!content) {
+    return notFound();
+  }
+
   return (
     <main className="overflow-hidden">
       <div className="px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl lg:max-w-7xl">
-          <MDXContentWrapper locale={locale} namespace="about" />
-        </div>
+        <div className="mx-auto max-w-2xl lg:max-w-7xl">{content}</div>
       </div>
     </main>
   );

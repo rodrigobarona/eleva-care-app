@@ -1,6 +1,7 @@
 import { isValidLocale } from '@/app/i18n';
-import MDXContentWrapper from '@/components/atoms/MDXContentWrapper';
+import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
+import { mdxComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import { notFound, redirect } from 'next/navigation';
@@ -10,6 +11,9 @@ interface PageProps {
 }
 
 const validDocuments = ['terms', 'privacy', 'cookie', 'payment-policies', 'expert-agreement'];
+
+// Revalidate every 24 hours (content rarely changes)
+export const revalidate = 86400;
 
 // Create a mapping of document types to their display names
 const documentDisplayNames = {
@@ -108,6 +112,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
+export async function generateStaticParams() {
+  const locales = ['en', 'pt', 'es', 'br'];
+
+  return locales.flatMap((locale) =>
+    validDocuments.map((document) => ({
+      locale,
+      document,
+    })),
+  );
+}
+
 export default async function LegalDocumentPage({ params }: PageProps) {
   const { locale, document } = await params;
 
@@ -119,11 +134,20 @@ export default async function LegalDocumentPage({ params }: PageProps) {
     return notFound();
   }
 
+  const content = await renderMDXContent({
+    namespace: document,
+    locale,
+    fallbackLocale: 'en',
+    components: mdxComponents,
+  });
+
+  if (!content) {
+    return notFound();
+  }
+
   return (
     <div className="card mx-auto max-w-4xl">
-      <div className="p-6 sm:p-10">
-        <MDXContentWrapper locale={locale} namespace={document} fallbackLocale="en" />
-      </div>
+      <div className="p-6 sm:p-10">{content}</div>
     </div>
   );
 }
