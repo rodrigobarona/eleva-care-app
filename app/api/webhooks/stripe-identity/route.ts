@@ -7,8 +7,6 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 

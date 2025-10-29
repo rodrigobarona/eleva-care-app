@@ -28,8 +28,6 @@ import Stripe from 'stripe';
 // - Detailed audit logging for compliance
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 

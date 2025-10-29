@@ -6,8 +6,6 @@ import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 // Mark route as dynamic
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
 /**
  * This endpoint forces a verification status update for a user's Stripe Connect account.

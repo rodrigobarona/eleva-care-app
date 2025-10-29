@@ -5,7 +5,7 @@ import { getBlockedDates } from '@/server/actions/blocked-dates';
 import { markStepCompleteNoRevalidate } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
 
-export const revalidate = 0;
+// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
 type Availability = {
   startTime: string;

@@ -2,9 +2,6 @@ import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import { isQStashAvailable, validateQStashConfig } from '@/lib/qstash-config';
 import { NextResponse } from 'next/server';
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
-
 /**
  * QStash health check endpoint
  * Verifies that QStash is properly configured and available

@@ -4,8 +4,6 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 // Mark route as dynamic
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
 export async function GET() {
   let clerkUserId: string | null = null;

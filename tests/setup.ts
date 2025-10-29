@@ -18,9 +18,9 @@ if (typeof TextEncoder === 'undefined') {
   // Use synchronous require for Node.js util module
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const util = require('node:util');
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   (globalThis as any).TextEncoder = util.TextEncoder;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   (globalThis as any).TextDecoder = util.TextDecoder;
 }
 
@@ -293,6 +293,9 @@ jest.mock('@clerk/nextjs', () => ({
 jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),
   revalidateTag: jest.fn(),
+  updateTag: jest.fn(),
+  cacheLife: jest.fn(),
+  cacheTag: jest.fn(),
 }));
 
 // Make common mocks available to tests

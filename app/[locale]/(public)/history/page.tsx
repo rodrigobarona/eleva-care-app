@@ -12,13 +12,15 @@ import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 import { notFound, redirect } from 'next/navigation';
 
+// Static content - cache for 24 hours
+// TODO: Migrate to cacheLife('days') when next-intl supports cacheComponents
+// Tracking: https://github.com/amannn/next-intl/issues/1493
+export const revalidate = 86400;
+
 // Define the page props
 interface PageProps {
   params: Promise<{ locale: string }>;
 }
-
-// Revalidate every 24 hours (content rarely changes)
-export const revalidate = 86400;
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;

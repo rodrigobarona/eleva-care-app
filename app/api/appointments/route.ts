@@ -5,8 +5,6 @@ import { and, eq, gt } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 // Add route segment config
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
 export async function GET() {
   try {

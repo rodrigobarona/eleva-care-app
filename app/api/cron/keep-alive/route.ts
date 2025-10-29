@@ -80,8 +80,6 @@ function getValidBaseUrl(
 // - Maintains OAuth token validity
 // - Logs system health status and metrics for trend analysis
 
-export const dynamic = 'force-dynamic';
-
 interface KeepAliveMetrics {
   totalProfiles: number;
   successfulRefreshes: number;

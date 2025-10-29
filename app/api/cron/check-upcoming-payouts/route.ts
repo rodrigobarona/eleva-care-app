@@ -19,8 +19,6 @@ import { NextResponse } from 'next/server';
 // - Maintains notification audit trail
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 

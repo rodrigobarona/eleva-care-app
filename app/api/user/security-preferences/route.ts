@@ -6,8 +6,6 @@ import {
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-
 /**
  * GET /api/user/security-preferences
  * Get the current user's security notification preferences

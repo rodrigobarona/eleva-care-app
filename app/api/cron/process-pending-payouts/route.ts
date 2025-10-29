@@ -21,8 +21,6 @@ import Stripe from 'stripe';
 // 4. Updates records and sends notifications
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 300; // Increased to 5 minutes for comprehensive checks
 

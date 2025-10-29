@@ -25,8 +25,6 @@ interface EventImageProps {
   price?: string;
 }
 
-export const runtime = 'edge';
-
 // Eleva Care Logo SVG Component for OG Images
 const ElevaCareLogo = ({
   color,

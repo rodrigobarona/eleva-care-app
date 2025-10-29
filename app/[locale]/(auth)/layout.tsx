@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 
-export const dynamic = 'force-dynamic';
+// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
 // Inline the logo SVG for better performance
 const ElevaCareLogo = ({ className }: { className?: string }) => (

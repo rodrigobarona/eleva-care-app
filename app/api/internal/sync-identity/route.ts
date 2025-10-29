@@ -5,8 +5,6 @@ import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 // Mark route as dynamic
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
 export async function POST(request: Request) {
   try {

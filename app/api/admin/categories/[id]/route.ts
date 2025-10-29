@@ -104,4 +104,3 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
 }
 
 // Make this route handler dynamic
-export const dynamic = 'force-dynamic';

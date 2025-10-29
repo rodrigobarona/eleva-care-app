@@ -23,9 +23,6 @@ import {
 import { sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
-
 interface ComponentHealth {
   status: string;
   [key: string]: unknown;

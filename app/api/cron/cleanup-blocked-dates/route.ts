@@ -13,8 +13,6 @@ import { NextResponse } from 'next/server';
 // - Provides detailed logging and cleanup statistics
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 

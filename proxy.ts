@@ -392,8 +392,9 @@ function isLocalePublicRoute(path: string): boolean {
 }
 
 /**
- * Clerk middleware with next-intl integration for i18n
- * This follows the pattern from the next-intl documentation for Clerk integration
+ * Proxy function with Clerk middleware and next-intl integration for i18n
+ * This follows the Next.js 16 proxy convention (previously middleware.ts)
+ * Integrates with Clerk for authentication and next-intl for internationalization
  */
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   const path = req.nextUrl.pathname;
@@ -709,9 +710,9 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
 });
 
 /**
- * Configure which paths the middleware runs on
+ * Configure which paths the proxy runs on
  * This matches everything except static files and Next.js internals
- * Note: Development routes like /dev/* are handled in the middleware logic
+ * Note: Development routes like /dev/* are handled in the proxy logic
  * through the isUsernameRoute function, not excluded here.
  */
 export const config = {

@@ -19,8 +19,6 @@ import { verifyWebhook } from '@clerk/nextjs/webhooks';
 import { eq } from 'drizzle-orm';
 import { NextRequest } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-
 // Type for a user with external accounts that we can safely check
 type UserWithExternalAccounts = UserJSON & {
   external_accounts: Array<{

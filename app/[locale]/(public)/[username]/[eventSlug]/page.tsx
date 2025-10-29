@@ -38,7 +38,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
-export const revalidate = 0;
+// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
 // Updated PageProps type with proper next params - both params and searchParams as Promises
 interface PageProps {

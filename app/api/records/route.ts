@@ -7,9 +7,6 @@ import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
-
 export async function GET() {
   try {
     const { userId: clerkUserId } = await auth();

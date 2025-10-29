@@ -11,8 +11,9 @@ import Image from 'next/image';
 import { notFound, redirect } from 'next/navigation';
 import Stripe from 'stripe';
 
-export const revalidate = 0;
-export const dynamic = 'force-dynamic';
+// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
+// Removed: export const revalidate = 0 (default behavior)
+// Removed: export const dynamic = 'force-dynamic' (no longer needed)
 
 // Updated PageProps type with proper next params - both params and searchParams as Promises
 interface PageProps {

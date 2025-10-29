@@ -5,9 +5,7 @@ import { redirect } from 'next/navigation';
 
 import { BillingPageClient } from './billing-client';
 
-// Mark route as dynamic
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
 export default async function BillingPage() {
   const { userId, getToken } = await auth();

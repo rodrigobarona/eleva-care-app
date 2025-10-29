@@ -1,7 +1,7 @@
 import { SchedulingSettingsForm } from '@/components/organisms/forms/SchedulingSettingsForm';
 import { auth } from '@clerk/nextjs/server';
 
-export const revalidate = 0;
+// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
 export default async function LimitsPage() {
   const { userId, redirectToSignIn } = await auth();
