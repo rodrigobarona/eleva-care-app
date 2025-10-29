@@ -49,12 +49,12 @@ const ServiceSection: React.FC = () => {
               key={service.title}
               className="flex flex-col overflow-hidden border-[#0d6c70]/10 bg-eleva-neutral-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="relative h-64 w-full shrink-0 overflow-hidden">
+              <div className="relative aspect-[2/3] h-72 w-full shrink-0 overflow-hidden">
                 <Image
                   src={service.image}
                   alt={service.title}
                   fill
-                  className="object-cover object-center"
+                  className="object-cover object-top"
                   sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 600px"
                   priority={false}
                 />

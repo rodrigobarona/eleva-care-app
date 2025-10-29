@@ -1,15 +1,12 @@
 # Scripts Directory
 
-This directory contains utility scripts and archived one-time migrations for the Eleva Care application.
+This directory contains reusable utility scripts for the Eleva Care application.
 
 ## Directory Structure
 
 ```
 scripts/
 ├── utilities/              # Reusable utility scripts
-├── _archive/              # One-time scripts (completed)
-│   ├── migrations/        # Database and config migrations
-│   └── one-time-fixes/    # Bug fixes and data backfills
 └── README.md             # This file
 ```
 
@@ -110,33 +107,13 @@ node scripts/utilities/debug-env-loading.js
 node scripts/utilities/setup-env-vars.js
 ```
 
-## Archived Scripts
-
-These scripts were used for one-time migrations or fixes and are kept for historical reference only.
-
-### Migrations (`_archive/migrations/`)
-
-- **`migrate-redis-config.ts`** - Migrated from legacy `KV_REST_API_*` to `UPSTASH_REDIS_*` environment variables
-
-### One-Time Fixes (`_archive/one-time-fixes/`)
-
-- **`backfill-welcome-emails.ts`** - Backfilled `welcomeEmailSentAt` for existing users
-- **`fix-connect-payout-schedules.ts`** - Updated Stripe Connect accounts to manual payouts
-- **`cleanup-duplicate-reservations.ts`** - Removed duplicate slot reservations
-- **`cleanup-corrupted-redis-cache.ts`** - Fixed corrupted rate limit cache entries
-- **`cleanup-payment-rate-limit-cache.ts`** - Cleaned up payment rate limit cache
-- **`clear-clerk-cache-now.ts`** - Immediate Clerk cache cleanup (replaced by cache-manager)
-- **`clear-clerk-cache.ts`** - Clerk cache cleanup utility (replaced by cache-manager)
-- **`setup-qstash.js`** - Initial QStash setup (replaced by qstash-manager)
-- **`email-content-components.tsx`** - Email template components reference
-
 ## Best Practices
 
 ### Creating New Scripts
 
 1. **Determine if it's reusable or one-time:**
    - Reusable → Place in `utilities/`
-   - One-time → Run and move to `_archive/`
+   - One-time → Run once, then delete (document in MIGRATION_SUMMARY.md if significant)
 
 2. **Follow naming conventions:**
    - Utilities: `<action>-<resource>.ts` (e.g., `cache-manager.ts`)
@@ -202,7 +179,7 @@ STRIPE_SECRET_KEY=...
 1. **Development** - Create script in `utilities/` or root
 2. **Testing** - Test thoroughly before running in production
 3. **Execution** - Run the script as needed
-4. **Archival** - If one-time use, move to `_archive/` after completion
+4. **Cleanup** - If one-time use, delete after completion and document in MIGRATION_SUMMARY.md
 5. **Documentation** - Update README and remove from npm scripts if applicable
 
 ## Troubleshooting
@@ -232,12 +209,13 @@ STRIPE_SECRET_KEY=...
 
 When adding new scripts:
 
-1. Place in appropriate directory (`utilities/` or `_archive/`)
+1. Place in `utilities/` directory
 2. Follow naming conventions and best practices
 3. Include comprehensive documentation
 4. Update this README
 5. Add npm script to package.json if frequently used
 6. Test thoroughly before committing
+7. If one-time use: Delete after execution and document in MIGRATION_SUMMARY.md
 
 ## Related Documentation
 
