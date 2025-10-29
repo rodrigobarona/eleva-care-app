@@ -47,20 +47,20 @@ const ServiceSection: React.FC = () => {
           {t.raw('items').map((service: ServiceItem) => (
             <Card
               key={service.title}
-              className="overflow-hidden border-[#0d6c70]/10 bg-eleva-neutral-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+              className="flex flex-col overflow-hidden border-[#0d6c70]/10 bg-eleva-neutral-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="relative aspect-[2/3] h-72 shrink-0 overflow-hidden">
+              <div className="relative h-64 w-full shrink-0 overflow-hidden">
                 <Image
                   src={service.image}
                   alt={service.title}
                   fill
-                  className="object-cover"
-                  sizes="(max-width: 768px) 90vw, (max-width: 1280px) 45vw, 600px"
+                  className="object-cover object-center"
+                  sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 600px"
                   priority={false}
                 />
               </div>
 
-              <CardContent className="flex flex-col p-6 pt-6">
+              <CardContent className="flex flex-1 flex-col p-6 pt-6">
                 <div className="flex min-h-48 flex-col">
                   <div className="mb-4 flex items-center">
                     {ServiceIcons[service.icon as keyof typeof ServiceIcons]?.()}
