@@ -11,10 +11,6 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import ReactConfetti from 'react-confetti';
 
-// Force dynamic rendering for this page as it requires authentication
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 // Generate unique IDs for skeleton items
 const skeletonIds = [
   'profile-skeleton',

@@ -325,46 +325,8 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
     }
   }, [currentLocale]);
 
-  // Check if Clerk credentials are valid (not fake test keys during build)
-  const clerkPublishableKey = ENV_CONFIG.CLERK_PUBLISHABLE_KEY;
-  const isValidClerkKey =
-    clerkPublishableKey &&
-    clerkPublishableKey.startsWith('pk_') &&
-    !clerkPublishableKey.includes('fake-key-for-build-testing');
-
-  // Only wrap with ClerkProvider if we have a valid key
-  if (!isValidClerkKey) {
-    if (ENV_CONFIG.NODE_ENV !== 'production') {
-      console.warn('[Clerk] Running without ClerkProvider - publishable key is missing or invalid');
-    }
-    // Render without ClerkProvider and without Clerk-dependent features during build
-    return (
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-        <AuthorizationProvider>
-          <CookieManager
-            cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
-            showManageButton={true}
-            enableFloatingButton={false}
-            displayType="popup"
-            cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
-            theme="light"
-            privacyPolicyUrl="/legal/cookie"
-            translations={createCookieTranslations(messages)}
-          >
-            <PHProvider client={posthog}>
-              {posthogLoaded && <PostHogPageView />}
-              {children}
-            </PHProvider>
-            <Toaster closeButton position="bottom-right" richColors />
-          </CookieManager>
-        </AuthorizationProvider>
-      </ThemeProvider>
-    );
-  }
-
   return (
     <ClerkProvider
-      publishableKey={clerkPublishableKey}
       localization={getLocalization(currentLocale)}
       signInFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}
       signUpFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL}
