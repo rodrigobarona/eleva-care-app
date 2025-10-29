@@ -56,19 +56,13 @@ function validateSafeString(value: string, fieldName: string): void {
     : 'letters, numbers, hyphens, and underscores';
 
   if (!regex.test(value)) {
-    console.error(`Path traversal attempt detected in ${fieldName}: "${value}"`);
+    console.error(`Invalid ${fieldName}: "${value}"`);
     throw new Error(`Invalid ${fieldName}: only ${allowedChars} are allowed`);
   }
 
-  // Check for path traversal patterns (.. sequences and backslashes)
-  if (value.includes('..') || value.includes('\\')) {
-    console.error(`Path traversal pattern detected in ${fieldName}: "${value}"`);
-    throw new Error(`Invalid ${fieldName}: path traversal patterns are not allowed`);
-  }
-
-  // Prevent absolute paths
+  // Prevent absolute paths (relative paths required for content safety)
   if (value.startsWith('/')) {
-    console.error(`Absolute path detected in ${fieldName}: "${value}"`);
+    console.error(`Absolute path not allowed in ${fieldName}: "${value}"`);
     throw new Error(`Invalid ${fieldName}: absolute paths are not allowed`);
   }
 }
@@ -86,12 +80,8 @@ function validateSecurePath(constructedPath: string, baseDir: string): string {
   const relativePath = path.relative(resolvedBase, resolvedPath);
 
   // Check if path escapes the base directory
-  // Invalid if: exactly '..', starts with '../', or starts with '..\' on Windows
-  if (
-    relativePath === '..' ||
-    relativePath.startsWith('..' + path.sep) ||
-    relativePath.startsWith('..')
-  ) {
+  // Invalid if: exactly '..' or starts with '../' (or '..\' on Windows)
+  if (relativePath === '..' || relativePath.startsWith('..' + path.sep)) {
     console.error(
       `Path traversal attempt detected: relative path "${relativePath}" escapes base directory "${resolvedBase}"`,
     );
