@@ -1,5 +1,5 @@
 import { isValidLocale } from '@/app/i18n';
-import { defaultLocale, locales } from '@/lib/i18n/routing';
+import { locales } from '@/lib/i18n/routing';
 import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import { mdxComponents } from '@/mdx-components';
@@ -126,7 +126,7 @@ export default async function LegalDocumentPage({ params }: PageProps) {
   const { locale, document } = await params;
 
   if (!isValidLocale(locale)) {
-    redirect(`/${defaultLocale}/legal/${document}`);
+    redirect(`/legal/${document}`); // Default locale (en) has no prefix
   }
 
   if (!validDocuments.includes(document)) {

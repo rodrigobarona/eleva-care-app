@@ -8,7 +8,7 @@ import BeliefsSection from '@/components/organisms/about/BeliefsSection';
 import JoinNetworkSection from '@/components/organisms/about/JoinNetworkSection';
 import MissionSection from '@/components/organisms/about/MissionSection';
 import TeamSection from '@/components/organisms/about/TeamSection';
-import { defaultLocale, locales } from '@/lib/i18n/routing';
+import { locales } from '@/lib/i18n/routing';
 import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generateGenericPageMetadata } from '@/lib/seo/metadata-utils';
 import { mdxComponents } from '@/mdx-components';
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { locale } = await params;
 
   if (!isValidLocale(locale)) {
-    redirect(`/${defaultLocale}/about`);
+    redirect('/about'); // Default locale (en) has no prefix
   }
 
   try {
@@ -65,7 +65,7 @@ export default async function AboutPage({ params }: PageProps) {
   const { locale } = await params;
 
   if (!isValidLocale(locale)) {
-    redirect(`/${defaultLocale}/about`);
+    redirect('/about'); // Default locale (en) has no prefix
   }
 
   // Merge base MDX components with custom components

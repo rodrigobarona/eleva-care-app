@@ -1,5 +1,4 @@
 import { isValidLocale } from '@/app/i18n';
-import { defaultLocale } from '@/lib/i18n/routing';
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 
@@ -33,7 +32,7 @@ export default async function TrustPage({ params }: PageProps) {
 
   // Handle invalid locale - redirect to default locale
   if (!isValidLocale(locale)) {
-    redirect(`/${defaultLocale}/trust/security`);
+    redirect('/trust/security'); // Default locale (en) has no prefix
   }
 
   // Redirect to the default trust document (security)

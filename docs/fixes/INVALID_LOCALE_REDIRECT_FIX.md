@@ -15,8 +15,15 @@ Pages with invalid locale paths returned 404 errors instead of redirecting to a 
 ```typescript
 // User visits: /fr/about (French - not supported)
 // ❌ Before: 404 Not Found page
-// ✅ After: Redirects to /en/about (English - default locale)
+// ✅ After: Redirects to /about (English - default locale with no prefix)
 ```
+
+**Note:** With `localePrefix: 'as-needed'`, the default locale (`en`) has **NO** prefix in the URL:
+
+- `/about` = English (default)
+- `/es/about` = Spanish
+- `/pt/about` = Portuguese
+- `/pt-BR/about` = Brazilian Portuguese
 
 **Impact:**
 
@@ -33,26 +40,39 @@ Redirect invalid locales to the default locale (`en`) version of the same page.
 ### Implementation
 
 ```typescript
-import { defaultLocale } from '@/lib/i18n/routing';
-
 // ❌ Before - Returns 404
 if (!isValidLocale(locale)) {
   notFound();
 }
 
-// ✅ After - Redirects to default locale
+// ✅ After - Redirects to default locale (NO locale prefix for 'en')
 if (!isValidLocale(locale)) {
-  redirect(`/${defaultLocale}/about`);
+  redirect('/about'); // Default locale has no prefix
 }
 ```
 
-### Valid Locales
+### Valid Locales & URL Structure
 
 ```typescript
 // lib/i18n/routing.ts
 export const locales = ['en', 'es', 'pt', 'pt-BR'] as const;
 export const defaultLocale = 'en' as const;
+
+export const routing = defineRouting({
+  locales,
+  defaultLocale,
+  localePrefix: 'as-needed', // ← Default locale has no prefix!
+  // ...
+});
 ```
+
+**URL Mapping:**
+| Locale | URL Path |
+|--------|----------|
+| `en` (default) | `/about` |
+| `es` | `/es/about` |
+| `pt` | `/pt/about` |
+| `pt-BR` | `/pt-BR/about` |
 
 ---
 
@@ -61,7 +81,7 @@ export const defaultLocale = 'en' as const;
 ### 1. `/app/[locale]/(public)/about/page.tsx`
 
 ```diff
-+ import { defaultLocale, locales } from '@/lib/i18n/routing';
++ import { locales } from '@/lib/i18n/routing';
 + import { notFound, redirect } from 'next/navigation';
 
   export async function generateMetadata({ params }: PageProps) {
@@ -69,7 +89,7 @@ export const defaultLocale = 'en' as const;
 
     if (!isValidLocale(locale)) {
 -     notFound();
-+     redirect(`/${defaultLocale}/about`);
++     redirect('/about'); // Default locale has no prefix
     }
   }
 
@@ -78,7 +98,7 @@ export const defaultLocale = 'en' as const;
 
     if (!isValidLocale(locale)) {
 -     notFound();
-+     redirect(`/${defaultLocale}/about`);
++     redirect('/about'); // Default locale has no prefix
     }
   }
 ```
@@ -86,7 +106,7 @@ export const defaultLocale = 'en' as const;
 ### 2. `/app/[locale]/(public)/history/page.tsx`
 
 ```diff
-+ import { defaultLocale, locales } from '@/lib/i18n/routing';
++ import { locales } from '@/lib/i18n/routing';
 + import { notFound, redirect } from 'next/navigation';
 
   export async function generateMetadata({ params }: PageProps) {
@@ -94,7 +114,7 @@ export const defaultLocale = 'en' as const;
 
     if (!isValidLocale(locale)) {
 -     notFound();
-+     redirect(`/${defaultLocale}/history`);
++     redirect('/history'); // Default locale has no prefix
     }
   }
 
@@ -103,7 +123,7 @@ export const defaultLocale = 'en' as const;
 
     if (!isValidLocale(locale)) {
 -     notFound();
-+     redirect(`/${defaultLocale}/history`);
++     redirect('/history'); // Default locale has no prefix
     }
   }
 ```
@@ -112,10 +132,8 @@ export const defaultLocale = 'en' as const;
 
 ```diff
   import { isValidLocale } from '@/app/i18n';
-+ import { defaultLocale } from '@/lib/i18n/routing';
   import type { Metadata } from 'next';
-- import { notFound, redirect } from 'next/navigation';
-+ import { redirect } from 'next/navigation';
+  import { redirect } from 'next/navigation';
 
   export default async function LegalPage({ params }: PageProps) {
     const { locale } = await params;
@@ -124,7 +142,7 @@ export const defaultLocale = 'en' as const;
 +   // Handle invalid locale - redirect to default locale
     if (!isValidLocale(locale)) {
 -     notFound();
-+     redirect(`/${defaultLocale}/legal/terms`);
++     redirect('/legal/terms'); // Default locale has no prefix
     }
 
     // Redirect to the default legal document (terms)
@@ -136,7 +154,7 @@ export const defaultLocale = 'en' as const;
 
 ```diff
   import { isValidLocale } from '@/app/i18n';
-+ import { defaultLocale, locales } from '@/lib/i18n/routing';
++ import { locales } from '@/lib/i18n/routing';
 + import { notFound, redirect } from 'next/navigation';
 
   export default async function LegalDocumentPage({ params }: PageProps) {
@@ -144,7 +162,7 @@ export const defaultLocale = 'en' as const;
 
     if (!isValidLocale(locale)) {
 -     notFound();
-+     redirect(`/${defaultLocale}/legal/${document}`);
++     redirect(`/legal/${document}`); // Default locale has no prefix
     }
 
     if (!validDocuments.includes(document)) {
@@ -157,10 +175,8 @@ export const defaultLocale = 'en' as const;
 
 ```diff
   import { isValidLocale } from '@/app/i18n';
-+ import { defaultLocale } from '@/lib/i18n/routing';
   import type { Metadata } from 'next';
-- import { notFound, redirect } from 'next/navigation';
-+ import { redirect } from 'next/navigation';
+  import { redirect } from 'next/navigation';
 
   export default async function TrustPage({ params }: PageProps) {
     const { locale } = await params;
@@ -169,7 +185,7 @@ export const defaultLocale = 'en' as const;
 +   // Handle invalid locale - redirect to default locale
     if (!isValidLocale(locale)) {
 -     notFound();
-+     redirect(`/${defaultLocale}/trust/security`);
++     redirect('/trust/security'); // Default locale has no prefix
     }
 
     // Redirect to the default trust document (security)
@@ -181,7 +197,7 @@ export const defaultLocale = 'en' as const;
 
 ```diff
   import { isValidLocale } from '@/app/i18n';
-+ import { defaultLocale, locales } from '@/lib/i18n/routing';
++ import { locales } from '@/lib/i18n/routing';
 + import { notFound, redirect } from 'next/navigation';
 
   export default async function TrustDocumentPage({ params }: PageProps) {
@@ -189,7 +205,7 @@ export const defaultLocale = 'en' as const;
 
     if (!isValidLocale(locale)) {
 -     notFound();
-+     redirect(`/${defaultLocale}/trust/${document}`);
++     redirect(`/trust/${document}`); // Default locale has no prefix
     }
 
     if (!validDocuments.includes(document)) {
@@ -204,14 +220,14 @@ export const defaultLocale = 'en' as const;
 
 ### User Experience Examples
 
-| User Visits          | Old Behavior  | New Behavior              |
-| -------------------- | ------------- | ------------------------- |
-| `/fr/about`          | 404 Error ❌  | → `/en/about` ✅          |
-| `/de/history`        | 404 Error ❌  | → `/en/history` ✅        |
-| `/it/legal/terms`    | 404 Error ❌  | → `/en/legal/terms` ✅    |
-| `/ja/trust/security` | 404 Error ❌  | → `/en/trust/security` ✅ |
-| `/en/about`          | Shows page ✅ | Shows page ✅             |
-| `/pt-BR/history`     | Shows page ✅ | Shows page ✅             |
+| User Visits          | Old Behavior  | New Behavior           |
+| -------------------- | ------------- | ---------------------- |
+| `/fr/about`          | 404 Error ❌  | → `/about` ✅          |
+| `/de/history`        | 404 Error ❌  | → `/history` ✅        |
+| `/it/legal/terms`    | 404 Error ❌  | → `/legal/terms` ✅    |
+| `/ja/trust/security` | 404 Error ❌  | → `/trust/security` ✅ |
+| `/about`             | Shows page ✅ | Shows page ✅          |
+| `/pt-BR/history`     | Shows page ✅ | Shows page ✅          |
 
 ### Redirect Flow
 
@@ -262,7 +278,7 @@ export const defaultLocale = 'en' as const;
 // User with unsupported locale
 /fr/legal/privacy
   ↓ (redirects)
-/en/legal/privacy  ← Still on the same document!
+/legal/privacy  ← Still on the same document! (default locale has no prefix)
 ```
 
 ### 4. **Consistent Behavior**
@@ -278,9 +294,9 @@ export const defaultLocale = 'en' as const;
 ### 1. **Invalid Locale with Valid Document**
 
 ```typescript
-// /fr/legal/terms → /en/legal/terms ✅
-// Preserves document type, changes locale
-redirect(`/${defaultLocale}/legal/${document}`);
+// /fr/legal/terms → /legal/terms ✅
+// Preserves document type, changes to default locale (no prefix)
+redirect(`/legal/${document}`);
 ```
 
 ### 2. **Valid Locale with Invalid Document**
@@ -297,7 +313,7 @@ if (!validDocuments.includes(document)) {
 
 ```typescript
 // /fr/legal/invalid-doc
-// First redirects: /en/legal/invalid-doc
+// First redirects: /legal/invalid-doc
 // Then returns: 404 (invalid document)
 ```
 
@@ -307,7 +323,7 @@ if (!validDocuments.includes(document)) {
 // Invalid locale in generateMetadata also redirects
 export async function generateMetadata({ params }) {
   if (!isValidLocale(locale)) {
-    redirect(`/${defaultLocale}/about`);
+    redirect('/about'); // Default locale has no prefix
   }
   // ...
 }
@@ -353,14 +369,14 @@ export async function generateMetadata({ params }) {
 ```bash
 # Test invalid locales
 curl -I http://localhost:3000/fr/about
-# Expected: 307 Redirect to /en/about
+# Expected: 307 Redirect to /about
 
 curl -I http://localhost:3000/de/legal/privacy
-# Expected: 307 Redirect to /en/legal/privacy
+# Expected: 307 Redirect to /legal/privacy
 
 # Test valid locales
-curl -I http://localhost:3000/en/about
-# Expected: 200 OK
+curl -I http://localhost:3000/about
+# Expected: 200 OK (default locale, no prefix)
 
 curl -I http://localhost:3000/pt-BR/history
 # Expected: 200 OK
@@ -383,7 +399,9 @@ if (!isValidLocale(locale)) {
   const acceptLanguage = headersList.get('accept-language');
   const userLocale = getBestMatchLocale(acceptLanguage, locales);
 
-  redirect(`/${userLocale || defaultLocale}/about`);
+  // Redirect to matched locale or default (default has no prefix)
+  const redirectPath = userLocale === 'en' ? '/about' : `/${userLocale}/about`;
+  redirect(redirectPath);
 }
 ```
 
@@ -394,11 +412,11 @@ if (!isValidLocale(locale)) {
   // Track invalid locale attempts
   analytics.track('invalid_locale_redirect', {
     requested: locale,
-    redirected_to: defaultLocale,
+    redirected_to: 'en',
     path: '/about',
   });
 
-  redirect(`/${defaultLocale}/about`);
+  redirect('/about'); // Default locale has no prefix
 }
 ```
 

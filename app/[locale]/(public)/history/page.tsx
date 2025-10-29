@@ -3,7 +3,7 @@ import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
 import SmoothLink from '@/components/atoms/SmoothLink';
 import { Link } from '@/lib/i18n/navigation';
-import { defaultLocale, locales } from '@/lib/i18n/routing';
+import { locales } from '@/lib/i18n/routing';
 import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import { mdxComponents } from '@/mdx-components';
@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { locale } = await params;
 
   if (!isValidLocale(locale)) {
-    redirect(`/${defaultLocale}/history`);
+    redirect('/history'); // Default locale (en) has no prefix
   }
 
   try {
@@ -74,7 +74,7 @@ export default async function HistoryPage({ params }: PageProps) {
   const { locale } = await params;
 
   if (!isValidLocale(locale)) {
-    redirect(`/${defaultLocale}/history`);
+    redirect('/history'); // Default locale (en) has no prefix
   }
 
   // Merge base MDX components with custom components
