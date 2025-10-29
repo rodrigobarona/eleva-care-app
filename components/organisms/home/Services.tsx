@@ -49,18 +49,15 @@ const ServiceSection: React.FC = () => {
               key={service.title}
               className="overflow-hidden border-[#0d6c70]/10 bg-eleva-neutral-100 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="aspect-[300:450] relative h-72 shrink-0 overflow-hidden">
-                <div className="absolute w-full object-cover">
-                  <Image
-                    src={service.image}
-                    alt={service.title}
-                    width={300} // Base width for aspect ratio and smallest srcset
-                    height={450} // Base height for aspect ratio
-                    className="w-full object-cover"
-                    loading="lazy"
-                    sizes="(max-width: 768px) 90vw, (max-width: 1280px) 45vw, 300px"
-                  />
-                </div>
+              <div className="relative aspect-[2/3] h-72 shrink-0 overflow-hidden">
+                <Image
+                  src={service.image}
+                  alt={service.title}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 90vw, (max-width: 1280px) 45vw, 600px"
+                  priority={false}
+                />
               </div>
 
               <CardContent className="flex flex-col p-6 pt-6">

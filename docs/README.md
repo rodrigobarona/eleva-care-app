@@ -1,10 +1,10 @@
 # 📚 Eleva Care Documentation Hub
 
-> **Complete technical documentation for the Eleva Care platform - organized by priority and system area.**
+> **Complete technical documentation for the Eleva Care platform - clean, organized, and current**
 
 ## 🧭 Documentation Structure
 
-Our documentation follows a **hierarchical priority-based system** designed for maximum usability and maintainability. **All markdown files from across the codebase have been centralized here.**
+Our documentation follows a **hierarchical priority-based system** designed for maximum usability and maintainability.
 
 ### 📁 Folder Organization
 
@@ -21,253 +21,308 @@ Our documentation follows a **hierarchical priority-based system** designed for 
 | **09-integrations**       | Third-party integrations, external tools                             | All developers               | 🟢 Medium   |
 | **archived**              | Legacy, outdated, or completed implementation docs                   | Reference only               | ⚪ Low      |
 
+---
+
 ## 🚀 Quick Start
 
 ### New Team Members
 
-1. **Start here**: [01-getting-started/README.md](./01-getting-started/README.md)
-2. **Essential systems**: [02-core-systems/README.md](./02-core-systems/README.md)
-3. **Development setup**: [04-development/README.md](./04-development/README.md)
-4. **Legal compliance**: [06-legal/README.md](./06-legal/README.md)
+1. **Start here**: [Getting Started](./01-getting-started/README.md)
+2. **Essential systems**: [Core Systems](./02-core-systems/README.md)
+3. **Development setup**: [Development Guides](./04-development/README.md)
+4. **Legal compliance**: [Legal & Compliance](./06-legal/README.md)
 
 ### Existing Developers
 
-- **System overview**: [02-core-systems](./02-core-systems/)
-- **Infrastructure**: [03-infrastructure](./03-infrastructure/)
-- **Development guides**: [04-development](./04-development/)
-- **External integrations**: [09-integrations](./09-integrations/)
+- **System overview**: [Core Systems](./02-core-systems/README.md)
+- **Infrastructure**: [Infrastructure](./03-infrastructure/README.md)
+- **Development guides**: [Development](./04-development/README.md)
+- **External integrations**: [Integrations](./09-integrations/README.md)
 
 ### Operations & DevOps
 
-- **Monitoring**: [03-infrastructure/monitoring/](./03-infrastructure/monitoring/)
-- **Deployment**: [08-deployment/](./08-deployment/)
-- **CI/CD**: [03-infrastructure/ci-cd/](./03-infrastructure/ci-cd/)
-
-### Project Management
-
-- **Issue tracking**: [07-project-management/](./07-project-management/)
-- **Release planning**: [01-getting-started/CHANGELOG.md](./01-getting-started/CHANGELOG.md)
-
-## 🗂️ Complete File Index
-
-### 01 - Getting Started (Priority: Critical)
-
-```
-01-getting-started/
-├── README.md                          # Getting started overview
-├── CHANGELOG.md                       # Project changelog and release history
-├── 01-quick-start.md                  # Essential setup guide
-├── 02-api-overview.md                 # API documentation overview
-├── 03-expert-user-guide.md            # Expert user functionality
-├── 04-architecture-overview.md        # System architecture basics
-└── 05-v0.5.0-release-summary.md      # Major release summary
-```
-
-### 02 - Core Systems (Priority: Critical)
-
-```
-02-core-systems/
-├── README.md                          # Core systems overview
-├── 06-automation-systems-summary.md   # Automation overview
-├── authentication/                    # User authentication & authorization
-│   ├── 01-clerk-configuration.md
-│   ├── 02-role-management.md
-│   ├── 03-permission-system.md
-│   └── 04-route-protection.md
-├── caching/                          # Redis caching system
-│   ├── 01-redis-implementation.md
-│   ├── 02-customer-cache.md
-│   ├── 03-rate-limiting.md
-│   └── 04-redis-integration-guide.md
-├── notifications/                    # Novu notification system
-│   ├── 01-novu-integration.md
-│   ├── 02-notification-workflows.md
-│   ├── 03-stripe-novu-integration.md
-│   ├── 04-novu-localization-security-fixes.md
-│   ├── 05-novu-automation-scripts.md
-│   ├── 06-novu-framework-sync-success.md
-│   └── 07-novu-workflows-production-ready.md
-├── payments/                         # Stripe payment processing
-│   ├── README.md
-│   ├── 01-payment-flow-analysis.md
-│   ├── 02-stripe-integration.md
-│   ├── 03-enhanced-payout-processing.md
-│   ├── 03-payment-restrictions.md
-│   ├── 04-race-condition-fixes.md
-│   ├── 05-multibanco-integration.md
-│   └── 06-multibanco-reminder-system.md
-└── scheduling/                       # Appointment scheduling
-    ├── 01-scheduling-engine.md
-    └── 02-booking-layout.md
-```
-
-### 03 - Infrastructure (Priority: High)
-
-```
-03-infrastructure/
-├── ci-cd/
-│   └── 01-ci-cd-integration.md
-├── monitoring/
-│   ├── 01-health-check-monitoring.md
-│   ├── 02-posthog-analytics.md
-│   ├── 03-posthog-dashboard.md
-│   ├── 04-monitoring-guide.md
-│   └── 05-keep-alive-enhancements.md
-└── scheduling/
-    ├── 01-cron-jobs.md
-    └── 02-qstash-integration.md
-```
-
-### 04 - Development (Priority: High)
-
-```
-04-development/
-├── url-structure-guide.md              # /legal/ vs /trust/ architecture
-├── integrations/
-│   ├── 01-stripe-identity.md
-│   ├── 02-stripe-payouts.md
-│   ├── 03-private-layout.md
-│   ├── 04-email-templates.md
-│   └── 05-identity-verification-fix.md
-├── standards/
-│   ├── 01-database-conventions.md
-│   ├── 02-internationalization.md
-│   ├── 03-server-actions.md
-│   ├── 04-bundle-optimization-report.md
-│   └── 05-build-optimization-guide.md
-├── testing/
-│   ├── 01-testing-guide.md
-│   ├── 02-webhook-testing.md
-│   ├── 03-email-testing-guide.md
-│   ├── 04-testing-overview.md
-│   ├── 05-testing-summary.md
-│   └── 06-webhook-testing-detailed.md
-└── ui-ux/
-    ├── 01-dashboard-forms-design.md
-    ├── 02-react-hook-form-fixes.md
-    └── 03-tiptap-editor-fixes.md
-```
-
-### 05 - Guides (Priority: Medium)
-
-```
-05-guides/
-├── features/
-│   ├── 01-customer-id-system.md
-│   ├── 02-profile-publishing.md
-│   └── 03-multilingual-checkout.md
-├── legacy/
-│   ├── 01-monorepo-migration.md
-│   └── 02-customers-section.md
-└── troubleshooting/
-    ├── 01-customer-cache-fixes.md
-    ├── 02-payment-flow-verification.md
-    └── 03-payout-diagnosis.md
-```
-
-### 06 - Legal (Priority: High)
-
-```
-06-legal/
-├── README.md                         # Legal documentation overview & compliance status
-├── compliance/                      # GDPR, CNPD, DPO, data protection
-│   ├── 01-legal-compliance-summary.md
-│   ├── 02-gdpr-dpia-template.md
-│   ├── 03-dpo-designation.md
-│   ├── 04-cnpd-compliance-guide.md
-│   ├── 05-data-breach-procedures.md
-│   └── 06-eu-health-data-compliance.md
-├── audit/                           # Technical & legal audits
-│   ├── 01-legal-audit-deliverables.md
-│   ├── 02-technical-audit-2025.md
-│   └── 03-audit-quick-reference.md
-├── platform/                        # Platform model & liability
-│   ├── 01-platform-vs-provider-analysis.md
-│   ├── 02-platform-clarity-summary.md
-│   ├── 03-platform-clarity-updates.md
-│   └── 04-immediate-actions.md
-└── guides/                          # Operational guides
-    └── 01-translation-guide.md
-```
-
-### 07 - Project Management (Priority: Medium)
-
-```
-07-project-management/
-├── README.md                         # Project management overview
-└── 01-linear-issues.md              # Linear issue tracking
-```
-
-### 08 - Deployment (Priority: High)
-
-```
-08-deployment/
-├── README.md                         # Deployment overview
-├── 01-production-migration-guide.md # Production deployment guide
-└── 02-vercel-environment-setup.md   # Vercel environment variables
-```
-
-### 09 - Integrations (Priority: Medium)
-
-```
-09-integrations/
-├── README.md                         # Integrations overview
-├── 01-react-cookie-manager.md       # Cookie consent management
-├── 02-stripe-recommendations.md     # Stripe best practices
-└── 03-svix-cli.md                   # Svix webhook tools
-```
-
-### Archived Documentation
-
-```
-archived/
-├── README.md
-├── completed-implementations/
-├── deprecated-features/
-└── outdated-plans/
-```
-
-## 📊 Documentation Statistics
-
-- **Total sections**: 9 active + 1 archived
-- **Documentation files**: 75+ organized markdown files (after consolidation)
-- **Legal & Compliance**: 14 specialized documents in 4 categories
-- **Coverage areas**: All major systems, processes, and compliance requirements
-- **Maintenance**: Centralized in `/docs` for easy management
-
-## 🔄 Recent Organization Changes
-
-**All markdown files from across the codebase have been centralized and organized:**
-
-- ✅ **Root level files** → Moved to appropriate sections
-- ✅ **Scattered resources** → Organized by category
-- ✅ **Testing documentation** → Consolidated in development section
-- ✅ **Legal documents** → Consolidated and organized in 06-legal/
-- ✅ **Legal audit reports** → Moved to 06-legal/audit/
-- ✅ **Compliance guides** → Organized in 06-legal/compliance/
-- ✅ **Platform model docs** → Organized in 06-legal/platform/
-- ✅ **Integration guides** → New integrations section
-- ✅ **Project management** → New PM section
-- ✅ **Deployment guides** → New deployment section
-
-**Latest Update (October 2025)**:
-
-- ✅ Merged duplicate legal folders (`docs/legal/` + `docs/06-legal/`)
-- ✅ Removed outdated template files
-- ✅ Created organized subdirectory structure (compliance, audit, platform, guides)
-- ✅ Added comprehensive README with compliance status and checklists
-- ✅ **URL Structure Migration**: Migrated from single `/legal/` to hybrid `/legal/` + `/trust/` architecture
-  - See [URL Structure Migration Summary](./URL_STRUCTURE_MIGRATION_SUMMARY.md) for complete details
-  - See [URL Structure Guide](./04-development/url-structure-guide.md) for technical implementation
-
-## 🤝 Contributing to Documentation
-
-1. **Follow the folder structure** - Place new docs in the appropriate numbered section
-2. **Use descriptive filenames** - Include section numbers for ordering
-3. **Update this README** - Add new files to the index above
-4. **Link related docs** - Cross-reference related documentation
-5. **Keep it current** - Regular reviews and updates
+- **Monitoring**: [BetterStack Monitoring](./03-infrastructure/monitoring/01-betterstack-monitoring.md)
+- **Deployment**: [Deployment Guides](./08-deployment/README.md)
+- **CI/CD**: [CI/CD Integration](./03-infrastructure/ci-cd/01-ci-cd-integration.md)
 
 ---
 
-**📍 Last Updated**: October 2025 - Complete documentation reorganization including legal folder consolidation, duplicate removal, and comprehensive compliance documentation structure.
+## 🗂️ Documentation Sections
+
+### 01 - Getting Started
+
+Quick start guides, API overview, architecture basics, and changelog.
+
+📄 **Files:** 7 documents including README, CHANGELOG, and quick-start guide  
+📖 **Start here**: [Getting Started README](./01-getting-started/README.md)
+
+---
+
+### 02 - Core Systems
+
+Critical application systems including authentication, payments, caching, notifications, and scheduling.
+
+#### Subsections:
+
+- **Authentication** (4 files): Clerk configuration, roles, permissions, route protection
+- **Caching** (4 files): Redis implementation, Clerk cache, Stripe cache, rate limiting
+- **Notifications** (4 files): Novu integration, workflows, Stripe notifications
+- **Payments** (10 files): Payment flow, Stripe integration, payouts, Multibanco, refund policies
+- **Scheduling** (2 files): Scheduling engine, booking layout
+
+📄 **Files:** ~25 documents  
+📖 **Start here**: [Core Systems README](./02-core-systems/README.md)
+
+---
+
+### 03 - Infrastructure
+
+DevOps, monitoring, CI/CD, automation, and infrastructure management.
+
+#### Subsections:
+
+- **Monitoring** (5 files): BetterStack, health checks, PostHog analytics
+- **Scheduling** (2 files): Cron jobs, QStash integration
+- **CI/CD** (1 file): GitHub Actions and Vercel integration
+- **Automation** (1 file): Automation systems overview
+
+📄 **Files:** ~10 documents  
+📖 **Start here**: [Infrastructure README](./03-infrastructure/README.md)
+
+---
+
+### 04 - Development
+
+Development practices, testing, standards, integrations, and UI/UX patterns.
+
+#### Subsections:
+
+- **Standards** (5 files): Database conventions, i18n, server actions, optimization
+- **Testing** (6 files): Testing guides, webhook testing, email testing
+- **Integrations** (5 files): Stripe identity, payouts, layouts, email templates
+- **UI/UX** (3 files): Forms, React Hook Form, TipTap editor
+
+📄 **Files:** ~20 documents  
+📖 **Start here**: [Development README](./04-development/README.md)
+
+---
+
+### 05 - Guides
+
+Practical how-to guides, troubleshooting, and feature documentation.
+
+#### Subsections:
+
+- **Features** (3 files): Customer ID system, profile publishing, multilingual checkout
+- **Troubleshooting** (3 files): Cache fixes, payment verification, payout diagnosis
+- **Bot Protection** (1 file): BotID implementation
+- **Legacy** (2 files): Historical references
+
+📄 **Files:** ~10 documents  
+📖 **Start here**: [Guides README](./05-guides/README.md)
+
+---
+
+### 06 - Legal
+
+Legal compliance, GDPR, audit documentation, and platform clarity.
+
+#### Subsections:
+
+- **Compliance** (6 files): GDPR, DPIA, DPO, CNPD, data breach procedures
+- **Audit** (5 files): Legal audits, technical audits, audit call sites
+- **Platform** (4 files): Platform vs provider analysis, clarity updates
+- **Guides** (1 file): Translation guide
+
+📄 **Files:** ~20 documents  
+📖 **Start here**: [Legal README](./06-legal/README.md)
+
+---
+
+### 07 - Project Management
+
+Issue tracking, Linear integration, and project planning.
+
+📄 **Files:** 2 documents  
+📖 **Start here**: [Project Management README](./07-project-management/README.md)
+
+---
+
+### 08 - Deployment
+
+Production migration guides and Vercel environment setup.
+
+📄 **Files:** 3 documents  
+📖 **Start here**: [Deployment README](./08-deployment/README.md)
+
+---
+
+### 09 - Integrations
+
+Third-party service integration guides and recommendations.
+
+📄 **Files:** 6 documents (React Cookie Manager, Stripe, Svix, BetterStack)  
+📖 **Start here**: [Integrations README](./09-integrations/README.md)
+
+---
+
+### Archived
+
+Historical documentation, completed implementations, deprecated features, and outdated plans.
+
+#### Subsections:
+
+- **Completed Implementations**: Redis migration
+- **Deprecated Features**: Old testing approaches, role-based auth
+- **Outdated Plans**: Redis integration plans
+
+📄 **Files:** ~20 documents  
+📖 **Note**: For reference only - not current documentation
+
+---
+
+## 📊 Documentation Statistics
+
+### After Cleanup (January 2025)
+
+- **Total sections**: 9 active + 1 archived
+- **Total files**: ~95 focused, current documents (down from ~150+)
+- **Duplicates removed**: 14 BetterStack files → 1 comprehensive guide
+- **Fixes archived**: 65 ad-hoc fix files deleted
+- **Organization**: Sequential numbering, clear structure
+
+### Key Improvements
+
+✅ **Consolidated**: BetterStack (14 files → 1), Clerk cache (4 files → organized)  
+✅ **Removed**: 65 fix files, 7 outdated reports, duplicate docs  
+✅ **Organized**: Sequential file numbering, clear hierarchy  
+✅ **Current**: Only relevant, up-to-date documentation  
+✅ **Accessible**: README files for each section
+
+---
+
+## 🔄 Recent Changes (January 2025)
+
+### Major Cleanup & Consolidation
+
+**Deleted:**
+
+- ❌ 65 ad-hoc fix files (completed/superseded)
+- ❌ 7 root-level historical reports
+- ❌ 14 scattered BetterStack docs (consolidated)
+- ❌ 4 duplicate Clerk cache docs (reorganized)
+- ❌ Duplicate Novu and payment docs
+- ❌ Outdated legal and performance folders
+
+**Consolidated:**
+
+- ✅ BetterStack monitoring into comprehensive guide
+- ✅ Clerk cache documentation reorganized
+- ✅ Novu docs cleaned and renumbered
+- ✅ Payment docs renumbered sequentially
+- ✅ Audit docs moved to legal section
+
+**Created:**
+
+- ✅ README files for sections 02-05
+- ✅ Clear documentation hierarchy
+- ✅ Improved navigation and discoverability
+
+---
+
+## 🎯 Finding What You Need
+
+### By Role
+
+**Developer (New)**
+
+1. [Getting Started](./01-getting-started/01-quick-start.md)
+2. [Architecture Overview](./01-getting-started/04-architecture-overview.md)
+3. [Core Systems](./02-core-systems/README.md)
+4. [Development Standards](./04-development/standards/)
+
+**Developer (Existing)**
+
+1. [Core Systems](./02-core-systems/README.md)
+2. [Testing Guides](./04-development/testing/)
+3. [Troubleshooting](./05-guides/troubleshooting/)
+
+**DevOps Engineer**
+
+1. [Infrastructure](./03-infrastructure/README.md)
+2. [Monitoring](./03-infrastructure/monitoring/01-betterstack-monitoring.md)
+3. [Deployment](./08-deployment/README.md)
+4. [CI/CD](./03-infrastructure/ci-cd/01-ci-cd-integration.md)
+
+**Product Manager**
+
+1. [API Overview](./01-getting-started/02-api-overview.md)
+2. [Payment System](./02-core-systems/payments/README.md)
+3. [Features](./05-guides/features/)
+4. [Project Management](./07-project-management/README.md)
+
+**Legal/Compliance**
+
+1. [Legal & Compliance](./06-legal/README.md)
+2. [GDPR & Privacy](./06-legal/compliance/)
+3. [Platform Clarity](./06-legal/platform/)
+4. [Audit Docs](./06-legal/audit/)
+
+### By Topic
+
+**Payments**: [Payment System README](./02-core-systems/payments/README.md)  
+**Authentication**: [Authentication Docs](./02-core-systems/authentication/)  
+**Notifications**: [Novu Integration](./02-core-systems/notifications/01-novu-integration.md)  
+**Caching**: [Redis Caching](./02-core-systems/caching/01-redis-caching.md)  
+**Monitoring**: [BetterStack Guide](./03-infrastructure/monitoring/01-betterstack-monitoring.md)  
+**Testing**: [Testing Guide](./04-development/testing/01-testing-guide.md)  
+**i18n**: [Internationalization](./04-development/standards/02-internationalization.md)
+
+---
+
+## 🤝 Contributing to Documentation
+
+### Guidelines
+
+1. **Follow the structure**: Place new docs in the appropriate numbered section
+2. **Use descriptive filenames**: Include section numbers for ordering (e.g., `01-feature-name.md`)
+3. **Update README files**: Add new files to section README
+4. **Cross-reference**: Link to related documentation
+5. **Keep current**: Update docs as you build features
+6. **Delete outdated**: Remove docs when features are removed/replaced
+
+### Documentation Standards
+
+- **Title**: Clear, descriptive H1 heading
+- **Overview**: Brief description of what the doc covers
+- **Structure**: Use H2/H3 headings for organization
+- **Code examples**: Include practical code snippets
+- **Links**: Cross-reference related docs
+- **Last updated**: Include date at bottom
+
+---
+
+## 📍 Quick Links
+
+### Most Used Docs
+
+- [Payment System Guide](./02-core-systems/payments/README.md) ⭐
+- [BetterStack Monitoring](./03-infrastructure/monitoring/01-betterstack-monitoring.md) ⭐
+- [Quick Start Guide](./01-getting-started/01-quick-start.md)
+- [Testing Guide](./04-development/testing/01-testing-guide.md)
+- [Clerk Configuration](./02-core-systems/authentication/01-clerk-configuration.md)
+
+### External Resources
+
+- [Vercel Dashboard](https://vercel.com/eleva-care)
+- [Stripe Dashboard](https://dashboard.stripe.com)
+- [Neon Database](https://console.neon.tech)
+- [BetterStack](https://uptime.betterstack.com)
+- [Clerk Dashboard](https://dashboard.clerk.com)
+
+---
+
+**📍 Last Updated**: January 2025  
+**🧹 Last Cleanup**: January 2025 - Major consolidation and organization  
+**👥 Maintained By**: Engineering Team  
+**💬 Questions?** Post in #engineering Slack channel

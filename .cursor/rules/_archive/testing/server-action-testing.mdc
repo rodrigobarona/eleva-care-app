@@ -1,0 +1,413 @@
+---
+description: Server Action Testing Guidelines for Next.js 16
+globs: ['tests/**/server/**/*.test.ts', 'tests/**/actions/**/*.test.ts']
+---
+
+# Server Action Testing Guidelines for Next.js 16
+
+## Overview
+
+Server Actions in Next.js require special testing approaches due to their server-side execution context and reliance on Next.js features like headers, auth, and redirects. This guide provides detailed patterns and examples for properly testing server actions in the Eleva Care application.
+
+## Key Challenges
+
+1. **Authentication Context**: Server actions often rely on the authenticated user
+2. **Headers and Request Context**: Accessing request headers requires mocking
+3. **Redirects**: Server actions may redirect after completion
+4. **Database Operations**: Most server actions interact with the database
+5. **External Services**: Integration with services like Stripe or email
+
+## Server Action Test Setup Pattern
+
+### Basic Setup Structure
+
+```typescript
+// 3. Now import the server action after all mocks are set up
+import { serverAction } from '@/server/actions/some-module';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+
+// 1. Mock all dependencies first
+jest.mock('@clerk/nextjs/server', () => ({
+  auth: jest.fn().mockResolvedValue({
+    userId: 'user_123',
+    orgId: null,
+    getToken: jest.fn().mockResolvedValue('mock-token'),
+  }),
+}));
+
+jest.mock('next/headers', () => ({
+  headers: jest.fn().mockReturnValue(
+    new Map([
+      ['x-forwarded-for', '127.0.0.1'],
+      ['user-agent', 'Jest Test'],
+    ]),
+  ),
+}));
+
+jest.mock('next/cache', () => ({
+  revalidatePath: jest.fn(),
+  revalidateTag: jest.fn(),
+  updateTag: jest.fn(),
+  refresh: jest.fn(),
+  cacheTag: jest.fn(),
+  cacheLife: jest.fn(),
+}));
+
+jest.mock('next/navigation', () => ({
+  redirect: jest.fn().mockImplementation(() => {
+    throw new Error('NEXT_REDIRECT');
+  }),
+}));
+
+jest.mock('@/drizzle/db', () => ({
+  db: {
+    // Database mock implementation
+    // See database-testing.mdc for detailed patterns
+  },
+}));
+
+// 2. Mock any external services
+jest.mock('@/lib/stripe', () => ({
+  getServerStripe: jest.fn().mockResolvedValue({
+    // Stripe client mock
+  }),
+}));
+
+jest.mock('@/lib/logAuditEvent', () => ({
+  logAuditEvent: jest.fn().mockResolvedValue(true),
+}));
+
+// 4. Write your tests
+describe('Server Action: serverAction', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('test case for the server action', async () => {
+    // Test implementation
+  });
+});
+```
+
+## Testing Authentication and Authorization
+
+```typescript
+describe('Server Action with Auth', () => {
+  it('should handle unauthenticated requests', async () => {
+    // Override auth mock for this test
+    const mockAuth = require('@clerk/nextjs/server').auth;
+    mockAuth.mockResolvedValueOnce({ userId: null });
+
+    const result = await serverAction(someData);
+    expect(result.error).toBe(true);
+    expect(result.message).toContain('unauthorized');
+  });
+
+  it('should handle unauthorized access', async () => {
+    // Mock a user without required permissions
+    const mockAuth = require('@clerk/nextjs/server').auth;
+    mockAuth.mockResolvedValueOnce({
+      userId: 'wrong_user',
+      orgId: null,
+      getToken: jest.fn().mockResolvedValue('mock-token'),
+    });
+
+    // Mock database to return data owned by a different user
+    const dbMock = require('@/drizzle/db').db;
+    dbMock.select.mockReturnValue({
+      from: jest.fn().mockReturnValue({
+        where: jest.fn().mockReturnValue({
+          execute: jest.fn().mockResolvedValue([
+            {
+              id: 'resource_123',
+              clerkUserId: 'other_user_456', // Different from authenticated user
+              name: 'Restricted Resource',
+            },
+          ]),
+        }),
+      }),
+    });
+
+    const result = await serverAction('resource_123', { name: 'Updated' });
+    expect(result.error).toBe(true);
+  });
+});
+```
+
+## Testing Redirects
+
+Server actions that redirect require special handling:
+
+```typescript
+it('should redirect on successful update', async () => {
+  // Mock successful database operation
+  const dbMock = require('@/drizzle/db').db;
+  dbMock.update.mockReturnValue({
+    set: jest.fn().mockReturnValue({
+      where: jest.fn().mockReturnValue({
+        returning: jest.fn().mockResolvedValue([{ id: 'resource_123' }]),
+      }),
+    }),
+  });
+
+  // Redirecting function should throw NEXT_REDIRECT error
+  try {
+    await serverAction('resource_123', { name: 'Updated Name' });
+    // If we reach here, the redirect didn't happen
+    fail('Expected redirect did not occur');
+  } catch (error) {
+    // Verify the error is our redirect error
+    expect(error.message).toBe('NEXT_REDIRECT');
+
+    // Verify the redirect was called with correct path
+    const mockRedirect = require('next/navigation').redirect;
+    expect(mockRedirect).toHaveBeenCalledWith('/expected/path');
+  }
+});
+```
+
+## Testing Form Validation
+
+```typescript
+it('should validate form data and return errors', async () => {
+  // Test with invalid data
+  const invalidData = {
+    // Missing required fields or invalid format
+  };
+
+  const result = await serverAction(invalidData);
+
+  expect(result.error).toBe(true);
+  expect(result.validationErrors).toBeDefined();
+  // Check specific validation messages if needed
+});
+```
+
+## Testing Database Interactions
+
+```typescript
+it('should create a new record in the database', async () => {
+  const mockData = {
+    name: 'New Record',
+    description: 'Test description',
+  };
+
+  const dbMock = require('@/drizzle/db').db;
+  const insertMock = jest.fn().mockReturnValue({
+    values: jest.fn().mockReturnValue({
+      returning: jest.fn().mockResolvedValue([
+        {
+          id: 'new_record_123',
+          ...mockData,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ]),
+    }),
+  });
+  dbMock.insert.mockImplementation(insertMock);
+
+  const result = await serverAction(mockData);
+
+  expect(result.error).toBe(false);
+  expect(dbMock.insert).toHaveBeenCalled();
+  // Verify the values passed to insert
+  const valuesFn = insertMock.mock.results[0].value.values;
+  expect(valuesFn).toHaveBeenCalledWith(expect.objectContaining(mockData));
+});
+```
+
+## Testing Audit Logging
+
+Many server actions include audit logging:
+
+```typescript
+it('should log the action in the audit log', async () => {
+  const mockLogAuditEvent = require('@/lib/logAuditEvent').logAuditEvent;
+
+  await serverAction({ name: 'Test Resource' });
+
+  expect(mockLogAuditEvent).toHaveBeenCalledWith(
+    'user_123', // userId
+    'create', // action
+    'resources', // resource type
+    expect.any(String), // resourceId
+    null, // oldValues (null for creation)
+    expect.objectContaining({ name: 'Test Resource' }), // newValues
+    '127.0.0.1', // ipAddress
+    'Jest Test', // userAgent
+  );
+});
+```
+
+## Testing Error Handling
+
+```typescript
+it('should handle unexpected errors gracefully', async () => {
+  // Force an error in a dependency
+  const dbMock = require('@/drizzle/db').db;
+  dbMock.insert.mockImplementation(() => {
+    throw new Error('Unexpected database error');
+  });
+
+  const result = await serverAction({ name: 'Test' });
+
+  expect(result.error).toBe(true);
+  expect(result.message).toContain('error');
+  // Don't assert on the exact error message to allow flexibility
+});
+```
+
+## Testing Cache Invalidation (Next.js 16)
+
+### Testing updateTag (Read-Your-Writes)
+
+```typescript
+it('should invalidate cache tags immediately', async () => {
+  const updateTagMock = require('next/cache').updateTag;
+
+  await serverAction({ name: 'Test' });
+
+  // Verify immediate cache invalidation
+  expect(updateTagMock).toHaveBeenCalledWith('resources');
+  expect(updateTagMock).toHaveBeenCalledWith('resource-123');
+});
+```
+
+### Testing revalidateTag (Stale-While-Revalidate)
+
+```typescript
+it('should mark cache tags as stale', async () => {
+  const revalidateTagMock = require('next/cache').revalidateTag;
+
+  await serverAction({ id: 'article-123' });
+
+  // Verify stale-while-revalidate pattern
+  expect(revalidateTagMock).toHaveBeenCalledWith('article-123', 'max');
+});
+```
+
+### Testing refresh (Client Router Refresh)
+
+```typescript
+it('should trigger client router refresh', async () => {
+  const refreshMock = require('next/cache').refresh;
+
+  await serverAction({ notificationId: 'notif-123' });
+
+  // Verify client refresh was called
+  expect(refreshMock).toHaveBeenCalled();
+});
+```
+
+### Testing Path Revalidation (Legacy)
+
+```typescript
+it('should revalidate the appropriate paths', async () => {
+  const revalidatePathMock = require('next/cache').revalidatePath;
+
+  await serverAction({ name: 'Test' });
+
+  expect(revalidatePathMock).toHaveBeenCalledWith('/resources');
+  // Check other paths if multiple are revalidated
+});
+```
+
+## Common Pitfalls
+
+1. **Importing before mocking**:
+
+   ```typescript
+   // WRONG ORDER
+   import { serverAction } from '@/server/actions/module';
+   jest.mock('@/drizzle/db', () => ({ /* ... */ }));
+
+   // CORRECT ORDER
+   jest.mock('@/drizzle/db', () => ({ /* ... */ }));
+   import { serverAction } from '@/server/actions/module';
+   ```
+
+2. **Not handling redirects**:
+
+   ```typescript
+   // WRONG - no try/catch for redirect
+   await serverAction(data); // This will throw if it redirects
+   expect(something).toBe(true); // Never reached
+
+   // CORRECT
+   try {
+     await serverAction(data);
+     fail('Should have redirected');
+   } catch (error) {
+     expect(error.message).toBe('NEXT_REDIRECT');
+   }
+   ```
+
+3. **Missing mock implementations**:
+
+   ```typescript
+   // WRONG - incomplete mocking
+   jest.mock('next/headers');
+
+   // CORRECT
+   jest.mock('next/headers', () => ({
+     headers: jest.fn().mockReturnValue(
+       new Map([
+         ['x-forwarded-for', '127.0.0.1'],
+         ['user-agent', 'Jest Test'],
+       ]),
+     ),
+   }));
+   ```
+
+## Best Practices Summary
+
+1. **Mock all dependencies**: Authentication, headers, database, external services
+2. **Mock Next.js 16 cache APIs**: updateTag, revalidateTag, refresh, cacheTag, cacheLife
+3. **Test error cases first**: Validation errors, database errors, auth errors
+4. **Test happy paths**: Successful operations with expected outcomes
+5. **Verify side effects**: Audit logging, cache invalidation, redirects
+6. **Test cache invalidation strategies**:
+   - `updateTag()` for immediate updates
+   - `revalidateTag()` for stale-while-revalidate
+   - `refresh()` for client router refresh
+7. **Test with real-world data**: Use realistic input data and schema-matching output
+8. **Document complex tests**: Add comments for non-obvious test scenarios
+9. **Reset mocks between tests**: Use beforeEach to clear mocks and maintain isolation
+
+## Next.js 16 Specific Testing Patterns
+
+### Testing 'use cache' Functions
+
+```typescript
+// Mock the cache directive
+jest.mock('next/cache', () => ({
+  cacheTag: jest.fn(),
+  cacheLife: jest.fn(),
+  updateTag: jest.fn(),
+  revalidateTag: jest.fn(),
+}));
+
+it('should cache function results with proper tags', async () => {
+  const cacheTagMock = require('next/cache').cacheTag;
+  const cacheLifeMock = require('next/cache').cacheLife;
+
+  await getCachedData('123');
+
+  expect(cacheTagMock).toHaveBeenCalledWith('data-123');
+  expect(cacheLifeMock).toHaveBeenCalledWith({ expire: 300 });
+});
+```
+
+### Testing Async Params
+
+```typescript
+it('should handle async params correctly', async () => {
+  // Create a promise for params
+  const params = Promise.resolve({ id: 'test-123' });
+
+  const result = await pageComponent({ params });
+
+  expect(result).toBeDefined();
+});
+```

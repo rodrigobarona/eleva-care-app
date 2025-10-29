@@ -1,0 +1,470 @@
+---
+description: Architectural Patterns and Decisions
+globs:
+alwaysApply: true
+---
+
+# Architectural Patterns and Decisions for Next.js 16
+
+## Application Architecture
+
+### 1. Next.js App Router Structure
+
+```
+app/
+├── (auth)/           # Authentication routes
+├── (dashboard)/      # Dashboard routes
+├── (marketing)/      # Marketing pages
+├── api/              # API routes
+├── components/       # Shared components
+└── lib/              # Shared utilities
+```
+
+### 2. Component Architecture
+
+- Follow Atomic Design principles
+- Use Server Components by default
+- Client Components only when necessary
+- Implement proper error boundaries
+
+### 3. Data Flow (Next.js 16)
+
+- Server-first approach with React Server Components (RSC)
+- Use Server Actions for mutations with proper cache invalidation
+- Implement optimistic updates with `useOptimistic` hook
+- Handle loading and error states with Suspense and Error Boundaries
+- Leverage Next.js 16 cache invalidation APIs:
+  - `updateTag()` for read-your-writes (immediate updates)
+  - `refresh()` for client-side router refresh
+  - `revalidateTag()` for stale-while-revalidate pattern
+- Use `cacheTag()` to tag cached data for selective invalidation
+
+### 4. State Management
+
+- Use React Server Components for most state
+- Server Actions for mutations
+- React Context for global UI state
+- URL state for shareable state
+
+### 5. API Design
+
+- RESTful principles
+- Strong typing with Zod
+- Proper error handling
+- Rate limiting and caching
+
+### 6. Database Design
+
+- Use Drizzle schemas
+- Implement proper relations
+- Follow naming conventions
+- Handle migrations properly
+
+## Implementation Guidelines
+
+### 1. Server Components (Next.js 16)
+
+```typescript
+// Example Server Component with async params
+export default async function ExpertProfile({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+  const expert = await getExpertProfile(id)
+  return <ExpertProfileView expert={expert} />
+}
+
+// Data fetching with caching strategies
+async function getExpertProfile(id: string) {
+  // Static data: cached until manually invalidated
+  const profile = await fetch(`https://api.example.com/experts/${id}`, {
+    cache: 'force-cache'
+  })
+
+  return profile.json()
+}
+
+// Dynamic data: refetched on every request
+async function getExpertAvailability(id: string) {
+  const availability = await fetch(`https://api.example.com/availability/${id}`, {
+    cache: 'no-store'
+  })
+
+  return availability.json()
+}
+
+// Time-based revalidation
+async function getExpertReviews(id: string) {
+  const reviews = await fetch(`https://api.example.com/reviews/${id}`, {
+    next: { revalidate: 300 } // Revalidate every 5 minutes
+  })
+
+  return reviews.json()
+}
+```
+
+### 2. Client Components
+
+```typescript
+'use client'
+
+import { useState, useOptimistic } from 'react'
+
+export function LikeButton({ postId, initialLikes }: { postId: string; initialLikes: number }) {
+  const [optimisticLikes, addOptimisticLike] = useOptimistic(
+    initialLikes,
+    (state, amount: number) => state + amount
+  )
+
+  async function handleLike() {
+    // Optimistic update
+    addOptimisticLike(1)
+
+    // Server action
+    await likePost(postId)
+  }
+
+  return (
+    <button onClick={handleLike}>
+      Likes: {optimisticLikes}
+    </button>
+  )
+}
+```
+
+### 3. Server Actions with Cache Invalidation
+
+```typescript
+'use server';
+
+import { refresh, revalidateTag, updateTag } from 'next/cache';
+import { redirect } from 'next/navigation';
+
+// Read-your-writes: immediate cache invalidation
+export async function createPost(formData: FormData) {
+  const post = await db.post.create({
+    data: {
+      title: formData.get('title'),
+      content: formData.get('content'),
+    },
+  });
+
+  // Immediate cache invalidation - user sees changes right away
+  updateTag('posts');
+  updateTag(`post-${post.id}`);
+
+  redirect(`/posts/${post.id}`);
+}
+
+// Client router refresh
+export async function markNotificationAsRead(notificationId: string) {
+  await db.notifications.markAsRead(notificationId);
+
+  // Refresh UI without full page reload
+  refresh();
+}
+
+// Stale-while-revalidate
+export async function updateArticle(articleId: string, data: any) {
+  await db.articles.update(articleId, data);
+
+  // Users see stale data while fresh data fetches
+  revalidateTag(`article-${articleId}`, 'max');
+}
+```
+
+### 4. Data Fetching Patterns
+
+#### Sequential Data Fetching
+
+```typescript
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ username: string }>
+}) {
+  const { username } = await params
+
+  // First fetch
+  const artist = await getArtist(username)
+
+  return (
+    <>
+      <h1>{artist.name}</h1>
+      <Suspense fallback={<div>Loading playlists...</div>}>
+        {/* Second fetch depends on first */}
+        <Playlists artistID={artist.id} />
+      </Suspense>
+    </>
+  )
+}
+
+async function Playlists({ artistID }: { artistID: string }) {
+  const playlists = await getArtistPlaylists(artistID)
+
+  return (
+    <ul>
+      {playlists.map((playlist) => (
+        <li key={playlist.id}>{playlist.name}</li>
+      ))}
+    </ul>
+  )
+}
+```
+
+#### Parallel Data Fetching
+
+```typescript
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+
+  // Fetch in parallel
+  const [user, posts, comments] = await Promise.all([
+    getUser(id),
+    getPosts(id),
+    getComments(id)
+  ])
+
+  return (
+    <div>
+      <UserProfile user={user} />
+      <PostList posts={posts} />
+      <CommentList comments={comments} />
+    </div>
+  )
+}
+```
+
+### 5. Streaming with Suspense
+
+```typescript
+import { Suspense } from 'react'
+
+export default function Page() {
+  return (
+    <section>
+      <Suspense fallback={<PostFeedSkeleton />}>
+        <PostFeed />
+      </Suspense>
+      <Suspense fallback={<WeatherSkeleton />}>
+        <Weather />
+      </Suspense>
+    </section>
+  )
+}
+
+async function PostFeed() {
+  const posts = await getPosts()
+  return <div>{/* Render posts */}</div>
+}
+
+async function Weather() {
+  const weather = await getWeather()
+  return <div>{/* Render weather */}</div>
+}
+```
+
+### 6. Error Handling
+
+```typescript
+// app/error.tsx
+'use client'
+
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string }
+  reset: () => void
+}) {
+  return (
+    <div>
+      <h2>Something went wrong!</h2>
+      <button onClick={reset}>Try again</button>
+    </div>
+  )
+}
+
+// app/not-found.tsx
+export default function NotFound() {
+  return (
+    <div>
+      <h2>Not Found</h2>
+      <p>Could not find requested resource</p>
+    </div>
+  )
+}
+```
+
+## Next.js 16 Caching Strategies
+
+### 1. Force Cache (Static Data)
+
+```typescript
+// Cached until manually invalidated
+const data = await fetch('https://...', { cache: 'force-cache' });
+```
+
+### 2. No Store (Dynamic Data)
+
+```typescript
+// Refetched on every request
+const data = await fetch('https://...', { cache: 'no-store' });
+```
+
+### 3. Time-based Revalidation
+
+```typescript
+// Revalidated after N seconds
+const data = await fetch('https://...', {
+  next: { revalidate: 60 },
+});
+```
+
+### 4. Tagged Caching
+
+```typescript
+import { cacheTag } from 'next/cache';
+
+async function getPost(id: string) {
+  'use cache';
+  cacheTag(`post-${id}`);
+
+  const post = await db.posts.findUnique({ where: { id } });
+  return post;
+}
+```
+
+## Route Segment Config
+
+### Dynamic Rendering
+
+```typescript
+// Force dynamic rendering
+export const dynamic = 'force-dynamic'
+
+// Force static rendering
+export const dynamic = 'force-static'
+
+// Auto (default)
+export const dynamic = 'auto'
+```
+
+### Fetch Cache Control
+
+```typescript
+// Override fetch caching behavior
+export const fetchCache = 'force-cache'; // or 'force-no-store'
+```
+
+### Revalidation
+
+```typescript
+// Revalidate every 60 seconds
+export const revalidate = 60
+
+// Never revalidate
+export const revalidate = false
+
+// Revalidate on every request
+export const revalidate = 0
+```
+
+## Best Practices
+
+### 1. Component Design
+
+- Default to Server Components
+- Use Client Components only for interactivity
+- Keep Client Components small and focused
+- Pass Server Actions as props to Client Components
+
+### 2. Data Fetching
+
+- Fetch data where it's needed
+- Use Suspense for loading states
+- Implement proper error boundaries
+- Leverage parallel fetching when possible
+
+### 3. Cache Management
+
+- Use `updateTag()` for immediate updates after mutations
+- Use `revalidateTag()` for background updates
+- Use `refresh()` for client-side updates
+- Tag cached data appropriately for selective invalidation
+
+### 4. Performance
+
+- Implement streaming with Suspense
+- Use proper caching strategies
+- Optimize images with next/image
+- Implement proper loading states
+
+### 5. Type Safety
+
+- Use TypeScript for all components
+- Define proper types for params and searchParams
+- Use Zod for runtime validation
+- Implement proper error types
+
+### 6. Security
+
+- Validate all inputs
+- Use Server Actions for mutations
+- Implement proper authentication
+- Handle errors gracefully
+
+## Migration from Next.js 15 to 16
+
+### Key Changes
+
+1. **Async Params**: All `params` are now Promises
+
+```typescript
+// Before (Next.js 15)
+export default function Page({ params }: { params: { id: string } }) {
+  const { id } = params
+}
+
+// After (Next.js 16)
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}) {
+  const { id } = await params
+}
+```
+
+2. **New Cache APIs**: Use `updateTag()`, `refresh()`, and enhanced `revalidateTag()`
+
+```typescript
+// Next.js 16
+import { refresh, revalidateTag, updateTag } from 'next/cache';
+
+// Immediate invalidation
+updateTag('posts');
+
+// Client refresh
+refresh();
+
+// Stale-while-revalidate
+revalidateTag('posts', 'max');
+```
+
+3. **Enhanced Caching**: Use `'use cache'` directive and `cacheLife()`
+
+```typescript
+async function getData() {
+  'use cache';
+  cacheLife({ expire: 300 }); // 5 minutes
+
+  return await db.query();
+}
+```

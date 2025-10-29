@@ -168,7 +168,7 @@
           "**Apoyo en Salud Mental:** Supera los desafíos emocionales y mentales de la maternidad con orientación compasiva.",
           "**Ejercicio:** Explora los beneficios del ejercicio terapéutico durante el embarazo y el postparto, diseñado para apoyar los cambios en tu cuerpo y promover una recuperación saludable."
         ],
-        "image": "/img/Pregnant-Woman-Flowers.jpg?height=450&width=300?monochrome=006D77",
+        "image": "/img/Pregnant-Woman-Flowers.jpg",
         "cta": "Leer más"
       },
       {
@@ -180,7 +180,7 @@
           "**Cuidados Obstétricos y Ginecológicos Especializados:** Diagnóstico y tratamiento especializado para una amplia gama de problemas de salud pélvica, como el prolapso, la endometriosis y la disfunción sexual.",
           "**Apoyo en Salud Mental:** Asesoramiento y terapia para abordar los aspectos psicológicos de las preocupaciones sobre la salud pélvica."
         ],
-        "image": "/img/Woman-Working-Out-Living-Room.jpg?height=450&width=300",
+        "image": "/img/Woman-Working-Out-Living-Room.jpg",
         "cta": "Leer más"
       },
       {
@@ -194,7 +194,7 @@
           "**Ejercicio y Nutrición:** Descubre planes de ejercicio y guías nutricionales personalizadas para tus necesidades individuales.",
           "**Fisioterapia:** Maneja el dolor, previene lesiones y optimiza tu rendimiento físico, con especialización en salud del suelo pélvico para mujeres activas y atletas."
         ],
-        "image": "/img/Smiling-Women-Photo.jpg?height=450&width=300",
+        "image": "/img/Smiling-Women-Photo.jpg",
         "cta": "Leer más"
       },
       {
@@ -209,7 +209,7 @@
           "**Cuidado del Linfedema:** Benefíciate de estrategias especializadas de prevención y tratamiento, incluyendo drenaje linfático manual, terapia de compresión y educación para el autocuidado.",
           "**Enfoque Colaborativo:** Nuestro enfoque colaborativo garantiza una atención coordinada con tu equipo de oncología, apoyando tu bienestar físico y emocional durante el tratamiento y la recuperación."
         ],
-        "image": "/img/cancer-journey.jpg?height=450&width=300",
+        "image": "/img/cancer-journey.jpg",
         "cta": "Saber más"
       }
     ]
@@ -260,55 +260,55 @@
       {
         "name": "Patricia Mota, PT, PhD",
         "role": "Co-Fundadora y CEO",
-        "image": "/img/team/team-patricia-mota-2.jpeg?height=1200&width=1200",
+        "image": "/img/team/team-patricia-mota-2.jpeg",
         "quote": "Nuestra misión es elevar la atención médica de la mujer haciéndola más accesible, innovadora y empoderadora para todas."
       },
       {
         "name": "Cristine Homsi Jorge, PT, PhD",
         "role": "Asesora Científica (Salud de la Mujer)",
-        "image": "/img/team/team-cristine-homsi-jorge.jpg?height=1200&width=1200",
+        "image": "/img/team/team-cristine-homsi-jorge.jpg",
         "quote": "La investigación clínica y la educación empoderan a las mujeres para tomar decisiones informadas sobre su salud."
       },
       {
         "name": "Alexandre Delgado, PT, PhD",
         "role": "Asesor Científico (Fisioterapia Obstétrica)",
-        "image": "/img/team/team-alexandre-delgado-br.png?height=1200&width=1200",
+        "image": "/img/team/team-alexandre-delgado-br.png",
         "quote": "La fisioterapia basada en evidencia transforma la experiencia del embarazo y parto, empoderando a las mujeres en cada etapa."
       },
       {
         "name": "Patricia Driusso, PT, PhD",
         "role": "Asesora Científica (Salud de la Mujer)",
-        "image": "/img/team/team-patricia-driusso.jpg?height=1200&width=1200",
+        "image": "/img/team/team-patricia-driusso.jpg",
         "quote": "La investigación clínica avanza los tratamientos de rehabilitación mientras empodera a las mujeres a través de la educación basada en evidencia."
       },
       {
         "name": "Annelie Gutke, PT, PhD",
         "role": "Asesora Científica (Salud de la Mujer)",
-        "image": "/img/team/team-annelie-gutke.jpg?height=1200&width=1200",
+        "image": "/img/team/team-annelie-gutke.jpg",
         "quote": "Comprender los mecanismos del dolor transforma cómo cuidamos a las mujeres durante el embarazo."
       },
       {
         "name": "Ruben Barakat, PhD",
         "role": "Asesor Científico (Ciencias del Ejercicio)",
-        "image": "/img/team/team-ruben-barakat.jpg?height=1200&width=1200",
+        "image": "/img/team/team-ruben-barakat.jpg",
         "quote": "La evidencia muestra que el ejercicio personalizado durante el embarazo puede transformar los resultados de salud de las mujeres."
       },
       {
         "name": "Jessica Margarido, PT",
         "role": "Rehabilitación Oncológica",
-        "image": "/img/team/team-jessica-margarido.jpg?height=1200&width=1200",
+        "image": "/img/team/team-jessica-margarido.jpg",
         "quote": "La rehabilitación basada en evidencia restaura la función y la calidad de vida durante el tratamiento del cáncer."
       },
       {
         "name": "Joana Goulão Barros, MD, PhD",
         "role": "Ginecología y Obstetricia",
-        "image": "/img/team/team-joana-barros.jpg?height=1200&width=1200",
+        "image": "/img/team/team-joana-barros.jpg",
         "quote": "La integración de la experiencia médica con la rehabilitación especializada crea el más alto estándar de atención prenatal."
       },
       {
         "name": "Rodrigo Barona",
         "role": "Co-Fundador",
-        "image": "/img/team/team-rodrigo-barona.jpg?height=1200&width=1200",
+        "image": "/img/team/team-rodrigo-barona.jpg",
         "quote": "Estamos transformando la atención médica de la mujer combinando experiencia clínica con tecnología innovadora."
       }
     ]

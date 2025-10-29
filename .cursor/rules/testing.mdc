@@ -1,0 +1,111 @@
+---
+description: Testing Guidelines for Next.js 16
+globs: ['tests/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}']
+---
+
+# Testing Guidelines for Next.js 16
+
+## Mock Next.js 16 APIs
+
+```typescript
+// Always mock these first (before imports)
+jest.mock('next/cache', () => ({
+  revalidatePath: jest.fn(),
+  revalidateTag: jest.fn(),
+  updateTag: jest.fn(),
+  refresh: jest.fn(),
+  cacheTag: jest.fn(),
+  cacheLife: jest.fn(),
+}));
+
+jest.mock('next/navigation', () => ({
+  redirect: jest.fn().mockImplementation(() => {
+    throw new Error('NEXT_REDIRECT');
+  }),
+}));
+
+jest.mock('@clerk/nextjs/server', () => ({
+  auth: jest.fn().mockResolvedValue({
+    userId: 'user_123',
+    getToken: jest.fn().mockResolvedValue('token'),
+  }),
+}));
+```
+
+## Test Server Actions
+
+```typescript
+import { serverAction } from '@/server/actions/posts';
+
+describe('Server Action: createPost', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('should invalidate cache tags', async () => {
+    const updateTagMock = require('next/cache').updateTag;
+
+    await serverAction({ title: 'Test' });
+
+    expect(updateTagMock).toHaveBeenCalledWith('posts');
+  });
+
+  it('should handle redirects', async () => {
+    try {
+      await serverAction({ title: 'Test' });
+      fail('Should have redirected');
+    } catch (error) {
+      expect(error.message).toBe('NEXT_REDIRECT');
+      expect(require('next/navigation').redirect).toHaveBeenCalledWith('/posts');
+    }
+  });
+});
+```
+
+## Test Components
+
+```typescript
+import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MyComponent } from '@/components/MyComponent';
+
+describe('MyComponent', () => {
+  it('renders correctly', () => {
+    render(<MyComponent />);
+    expect(screen.getByRole('button')).toBeInTheDocument();
+  });
+
+  it('handles user interaction', async () => {
+    const user = userEvent.setup();
+    const handleClick = jest.fn();
+
+    render(<MyComponent onClick={handleClick} />);
+
+    await user.click(screen.getByRole('button'));
+
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+});
+```
+
+## Test Async Params
+
+```typescript
+it('handles async params', async () => {
+  const params = Promise.resolve({ id: 'test-123' });
+  const result = await pageComponent({ params });
+  expect(result).toBeDefined();
+});
+```
+
+## Best Practices
+
+1. **Mock before imports** - Set up all mocks before importing modules
+2. **Clear mocks** - Use `beforeEach(() => jest.clearAllMocks())`
+3. **Test behavior** - Test what users see, not implementation
+4. **Use queries wisely:**
+   - `getBy` - Element must exist
+   - `queryBy` - Element might not exist
+   - `findBy` - Wait for async element
+5. **User interactions** - Use `@testing-library/user-event` not `fireEvent`
+6. **Accessibility** - Query by role, label, placeholder, text

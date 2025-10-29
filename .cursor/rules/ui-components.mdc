@@ -1,0 +1,177 @@
+---
+description: UI and Component Patterns
+globs: ['components/**/*.tsx', 'app/**/*.tsx']
+---
+
+# UI and Component Patterns
+
+## Atomic Design
+
+```
+components/
+├── atoms/          # buttons, inputs, labels
+├── molecules/      # form groups, cards
+└── organisms/      # navigation, modals
+```
+
+## Component Structure
+
+````typescript
+// components/organisms/UserProfile.tsx
+
+/**
+ * UserProfile displays user information
+ *
+ * @example
+ * ```tsx
+ * <UserProfile user={user} onEdit={handleEdit} />
+ * ```
+ */
+export function UserProfile({ user, onEdit }: UserProfileProps) {
+  return (
+    <Card>
+      <Avatar src={user.avatar} />
+      <Text>{user.name}</Text>
+      <Button onClick={onEdit}>Edit</Button>
+    </Card>
+  );
+}
+
+interface UserProfileProps {
+  user: User;
+  onEdit?: () => void;
+}
+````
+
+## Styling (TailwindCSS + Shadcn/ui)
+
+```typescript
+import { cn } from '@/lib/utils';
+
+export function Button({ variant = 'default', className, ...props }: ButtonProps) {
+  return (
+    <button
+      className={cn(
+        'inline-flex items-center justify-center rounded-md text-sm font-medium',
+        variant === 'default' && 'bg-primary text-primary-foreground hover:bg-primary/90',
+        variant === 'ghost' && 'hover:bg-accent hover:text-accent-foreground',
+        className
+      )}
+      {...props}
+    />
+  );
+}
+```
+
+## Forms
+
+```typescript
+'use client';
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const formSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(2),
+});
+
+export function UserForm() {
+  const form = useForm({
+    resolver: zodResolver(formSchema),
+    defaultValues: { email: '', name: '' },
+  });
+
+  async function onSubmit(data: z.infer<typeof formSchema>) {
+    await createUser(data);
+  }
+
+  return (
+    <form onSubmit={form.handleSubmit(onSubmit)}>
+      <Input {...form.register('name')} />
+      {form.formState.errors.name && <p>{form.formState.errors.name.message}</p>}
+
+      <Input {...form.register('email')} />
+      {form.formState.errors.email && <p>{form.formState.errors.email.message}</p>}
+
+      <Button type="submit">Submit</Button>
+    </form>
+  );
+}
+```
+
+## Responsive Design
+
+```typescript
+// Mobile-first approach
+<div className="
+  px-4           // Mobile
+  md:px-6        // Tablet
+  lg:px-8        // Desktop
+  flex-col       // Mobile
+  md:flex-row    // Tablet+
+">
+```
+
+## Accessibility
+
+1. **Use semantic HTML:**
+
+```tsx
+<button> not <div onClick>
+<nav>, <main>, <footer>
+<h1>, <h2>, <h3> in order
+```
+
+2. **Add ARIA labels:**
+
+```tsx
+<button aria-label="Close modal">
+  <X />
+</button>
+```
+
+3. **Keyboard navigation:**
+
+```tsx
+onKeyDown={(e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    handleAction();
+  }
+}}
+```
+
+## Performance
+
+```typescript
+// Dynamic imports
+import dynamic from 'next/dynamic';
+
+const HeavyComponent = dynamic(() => import('@/components/HeavyComponent'), {
+  loading: () => <Skeleton />,
+  ssr: false,
+});
+
+// Optimized images
+import Image from 'next/image';
+
+<Image src="/image.jpg" width={500} height={300} alt="Description" loading="lazy" />;
+```
+
+## Internationalization
+
+```typescript
+import { useTranslations } from 'next-intl';
+
+export function Welcome() {
+  const t = useTranslations('Welcome');
+
+  return (
+    <div>
+      <h1>{t('title')}</h1>
+      <p>{t('description')}</p>
+    </div>
+  );
+}
+```
