@@ -80,14 +80,23 @@ export async function getMDXFileContent({
 /**
  * Render MDX content as a React Server Component
  * Returns the MDXRemote component ready to be rendered
+ *
+ * @param remarkPlugins - Additional remark plugins to apply (remarkGfm is always included)
+ * @param rehypePlugins - Rehype plugins for HTML transformation
  */
 export async function renderMDXContent({
   namespace,
   locale,
   fallbackLocale = 'en',
   components = {},
+  remarkPlugins = [],
+  rehypePlugins = [],
 }: MDXContentOptions & {
   components?: MDXComponents;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  remarkPlugins?: any[];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  rehypePlugins?: any[];
 }): Promise<React.ReactElement | null> {
   const { content, exists } = await getMDXFileContent({
     namespace,
@@ -104,8 +113,8 @@ export async function renderMDXContent({
       source={content}
       options={{
         mdxOptions: {
-          remarkPlugins: [remarkGfm],
-          rehypePlugins: [],
+          remarkPlugins: [remarkGfm, ...remarkPlugins],
+          rehypePlugins,
         },
       }}
       components={components}
@@ -114,15 +123,32 @@ export async function renderMDXContent({
 }
 
 /**
+ * Cache for MDX namespaces to reduce filesystem I/O
+ * Cleared on dev server restart, persisted during build
+ */
+const namespaceCache = new Map<string, string[]>();
+
+/**
  * Get all available MDX namespaces from the content directory
  * Useful for static generation
+ * Results are cached to reduce filesystem I/O during ISR revalidations
  */
 export async function getAllMDXNamespaces(): Promise<string[]> {
   const contentDir = path.join(process.cwd(), 'content');
 
+  // Return cached result if available
+  if (namespaceCache.has(contentDir)) {
+    return namespaceCache.get(contentDir)!;
+  }
+
   try {
     const entries = await fs.readdir(contentDir, { withFileTypes: true });
-    return entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+    const namespaces = entries.filter((entry) => entry.isDirectory()).map((entry) => entry.name);
+
+    // Cache the result
+    namespaceCache.set(contentDir, namespaces);
+
+    return namespaces;
   } catch (error) {
     console.error('Failed to read content directory:', error);
     return [];

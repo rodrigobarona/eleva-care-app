@@ -164,8 +164,12 @@ export const mdxComponents: MDXComponents = {
 };
 
 /**
- * React Hook version for @next/mdx compatibility
+ * MDX component merger function
  * Merges base components with custom overrides
+ *
+ * Note: Named "useMDXComponents" to follow MDX/Next.js conventions,
+ * though it's not a React Hook (no hook rules apply).
+ * This naming is expected by @next/mdx and maintains API compatibility.
  */
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
