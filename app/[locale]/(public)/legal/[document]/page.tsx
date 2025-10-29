@@ -1,4 +1,5 @@
 import { isValidLocale } from '@/app/i18n';
+import { locales } from '@/lib/i18n/routing';
 import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import { mdxComponents } from '@/mdx-components';
@@ -113,8 +114,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export async function generateStaticParams() {
-  const locales = ['en', 'pt', 'es', 'br'];
-
   return locales.flatMap((locale) =>
     validDocuments.map((document) => ({
       locale,

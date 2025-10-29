@@ -3,6 +3,7 @@ import { Button } from '@/components/atoms/button';
 import { Separator } from '@/components/atoms/separator';
 import SmoothLink from '@/components/atoms/SmoothLink';
 import { Link } from '@/lib/i18n/navigation';
+import { locales } from '@/lib/i18n/routing';
 import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import { mdxComponents } from '@/mdx-components';
@@ -66,7 +67,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export async function generateStaticParams() {
-  return [{ locale: 'en' }, { locale: 'pt' }, { locale: 'es' }, { locale: 'br' }];
+  return locales.map((locale) => ({ locale }));
 }
 
 export default async function HistoryPage({ params }: PageProps) {

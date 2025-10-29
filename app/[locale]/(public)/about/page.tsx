@@ -8,6 +8,7 @@ import BeliefsSection from '@/components/organisms/about/BeliefsSection';
 import JoinNetworkSection from '@/components/organisms/about/JoinNetworkSection';
 import MissionSection from '@/components/organisms/about/MissionSection';
 import TeamSection from '@/components/organisms/about/TeamSection';
+import { locales } from '@/lib/i18n/routing';
 import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generateGenericPageMetadata } from '@/lib/seo/metadata-utils';
 import { mdxComponents } from '@/mdx-components';
@@ -57,7 +58,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export async function generateStaticParams() {
-  return [{ locale: 'en' }, { locale: 'pt' }, { locale: 'es' }, { locale: 'br' }];
+  return locales.map((locale) => ({ locale }));
 }
 
 export default async function AboutPage({ params }: PageProps) {
