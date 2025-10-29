@@ -28,15 +28,14 @@ export const revalidate = 86400;
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
 
-  if (!isValidLocale(locale)) {
-    redirect('/about'); // Default locale (en) has no prefix
-  }
+  // Use default locale for metadata if invalid (page component handles redirect)
+  const safeLocale = isValidLocale(locale) ? locale : 'en';
 
   try {
-    const t = await getTranslations({ locale, namespace: 'metadata.about' });
+    const t = await getTranslations({ locale: safeLocale, namespace: 'metadata.about' });
 
     return generateGenericPageMetadata(
-      locale,
+      safeLocale,
       '/about',
       t('title'),
       t('description'),
@@ -47,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     console.error('Error generating metadata:', error);
 
     return generateGenericPageMetadata(
-      locale,
+      safeLocale,
       '/about',
       'About Eleva Care',
       'Learn about our mission, vision, and team at Eleva Care.',
