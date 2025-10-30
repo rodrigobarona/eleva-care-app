@@ -1,5 +1,3 @@
-import { auditDb } from '@/drizzle/auditDb';
-import { auditLogs } from '@/drizzle/auditSchema';
 import type { AuditEventMetadata, AuditEventType, AuditResourceType } from '@/types/audit';
 
 /**
@@ -21,6 +19,10 @@ export async function logAuditEvent(
   userAgent: string,
 ): Promise<void> {
   try {
+    // Lazy import to avoid loading auditDb at module level
+    const { auditDb } = await import('@/drizzle/auditDb');
+    const { auditLogs } = await import('@/drizzle/auditSchema');
+
     await auditDb.insert(auditLogs).values({
       clerkUserId,
       action,

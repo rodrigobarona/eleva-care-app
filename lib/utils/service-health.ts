@@ -5,7 +5,6 @@
  * Compatible with Better Stack status page monitoring.
  */
 import { ENV_CONFIG } from '@/config/env';
-import { auditDb } from '@/drizzle/auditDb';
 import { db } from '@/drizzle/db';
 import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
 import { redisManager } from '@/lib/redis/manager';
@@ -55,12 +54,15 @@ export async function checkNeonDatabase(): Promise<ServiceHealthResult> {
 
 /**
  * Check Neon audit database connectivity
+ * Uses lazy import to avoid loading audit DB on module initialization
  */
 export async function checkAuditDatabase(): Promise<ServiceHealthResult> {
   const startTime = Date.now();
   const timestamp = new Date().toISOString();
 
   try {
+    // Lazy import to avoid loading auditDb at module level
+    const { auditDb } = await import('@/drizzle/auditDb');
     await auditDb.execute(sql`SELECT 1 as health_check`);
     const responseTime = Date.now() - startTime;
 
