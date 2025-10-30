@@ -25,13 +25,7 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
   );
 
   // Load current preferences
-  useEffect(() => {
-    if (isLoaded && user) {
-      loadPreferences();
-    }
-  }, [isLoaded, user]);
-
-  const loadPreferences = async () => {
+  const loadPreferences = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch('/api/user/security-preferences');
@@ -49,7 +43,13 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      loadPreferences();
+    }
+  }, [isLoaded, user, loadPreferences]);
 
   const savePreferences = useCallback(async () => {
     if (!preferences || JSON.stringify(preferences) === JSON.stringify(lastSavedPreferences)) {
@@ -83,10 +83,13 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
     }
   }, [preferences, lastSavedPreferences]);
 
-  const updatePreference = (key: keyof UserSecurityPreferences, value: boolean) => {
-    if (!preferences) return;
-    setPreferences({ ...preferences, [key]: value });
-  };
+  const updatePreference = useCallback(
+    (key: keyof UserSecurityPreferences, value: boolean) => {
+      if (!preferences) return;
+      setPreferences({ ...preferences, [key]: value });
+    },
+    [preferences],
+  );
 
   // Auto-save when preferences change
   useEffect(() => {
@@ -106,15 +109,6 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
       }
     };
   }, [preferences, lastSavedPreferences, savePreferences]);
-
-  // Cleanup timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, []);
 
   // Add protection against unsaved changes
   useEffect(() => {
