@@ -1,11 +1,11 @@
 import { isValidLocale } from '@/app/i18n';
+import ExpertsSection from '@/components/sections/home/ExpertsSection';
+import Hero from '@/components/sections/home/Hero';
 import {
   ApproachSkeleton,
   ExpertsSkeleton,
   ServicesSkeleton,
-} from '@/components/molecules/HomePageSkeletons';
-import ExpertsSection from '@/components/organisms/home/ExpertsSection';
-import Hero from '@/components/organisms/home/Hero';
+} from '@/components/shared/loading/HomePageSkeletons';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
@@ -85,12 +85,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 // Dynamic imports with proper loading states
 // Services and Approach are client components that don't fetch data, use dynamic() to code-split
-const ServicesSection = dynamic(() => import('@/components/organisms/home/Services'), {
+const ServicesSection = dynamic(() => import('@/components/sections/home/Services'), {
   loading: () => <ServicesSkeleton />,
   ssr: true, // Enable SSR for SEO
 });
 
-const ApproachSection = dynamic(() => import('@/components/organisms/home/ApproachSection'), {
+const ApproachSection = dynamic(() => import('@/components/sections/home/ApproachSection'), {
   loading: () => <ApproachSkeleton />,
   ssr: true, // Enable SSR for SEO
 });

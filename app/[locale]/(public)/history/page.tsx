@@ -1,7 +1,7 @@
 import { isValidLocale } from '@/app/i18n';
-import { Button } from '@/components/atoms/button';
-import { Separator } from '@/components/atoms/separator';
-import SmoothLink from '@/components/atoms/SmoothLink';
+import SmoothLink from '@/components/shared/navigation/SmoothLink';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
 import { Link } from '@/lib/i18n/navigation';
 import { locales } from '@/lib/i18n/routing';
 import { renderMDXContent } from '@/lib/mdx/server-mdx';

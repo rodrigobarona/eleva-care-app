@@ -1,15 +1,5 @@
 'use client';
 
-import { Button } from '@/components/atoms/button';
-import { Input } from '@/components/atoms/input';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/atoms/popover';
-import { Separator } from '@/components/atoms/separator';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/atoms/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,7 +9,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/molecules/alert-dialog';
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -27,7 +18,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/molecules/dialog';
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   checkExpertSetupStatus,
   syncGoogleAccountConnectionStatus,

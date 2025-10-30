@@ -1,4 +1,4 @@
-import { SecurityPreferencesForm } from '@/components/organisms/SecurityPreferencesForm';
+import { SecurityPreferencesForm } from '@/components/features/profile/SecurityPreferencesForm';
 import { auth } from '@clerk/nextjs/server';
 
 // Note: Route is dynamic by default with cacheComponents enabled in Next.js 16

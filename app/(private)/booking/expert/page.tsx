@@ -1,5 +1,5 @@
-import { ExpertForm } from '@/components/organisms/forms/ExpertForm';
-import { ProfilePublishToggle } from '@/components/organisms/ProfilePublishToggle';
+import { ExpertForm } from '@/components/features/forms/ExpertForm';
+import { ProfilePublishToggle } from '@/components/features/profile/ProfilePublishToggle';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { isExpert, isTopExpert } from '@/lib/auth/roles.server';
@@ -50,50 +50,45 @@ export default async function ProfilePage() {
 
   // If no profile exists, create one with default values
   if (!profile) {
-    try {
-      const newProfile = await db
-        .insert(ProfileTable)
-        .values({
-          clerkUserId: userId,
-          firstName: '', // Required fields with empty defaults
-          lastName: '',
-          isVerified: false,
-          isTopExpert: false,
-        })
-        .returning();
-
-      // Transform the newly created profile
-      const transformedProfile = {
-        ...newProfile[0],
-        socialLinks: [],
-        headline: undefined,
-        profilePicture: '',
-        shortBio: undefined,
-        longBio: undefined,
-        firstName: '',
+    const newProfile = await db
+      .insert(ProfileTable)
+      .values({
+        clerkUserId: userId,
+        firstName: '', // Required fields with empty defaults
         lastName: '',
         isVerified: false,
         isTopExpert: false,
-        primaryCategoryId: newProfile[0].primaryCategoryId || undefined,
-        secondaryCategoryId: newProfile[0].secondaryCategoryId || undefined,
-      };
+      })
+      .returning();
 
-      return (
-        <div className="container max-w-4xl py-8">
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold">My Profile</h1>
-            <p className="text-muted-foreground">Manage your public profile information</p>
-          </div>
-          <div className="mb-8 rounded-lg border bg-card p-6 shadow-sm">
-            <ProfilePublishToggle initialPublishedStatus={false} />
-          </div>
-          <ExpertForm initialData={transformedProfile as ExpertFormValues} />
+    // Transform the newly created profile
+    const transformedProfile = {
+      ...newProfile[0],
+      socialLinks: [],
+      headline: undefined,
+      profilePicture: '',
+      shortBio: undefined,
+      longBio: undefined,
+      firstName: '',
+      lastName: '',
+      isVerified: false,
+      isTopExpert: false,
+      primaryCategoryId: newProfile[0].primaryCategoryId || undefined,
+      secondaryCategoryId: newProfile[0].secondaryCategoryId || undefined,
+    };
+
+    return (
+      <div className="container max-w-4xl py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">My Profile</h1>
+          <p className="text-muted-foreground">Manage your public profile information</p>
         </div>
-      );
-    } catch (error) {
-      console.error('Error creating profile:', error);
-      return redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`); // Redirect on error
-    }
+        <div className="mb-8 rounded-lg border bg-card p-6 shadow-sm">
+          <ProfilePublishToggle initialPublishedStatus={false} />
+        </div>
+        <ExpertForm initialData={transformedProfile as ExpertFormValues} />
+      </div>
+    );
   }
 
   // Transform existing profile data

@@ -1,11 +1,7 @@
-import { Separator } from '@/components/atoms/separator';
-import { AppBreadcrumb } from '@/components/organisms/sidebar/AppBreadcrumb';
-import { AppSidebar } from '@/components/organisms/sidebar/AppSidebar';
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-} from '@/components/organisms/sidebar/sidebar';
+import { AppBreadcrumb } from '@/components/layout/sidebar/AppBreadcrumb';
+import { AppSidebar } from '@/components/layout/sidebar/AppSidebar';
+import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/layout/sidebar/sidebar';
+import { Separator } from '@/components/ui/separator';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';

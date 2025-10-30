@@ -1,9 +1,9 @@
 'use client';
 
-import { Badge } from '@/components/atoms/badge';
-import { Button } from '@/components/atoms/button';
-import { Card, CardContent } from '@/components/atoms/card';
-import { Input } from '@/components/atoms/input';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -11,7 +11,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/atoms/select';
+} from '@/components/ui/select';
 import {
   Table,
   TableBody,
@@ -19,7 +19,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/molecules/table';
+} from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { Calendar, ChevronLeft, ChevronRight, Eye, Filter, RefreshCw } from 'lucide-react';
 import Link from 'next/link';

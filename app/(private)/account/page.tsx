@@ -1,6 +1,6 @@
 'use client';
 
-import { AccountForm } from '@/components/organisms/forms/AccountForm';
+import { AccountForm } from '@/components/features/forms/AccountForm';
 import { useUser } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
 

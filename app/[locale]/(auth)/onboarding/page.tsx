@@ -1,6 +1,6 @@
 'use client';
 
-import { Button } from '@/components/atoms/button';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -8,9 +8,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
-import { Input } from '@/components/atoms/input';
-import { Label } from '@/components/atoms/label';
+} from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useUser } from '@clerk/nextjs';
 import { redirect } from 'next/navigation';
 import type React from 'react';

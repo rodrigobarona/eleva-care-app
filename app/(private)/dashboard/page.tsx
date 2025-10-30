@@ -1,5 +1,5 @@
-import { Button } from '@/components/atoms/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { ROLE_COMMUNITY_EXPERT, ROLE_TOP_EXPERT } from '@/lib/auth/roles';
