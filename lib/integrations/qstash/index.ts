@@ -22,5 +22,9 @@
 export { qstashClient } from './client';
 export { isQStashAvailable, qstashHealthCheck } from './config';
 export { setupQStashSchedules } from './schedules';
-export { validateQStashSignature } from './signature-validator';
-export { logQStashEvent, sendQStashMessage } from './utils';
+export {
+  validateUpstashSignature,
+  validateQStashRequest,
+  createQStashAuthResponse,
+} from './signature-validator';
+export { isVerifiedQStashRequest } from './utils';

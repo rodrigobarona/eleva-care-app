@@ -8,5 +8,13 @@
 // Email service exports
 export * from './email-service';
 
-// Utils exports (excluding triggerNovuWorkflow which is already exported from email-service)
-export { initializeNovuClient, shouldSendNotification } from './utils';
+// Utils exports
+export {
+  triggerNovuWorkflow,
+  buildNovuSubscriberFromClerk,
+  buildNovuSubscriberFromStripe,
+  getWorkflowFromClerkEvent,
+  getWorkflowFromStripeEvent,
+  CLERK_EVENT_TO_WORKFLOW_MAPPINGS,
+  STRIPE_EVENT_TO_WORKFLOW_MAPPINGS,
+} from './utils';
