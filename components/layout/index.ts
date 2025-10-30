@@ -2,7 +2,6 @@
 export { default as Header } from './header/Header';
 export { HeaderContent } from './header/HeaderContent';
 export { default as Footer } from './footer/Footer';
-export { UserNavNotifications } from './UserNavNotifications';
 
 // Sidebar exports
 export * from './sidebar/sidebar';

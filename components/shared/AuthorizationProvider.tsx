@@ -22,7 +22,7 @@ export function AuthorizationProvider({ children }: { children: React.ReactNode 
   const { user, isLoaded, isSignedIn } = useUser();
 
   // Derive roles directly from user metadata
-  const roles = useMemo(() => {
+  const roles = useMemo((): UserRole[] => {
     if (!isLoaded || !isSignedIn) return [];
     const userRoles = user?.publicMetadata?.role as UserRole | UserRole[] | undefined;
     return userRoles ? (Array.isArray(userRoles) ? userRoles : [userRoles]) : ['user'];
@@ -34,7 +34,7 @@ export function AuthorizationProvider({ children }: { children: React.ReactNode 
   const hasRole = (roleToCheck: UserRole | UserRole[]): boolean => {
     if (roles.length === 0) return false;
     const rolesToCheck = Array.isArray(roleToCheck) ? roleToCheck : [roleToCheck];
-    return roles.some((role) => rolesToCheck.includes(role));
+    return roles.some((role) => rolesToCheck.includes(role as UserRole));
   };
 
   return (

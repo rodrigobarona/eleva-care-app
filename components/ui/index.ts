@@ -17,7 +17,6 @@ export * from './input';
 export * from './label';
 export * from './popover';
 export * from './progress';
-export * from './scroll-area';
 export * from './select';
 export * from './separator';
 export * from './sheet';
@@ -27,9 +26,6 @@ export * from './table';
 export * from './tabs';
 export * from './textarea';
 export * from './toast';
-export * from './toggle';
 export * from './tooltip';
 export * from './sonner';
-
-// Timezone select (subdirectory)
 export * from './timezone-select';
