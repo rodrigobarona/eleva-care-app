@@ -20,7 +20,7 @@ import {
   DEFAULT_TIME_SLOT_INTERVAL,
 } from '@/lib/constants/scheduling';
 import { Link } from '@/lib/i18n/navigation';
-import { getValidTimesFromSchedule } from '@/lib/utils/scheduling';
+import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
 import GoogleCalendarService from '@/server/googleCalendar';
 import type { User } from '@clerk/nextjs/server';

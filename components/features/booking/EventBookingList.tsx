@@ -5,7 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { db } from '@/drizzle/db';
 import { formatEventDescription } from '@/lib/utils/formatters';
 import { logger } from '@/lib/utils/logger';
-import { getValidTimesFromSchedule } from '@/lib/utils/scheduling';
+import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { addMonths } from 'date-fns';
 import { ChevronDown } from 'lucide-react';

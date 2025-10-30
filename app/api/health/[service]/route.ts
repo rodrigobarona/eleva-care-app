@@ -22,7 +22,7 @@
  * - posthog
  * - novu
  */
-import { getAvailableServices, getServiceHealthCheck } from '@/lib/utils/service-health';
+import { getAvailableServices, getServiceHealthCheck } from '@/lib/utils/server/service-health';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const maxDuration = 30;

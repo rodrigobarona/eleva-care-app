@@ -242,7 +242,7 @@ export async function logSecurityEvent(event: {
 
   try {
     // Store in audit database using the existing audit system
-    const { logAuditEvent } = await import('@/lib/utils/audit');
+    const { logAuditEvent } = await import('@/lib/utils/server/audit');
 
     const { SECURITY_ALERT_NOTIFIED, SECURITY_ALERT_IGNORED } = await import('@/types/audit');
 
