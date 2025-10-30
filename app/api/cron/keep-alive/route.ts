@@ -1,12 +1,11 @@
 import { auditDb } from '@/drizzle/auditDb';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
+import { cleanupPaymentRateLimitCache } from '@/lib/cleanup-payment-rate-limit-cache';
 import { qstashHealthCheck } from '@/lib/qstash-config';
 import { redisManager } from '@/lib/redis';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { gt, sql } from 'drizzle-orm';
-
-import { cleanupPaymentRateLimitCache } from '../../../../scripts/cleanup-payment-rate-limit-cache';
 
 /**
  * Safely extracts and validates a base URL from environment variables
