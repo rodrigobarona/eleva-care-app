@@ -25,7 +25,7 @@ import {
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
-import { logAuditEvent } from '@/lib/utils/audit';
+import { logAuditEvent } from '@/lib/utils/server/audit';
 import { render } from '@react-email/components';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';

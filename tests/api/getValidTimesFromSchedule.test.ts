@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { getValidTimesFromSchedule } from '@/lib/utils/scheduling';
+import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { setHours, setMinutes } from 'date-fns';
 

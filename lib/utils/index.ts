@@ -2,22 +2,20 @@
  * Utilities Module
  *
  * General-purpose utility functions used across the application.
+ * These utilities are safe for both client and server components.
  *
- * Note: Server-only utilities must be imported directly
- * and are not exported from this barrel file to prevent client-side bundling.
+ * ⚠️ Server-only utilities have been moved to `lib/utils/server/`
+ * Import them directly from that folder:
+ * - '@/lib/utils/server/audit'
+ * - '@/lib/utils/server/scheduling'
+ * - '@/lib/utils/server/service-health'
+ * - '@/lib/utils/server/users'
+ * - '@/lib/utils/server/server-utils'
  */
 
-// Export all utilities from formatters (includes cn, timeToInt, delay, etc.)
+// Client-safe utilities (can be used anywhere)
 export * from './formatters';
 export * from './cache-keys';
 export * from './customerUtils';
 export * from './encryption';
 export * from './revalidation';
-
-// Server-only utilities - DO NOT export from this file
-// Import these directly when needed:
-// - './audit' (requires audit database access)
-// - './scheduling' (requires database access)
-// - './service-health' (requires database access)
-// - './users' (requires database access)
-// - './server-utils' (server-only utilities)

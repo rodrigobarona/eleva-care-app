@@ -8,7 +8,7 @@ import {
 } from '@/lib/integrations/betterstack/heartbeat';
 import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
 import { createUpcomingPayoutNotification } from '@/lib/notifications/payment';
-import { getUserByClerkId } from '@/lib/utils/users';
+import { getUserByClerkId } from '@/lib/utils/server/users';
 import { addDays, differenceInDays } from 'date-fns';
 import { and, eq, isNull } from 'drizzle-orm';
 import { NextResponse } from 'next/server';

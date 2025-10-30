@@ -4,8 +4,8 @@ import { PRACTITIONER_AGREEMENT_CONFIG } from '@/config/legal-agreements';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
 import { hasRole } from '@/lib/auth/roles.server';
-import { logAuditEvent } from '@/lib/utils/audit';
-import { getRequestMetadata } from '@/lib/utils/server-utils';
+import { logAuditEvent } from '@/lib/utils/server/audit';
+import { getRequestMetadata } from '@/lib/utils/server/server-utils';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import {
   PRACTITIONER_AGREEMENT_ACCEPTED,

@@ -2,7 +2,7 @@
 
 import { db } from '@/drizzle/db';
 import { ScheduleAvailabilityTable, ScheduleTable } from '@/drizzle/schema';
-import { logAuditEvent } from '@/lib/utils/audit';
+import { logAuditEvent } from '@/lib/utils/server/audit';
 import { scheduleFormSchema } from '@/schema/schedule';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { auth } from '@clerk/nextjs/server';
