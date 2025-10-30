@@ -319,7 +319,8 @@ async function EventsList({ userId, username }: { userId: string; username: stri
 async function EventCardWithAvailability({ event, username }: { event: Event; username: string }) {
   logger.info('Loading availability for event', { eventId: event.id, eventName: event.name });
 
-  // Fetch data, let error boundaries handle errors instead of try/catch
+  // Handle availability load errors here for graceful degradation - continue with empty availability
+  // so the UI can still render the event card. This prevents a single event's error from breaking the entire list.
   let validTimes: Date[] = [];
   try {
     validTimes = await getValidTimesForEvent(event.id);
