@@ -83,13 +83,9 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
     }
   }, [preferences, lastSavedPreferences]);
 
-  const updatePreference = useCallback(
-    (key: keyof UserSecurityPreferences, value: boolean) => {
-      if (!preferences) return;
-      setPreferences({ ...preferences, [key]: value });
-    },
-    [preferences],
-  );
+  const updatePreference = useCallback((key: keyof UserSecurityPreferences, value: boolean) => {
+    setPreferences((prev) => (prev ? { ...prev, [key]: value } : prev));
+  }, []);
 
   // Auto-save when preferences change
   useEffect(() => {
