@@ -1,5 +1,5 @@
 import { ExpertPayoutNotificationTemplate } from '@/emails/payments';
-import { elevaEmailService } from '@/lib/novu-email-service';
+import { elevaEmailService } from '@/lib/integrations/novu/email-service';
 import { workflow } from '@novu/framework';
 import { render } from '@react-email/render';
 import React from 'react';

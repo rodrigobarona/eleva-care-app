@@ -1,8 +1,8 @@
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
-import { sendNovuEmailEnhanced } from '@/lib/novu-email-service';
+import { sendNovuEmailEnhanced } from '@/lib/integrations/novu/email-service';
+import { formatCurrency } from '@/lib/utils/formatters';
 
-import { createUserNotification } from './notifications';
-import { formatCurrency } from './utils';
+import { createUserNotification } from './core';
 
 /**
  * Create a notification for an upcoming payout

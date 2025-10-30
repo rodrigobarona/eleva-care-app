@@ -1,4 +1,4 @@
-import { validateQStashConfig } from '@/lib/qstash-config';
+import { validateQStashConfig } from '@/lib/integrations/qstash/config';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';

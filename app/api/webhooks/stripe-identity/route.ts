@@ -1,7 +1,7 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { getIdentityVerificationStatus } from '@/lib/stripe/identity';
+import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -180,7 +180,9 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
                 `Syncing identity verification attempt ${attempt} for user ${user.clerkUserId}`,
               );
 
-              const { syncIdentityVerificationToConnect } = await import('@/lib/stripe');
+              const { syncIdentityVerificationToConnect } = await import(
+                '@/lib/integrations/stripe'
+              );
               const result = await syncIdentityVerificationToConnect(user.clerkUserId);
 
               if (result.success) {

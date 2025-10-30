@@ -1,7 +1,7 @@
 import { db } from '@/drizzle/db';
 import { RecordTable } from '@/drizzle/schema';
-import { decryptRecord } from '@/lib/encryption';
-import { logAuditEvent } from '@/lib/logAuditEvent';
+import { logAuditEvent } from '@/lib/utils/audit';
+import { decryptRecord } from '@/lib/utils/encryption';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';

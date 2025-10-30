@@ -1,3 +1,59 @@
+import { type ClassValue, clsx } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+/**
+ * Merges Tailwind CSS classes with clsx
+ * Used throughout the codebase for conditional styling
+ */
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+/**
+ * Converts time string to float (e.g., "14:30" -> 14.5)
+ */
+export function timeToInt(time: string) {
+  return Number.parseFloat(time.replace(':', '.'));
+}
+
+/**
+ * Promise-based delay utility
+ */
+export const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Format duration in minutes to human-readable string
+ */
+export function formatDuration(minutes: number, locale = 'en') {
+  if (minutes < 60) {
+    return locale === 'en' ? `${minutes} min` : `${minutes} min`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  if (remainingMinutes === 0) {
+    return locale === 'en'
+      ? `${hours} hour${hours !== 1 ? 's' : ''}`
+      : `${hours} hora${hours !== 1 ? 's' : ''}`;
+  }
+
+  return locale === 'en'
+    ? `${hours} hour${hours !== 1 ? 's' : ''} ${remainingMinutes} min`
+    : `${hours} hora${hours !== 1 ? 's' : ''} ${remainingMinutes} min`;
+}
+
+/**
+ * Format time to display only (e.g., "2:30 PM")
+ */
+export function formatTimeOnly(date: Date, locale = 'en-US', timeZone?: string) {
+  return new Intl.DateTimeFormat(locale, {
+    hour: 'numeric',
+    minute: 'numeric',
+    timeZone,
+  }).format(date);
+}
+
 export function formatEventDescription(durationInMinutes: number) {
   const hours = Math.floor(durationInMinutes / 60);
   const minutes = durationInMinutes % 60;

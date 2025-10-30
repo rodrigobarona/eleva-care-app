@@ -15,7 +15,7 @@ import {
   buildNovuSubscriberFromStripe,
   getWorkflowFromStripeEvent,
   triggerNovuWorkflow,
-} from '@/lib/novu-utils';
+} from '@/lib/integrations/novu/utils';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { eq } from 'drizzle-orm';

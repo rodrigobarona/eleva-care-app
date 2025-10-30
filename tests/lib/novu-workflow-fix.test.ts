@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, test } from '@jest/globals';
 const mockTriggerWorkflow = jest.fn();
 const mockGetWorkflowFromClerkEvent = jest.fn();
 
-jest.mock('@/lib/novu-utils', () => ({
+jest.mock('@/lib/integrations/novu/utils', () => ({
   triggerNovuWorkflow: mockTriggerWorkflow,
   getWorkflowFromClerkEvent: mockGetWorkflowFromClerkEvent,
   buildNovuSubscriberFromClerk: jest.fn(),

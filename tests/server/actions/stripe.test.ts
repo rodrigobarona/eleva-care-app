@@ -16,7 +16,7 @@ const mockStripe = {
 const mockWithRetry = jest.fn<(fn: () => any) => any>((fn) => fn());
 
 // Mock the stripe module
-jest.mock('@/lib/stripe', () => ({
+jest.mock('@/lib/integrations/stripe', () => ({
   withRetry: mockWithRetry,
   stripe: mockStripe,
   getServerStripe: () => Promise.resolve(mockStripe),

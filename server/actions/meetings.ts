@@ -3,8 +3,8 @@
 import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
 import { MeetingTable } from '@/drizzle/schema';
-import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
-import { logAuditEvent } from '@/lib/logAuditEvent';
+import { logAuditEvent } from '@/lib/utils/audit';
+import { getValidTimesFromSchedule } from '@/lib/utils/scheduling';
 import { meetingActionSchema } from '@/schema/meetings';
 import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalendar';
 import { addMinutes } from 'date-fns';

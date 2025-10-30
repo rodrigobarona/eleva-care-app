@@ -1,6 +1,6 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { getIdentityVerificationStatus } from '@/lib/stripe/identity';
+import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
 import { currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';

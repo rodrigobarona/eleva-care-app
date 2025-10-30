@@ -1,5 +1,5 @@
-import { isQStashAvailable, scheduleRecurringJob } from './qstash';
-import { getQStashConfigMessage, initQStashClient, validateQStashConfig } from './qstash-config';
+import { isQStashAvailable, scheduleRecurringJob } from './client';
+import { getQStashConfigMessage, initQStashClient, validateQStashConfig } from './config';
 
 // Get the base URL for the app
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';

@@ -1,6 +1,6 @@
 import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
-import { listSchedules } from '@/lib/qstash';
-import { setupQStashSchedules } from '@/lib/setup-qstash-schedules';
+import { listSchedules } from '@/lib/integrations/qstash/client';
+import { setupQStashSchedules } from '@/lib/integrations/qstash/schedules';
 import type { ApiResponse } from '@/types/api';
 import { NextResponse } from 'next/server';
 

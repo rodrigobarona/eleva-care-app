@@ -7,6 +7,7 @@ import { RecordDialog } from '@/components/organisms/RecordDialog';
 import { formatInTimeZone } from 'date-fns-tz';
 import { Clock, Link as LinkIcon, Mail, User } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
 
 interface Appointment {
   id: string;
@@ -65,10 +66,14 @@ export function AppointmentCard({
   const isReservation = appointment.type === 'reservation';
   const reservation = isReservation ? (appointment as Reservation) : null;
 
-  // Calculate time until expiration for reservations
-  const timeUntilExpiration = reservation
-    ? Math.max(0, Math.floor((reservation.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60))) // hours
-    : 0;
+  // Calculate time until expiration for reservations - use useState with lazy initialization to avoid impure function during render
+  const [timeUntilExpiration] = useState(() => {
+    if (!reservation) return 0;
+    return Math.max(
+      0,
+      Math.floor((reservation.expiresAt.getTime() - Date.now()) / (1000 * 60 * 60)),
+    ); // hours
+  });
 
   const isExpiringSoon = timeUntilExpiration <= 2; // Less than 2 hours
 

@@ -6,7 +6,7 @@ import { ExpertPayoutNotificationTemplate } from '@/emails/payments';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import WelcomeEmailTemplate from '@/emails/users/welcome-email';
-import { generateAppointmentEmail, sendEmail } from '@/lib/email';
+import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { Novu } from '@novu/api';
 import { render } from '@react-email/render';
 import React from 'react';

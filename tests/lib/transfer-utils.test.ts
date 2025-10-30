@@ -1,7 +1,7 @@
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_COMPLETED } from '@/lib/constants/payment-transfers';
-import { checkExistingTransfer } from '@/lib/stripe/transfer-utils';
+import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import Stripe from 'stripe';
 

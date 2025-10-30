@@ -1,5 +1,5 @@
 import { GET } from '@/app/api/user/check-kv-sync/route';
-import { CustomerCache } from '@/lib/redis';
+import { CustomerCache } from '@/lib/redis/manager';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
@@ -9,7 +9,7 @@ jest.mock('@clerk/nextjs/server', () => ({
   currentUser: jest.fn(),
 }));
 
-jest.mock('@/lib/redis', () => ({
+jest.mock('@/lib/redis/manager', () => ({
   CustomerCache: {
     getCustomerByUserId: jest.fn(),
     getCustomer: jest.fn(),

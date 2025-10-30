@@ -6,7 +6,7 @@ import * as dotenv from 'dotenv';
 import { qstash } from '@/config/qstash';
 import { Client } from '@upstash/qstash';
 
-import { scheduleRecurringJob as mainScheduleRecurringJob } from './qstash';
+import { scheduleRecurringJob as mainScheduleRecurringJob } from './client';
 
 // Ensure environment variables are loaded
 dotenv.config();

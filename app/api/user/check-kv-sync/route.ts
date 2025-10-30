@@ -1,5 +1,5 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
-import { CustomerCache } from '@/lib/redis';
+import { CustomerCache } from '@/lib/redis/manager';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';

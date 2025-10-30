@@ -311,12 +311,12 @@ jest.mock('@/server/googleCalendar', () => ({
 }));
 
 // Mock schedule validation
-jest.mock('@/lib/getValidTimesFromSchedule', () => ({
+jest.mock('@/lib/utils/scheduling', () => ({
   getValidTimesFromSchedule: jest.fn().mockResolvedValue([] as never),
 }));
 
 // Mock audit logging
-jest.mock('@/lib/logAuditEvent', () => ({
+jest.mock('@/lib/utils/audit', () => ({
   logAuditEvent: jest.fn().mockImplementation(() => Promise.resolve()),
 }));
 

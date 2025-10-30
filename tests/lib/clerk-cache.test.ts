@@ -3,7 +3,7 @@ import {
   getCachedUserByUsername,
   getCachedUsersByIds,
 } from '@/lib/cache/clerk-cache';
-import { redisManager } from '@/lib/redis';
+import { redisManager } from '@/lib/redis/manager';
 import { createClerkClient } from '@clerk/nextjs/server';
 import type { User } from '@clerk/nextjs/server';
 
@@ -12,7 +12,7 @@ jest.mock('@clerk/nextjs/server', () => ({
   createClerkClient: jest.fn(),
 }));
 
-jest.mock('@/lib/redis', () => ({
+jest.mock('@/lib/redis/manager', () => ({
   redisManager: {
     get: jest.fn(),
     set: jest.fn(),

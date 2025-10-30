@@ -3,7 +3,7 @@ import { qstash } from '@/config/qstash';
 import { Client } from '@upstash/qstash';
 import { isValidCron } from 'cron-validator';
 
-import { validateQStashConfig } from './qstash-config';
+import { validateQStashConfig } from './config';
 
 // Ensure environment variables are loaded
 dotenv.config();

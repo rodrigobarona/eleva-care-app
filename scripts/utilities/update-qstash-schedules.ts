@@ -9,9 +9,9 @@
 // Load environment variables first
 import * as dotenv from 'dotenv';
 import { qstash } from '@/config/qstash';
-import { isQStashAvailable } from '@/lib/qstash-config';
+import { isQStashAvailable } from '@/lib/integrations/qstash/config';
 // Other imports
-import { setupQStashSchedules } from '@/lib/setup-qstash-schedules';
+import { setupQStashSchedules } from '@/lib/integrations/qstash/schedules';
 
 dotenv.config();
 

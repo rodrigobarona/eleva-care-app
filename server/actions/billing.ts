@@ -5,7 +5,10 @@ import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
-import { createStripeConnectAccount, getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
+import {
+  createStripeConnectAccount,
+  getStripeConnectSetupOrLoginLink,
+} from '@/lib/integrations/stripe';
 import { auth, clerkClient } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
@@ -170,7 +173,7 @@ export async function syncIdentityToConnect() {
     }
 
     // Import the sync function
-    const { syncIdentityVerificationToConnect } = await import('@/lib/stripe');
+    const { syncIdentityVerificationToConnect } = await import('@/lib/integrations/stripe');
 
     // Implement retry logic with exponential backoff
     const maxRetries = 3;

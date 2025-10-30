@@ -1,17 +1,12 @@
 import { useUser } from '@clerk/nextjs';
-import { useEffect, useState } from 'react';
 
 export type UserRole = 'user' | 'community_expert' | 'top_expert' | 'admin' | 'superadmin';
 
 export function useRoleCheck() {
   const { user, isLoaded } = useUser();
-  const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    if (isLoaded) {
-      setIsLoading(false);
-    }
-  }, [isLoaded]);
+  // Derive loading state directly from isLoaded instead of using effect + setState
+  const isLoading = !isLoaded;
 
   const hasRole = (rolesToCheck: UserRole | UserRole[]) => {
     const userRoles = user?.publicMetadata?.role;

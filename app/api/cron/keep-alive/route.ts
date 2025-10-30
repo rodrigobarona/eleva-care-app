@@ -1,9 +1,9 @@
 import { auditDb } from '@/drizzle/auditDb';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
-import { cleanupPaymentRateLimitCache } from '@/lib/cleanup-payment-rate-limit-cache';
-import { qstashHealthCheck } from '@/lib/qstash-config';
-import { redisManager } from '@/lib/redis';
+import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
+import { cleanupPaymentRateLimitCache } from '@/lib/redis/cleanup';
+import { redisManager } from '@/lib/redis/manager';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { gt, sql } from 'drizzle-orm';
 

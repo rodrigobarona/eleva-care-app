@@ -4,7 +4,7 @@ import { UserTable } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 import type Stripe from 'stripe';
 
-import { getBaseUrl, getServerStripe } from '../stripe';
+import { getBaseUrl, getServerStripe } from './client';
 
 /**
  * Creates a Stripe Identity verification session

@@ -1,7 +1,7 @@
 import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { createConnectAccountWithVerifiedIdentity } from '@/lib/stripe/identity';
+import { createConnectAccountWithVerifiedIdentity } from '@/lib/integrations/stripe/identity';
 import { currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';

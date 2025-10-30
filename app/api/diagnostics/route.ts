@@ -14,12 +14,12 @@
 import { runNovuDiagnostics } from '@/app/utils/novu';
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
-import { getScheduleStats, isQStashAvailable } from '@/lib/qstash';
+import { getScheduleStats, isQStashAvailable } from '@/lib/integrations/qstash/client';
 import {
   checkAllWebhooksHealth,
   generateWebhookHealthReport,
   getWebhookConfigStatus,
-} from '@/lib/webhook-health';
+} from '@/lib/webhooks/health';
 import { sql } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 

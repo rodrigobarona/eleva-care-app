@@ -19,8 +19,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/molecules/select';
-import { formatTimezoneOffset } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { formatTimezoneOffset } from '@/lib/utils/formatters';
 import { startOfDay } from 'date-fns';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import { Clock, CreditCard, Globe, Info, Video } from 'lucide-react';

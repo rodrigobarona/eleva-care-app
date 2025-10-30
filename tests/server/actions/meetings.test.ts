@@ -1,6 +1,6 @@
 import { EventTable, MeetingTable } from '@/drizzle/schema';
-import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
-import { logAuditEvent } from '@/lib/logAuditEvent';
+import { logAuditEvent } from '@/lib/utils/audit';
+import { getValidTimesFromSchedule } from '@/lib/utils/scheduling';
 import { createMeeting } from '@/server/actions/meetings';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { addMinutes } from 'date-fns';
@@ -104,10 +104,10 @@ const mockDb = {
 };
 
 jest.mock('@/drizzle/db', () => mockDb);
-jest.mock('@/lib/getValidTimesFromSchedule', () => ({
+jest.mock('@/lib/utils/scheduling', () => ({
   getValidTimesFromSchedule: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
 }));
-jest.mock('@/lib/logAuditEvent', () => ({
+jest.mock('@/lib/utils/audit', () => ({
   logAuditEvent: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
 }));
 jest.mock('next/headers', () => ({

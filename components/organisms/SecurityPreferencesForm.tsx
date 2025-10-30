@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from '@/components/atoms/alert';
 import { Card } from '@/components/atoms/card';
 import { Label } from '@/components/atoms/label';
 import { Switch } from '@/components/atoms/switch';
-import type { UserSecurityPreferences } from '@/lib/clerk-security-utils';
+import type { UserSecurityPreferences } from '@/lib/integrations/clerk/security-utils';
 import { useUser } from '@clerk/nextjs';
 import { Bell, Clock, Loader2, Mail, MapPin, Shield, Smartphone } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';

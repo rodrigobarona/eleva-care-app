@@ -7,8 +7,8 @@
 import { ENV_CONFIG } from '@/config/env';
 import { auditDb } from '@/drizzle/auditDb';
 import { db } from '@/drizzle/db';
-import { qstashHealthCheck } from '@/lib/qstash-config';
-import { redisManager } from '@/lib/redis';
+import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
+import { redisManager } from '@/lib/redis/manager';
 import { sql } from 'drizzle-orm';
 import Stripe from 'stripe';
 

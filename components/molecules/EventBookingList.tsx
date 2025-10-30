@@ -1,10 +1,10 @@
 import { Button } from '@/components/atoms/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
 import { Skeleton } from '@/components/atoms/skeleton';
+import NextAvailableTimeClient from '@/components/molecules/NextAvailableTimeClient';
 import { db } from '@/drizzle/db';
-import { formatEventDescription } from '@/lib/formatters';
-import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
-import NextAvailableTimeClient from '@/lib/NextAvailableTimeClient';
+import { formatEventDescription } from '@/lib/utils/formatters';
+import { getValidTimesFromSchedule } from '@/lib/utils/scheduling';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { addMonths } from 'date-fns';
 import { ChevronDown } from 'lucide-react';
@@ -246,92 +246,77 @@ function LoadingEventCard() {
 }
 
 async function EventsList({ userId, username }: { userId: string; username: string }) {
-  try {
-    console.log(`[EventsList] Loading events for userId: ${userId}, username: ${username}`);
+  console.log(`[EventsList] Loading events for userId: ${userId}, username: ${username}`);
 
-    const calendarStatus = await getCalendarStatus(userId);
-    console.log(`[EventsList] Calendar status for ${userId}:`, calendarStatus);
+  // Fetch data outside try/catch to let error boundaries handle JSX errors
+  const calendarStatus = await getCalendarStatus(userId);
+  console.log(`[EventsList] Calendar status for ${userId}:`, calendarStatus);
 
-    if (!calendarStatus.isConnected) {
-      console.log(
-        `[EventsList] Calendar not connected for user ${userId}, showing calendar access message`,
-      );
-      return (
-        <Card className="mx-auto max-w-md">
-          <CardHeader>
-            <CardTitle>Calendar Access Required</CardTitle>
-            <CardDescription>
-              {calendarStatus.error === 'Calendar not connected'
-                ? 'The calendar owner needs to connect their Google Calendar to show available times.'
-                : 'Unable to access calendar. Please try again later.'}
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      );
-    }
-
-    console.log(`[EventsList] Fetching events from database for userId: ${userId}`);
-    const events = await db.query.EventTable.findMany({
-      where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
-        and(eq(userIdCol, userId), eq(isActive, true)),
-      orderBy: ({ order }, { asc }) => asc(order),
-    });
-
-    console.log(`[EventsList] Found ${events.length} active events for userId: ${userId}`);
-
-    if (events.length === 0) {
-      console.log(`[EventsList] No events found for userId: ${userId}, returning notFound`);
-      return notFound();
-    }
-
-    return (
-      <div className="space-y-6">
-        {events.map((event) => (
-          <Suspense key={event.id} fallback={<LoadingEventCard />}>
-            <EventCardWithAvailability event={event} username={username} />
-          </Suspense>
-        ))}
-      </div>
-    );
-  } catch (error) {
-    console.error(`[EventsList] Error loading events for userId ${userId}:`, error);
-    console.error(
-      `[EventsList] Error stack:`,
-      error instanceof Error ? error.stack : 'No stack trace',
+  if (!calendarStatus.isConnected) {
+    console.log(
+      `[EventsList] Calendar not connected for user ${userId}, showing calendar access message`,
     );
     return (
       <Card className="mx-auto max-w-md">
         <CardHeader>
-          <CardTitle>Error</CardTitle>
+          <CardTitle>Calendar Access Required</CardTitle>
           <CardDescription>
-            An error occurred while loading the booking page. Please try again later.
+            {calendarStatus.error === 'Calendar not connected'
+              ? 'The calendar owner needs to connect their Google Calendar to show available times.'
+              : 'Unable to access calendar. Please try again later.'}
           </CardDescription>
         </CardHeader>
       </Card>
     );
   }
+
+  console.log(`[EventsList] Fetching events from database for userId: ${userId}`);
+  const events = await db.query.EventTable.findMany({
+    where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
+      and(eq(userIdCol, userId), eq(isActive, true)),
+    orderBy: ({ order }, { asc }) => asc(order),
+  });
+
+  console.log(`[EventsList] Found ${events.length} active events for userId: ${userId}`);
+
+  if (events.length === 0) {
+    console.log(`[EventsList] No events found for userId: ${userId}, returning notFound`);
+    return notFound();
+  }
+
+  return (
+    <div className="space-y-6">
+      {events.map((event) => (
+        <Suspense key={event.id} fallback={<LoadingEventCard />}>
+          <EventCardWithAvailability event={event} username={username} />
+        </Suspense>
+      ))}
+    </div>
+  );
 }
 
 async function EventCardWithAvailability({ event, username }: { event: Event; username: string }) {
+  console.log(
+    `[EventCardWithAvailability] Loading availability for event: ${event.id} (${event.name})`,
+  );
+
+  // Fetch data, let error boundaries handle errors instead of try/catch
+  let validTimes: Date[] = [];
   try {
-    console.log(
-      `[EventCardWithAvailability] Loading availability for event: ${event.id} (${event.name})`,
-    );
-    const validTimes = await getValidTimesForEvent(event.id);
-    const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
+    validTimes = await getValidTimesForEvent(event.id);
     console.log(
       `[EventCardWithAvailability] Found ${validTimes.length} valid times for event: ${event.id}`,
     );
-
-    return <EventCard event={event} username={username} nextAvailable={nextAvailable} />;
   } catch (error) {
     console.error(
       `[EventCardWithAvailability] Error loading availability for event ${event.id}:`,
       error,
     );
-    // Return the card without availability info if there's an error
-    return <EventCard event={event} username={username} nextAvailable={null} />;
+    // Continue with empty validTimes, will show card without availability
   }
+
+  const nextAvailable = validTimes.length > 0 ? validTimes[0] : null;
+  return <EventCard event={event} username={username} nextAvailable={nextAvailable} />;
 }
 
 export async function EventBookingList({ userId, username }: EventBookingListProps) {

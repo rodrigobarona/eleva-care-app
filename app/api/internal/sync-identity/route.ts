@@ -1,6 +1,6 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { syncIdentityVerificationToConnect } from '@/lib/stripe';
+import { syncIdentityVerificationToConnect } from '@/lib/integrations/stripe';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 

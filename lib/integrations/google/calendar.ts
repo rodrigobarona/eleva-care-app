@@ -2,7 +2,6 @@
 
 import GoogleCalendarService from '@/server/googleCalendar';
 
-
 /**
  * Google Calendar Client Wrapper
  *
@@ -13,7 +12,6 @@ import GoogleCalendarService from '@/server/googleCalendar';
  *
  * @module googleCalendarClient
  */
-
 
 /**
  * Checks if a user has valid Google OAuth tokens

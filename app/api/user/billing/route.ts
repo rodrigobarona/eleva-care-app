@@ -1,5 +1,5 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
-import { getStripeConnectAccountStatus } from '@/lib/stripe';
+import { getStripeConnectAccountStatus } from '@/lib/integrations/stripe';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';

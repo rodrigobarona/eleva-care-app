@@ -22,7 +22,7 @@
  *   pnpm tsx scripts/utilities/cache-manager.ts clear-all
  *   pnpm tsx scripts/utilities/cache-manager.ts health
  */
-import { redisManager } from '@/lib/redis';
+import { redisManager } from '@/lib/redis/manager';
 
 const args = process.argv.slice(2);
 const command = args[0];

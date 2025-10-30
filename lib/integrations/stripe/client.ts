@@ -1,7 +1,7 @@
 import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable, UserTable } from '@/drizzle/schema';
-import { CustomerCache } from '@/lib/redis';
+import { CustomerCache } from '@/lib/redis/manager';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
@@ -600,7 +600,7 @@ export async function syncIdentityVerificationToConnect(clerkUserId: string) {
     if (user.stripeIdentityVerificationId) {
       try {
         // Import the verification function dynamically to avoid circular dependencies
-        const { getIdentityVerificationStatus } = await import('./stripe/identity');
+        const { getIdentityVerificationStatus } = await import('./identity');
         verificationStatus = await getIdentityVerificationStatus(user.stripeIdentityVerificationId);
 
         // Log the verification status for debugging

@@ -3,7 +3,7 @@ import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/Pr
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { getCachedUserById } from '@/lib/cache/clerk-cache';
-import { formatDateTime } from '@/lib/formatters';
+import { formatDateTime } from '@/lib/utils/formatters';
 import { Calendar, CheckCircle, Clock, CreditCard, User } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { cookies } from 'next/headers';

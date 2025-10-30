@@ -1,4 +1,4 @@
-import { formatCurrency, formatDate, formatTimeRange } from '@/lib/formatters';
+import { formatCurrency, formatDate, formatTimeRange } from '@/lib/utils/formatters';
 import { describe, expect, it } from '@jest/globals';
 
 describe('Formatter Utilities', () => {

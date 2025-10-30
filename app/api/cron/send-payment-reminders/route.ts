@@ -2,9 +2,12 @@ import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { EventTable, SlotReservationTable, UserTable } from '@/drizzle/schema';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
-import { sendHeartbeatFailure, sendHeartbeatSuccess } from '@/lib/betterstack-heartbeat';
-import { sendEmail } from '@/lib/email';
-import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
+import {
+  sendHeartbeatFailure,
+  sendHeartbeatSuccess,
+} from '@/lib/integrations/betterstack/heartbeat';
+import { sendEmail } from '@/lib/integrations/novu/email';
+import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
 import { render } from '@react-email/components';
 import { format } from 'date-fns';
 import { and, eq, gt, isNotNull, isNull, lt } from 'drizzle-orm';

@@ -2,8 +2,8 @@
 
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable } from '@/drizzle/schema';
-import { logAuditEvent } from '@/lib/logAuditEvent';
-import { getServerStripe } from '@/lib/stripe';
+import { getServerStripe } from '@/lib/integrations/stripe';
+import { logAuditEvent } from '@/lib/utils/audit';
 import { eventFormSchema } from '@/schema/events';
 import { checkExpertSetupStatus, markStepComplete } from '@/server/actions/expert-setup';
 import { EVENT_CREATED, EVENT_DELETED, EVENT_UPDATED } from '@/types/audit';

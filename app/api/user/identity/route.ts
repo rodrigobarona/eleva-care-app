@@ -1,4 +1,4 @@
-import { getIdentityVerificationStatus } from '@/lib/stripe/identity';
+import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';

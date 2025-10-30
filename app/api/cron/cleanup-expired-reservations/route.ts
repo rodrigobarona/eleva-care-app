@@ -1,8 +1,11 @@
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { SlotReservationTable } from '@/drizzle/schema';
-import { sendHeartbeatFailure, sendHeartbeatSuccess } from '@/lib/betterstack-heartbeat';
-import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
+import {
+  sendHeartbeatFailure,
+  sendHeartbeatSuccess,
+} from '@/lib/integrations/betterstack/heartbeat';
+import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
 import { lt, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';

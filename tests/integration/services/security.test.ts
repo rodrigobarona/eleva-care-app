@@ -1,4 +1,7 @@
-import { analyzeSessionSecurity, shouldSendSecurityNotification } from '@/lib/clerk-security-utils';
+import {
+  analyzeSessionSecurity,
+  shouldSendSecurityNotification,
+} from '@/lib/integrations/clerk/security-utils';
 import { describe, expect, jest, test } from '@jest/globals';
 
 // Mock Clerk client

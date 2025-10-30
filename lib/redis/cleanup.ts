@@ -4,9 +4,8 @@
  * This module provides functionality to clean up corrupted payment rate limit cache entries
  * that were created with the old key format causing "filter is not a function" errors.
  */
+import { ENV_CONFIG, ENV_VALIDATORS } from '@/config/env';
 import { Redis } from '@upstash/redis';
-
-import { ENV_CONFIG, ENV_VALIDATORS } from '../config/env';
 
 export interface CleanupStats {
   scannedKeys: number;

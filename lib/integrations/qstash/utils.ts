@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-import { validateQStashConfig } from './qstash-config';
+import { validateQStashConfig } from './config';
 
 /**
  * Verify that a request genuinely came from QStash and was properly verified

@@ -1,4 +1,4 @@
-import { redisManager } from '@/lib/redis';
+import { redisManager } from '@/lib/redis/manager';
 import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 
 describe('Redis Service Integration Tests', () => {
