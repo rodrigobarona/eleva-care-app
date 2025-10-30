@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from '@/components/atoms/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
-import { Input } from '@/components/atoms/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -10,7 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/molecules/table';
+} from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { isValidCustomerId } from '@/lib/utils/customerUtils';
 import { useUser } from '@clerk/nextjs';

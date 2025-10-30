@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation';
 
 // Create a client-side only wrapper component
 const ClientEventFormWrapper = dynamic(() =>
-  import('@/components/organisms/forms/EventFormWrapper').then((mod) => mod.EventFormWrapper),
+  import('@/components/features/forms/EventFormWrapper').then((mod) => mod.EventFormWrapper),
 );
 
 export default async function EditEventPage(props: { params: Promise<{ eventSlug: string }> }) {

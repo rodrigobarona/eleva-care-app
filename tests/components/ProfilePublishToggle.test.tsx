@@ -1,4 +1,4 @@
-import { ProfilePublishToggle } from '@/components/organisms/ProfilePublishToggle';
+import { ProfilePublishToggle } from '@/components/features/profile/ProfilePublishToggle';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';

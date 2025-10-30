@@ -1,4 +1,4 @@
-import { CategoryList } from '@/components/organisms/category-list';
+import { CategoryList } from '@/components/features/categories/CategoryList';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {

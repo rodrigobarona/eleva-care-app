@@ -1,5 +1,5 @@
 import type { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
-import { ScheduleForm } from '@/components/organisms/forms/ScheduleForm';
+import { ScheduleForm } from '@/components/features/forms/ScheduleForm';
 import { db } from '@/drizzle/db';
 import { getBlockedDates } from '@/server/actions/blocked-dates';
 import { markStepCompleteNoRevalidate } from '@/server/actions/expert-setup';

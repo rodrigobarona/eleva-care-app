@@ -1,4 +1,4 @@
-import { UserRoleManager } from '@/components/organisms/admin/UserRoleManager';
+import { UserRoleManager } from '@/components/features/admin/UserRoleManager';
 
 export default function AdminUsersPage() {
   return (

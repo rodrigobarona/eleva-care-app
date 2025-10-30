@@ -5,13 +5,29 @@ globs: ['components/**/*.tsx', 'app/**/*.tsx']
 
 # UI and Component Patterns
 
-## Atomic Design
+## Component Organization
 
 ```
 components/
-├── atoms/          # buttons, inputs, labels
-├── molecules/      # form groups, cards
-└── organisms/      # navigation, modals
+├── ui/               # Shadcn/ui components (buttons, inputs, cards, dialogs)
+├── features/         # Feature-specific components (appointments, booking, forms)
+├── layout/           # Layout components (header, footer, sidebar)
+├── sections/         # Page sections (home, about)
+├── shared/           # Shared utilities (navigation, loading, i18n)
+├── integrations/     # Third-party integrations (Stripe, Novu, PostHog)
+├── icons/            # Icon library
+└── providers/        # React context providers
+```
+
+**Import Examples:**
+
+```typescript
+// UI components
+// Feature components
+import { AppointmentCard } from '@/components/features/appointments';
+// Layout components
+import { Footer, Header } from '@/components/layout';
+import { AlertDialog, Button } from '@/components/ui';
 ```
 
 ## Component Structure

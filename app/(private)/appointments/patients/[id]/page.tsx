@@ -1,9 +1,9 @@
 'use client';
 
-import { Button } from '@/components/atoms/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/atoms/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/molecules/tabs';
-import { AppointmentCard } from '@/components/organisms/AppointmentCard';
+import { AppointmentCard } from '@/components/features/appointments/AppointmentCard';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatCurrency } from '@/lib/utils';
 import { ArrowLeft, Calendar, CreditCard, Mail, User } from 'lucide-react';
 import Link from 'next/link';

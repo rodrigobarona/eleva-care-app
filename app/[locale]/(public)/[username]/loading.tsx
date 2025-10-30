@@ -1,4 +1,4 @@
-import { ProfilePageLoadingSkeleton } from '@/components/molecules/ProfilePageLoadingSkeleton';
+import { ProfilePageLoadingSkeleton } from '@/components/features/profile/ProfilePageLoadingSkeleton';
 
 export default function Loading() {
   return <ProfilePageLoadingSkeleton />;

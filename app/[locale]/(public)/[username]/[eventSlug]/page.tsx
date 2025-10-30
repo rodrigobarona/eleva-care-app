@@ -1,4 +1,7 @@
-import { Button } from '@/components/atoms/button';
+import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
+import { BookingLoadingSkeleton } from '@/components/features/booking/BookingLoadingSkeleton';
+import { MeetingForm } from '@/components/features/forms/MeetingForm';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -6,10 +9,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
-import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
-import { BookingLoadingSkeleton } from '@/components/molecules/BookingLoadingSkeleton';
-import { MeetingForm } from '@/components/organisms/forms/MeetingForm';
+} from '@/components/ui/card';
 import { db } from '@/drizzle/db';
 import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import {

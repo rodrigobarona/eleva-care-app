@@ -1,8 +1,8 @@
 'use client';
 
-import { Alert, AlertDescription, AlertTitle } from '@/components/atoms/alert';
-import { Badge } from '@/components/atoms/badge';
-import { Button } from '@/components/atoms/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -10,8 +10,7 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/atoms/card';
-import { Textarea } from '@/components/atoms/textarea';
+} from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/molecules/dialog';
+} from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { formatCurrency } from '@/lib/utils';
 import {
   AlertCircle,

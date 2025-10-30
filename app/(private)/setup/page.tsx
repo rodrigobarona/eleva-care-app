@@ -1,9 +1,9 @@
 'use client';
 
 import * as React from 'react';
-import { Button } from '@/components/atoms/button';
-import { Skeleton } from '@/components/atoms/skeleton';
-import { SetupCompletePublishCard } from '@/components/organisms/SetupCompletePublishCard';
+import { SetupCompletePublishCard } from '@/components/features/expert-setup/SetupCompletePublishCard';
+import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { useUser } from '@clerk/nextjs';
 import { CheckCircle2 } from 'lucide-react';

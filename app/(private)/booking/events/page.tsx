@@ -1,4 +1,4 @@
-import { EventsList } from '@/components/organisms/EventsList';
+import { EventsList } from '@/components/features/booking/EventsList';
 import { db } from '@/drizzle/db';
 import { markStepCompleteNoRevalidate } from '@/server/actions/expert-setup';
 import { auth, createClerkClient } from '@clerk/nextjs/server';
