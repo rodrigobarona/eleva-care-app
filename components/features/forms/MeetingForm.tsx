@@ -700,16 +700,30 @@ export function MeetingFormContent({
   ]);
 
   const onSubmit = React.useCallback(
-    async (values: z.infer<typeof meetingFormSchema>) => {
+    async (values: z.infer<typeof meetingFormSchema>, event?: React.BaseSyntheticEvent) => {
+      // Prevent default form submission behavior
+      event?.preventDefault();
+
       if (currentStep === '3' && price > 0) {
         return;
       }
 
-      // Prevent double submissions
-      if (isSubmitting) {
+      // **STEP 2: Funnel through handleNextStep for consistent behavior**
+      // This ensures keyboard (Enter) and click submissions use the same code path
+      if (currentStep === '2') {
+        await handleNextStep('3');
         return;
       }
 
+      // **CRITICAL: This should only be reached from Step 1**
+      // Prevent double submissions
+      if (isSubmitting || isProcessingRef.current) {
+        return;
+      }
+
+      // **IMMEDIATE STATE UPDATE: Set processing flags**
+      isProcessingRef.current = true;
+      setIsProcessing(true);
       setIsSubmitting(true);
 
       try {
@@ -754,6 +768,9 @@ export function MeetingFormContent({
           message: 'There was an error saving your event',
         });
       } finally {
+        // **CLEANUP: Always reset processing state**
+        isProcessingRef.current = false;
+        setIsProcessing(false);
         setIsSubmitting(false);
       }
     },
@@ -770,6 +787,7 @@ export function MeetingFormContent({
       username,
       eventSlug,
       isSubmitting,
+      handleNextStep,
     ],
   );
 
