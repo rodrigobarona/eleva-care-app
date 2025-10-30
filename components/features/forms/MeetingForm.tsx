@@ -699,7 +699,10 @@ export function MeetingFormContent({
     isSubmitting,
   ]);
 
-  const onSubmit = React.useCallback(
+  const onSubmit: (
+    values: z.infer<typeof meetingFormSchema>,
+    event?: React.BaseSyntheticEvent,
+  ) => Promise<void> = React.useCallback(
     async (values: z.infer<typeof meetingFormSchema>, event?: React.BaseSyntheticEvent) => {
       // Prevent default form submission behavior
       event?.preventDefault();
