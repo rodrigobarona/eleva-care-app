@@ -1,6 +1,6 @@
-import { CookiePreferencesButton } from '@/components/shared/CookiePreferencesButton';
 import { LanguageSwitcher } from '@/components/shared/i18n/LocaleSwitcher';
-import { ServerStatus } from '@/components/shared/ServerStatus';
+import { CookiePreferencesButton } from '@/components/shared/ui-utilities/CookiePreferencesButton';
+import { ServerStatus } from '@/components/shared/ui-utilities/ServerStatus';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/lib/i18n/navigation';
 import { useTranslations } from 'next-intl';

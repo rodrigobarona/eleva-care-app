@@ -1,4 +1,4 @@
-import { PlatformDisclaimer } from '@/components/shared/PlatformDisclaimer';
+import { PlatformDisclaimer } from '@/components/shared/ui-utilities/PlatformDisclaimer';
 import { Card, CardContent } from '@/components/ui/card';
 import {
   Carousel,

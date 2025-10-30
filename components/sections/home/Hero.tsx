@@ -1,6 +1,6 @@
 'use client';
 
-import { PlatformDisclaimer } from '@/components/shared/PlatformDisclaimer';
+import { PlatformDisclaimer } from '@/components/shared/ui-utilities/PlatformDisclaimer';
 import { Button } from '@/components/ui/button';
 import { ClipboardList } from 'lucide-react';
 import { useTranslations } from 'next-intl';

@@ -13,7 +13,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/layout/sidebar/sidebar';
-import { useIsExpert } from '@/components/shared/AuthorizationProvider';
+import { useIsExpert } from '@/components/shared/providers/AuthorizationProvider';
 import { useUser } from '@clerk/nextjs';
 import { Bell, Calendar, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
 import { Link as LinkIcon } from 'lucide-react';

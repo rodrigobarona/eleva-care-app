@@ -1,7 +1,7 @@
 'use client';
 
-import { useAuthorization } from '@/components/shared/AuthorizationProvider';
 import { DataTable } from '@/components/shared/data-table/DataTable';
+import { useAuthorization } from '@/components/shared/providers/AuthorizationProvider';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';

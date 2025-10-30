@@ -9,7 +9,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/layout/sidebar/sidebar';
-import { RequireRole } from '@/components/shared/AuthorizationProvider';
+import { RequireRole } from '@/components/shared/providers/AuthorizationProvider';
 import {
   DropdownMenu,
   DropdownMenuContent,

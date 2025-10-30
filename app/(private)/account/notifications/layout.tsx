@@ -1,4 +1,4 @@
-import { Shell } from '@/components/shared/shell';
+import { Shell } from '@/components/shared/ui-utilities/shell';
 
 export const metadata = {
   title: 'Notifications | Eleva Care',

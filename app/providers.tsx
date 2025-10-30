@@ -1,6 +1,6 @@
 'use client';
 
-import { AuthorizationProvider } from '@/components/shared/AuthorizationProvider';
+import { AuthorizationProvider } from '@/components/shared/providers/AuthorizationProvider';
 import { ENV_CONFIG } from '@/config/env';
 import { enUS, esES, ptBR, ptPT } from '@clerk/localizations';
 import { ClerkProvider, useUser } from '@clerk/nextjs';
