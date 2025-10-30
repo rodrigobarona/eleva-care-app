@@ -4,8 +4,6 @@ import { syncIdentityVerificationToConnect } from '@/lib/integrations/stripe';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
-// Mark route as dynamic
-
 export async function POST(request: Request) {
   try {
     // Get the clerk user ID from the query parameter

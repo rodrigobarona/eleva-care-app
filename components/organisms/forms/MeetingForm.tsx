@@ -391,9 +391,6 @@ export function MeetingFormContent({
   const activeRequestId = React.useRef<string | null>(null);
   const requestCooldownMs = 2000; // 2 seconds minimum between requests
 
-  // **PREVENT DUPLICATE REQUESTS: Force re-render when ref changes**
-  const [, forceRender] = React.useReducer((x) => x + 1, 0);
-
   // Query state configuration
   const queryStateParsers = React.useMemo(
     () => ({
@@ -873,7 +870,6 @@ export function MeetingFormContent({
         // **CRITICAL: Force immediate synchronous state update for free sessions**
         flushSync(() => {
           setIsSubmitting(true);
-          forceRender();
         });
 
         try {
@@ -891,7 +887,6 @@ export function MeetingFormContent({
           isProcessingRef.current = false;
           setIsProcessing(false);
           setIsSubmitting(false);
-          forceRender();
         }
         return;
       }
@@ -903,7 +898,6 @@ export function MeetingFormContent({
       // **CRITICAL: Force immediate synchronous state update and re-render**
       flushSync(() => {
         setIsSubmitting(true);
-        forceRender();
       });
 
       console.log(
@@ -932,7 +926,6 @@ export function MeetingFormContent({
               isProcessingRef.current = false;
               setIsProcessing(false);
               setIsSubmitting(false);
-              forceRender();
             }
           }, 3000);
 
@@ -945,7 +938,6 @@ export function MeetingFormContent({
           isProcessingRef.current = false;
           setIsProcessing(false);
           setIsSubmitting(false);
-          forceRender();
           return;
         }
       }
@@ -980,7 +972,6 @@ export function MeetingFormContent({
               isProcessingRef.current = false;
               setIsProcessing(false);
               setIsSubmitting(false);
-              forceRender();
             }
           }, 3000);
 
@@ -1001,7 +992,6 @@ export function MeetingFormContent({
         isProcessingRef.current = false;
         setIsProcessing(false);
         setIsSubmitting(false);
-        forceRender();
       }
     },
     [form, price, createPaymentIntent, onSubmit, transitionToStep, checkoutUrl, setCheckoutUrl],
