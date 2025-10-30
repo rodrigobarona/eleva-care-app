@@ -391,6 +391,11 @@ export function MeetingFormContent({
   const activeRequestId = React.useRef<string | null>(null);
   const requestCooldownMs = 2000; // 2 seconds minimum between requests
 
+  // **REF: Store handleNextStep to break circular dependency**
+  const handleNextStepRef = React.useRef<((nextStep: '1' | '2' | '3') => Promise<void>) | null>(
+    null,
+  );
+
   // Query state configuration
   const queryStateParsers = React.useMemo(
     () => ({
@@ -699,26 +704,9 @@ export function MeetingFormContent({
     isSubmitting,
   ]);
 
-  const onSubmit: (
-    values: z.infer<typeof meetingFormSchema>,
-    event?: React.BaseSyntheticEvent,
-  ) => Promise<void> = React.useCallback(
-    async (values: z.infer<typeof meetingFormSchema>, event?: React.BaseSyntheticEvent) => {
-      // Prevent default form submission behavior
-      event?.preventDefault();
-
-      if (currentStep === '3' && price > 0) {
-        return;
-      }
-
-      // **STEP 2: Funnel through handleNextStep for consistent behavior**
-      // This ensures keyboard (Enter) and click submissions use the same code path
-      if (currentStep === '2') {
-        await handleNextStep('3');
-        return;
-      }
-
-      // **CRITICAL: This should only be reached from Step 1**
+  // Helper to handle submission logic for both keyboard and click submissions
+  const submitMeeting = React.useCallback(
+    async (values: z.infer<typeof meetingFormSchema>) => {
       // Prevent double submissions
       if (isSubmitting || isProcessingRef.current) {
         return;
@@ -779,7 +767,6 @@ export function MeetingFormContent({
     },
     [
       createPaymentIntent,
-      currentStep,
       clerkUserId,
       eventId,
       form,
@@ -790,8 +777,34 @@ export function MeetingFormContent({
       username,
       eventSlug,
       isSubmitting,
-      handleNextStep,
     ],
+  );
+
+  const onSubmit: (
+    values: z.infer<typeof meetingFormSchema>,
+    event?: React.BaseSyntheticEvent,
+  ) => Promise<void> = React.useCallback(
+    async (values: z.infer<typeof meetingFormSchema>, event?: React.BaseSyntheticEvent) => {
+      // Prevent default form submission behavior
+      event?.preventDefault();
+
+      if (currentStep === '3' && price > 0) {
+        return;
+      }
+
+      // **STEP 2: Funnel through handleNextStep for consistent behavior**
+      // This ensures keyboard (Enter) and click submissions use the same code path
+      if (currentStep === '2') {
+        if (handleNextStepRef.current) {
+          await handleNextStepRef.current('3');
+        }
+        return;
+      }
+
+      // **CRITICAL: This should only be reached from Step 1**
+      await submitMeeting(values);
+    },
+    [currentStep, price, submitMeeting],
   );
 
   // Prefetch checkout URL when step 2 is filled out - use watched values
@@ -897,7 +910,7 @@ export function MeetingFormContent({
           // Get current form values and submit directly (bypasses handleSubmit race condition)
           // Form validation already done above
           const formValues = form.getValues();
-          await onSubmit(formValues);
+          await submitMeeting(formValues);
         } catch (error) {
           console.error('Error submitting form:', error);
           form.setError('root', {
@@ -1015,8 +1028,21 @@ export function MeetingFormContent({
         setIsSubmitting(false);
       }
     },
-    [form, price, createPaymentIntent, onSubmit, transitionToStep, checkoutUrl, setCheckoutUrl],
+    [
+      form,
+      price,
+      createPaymentIntent,
+      submitMeeting,
+      transitionToStep,
+      checkoutUrl,
+      setCheckoutUrl,
+    ],
   );
+
+  // **REF SYNC: Update ref whenever handleNextStep changes**
+  React.useEffect(() => {
+    handleNextStepRef.current = handleNextStep;
+  }, [handleNextStep]);
 
   // Initialize first available date only once
   React.useEffect(() => {
