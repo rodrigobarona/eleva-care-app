@@ -43,10 +43,12 @@ async function getCalendarStatus(clerkUserId: string) {
     }
 
     const now = new Date();
-    const endDate = addMonths(now, 1);
+    // Just check a single day to minimize API overhead
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
     await calendarService.getCalendarEventTimes(clerkUserId, {
       start: now,
-      end: endDate,
+      end: tomorrow,
     });
 
     logger.info('Calendar connected successfully', { userId: clerkUserId });
