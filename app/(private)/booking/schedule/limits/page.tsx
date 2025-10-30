@@ -1,4 +1,4 @@
-import { SchedulingSettingsForm } from '@/components/organisms/forms/SchedulingSettingsForm';
+import { SchedulingSettingsForm } from '@/components/features/forms/SchedulingSettingsForm';
 import { auth } from '@clerk/nextjs/server';
 
 // Note: Route is dynamic by default with cacheComponents enabled in Next.js 16

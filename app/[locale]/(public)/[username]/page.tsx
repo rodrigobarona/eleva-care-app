@@ -1,6 +1,6 @@
 import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
-import { EventBookingList } from '@/components/molecules/EventBookingList';
-import { ProfileColumnSkeleton } from '@/components/molecules/ProfilePageLoadingSkeleton';
+import { EventBookingList } from '@/components/features/booking/EventBookingList';
+import { ProfileColumnSkeleton } from '@/components/features/profile/ProfilePageLoadingSkeleton';
 import { db } from '@/drizzle/db';
 import { generateUserProfileMetadata } from '@/lib/seo/metadata-utils';
 import { auth } from '@clerk/nextjs/server';

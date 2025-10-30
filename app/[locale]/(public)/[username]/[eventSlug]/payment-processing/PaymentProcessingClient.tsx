@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
-import { Icons } from '@/components/atoms/icons';
+import { Icons } from '@/components/icons/icons';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 

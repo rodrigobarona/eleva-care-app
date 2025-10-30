@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@/components/atoms/button';
-import { LoadingSpinner } from '@/components/atoms/LoadingSpinner';
+import { LoadingSpinner } from '@/components/shared/loading/LoadingSpinner';
+import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 

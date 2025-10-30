@@ -1,8 +1,8 @@
 'use client';
 
-import { Button } from '@/components/atoms/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/molecules/tabs';
-import { AppointmentCard } from '@/components/organisms/AppointmentCard';
+import { AppointmentCard } from '@/components/features/appointments/AppointmentCard';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generateCustomerId } from '@/lib/utils/customerUtils';
 import { useUser } from '@clerk/nextjs';
 import { Calendar } from 'lucide-react';

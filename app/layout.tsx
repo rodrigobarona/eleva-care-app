@@ -1,5 +1,5 @@
 import { ClientProviders } from '@/app/providers';
-import { ErrorBoundaryWrapper } from '@/components/molecules/ErrorBoundaryWrapper';
+import { ErrorBoundaryWrapper } from '@/components/shared/ErrorBoundaryWrapper';
 import { defaultLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { Analytics } from '@vercel/analytics/next';

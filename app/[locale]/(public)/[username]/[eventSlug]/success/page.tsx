@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/atoms/card';
 import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/ProfileAccessControl';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { getCachedUserById } from '@/lib/cache/clerk-cache';
