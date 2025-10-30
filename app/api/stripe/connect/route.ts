@@ -5,7 +5,7 @@ import {
   createStripeConnectAccount,
   getConnectAccountBalance,
   getStripeConnectSetupOrLoginLink,
-} from '@/lib/stripe';
+} from '@/lib/integrations/stripe';
 import { isStripeError } from '@/types/stripe-errors';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';

@@ -1,6 +1,6 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { getStripeConnectSetupOrLoginLink } from '@/lib/stripe';
+import { getStripeConnectSetupOrLoginLink } from '@/lib/integrations/stripe';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';

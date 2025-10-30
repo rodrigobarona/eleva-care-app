@@ -7,7 +7,7 @@ import {
   generateNotificationEmail,
   generateWelcomeEmail,
   sendEmail,
-} from '@/lib/email';
+} from '@/lib/integrations/novu/email';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**

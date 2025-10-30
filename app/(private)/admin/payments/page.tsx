@@ -4,9 +4,7 @@ import { Suspense } from 'react';
 
 import { PaymentTransfersClient } from './payment-transfers-client';
 
-// Mark route as dynamic
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
+// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
 export default async function PaymentTransfersPage({
   searchParams,

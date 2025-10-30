@@ -4,8 +4,8 @@ import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
   NOTIFICATION_TYPE_SECURITY_ALERT,
 } from '@/lib/constants/notifications';
-import { createUserNotification } from '@/lib/notifications';
-import { withRetry } from '@/lib/stripe';
+import { withRetry } from '@/lib/integrations/stripe';
+import { createUserNotification } from '@/lib/notifications/core';
 import { markStepCompleteForUser } from '@/server/actions/expert-setup';
 import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';

@@ -8,8 +8,8 @@
  *
  * @module GoogleCalendarService
  */
-import { createShortMeetLink } from '@/lib/dub';
-import { generateAppointmentEmail, sendEmail } from '@/lib/email';
+import { createShortMeetLink } from '@/lib/integrations/dub/client';
+import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { addMinutes, endOfDay, startOfDay } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';

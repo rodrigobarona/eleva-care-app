@@ -1,5 +1,5 @@
 // Import after mocking (this will be the real module in integration mode, mocked in unit mode)
-import { sendEmail } from '@/lib/email';
+import { sendEmail } from '@/lib/integrations/novu/email';
 import { beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals';
 
 // Mock the entire email module for unit tests
@@ -7,7 +7,7 @@ const mockSendEmail = jest.fn() as jest.MockedFunction<any>;
 
 // Only mock in unit test mode
 if (process.env.EMAIL_INTEGRATION_TEST !== 'true') {
-  jest.mock('@/lib/email', () => ({
+  jest.mock('@/lib/integrations/novu/email', () => ({
     sendEmail: mockSendEmail,
   }));
 }

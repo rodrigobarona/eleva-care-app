@@ -1,12 +1,9 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
-import { syncStripeDataToKV } from '@/lib/stripe';
+import { syncStripeDataToKV } from '@/lib/integrations/stripe';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { auth, currentUser } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
-
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {

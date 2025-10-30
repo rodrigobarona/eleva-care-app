@@ -2,11 +2,9 @@ import {
   getUserSecurityPreferences,
   updateUserSecurityPreferences,
   type UserSecurityPreferences,
-} from '@/lib/clerk-security-utils';
+} from '@/lib/integrations/clerk/security-utils';
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
-
-export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/user/security-preferences

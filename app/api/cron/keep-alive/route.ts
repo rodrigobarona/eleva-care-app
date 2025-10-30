@@ -1,12 +1,11 @@
 import { auditDb } from '@/drizzle/auditDb';
 import { db } from '@/drizzle/db';
 import { ProfileTable } from '@/drizzle/schema';
-import { qstashHealthCheck } from '@/lib/qstash-config';
-import { redisManager } from '@/lib/redis';
+import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
+import { cleanupPaymentRateLimitCache } from '@/lib/redis/cleanup';
+import { redisManager } from '@/lib/redis/manager';
 import GoogleCalendarService from '@/server/googleCalendar';
 import { gt, sql } from 'drizzle-orm';
-
-import { cleanupPaymentRateLimitCache } from '../../../../scripts/cleanup-payment-rate-limit-cache';
 
 /**
  * Safely extracts and validates a base URL from environment variables
@@ -79,8 +78,6 @@ function getValidBaseUrl(
 // - Refreshes Google Calendar tokens for connected users (in batches)
 // - Maintains OAuth token validity
 // - Logs system health status and metrics for trend analysis
-
-export const dynamic = 'force-dynamic';
 
 interface KeepAliveMetrics {
   totalProfiles: number;

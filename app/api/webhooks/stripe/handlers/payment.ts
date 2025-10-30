@@ -22,10 +22,10 @@ import {
   PAYMENT_TRANSFER_STATUS_READY,
   PAYMENT_TRANSFER_STATUS_REFUNDED,
 } from '@/lib/constants/payment-transfers';
-import { generateAppointmentEmail, sendEmail } from '@/lib/email';
-import { logAuditEvent } from '@/lib/logAuditEvent';
-import { createUserNotification } from '@/lib/notifications';
-import { withRetry } from '@/lib/stripe';
+import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
+import { withRetry } from '@/lib/integrations/stripe';
+import { createUserNotification } from '@/lib/notifications/core';
+import { logAuditEvent } from '@/lib/utils/audit';
 import { render } from '@react-email/components';
 import { format, toZonedTime } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';

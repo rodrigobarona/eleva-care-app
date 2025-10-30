@@ -2,11 +2,6 @@ import createMDX from '@next/mdx';
 import { withBotId } from 'botid/next/config';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
-/**
- * MDX configuration
- * Enables .mdx file support in Next.js
- */
-import remarkGfm from 'remark-gfm';
 
 /**
  * Bundle analyzer configuration
@@ -16,10 +11,19 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
   enabled: process.env.ANALYZE === 'true',
 });
 
+/**
+ * MDX configuration for Turbopack compatibility
+ *
+ * IMPORTANT: Turbopack requires plugins to be specified as strings (not imported functions)
+ * because the Rust-based compiler cannot execute JavaScript functions.
+ *
+ * For more info: https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack
+ */
 const withMDX = createMDX({
   extension: /\.mdx?$/,
   options: {
-    remarkPlugins: [remarkGfm],
+    // Plugins must be strings for Turbopack compatibility
+    remarkPlugins: ['remark-gfm'],
     rehypePlugins: [],
   },
 });
@@ -35,6 +39,16 @@ const config: NextConfig = {
   env: {
     BUILD_DATE: new Date().toISOString(),
   },
+
+  // Cache Components disabled - waiting for next-intl support
+  // next-intl requires next/root-params (currently experimental) for cacheComponents compatibility
+  // The library maintainer confirmed cacheComponents is not yet supported: https://github.com/amannn/next-intl/issues/1493
+  // TODO: Re-enable after next-intl adds cacheComponents support (expected in Next.js 16.x minor release)
+  // For now, using traditional revalidate pattern for static content caching
+  // cacheComponents: true,
+
+  // Enable React Compiler for automatic memoization
+  reactCompiler: true,
 
   images: {
     remotePatterns: [
@@ -57,7 +71,7 @@ const config: NextConfig = {
   // External packages that should not be bundled by webpack
   serverExternalPackages: ['googleapis'],
 
-  // Turbopack configuration
+  // Turbopack configuration (moved from experimental in Next.js 16)
   turbopack: {
     resolveExtensions: ['.js', '.jsx', '.ts', '.tsx', '.md', '.mdx', '.json'],
     resolveAlias: {
@@ -110,21 +124,6 @@ const config: NextConfig = {
       '@tiptap/starter-kit',
       'lucide-react',
     ],
-
-    // Use JS-based MDX compiler to support remark/rehype plugins like remark-gfm
-    mdxRs: false,
-  },
-
-  webpack: (config, { dev }) => {
-    // Optimize memory usage for production builds
-    if (!dev) {
-      // Use default Next.js cache settings but optimize for memory
-      if (config.cache && config.cache.type === 'filesystem') {
-        config.cache.maxMemoryGenerations = 1;
-      }
-    }
-
-    return config;
   },
 
   // Configure `pageExtensions` to include markdown and MDX files

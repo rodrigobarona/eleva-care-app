@@ -2,10 +2,13 @@ import { ENV_CONFIG } from '@/config/env';
 import { PAYOUT_DELAY_DAYS } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
-import { sendHeartbeatFailure, sendHeartbeatSuccess } from '@/lib/betterstack-heartbeat';
-import { createUpcomingPayoutNotification } from '@/lib/payment-notifications';
-import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
-import { getUserByClerkId } from '@/lib/users';
+import {
+  sendHeartbeatFailure,
+  sendHeartbeatSuccess,
+} from '@/lib/integrations/betterstack/heartbeat';
+import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
+import { createUpcomingPayoutNotification } from '@/lib/notifications/payment';
+import { getUserByClerkId } from '@/lib/utils/users';
 import { addDays, differenceInDays } from 'date-fns';
 import { and, eq, isNull } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -19,8 +22,6 @@ import { NextResponse } from 'next/server';
 // - Maintains notification audit trail
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 

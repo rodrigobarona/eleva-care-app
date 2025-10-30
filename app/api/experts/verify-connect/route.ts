@@ -3,7 +3,6 @@ import { verifyExpertConnectAccount } from '@/server/actions/experts';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-export const runtime = 'nodejs';
 export const preferredRegion = 'auto';
 
 export async function POST() {

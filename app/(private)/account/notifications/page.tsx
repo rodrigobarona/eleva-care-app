@@ -1,7 +1,7 @@
 import { SecurityPreferencesForm } from '@/components/organisms/SecurityPreferencesForm';
 import { auth } from '@clerk/nextjs/server';
 
-export const revalidate = 0;
+// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
 export default async function NotificationsPage() {
   const { userId, redirectToSignIn } = await auth();

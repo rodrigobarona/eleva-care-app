@@ -2,7 +2,11 @@
 
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { getOrCreateStripeCustomer, getServerStripe, syncStripeDataToKV } from '@/lib/stripe';
+import {
+  getOrCreateStripeCustomer,
+  getServerStripe,
+  syncStripeDataToKV,
+} from '@/lib/integrations/stripe';
 
 /**
  * @fileoverview Server actions for managing Stripe integrations in the Eleva Care application.

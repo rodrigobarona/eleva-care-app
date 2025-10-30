@@ -2,13 +2,16 @@ import { ENV_CONFIG } from '@/config/env';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
-import { sendHeartbeatFailure, sendHeartbeatSuccess } from '@/lib/betterstack-heartbeat';
 import {
   PAYMENT_TRANSFER_STATUS_COMPLETED,
   PAYMENT_TRANSFER_STATUS_PAID_OUT,
 } from '@/lib/constants/payment-transfers';
-import { createPayoutCompletedNotification } from '@/lib/payment-notifications';
-import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
+import {
+  sendHeartbeatFailure,
+  sendHeartbeatSuccess,
+} from '@/lib/integrations/betterstack/heartbeat';
+import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
+import { createPayoutCompletedNotification } from '@/lib/notifications/payment';
 import { and, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -21,8 +24,6 @@ import Stripe from 'stripe';
 // 4. Updates records and sends notifications
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 300; // Increased to 5 minutes for comprehensive checks
 

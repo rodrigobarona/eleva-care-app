@@ -15,8 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/molecules/select';
-import { formatTimezoneOffset } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { formatTimezoneOffset } from '@/lib/utils/formatters';
 import { Info } from 'lucide-react';
 import type { Control, FieldValues, Path } from 'react-hook-form';
 

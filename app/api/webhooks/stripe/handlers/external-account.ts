@@ -1,8 +1,8 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
-import { createUserNotification } from '@/lib/notifications';
-import { withRetry } from '@/lib/stripe';
+import { withRetry } from '@/lib/integrations/stripe';
+import { createUserNotification } from '@/lib/notifications/core';
 import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';
 

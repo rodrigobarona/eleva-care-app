@@ -22,11 +22,9 @@
  * - posthog
  * - novu
  */
-import { getAvailableServices, getServiceHealthCheck } from '@/lib/service-health';
+import { getAvailableServices, getServiceHealthCheck } from '@/lib/utils/service-health';
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const maxDuration = 30;
 
 interface RouteParams {

@@ -3,7 +3,7 @@ import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/Pr
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { getCachedUserById } from '@/lib/cache/clerk-cache';
-import { formatDateTime } from '@/lib/formatters';
+import { formatDateTime } from '@/lib/utils/formatters';
 import { Calendar, CheckCircle, Clock, CreditCard, User } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
 import { cookies } from 'next/headers';
@@ -11,8 +11,9 @@ import Image from 'next/image';
 import { notFound, redirect } from 'next/navigation';
 import Stripe from 'stripe';
 
-export const revalidate = 0;
-export const dynamic = 'force-dynamic';
+// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
+// Removed: export const revalidate = 0 (default behavior)
+// Removed: export const dynamic = 'force-dynamic' (no longer needed)
 
 // Updated PageProps type with proper next params - both params and searchParams as Promises
 interface PageProps {

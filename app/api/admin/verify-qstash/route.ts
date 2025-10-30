@@ -1,12 +1,10 @@
 import { qstash } from '@/config/qstash';
 import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
-import { isQStashAvailable, qstashClient } from '@/lib/qstash';
-import { getQStashConfigMessage, validateQStashConfig } from '@/lib/qstash-config';
+import { isQStashAvailable, qstashClient } from '@/lib/integrations/qstash/client';
+import { getQStashConfigMessage, validateQStashConfig } from '@/lib/integrations/qstash/config';
 import { NextResponse } from 'next/server';
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 

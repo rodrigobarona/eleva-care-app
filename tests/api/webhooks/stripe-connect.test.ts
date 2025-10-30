@@ -6,7 +6,7 @@ import Stripe from 'stripe';
 
 // Mock Novu integration using manual mocks
 jest.mock('@/app/utils/novu');
-jest.mock('@/lib/novu-utils');
+jest.mock('@/lib/integrations/novu/utils');
 
 // Mock external dependencies
 jest.mock('@/drizzle/db', () => ({

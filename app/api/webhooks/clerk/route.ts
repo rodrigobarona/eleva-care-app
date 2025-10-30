@@ -6,20 +6,18 @@ import {
   type ClerkSessionData,
   logSecurityEvent,
   shouldSendSecurityNotification,
-} from '@/lib/clerk-security-utils';
+} from '@/lib/integrations/clerk/security-utils';
 import {
   buildNovuSubscriberFromClerk,
   type ClerkEventData,
   getWorkflowFromClerkEvent,
   triggerNovuWorkflow,
-} from '@/lib/novu-utils';
+} from '@/lib/integrations/novu/utils';
 import { updateSetupStepForUser } from '@/server/actions/expert-setup';
 import { clerkClient, UserJSON, WebhookEvent } from '@clerk/nextjs/server';
 import { verifyWebhook } from '@clerk/nextjs/webhooks';
 import { eq } from 'drizzle-orm';
 import { NextRequest } from 'next/server';
-
-export const dynamic = 'force-dynamic';
 
 // Type for a user with external accounts that we can safely check
 type UserWithExternalAccounts = UserJSON & {

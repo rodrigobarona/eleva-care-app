@@ -1,0 +1,254 @@
+---
+description: Next.js 16 Core Development Rules
+globs: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}', 'lib/**/*.ts']
+alwaysApply: true
+---
+
+# Next.js 16 Core Development Rules
+
+## Quick Reference
+
+**Async Params (Required):**
+
+```typescript
+// ✅ Correct
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+}
+```
+
+**Cache Invalidation:**
+
+- `updateTag()` - Immediate updates (user sees changes right away)
+- `revalidateTag()` - Background updates (stale-while-revalidate)
+- `refresh()` - Client refresh without page reload
+
+## Server Components & Data Fetching
+
+```typescript
+// Default async params pattern
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { id } = await params;
+  const { q } = await searchParams;
+
+  // Parallel fetching
+  const [user, posts] = await Promise.all([getUser(id), getPosts(id)]);
+
+  return <UserProfile user={user} posts={posts} />;
+}
+
+// Sequential with Suspense
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = await getUser(id); // Fast fetch first
+
+  return (
+    <>
+      <UserHeader user={user} />
+      <Suspense fallback={<Loading />}>
+        <SlowContent userId={id} />
+      </Suspense>
+    </>
+  );
+}
+```
+
+## Caching Patterns
+
+```typescript
+import { cacheLife, cacheTag } from 'next/cache';
+
+// Static data
+async function getStaticData(id: string) {
+  'use cache';
+  cacheLife({ expire: 3600 }); // 1 hour
+  cacheTag('static-data', `data-${id}`);
+
+  return await db.query();
+}
+
+// Shared runtime data
+async function getSharedData() {
+  'use cache: remote';
+  cacheLife({ expire: 300 }); // 5 minutes
+  cacheTag('shared');
+
+  return await db.query();
+}
+
+// User-specific data
+async function getUserData() {
+  'use cache: private';
+  cacheLife({ expire: 60 });
+
+  const sessionId = (await cookies()).get('session-id')?.value;
+  return await db.query({ sessionId });
+}
+
+// Fetch with caching
+const staticData = await fetch('https://...', { cache: 'force-cache' });
+const dynamicData = await fetch('https://...', { cache: 'no-store' });
+const revalidated = await fetch('https://...', { next: { revalidate: 60 } });
+```
+
+## Server Actions
+
+```typescript
+'use server';
+
+import { refresh, revalidateTag, updateTag } from 'next/cache';
+import { redirect } from 'next/navigation';
+
+// Immediate update (read-your-writes)
+export async function createPost(data: FormData) {
+  const post = await db.posts.create({ data });
+
+  updateTag('posts');
+  updateTag(`post-${post.id}`);
+
+  redirect(`/posts/${post.id}`);
+}
+
+// Background update (stale-while-revalidate)
+export async function updateArticle(id: string, data: any) {
+  await db.articles.update(id, data);
+  revalidateTag(`article-${id}`, 'max');
+}
+
+// Client refresh
+export async function markAsRead(id: string) {
+  await db.notifications.markAsRead(id);
+  refresh();
+}
+```
+
+## Client Components
+
+```typescript
+'use client';
+
+import { useState, useOptimistic } from 'react';
+
+export function LikeButton({ postId, initialLikes }: { postId: string; initialLikes: number }) {
+  const [optimisticLikes, addOptimisticLike] = useOptimistic(initialLikes, (state, amount: number) => state + amount);
+
+  async function handleLike() {
+    addOptimisticLike(1); // Optimistic update
+    await likePost(postId); // Server action
+  }
+
+  return <button onClick={handleLike}>Likes: {optimisticLikes}</button>;
+}
+```
+
+## Error Handling
+
+```typescript
+// app/error.tsx
+'use client';
+
+export default function Error({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  return (
+    <div>
+      <h2>Error: {error.message}</h2>
+      {error.digest && <p>ID: {error.digest}</p>}
+      <button onClick={reset}>Try again</button>
+    </div>
+  );
+}
+
+// app/not-found.tsx
+export default function NotFound() {
+  return <h2>404 - Not Found</h2>;
+}
+
+// Server action error handling
+'use server';
+
+export async function handleAction(data: FormData) {
+  try {
+    const result = await processData(data);
+    updateTag('data');
+    return { success: true, data: result };
+  } catch (error) {
+    return { error: true, message: error.message };
+  }
+}
+```
+
+## Route Segment Config
+
+```typescript
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
+// Revalidate every 60 seconds
+export const revalidate = 60;
+
+// Override fetch caching
+export const fetchCache = 'force-cache'; // or 'force-no-store'
+```
+
+## Performance Checklist
+
+Before committing:
+
+- [ ] Using async params (`params: Promise<...>`)
+- [ ] Added `'use cache'` to cacheable functions
+- [ ] Used `cacheTag()` for selective invalidation
+- [ ] Chose correct cache invalidation (`updateTag` / `revalidateTag` / `refresh`)
+- [ ] Implemented Suspense for slow operations
+- [ ] Used parallel fetching with `Promise.all()`
+- [ ] Used Server Components by default
+- [ ] Added `'use client'` only when necessary
+
+## Common Mistakes
+
+**❌ Forgetting to await params**
+
+```typescript
+const { id } = params; // Error: params is a Promise
+```
+
+**✅ Correct**
+
+```typescript
+const { id } = await params;
+```
+
+**❌ Wrong cache invalidation**
+
+```typescript
+revalidatePath('/posts'); // User sees stale data
+```
+
+**✅ Correct for immediate updates**
+
+```typescript
+updateTag('posts'); // User sees changes immediately
+```
+
+## Tech Stack
+
+- **Framework:** Next.js 16 with App Router
+- **Language:** TypeScript
+- **Styling:** TailwindCSS + Shadcn/ui
+- **Database:** Neon.tech (Postgres) + Drizzle ORM
+- **Auth:** Clerk.com
+- **Payments:** Stripe
+- **Caching:** Next.js 16 'use cache' + Redis
+- **Package Manager:** pnpm only (never npm/yarn)
+
+## Key Principles
+
+1. **Server-first:** Use Server Components by default
+2. **Type-safe:** TypeScript everywhere, Zod for validation
+3. **Performant:** Proper caching, streaming, parallel fetching
+4. **Secure:** Validate inputs, use Server Actions, handle errors
+5. **Documented:** JSDoc comments with examples

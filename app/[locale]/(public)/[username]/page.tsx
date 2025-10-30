@@ -19,8 +19,6 @@ const SOCIAL_ICONS = {
   tiktok: Music, // Using Music icon for TikTok since there's no TikTok icon in Lucide
 } as const;
 
-export const revalidate = 60; // Changed from 0 to 60 seconds
-
 // ProfileSkeleton moved to reusable component: ProfileColumnSkeleton
 // Import from @/components/molecules/ProfilePageLoadingSkeleton
 
@@ -123,44 +121,38 @@ export default async function UserLayout(props: PageProps) {
 
 // Separate component for the actual content
 async function UserLayoutContent({ username, locale }: { username: string; locale: string }) {
-  try {
-    console.log(`[UserLayoutContent] Loading page for username: ${username}, locale: ${locale}`);
+  console.log(`[UserLayoutContent] Loading page for username: ${username}, locale: ${locale}`);
 
-    // Get user data - we know it exists because ProfileAccessControl validated it
-    const data = await getProfileAccessData(username);
-    if (!data) {
-      return notFound(); // This shouldn't happen due to ProfileAccessControl
-    }
+  // Get user data - we know it exists because ProfileAccessControl validated it
+  const data = await getProfileAccessData(username);
+  if (!data) {
+    return notFound(); // This shouldn't happen due to ProfileAccessControl
+  }
 
-    const { user } = data;
-    console.log(`[UserLayoutContent] Found user: ${user.id} for username: ${username}`);
+  const { user } = data;
+  console.log(`[UserLayoutContent] Found user: ${user.id} for username: ${username}`);
 
-    return (
-      <div className="container max-w-7xl pb-10 pt-32">
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
-          {/* Left Column - Profile Info with Suspense */}
-          <React.Suspense fallback={<ProfileColumnSkeleton />}>
-            <ProfileInfo
-              username={username}
-              locale={locale}
-              clerkUserId={user.id}
-              clerkUserImageUrl={user.imageUrl}
-              clerkUserFullName={user.fullName}
-            />
-          </React.Suspense>
+  return (
+    <div className="container max-w-7xl pb-10 pt-32">
+      <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
+        {/* Left Column - Profile Info with Suspense */}
+        <React.Suspense fallback={<ProfileColumnSkeleton />}>
+          <ProfileInfo
+            username={username}
+            locale={locale}
+            clerkUserId={user.id}
+            clerkUserImageUrl={user.imageUrl}
+            clerkUserFullName={user.fullName}
+          />
+        </React.Suspense>
 
-          {/* Right Column - Content */}
-          <div className="space-y-6">
-            <EventBookingList userId={user.id} username={username} />
-          </div>
+        {/* Right Column - Content */}
+        <div className="space-y-6">
+          <EventBookingList userId={user.id} username={username} />
         </div>
       </div>
-    );
-  } catch (error) {
-    console.error(`[UserLayoutContent] Error loading page for username: ${username}:`, error);
-    // Re-throw the error to let Next.js error boundary handle it
-    throw error;
-  }
+    </div>
+  );
 }
 
 // Separate component for profile info

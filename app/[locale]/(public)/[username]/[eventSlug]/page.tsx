@@ -19,8 +19,8 @@ import {
   DEFAULT_MINIMUM_NOTICE,
   DEFAULT_TIME_SLOT_INTERVAL,
 } from '@/lib/constants/scheduling';
-import { getValidTimesFromSchedule } from '@/lib/getValidTimesFromSchedule';
 import { Link } from '@/lib/i18n/navigation';
+import { getValidTimesFromSchedule } from '@/lib/utils/scheduling';
 import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
 import GoogleCalendarService from '@/server/googleCalendar';
 import type { User } from '@clerk/nextjs/server';
@@ -38,7 +38,7 @@ import { formatInTimeZone } from 'date-fns-tz';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 
-export const revalidate = 0;
+// Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
 // Updated PageProps type with proper next params - both params and searchParams as Promises
 interface PageProps {

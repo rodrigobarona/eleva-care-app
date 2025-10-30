@@ -1,12 +1,12 @@
 // Import after mock
 import { auditDb } from '@/drizzle/auditDb';
-import { logAuditEvent } from '@/lib/logAuditEvent';
+import { logAuditEvent } from '@/lib/utils/audit';
 
 /**
  * @jest-environment node
  */
 // Unmock logAuditEvent to test the real implementation
-jest.unmock('@/lib/logAuditEvent');
+jest.unmock('@/lib/utils/audit');
 
 // Mock the audit schema module
 jest.mock('@/drizzle/auditSchema', () => ({

@@ -3,7 +3,7 @@
  *
  * Tests the fix for Upstash Redis REST API returning objects instead of strings
  */
-import { redisManager } from '@/lib/redis';
+import { redisManager } from '@/lib/redis/manager';
 
 describe('RedisManager Object Handling', () => {
   const testKey = 'test:redis-object-handling';

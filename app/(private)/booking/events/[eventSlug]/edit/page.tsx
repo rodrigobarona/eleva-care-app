@@ -15,38 +15,25 @@ export default async function EditEventPage(props: { params: Promise<{ eventSlug
 
   if (userId == null) return redirectToSignIn();
 
-  try {
-    const event = await db.query.EventTable.findFirst({
-      where: ({ slug, clerkUserId }, { and, eq }) =>
-        and(eq(clerkUserId, userId), eq(slug, eventSlug)),
-    });
+  // Fetch data without try/catch around JSX, let error boundaries handle errors
+  const event = await db.query.EventTable.findFirst({
+    where: ({ slug, clerkUserId }, { and, eq }) =>
+      and(eq(clerkUserId, userId), eq(slug, eventSlug)),
+  });
 
-    if (event == null) {
-      return notFound();
-    }
+  if (event == null) {
+    return notFound();
+  }
 
-    return (
-      <div className="container max-w-3xl space-y-6 py-8">
-        <div className="space-y-0.5">
-          <h2 className="text-2xl font-bold tracking-tight">Edit Event</h2>
-          <p className="text-muted-foreground">
-            Make changes to your event settings and information.
-          </p>
-        </div>
-        <ClientEventFormWrapper event={event} />
-      </div>
-    );
-  } catch (error) {
-    console.error('Database error:', error);
-    return (
-      <div className="container max-w-3xl py-8">
-        <h2 className="text-2xl font-bold tracking-tight text-red-600">
-          Database Connection Error
-        </h2>
+  return (
+    <div className="container max-w-3xl space-y-6 py-8">
+      <div className="space-y-0.5">
+        <h2 className="text-2xl font-bold tracking-tight">Edit Event</h2>
         <p className="text-muted-foreground">
-          Unable to connect to the database. Please try again later.
+          Make changes to your event settings and information.
         </p>
       </div>
-    );
-  }
+      <ClientEventFormWrapper event={event} />
+    </div>
+  );
 }

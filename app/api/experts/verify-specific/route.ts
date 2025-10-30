@@ -4,7 +4,6 @@ import { auth } from '@clerk/nextjs/server';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
-export const runtime = 'nodejs';
 export const preferredRegion = 'auto';
 
 export async function POST(req: NextRequest) {

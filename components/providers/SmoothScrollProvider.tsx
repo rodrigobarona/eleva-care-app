@@ -2,7 +2,7 @@
 
 import Lenis from 'lenis';
 import { usePathname } from 'next/navigation';
-import { createContext, useContext, useEffect, useRef } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 
 interface SmoothScrollContextType {
   lenis: Lenis | null;
@@ -96,24 +96,28 @@ export function SmoothScrollProvider({ children }: SmoothScrollProviderProps) {
     };
   }, [pathname]);
 
-  const scrollTo = (
-    target: string | number,
-    options: { offset?: number; duration?: number } = {},
-  ) => {
-    if (!lenisRef.current) return;
+  const scrollTo = useCallback(
+    (target: string | number, options: { offset?: number; duration?: number } = {}) => {
+      if (!lenisRef.current) return;
 
-    console.log('📜 ScrollTo called:', { target, options });
+      console.log('📜 ScrollTo called:', { target, options });
 
-    lenisRef.current.scrollTo(target, {
-      offset: options.offset ?? -100, // Increased default offset
-      duration: options.duration ?? 1.2,
-    });
-  };
+      lenisRef.current.scrollTo(target, {
+        offset: options.offset ?? -100, // Increased default offset
+        duration: options.duration ?? 1.2,
+      });
+    },
+    [],
+  );
 
-  const contextValue: SmoothScrollContextType = {
-    lenis: lenisRef.current,
-    scrollTo,
-  };
+  // Create context value without accessing ref during render
+  const contextValue: SmoothScrollContextType = useMemo(
+    () => ({
+      lenis: null, // Don't provide ref value directly - consumers should use scrollTo
+      scrollTo,
+    }),
+    [scrollTo],
+  );
 
   return (
     <SmoothScrollContext.Provider value={contextValue}>{children}</SmoothScrollContext.Provider>

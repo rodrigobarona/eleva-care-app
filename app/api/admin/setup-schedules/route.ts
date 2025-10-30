@@ -1,12 +1,10 @@
 import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
-import { listSchedules } from '@/lib/qstash';
-import { setupQStashSchedules } from '@/lib/setup-qstash-schedules';
+import { listSchedules } from '@/lib/integrations/qstash/client';
+import { setupQStashSchedules } from '@/lib/integrations/qstash/schedules';
 import type { ApiResponse } from '@/types/api';
 import { NextResponse } from 'next/server';
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 

@@ -1,8 +1,8 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { PaymentTransferTable } from '@/drizzle/schema';
-import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
-import { checkExistingTransfer } from '@/lib/stripe/transfer-utils';
+import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
+import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
 import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -16,8 +16,6 @@ import Stripe from 'stripe';
 // - Maintains system audit logs
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 

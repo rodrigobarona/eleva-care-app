@@ -1,4 +1,4 @@
-import { redisManager } from '@/lib/redis';
+import { redisManager } from '@/lib/redis/manager';
 
 /**
  * Error boundary for Redis operations

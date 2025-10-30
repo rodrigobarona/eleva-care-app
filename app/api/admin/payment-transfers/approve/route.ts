@@ -5,7 +5,7 @@ import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
   PAYMENT_TRANSFER_STATUS_PENDING,
 } from '@/lib/constants/payment-transfers';
-import { RateLimitCache } from '@/lib/redis';
+import { RateLimitCache } from '@/lib/redis/manager';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';

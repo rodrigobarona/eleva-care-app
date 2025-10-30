@@ -10,8 +10,8 @@ import {
   TooltipTrigger,
 } from '@/components/atoms/tooltip';
 import { CopyEventButton } from '@/components/molecules/CopyEventButton';
-import { formatEventDescription } from '@/lib/formatters';
 import { cn } from '@/lib/utils';
+import { formatEventDescription } from '@/lib/utils/formatters';
 import { updateEventActiveState, updateEventOrder } from '@/server/actions/events';
 import {
   closestCenter,

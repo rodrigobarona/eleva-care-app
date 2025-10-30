@@ -168,7 +168,7 @@
           "**Mental Health Support:** Navigate the emotional and mental challenges of motherhood with compassionate guidance.",
           "**Exercise:** Explore the benefits of therapeutic exercise during pregnancy and postpartum, designed to support your changing body and promote a healthy recovery."
         ],
-        "image": "/img/Pregnant-Woman-Flowers.jpg?height=450&width=300?monochrome=006D77",
+        "image": "/img/Pregnant-Woman-Flowers.jpg",
         "cta": "Learn more"
       },
       {
@@ -180,7 +180,7 @@
           "**Specialized OB/GYN Care:** Expert diagnosis and treatment for a range of pelvic health issues, including prolapse, endometriosis, and sexual dysfunction. ",
           "**Mental Health Support:** Counseling and therapy to address the psychological aspects of pelvic health concerns."
         ],
-        "image": "/img/Woman-Working-Out-Living-Room.jpg?height=450&width=300",
+        "image": "/img/Woman-Working-Out-Living-Room.jpg",
         "cta": "Learn more"
       },
       {
@@ -194,7 +194,7 @@
           "**Fitness & Nutrition:** Discover personalized exercise plans and nutritional guidance tailored to your individual needs.",
           "**Physical Therapy:** Manage pain, prevent injury, and optimize your physical performance, with specialized expertise in pelvic floor health for active women and female athletes."
         ],
-        "image": "/img/Smiling-Women-Photo.jpg?height=450&width=300",
+        "image": "/img/Smiling-Women-Photo.jpg",
         "cta": "Learn more"
       },
       {
@@ -210,7 +210,7 @@
           "**Collaborative Approach:** Our collaborative approach ensures coordinated care with your oncology team, supporting your physical and emotional well-being throughout treatment and recovery.",
           "Our collaborative approach ensures coordinated care with your oncology team, supporting your physical and emotional well-being throughout treatment and recovery."
         ],
-        "image": "/img/cancer-journey.jpg?height=450&width=300",
+        "image": "/img/cancer-journey.jpg",
         "cta": "Learn more"
       }
     ]
@@ -261,55 +261,55 @@
       {
         "name": "Patricia Mota, PT, PhD",
         "role": "Co-Founder & CEO",
-        "image": "/img/team/team-patricia-mota-2.jpeg?height=1200&width=1200",
+        "image": "/img/team/team-patricia-mota-2.jpeg",
         "quote": "Our mission is to elevate women's healthcare by making it more accessible, innovative, and empowering for all women."
       },
       {
         "name": "Cristine Homsi Jorge, PT, PhD",
         "role": "Board Advisor (Women's Health)",
-        "image": "/img/team/team-cristine-homsi-jorge.jpg?height=1200&width=1200",
+        "image": "/img/team/team-cristine-homsi-jorge.jpg",
         "quote": "Clinical research and education empower women to make informed decisions about their healthcare journey."
       },
       {
         "name": "Alexandre Delgado, PT, PhD",
         "role": "Board Advisor (Obstetric Physical Therapy)",
-        "image": "/img/team/team-alexandre-delgado-br.png?height=1200&width=1200",
+        "image": "/img/team/team-alexandre-delgado-br.png",
         "quote": "Evidence-based physical therapy transforms the pregnancy and birth experience, empowering women through every stage."
       },
       {
         "name": "Patricia Driusso, PT, PhD",
         "role": "Board Advisor (Women's Health)",
-        "image": "/img/team/team-patricia-driusso.jpg?height=1200&width=1200",
+        "image": "/img/team/team-patricia-driusso.jpg",
         "quote": "Clinical research advances rehabilitation treatments while empowering women through evidence-based education."
       },
       {
         "name": "Annelie Gutke, PT, PhD",
         "role": "Board Advisor (Women's Health)",
-        "image": "/img/team/team-annelie-gutke.jpg?height=1200&width=1200",
+        "image": "/img/team/team-annelie-gutke.jpg",
         "quote": "Understanding pain mechanisms transforms how we care for women during pregnancy and beyond."
       },
       {
         "name": "Ruben Barakat, PhD",
         "role": "Board Advisor (Exercise Science)",
-        "image": "/img/team/team-ruben-barakat.jpg?height=1200&width=1200",
+        "image": "/img/team/team-ruben-barakat.jpg",
         "quote": "Evidence shows that personalized exercise during pregnancy can transform women's health outcomes."
       },
       {
         "name": "Jessica Margarido, PT",
         "role": "Oncology Rehabilitation",
-        "image": "/img/team/team-jessica-margarido.jpg?height=1200&width=1200",
+        "image": "/img/team/team-jessica-margarido.jpg",
         "quote": "Evidence-based rehabilitation restores function and quality of life throughout cancer care."
       },
       {
         "name": "Joana Goulão Barros, MD, PhD",
         "role": "Obstetrics & Gynecology",
-        "image": "/img/team/team-joana-barros.jpg?height=1200&width=1200",
+        "image": "/img/team/team-joana-barros.jpg",
         "quote": "Integrating medical expertise with specialized rehabilitation creates the highest standard of prenatal care."
       },
       {
         "name": "Rodrigo Barona",
         "role": "Co-Founder",
-        "image": "/img/team/team-rodrigo-barona.jpg?height=1200&width=1200",
+        "image": "/img/team/team-rodrigo-barona.jpg",
         "quote": "We are transforming women's healthcare by combining clinical expertise with innovative technology."
       }
     ]

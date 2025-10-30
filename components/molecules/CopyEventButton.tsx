@@ -23,7 +23,6 @@ export function CopyEventButton({
   wrapped?: boolean;
 }) {
   const [copyState, setCopyState] = useState<CopyState>('idle');
-  const CopyIcon = getCopyIcon(copyState);
 
   const tooltipContent = (
     <Tooltip>
@@ -43,7 +42,13 @@ export function CopyEventButton({
               });
           }}
         >
-          <CopyIcon className="h-4 w-4" />
+          {copyState === 'copied' ? (
+            <CopyCheck className="h-4 w-4" />
+          ) : copyState === 'error' ? (
+            <CopyX className="h-4 w-4" />
+          ) : (
+            <Link2 className="h-4 w-4" />
+          )}
         </Button>
       </TooltipTrigger>
       <TooltipContent>
@@ -59,15 +64,4 @@ export function CopyEventButton({
   );
 
   return wrapped ? tooltipContent : <TooltipProvider>{tooltipContent}</TooltipProvider>;
-}
-
-function getCopyIcon(copyState: CopyState) {
-  switch (copyState) {
-    case 'idle':
-      return Link2;
-    case 'copied':
-      return CopyCheck;
-    case 'error':
-      return CopyX;
-  }
 }

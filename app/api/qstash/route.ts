@@ -1,12 +1,10 @@
-import { validateQStashConfig } from '@/lib/qstash-config';
+import { validateQStashConfig } from '@/lib/integrations/qstash/config';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import crypto from 'node:crypto';
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 

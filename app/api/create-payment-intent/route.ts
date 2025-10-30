@@ -7,8 +7,8 @@ import {
 import { db } from '@/drizzle/db';
 import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
-import { FormCache, IdempotencyCache, RateLimitCache } from '@/lib/redis';
-import { getOrCreateStripeCustomer } from '@/lib/stripe';
+import { getOrCreateStripeCustomer } from '@/lib/integrations/stripe';
+import { FormCache, IdempotencyCache, RateLimitCache } from '@/lib/redis/manager';
 import { checkBotId } from 'botid/server';
 import { and, eq, gt } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';

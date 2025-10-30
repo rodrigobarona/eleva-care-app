@@ -1,8 +1,11 @@
 import { db } from '@/drizzle/db';
 import { UserTable } from '@/drizzle/schema';
-import { RateLimitCache } from '@/lib/redis';
-import { getServerStripe } from '@/lib/stripe';
-import { createIdentityVerification, getIdentityVerificationStatus } from '@/lib/stripe/identity';
+import { getServerStripe } from '@/lib/integrations/stripe';
+import {
+  createIdentityVerification,
+  getIdentityVerificationStatus,
+} from '@/lib/integrations/stripe/identity';
+import { RateLimitCache } from '@/lib/redis/manager';
 import { currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';

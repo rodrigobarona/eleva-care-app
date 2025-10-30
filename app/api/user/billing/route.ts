@@ -1,13 +1,11 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
-import { getStripeConnectAccountStatus } from '@/lib/stripe';
+import { getStripeConnectAccountStatus } from '@/lib/integrations/stripe';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 // Mark route as dynamic
-export const dynamic = 'force-dynamic';
-export const runtime = 'nodejs';
 
 // Initialize Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {

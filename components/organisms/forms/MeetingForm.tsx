@@ -14,12 +14,12 @@ import {
   FormMessage,
 } from '@/components/molecules/form';
 import { BookingLayout } from '@/components/organisms/BookingLayout';
-import { generateFormCacheKey } from '@/lib/cache-keys';
 import {
   DEFAULT_AFTER_EVENT_BUFFER,
   DEFAULT_BEFORE_EVENT_BUFFER,
 } from '@/lib/constants/scheduling';
-import { hasValidTokens } from '@/lib/googleCalendarClient';
+import { hasValidTokens } from '@/lib/integrations/google/calendar';
+import { generateFormCacheKey } from '@/lib/utils/cache-keys';
 import { meetingFormSchema } from '@/schema/meetings';
 import { createMeeting } from '@/server/actions/meetings';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -122,7 +122,8 @@ interface Step2ContentProps {
   transitionToStep: (step: '1' | '2' | '3') => void;
   handleNextStep: (nextStep: '1' | '2' | '3') => Promise<void>;
   isSubmitting: boolean;
-  isProcessingRef: React.MutableRefObject<boolean>;
+  isProcessing: boolean; // Use state for rendering
+  isProcessingRef: React.MutableRefObject<boolean>; // Keep ref for event handler logic
   price: number;
   use24Hour: boolean;
   debugButtonClick: (action: string) => void;
@@ -140,6 +141,7 @@ const Step2Content = React.memo<Step2ContentProps>(
     transitionToStep,
     handleNextStep,
     isSubmitting,
+    isProcessing,
     isProcessingRef,
     price,
     use24Hour,
@@ -285,7 +287,7 @@ const Step2Content = React.memo<Step2ContentProps>(
             type="button"
             variant="outline"
             onClick={() => transitionToStep('1')}
-            disabled={isSubmitting || isProcessingRef.current}
+            disabled={isSubmitting || isProcessing}
           >
             Back
           </Button>
@@ -301,19 +303,17 @@ const Step2Content = React.memo<Step2ContentProps>(
               debugButtonClick('Continue to Payment clicked');
               handleNextStep('3');
             }}
-            disabled={isSubmitting || isProcessingRef.current}
+            disabled={isSubmitting || isProcessing}
             className="relative"
           >
-            {isSubmitting || isProcessingRef.current
+            {isSubmitting || isProcessing
               ? price > 0
                 ? 'Creating Checkout...'
                 : 'Scheduling...'
               : price > 0
                 ? 'Continue to Payment'
                 : 'Schedule Meeting'}
-            {(isSubmitting || isProcessingRef.current) && (
-              <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-            )}
+            {(isSubmitting || isProcessing) && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
           </Button>
         </div>
       </div>
@@ -324,7 +324,7 @@ const Step2Content = React.memo<Step2ContentProps>(
     // We need to re-render when processing state changes to update button states
     const processingStateChanged =
       prevProps.isSubmitting !== nextProps.isSubmitting ||
-      prevProps.isProcessingRef.current !== nextProps.isProcessingRef.current;
+      prevProps.isProcessing !== nextProps.isProcessing;
 
     // Always re-render when processing state changes for immediate UI feedback
     if (processingStateChanged) {
@@ -380,16 +380,16 @@ export function MeetingFormContent({
   const [isPrefetching, setIsPrefetching] = React.useState(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = React.useState(false);
 
-  // **CRITICAL: Use ref for immediate duplicate prevention**
+  // **RENDERING STATE: Use state for UI updates**
+  const [isProcessing, setIsProcessing] = React.useState(false);
+
+  // **CRITICAL: Use ref for immediate duplicate prevention in event handlers**
   const isProcessingRef = React.useRef(false);
 
   // **CLIENT-SIDE DUPLICATE PREVENTION: Track request timestamps and IDs**
   const lastRequestTimestamp = React.useRef<number>(0);
   const activeRequestId = React.useRef<string | null>(null);
   const requestCooldownMs = 2000; // 2 seconds minimum between requests
-
-  // **PREVENT DUPLICATE REQUESTS: Force re-render when ref changes**
-  const [, forceRender] = React.useReducer((x) => x + 1, 0);
 
   // Query state configuration
   const queryStateParsers = React.useMemo(
@@ -865,11 +865,11 @@ export function MeetingFormContent({
       if (price === 0) {
         // **IMMEDIATE STATE UPDATE: Set processing flag for free sessions too**
         isProcessingRef.current = true;
+        setIsProcessing(true);
 
         // **CRITICAL: Force immediate synchronous state update for free sessions**
         flushSync(() => {
           setIsSubmitting(true);
-          forceRender();
         });
 
         try {
@@ -885,19 +885,19 @@ export function MeetingFormContent({
         } finally {
           // **CLEANUP: Always reset processing state for free sessions**
           isProcessingRef.current = false;
+          setIsProcessing(false);
           setIsSubmitting(false);
-          forceRender();
         }
         return;
       }
 
       // **IMMEDIATE STATE UPDATE: Set processing flag FIRST for instant UI feedback**
       isProcessingRef.current = true;
+      setIsProcessing(true);
 
       // **CRITICAL: Force immediate synchronous state update and re-render**
       flushSync(() => {
         setIsSubmitting(true);
-        forceRender();
       });
 
       console.log(
@@ -924,8 +924,8 @@ export function MeetingFormContent({
             if (!document.hidden) {
               console.log('⚠️ Existing checkout redirect timeout - resetting state');
               isProcessingRef.current = false;
+              setIsProcessing(false);
               setIsSubmitting(false);
-              forceRender();
             }
           }, 3000);
 
@@ -936,8 +936,8 @@ export function MeetingFormContent({
           // Clear the invalid URL and reset state, then continue to create a new one
           setCheckoutUrl(null);
           isProcessingRef.current = false;
+          setIsProcessing(false);
           setIsSubmitting(false);
-          forceRender();
           return;
         }
       }
@@ -970,8 +970,8 @@ export function MeetingFormContent({
             if (!document.hidden) {
               console.log('⚠️ Redirect timeout - resetting state');
               isProcessingRef.current = false;
+              setIsProcessing(false);
               setIsSubmitting(false);
-              forceRender();
             }
           }, 3000);
 
@@ -990,8 +990,8 @@ export function MeetingFormContent({
 
         // **ERROR RECOVERY: Reset both processing flags**
         isProcessingRef.current = false;
+        setIsProcessing(false);
         setIsSubmitting(false);
-        forceRender();
       }
     },
     [form, price, createPaymentIntent, onSubmit, transitionToStep, checkoutUrl, setCheckoutUrl],
@@ -1259,6 +1259,7 @@ export function MeetingFormContent({
                   transitionToStep={transitionToStep}
                   handleNextStep={handleNextStep}
                   isSubmitting={isSubmitting}
+                  isProcessing={isProcessing}
                   isProcessingRef={isProcessingRef}
                   price={price}
                   use24Hour={use24Hour}

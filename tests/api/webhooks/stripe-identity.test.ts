@@ -1,15 +1,15 @@
 import { GET, POST } from '@/app/api/webhooks/stripe-identity/route';
 // Import mocked modules using ES6 syntax
 import { db } from '@/drizzle/db';
-import { syncIdentityVerificationToConnect } from '@/lib/stripe';
-import { getIdentityVerificationStatus } from '@/lib/stripe/identity';
+import { syncIdentityVerificationToConnect } from '@/lib/integrations/stripe';
+import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
 import { markStepCompleteForUser } from '@/server/actions/expert-setup';
 import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 
 // Mock Novu integration using manual mocks
 jest.mock('@/app/utils/novu');
-jest.mock('@/lib/novu-utils');
+jest.mock('@/lib/integrations/novu/utils');
 
 // Mock external dependencies
 jest.mock('@/drizzle/db', () => ({
@@ -27,7 +27,7 @@ jest.mock('@/drizzle/db', () => ({
   },
 }));
 
-jest.mock('@/lib/stripe/identity', () => ({
+jest.mock('@/lib/integrations/stripe/identity', () => ({
   getIdentityVerificationStatus: jest.fn(),
 }));
 
@@ -35,7 +35,7 @@ jest.mock('@/server/actions/expert-setup', () => ({
   markStepCompleteForUser: jest.fn().mockResolvedValue({ success: true }),
 }));
 
-jest.mock('@/lib/stripe', () => ({
+jest.mock('@/lib/integrations/stripe', () => ({
   syncIdentityVerificationToConnect: jest.fn().mockResolvedValue({ success: true }),
 }));
 

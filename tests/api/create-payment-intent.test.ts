@@ -20,7 +20,7 @@ jest.mock('@/drizzle/db', () => ({
   },
 }));
 
-jest.mock('@/lib/stripe', () => ({
+jest.mock('@/lib/integrations/stripe', () => ({
   getBaseUrl: jest.fn(() => 'https://example.com'),
   getOrCreateStripeCustomer: () => mockGetOrCreateStripeCustomer(),
   withRetry: jest.fn((fn: () => void) => fn()),

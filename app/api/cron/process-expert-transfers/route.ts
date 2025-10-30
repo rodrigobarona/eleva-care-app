@@ -2,7 +2,6 @@ import { ENV_CONFIG } from '@/config/env';
 import { PAYOUT_DELAY_DAYS, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { EventTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
-import { sendHeartbeatFailure, sendHeartbeatSuccess } from '@/lib/betterstack-heartbeat';
 import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
   PAYMENT_TRANSFER_STATUS_COMPLETED,
@@ -10,11 +9,15 @@ import {
   PAYMENT_TRANSFER_STATUS_PENDING,
 } from '@/lib/constants/payment-transfers';
 import {
+  sendHeartbeatFailure,
+  sendHeartbeatSuccess,
+} from '@/lib/integrations/betterstack/heartbeat';
+import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
+import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
+import {
   createPayoutCompletedNotification,
   createPayoutFailedNotification,
-} from '@/lib/payment-notifications';
-import { isVerifiedQStashRequest } from '@/lib/qstash-utils';
-import { checkExistingTransfer } from '@/lib/stripe/transfer-utils';
+} from '@/lib/notifications/payment';
 import { and, eq, isNull, lte, or } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -28,8 +31,6 @@ import Stripe from 'stripe';
 // - Detailed audit logging for compliance
 
 // Add route segment config
-export const runtime = 'nodejs';
-export const dynamic = 'force-dynamic';
 export const preferredRegion = 'auto';
 export const maxDuration = 60;
 
