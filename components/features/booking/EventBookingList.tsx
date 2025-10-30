@@ -257,7 +257,8 @@ function LoadingEventCard() {
 async function EventsList({ userId, username }: { userId: string; username: string }) {
   logger.info('Loading events', { userId, username });
 
-  // Let React error boundaries handle unexpected errors; getCalendarStatus handles its own errors internally
+  // Intentionally not wrapped in try/catch - getCalendarStatus handles errors internally and returns error states;
+  // any unexpected thrown errors will propagate to React error boundaries for centralized handling
   const calendarStatus = await getCalendarStatus(userId);
   logger.info('Calendar status retrieved', { userId, isConnected: calendarStatus.isConnected });
 
