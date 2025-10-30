@@ -1,4 +1,4 @@
-import FadeInSection from '@/components/shared/animation/FadeInSection';
+import FadeInSection from '@/components/_archive/shared/animation/FadeInSection';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Facebook, Instagram, Linkedin, Twitter } from 'lucide-react';
 import Link from 'next/link';

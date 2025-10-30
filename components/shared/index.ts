@@ -32,7 +32,7 @@ export { default as RichTextEditor } from './rich-text/RichTextEditor';
 export { DataTable } from './data-table/DataTable';
 
 // Animation
-export { default as FadeInSection } from './animation/FadeInSection';
+export { default as FadeInSection } from '../_archive/shared/animation/FadeInSection';
 
 // Blocked Dates
 export { BlockedDates } from './blocked-dates/BlockedDates';

@@ -1,4 +1,4 @@
-import FadeInSection from '@/components/shared/animation/FadeInSection';
+import FadeInSection from '@/components/_archive/shared/animation/FadeInSection';
 import { Card, CardContent } from '@/components/ui/card';
 // Adjust the import path as necessary
 import {

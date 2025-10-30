@@ -1,4 +1,4 @@
-import FadeInSection from '@/components/shared/animation/FadeInSection';
+import FadeInSection from '@/components/_archive/shared/animation/FadeInSection';
 import { Button } from '@/components/ui/button';
 import { ChevronRight } from 'lucide-react';
 import type React from 'react';
