@@ -60,7 +60,7 @@ const ServiceSection: React.FC = () => {
                 />
               </div>
 
-              <CardContent className="flex-1 flex-col p-6 pt-6">
+              <CardContent className="flex-1 p-6 pt-6">
                 <div className="flex min-h-48 flex-col">
                   <div className="mb-4 flex items-center">
                     {ServiceIcons[service.icon as keyof typeof ServiceIcons]?.()}
