@@ -1,9 +1,10 @@
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 
 export type UserRole = 'user' | 'community_expert' | 'top_expert' | 'admin' | 'superadmin';
 
 export function useRoleCheck() {
-  const { user, isLoaded } = useUser();
+  const { user, loading } = useAuth();
+  const isLoaded = !loading;
 
   // Derive loading state directly from isLoaded instead of using effect + setState
   const isLoading = !isLoaded;

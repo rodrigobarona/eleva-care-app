@@ -26,7 +26,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { SOCIAL_MEDIA_LIST } from '@/lib/constants/social-media';
 import { cn } from '@/lib/utils';
 import { profileFormSchema } from '@/schema/profile';
-import { useUser } from '@clerk/nextjs';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import Image from 'next/image';

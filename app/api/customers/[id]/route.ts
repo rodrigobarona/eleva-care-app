@@ -2,7 +2,7 @@ import { db } from '@/drizzle/db';
 import { EventsTable, MeetingsTable } from '@/drizzle/schema-workos';
 import { isExpert } from '@/lib/auth/roles.server';
 import { findEmailByCustomerId } from '@/lib/utils/customerUtils';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { and, desc, eq } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -13,10 +13,11 @@ import { NextResponse } from 'next/server';
 export async function GET(_request: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
     const params = await props.params;
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
     const customerId = params.id;
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

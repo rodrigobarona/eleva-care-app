@@ -39,7 +39,7 @@ import {
   updateEvent,
 } from '@/server/actions/events';
 import { createStripeProduct, updateStripeProduct } from '@/server/actions/stripe';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -72,7 +72,7 @@ export function EventForm({
     stripePriceId?: string;
   };
 }) {
-  const { user } = useUser();
+  const { user } = useAuth();
   const router = useRouter();
   const [isDeletePending, startDeleteTransition] = useTransition();
   const [isStripeProcessing, setIsStripeProcessing] = React.useState(false);

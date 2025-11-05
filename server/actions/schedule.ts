@@ -5,7 +5,7 @@ import { ScheduleAvailabilitiesTable, SchedulesTable } from '@/drizzle/schema-wo
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { scheduleFormSchema } from '@/schema/schedule';
 import { markStepComplete } from '@/server/actions/expert-setup';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import { headers } from 'next/headers';
@@ -56,7 +56,8 @@ import type { z } from 'zod';
  */
 export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema>) {
   // Get user authentication and request metadata
-  const { userId } = await auth();
+  const { user } = await withAuth();
+  const userId = user?.id;
   const headersList = await headers();
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
   const userAgent = headersList.get('user-agent') ?? 'Unknown';

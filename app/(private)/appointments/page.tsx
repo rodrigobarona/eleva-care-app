@@ -4,7 +4,7 @@ import { AppointmentCard } from '@/components/features/appointments/AppointmentC
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { generateCustomerId } from '@/lib/utils/customerUtils';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { Calendar } from 'lucide-react';
 import React from 'react';
 
@@ -68,7 +68,8 @@ const EmptyState = ({ message }: { message: string }) => (
 );
 
 export default function AppointmentsPage() {
-  const { user, isLoaded } = useUser();
+  const { user, loading } = useAuth();
+  const isLoaded = !loading;
   const [appointments, setAppointments] = React.useState<AppointmentOrReservation[]>([]);
   const [expertTimezone, setExpertTimezone] = React.useState<string>('UTC');
   const [isLoading, setIsLoading] = React.useState(true);

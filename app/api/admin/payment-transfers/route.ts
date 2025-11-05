@@ -5,7 +5,7 @@ import {
   PAYMENT_TRANSFER_STATUSES,
   type PaymentTransferStatus,
 } from '@/lib/constants/payment-transfers';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { and, asc, desc, eq, gte, like, lte, sql } from 'drizzle-orm';
 import { type NextRequest, NextResponse } from 'next/server';
 
@@ -148,7 +148,8 @@ export async function PATCH(request: NextRequest) {
 
   try {
     // Get userId for audit logging
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
 
     // Get transfer ID and update data from request body
     const body = await request.json();

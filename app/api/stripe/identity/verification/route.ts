@@ -6,7 +6,7 @@ import {
   getIdentityVerificationStatus,
 } from '@/lib/integrations/stripe/identity';
 import { RateLimitCache } from '@/lib/redis/manager';
-import { currentUser } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -166,7 +166,7 @@ async function recordRateLimitAttempts(userId: string, clientIP: string) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const user = await currentUser();
+    const { user } = await withAuth();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

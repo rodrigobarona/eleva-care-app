@@ -34,7 +34,7 @@ Net: -382 lines (simpler codebase!)
 #### ✅ Core Auth (6 files)
 
 - `app/layout.tsx` - Added AuthKitProvider
-- `middleware.ts` - **NEW** - AuthKit middleware (replaces proxy.ts)
+- `proxy.ts` - AuthKit proxy (Next.js 16 convention, replaces middleware.ts)
 - `app/(auth)/sign-in/page.tsx` - Using getSignInUrl()
 - `app/api/auth/callback/route.ts` - Using handleAuth()
 - `app/api/auth/sign-out/route.ts` - Using signOut()
@@ -69,10 +69,10 @@ Net: -382 lines (simpler codebase!)
 - `docs/authkit-env-vars.md` - **NEW** - Environment variables
 - `AUTHKIT-MIGRATION-COMPLETE.md` - **NEW** - This summary
 
-#### 🗑️ Files Deleted (2 files)
+#### 🗑️ Files Deleted (1 file)
 
 - ~~`lib/auth/workos-session.ts`~~ - Replaced by AuthKit
-- ~~`proxy.ts`~~ - Replaced by middleware.ts
+- Note: `proxy.ts` was updated (not deleted), renamed from `middleware.ts` per Next.js 16
 
 ---
 
@@ -100,11 +100,13 @@ const { user } = await withAuth({ ensureSignedIn: true });
 // user object is directly available, no manual query needed
 ```
 
-### **Middleware Simplification**
+### **Proxy/Middleware Simplification**
 
-**Before (proxy.ts):** 742 lines  
-**After (middleware.ts):** 416 lines  
+**Before (Clerk proxy.ts):** 742 lines  
+**After (AuthKit proxy.ts):** 417 lines  
 **Reduction:** 44% fewer lines!
+
+**Note:** Next.js 16 uses `proxy.ts` (not `middleware.ts`)
 
 ---
 
@@ -122,10 +124,10 @@ const { user } = await withAuth({ ensureSignedIn: true });
 - **After:** `handleAuth()` does it all
 - **Benefit:** Fewer bugs, better security
 
-### **3. Middleware**
+### **3. Proxy/Middleware (proxy.ts)**
 
 - **Before:** `clerkMiddleware` + custom WorkOS logic
-- **After:** `authkit()` with preserved RBAC/i18n
+- **After:** `authkit()` with preserved RBAC/i18n (in `proxy.ts` per Next.js 16)
 - **Benefit:** Official SDK + custom business logic
 
 ### **4. Type Safety**
@@ -328,7 +330,7 @@ openssl rand -base64 32
 
 ### **Code References:**
 
-- Middleware: `middleware.ts`
+- Proxy (Next.js 16): `proxy.ts` (renamed from middleware.ts)
 - Auth utilities: `lib/auth/protected-route.ts`
 - Server actions: `server/actions/expert-setup-workos.ts`
 

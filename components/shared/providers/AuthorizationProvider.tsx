@@ -1,10 +1,17 @@
 'use client';
 
+/**
+ * Authorization Provider - WorkOS Version
+ *
+ * Provides role-based access control for client components.
+ * Fetches user roles from the database via API.
+ * Uses WorkOS's built-in useAuth hook.
+ */
 import type { UserRole } from '@/lib/auth/roles';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useEffect, useState } from 'react';
 
 interface AuthorizationContextType {
   roles: UserRole[];
@@ -19,17 +26,46 @@ const AuthorizationContext = createContext<AuthorizationContextType>({
 });
 
 export function AuthorizationProvider({ children }: { children: React.ReactNode }) {
-  const { user, isLoaded, isSignedIn } = useUser();
+  const { user, loading: authLoading } = useAuth();
+  const [roles, setRoles] = useState<UserRole[]>([]);
+  const [isLoadingRoles, setIsLoadingRoles] = useState(true);
 
-  // Derive roles directly from user metadata
-  const roles = useMemo((): UserRole[] => {
-    if (!isLoaded || !isSignedIn) return [];
-    const userRoles = user?.publicMetadata?.role as UserRole | UserRole[] | undefined;
-    return userRoles ? (Array.isArray(userRoles) ? userRoles : [userRoles]) : ['user'];
-  }, [isLoaded, isSignedIn, user]);
+  // Fetch user roles from API when user is loaded
+  useEffect(() => {
+    if (authLoading) return;
 
-  // Derive loading state from isLoaded
-  const isLoading = !isLoaded;
+    if (!user) {
+      setRoles([]);
+      setIsLoadingRoles(false);
+      return;
+    }
+
+    // Fetch roles from API
+    const fetchRoles = async () => {
+      try {
+        const response = await fetch('/api/user/roles');
+
+        if (!response.ok) {
+          console.error('Failed to fetch user roles');
+          setRoles(['user']); // Default to 'user' role
+          return;
+        }
+
+        const data = await response.json();
+        setRoles(data.roles || ['user']);
+      } catch (error) {
+        console.error('Error fetching user roles:', error);
+        setRoles(['user']); // Default to 'user' role on error
+      } finally {
+        setIsLoadingRoles(false);
+      }
+    };
+
+    fetchRoles();
+  }, [authLoading, user]);
+
+  // Derive loading state
+  const isLoading = authLoading || isLoadingRoles;
 
   const hasRole = (roleToCheck: UserRole | UserRole[]): boolean => {
     if (roles.length === 0) return false;

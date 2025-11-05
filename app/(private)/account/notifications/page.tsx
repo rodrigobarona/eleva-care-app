@@ -1,11 +1,10 @@
 import { SecurityPreferencesForm } from '@/components/features/profile/SecurityPreferencesForm';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 
 // Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
 export default async function NotificationsPage() {
-  const { userId, redirectToSignIn } = await auth();
-  if (userId == null) return redirectToSignIn();
+  await withAuth({ ensureSignedIn: true });
 
   return (
     <div className="mx-auto w-full max-w-4xl">

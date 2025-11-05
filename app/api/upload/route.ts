@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { del, put } from '@vercel/blob';
 import { checkBotId } from 'botid/server';
 import { NextResponse } from 'next/server';
@@ -38,9 +38,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
     }
 
-    const { userId } = await auth();
+    const { user } = await withAuth();
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -91,9 +91,9 @@ export async function POST(request: Request): Promise<NextResponse> {
  */
 export async function DELETE(request: Request): Promise<NextResponse> {
   try {
-    const { userId } = await auth();
+    const { user } = await withAuth();
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

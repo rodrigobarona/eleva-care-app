@@ -1,10 +1,11 @@
 import { updateProfile } from '@/server/actions/profile';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { user } = await withAuth();
+  const userId = user?.id;
+    if (!user) {
       return new Response('Unauthorized', { status: 401 });
     }
 

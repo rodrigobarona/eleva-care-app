@@ -1,15 +1,15 @@
 import type { UserRoles } from '@/lib/auth/roles';
 import { getUserRole, hasRole, updateUserRole } from '@/lib/auth/roles.server';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function GET(_request: NextRequest, props: { params: Promise<{ userId: string }> }) {
   try {
     const params = await props.params;
-    const { userId: currentUserId } = await auth();
+    const { user } = await withAuth();
 
-    if (!currentUserId) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'User not authenticated' },
         { status: 401 },
@@ -19,7 +19,7 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ user
     const isAdmin = await hasRole('admin');
     const isSuperAdmin = await hasRole('superadmin');
 
-    if (!isAdmin && !isSuperAdmin && currentUserId !== params.userId) {
+    if (!isAdmin && !isSuperAdmin && user.id !== params.userId) {
       return NextResponse.json(
         { error: 'Forbidden', message: 'Insufficient permissions' },
         { status: 403 },

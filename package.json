@@ -70,8 +70,6 @@
     "email:preview": "email dev --dir emails --port 3001"
   },
   "dependencies": {
-    "@clerk/localizations": "^3.26.3",
-    "@clerk/nextjs": "^6.34.0",
     "@clerk/themes": "^2.4.29",
     "@clerk/types": "^4.95.1",
     "@dnd-kit/core": "^6.3.1",

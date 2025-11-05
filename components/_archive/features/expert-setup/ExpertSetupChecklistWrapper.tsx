@@ -1,14 +1,14 @@
 import { ExpertSetupChecklist } from '@/components/features/expert-setup/ExpertSetupChecklist';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 
 export async function ExpertSetupChecklistWrapper() {
-  const { userId } = await auth();
+  const { user } = await withAuth();
 
   // If user is not authenticated, don't show anything
-  if (!userId) return null;
+  if (!user) return null;
 
   // Get current user to check role
-  const user = await currentUser();
+  const { user } = await withAuth();
   if (!user) return null;
 
   // Check if user has an expert role by checking the array of roles

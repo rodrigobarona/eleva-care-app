@@ -1,14 +1,15 @@
 import { db } from '@/drizzle/db';
 import { MeetingsTable } from '@/drizzle/schema-workos';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request, props: { params: Promise<{ email: string }> }) {
   const params = await props.params;
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { user } = await withAuth();
+  const userId = user?.id;
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

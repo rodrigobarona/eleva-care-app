@@ -3,7 +3,7 @@ import {
   updateUserSecurityPreferences,
   type UserSecurityPreferences,
 } from '@/lib/integrations/clerk/security-utils';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 
 /**
@@ -12,9 +12,10 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -36,9 +37,10 @@ export async function GET() {
  */
 export async function PUT(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

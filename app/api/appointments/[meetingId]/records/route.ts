@@ -2,7 +2,6 @@ import { db } from '@/drizzle/db';
 import { RecordsTable } from '@/drizzle/schema-workos';
 import { decryptRecord, encryptRecord } from '@/lib/utils/encryption';
 import { logAuditEvent } from '@/lib/utils/server/audit';
-import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';

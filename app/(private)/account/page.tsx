@@ -1,11 +1,12 @@
 'use client';
 
 import { AccountForm } from '@/components/features/forms/AccountForm';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { redirect } from 'next/navigation';
 
 export default function ProfilePage() {
-  const { user, isLoaded } = useUser();
+  const { user, loading } = useAuth();
+  const isLoaded = !loading;
 
   if (!isLoaded) return null;
   if (!user) return redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);

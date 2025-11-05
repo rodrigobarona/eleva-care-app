@@ -26,8 +26,6 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
   const signInUrl = await getSignInUrl({
     state: JSON.stringify({
       returnTo: redirectUrl,
-      // Add custom tracking data if needed
-      timestamp: Date.now(),
     }),
   });
 

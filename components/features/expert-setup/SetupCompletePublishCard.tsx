@@ -4,7 +4,7 @@ import { ProfilePublishToggle } from '@/components/features/profile/ProfilePubli
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -18,7 +18,7 @@ export function SetupCompletePublishCard({
   isPublished: initialIsPublished,
   onPublishStatusChange,
 }: SetupCompletePublishCardProps) {
-  const { user } = useUser();
+  const { user } = useAuth();
   const username = user?.username || '';
   const [isPublished, setIsPublished] = useState(initialIsPublished);
 

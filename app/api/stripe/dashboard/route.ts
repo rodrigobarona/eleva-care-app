@@ -1,7 +1,7 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema-workos';
 import { getStripeConnectSetupOrLoginLink } from '@/lib/integrations/stripe';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
@@ -9,10 +9,11 @@ export async function POST() {
   try {
     console.log('Starting dashboard route handler');
 
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
     console.log('Auth check completed', { userId });
 
-    if (!userId) {
+    if (!user) {
       console.log('No userId found in auth');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

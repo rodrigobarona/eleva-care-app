@@ -1,6 +1,6 @@
 import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 
 // Mark route as dynamic
@@ -9,19 +9,19 @@ export async function GET() {
   let workosUserId: string | null = null;
 
   try {
-    const { userId } = await auth();
-    workosUserId = userId;
-    console.log('Auth check result:', { userId, hasId: !!userId });
+    const { user: authUser } = await withAuth();
+    workosUserId = authUser?.id || null;
+    console.log('Auth check result:', { userId: workosUserId, hasId: !!workosUserId });
 
-    if (!userId) {
+    if (!authUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Use our synchronization service to ensure all systems are in sync
-    const user = await ensureFullUserSynchronization(userId);
+    const user = await ensureFullUserSynchronization(authUser.id);
 
     if (!user) {
-      console.error('Failed to synchronize user:', { workosUserId: userId });
+      console.error('Failed to synchronize user:', { workosUserId: authUser.id });
       return NextResponse.json({ error: 'User synchronization failed' }, { status: 500 });
     }
 

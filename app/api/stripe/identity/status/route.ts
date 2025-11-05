@@ -1,7 +1,7 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema-workos';
 import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
-import { currentUser } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
@@ -17,7 +17,7 @@ import { NextResponse } from 'next/server';
  */
 export async function GET() {
   try {
-    const user = await currentUser();
+    const { user } = await withAuth();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

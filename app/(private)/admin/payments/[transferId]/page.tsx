@@ -1,7 +1,6 @@
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { Suspense } from 'react';
 
 import { TransferDetailsClient } from './transfer-details-client';
@@ -14,10 +13,7 @@ export default async function TransferDetailsPage({
   params: Promise<{ transferId: string }>;
 }) {
   const resolvedParams = await params;
-  const { userId } = await auth();
-  if (!userId) {
-    redirect('/sign-in');
-  }
+  await withAuth({ ensureSignedIn: true });
 
   return (
     <div className="container py-8">

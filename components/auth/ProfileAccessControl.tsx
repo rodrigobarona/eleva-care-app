@@ -1,6 +1,5 @@
 import { db } from '@/drizzle/db';
 import { getCachedUserByUsername } from '@/lib/cache/clerk-cache';
-import { auth } from '@clerk/nextjs/server';
 import { notFound } from 'next/navigation';
 import { ReactNode } from 'react';
 

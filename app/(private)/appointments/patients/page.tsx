@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/table';
 import { formatCurrency } from '@/lib/utils';
 import { isValidCustomerId } from '@/lib/utils/customerUtils';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { AlertCircle, Calendar, CalendarClock, PlusCircle, Search, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -72,7 +72,8 @@ const NoSearchResultsEmptyState = ({ query, onClear }: { query: string; onClear:
 );
 
 export default function CustomersPage() {
-  const { user, isLoaded } = useUser();
+  const { user, loading } = useAuth();
+  const isLoaded = !loading;
   const router = useRouter();
   const [customers, setCustomers] = React.useState<Customer[]>([]);
   const [filteredCustomers, setFilteredCustomers] = React.useState<Customer[]>([]);

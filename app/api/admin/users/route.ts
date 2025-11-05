@@ -1,16 +1,19 @@
+import { db } from '@/drizzle/db';
+import { RolesTable, UsersTable } from '@/drizzle/schema-workos';
 import type { UserRoles } from '@/lib/auth/roles';
 import { hasRole, updateUserRole } from '@/lib/auth/roles.server';
 import type { ApiResponse, ApiUser, UpdateRoleRequest } from '@/types/api';
-import { auth, clerkClient } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
+import { desc, ilike, or, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 const ITEMS_PER_PAGE = 10;
 
 export async function GET(req: Request) {
   try {
-    const { userId } = await auth();
+    const { user } = await withAuth();
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         {
           success: false,
@@ -38,29 +41,67 @@ export async function GET(req: Request) {
     const page = Number.parseInt(url.searchParams.get('page') || '1');
     const search = url.searchParams.get('search') || '';
 
-    // Fetch users
-    const clerk = await clerkClient();
-    const users = await clerk.users.getUserList({
-      query: search,
-      limit: ITEMS_PER_PAGE,
-      offset: (page - 1) * ITEMS_PER_PAGE,
-    });
+    // Build query conditions
+    const conditions = search
+      ? or(
+          ilike(UsersTable.email, `%${search}%`),
+          ilike(UsersTable.firstName, `%${search}%`),
+          ilike(UsersTable.lastName, `%${search}%`),
+        )
+      : undefined;
+
+    // Fetch users from database
+    const users = await db
+      .select({
+        id: UsersTable.id,
+        workosUserId: UsersTable.workosUserId,
+        email: UsersTable.email,
+        firstName: UsersTable.firstName,
+        lastName: UsersTable.lastName,
+        createdAt: UsersTable.createdAt,
+      })
+      .from(UsersTable)
+      .where(conditions)
+      .limit(ITEMS_PER_PAGE)
+      .offset((page - 1) * ITEMS_PER_PAGE)
+      .orderBy(desc(UsersTable.createdAt));
 
     // Get total count for pagination
-    const totalUsers = await clerk.users.getCount();
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(UsersTable)
+      .where(conditions);
 
-    const formattedUsers: ApiUser[] = users.data.map((user) => ({
-      id: user.id,
-      email: user.emailAddresses[0]?.emailAddress || '',
-      name: user.firstName || '',
-      role: (user.publicMetadata.role as UserRoles) || 'user',
+    // Fetch roles for each user
+    const userIds = users.map((u) => u.workosUserId);
+    const roles = await db
+      .select({
+        workosUserId: RolesTable.workosUserId,
+        role: RolesTable.role,
+      })
+      .from(RolesTable)
+      .where(sql`${RolesTable.workosUserId} = ANY(${userIds})`);
+
+    // Map roles to users
+    const roleMap = new Map<string, UserRoles[]>();
+    for (const role of roles) {
+      const existing = roleMap.get(role.workosUserId) || [];
+      existing.push(role.role as UserRoles);
+      roleMap.set(role.workosUserId, existing);
+    }
+
+    const formattedUsers: ApiUser[] = users.map((user) => ({
+      id: user.workosUserId,
+      email: user.email,
+      name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email,
+      role: roleMap.get(user.workosUserId)?.[0] || 'user',
     }));
 
     return NextResponse.json({
       success: true,
       data: {
         users: formattedUsers,
-        total: totalUsers,
+        total: Number(count),
       },
     } as ApiResponse<{ users: ApiUser[]; total: number }>);
   } catch (error) {

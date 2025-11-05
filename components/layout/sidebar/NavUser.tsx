@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useClerk, useUser } from '@clerk/nextjs';
+import { useClerk } from '@clerk/nextjs';
 import {
   BadgeCheck,
   BanknoteIcon,
@@ -52,7 +52,7 @@ function NavUserSkeleton() {
 }
 
 export function NavUser() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const { signOut } = useClerk();
   const { isMobile } = useSidebar();
   if (!user) return null;

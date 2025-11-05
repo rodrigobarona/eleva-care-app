@@ -73,8 +73,9 @@ export function checkRoles(
  * Check if the current user has any of the specified roles
  */
 export async function hasAnyRole(roles: UserRole[]): Promise<boolean> {
-  const { userId } = await auth();
-  if (!userId) return false;
+  const { user } = await withAuth();
+  const userId = user?.id;
+  if (!user) return false;
 
   const user = await getUserByIdWithFallback(userId);
   if (!user) return false;
@@ -96,8 +97,9 @@ export async function hasAnyRole(roles: UserRole[]): Promise<boolean> {
  * Check if the current user has the specified role
  */
 export async function hasRole(role: UserRole): Promise<boolean> {
-  const { userId } = await auth();
-  if (!userId) return false;
+  const { user } = await withAuth();
+  const userId = user?.id;
+  if (!user) return false;
 
   const user = await getUserByIdWithFallback(userId);
   if (!user) return false;
@@ -139,8 +141,9 @@ export async function isCommunityExpert(): Promise<boolean> {
  * Get the current user's role(s)
  */
 export async function getUserRole(): Promise<UserRoles> {
-  const { userId } = await auth();
-  if (!userId) return ROLE_USER;
+  const { user } = await withAuth();
+  const userId = user?.id;
+  if (!user) return ROLE_USER;
 
   const user = await getUserByIdWithFallback(userId);
   if (!user) return ROLE_USER;

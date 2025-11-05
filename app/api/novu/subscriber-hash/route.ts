@@ -1,5 +1,5 @@
 import { ENV_CONFIG } from '@/config/env';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -10,9 +10,10 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(_request: NextRequest) {
   try {
     // Get authenticated user from Clerk
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

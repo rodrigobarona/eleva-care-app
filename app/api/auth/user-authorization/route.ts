@@ -1,12 +1,12 @@
 import { getUserRole } from '@/lib/auth/roles.server';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const { user } = await withAuth();
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized', message: 'User not authenticated' },
         { status: 401 },

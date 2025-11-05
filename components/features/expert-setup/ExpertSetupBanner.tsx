@@ -2,13 +2,14 @@
 
 import { Button } from '@/components/ui/button';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export function ExpertSetupBanner() {
-  const { isLoaded, user } = useUser();
+  const { user, loading } = useAuth();
+  const isLoaded = !loading;
   const [isComplete, setIsComplete] = useState(true);
   const [loading, setLoading] = useState(true);
   const [completionPercentage, setCompletionPercentage] = useState(0);

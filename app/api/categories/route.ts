@@ -1,12 +1,12 @@
 import { db } from '@/drizzle/db';
 import { CategoriesTable } from '@/drizzle/schema-workos';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { user } = await withAuth();
+    if (!user) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 

@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { usePostHog } from 'posthog-js/react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -54,7 +54,7 @@ export function usePostHogFeatureFlag(flagKey: string, defaultValue: boolean = f
  */
 export function usePostHogEvents() {
   const posthog = usePostHog();
-  const { user } = useUser();
+  const { user } = useAuth();
 
   const trackEvent = useCallback(
     (eventName: string, properties?: PostHogEventProperties) => {
@@ -185,7 +185,8 @@ export function usePostHogABTest(experimentKey: string, variants: string[]) {
  */
 export function usePostHogIdentification() {
   const posthog = usePostHog();
-  const { user, isLoaded } = useUser();
+  const { user, loading } = useAuth();
+  const isLoaded = !loading;
 
   useEffect(() => {
     if (!posthog || !isLoaded) return;

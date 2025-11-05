@@ -12,7 +12,7 @@ import {
   PROFILE_PUBLISHED,
   PROFILE_UNPUBLISHED,
 } from '@/types/audit';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -21,8 +21,9 @@ import { revalidatePath } from 'next/cache';
  * When publishing for the first time, verifies that all expert setup steps are complete.
  */
 export async function toggleProfilePublication() {
-  const { userId } = await auth();
-  const user = await currentUser();
+  const { user } = await withAuth();
+  const userId = user?.id;
+  const { user } = await withAuth();
 
   if (!userId || !user) {
     return { success: false, message: 'Not authenticated', isPublished: false };

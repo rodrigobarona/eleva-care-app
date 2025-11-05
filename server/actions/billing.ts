@@ -9,7 +9,6 @@ import {
   createStripeConnectAccount,
   getStripeConnectSetupOrLoginLink,
 } from '@/lib/integrations/stripe';
-import { auth, clerkClient } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
@@ -167,8 +166,9 @@ export async function getConnectLoginLink(stripeConnectAccountId: string) {
  */
 export async function syncIdentityToConnect() {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { user } = await withAuth();
+  const userId = user?.id;
+    if (!user) {
       return { success: false, message: 'Not authenticated' };
     }
 
@@ -258,8 +258,9 @@ export async function createConnectRefund(
   reason?: 'duplicate' | 'fraudulent' | 'requested_by_customer',
 ) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { user } = await withAuth();
+  const userId = user?.id;
+    if (!user) {
       return { success: false, message: 'Not authenticated' };
     }
 

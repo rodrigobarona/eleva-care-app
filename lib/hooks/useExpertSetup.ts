@@ -1,6 +1,6 @@
 import { checkExpertSetupStatus, markStepComplete } from '@/server/actions/expert-setup';
 import type { ExpertSetupStep } from '@/server/actions/expert-setup';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { useCallback, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -9,7 +9,8 @@ import { toast } from 'sonner';
  * Provides methods for completing steps, checking status, and syncing with Clerk metadata
  */
 export function useExpertSetup() {
-  const { isLoaded, user } = useUser();
+  const { user, loading } = useAuth();
+  const isLoaded = !loading;
   const [isLoading, setIsLoading] = useState(false);
   const [setupStatus, setSetupStatus] = useState<Record<ExpertSetupStep, boolean>>({
     profile: false,

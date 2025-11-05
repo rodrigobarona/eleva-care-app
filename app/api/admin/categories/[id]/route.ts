@@ -1,7 +1,7 @@
 import { db } from '@/drizzle/db';
 import { CategoriesTable } from '@/drizzle/schema-workos';
 import { hasRole } from '@/lib/auth/roles.server';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
@@ -14,9 +14,10 @@ async function isAdmin(_userId: string) {
 export async function PATCH(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
     const params = await props.params;
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -61,9 +62,10 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
 export async function DELETE(request: NextRequest, props: { params: Promise<{ id: string }> }) {
   try {
     const params = await props.params;
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

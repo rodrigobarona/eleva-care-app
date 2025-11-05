@@ -1,11 +1,10 @@
 import { SchedulingSettingsForm } from '@/components/features/forms/SchedulingSettingsForm';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 
 // Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
 export default async function LimitsPage() {
-  const { userId, redirectToSignIn } = await auth();
-  if (userId == null) return redirectToSignIn();
+  await withAuth({ ensureSignedIn: true });
 
   return <SchedulingSettingsForm />;
 }

@@ -4,7 +4,7 @@ import { db } from '@/drizzle/db';
 import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
 import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
-import { auth, clerkClient, currentUser } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
@@ -104,7 +104,7 @@ async function updateSetupCompleteFlag(userId: string, setupStatus: Record<strin
 export async function markStepCompleteNoRevalidate(step: ExpertSetupStep) {
   try {
     // Get current user and verify authentication
-    const user = await currentUser();
+    const { user } = await withAuth();
     if (!user) {
       return { success: false, error: 'User not authenticated' };
     }
@@ -174,7 +174,7 @@ export async function markStepComplete(step: ExpertSetupStep) {
   if (result.success) {
     // Update setupComplete flag if needed
     if (result.setupStatus) {
-      const user = await currentUser();
+      const { user } = await withAuth();
       if (user) {
         await updateSetupCompleteFlag(user.id, result.setupStatus);
       }
@@ -195,7 +195,7 @@ export async function markStepComplete(step: ExpertSetupStep) {
 export async function checkExpertSetupStatus() {
   try {
     // Get the current user
-    const user = await currentUser();
+    const { user } = await withAuth();
     if (!user) {
       return {
         success: false,
@@ -326,7 +326,7 @@ export async function markStepCompleteForUser(step: ExpertSetupStep, userId: str
 export async function updateSetupStepStatus(stepId: string, completed: boolean) {
   try {
     // Get the current user
-    const user = await currentUser();
+    const { user } = await withAuth();
     if (!user) {
       return {
         success: false,
@@ -376,7 +376,7 @@ export async function updateSetupStepStatus(stepId: string, completed: boolean) 
  */
 export async function checkSetupSequence() {
   try {
-    const user = await currentUser();
+    const { user } = await withAuth();
     if (!user) {
       return {
         success: false,
@@ -453,8 +453,9 @@ export async function checkSetupSequence() {
  */
 export async function handleGoogleAccountConnection(): Promise<ActionResult<boolean>> {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const { user } = await withAuth();
+  const userId = user?.id;
+    if (!user) {
       return {
         success: false,
         error: 'User not authenticated',
@@ -626,7 +627,7 @@ export async function updateSetupStepForUser(
  */
 export async function syncGoogleAccountConnectionStatus(): Promise<ActionResult<boolean>> {
   try {
-    const user = await currentUser();
+    const { user } = await withAuth();
     if (!user) {
       return {
         success: false,

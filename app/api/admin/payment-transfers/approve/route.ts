@@ -6,7 +6,7 @@ import {
   PAYMENT_TRANSFER_STATUS_PENDING,
 } from '@/lib/constants/payment-transfers';
 import { RateLimitCache } from '@/lib/redis/manager';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -165,8 +165,9 @@ export async function POST(request: NextRequest) {
 
   try {
     // Get userId for audit logging and rate limiting
-    const { userId } = await auth();
-    if (!userId) {
+    const { user } = await withAuth();
+  const userId = user?.id;
+    if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 

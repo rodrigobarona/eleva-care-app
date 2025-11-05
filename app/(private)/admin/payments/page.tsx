@@ -1,5 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { Suspense } from 'react';
 
 import { PaymentTransfersClient } from './payment-transfers-client';
@@ -12,10 +11,7 @@ export default async function PaymentTransfersPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const { userId } = await auth();
-  if (!userId) {
-    redirect('/sign-in');
-  }
+  await withAuth({ ensureSignedIn: true });
 
   // Convert search params to query string for API call
   const queryParams = new URLSearchParams();

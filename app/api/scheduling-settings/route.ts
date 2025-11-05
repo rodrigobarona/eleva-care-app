@@ -6,7 +6,7 @@
  * - Updating scheduling settings
  */
 import { getUserSchedulingSettings, updateSchedulingSettings } from '@/server/schedulingSettings';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 
 /**
@@ -16,9 +16,10 @@ import { NextResponse } from 'next/server';
  */
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
 
-    if (!userId) {
+    if (!user) {
       return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
       });
@@ -43,9 +44,10 @@ export async function GET() {
  */
 export async function PATCH(request: Request) {
   try {
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
 
-    if (!userId) {
+    if (!user) {
       return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
       });

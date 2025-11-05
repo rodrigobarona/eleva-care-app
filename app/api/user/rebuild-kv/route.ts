@@ -1,7 +1,7 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { syncStripeDataToKV } from '@/lib/integrations/stripe';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
@@ -17,8 +17,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
 export async function POST() {
   try {
     // Get current user
-    const { userId } = await auth();
-    const user = await currentUser();
+    const { user } = await withAuth();
+  const userId = user?.id;
+    const { user } = await withAuth();
 
     if (!userId || !user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });

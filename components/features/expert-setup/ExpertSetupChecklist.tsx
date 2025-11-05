@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { CheckCircle2, ChevronDown, ChevronUp, Circle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
@@ -21,7 +21,8 @@ type SetupStep = {
 };
 
 export function ExpertSetupChecklist() {
-  const { isLoaded, user } = useUser();
+  const { user, loading } = useAuth();
+  const isLoaded = !loading;
   const router = useRouter();
   const pathname = usePathname();
   const [isExpanded, setIsExpanded] = useState(false);

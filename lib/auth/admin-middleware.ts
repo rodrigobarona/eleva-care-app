@@ -1,5 +1,5 @@
 import type { ApiResponse } from '@/types/api';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 
 import { hasRole } from './roles.server';
@@ -12,8 +12,9 @@ import { hasRole } from './roles.server';
 export async function adminAuthMiddleware(): Promise<NextResponse | null> {
   try {
     // Check if user is authenticated
-    const { userId } = await auth();
-    if (!userId) {
+    const { user } = await withAuth();
+  const userId = user?.id;
+    if (!user) {
       return NextResponse.json(
         {
           success: false,

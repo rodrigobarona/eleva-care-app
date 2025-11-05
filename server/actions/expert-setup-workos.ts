@@ -48,6 +48,19 @@ import { revalidatePath } from 'next/cache';
  */
 
 /**
+ * Expert Setup Server Actions (WorkOS)
+ *
+ * Manages expert onboarding progress in database (replaces Clerk unsafeMetadata).
+ *
+ * Benefits over Clerk metadata:
+ * - Queryable: Can find all incomplete setups
+ * - Indexed: Fast filtering for analytics
+ * - Audit trail: Track completion dates
+ * - No size limits: Store unlimited data
+ * - No API calls: Direct database access
+ */
+
+/**
  * Get expert setup status from database
  *
  * Fetches the current setup progress for the authenticated user.

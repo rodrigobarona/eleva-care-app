@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { UserSecurityPreferences } from '@/lib/integrations/clerk/security-utils';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { Bell, Clock, Loader2, Mail, MapPin, Shield, Smartphone } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -15,7 +15,8 @@ interface SecurityPreferencesFormProps {
 }
 
 export function SecurityPreferencesForm({ className }: SecurityPreferencesFormProps) {
-  const { user, isLoaded } = useUser();
+  const { user, loading } = useAuth();
+  const isLoaded = !loading;
   const [preferences, setPreferences] = useState<UserSecurityPreferences | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

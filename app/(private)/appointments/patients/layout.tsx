@@ -1,5 +1,5 @@
-import { isExpert } from '@/lib/auth/roles.server';
-import { auth } from '@clerk/nextjs/server';
+import { isUserExpert } from '@/lib/integrations/workos/roles';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { redirect } from 'next/navigation';
 
 interface CustomersLayoutProps {
@@ -7,17 +7,14 @@ interface CustomersLayoutProps {
 }
 
 export default async function CustomersLayout({ children }: CustomersLayoutProps) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
-  }
+  // Require authentication with WorkOS
+  const { user } = await withAuth({ ensureSignedIn: true });
 
   // Check if user is an expert using the centralized isExpert function
-  const userIsExpert = await isExpert();
+  const userIsExpert = await isUserExpert(user.id);
 
   if (!userIsExpert) {
-    redirect(`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
+    redirect('/unauthorized');
   }
 
   return <>{children}</>;

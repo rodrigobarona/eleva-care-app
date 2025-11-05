@@ -1,11 +1,21 @@
 'use client';
 
+/**
+ * Client Providers - WorkOS AuthKit Version
+ *
+ * Provides client-side functionality for:
+ * - WorkOS authentication (via built-in useAuth hook)
+ * - Theme management
+ * - PostHog analytics
+ * - Novu notifications
+ * - Cookie consent
+ * - Authorization context
+ */
 import { AuthorizationProvider } from '@/components/shared/providers/AuthorizationProvider';
 import { ENV_CONFIG } from '@/config/env';
-import { enUS, esES, ptBR, ptPT } from '@clerk/localizations';
-import { ClerkProvider, useUser } from '@clerk/nextjs';
 import { NovuProvider } from '@novu/nextjs';
 import { NovuProvider as ReactNovuProvider } from '@novu/react';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { NextIntlClientProvider } from 'next-intl';
 import { ThemeProvider } from 'next-themes';
 import dynamic from 'next/dynamic';
@@ -15,7 +25,6 @@ import { PostHogProvider as PHProvider } from 'posthog-js/react';
 import { useEffect, useState } from 'react';
 import { Toaster } from 'sonner';
 
-// Import the createCookieTranslations function
 import { createCookieTranslations } from '../lib/i18n/cookie-translations';
 import PostHogPageView from './PostHogPageView';
 
@@ -24,14 +33,6 @@ const CookieManager = dynamic(
   () => import('react-cookie-manager').then((mod) => mod.CookieManager),
   { ssr: false, loading: () => null },
 );
-
-// TypeScript interfaces for Clerk metadata
-interface ClerkPublicMetadata {
-  signInCount?: number;
-  role?: string;
-  onboardingCompleted?: boolean;
-  sessionCount?: number;
-}
 
 // Enhanced configuration function
 const getPostHogConfig = (): Partial<PostHogConfig> => {
@@ -82,14 +83,14 @@ const getPostHogConfig = (): Partial<PostHogConfig> => {
   };
 };
 
-// PostHog user identification and tracking
+// PostHog user identification and tracking (WorkOS version)
 function PostHogUserTracker() {
-  const { user, isLoaded } = useUser();
+  const { user, loading } = useAuth();
   const pathname = usePathname();
   const params = useParams();
 
   useEffect(() => {
-    if (!isLoaded || typeof window === 'undefined') return;
+    if (loading || typeof window === 'undefined') return;
 
     const locale = (params?.locale as string) || 'en';
     const isPrivateRoute =
@@ -105,23 +106,13 @@ function PostHogUserTracker() {
     });
 
     if (user) {
-      const metadata = user.publicMetadata as ClerkPublicMetadata;
-
       posthog.identify(user.id, {
-        email: user.primaryEmailAddress?.emailAddress,
-        name: user.fullName,
+        email: user.email,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
         first_name: user.firstName,
         last_name: user.lastName,
-        phone: user.primaryPhoneNumber?.phoneNumber,
-        avatar: user.imageUrl,
-        created_at: user.createdAt,
-        last_sign_in: user.lastSignInAt,
-        email_verified: user.primaryEmailAddress?.verification?.status === 'verified',
-        phone_verified: user.primaryPhoneNumber?.verification?.status === 'verified',
-        has_image: !!user.imageUrl,
-        sign_in_count: metadata?.signInCount || 0,
-        user_role: metadata?.role || 'user',
-        onboarding_completed: metadata?.onboardingCompleted || false,
+        avatar: user.profilePictureUrl,
+        email_verified: user.emailVerified,
         preferred_locale: locale,
         timezone: (() => {
           try {
@@ -134,24 +125,12 @@ function PostHogUserTracker() {
       });
 
       posthog.people.set({
-        email: user.primaryEmailAddress?.emailAddress,
-        name: user.fullName,
-        avatar: user.imageUrl,
+        email: user.email,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        avatar: user.profilePictureUrl,
         locale: locale,
         last_seen: new Date().toISOString(),
-        total_sessions: (metadata?.sessionCount || 0) + 1,
       });
-
-      if (user.lastSignInAt) {
-        const timeSinceLastSignIn = Date.now() - new Date(user.lastSignInAt).getTime();
-        if (timeSinceLastSignIn < 60000) {
-          posthog.capture('user_signed_in', {
-            sign_in_method: 'clerk',
-            is_new_session: true,
-            locale: locale,
-          });
-        }
-      }
     } else {
       posthog.register({
         user_type: 'anonymous',
@@ -165,17 +144,17 @@ function PostHogUserTracker() {
         ? pathname?.split('/')[2] || 'dashboard'
         : pathname?.split('/')[2] || 'home',
     });
-  }, [user, isLoaded, pathname, params]);
+  }, [user, loading, pathname, params]);
 
   return null;
 }
 
-// Define NovuWrapper component here to access useUser hook
+// Novu wrapper component (WorkOS version)
 function NovuWrapper({ children }: { children: React.ReactNode }) {
-  const { user, isLoaded } = useUser();
+  const { user, loading } = useAuth();
 
-  // Ensure Clerk user is loaded and applicationIdentifier is available
-  if (!isLoaded || !user || !ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) {
+  // Ensure WorkOS user is loaded and applicationIdentifier is available
+  if (loading || !user || !ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) {
     return <>{children}</>;
   }
 
@@ -204,9 +183,11 @@ interface ClientProvidersProps {
 }
 
 /**
- * Client Providers - Enhanced with comprehensive PostHog analytics
- * Tracks user behavior across public and private sections
- * Includes feature flags, session recording, and performance monitoring
+ * Client Providers - WorkOS Version
+ *
+ * Enhanced with comprehensive PostHog analytics.
+ * Tracks user behavior across public and private sections.
+ * Includes feature flags, session recording, and performance monitoring.
  */
 export function ClientProviders({ children, messages }: ClientProvidersProps) {
   const [posthogLoaded, setPosthogLoaded] = useState(false);
@@ -214,24 +195,6 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
 
   // Get the current locale from the URL params
   const currentLocale = (params?.locale as string) || 'en';
-
-  // Map the locale to the correct localization
-  const getLocalization = (locale: string) => {
-    const localizationMap: Record<string, typeof enUS> = {
-      en: enUS,
-      pt: ptPT,
-      es: esES,
-      'pt-BR': ptBR,
-    };
-
-    const localization = localizationMap[locale];
-
-    if (!localization && ENV_CONFIG.NODE_ENV === 'development') {
-      console.warn(`[Clerk] No localization found for locale: ${locale}`);
-    }
-
-    return localization;
-  };
 
   useEffect(() => {
     // Enhanced PostHog setup
@@ -326,39 +289,31 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
   }, [currentLocale]);
 
   return (
-    <ClerkProvider
-      localization={getLocalization(currentLocale)}
-      signInFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}
-      signUpFallbackRedirectUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL}
-      signInUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}
-      signUpUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}
-    >
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-        <AuthorizationProvider>
-          <CookieManager
-            cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
-            showManageButton={true}
-            enableFloatingButton={false}
-            displayType="popup"
-            cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
-            theme="light"
-            privacyPolicyUrl="/legal/cookie"
-            translations={createCookieTranslations(messages)}
-          >
-            <PHProvider client={posthog}>
-              {posthogLoaded && (
-                <>
-                  <PostHogPageView />
-                  <PostHogUserTracker />
-                </>
-              )}
-              <NovuWrapper>{children}</NovuWrapper>
-            </PHProvider>
-            <Toaster closeButton position="bottom-right" richColors />
-          </CookieManager>
-        </AuthorizationProvider>
-      </ThemeProvider>
-    </ClerkProvider>
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <AuthorizationProvider>
+        <CookieManager
+          cookieKitId={process.env.NEXT_PUBLIC_COOKIE_KIT_ID || ''}
+          showManageButton={true}
+          enableFloatingButton={false}
+          displayType="popup"
+          cookieKey={process.env.NEXT_PUBLIC_COOKIE_KEY || ''}
+          theme="light"
+          privacyPolicyUrl="/legal/cookie"
+          translations={createCookieTranslations(messages)}
+        >
+          <PHProvider client={posthog}>
+            {posthogLoaded && (
+              <>
+                <PostHogPageView />
+                <PostHogUserTracker />
+              </>
+            )}
+            <NovuWrapper>{children}</NovuWrapper>
+          </PHProvider>
+          <Toaster closeButton position="bottom-right" richColors />
+        </CookieManager>
+      </AuthorizationProvider>
+    </ThemeProvider>
   );
 }
 
@@ -379,11 +334,9 @@ export function IntlProvider({
   // Update HTML lang attribute when the locale changes
   useEffect(() => {
     if (locale) {
-      // Find all HTML elements with data-dynamic-lang attribute
       const htmlElement = document.documentElement;
 
       // Update HTML lang attribute if it has the dynamic lang data attribute
-      // This ensures we're not fighting with the server-rendered attribute in non-locale routes
       if (htmlElement.getAttribute('data-dynamic-lang') === 'true') {
         htmlElement.lang = locale;
         console.log(`IntlProvider: Updated HTML lang attribute to ${locale}`);

@@ -3,7 +3,6 @@ import { EventBookingList } from '@/components/features/booking/EventBookingList
 import { ProfileColumnSkeleton } from '@/components/features/profile/ProfilePageLoadingSkeleton';
 import { db } from '@/drizzle/db';
 import { generateUserProfileMetadata } from '@/lib/seo/metadata-utils';
-import { auth } from '@clerk/nextjs/server';
 import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';

@@ -1,7 +1,7 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { getStripeConnectAccountStatus } from '@/lib/integrations/stripe';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
@@ -17,11 +17,12 @@ export async function GET() {
 
   try {
     // Get the authenticated user ID
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
     workosUserId = userId;
     console.log('Auth check result:', { userId, hasId: !!userId });
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
 } from '@/components/layout/sidebar/sidebar';
 import { useIsExpert } from '@/components/shared/providers/AuthorizationProvider';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { Bell, Calendar, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
 import { Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -62,7 +62,7 @@ const mainItems: SidebarItem[] = [
 ];
 
 export function AppSidebar() {
-  const { user } = useUser();
+  const { user } = useAuth();
   const isExpert = useIsExpert();
 
   // Build secondary items conditionally

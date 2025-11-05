@@ -2,7 +2,7 @@ import { db } from '@/drizzle/db';
 import { EventsTable, MeetingsTable } from '@/drizzle/schema-workos';
 import { isExpert } from '@/lib/auth/roles.server';
 import { generateCustomerId } from '@/lib/utils/customerUtils';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { desc, eq, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
@@ -12,9 +12,10 @@ import { NextResponse } from 'next/server';
  */
 export async function GET() {
   try {
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -7,7 +7,7 @@ import { logAuditEvent } from '@/lib/utils/server/audit';
 import { eventFormSchema } from '@/schema/events';
 import { checkExpertSetupStatus, markStepComplete } from '@/server/actions/expert-setup';
 import { EVENT_CREATED, EVENT_DELETED, EVENT_UPDATED } from '@/types/audit';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { checkBotId } from 'botid/server';
 import { and, count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
@@ -55,7 +55,8 @@ export async function createEvent(
     };
   }
 
-  const { userId } = await auth();
+  const { user } = await withAuth();
+  const userId = user?.id;
   const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
@@ -125,7 +126,8 @@ export async function updateEvent(
   id: string,
   unsafeData: z.infer<typeof eventFormSchema>,
 ): Promise<{ error: boolean } | undefined> {
-  const { userId } = await auth();
+  const { user } = await withAuth();
+  const userId = user?.id;
   const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
@@ -198,7 +200,8 @@ export async function updateEvent(
  * }
  */
 export async function deleteEvent(id: string): Promise<{ error: boolean } | undefined> {
-  const { userId } = await auth();
+  const { user } = await withAuth();
+  const userId = user?.id;
   const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
@@ -310,13 +313,14 @@ export async function updateEventActiveState(
   id: string,
   isActive: boolean,
 ): Promise<{ error: boolean } | undefined> {
-  const { userId } = await auth();
+  const { user } = await withAuth();
+  const userId = user?.id;
   const headersList = await headers();
 
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
   const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
-  if (!userId) {
+  if (!user) {
     return { error: true };
   }
 

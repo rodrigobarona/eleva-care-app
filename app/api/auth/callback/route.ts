@@ -12,7 +12,6 @@
  * 5. User redirected to returnPathname (default: /dashboard)
  */
 import { db } from '@/drizzle/db';
-import { UserOrgMembershipsTable, UsersTable } from '@/drizzle/schema-workos';
 import { handleAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 

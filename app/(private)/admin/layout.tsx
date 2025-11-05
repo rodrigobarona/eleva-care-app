@@ -1,21 +1,18 @@
 import { isAdmin } from '@/lib/auth/roles.server';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { BanknoteIcon, Tag, Users } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
-  }
+  // Require authentication with WorkOS
+  await withAuth({ ensureSignedIn: true });
 
   // Check if user is admin using the centralized isAdmin function
   const userIsAdmin = await isAdmin();
 
   if (!userIsAdmin) {
-    redirect(`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL}`);
+    redirect('/unauthorized');
   }
 
   return (

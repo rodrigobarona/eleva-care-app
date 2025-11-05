@@ -1,6 +1,6 @@
 import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import { verifyAndUpdateSpecificExpert } from '@/server/actions/experts';
-import { auth } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
@@ -8,9 +8,10 @@ export const preferredRegion = 'auto';
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await auth();
+    const { user } = await withAuth();
+  const userId = user?.id;
 
-    if (!userId) {
+    if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
