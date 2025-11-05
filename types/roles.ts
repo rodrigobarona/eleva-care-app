@@ -66,41 +66,69 @@ export const ORGANIZATION_ROLE_HIERARCHY: Record<OrganizationRole, number> = {
 
 /**
  * Role display names for UI
+ * Separated by role type to avoid duplicate key issues
  */
-export const ROLE_DISPLAY_NAMES: Record<ApplicationRole | OrganizationRole, string> = {
-  // Application roles
+export const APPLICATION_ROLE_DISPLAY_NAMES: Record<ApplicationRole, string> = {
   user: 'User',
   expert_top: 'Top Expert',
   expert_community: 'Community Expert',
   expert_lecturer: 'Lecturer',
-  admin: 'Administrator',
+  admin: 'Application Administrator',
   superadmin: 'Super Administrator',
+};
 
-  // Organization roles
+export const ORGANIZATION_ROLE_DISPLAY_NAMES: Record<OrganizationRole, string> = {
   owner: 'Owner',
-  admin: 'Admin',
+  admin: 'Organization Admin',
   member: 'Member',
   billing_admin: 'Billing Admin',
 };
 
 /**
- * Role descriptions for UI
+ * Get display name for any role
  */
-export const ROLE_DESCRIPTIONS: Record<ApplicationRole | OrganizationRole, string> = {
-  // Application roles
+export function getRoleDisplayName(role: string): string {
+  if (role in APPLICATION_ROLE_DISPLAY_NAMES) {
+    return APPLICATION_ROLE_DISPLAY_NAMES[role as ApplicationRole];
+  }
+  if (role in ORGANIZATION_ROLE_DISPLAY_NAMES) {
+    return ORGANIZATION_ROLE_DISPLAY_NAMES[role as OrganizationRole];
+  }
+  return role;
+}
+
+/**
+ * Role descriptions for UI
+ * Separated by role type to avoid duplicate key issues
+ */
+export const APPLICATION_ROLE_DESCRIPTIONS: Record<ApplicationRole, string> = {
   user: 'Can book appointments and access patient features',
   expert_top: 'Top-tier expert with full features and priority listing',
   expert_community: 'Community expert with standard expert features',
   expert_lecturer: 'Can create and manage courses and lectures',
   admin: 'Can manage platform settings and users',
   superadmin: 'Full system access with all permissions',
+};
 
-  // Organization roles
+export const ORGANIZATION_ROLE_DESCRIPTIONS: Record<OrganizationRole, string> = {
   owner: 'Full control over organization settings and members',
   admin: 'Can manage organization members and settings',
   member: 'Basic organization access',
   billing_admin: 'Can manage billing and subscriptions only',
 };
+
+/**
+ * Get description for any role
+ */
+export function getRoleDescription(role: string): string {
+  if (role in APPLICATION_ROLE_DESCRIPTIONS) {
+    return APPLICATION_ROLE_DESCRIPTIONS[role as ApplicationRole];
+  }
+  if (role in ORGANIZATION_ROLE_DESCRIPTIONS) {
+    return ORGANIZATION_ROLE_DESCRIPTIONS[role as OrganizationRole];
+  }
+  return '';
+}
 
 /**
  * Check if a role is an expert role

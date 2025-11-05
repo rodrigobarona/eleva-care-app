@@ -2,20 +2,22 @@ import { AppBreadcrumb } from '@/components/layout/sidebar/AppBreadcrumb';
 import { AppSidebar } from '@/components/layout/sidebar/AppSidebar';
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/layout/sidebar/sidebar';
 import { Separator } from '@/components/ui/separator';
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+import { requireAuth } from '@/lib/auth/workos-session';
 import type { ReactNode } from 'react';
 
 interface PrivateLayoutProps {
   children: ReactNode;
 }
 
+/**
+ * Private Layout - WorkOS Protected
+ *
+ * All routes in (private) require authentication.
+ * WorkOS session is verified via requireAuth() which auto-redirects to /sign-in if not authenticated.
+ */
 export default async function PrivateLayout({ children }: PrivateLayoutProps) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
-  }
+  // Require authentication - auto-redirects to /sign-in if not logged in
+  await requireAuth();
 
   return (
     <SidebarProvider>

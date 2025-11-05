@@ -1,5 +1,7 @@
 import { db } from '@/drizzle/db';
-import { auth } from '@clerk/nextjs/server';
+import { EventsTable } from '@/drizzle/schema-workos';
+import { requireAuth } from '@/lib/auth/workos-session';
+import { and, eq } from 'drizzle-orm';
 import dynamic from 'next/dynamic';
 import { notFound } from 'next/navigation';
 
@@ -8,17 +10,22 @@ const ClientEventFormWrapper = dynamic(() =>
   import('@/components/features/forms/EventFormWrapper').then((mod) => mod.EventFormWrapper),
 );
 
+/**
+ * Edit Event Page - WorkOS Implementation
+ *
+ * Allows experts to edit their existing events.
+ * Authentication handled by requireAuth().
+ */
 export default async function EditEventPage(props: { params: Promise<{ eventSlug: string }> }) {
   const params = await props.params;
   const { eventSlug } = params;
-  const { userId, redirectToSignIn } = await auth();
 
-  if (userId == null) return redirectToSignIn();
+  // Require authentication - auto-redirects if not logged in
+  const session = await requireAuth();
 
-  // Fetch data without try/catch around JSX, let error boundaries handle errors
+  // Fetch event owned by current user
   const event = await db.query.EventsTable.findFirst({
-    where: ({ slug, workosUserId }, { and, eq }) =>
-      and(eq(workosUserId, userId), eq(slug, eventSlug)),
+    where: and(eq(EventsTable.workosUserId, session.userId), eq(EventsTable.slug, eventSlug)),
   });
 
   if (event == null) {

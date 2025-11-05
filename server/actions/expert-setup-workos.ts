@@ -16,9 +16,10 @@
 import { db } from '@/drizzle/db';
 import { ExpertSetupTable } from '@/drizzle/schema-workos';
 import { requireAuth } from '@/lib/auth/workos-session';
+import type { SetupStats, SetupStatus, SetupStepType } from '@/types/expert-setup';
+import { SetupStep } from '@/types/expert-setup';
 import { count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { z } from 'zod';
 
 /**
  * Expert Setup Server Actions (WorkOS)
@@ -32,43 +33,6 @@ import { z } from 'zod';
  * - No size limits: Store unlimited data
  * - No API calls: Direct database access
  */
-
-/**
- * Valid setup step names
- */
-export const SetupStep = z.enum([
-  'profile',
-  'availability',
-  'events',
-  'identity',
-  'payment',
-  'google_account',
-]);
-
-export type SetupStepType = z.infer<typeof SetupStep>;
-
-/**
- * Setup status interface
- */
-export interface SetupStatus {
-  profile: boolean;
-  availability: boolean;
-  events: boolean;
-  identity: boolean;
-  payment: boolean;
-  google_account: boolean;
-}
-
-/**
- * Setup statistics interface
- */
-export interface SetupStats {
-  total: number;
-  complete: number;
-  incomplete: number;
-  completionRate: number;
-  averageStepsCompleted: number;
-}
 
 /**
  * Get expert setup status from database

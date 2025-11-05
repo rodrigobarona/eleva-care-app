@@ -2,10 +2,10 @@ import { ExpertForm } from '@/components/features/forms/ExpertForm';
 import { ProfilePublishToggle } from '@/components/features/profile/ProfilePublishToggle';
 import { db } from '@/drizzle/db';
 import { ProfilesTable } from '@/drizzle/schema-workos';
-import { isExpert, isTopExpert } from '@/lib/auth/roles.server';
+import { requireAuth } from '@/lib/auth/workos-session';
+import { isUserExpert } from '@/lib/integrations/workos/roles';
 import type { profileFormSchema } from '@/schema/profile';
-import { markStepCompleteNoRevalidate } from '@/server/actions/expert-setup';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { markStepComplete } from '@/server/actions/expert-setup-workos';
 import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import type { z } from 'zod';
@@ -17,32 +17,33 @@ type ExpertFormValues = z.infer<typeof profileFormSchema> & {
   username?: string;
 };
 
+/**
+ * Expert Profile Page - WorkOS Implementation
+ *
+ * Allows experts to manage their public profile.
+ * Requires expert role, auto-marks profile setup step as complete.
+ */
 export default async function ProfilePage() {
-  const { userId } = await auth();
-  const user = await currentUser();
+  // Require authentication - auto-redirects if not logged in
+  const session = await requireAuth();
 
-  if (!userId || !user) {
-    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
-  }
+  // Check if user is an expert
+  const userIsExpert = await isUserExpert(session.userId);
 
-  // Check if user is an expert using the centralized isExpert function
-  const userIsExpert = await isExpert();
-  const userIsTopExpert = await isTopExpert();
-
-  if (!userIsExpert && !userIsTopExpert) {
-    redirect('/');
+  if (!userIsExpert) {
+    redirect('/dashboard');
   }
 
   // Try to find existing profile
   const profile = await db.query.ProfilesTable.findFirst({
-    where: eq(ProfilesTable.workosUserId, userId),
+    where: eq(ProfilesTable.workosUserId, session.userId),
   });
 
   // If profile exists and has required fields filled, mark step as complete
   if (profile?.firstName && profile?.lastName && profile?.shortBio) {
     // Mark profile step as complete (non-blocking)
     try {
-      await markStepCompleteNoRevalidate('profile');
+      await markStepComplete('profile');
     } catch (error) {
       console.error('Failed to mark profile step as complete:', error);
     }
@@ -53,7 +54,7 @@ export default async function ProfilePage() {
     const newProfile = await db
       .insert(ProfilesTable)
       .values({
-        workosUserId: userId,
+        workosUserId: session.userId,
         firstName: '', // Required fields with empty defaults
         lastName: '',
         isVerified: false,

@@ -1,57 +1,69 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/drizzle/db';
-import { ProfilesTable } from '@/drizzle/schema-workos';
-import { ROLE_COMMUNITY_EXPERT, ROLE_TOP_EXPERT } from '@/lib/auth/roles';
-import { UserButton } from '@clerk/nextjs';
-import { auth, currentUser } from '@clerk/nextjs/server';
+import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
+import { requireAuth } from '@/lib/auth/workos-session';
+import { isUserExpert } from '@/lib/integrations/workos/roles';
+import { checkExpertSetupStatus } from '@/server/actions/expert-setup-workos';
 import { eq } from 'drizzle-orm';
-import { CalendarIcon, CheckCircle2, CompassIcon, UsersIcon } from 'lucide-react';
+import { CalendarIcon, CheckCircle2, CompassIcon, User, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 
+/**
+ * Dashboard - WorkOS Implementation
+ *
+ * Replaces Clerk metadata with database queries:
+ * - User data from UsersTable (firstName, role)
+ * - Expert status from roles utility
+ * - Setup status from ExpertSetupTable
+ * - Profile status from ProfilesTable
+ */
 export default async function HomePage() {
-  const { userId } = await auth();
-  const user = await currentUser();
+  // Require authentication - auto-redirects if not logged in
+  const session = await requireAuth();
 
-  if (!userId || !user) {
-    // Handle the case where a user is not authenticated
-    return null;
-  }
+  // Parallel fetch from database for optimal performance
+  const [user, isExpert, setupData, profile] = await Promise.all([
+    // Get user data from database
+    db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, session.userId),
+      columns: {
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+    }),
+    // Check if user has expert role
+    isUserExpert(session.userId),
+    // Get expert setup status (only if expert)
+    checkExpertSetupStatus().catch(() => ({
+      setupStatus: {
+        profile: false,
+        availability: false,
+        events: false,
+        identity: false,
+        payment: false,
+        google_account: false,
+      },
+      isSetupComplete: false,
+      setupCompletedAt: null,
+    })),
+    // Get profile publication status
+    db.query.ProfilesTable.findFirst({
+      where: eq(ProfilesTable.workosUserId, session.userId),
+      columns: {
+        published: true,
+      },
+    }),
+  ]);
 
-  // Extract first name from user data
-  const firstName = user.firstName || 'there';
+  // Extract first name with fallback
+  const firstName = user?.firstName || 'there';
 
-  // Check if user is an expert
-  const userRoles = Array.isArray(user.publicMetadata.role)
-    ? user.publicMetadata.role
-    : [user.publicMetadata.role];
-  const isExpert = userRoles.some(
-    (role) => role === ROLE_TOP_EXPERT || role === ROLE_COMMUNITY_EXPERT,
-  );
+  // Setup completion status
+  const isSetupCompleted = isExpert ? setupData.isSetupComplete : false;
 
-  // Check if expert setup is completed (only for experts)
-  const expertSetup = isExpert
-    ? (user.unsafeMetadata?.expertSetup as Record<string, boolean> | undefined)
-    : undefined;
-
-  // First check for the dedicated setupComplete flag
-  const setupCompleteFlag = isExpert ? user.unsafeMetadata?.setupComplete === true : false;
-
-  // Fall back to checking all individual steps if the flag isn't set
-  const allStepsCompleted = expertSetup && Object.values(expertSetup).every(Boolean);
-
-  // Use the flag first, fall back to the steps check
-  const isSetupCompleted = setupCompleteFlag || allStepsCompleted;
-
-  // Get profile publication status from database (single source of truth)
-  const profile = isExpert
-    ? await db.query.ProfilesTable.findFirst({
-        where: eq(ProfilesTable.workosUserId, userId),
-        columns: {
-          published: true,
-        },
-      })
-    : null;
+  // Profile publication status
   const isProfilePublished = profile?.published ?? false;
 
   return (
@@ -63,7 +75,12 @@ export default async function HomePage() {
             We&apos;re excited to have you on the Eleva platform
           </p>
         </div>
-        <UserButton />
+        <Button variant="outline" asChild>
+          <Link href="/account">
+            <User className="mr-2 h-4 w-4" />
+            Account
+          </Link>
+        </Button>
       </div>
 
       {/* Hero Banner */}

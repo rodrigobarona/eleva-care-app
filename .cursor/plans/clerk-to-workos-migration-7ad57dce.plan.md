@@ -1,5 +1,4 @@
 <!-- 7ad57dce-f4e9-445f-b7ca-2e0cfd0c35f2 75f5fc98-0b98-4f82-b6cc-dc1696df9b8e -->
-
 # Clerk to WorkOS Migration Plan
 
 **Last Updated**: November 5, 2025
@@ -384,7 +383,6 @@ role: text('role').default('user'), // 'user' | 'expert_top' | 'expert_community
 **Implementation Steps**:
 
 1. **Add Tables to Schema**:
-
    ```bash
    # Edit drizzle/schema-workos.ts
    # Add ExpertSetupTable definition (lines ~450)
@@ -393,21 +391,18 @@ role: text('role').default('user'), // 'user' | 'expert_top' | 'expert_community
    ```
 
 2. **Generate Migration**:
-
    ```bash
    pnpm db:generate
    # Creates new migration file in drizzle/migrations/
    ```
 
 3. **Review Migration SQL**:
-
    ```bash
    # Check the generated SQL looks correct
    cat drizzle/migrations/XXXX_add_roles_tables.sql
    ```
 
 4. **Apply Migration**:
-
    ```bash
    pnpm db:migrate
    # Applies to DATABASE_DEV_URL
@@ -418,6 +413,7 @@ role: text('role').default('user'), // 'user' | 'expert_top' | 'expert_community
    psql $DATABASE_DEV_URL -c "\d expert_setup"
    psql $DATABASE_DEV_URL -c "\d user_preferences"
    ```
+
 
 **Success Criteria**:
 
@@ -467,20 +463,18 @@ export async function getUserRoles(workosUserId: string): Promise<string[]> {
 **Implementation Steps**:
 
 1.  **Create Base File**:
-
     ```bash
     touch lib/integrations/workos/roles.ts
     ```
 
 2.  **Implement Core Functions**:
 
-                                                - `getUserRoles(workosUserId)` - Get all roles (app + org)
-                                                - `hasRole(workosUserId, role)` - Check single role
-                                                - `hasAnyRole(workosUserId, roles[])` - Check multiple roles
-                                                - `hasPermission(workosUserId, permission)` - Check permission
+                                                                                                                                                                                                - `getUserRoles(workosUserId)` - Get all roles (app + org)
+                                                                                                                                                                                                - `hasRole(workosUserId, role)` - Check single role
+                                                                                                                                                                                                - `hasAnyRole(workosUserId, roles[])` - Check multiple roles
+                                                                                                                                                                                                - `hasPermission(workosUserId, permission)` - Check permission
 
 3.  **Add Type Definitions**:
-
     ```typescript
     // types/roles.ts
     export type ApplicationRole =
@@ -490,7 +484,7 @@ export async function getUserRoles(workosUserId: string): Promise<string[]> {
       | 'expert_lecturer' // Lecturer
       | 'admin' // Admin
       | 'superadmin'; // Super admin
-
+    
     export type OrganizationRole =
       | 'owner' // Org owner
       | 'admin' // Org admin
@@ -503,6 +497,7 @@ export async function getUserRoles(workosUserId: string): Promise<string[]> {
     # Update lib/auth/roles.server.ts to use new utilities
     # Replace Clerk metadata checks with database queries
     ```
+
 
 **Usage Example**:
 
@@ -611,20 +606,18 @@ export async function markStepComplete(step: string) {
 **Implementation Steps**:
 
 1.  **Create Server Actions File**:
-
     ```bash
     touch server/actions/expert-setup-workos.ts
     ```
 
 2.  **Implement Core Functions**:
 
-                                                - `checkExpertSetupStatus()` - Get current setup progress
-                                                - `markStepComplete(step)` - Mark a step as done
-                                                - `resetSetup()` - Reset all steps (admin only)
-                                                - `getIncompleteExperts()` - Admin analytics
+                                                                                                                                                                                                - `checkExpertSetupStatus()` - Get current setup progress
+                                                                                                                                                                                                - `markStepComplete(step)` - Mark a step as done
+                                                                                                                                                                                                - `resetSetup()` - Reset all steps (admin only)
+                                                                                                                                                                                                - `getIncompleteExperts()` - Admin analytics
 
 3.  **Add Validation**:
-
 ```typescript
 const setupStepSchema = z.enum([
   'profile',
@@ -637,17 +630,16 @@ const setupStepSchema = z.enum([
 ```
 
 4. **Add Analytics Helpers**:
-
    ```typescript
    // Get completion stats
    export async function getSetupStats() {
      const total = await db.select({ count: count() }).from(ExpertSetupTable);
-
+   
      const complete = await db
        .select({ count: count() })
        .from(ExpertSetupTable)
        .where(eq(ExpertSetupTable.setupComplete, true));
-
+   
      return {
        total: total[0].count,
        complete: complete[0].count,
@@ -656,6 +648,7 @@ const setupStepSchema = z.enum([
      };
    }
    ```
+
 
 **Usage in Setup Page**:
 
@@ -767,20 +760,18 @@ export async function updateUserPreferences(
 **Implementation Steps**:
 
 1. **Create Preferences File**:
-
 ```bash
    touch lib/integrations/workos/preferences.ts
 ```
 
 2.  **Implement Core Functions**:
 
-                                                - `getUserPreferences(userId)` - Get current preferences
-                                                - `updateUserPreferences(userId, prefs)` - Update preferences
-                                                - `resetToDefaults(userId)` - Reset all preferences
-                                                - `getDefaultPreferences()` - Get system defaults
+                                                                                                                                                                                                - `getUserPreferences(userId)` - Get current preferences
+                                                                                                                                                                                                - `updateUserPreferences(userId, prefs)` - Update preferences
+                                                                                                                                                                                                - `resetToDefaults(userId)` - Reset all preferences
+                                                                                                                                                                                                - `getDefaultPreferences()` - Get system defaults
 
 3.  **Add Type Safety**:
-
     ```typescript
     // types/preferences.ts
     export interface UserPreferences {
@@ -791,12 +782,12 @@ export async function updateUserPreferences(
       inAppNotifications: boolean;
       unusualTimingAlerts: boolean;
       locationChangeAlerts: boolean;
-
+    
       // UI
       theme: 'light' | 'dark' | 'system';
       language: 'en' | 'es' | 'pt' | 'br';
     }
-
+    
     export const DEFAULT_PREFERENCES: UserPreferences = {
       securityAlerts: true,
       newDeviceAlerts: false,
@@ -810,13 +801,13 @@ export async function updateUserPreferences(
     ```
 
 4.  **Add Caching Layer**:
-
 ```typescript
 import { cache } from 'react';
 
 // Cache preferences for request duration
 export const getCachedPreferences = cache(async (userId: string) => getUserPreferences(userId));
 ```
+
 
 **Usage in Security Settings**:
 
@@ -1185,27 +1176,24 @@ migrateRolesAndMetadata().catch(console.error);
 **Execution Plan**:
 
 1. **Dry Run First**:
-
    ```bash
    tsx scripts/migrate-roles-and-metadata.ts --dry-run
    # Review output, check for errors
    ```
 
 2. **Execute on Development**:
-
    ```bash
    tsx scripts/migrate-roles-and-metadata.ts
    ```
 
 3. **Verify Results**:
-
    ```bash
    # Check roles updated
    psql $DATABASE_DEV_URL -c "SELECT role, COUNT(*) FROM users GROUP BY role"
-
+   
    # Check setup records
    psql $DATABASE_DEV_URL -c "SELECT COUNT(*) FROM expert_setup"
-
+   
    # Check preferences
    psql $DATABASE_DEV_URL -c "SELECT COUNT(*) FROM user_preferences"
    ```
@@ -1473,7 +1461,7 @@ Configure Neon Auth and apply Row-Level Security policies.
 2.  Enable Data API
 3.  Configure Authentication Provider: - Provider: "Other Provider"
 
-                                                - JWKS URL: `https://api.workos.com/sso/jwks/{YOUR_CLIENT_ID}` - JWT Audience: Leave blank or `api://default`
+                                                                                                                                                                                                - JWKS URL: `https://api.workos.com/sso/jwks/{YOUR_CLIENT_ID}` - JWT Audience: Leave blank or `api://default`
 
 4.  Check: "Grant public schema access to authenticated users"
 5.  Save

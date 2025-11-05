@@ -1,34 +1,49 @@
 import { EventsList } from '@/components/features/booking/EventsList';
 import { db } from '@/drizzle/db';
-import { markStepCompleteNoRevalidate } from '@/server/actions/expert-setup';
-import { auth, createClerkClient } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+import { EventsTable, UserOrgMembershipsTable } from '@/drizzle/schema-workos';
+import { requireAuth } from '@/lib/auth/workos-session';
+import { markStepComplete } from '@/server/actions/expert-setup-workos';
+import { eq } from 'drizzle-orm';
 
 // Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
+/**
+ * Events List Page - WorkOS Implementation
+ *
+ * Lists all events for the authenticated expert.
+ * Automatically marks the 'events' setup step as complete when an active event exists.
+ * Uses organization slug as username for booking URLs.
+ */
 export default async function EventsPage() {
-  const { userId } = await auth();
+  // Require authentication - auto-redirects if not logged in
+  const session = await requireAuth();
 
-  if (!userId) {
-    redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
-  }
+  // Parallel fetch user's organization and events
+  const [membership, events] = await Promise.all([
+    db.query.UserOrgMembershipsTable.findFirst({
+      where: eq(UserOrgMembershipsTable.workosUserId, session.userId),
+      with: {
+        organization: {
+          columns: {
+            slug: true,
+          },
+        },
+      },
+    }),
+    db.query.EventsTable.findMany({
+      where: eq(EventsTable.workosUserId, session.userId),
+      orderBy: (events, { asc }) => [asc(events.order)],
+    }),
+  ]);
 
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
-  });
-  const user = await clerk.users.getUser(userId);
-  const username = user.username ?? userId;
-
-  const events = await db.query.EventsTable.findMany({
-    where: ({ workosUserId }, { eq }) => eq(workosUserId, userId),
-    orderBy: ({ order }, { asc }) => asc(order),
-  });
+  // Use organization slug as username (org-per-user model)
+  const username = membership?.organization?.slug || session.userId;
 
   // Check if the expert has at least one published event
   if (events.some((event) => event.isActive)) {
     // Mark events step as complete (non-blocking)
     try {
-      await markStepCompleteNoRevalidate('events');
+      await markStepComplete('events');
     } catch (error) {
       console.error('Failed to mark events step as complete:', error);
     }

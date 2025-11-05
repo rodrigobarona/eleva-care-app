@@ -806,6 +806,17 @@ export const userRelations = relations(UsersTable, ({ many, one }) => ({
   profile: one(ProfilesTable),
 }));
 
+export const organizationRelations = relations(OrganizationsTable, ({ many }) => ({
+  memberships: many(UserOrgMembershipsTable),
+}));
+
+export const userOrgMembershipRelations = relations(UserOrgMembershipsTable, ({ one }) => ({
+  organization: one(OrganizationsTable, {
+    fields: [UserOrgMembershipsTable.orgId],
+    references: [OrganizationsTable.id],
+  }),
+}));
+
 export const eventRelations = relations(EventsTable, ({ one }) => ({
   user: one(UsersTable, {
     fields: [EventsTable.workosUserId],

@@ -1,34 +1,33 @@
-import { isExpert } from '@/lib/auth/roles.server';
-import { markStepComplete } from '@/server/actions/expert-setup';
-import { auth } from '@clerk/nextjs/server';
+import { requireAuth } from '@/lib/auth/workos-session';
+import { isUserExpert } from '@/lib/integrations/workos/roles';
+import { markStepComplete } from '@/server/actions/expert-setup-workos';
 import { redirect } from 'next/navigation';
 
 import { BillingPageClient } from './billing-client';
 
 // Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
+/**
+ * Billing Page - WorkOS Implementation
+ *
+ * Experts can manage Stripe Connect account and payouts.
+ * Uses WorkOS session for authentication and JWT for API calls.
+ */
 export default async function BillingPage() {
-  const { userId, getToken } = await auth();
+  // Require authentication - auto-redirects if not logged in
+  const session = await requireAuth();
 
-  // Check if user has expert role, redirect to unauthorized if not
-  if (!userId || !(await isExpert())) {
-    return redirect(`${process.env.NEXT_PUBLIC_CLERK_UNAUTHORIZED_URL}`);
+  // Check if user has expert role, redirect if not
+  if (!(await isUserExpert(session.userId))) {
+    return redirect('/dashboard');
   }
 
   try {
-    const token = await getToken();
-    if (!token) {
-      return (
-        <div className="container flex min-h-[400px] items-center justify-center">
-          <p className="text-destructive">Authentication error. Please log in again.</p>
-        </div>
-      );
-    }
-
+    // Use WorkOS access token for API authentication
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/user/billing`, {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        Authorization: `Bearer ${session.accessToken}`,
       },
       cache: 'no-store',
     });
@@ -54,7 +53,6 @@ export default async function BillingPage() {
       data.accountStatus?.payoutsEnabled
     ) {
       // Mark payment step as complete (non-blocking)
-      // Note: markStepComplete already handles revalidatePath internally
       markStepComplete('payment').catch((error) => {
         console.error('Failed to mark payment step as complete:', error);
       });
