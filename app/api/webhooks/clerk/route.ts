@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
 import {
   analyzeSessionSecurity,
@@ -179,15 +179,15 @@ async function handleClerkEvent(evt: WebhookEvent) {
 
 /**
  * Check if user has already received welcome email
- * @param clerkUserId - The Clerk user ID
+ * @param workosUserId - The Clerk user ID
  * @returns true if welcome email was already sent, false otherwise
  */
-async function hasReceivedWelcomeEmail(clerkUserId: string): Promise<boolean> {
+async function hasReceivedWelcomeEmail(workosUserId: string): Promise<boolean> {
   try {
     const user = await db
-      .select({ welcomeEmailSentAt: UserTable.welcomeEmailSentAt })
-      .from(UserTable)
-      .where(eq(UserTable.clerkUserId, clerkUserId))
+      .select({ welcomeEmailSentAt: UsersTable.welcomeEmailSentAt })
+      .from(UsersTable)
+      .where(eq(UsersTable.workosUserId, workosUserId))
       .limit(1);
 
     return user.length > 0 && user[0].welcomeEmailSentAt !== null;
@@ -200,16 +200,16 @@ async function hasReceivedWelcomeEmail(clerkUserId: string): Promise<boolean> {
 
 /**
  * Mark that user has received welcome email
- * @param clerkUserId - The Clerk user ID
+ * @param workosUserId - The Clerk user ID
  */
-async function markWelcomeEmailSent(clerkUserId: string): Promise<void> {
+async function markWelcomeEmailSent(workosUserId: string): Promise<void> {
   try {
     await db
-      .update(UserTable)
+      .update(UsersTable)
       .set({ welcomeEmailSentAt: new Date() })
-      .where(eq(UserTable.clerkUserId, clerkUserId));
+      .where(eq(UsersTable.workosUserId, workosUserId));
 
-    console.log(`✅ Marked welcome email as sent for user: ${clerkUserId}`);
+    console.log(`✅ Marked welcome email as sent for user: ${workosUserId}`);
   } catch (error) {
     console.error('Error marking welcome email as sent:', error);
   }
@@ -229,11 +229,11 @@ async function triggerNovuNotificationFromClerkEvent(evt: WebhookEvent) {
 
     // IDEMPOTENCY CHECK: For user.created events, check if welcome email already sent
     if (evt.type === 'user.created') {
-      const clerkUserId = evt.data.id;
-      const alreadySent = await hasReceivedWelcomeEmail(clerkUserId);
+      const workosUserId = evt.data.id;
+      const alreadySent = await hasReceivedWelcomeEmail(workosUserId);
 
       if (alreadySent) {
-        console.log(`🔕 Skipping welcome notification - already sent to user: ${clerkUserId}`);
+        console.log(`🔕 Skipping welcome notification - already sent to user: ${workosUserId}`);
         return;
       }
     }

@@ -1,6 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -97,28 +97,28 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
     });
 
     // Try to find user by verification ID first
-    let user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.stripeIdentityVerificationId, verificationId),
+    let user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.stripeIdentityVerificationId, verificationId),
     });
 
-    // If no user found by verification ID, check metadata for clerkUserId
-    if (!user && session.metadata && session.metadata.clerkUserId) {
-      const clerkUserId = session.metadata.clerkUserId as string;
-      console.log('Looking up user by Clerk ID from metadata:', clerkUserId);
+    // If no user found by verification ID, check metadata for workosUserId
+    if (!user && session.metadata && session.metadata.workosUserId) {
+      const workosUserId = session.metadata.workosUserId as string;
+      console.log('Looking up user by Clerk ID from metadata:', workosUserId);
 
-      user = await db.query.UserTable.findFirst({
-        where: eq(UserTable.clerkUserId, clerkUserId),
+      user = await db.query.UsersTable.findFirst({
+        where: eq(UsersTable.workosUserId, workosUserId),
       });
 
       // If we found a user, update their verification ID
       if (user) {
         await db
-          .update(UserTable)
+          .update(UsersTable)
           .set({
             stripeIdentityVerificationId: verificationId,
             updatedAt: new Date(),
           })
-          .where(eq(UserTable.id, user.id));
+          .where(eq(UsersTable.id, user.id));
       }
     }
 
@@ -137,18 +137,18 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
 
     // Update user verification status in database
     await db
-      .update(UserTable)
+      .update(UsersTable)
       .set({
         stripeIdentityVerified: isVerified,
         stripeIdentityVerificationStatus: verificationStatus.status,
         stripeIdentityVerificationLastChecked: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(UserTable.id, user.id));
+      .where(eq(UsersTable.id, user.id));
 
     console.log('Updated user verification status:', {
       userId: user.id,
-      clerkUserId: user.clerkUserId,
+      workosUserId: user.workosUserId,
       status: verificationStatus.status,
       lastChecked: new Date().toISOString(),
       verificationFlow: session.verification_flow || 'Standard flow',
@@ -159,14 +159,14 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
       try {
         // Call the markStepCompleteForUser function, imported dynamically to avoid circular dependencies
         const { markStepCompleteForUser } = await import('@/server/actions/expert-setup');
-        await markStepCompleteForUser('identity', user.clerkUserId);
-        console.log(`Marked identity step as complete for user ${user.clerkUserId}`);
+        await markStepCompleteForUser('identity', user.workosUserId);
+        console.log(`Marked identity step as complete for user ${user.workosUserId}`);
 
         // Now sync the identity verification to the Connect account if it exists
         try {
           // Check if user has a Connect account first
           if (!user.stripeConnectAccountId) {
-            console.log('User has no Connect account yet, skipping sync:', user.clerkUserId);
+            console.log('User has no Connect account yet, skipping sync:', user.workosUserId);
             return;
           }
 
@@ -177,17 +177,17 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
           for (let attempt = 1; attempt <= 3; attempt++) {
             try {
               console.log(
-                `Syncing identity verification attempt ${attempt} for user ${user.clerkUserId}`,
+                `Syncing identity verification attempt ${attempt} for user ${user.workosUserId}`,
               );
 
               const { syncIdentityVerificationToConnect } = await import(
                 '@/lib/integrations/stripe'
               );
-              const result = await syncIdentityVerificationToConnect(user.clerkUserId);
+              const result = await syncIdentityVerificationToConnect(user.workosUserId);
 
               if (result.success) {
                 console.log(
-                  `Successfully synced identity verification to Connect account for user ${user.clerkUserId}`,
+                  `Successfully synced identity verification to Connect account for user ${user.workosUserId}`,
                   {
                     attempt,
                     verificationStatus: result.verificationStatus,
@@ -221,7 +221,7 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
           if (!syncSuccess) {
             console.error('All attempts to sync identity verification failed:', {
               userId: user.id,
-              clerkUserId: user.clerkUserId,
+              workosUserId: user.workosUserId,
               errorMessage: lastError?.message || 'Unknown error',
             });
           }

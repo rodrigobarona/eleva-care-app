@@ -13,12 +13,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
 });
 
 export async function GET() {
-  let clerkUserId: string | null = null;
+  let workosUserId: string | null = null;
 
   try {
     // Get the authenticated user ID
     const { userId } = await auth();
-    clerkUserId = userId;
+    workosUserId = userId;
     console.log('Auth check result:', { userId, hasId: !!userId });
 
     if (!userId) {
@@ -29,7 +29,7 @@ export async function GET() {
     const user = await ensureFullUserSynchronization(userId);
 
     if (!user) {
-      console.error('Failed to synchronize user:', { clerkUserId: userId });
+      console.error('Failed to synchronize user:', { workosUserId: userId });
       return NextResponse.json({ error: 'User synchronization failed' }, { status: 500 });
     }
 
@@ -77,7 +77,7 @@ export async function GET() {
   } catch (error) {
     console.error('Error in user billing API:', {
       error,
-      clerkUserId,
+      workosUserId,
       timestamp: new Date().toISOString(),
     });
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

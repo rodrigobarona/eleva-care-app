@@ -1,6 +1,6 @@
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
-import { EventTable, SlotReservationTable, UserTable } from '@/drizzle/schema';
+import { EventsTable, SlotReservationsTable, UsersTable } from '@/drizzle/schema-workos';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import {
   sendHeartbeatFailure,
@@ -122,33 +122,33 @@ export async function GET(request: NextRequest) {
       // Find slot reservations that need reminders
       const reservationsNeedingReminders = await db
         .select({
-          reservation: SlotReservationTable,
+          reservation: SlotReservationsTable,
           event: {
-            id: EventTable.id,
-            name: EventTable.name,
-            durationInMinutes: EventTable.durationInMinutes,
+            id: EventsTable.id,
+            name: EventsTable.name,
+            durationInMinutes: EventsTable.durationInMinutes,
           },
           expert: {
-            firstName: UserTable.firstName,
-            lastName: UserTable.lastName,
+            firstName: UsersTable.firstName,
+            lastName: UsersTable.lastName,
           },
         })
-        .from(SlotReservationTable)
-        .leftJoin(EventTable, eq(SlotReservationTable.eventId, EventTable.id))
-        .leftJoin(UserTable, eq(SlotReservationTable.clerkUserId, UserTable.clerkUserId))
+        .from(SlotReservationsTable)
+        .leftJoin(EventsTable, eq(SlotReservationsTable.eventId, EventsTable.id))
+        .leftJoin(UsersTable, eq(SlotReservationsTable.workosUserId, UsersTable.workosUserId))
         .where(
           and(
             // Reservation expires within the reminder window
-            gt(SlotReservationTable.expiresAt, reminderWindowStart),
-            lt(SlotReservationTable.expiresAt, reminderWindowEnd),
+            gt(SlotReservationsTable.expiresAt, reminderWindowStart),
+            lt(SlotReservationsTable.expiresAt, reminderWindowEnd),
             // Reservation is still active (not expired)
-            gt(SlotReservationTable.expiresAt, currentTime),
+            gt(SlotReservationsTable.expiresAt, currentTime),
             // Has a Stripe payment intent (Multibanco payment)
-            isNotNull(SlotReservationTable.stripePaymentIntentId),
+            isNotNull(SlotReservationsTable.stripePaymentIntentId),
             // Hasn't received this type of reminder yet
             stage.type === 'gentle'
-              ? isNull(SlotReservationTable.gentleReminderSentAt)
-              : isNull(SlotReservationTable.urgentReminderSentAt),
+              ? isNull(SlotReservationsTable.gentleReminderSentAt)
+              : isNull(SlotReservationsTable.urgentReminderSentAt),
           ),
         );
 
@@ -248,12 +248,12 @@ export async function GET(request: NextRequest) {
 
             // Mark reminder as sent to prevent duplicates
             await db
-              .update(SlotReservationTable)
+              .update(SlotReservationsTable)
               .set({
                 [stage.trackingField]: currentTime,
                 updatedAt: currentTime,
               })
-              .where(eq(SlotReservationTable.id, reservation.id));
+              .where(eq(SlotReservationsTable.id, reservation.id));
 
             stageRemindersSent++;
           } else {

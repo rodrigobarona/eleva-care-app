@@ -1,6 +1,6 @@
 import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { EventTable, UserTable } from '@/drizzle/schema';
+import { EventsTable, UsersTable } from '@/drizzle/schema-workos';
 import { CustomerCache } from '@/lib/redis/manager';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
@@ -311,8 +311,8 @@ export async function createPaymentIntent({
 }) {
   try {
     // Get event details
-    const event = await db.query.EventTable.findFirst({
-      where: eq(EventTable.id, eventId),
+    const event = await db.query.EventsTable.findFirst({
+      where: eq(EventsTable.id, eventId),
     });
 
     if (!event) {
@@ -320,8 +320,8 @@ export async function createPaymentIntent({
     }
 
     // Get expert's Stripe Connect account
-    const expert = await db.query.UserTable.findFirst({
-      where: eq(UserTable.id, event.clerkUserId),
+    const expert = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.id, event.workosUserId),
     });
 
     if (!expert?.stripeConnectAccountId || !expert.stripeConnectDetailsSubmitted) {
@@ -547,30 +547,30 @@ export async function getStripeConnectSetupOrLoginLink(accountId: string) {
  * Syncs a user's Stripe Identity verification to their Stripe Connect account
  * This helps streamline the verification process for expert accounts
  *
- * @param clerkUserId The Clerk user ID of the expert
+ * @param workosUserId The Clerk user ID of the expert
  * @returns A promise that resolves to a success status and optional error message
  */
-export async function syncIdentityVerificationToConnect(clerkUserId: string) {
+export async function syncIdentityVerificationToConnect(workosUserId: string) {
   try {
     // Look up the user in our database
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, clerkUserId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, workosUserId),
     });
 
     if (!user) {
-      console.error('Cannot sync identity - user not found:', clerkUserId);
+      console.error('Cannot sync identity - user not found:', workosUserId);
       return { success: false, message: 'User not found' };
     }
 
     if (!user.stripeConnectAccountId) {
-      console.error('Cannot sync identity - no Connect account:', clerkUserId);
+      console.error('Cannot sync identity - no Connect account:', workosUserId);
       return { success: false, message: 'No Stripe Connect account found' };
     }
 
     // For debugging, log all verification data
     console.log('Syncing identity for user:', {
       userId: user.id,
-      clerkUserId,
+      workosUserId,
       email: user.email,
       stripeIdentityVerified: user.stripeIdentityVerified,
       stripeIdentityVerificationId: user.stripeIdentityVerificationId,
@@ -630,14 +630,14 @@ export async function syncIdentityVerificationToConnect(clerkUserId: string) {
           user.stripeIdentityVerificationStatus !== verificationStatus.status
         ) {
           await db
-            .update(UserTable)
+            .update(UsersTable)
             .set({
               stripeIdentityVerified: verificationStatus.status === 'verified',
               stripeIdentityVerificationStatus: verificationStatus.status,
               stripeIdentityVerificationLastChecked: new Date(),
               updatedAt: new Date(),
             })
-            .where(eq(UserTable.id, user.id));
+            .where(eq(UsersTable.id, user.id));
 
           console.log('Updated user verification status in database', {
             userId: user.id,
@@ -667,7 +667,7 @@ export async function syncIdentityVerificationToConnect(clerkUserId: string) {
         }
       }
     } else if (!user.stripeIdentityVerified && !forceVerify) {
-      console.error('Cannot sync identity - not verified:', clerkUserId);
+      console.error('Cannot sync identity - not verified:', workosUserId);
       return { success: false, message: 'User has not completed identity verification' };
     }
 
@@ -743,7 +743,7 @@ export async function syncIdentityVerificationToConnect(clerkUserId: string) {
     const updatedAccount = await stripe.accounts.retrieve(user.stripeConnectAccountId);
 
     console.log('Successfully synced identity verification to Connect account:', {
-      clerkUserId,
+      workosUserId,
       connectAccountId: user.stripeConnectAccountId,
       identityVerificationId: user.stripeIdentityVerificationId,
       verificationStatus: updatedAccount.individual?.verification?.status,

@@ -19,14 +19,14 @@ import {
  * This function:
  * 1. Creates a new product in Stripe with the given details
  * 2. Creates a price for the product with the specified amount
- * 3. Associates the product with the expert via clerkUserId in metadata
+ * 3. Associates the product with the expert via workosUserId in metadata
  *
  * @param params - Object containing product details
  * @param params.name - The name of the product
  * @param params.description - Optional description of the product
  * @param params.price - The price in smallest currency unit (e.g., cents)
  * @param params.currency - The currency code (default: "eur")
- * @param params.clerkUserId - The Clerk user ID of the expert
+ * @param params.workosUserId - The Clerk user ID of the expert
  * @returns Object containing the created product and price IDs, or error details
  *
  * @example
@@ -34,7 +34,7 @@ import {
  *   name: "1-Hour Consultation",
  *   description: "One-hour expert consultation session",
  *   price: 10000, // 100.00 EUR
- *   clerkUserId: "user_123"
+ *   workosUserId: "user_123"
  * });
  *
  * if (result.error) {
@@ -49,13 +49,13 @@ export async function createStripeProduct({
   description,
   price,
   currency = 'eur',
-  clerkUserId,
+  workosUserId,
 }: {
   name: string;
   description?: string;
   price: number;
   currency?: string;
-  clerkUserId: string;
+  workosUserId: string;
 }) {
   try {
     // Initialize Stripe client
@@ -66,7 +66,7 @@ export async function createStripeProduct({
       name,
       description,
       metadata: {
-        clerkUserId, // Store the expert's ID for reference
+        workosUserId, // Store the expert's ID for reference
       },
     });
 
@@ -104,7 +104,7 @@ export async function createStripeProduct({
  * @param params.description - Optional new description
  * @param params.price - The new price in smallest currency unit
  * @param params.currency - The currency code (default: "eur")
- * @param params.clerkUserId - The Clerk user ID of the expert
+ * @param params.workosUserId - The Clerk user ID of the expert
  * @returns Object containing the product ID and new price ID, or error details
  *
  * @example
@@ -113,7 +113,7 @@ export async function createStripeProduct({
  *   stripePriceId: "price_123",
  *   name: "Updated Consultation",
  *   price: 15000, // 150.00 EUR
- *   clerkUserId: "user_123"
+ *   workosUserId: "user_123"
  * });
  */
 export async function updateStripeProduct({
@@ -123,7 +123,7 @@ export async function updateStripeProduct({
   description,
   price,
   currency = 'eur',
-  clerkUserId,
+  workosUserId,
 }: {
   stripeProductId: string;
   stripePriceId: string;
@@ -131,7 +131,7 @@ export async function updateStripeProduct({
   description?: string;
   price: number;
   currency?: string;
-  clerkUserId: string;
+  workosUserId: string;
 }) {
   try {
     const stripe = await getServerStripe();
@@ -141,7 +141,7 @@ export async function updateStripeProduct({
       name,
       description,
       metadata: {
-        clerkUserId,
+        workosUserId,
       },
     });
 
@@ -229,7 +229,7 @@ export async function createPaymentIntent(
     }
 
     // Get the event and the expert's data
-    const event = await db.query.EventTable.findFirst({
+    const event = await db.query.EventsTable.findFirst({
       where: ({ id }, { eq }) => eq(id, eventId),
       with: {
         user: true, // Include the related user (expert) data

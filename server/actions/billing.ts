@@ -2,7 +2,7 @@
 
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
 import {
@@ -32,7 +32,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
  * 4. Updates the user's record with the new Stripe Connect account ID
  * 5. Returns the onboarding URL for the expert to complete their setup
  *
- * @param clerkUserId - The Clerk user ID of the expert
+ * @param workosUserId - The Clerk user ID of the expert
  * @returns Promise that resolves to either:
  *   - The Stripe Connect onboarding URL (string)
  *   - null if the process fails or user is not found
@@ -45,20 +45,20 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
  *   console.error("Failed to create Stripe Connect account");
  * }
  */
-export async function handleConnectStripe(clerkUserId: string): Promise<string | null> {
-  if (!clerkUserId) return null;
+export async function handleConnectStripe(workosUserId: string): Promise<string | null> {
+  if (!workosUserId) return null;
 
   try {
     // Get user data from both Clerk and our database
     try {
       const clerk = await clerkClient();
       const [clerkUser, dbUser] = await Promise.all([
-        getCachedUserById(clerkUserId).catch((error: Error) => {
+        getCachedUserById(workosUserId).catch((error: Error) => {
           console.error('Failed to fetch Clerk user:', error);
           return null;
         }),
-        db.query.UserTable.findFirst({
-          where: eq(UserTable.clerkUserId, clerkUserId),
+        db.query.UsersTable.findFirst({
+          where: eq(UsersTable.workosUserId, workosUserId),
         }),
       ]);
 
@@ -93,16 +93,16 @@ export async function handleConnectStripe(clerkUserId: string): Promise<string |
       await Promise.all([
         // Update our database
         db
-          .update(UserTable)
+          .update(UsersTable)
           .set({
             stripeConnectAccountId: accountId,
             country: country, // Store the country in our database
             updatedAt: new Date(),
           })
-          .where(eq(UserTable.clerkUserId, clerkUserId)),
+          .where(eq(UsersTable.workosUserId, workosUserId)),
 
         // Update Clerk metadata
-        clerk.users.updateUser(clerkUserId, {
+        clerk.users.updateUser(workosUserId, {
           publicMetadata: {
             ...clerkUser.publicMetadata,
             country: country,
@@ -112,7 +112,7 @@ export async function handleConnectStripe(clerkUserId: string): Promise<string |
       ]);
 
       // Invalidate cache after updating user metadata
-      await invalidateUserCache(clerkUserId);
+      await invalidateUserCache(workosUserId);
 
       // Generate the onboarding URL
       const url = await getStripeConnectSetupOrLoginLink(accountId);
@@ -264,8 +264,8 @@ export async function createConnectRefund(
     }
 
     // Get user's connected account ID
-    const dbUser = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, userId),
+    const dbUser = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, userId),
     });
 
     if (!dbUser?.stripeConnectAccountId) {

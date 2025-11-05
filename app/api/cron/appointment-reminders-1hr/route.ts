@@ -1,6 +1,6 @@
 import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
-import { EventTable, MeetingTable, UserTable } from '@/drizzle/schema';
+import { EventsTable, MeetingsTable, UsersTable } from '@/drizzle/schema-workos';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { and, between, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -31,27 +31,27 @@ async function getUpcomingAppointments(): Promise<Appointment[]> {
     // This gives us a 15-minute window to catch all appointments for urgent reminders
     const upcomingMeetings = await db
       .select({
-        meetingId: MeetingTable.id,
-        guestEmail: MeetingTable.guestEmail,
-        guestName: MeetingTable.guestName,
-        startTime: MeetingTable.startTime,
-        endTime: MeetingTable.endTime,
-        timezone: MeetingTable.timezone,
-        meetingUrl: MeetingTable.meetingUrl,
-        eventName: EventTable.name,
-        expertClerkId: EventTable.clerkUserId,
+        meetingId: MeetingsTable.id,
+        guestEmail: MeetingsTable.guestEmail,
+        guestName: MeetingsTable.guestName,
+        startTime: MeetingsTable.startTime,
+        endTime: MeetingsTable.endTime,
+        timezone: MeetingsTable.timezone,
+        meetingUrl: MeetingsTable.meetingUrl,
+        eventName: EventsTable.name,
+        expertClerkId: EventsTable.workosUserId,
         // Expert info
-        expertFirstName: UserTable.firstName,
-        expertLastName: UserTable.lastName,
-        expertCountry: UserTable.country,
+        expertFirstName: UsersTable.firstName,
+        expertLastName: UsersTable.lastName,
+        expertCountry: UsersTable.country,
       })
-      .from(MeetingTable)
-      .innerJoin(EventTable, eq(EventTable.id, MeetingTable.eventId))
-      .innerJoin(UserTable, eq(UserTable.clerkUserId, EventTable.clerkUserId))
+      .from(MeetingsTable)
+      .innerJoin(EventsTable, eq(EventsTable.id, MeetingsTable.eventId))
+      .innerJoin(UsersTable, eq(UsersTable.workosUserId, EventsTable.workosUserId))
       .where(
         and(
-          between(MeetingTable.startTime, in1Hour, in75Minutes),
-          eq(MeetingTable.stripePaymentStatus, 'succeeded'), // Only confirmed appointments
+          between(MeetingsTable.startTime, in1Hour, in75Minutes),
+          eq(MeetingsTable.stripePaymentStatus, 'succeeded'), // Only confirmed appointments
         ),
       );
 

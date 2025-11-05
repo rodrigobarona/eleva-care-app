@@ -45,5 +45,5 @@ export const profileFormSchema = z.object({
 });
 
 export const profileActionSchema = profileFormSchema.extend({
-  clerkUserId: z.string().min(1, 'Required'),
+  workosUserId: z.string().min(1, 'Required'),
 });

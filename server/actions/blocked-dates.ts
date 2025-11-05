@@ -1,8 +1,8 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- ScheduleTable used in db.query.ScheduleTable (Drizzle ORM pattern)
-import { BlockedDatesTable, ScheduleTable } from '@/drizzle/schema';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- SchedulesTable used in db.query.SchedulesTable (Drizzle ORM pattern)
+import { BlockedDatesTable, SchedulesTable } from '@/drizzle/schema-workos';
 import { auth } from '@clerk/nextjs/server';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { and, eq } from 'drizzle-orm';
@@ -26,8 +26,8 @@ export async function addBlockedDates(dates: BlockedDateInput[]): Promise<void> 
   if (!userId) throw new Error('Unauthorized');
 
   // Get user's timezone from their schedule as fallback
-  const schedule = await db.query.ScheduleTable.findFirst({
-    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, userId),
+  const schedule = await db.query.SchedulesTable.findFirst({
+    where: ({ workosUserId }, { eq }) => eq(workosUserId, userId),
   });
 
   const defaultTimezone = schedule?.timezone || 'UTC';
@@ -37,7 +37,7 @@ export async function addBlockedDates(dates: BlockedDateInput[]): Promise<void> 
     // Convert the input date to the target timezone first
     const dateInTimezone = toDate(date.date, { timeZone: timezone });
     return {
-      clerkUserId: userId,
+      workosUserId: userId,
       date: formatInTimeZone(dateInTimezone, timezone, 'yyyy-MM-dd'),
       timezone,
       reason: date.reason,
@@ -54,7 +54,7 @@ export async function removeBlockedDate(id: number): Promise<void> {
 
   await db
     .delete(BlockedDatesTable)
-    .where(and(eq(BlockedDatesTable.id, id), eq(BlockedDatesTable.clerkUserId, userId)));
+    .where(and(eq(BlockedDatesTable.id, id), eq(BlockedDatesTable.workosUserId, userId)));
 
   revalidatePath('/booking/schedule');
 }
@@ -64,7 +64,7 @@ export async function getBlockedDates(): Promise<BlockedDate[]> {
   if (!userId) throw new Error('Unauthorized');
 
   const blockedDates = await db.query.BlockedDatesTable.findMany({
-    where: (table, { eq }) => eq(table.clerkUserId, userId),
+    where: (table, { eq }) => eq(table.workosUserId, userId),
     orderBy: (table) => [table.date],
   });
 
@@ -83,9 +83,9 @@ export async function getBlockedDates(): Promise<BlockedDate[]> {
 }
 
 // New function to get blocked dates for a specific user (for public booking pages)
-export async function getBlockedDatesForUser(clerkUserId: string): Promise<BlockedDate[]> {
+export async function getBlockedDatesForUser(workosUserId: string): Promise<BlockedDate[]> {
   const blockedDates = await db.query.BlockedDatesTable.findMany({
-    where: (table, { eq }) => eq(table.clerkUserId, clerkUserId),
+    where: (table, { eq }) => eq(table.workosUserId, workosUserId),
     orderBy: (table) => [table.date],
   });
 
@@ -129,7 +129,7 @@ export async function updateBlockedDate(
       reason: updates.reason,
       updatedAt: new Date(),
     })
-    .where(and(eq(BlockedDatesTable.id, id), eq(BlockedDatesTable.clerkUserId, userId)))
+    .where(and(eq(BlockedDatesTable.id, id), eq(BlockedDatesTable.workosUserId, userId)))
     .returning({
       id: BlockedDatesTable.id,
       date: BlockedDatesTable.date,

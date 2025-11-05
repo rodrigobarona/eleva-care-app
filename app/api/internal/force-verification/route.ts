@@ -1,6 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -12,14 +12,14 @@ import Stripe from 'stripe';
  * It should only be used by administrators to fix accounts that are stuck in an inconsistent state.
  *
  * Required query parameters:
- * - clerkUserId: The Clerk user ID of the user
+ * - workosUserId: The Clerk user ID of the user
  * - adminKey: A secret key to prevent unauthorized access (should match INTERNAL_ADMIN_KEY env var)
  */
 export async function POST(request: Request) {
   try {
     // Get the clerk user ID and admin key from the query parameters
     const url = new URL(request.url);
-    const clerkUserId = url.searchParams.get('clerkUserId');
+    const workosUserId = url.searchParams.get('workosUserId');
     const adminKey = url.searchParams.get('adminKey');
 
     // Validate admin key to prevent unauthorized access
@@ -27,13 +27,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized access' }, { status: 401 });
     }
 
-    if (!clerkUserId) {
-      return NextResponse.json({ error: 'Missing clerkUserId parameter' }, { status: 400 });
+    if (!workosUserId) {
+      return NextResponse.json({ error: 'Missing workosUserId parameter' }, { status: 400 });
     }
 
     // Verify this is a valid user in our system
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, clerkUserId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, workosUserId),
     });
 
     if (!user) {
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     }
 
     console.log('Force-verifying Connect account for user:', {
-      clerkUserId,
+      workosUserId,
       userId: user.id,
       email: user.email,
       connectAccountId: user.stripeConnectAccountId,
@@ -91,14 +91,14 @@ export async function POST(request: Request) {
 
     // Mark the user as verified in our database
     await db
-      .update(UserTable)
+      .update(UsersTable)
       .set({
         stripeIdentityVerified: true,
         stripeIdentityVerificationStatus: 'verified',
         stripeIdentityVerificationLastChecked: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(UserTable.id, user.id));
+      .where(eq(UsersTable.id, user.id));
 
     return NextResponse.json({
       success: true,

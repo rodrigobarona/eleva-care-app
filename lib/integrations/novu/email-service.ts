@@ -687,11 +687,11 @@ async function generateExpertPayoutNotificationEmail(
 /**
  * Utility function to get subscriber info for emails
  */
-export async function getSubscriberForEmail(clerkUserId: string) {
+export async function getSubscriberForEmail(workosUserId: string) {
   try {
     // You can enhance this to get subscriber data from your database
     return {
-      subscriberId: clerkUserId,
+      subscriberId: workosUserId,
       // Add other subscriber fields as needed
     };
   } catch (error) {

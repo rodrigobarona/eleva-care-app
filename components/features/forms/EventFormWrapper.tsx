@@ -1,12 +1,12 @@
 'use client';
 
-import type { EventTable } from '@/drizzle/schema';
+import type { EventsTable } from '@/drizzle/schema-workos';
 import type { InferSelectModel } from 'drizzle-orm';
 
 import { EventForm } from './EventForm';
 
-// Create Event type from the EventTable schema
-type Event = InferSelectModel<typeof EventTable>;
+// Create Event type from the EventsTable schema
+type Event = InferSelectModel<typeof EventsTable>;
 
 export function EventFormWrapper({ event }: { event: Event }) {
   return (

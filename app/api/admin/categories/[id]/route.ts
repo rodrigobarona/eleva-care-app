@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { CategoryTable } from '@/drizzle/schema';
+import { CategoriesTable } from '@/drizzle/schema-workos';
 import { hasRole } from '@/lib/auth/roles.server';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
@@ -34,15 +34,15 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     }
 
     const updatedCategory = (await db
-      .update(CategoryTable)
+      .update(CategoriesTable)
       .set({
         name,
         description: description || null,
         image: image || null,
         updatedAt: new Date(),
       })
-      .where(eq(CategoryTable.id, params.id))
-      .returning()) as Array<typeof CategoryTable.$inferSelect>;
+      .where(eq(CategoriesTable.id, params.id))
+      .returning()) as Array<typeof CategoriesTable.$inferSelect>;
 
     if (!updatedCategory.length) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
@@ -74,8 +74,8 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     // First check if there are any subcategories
     const subcategories = await db
       .select()
-      .from(CategoryTable)
-      .where(eq(CategoryTable.parentId, params.id));
+      .from(CategoriesTable)
+      .where(eq(CategoriesTable.parentId, params.id));
 
     if (subcategories.length > 0) {
       return NextResponse.json(
@@ -85,9 +85,9 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     }
 
     const deletedCategory = (await db
-      .delete(CategoryTable)
-      .where(eq(CategoryTable.id, params.id))
-      .returning()) as Array<typeof CategoryTable.$inferSelect>;
+      .delete(CategoriesTable)
+      .where(eq(CategoriesTable.id, params.id))
+      .returning()) as Array<typeof CategoriesTable.$inferSelect>;
 
     if (!deletedCategory.length) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });

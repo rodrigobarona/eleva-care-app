@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { getServerStripe } from '@/lib/integrations/stripe';
 import {
   createIdentityVerification,
@@ -210,8 +210,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user record from database
-    const dbUser = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, user.id),
+    const dbUser = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, user.id),
     });
 
     if (!dbUser) {
@@ -310,11 +310,11 @@ export async function POST(request: NextRequest) {
 
     // Update the verification last checked timestamp (maintain existing behavior)
     await db
-      .update(UserTable)
+      .update(UsersTable)
       .set({
         stripeIdentityVerificationLastChecked: new Date(),
       })
-      .where(eq(UserTable.id, dbUser.id));
+      .where(eq(UsersTable.id, dbUser.id));
 
     // Create a new verification session
     const result = await createIdentityVerification(

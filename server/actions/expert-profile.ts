@@ -2,7 +2,7 @@
 
 import { PRACTITIONER_AGREEMENT_CONFIG } from '@/config/legal-agreements';
 import { db } from '@/drizzle/db';
-import { ProfileTable } from '@/drizzle/schema';
+import { ProfilesTable } from '@/drizzle/schema-workos';
 import { hasRole } from '@/lib/auth/roles.server';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { getRequestMetadata } from '@/lib/utils/server/server-utils';
@@ -36,8 +36,8 @@ export async function toggleProfilePublication() {
 
   try {
     // Get current profile
-    const profile = await db.query.ProfileTable.findFirst({
-      where: eq(ProfileTable.clerkUserId, userId),
+    const profile = await db.query.ProfilesTable.findFirst({
+      where: eq(ProfilesTable.workosUserId, userId),
     });
 
     if (!profile) {
@@ -93,7 +93,7 @@ export async function toggleProfilePublication() {
     }
 
     // Update the published status (and agreement data if first time publishing)
-    await db.update(ProfileTable).set(updateData).where(eq(ProfileTable.clerkUserId, userId));
+    await db.update(ProfilesTable).set(updateData).where(eq(ProfilesTable.workosUserId, userId));
 
     // Log to audit database
     try {

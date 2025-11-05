@@ -11,7 +11,7 @@ const mockDb = jest.mocked(db);
 describe('getValidTimesFromSchedule - Critical Scheduling Logic', () => {
   const mockUserId = 'user_123';
   const mockEvent = {
-    clerkUserId: mockUserId,
+    workosUserId: mockUserId,
     durationInMinutes: 60,
   };
 
@@ -26,7 +26,7 @@ describe('getValidTimesFromSchedule - Critical Scheduling Logic', () => {
       ScheduleTable: {
         findFirst: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
           id: 'schedule_123',
-          clerkUserId: mockUserId,
+          workosUserId: mockUserId,
           timezone: 'UTC',
           availabilities: [
             {

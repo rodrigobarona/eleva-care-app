@@ -1,6 +1,6 @@
 import { auditDb } from '@/drizzle/auditDb';
 import { db } from '@/drizzle/db';
-import { ProfileTable } from '@/drizzle/schema';
+import { ProfilesTable } from '@/drizzle/schema-workos';
 import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
 import { cleanupPaymentRateLimitCache } from '@/lib/redis/cleanup';
 import { redisManager } from '@/lib/redis/manager';
@@ -369,13 +369,13 @@ export async function GET(request: Request) {
 
     while (hasMore) {
       const query = db
-        .select({ userId: ProfileTable.clerkUserId })
-        .from(ProfileTable)
+        .select({ userId: ProfilesTable.workosUserId })
+        .from(ProfilesTable)
         .limit(batchSize)
-        .orderBy(ProfileTable.clerkUserId);
+        .orderBy(ProfilesTable.workosUserId);
 
       if (lastUserId) {
-        query.where(gt(ProfileTable.clerkUserId, lastUserId));
+        query.where(gt(ProfilesTable.workosUserId, lastUserId));
       }
 
       const profiles = await query;

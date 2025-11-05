@@ -5,7 +5,7 @@
  * to ensure consistency with the database schema and Stripe integration.
  */
 
-// Database Payment Status Constants (from MeetingTable schema)
+// Database Payment Status Constants (from MeetingsTable schema)
 export const PAYMENT_STATUS_PENDING = 'pending' as const;
 export const PAYMENT_STATUS_PROCESSING = 'processing' as const;
 export const PAYMENT_STATUS_SUCCEEDED = 'succeeded' as const;

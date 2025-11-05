@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { EventTable, MeetingTable } from '@/drizzle/schema';
+import { EventsTable, MeetingsTable } from '@/drizzle/schema-workos';
 import { getServerStripe } from '@/lib/integrations/stripe';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { eventFormSchema } from '@/schema/events';
@@ -70,9 +70,9 @@ export async function createEvent(
   try {
     // Insert event and retrieve the generated ID
     const [insertedEvent] = await db
-      .insert(EventTable)
-      .values({ ...data, clerkUserId: userId })
-      .returning({ id: EventTable.id, userId: EventTable.clerkUserId });
+      .insert(EventsTable)
+      .values({ ...data, workosUserId: userId })
+      .returning({ id: EventsTable.id, userId: EventsTable.workosUserId });
 
     if (!insertedEvent) {
       return { error: true, message: 'Failed to create event' };
@@ -140,8 +140,8 @@ export async function updateEvent(
   // Step 1: Retrieve old values before the update
   const [oldEvent] = await db
     .select()
-    .from(EventTable)
-    .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
+    .from(EventsTable)
+    .where(and(eq(EventsTable.id, id), eq(EventsTable.workosUserId, userId)))
     .execute(); // Ensure to execute the query to get the old values
 
   if (!oldEvent) {
@@ -150,10 +150,10 @@ export async function updateEvent(
 
   // Step 2: Update the event with new values
   const [updatedEvent] = await db
-    .update(EventTable)
+    .update(EventsTable)
     .set({ ...data })
-    .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
-    .returning({ id: EventTable.id, userId: EventTable.clerkUserId });
+    .where(and(eq(EventsTable.id, id), eq(EventsTable.workosUserId, userId)))
+    .returning({ id: EventsTable.id, userId: EventsTable.workosUserId });
 
   if (!updatedEvent) {
     return { error: true };
@@ -212,8 +212,8 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
     // Step 1: Retrieve old values before deletion
     const [oldEvent] = await db
       .select()
-      .from(EventTable)
-      .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
+      .from(EventsTable)
+      .where(and(eq(EventsTable.id, id), eq(EventsTable.workosUserId, userId)))
       .execute();
 
     if (!oldEvent) {
@@ -235,9 +235,9 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
 
     // Step 3: Delete the event
     const [deletedEvent] = await db
-      .delete(EventTable)
-      .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)))
-      .returning({ id: EventTable.id, userId: EventTable.clerkUserId });
+      .delete(EventsTable)
+      .where(and(eq(EventsTable.id, id), eq(EventsTable.workosUserId, userId)))
+      .returning({ id: EventsTable.id, userId: EventsTable.workosUserId });
 
     if (!deletedEvent) {
       return { error: true };
@@ -281,7 +281,7 @@ export async function updateEventOrder(updates: { id: string; order: number }[])
   try {
     // Update each record individually since we can't use transactions
     for (const { id, order } of updates) {
-      await db.update(EventTable).set({ order }).where(eq(EventTable.id, id));
+      await db.update(EventsTable).set({ order }).where(eq(EventsTable.id, id));
     }
 
     // Revalidate the events page to reflect the new order
@@ -322,8 +322,8 @@ export async function updateEventActiveState(
 
   try {
     // Fetch the event to check ownership and log the previous state
-    const event = await db.query.EventTable.findFirst({
-      where: and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)),
+    const event = await db.query.EventsTable.findFirst({
+      where: and(eq(EventsTable.id, id), eq(EventsTable.workosUserId, userId)),
     });
 
     if (!event) {
@@ -332,9 +332,9 @@ export async function updateEventActiveState(
 
     // Update the event's active status
     await db
-      .update(EventTable)
+      .update(EventsTable)
       .set({ isActive })
-      .where(and(eq(EventTable.id, id), eq(EventTable.clerkUserId, userId)));
+      .where(and(eq(EventsTable.id, id), eq(EventsTable.workosUserId, userId)));
 
     // Log the update action
     await logAuditEvent(
@@ -373,8 +373,8 @@ export async function updateEventActiveState(
 export async function getEventMeetingsCount(eventId: string): Promise<number> {
   const result = await db
     .select({ count: count() })
-    .from(MeetingTable)
-    .where(eq(MeetingTable.eventId, eventId));
+    .from(MeetingsTable)
+    .where(eq(MeetingsTable.eventId, eventId));
 
   return result[0]?.count ?? 0;
 }

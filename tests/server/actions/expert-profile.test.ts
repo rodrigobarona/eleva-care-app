@@ -93,7 +93,7 @@ jest.mock('drizzle-orm', () => ({
 }));
 
 // Mock schema
-jest.mock('@/drizzle/schema', () => ({
+jest.mock('@/drizzle/schema-workos', () => ({
   ProfileTable: {
     clerkUserId: 'clerkUserId',
   },

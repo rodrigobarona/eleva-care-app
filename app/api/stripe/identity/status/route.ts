@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
 import { currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
@@ -23,8 +23,8 @@ export async function GET() {
     }
 
     // Get user record from database
-    const dbUser = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, user.id),
+    const dbUser = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, user.id),
     });
 
     if (!dbUser) {
@@ -46,14 +46,14 @@ export async function GET() {
 
     // Update the database with the latest status
     await db
-      .update(UserTable)
+      .update(UsersTable)
       .set({
         stripeIdentityVerified: verificationStatus.status === 'verified',
         stripeIdentityVerificationStatus: verificationStatus.status,
         stripeIdentityVerificationLastChecked: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(UserTable.id, dbUser.id));
+      .where(eq(UsersTable.id, dbUser.id));
 
     return NextResponse.json({
       verified: verificationStatus.status === 'verified',

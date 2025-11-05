@@ -1,17 +1,17 @@
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { eq } from 'drizzle-orm';
 
 /**
  * Get a user by their Clerk user ID
  * This is a common utility function used across the application
  */
-export async function getUserByClerkId(clerkUserId: string) {
-  if (!clerkUserId) return null;
+export async function getUserByClerkId(workosUserId: string) {
+  if (!workosUserId) return null;
 
   try {
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, clerkUserId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, workosUserId),
     });
 
     return user;

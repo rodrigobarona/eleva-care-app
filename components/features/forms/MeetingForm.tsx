@@ -79,7 +79,7 @@ interface BlockedDate {
 interface MeetingFormProps {
   validTimes: Date[];
   eventId: string;
-  clerkUserId: string;
+  workosUserId: string;
   price: number;
   username: string;
   eventSlug: string;
@@ -354,7 +354,7 @@ Step2Content.displayName = 'Step2Content';
 export function MeetingFormContent({
   validTimes,
   eventId,
-  clerkUserId,
+  workosUserId,
   price,
   username,
   eventSlug,
@@ -619,7 +619,7 @@ export function MeetingFormContent({
         },
         body: JSON.stringify({
           eventId,
-          clerkUserId,
+          workosUserId,
           price,
           meetingData: {
             guestName: formValues.guestName,
@@ -693,7 +693,7 @@ export function MeetingFormContent({
     }
   }, [
     checkoutUrl,
-    clerkUserId,
+    workosUserId,
     eventId,
     eventSlug,
     form,
@@ -723,7 +723,7 @@ export function MeetingFormContent({
           const data = await createMeeting({
             ...values,
             eventId,
-            clerkUserId,
+            workosUserId: workosUserId,
             locale: locale || 'en',
           });
 
@@ -767,7 +767,7 @@ export function MeetingFormContent({
     },
     [
       createPaymentIntent,
-      clerkUserId,
+      workosUserId,
       eventId,
       form,
       locale,
@@ -1105,7 +1105,7 @@ export function MeetingFormContent({
   React.useEffect(() => {
     const checkCalendarAccess = async () => {
       try {
-        const hasValidAccess = await hasValidTokens(clerkUserId);
+        const hasValidAccess = await hasValidTokens(workosUserId);
 
         if (!hasValidAccess) {
           setIsCalendarSynced(false);
@@ -1121,7 +1121,7 @@ export function MeetingFormContent({
     };
 
     checkCalendarAccess();
-  }, [clerkUserId, router]);
+  }, [workosUserId, router]);
 
   // Handle date selection
   const handleDateSelect = React.useCallback(
@@ -1264,7 +1264,7 @@ export function MeetingFormContent({
 
         <BookingLayout
           expert={{
-            id: clerkUserId,
+            id: workosUserId,
             name: expertName,
             imageUrl: expertImageUrl,
             location: expertLocation,

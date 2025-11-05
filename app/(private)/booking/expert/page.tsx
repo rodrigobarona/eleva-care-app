@@ -1,7 +1,7 @@
 import { ExpertForm } from '@/components/features/forms/ExpertForm';
 import { ProfilePublishToggle } from '@/components/features/profile/ProfilePublishToggle';
 import { db } from '@/drizzle/db';
-import { ProfileTable } from '@/drizzle/schema';
+import { ProfilesTable } from '@/drizzle/schema-workos';
 import { isExpert, isTopExpert } from '@/lib/auth/roles.server';
 import type { profileFormSchema } from '@/schema/profile';
 import { markStepCompleteNoRevalidate } from '@/server/actions/expert-setup';
@@ -34,8 +34,8 @@ export default async function ProfilePage() {
   }
 
   // Try to find existing profile
-  const profile = await db.query.ProfileTable.findFirst({
-    where: eq(ProfileTable.clerkUserId, userId),
+  const profile = await db.query.ProfilesTable.findFirst({
+    where: eq(ProfilesTable.workosUserId, userId),
   });
 
   // If profile exists and has required fields filled, mark step as complete
@@ -51,9 +51,9 @@ export default async function ProfilePage() {
   // If no profile exists, create one with default values
   if (!profile) {
     const newProfile = await db
-      .insert(ProfileTable)
+      .insert(ProfilesTable)
       .values({
-        clerkUserId: userId,
+        workosUserId: userId,
         firstName: '', // Required fields with empty defaults
         lastName: '',
         isVerified: false,

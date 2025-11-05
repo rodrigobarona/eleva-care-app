@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { EventTable, MeetingTable } from '@/drizzle/schema';
+import { EventsTable, MeetingsTable } from '@/drizzle/schema-workos';
 import { isExpert } from '@/lib/auth/roles.server';
 import { findEmailByCustomerId } from '@/lib/utils/customerUtils';
 import { auth } from '@clerk/nextjs/server';
@@ -29,13 +29,13 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
     // First, get all customers for this expert to find the matching ID
     const allCustomersQuery = db
       .select({
-        email: MeetingTable.guestEmail,
-        name: MeetingTable.guestName,
+        email: MeetingsTable.guestEmail,
+        name: MeetingsTable.guestName,
       })
-      .from(MeetingTable)
-      .innerJoin(EventTable, eq(EventTable.id, MeetingTable.eventId))
-      .where(eq(EventTable.clerkUserId, userId))
-      .groupBy(MeetingTable.guestEmail, MeetingTable.guestName);
+      .from(MeetingsTable)
+      .innerJoin(EventsTable, eq(EventsTable.id, MeetingsTable.eventId))
+      .where(eq(EventsTable.workosUserId, userId))
+      .groupBy(MeetingsTable.guestEmail, MeetingsTable.guestName);
 
     const allCustomers = await allCustomersQuery;
 
@@ -50,24 +50,24 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
     // Now get all appointments for this customer
     const appointments = await db
       .select({
-        id: MeetingTable.id,
-        guestName: MeetingTable.guestName,
-        guestEmail: MeetingTable.guestEmail,
-        startTime: MeetingTable.startTime,
-        endTime: MeetingTable.endTime,
-        timezone: MeetingTable.timezone,
-        guestNotes: MeetingTable.guestNotes,
-        meetingUrl: MeetingTable.meetingUrl,
-        stripePaymentStatus: MeetingTable.stripePaymentStatus,
-        stripePaymentIntentId: MeetingTable.stripePaymentIntentId,
-        stripeTransferStatus: MeetingTable.stripeTransferStatus,
-        eventName: EventTable.name,
-        amount: EventTable.price,
+        id: MeetingsTable.id,
+        guestName: MeetingsTable.guestName,
+        guestEmail: MeetingsTable.guestEmail,
+        startTime: MeetingsTable.startTime,
+        endTime: MeetingsTable.endTime,
+        timezone: MeetingsTable.timezone,
+        guestNotes: MeetingsTable.guestNotes,
+        meetingUrl: MeetingsTable.meetingUrl,
+        stripePaymentStatus: MeetingsTable.stripePaymentStatus,
+        stripePaymentIntentId: MeetingsTable.stripePaymentIntentId,
+        stripeTransferStatus: MeetingsTable.stripeTransferStatus,
+        eventName: EventsTable.name,
+        amount: EventsTable.price,
       })
-      .from(MeetingTable)
-      .innerJoin(EventTable, eq(EventTable.id, MeetingTable.eventId))
-      .where(and(eq(EventTable.clerkUserId, userId), eq(MeetingTable.guestEmail, customerEmail)))
-      .orderBy(desc(MeetingTable.startTime));
+      .from(MeetingsTable)
+      .innerJoin(EventsTable, eq(EventsTable.id, MeetingsTable.eventId))
+      .where(and(eq(EventsTable.workosUserId, userId), eq(MeetingsTable.guestEmail, customerEmail)))
+      .orderBy(desc(MeetingsTable.startTime));
 
     if (appointments.length === 0) {
       return NextResponse.json({ error: 'Customer has no appointments' }, { status: 404 });

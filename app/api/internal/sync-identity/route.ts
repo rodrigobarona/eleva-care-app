@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { syncIdentityVerificationToConnect } from '@/lib/integrations/stripe';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -8,15 +8,15 @@ export async function POST(request: Request) {
   try {
     // Get the clerk user ID from the query parameter
     const url = new URL(request.url);
-    const clerkUserId = url.searchParams.get('clerkUserId');
+    const workosUserId = url.searchParams.get('workosUserId');
 
-    if (!clerkUserId) {
-      return NextResponse.json({ error: 'Missing clerkUserId parameter' }, { status: 400 });
+    if (!workosUserId) {
+      return NextResponse.json({ error: 'Missing workosUserId parameter' }, { status: 400 });
     }
 
     // Verify this is a valid user in our system
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, clerkUserId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, workosUserId),
     });
 
     if (!user) {
@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     }
 
     console.log('Syncing identity verification for user:', {
-      clerkUserId,
+      workosUserId,
       userId: user.id,
       email: user.email,
       hasIdentityVerification: !!user.stripeIdentityVerificationId,
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     });
 
     // Call the sync function
-    const result = await syncIdentityVerificationToConnect(clerkUserId);
+    const result = await syncIdentityVerificationToConnect(workosUserId);
 
     return NextResponse.json({
       success: result.success,

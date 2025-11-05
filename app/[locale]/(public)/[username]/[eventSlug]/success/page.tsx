@@ -65,16 +65,16 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
 
   const { user } = data;
 
-  const event = await db.query.EventTable.findFirst({
-    where: ({ clerkUserId: userIdCol, isActive, slug }, { eq, and }) =>
+  const event = await db.query.EventsTable.findFirst({
+    where: ({ workosUserId: userIdCol, isActive, slug }, { eq, and }) =>
       and(eq(isActive, true), eq(userIdCol, user.id), eq(slug, eventSlug)),
   });
 
   if (event == null) notFound();
 
   // Get expert profile data
-  const expertProfile = await db.query.ProfileTable.findFirst({
-    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
+  const expertProfile = await db.query.ProfilesTable.findFirst({
+    where: ({ workosUserId }, { eq }) => eq(workosUserId, user.id),
     with: {
       primaryCategory: true,
     },
@@ -100,7 +100,7 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
   }
 
   // Verify that the meeting was actually created
-  const meeting = await db.query.MeetingTable.findFirst({
+  const meeting = await db.query.MeetingsTable.findFirst({
     where: ({ eventId, startTime: meetingStartTime, stripeSessionId }, { eq, and, or }) =>
       and(
         eq(eventId, event.id),

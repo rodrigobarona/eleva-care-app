@@ -124,7 +124,7 @@ export function buildNovuSubscriberFromClerk(user: ClerkUser): SubscriberPayload
     locale: 'en_US', // Can be enhanced with user preferences
     avatar: user.image_url || undefined,
     data: {
-      clerkUserId: user.id,
+      workosUserId: user.id,
       username: user.username ?? '',
       hasPublicMetadata: Boolean(user.public_metadata),
       hasUnsafeMetadata: Boolean(user.unsafe_metadata),

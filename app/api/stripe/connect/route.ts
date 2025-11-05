@@ -1,6 +1,6 @@
 import { getMinimumPayoutDelay, STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import {
   createStripeConnectAccount,
   getConnectAccountBalance,
@@ -73,8 +73,8 @@ export async function POST(request: Request) {
     console.log('Creating Connect account with country:', country);
 
     // Check if user already has a Connect account
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, userId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, userId),
     });
 
     if (!user) {
@@ -200,12 +200,12 @@ export async function POST(request: Request) {
 
     // Update user record with Connect account ID
     await db
-      .update(UserTable)
+      .update(UsersTable)
       .set({
         stripeConnectAccountId: accountId,
         updatedAt: new Date(),
       })
-      .where(eq(UserTable.clerkUserId, userId));
+      .where(eq(UsersTable.workosUserId, userId));
 
     // Get the setup link for the new account
     const url = await getStripeConnectSetupOrLoginLink(accountId);
@@ -235,8 +235,8 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, userId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, userId),
     });
 
     if (!user) {

@@ -19,8 +19,8 @@ export default async function EventsPage() {
   const user = await clerk.users.getUser(userId);
   const username = user.username ?? userId;
 
-  const events = await db.query.EventTable.findMany({
-    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, userId),
+  const events = await db.query.EventsTable.findMany({
+    where: ({ workosUserId }, { eq }) => eq(workosUserId, userId),
     orderBy: ({ order }, { asc }) => asc(order),
   });
 

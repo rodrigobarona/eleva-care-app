@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { EventTable, MeetingTable } from '@/drizzle/schema';
+import { EventsTable, MeetingsTable } from '@/drizzle/schema-workos';
 import { isExpert } from '@/lib/auth/roles.server';
 import { generateCustomerId } from '@/lib/utils/customerUtils';
 import { auth } from '@clerk/nextjs/server';
@@ -27,21 +27,21 @@ export async function GET() {
     // Find all unique customers who have booked appointments with this expert
     const customersWithAppointmentsQuery = db
       .select({
-        email: MeetingTable.guestEmail,
-        name: MeetingTable.guestName,
+        email: MeetingsTable.guestEmail,
+        name: MeetingsTable.guestName,
         // Count appointments per customer
-        appointmentsCount: sql<number>`count(${MeetingTable.id})`.as('appointment_count'),
+        appointmentsCount: sql<number>`count(${MeetingsTable.id})`.as('appointment_count'),
         // Calculate total spend
-        totalSpend: sql<number>`sum(${EventTable.price})`.as('total_spend'),
+        totalSpend: sql<number>`sum(${EventsTable.price})`.as('total_spend'),
         // Get most recent appointment date
-        lastAppointment: sql<string>`max(${MeetingTable.startTime})`.as('last_appointment'),
+        lastAppointment: sql<string>`max(${MeetingsTable.startTime})`.as('last_appointment'),
         // Get first appointment to calculate customer since date
-        firstAppointment: sql<string>`min(${MeetingTable.startTime})`.as('first_appointment'),
+        firstAppointment: sql<string>`min(${MeetingsTable.startTime})`.as('first_appointment'),
       })
-      .from(MeetingTable)
-      .innerJoin(EventTable, eq(EventTable.id, MeetingTable.eventId))
-      .where(eq(EventTable.clerkUserId, userId))
-      .groupBy(MeetingTable.guestEmail, MeetingTable.guestName)
+      .from(MeetingsTable)
+      .innerJoin(EventsTable, eq(EventsTable.id, MeetingsTable.eventId))
+      .where(eq(EventsTable.workosUserId, userId))
+      .groupBy(MeetingsTable.guestEmail, MeetingsTable.guestName)
       .orderBy(desc(sql`last_appointment`));
 
     const customersWithAppointments = await customersWithAppointmentsQuery;

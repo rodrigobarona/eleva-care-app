@@ -1,6 +1,6 @@
 import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
@@ -27,22 +27,22 @@ export async function handleAccountUpdated(account: Stripe.Account) {
   console.log('Connect account updated:', account.id);
 
   // Find the user associated with this account
-  let user = await db.query.UserTable.findFirst({
-    where: eq(UserTable.stripeConnectAccountId, account.id),
+  let user = await db.query.UsersTable.findFirst({
+    where: eq(UsersTable.stripeConnectAccountId, account.id),
   });
 
   if (!user) {
     // Try additional lookup methods if available
     if (account.metadata?.user_id) {
-      user = await db.query.UserTable.findFirst({
-        where: eq(UserTable.id, account.metadata.user_id),
+      user = await db.query.UsersTable.findFirst({
+        where: eq(UsersTable.id, account.metadata.user_id),
       });
     }
 
     // Try looking up by email if available
     if (!user && account.email) {
-      user = await db.query.UserTable.findFirst({
-        where: eq(UserTable.email, account.email),
+      user = await db.query.UsersTable.findFirst({
+        where: eq(UsersTable.email, account.email),
       });
     }
 
@@ -67,7 +67,7 @@ export async function handleAccountUpdated(account: Stripe.Account) {
         await db.transaction(async (tx) => {
           // Update user record
           await tx
-            .update(UserTable)
+            .update(UsersTable)
             .set({
               stripeConnectDetailsSubmitted: account.details_submitted,
               stripeConnectPayoutsEnabled: account.payouts_enabled,
@@ -75,11 +75,11 @@ export async function handleAccountUpdated(account: Stripe.Account) {
               stripeConnectOnboardingComplete: account.charges_enabled && account.payouts_enabled,
               updatedAt: new Date(),
             })
-            .where(eq(UserTable.id, user.id));
+            .where(eq(UsersTable.id, user.id));
 
           // If account is fully enabled, mark payment step as complete
           if (account.charges_enabled && account.payouts_enabled) {
-            await markStepCompleteForUser('payment', user.clerkUserId);
+            await markStepCompleteForUser('payment', user.workosUserId);
           }
 
           // Create notification if payout or charges status has changed
@@ -105,7 +105,7 @@ export async function handleAccountUpdated(account: Stripe.Account) {
               await triggerWorkflow({
                 workflowId: 'marketplace-connect-status',
                 to: {
-                  subscriberId: user.clerkUserId,
+                  subscriberId: user.workosUserId,
                   email: user.email || 'no-email@eleva.care',
                   firstName: user.firstName || '',
                   lastName: user.lastName || '',

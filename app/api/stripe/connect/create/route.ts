@@ -1,6 +1,6 @@
 import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { createConnectAccountWithVerifiedIdentity } from '@/lib/integrations/stripe/identity';
 import { currentUser } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
@@ -45,8 +45,8 @@ export async function POST(request: Request) {
     }
 
     // Get user record from database
-    const dbUser = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, user.id),
+    const dbUser = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, user.id),
     });
 
     if (!dbUser) {

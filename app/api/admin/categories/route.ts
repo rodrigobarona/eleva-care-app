@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { CategoryTable } from '@/drizzle/schema';
+import { CategoriesTable } from '@/drizzle/schema-workos';
 import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import type { ApiResponse } from '@/types/api';
 import { checkBotId } from 'botid/server';
@@ -11,7 +11,7 @@ export async function GET() {
   if (authResponse) return authResponse;
 
   try {
-    const categories = await db.select().from(CategoryTable);
+    const categories = await db.select().from(CategoriesTable);
     return NextResponse.json({
       success: true,
       data: categories,
@@ -67,14 +67,14 @@ export async function POST(request: Request) {
     }
 
     const newCategory = (await db
-      .insert(CategoryTable)
+      .insert(CategoriesTable)
       .values({
         name,
         description: description || null,
         image: image || null,
         parentId: parentId === 'null' ? null : parentId || null,
       })
-      .returning()) as Array<typeof CategoryTable.$inferSelect>;
+      .returning()) as Array<typeof CategoriesTable.$inferSelect>;
 
     return NextResponse.json(newCategory[0]);
   } catch (error) {

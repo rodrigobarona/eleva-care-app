@@ -16,9 +16,9 @@ export default async function EditEventPage(props: { params: Promise<{ eventSlug
   if (userId == null) return redirectToSignIn();
 
   // Fetch data without try/catch around JSX, let error boundaries handle errors
-  const event = await db.query.EventTable.findFirst({
-    where: ({ slug, clerkUserId }, { and, eq }) =>
-      and(eq(clerkUserId, userId), eq(slug, eventSlug)),
+  const event = await db.query.EventsTable.findFirst({
+    where: ({ slug, workosUserId }, { and, eq }) =>
+      and(eq(workosUserId, userId), eq(slug, eventSlug)),
   });
 
   if (event == null) {

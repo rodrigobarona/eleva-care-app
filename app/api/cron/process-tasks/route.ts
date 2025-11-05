@@ -1,6 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable } from '@/drizzle/schema';
+import { PaymentTransfersTable } from '@/drizzle/schema-workos';
 import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
 import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
 import { and, eq, isNull, lte, or } from 'drizzle-orm';
@@ -106,19 +106,19 @@ export async function GET(request: Request) {
     const now = new Date();
     console.log('Looking for transfers to process at:', now.toISOString());
 
-    const pendingTransfers = await db.query.PaymentTransferTable.findMany({
+    const pendingTransfers = await db.query.PaymentTransfersTable.findMany({
       where: and(
         or(
           // Regular time-based transfers
           and(
-            eq(PaymentTransferTable.status, 'PENDING'),
-            lte(PaymentTransferTable.scheduledTransferTime, now),
-            eq(PaymentTransferTable.requiresApproval, false),
+            eq(PaymentTransfersTable.status, 'PENDING'),
+            lte(PaymentTransfersTable.scheduledTransferTime, now),
+            eq(PaymentTransfersTable.requiresApproval, false),
           ),
           // Manually approved transfers
-          eq(PaymentTransferTable.status, 'APPROVED'),
+          eq(PaymentTransfersTable.status, 'APPROVED'),
         ),
-        isNull(PaymentTransferTable.transferId),
+        isNull(PaymentTransfersTable.transferId),
       ),
     });
 
@@ -184,13 +184,13 @@ export async function GET(request: Request) {
 
           // Update the transfer record with the transfer ID and set status to COMPLETED
           await db
-            .update(PaymentTransferTable)
+            .update(PaymentTransfersTable)
             .set({
               status: 'COMPLETED',
               transferId: stripeTransfer.id,
               updated: new Date(),
             })
-            .where(eq(PaymentTransferTable.id, transfer.id));
+            .where(eq(PaymentTransfersTable.id, transfer.id));
 
           console.log(
             `Successfully transferred ${transfer.amount / 100} ${transfer.currency} to expert ${transfer.expertClerkUserId}`,
@@ -209,7 +209,7 @@ export async function GET(request: Request) {
 
           // Update the transfer record with the error and increment retry count
           await db
-            .update(PaymentTransferTable)
+            .update(PaymentTransfersTable)
             .set({
               status: newStatus,
               stripeErrorCode: stripeError.code || 'unknown_error',
@@ -217,7 +217,7 @@ export async function GET(request: Request) {
               retryCount: newRetryCount,
               updated: new Date(),
             })
-            .where(eq(PaymentTransferTable.id, transfer.id));
+            .where(eq(PaymentTransfersTable.id, transfer.id));
 
           return {
             success: false,

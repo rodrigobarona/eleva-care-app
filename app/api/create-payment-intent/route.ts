@@ -5,7 +5,7 @@ import {
   STRIPE_CONFIG,
 } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { EventTable, MeetingTable, SlotReservationTable } from '@/drizzle/schema';
+import { EventsTable, MeetingsTable, SlotReservationsTable } from '@/drizzle/schema-workos';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
 import { getOrCreateStripeCustomer } from '@/lib/integrations/stripe';
 import { FormCache, IdempotencyCache, RateLimitCache } from '@/lib/redis/manager';
@@ -326,7 +326,7 @@ export async function POST(request: NextRequest) {
     | undefined;
 
   try {
-    // Parse request body first to get expert's clerkUserId
+    // Parse request body first to get expert's workosUserId
     const body = await request.json();
     console.log('Request body received:', {
       eventId: body.eventId,
@@ -335,12 +335,12 @@ export async function POST(request: NextRequest) {
       username: body.username,
       eventSlug: body.eventSlug,
       requiresApproval: !!body.requiresApproval,
-      clerkUserId: body.clerkUserId,
+      workosUserId: body.workosUserId,
     });
 
     const {
       eventId: extractedEventId,
-      clerkUserId,
+      workosUserId,
       price,
       meetingData: extractedMeetingData,
       username,
@@ -353,8 +353,8 @@ export async function POST(request: NextRequest) {
     meetingData = extractedMeetingData;
 
     // Validate required fields
-    if (!clerkUserId) {
-      console.warn('Missing clerkUserId (expert user ID)');
+    if (!workosUserId) {
+      console.warn('Missing workosUserId (expert user ID)');
       return NextResponse.json({ error: 'Missing expert user ID' }, { status: 400 });
     }
 
@@ -473,8 +473,8 @@ export async function POST(request: NextRequest) {
 
     // Get expert's Connect account
     console.log('Querying event details:', { eventId });
-    const event = await db.query.EventTable.findFirst({
-      where: eq(EventTable.id, eventId),
+    const event = await db.query.EventsTable.findFirst({
+      where: eq(EventsTable.id, eventId),
       with: {
         user: {
           columns: {
@@ -496,7 +496,7 @@ export async function POST(request: NextRequest) {
     if (!event?.user?.stripeConnectAccountId) {
       console.error('Expert Connect account not found:', {
         eventId,
-        clerkUserId: event?.clerkUserId,
+        workosUserId: event?.workosUserId,
       });
       throw new Error("Expert's Connect account not found");
     }
@@ -506,7 +506,7 @@ export async function POST(request: NextRequest) {
     // Prepare meeting metadata
     const meetingMetadata = {
       eventId,
-      expertId: event.clerkUserId,
+      expertId: event.workosUserId,
       expertName: `${event.user.firstName || ''} ${event.user.lastName || ''}`.trim() || 'Expert',
       guestName: meetingData.guestName,
       guestEmail: meetingData.guestEmail,
@@ -528,11 +528,11 @@ export async function POST(request: NextRequest) {
     const appointmentStartTime = new Date(meetingData.startTime);
 
     // Check for existing active reservations for this exact slot
-    const existingReservation = await db.query.SlotReservationTable.findFirst({
+    const existingReservation = await db.query.SlotReservationsTable.findFirst({
       where: and(
-        eq(SlotReservationTable.eventId, eventId),
-        eq(SlotReservationTable.startTime, appointmentStartTime),
-        gt(SlotReservationTable.expiresAt, new Date()), // Only active reservations
+        eq(SlotReservationsTable.eventId, eventId),
+        eq(SlotReservationsTable.startTime, appointmentStartTime),
+        gt(SlotReservationsTable.expiresAt, new Date()), // Only active reservations
       ),
     });
 
@@ -565,15 +565,15 @@ export async function POST(request: NextRequest) {
               });
               // Clean up the expired reservation
               await db
-                .delete(SlotReservationTable)
-                .where(eq(SlotReservationTable.id, existingReservation.id));
+                .delete(SlotReservationsTable)
+                .where(eq(SlotReservationsTable.id, existingReservation.id));
             }
           } catch (stripeError) {
             console.log('Failed to retrieve existing session, will create new one:', stripeError);
             // Clean up the invalid reservation
             await db
-              .delete(SlotReservationTable)
-              .where(eq(SlotReservationTable.id, existingReservation.id));
+              .delete(SlotReservationsTable)
+              .where(eq(SlotReservationsTable.id, existingReservation.id));
           }
         }
       } else {
@@ -595,11 +595,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for confirmed meetings in this slot
-    const conflictingMeeting = await db.query.MeetingTable.findFirst({
+    const conflictingMeeting = await db.query.MeetingsTable.findFirst({
       where: and(
-        eq(MeetingTable.eventId, eventId),
-        eq(MeetingTable.startTime, appointmentStartTime),
-        eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+        eq(MeetingsTable.eventId, eventId),
+        eq(MeetingsTable.startTime, appointmentStartTime),
+        eq(MeetingsTable.stripePaymentStatus, 'succeeded'),
       ),
     });
 
@@ -752,7 +752,7 @@ export async function POST(request: NextRequest) {
     // Create metadata object once to avoid duplication
     const sharedMetadata = createSharedMetadata({
       eventId,
-      expertClerkUserId: event.clerkUserId,
+      expertClerkUserId: event.workosUserId,
       guestEmail: meetingData.guestEmail,
       guestName: meetingData.guestName,
       startTime: meetingData.startTime,

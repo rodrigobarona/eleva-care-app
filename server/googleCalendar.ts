@@ -66,11 +66,11 @@ class GoogleCalendarService {
    * Uses Clerk to obtain a Google OAuth token for the specified user,
    * then configures a Google OAuth client with the token
    *
-   * @param clerkUserId Clerk user ID to obtain OAuth token for
+   * @param workosUserId Clerk user ID to obtain OAuth token for
    * @returns Configured Google OAuth client
    * @throws Error if no OAuth token found or unable to obtain client
    */
-  async getOAuthClient(clerkUserId: string) {
+  async getOAuthClient(workosUserId: string) {
     // Create Clerk client to access OAuth tokens
     const clerk = createClerkClient({
       secretKey: process.env.CLERK_SECRET_KEY,
@@ -78,7 +78,7 @@ class GoogleCalendarService {
 
     try {
       // Get OAuth token from Clerk
-      const response = await clerk.users.getUserOauthAccessToken(clerkUserId, 'google');
+      const response = await clerk.users.getUserOauthAccessToken(workosUserId, 'google');
       const token = response.data[0]?.token;
 
       if (!token) {
@@ -107,17 +107,17 @@ class GoogleCalendarService {
    * start and end times. Filters out cancelled events and transparent events.
    * Handles both all-day events and timed events.
    *
-   * @param clerkUserId Clerk user ID to fetch calendar events for
+   * @param workosUserId Clerk user ID to fetch calendar events for
    * @param options Object containing start and end dates for the time range
    * @returns Array of event objects with start and end times
    */
-  async getCalendarEventTimes(clerkUserId: string, { start, end }: { start: Date; end: Date }) {
+  async getCalendarEventTimes(workosUserId: string, { start, end }: { start: Date; end: Date }) {
     // Get authenticated OAuth client
-    const oAuthClient = await this.getOAuthClient(clerkUserId);
+    const oAuthClient = await this.getOAuthClient(workosUserId);
 
     console.log('Fetching calendar events:', {
       timeRange: { start: start.toISOString(), end: end.toISOString() },
-      userId: clerkUserId,
+      userId: workosUserId,
     });
 
     // Fetch events from Google Calendar API
@@ -203,7 +203,7 @@ class GoogleCalendarService {
    * 4. Sends email notifications to both the expert and client
    *
    * @param params Event creation parameters
-   * @param params.clerkUserId Clerk user ID of the calendar owner (expert)
+   * @param params.workosUserId Clerk user ID of the calendar owner (expert)
    * @param params.guestName Name of the guest/client
    * @param params.guestEmail Email of the guest/client
    * @param params.startTime Start time of the appointment
@@ -215,7 +215,7 @@ class GoogleCalendarService {
    * @returns Created calendar event data with additional meet link information
    */
   async createCalendarEvent({
-    clerkUserId,
+    workosUserId,
     guestName,
     guestEmail,
     startTime,
@@ -225,7 +225,7 @@ class GoogleCalendarService {
     timezone: providedTimezone,
     locale = 'en',
   }: {
-    clerkUserId: string;
+    workosUserId: string;
     guestName: string;
     guestEmail: string;
     startTime: Date;
@@ -236,13 +236,13 @@ class GoogleCalendarService {
     locale?: string;
   }) {
     // Get authenticated OAuth client
-    const oAuthClient = await this.getOAuthClient(clerkUserId);
+    const oAuthClient = await this.getOAuthClient(workosUserId);
 
     // Get Clerk user information
     const clerk = createClerkClient({
       secretKey: process.env.CLERK_SECRET_KEY,
     });
-    const calendarUser = await clerk.users.getUser(clerkUserId);
+    const calendarUser = await clerk.users.getUser(workosUserId);
     if (calendarUser.primaryEmailAddress == null) {
       throw new Error('Clerk user has no email');
     }
@@ -556,7 +556,7 @@ export { GoogleCalendarService as default };
  * This is a convenience wrapper around the GoogleCalendarService.createCalendarEvent method
  *
  * @param params Event creation parameters
- * @param params.clerkUserId Clerk user ID of the calendar owner (expert)
+ * @param params.workosUserId Clerk user ID of the calendar owner (expert)
  * @param params.guestName Name of the guest/client
  * @param params.guestEmail Email of the guest/client
  * @param params.startTime Start time of the appointment
@@ -568,7 +568,7 @@ export { GoogleCalendarService as default };
  * @returns Created calendar event data with additional meet link information
  */
 export async function createCalendarEvent(params: {
-  clerkUserId: string;
+  workosUserId: string;
   guestName: string;
   guestEmail: string;
   startTime: Date;
@@ -613,15 +613,15 @@ export async function getGoogleCalendarClient(userId: string) {
 /**
  * Gets a Google OAuth access token for a Clerk user
  *
- * @param clerkUserId Clerk user ID to get the token for
+ * @param workosUserId Clerk user ID to get the token for
  * @returns OAuth access token or null if not available
  */
-async function getGoogleAccessToken(clerkUserId: string): Promise<string | null> {
+async function getGoogleAccessToken(workosUserId: string): Promise<string | null> {
   try {
     const clerk = createClerkClient({
       secretKey: process.env.CLERK_SECRET_KEY,
     });
-    const response = await clerk.users.getUserOauthAccessToken(clerkUserId, 'google');
+    const response = await clerk.users.getUserOauthAccessToken(workosUserId, 'google');
     return response.data[0]?.token ?? null;
   } catch (error) {
     console.error('[getGoogleAccessToken] Error getting token:', error);

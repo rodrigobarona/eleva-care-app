@@ -1,6 +1,6 @@
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable, SlotReservationTable } from '@/drizzle/schema';
+import { PaymentTransfersTable, SlotReservationsTable } from '@/drizzle/schema-workos';
 import {
   isValidPaymentStatus,
   PAYMENT_STATUS_PENDING,
@@ -367,7 +367,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
   try {
     // First check if we already have a meeting for this session
-    const existingMeeting = await db.query.MeetingTable.findFirst({
+    const existingMeeting = await db.query.MeetingsTable.findFirst({
       where: ({ stripeSessionId }, { eq }) => eq(stripeSessionId, session.id),
     });
 
@@ -459,7 +459,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
     const result = await createMeeting({
       eventId: meetingData.id,
-      clerkUserId: meetingData.expert,
+      workosUserId: meetingData.expert,
       startTime: new Date(meetingData.start),
       guestEmail: meetingData.guest,
       guestName: getGuestName(meetingData),
@@ -504,9 +504,9 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     if (result.meeting && session.payment_intent) {
       try {
         const deletedReservations = await db
-          .delete(SlotReservationTable)
-          .where(eq(SlotReservationTable.stripePaymentIntentId, session.payment_intent.toString()))
-          .returning({ id: SlotReservationTable.id });
+          .delete(SlotReservationsTable)
+          .where(eq(SlotReservationsTable.stripePaymentIntentId, session.payment_intent.toString()))
+          .returning({ id: SlotReservationsTable.id });
 
         if (deletedReservations.length > 0) {
           console.log(
@@ -571,8 +571,8 @@ async function createPaymentTransferIfNotExists({
   transferData?: ParsedTransferMetadata;
 }) {
   // Check for existing transfer
-  const existingTransfer = await db.query.PaymentTransferTable.findFirst({
-    where: eq(PaymentTransferTable.checkoutSessionId, session.id),
+  const existingTransfer = await db.query.PaymentTransfersTable.findFirst({
+    where: eq(PaymentTransfersTable.checkoutSessionId, session.id),
   });
 
   if (existingTransfer) {
@@ -617,7 +617,7 @@ async function createPaymentTransferIfNotExists({
   }
 
   // Create new transfer record with validated data
-  await db.insert(PaymentTransferTable).values({
+  await db.insert(PaymentTransfersTable).values({
     paymentIntentId: session.payment_intent,
     checkoutSessionId: session.id,
     eventId: meetingData.id,

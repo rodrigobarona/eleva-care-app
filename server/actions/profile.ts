@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { ProfileTable } from '@/drizzle/schema';
+import { ProfilesTable } from '@/drizzle/schema-workos';
 import { profileFormSchema } from '@/schema/profile';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { del } from '@vercel/blob';
@@ -49,8 +49,8 @@ type ProfileFormValues = z.infer<typeof profileFormSchema>;
 export async function updateProfile(userId: string, data: ProfileFormValues) {
   try {
     // Retrieve existing profile to handle profile picture updates
-    const existingProfile = await db.query.ProfileTable.findFirst({
-      where: (profile, { eq }) => eq(profile.clerkUserId, userId),
+    const existingProfile = await db.query.ProfilesTable.findFirst({
+      where: (profile, { eq }) => eq(profile.workosUserId, userId),
     });
 
     // Handle profile picture blob management
@@ -125,17 +125,17 @@ export async function updateProfile(userId: string, data: ProfileFormValues) {
 
     // Upsert the profile data
     await db
-      .insert(ProfileTable)
+      .insert(ProfilesTable)
       .values({
         ...validatedData,
-        clerkUserId: userId,
+        workosUserId: userId,
         socialLinks: validatedData.socialLinks as Array<{
           name: 'tiktok' | 'twitter' | 'linkedin' | 'instagram' | 'youtube';
           url: string;
         }>,
       })
       .onConflictDoUpdate({
-        target: ProfileTable.clerkUserId,
+        target: ProfilesTable.workosUserId,
         set: {
           ...validatedData,
           socialLinks: validatedData.socialLinks as Array<{

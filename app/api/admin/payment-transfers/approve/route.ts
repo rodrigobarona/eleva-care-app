@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable } from '@/drizzle/schema';
+import { PaymentTransfersTable } from '@/drizzle/schema-workos';
 import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
@@ -213,8 +213,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if the transfer exists and is in the correct status
-    const transfer = await db.query.PaymentTransferTable.findFirst({
-      where: eq(PaymentTransferTable.id, transferId),
+    const transfer = await db.query.PaymentTransfersTable.findFirst({
+      where: eq(PaymentTransfersTable.id, transferId),
     });
 
     if (!transfer) {
@@ -236,13 +236,13 @@ export async function POST(request: NextRequest) {
 
     // Update transfer to approved status
     await db
-      .update(PaymentTransferTable)
+      .update(PaymentTransfersTable)
       .set({
         status: PAYMENT_TRANSFER_STATUS_APPROVED,
         adminUserId: userId,
         updated: new Date(),
       })
-      .where(eq(PaymentTransferTable.id, transferId));
+      .where(eq(PaymentTransfersTable.id, transferId));
 
     console.log(`Admin ${userId} approved transfer ${transferId}`, {
       transferAmount: transfer.amount,

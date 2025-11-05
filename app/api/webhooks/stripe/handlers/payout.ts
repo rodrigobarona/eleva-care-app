@@ -1,6 +1,6 @@
 import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { addDays, format } from 'date-fns';
 import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';
@@ -21,8 +21,8 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
     }
 
     // Find the user associated with this Connect account
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.stripeConnectAccountId, destinationAccountId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.stripeConnectAccountId, destinationAccountId),
     });
 
     if (!user) {
@@ -43,7 +43,7 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
       await triggerWorkflow({
         workflowId: 'expert-payout-notification',
         to: {
-          subscriberId: user.clerkUserId,
+          subscriberId: user.workosUserId,
           email: user.email || 'no-email@eleva.care',
           firstName: user.firstName || '',
           lastName: user.lastName || '',
@@ -86,8 +86,8 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
     }
 
     // Find the user associated with this Connect account
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.stripeConnectAccountId, destinationAccountId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.stripeConnectAccountId, destinationAccountId),
     });
 
     if (!user) {
@@ -103,7 +103,7 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
       await triggerWorkflow({
         workflowId: 'marketplace-universal',
         to: {
-          subscriberId: user.clerkUserId,
+          subscriberId: user.workosUserId,
           email: user.email || 'no-email@eleva.care',
           firstName: user.firstName || '',
           lastName: user.lastName || '',

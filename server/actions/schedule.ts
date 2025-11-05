@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { ScheduleAvailabilityTable, ScheduleTable } from '@/drizzle/schema';
+import { ScheduleAvailabilitiesTable, SchedulesTable } from '@/drizzle/schema-workos';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { scheduleFormSchema } from '@/schema/schedule';
 import { markStepComplete } from '@/server/actions/expert-setup';
@@ -71,8 +71,8 @@ export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema
   const { availabilities, ...scheduleData } = data;
 
   // Fetch existing schedule for audit logging
-  const oldSchedule = await db.query.ScheduleTable.findFirst({
-    where: eq(ScheduleTable.clerkUserId, userId),
+  const oldSchedule = await db.query.SchedulesTable.findFirst({
+    where: eq(SchedulesTable.workosUserId, userId),
     with: {
       availabilities: true,
     },
@@ -80,26 +80,26 @@ export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema
 
   // Upsert the schedule data (create new or update existing)
   const [{ id: scheduleId }] = await db
-    .insert(ScheduleTable)
-    .values({ ...scheduleData, clerkUserId: userId })
+    .insert(SchedulesTable)
+    .values({ ...scheduleData, workosUserId: userId })
     .onConflictDoUpdate({
-      target: ScheduleTable.clerkUserId,
+      target: SchedulesTable.workosUserId,
       set: scheduleData,
     })
-    .returning({ id: ScheduleTable.id });
+    .returning({ id: SchedulesTable.id });
 
   // Prepare batch operations for availability updates
   const statements: [BatchItem<'pg'>] = [
     // First, delete all existing availabilities
     db
-      .delete(ScheduleAvailabilityTable)
-      .where(eq(ScheduleAvailabilityTable.scheduleId, scheduleId)),
+      .delete(ScheduleAvailabilitiesTable)
+      .where(eq(ScheduleAvailabilitiesTable.scheduleId, scheduleId)),
   ];
 
   // If new availabilities exist, prepare to insert them
   if (availabilities.length > 0) {
     statements.push(
-      db.insert(ScheduleAvailabilityTable).values(
+      db.insert(ScheduleAvailabilitiesTable).values(
         availabilities.map((availability) => ({
           ...availability,
           scheduleId,

@@ -41,7 +41,7 @@ export const meetingFormSchema = z
  *
  * This schema defines all fields required for creating a meeting in the database:
  * - eventId: UUID of the associated event
- * - clerkUserId: ID of the expert (Clerk user)
+ * - workosUserId: ID of the expert (WorkOS user)
  * - guestEmail: Email of the guest/client booking the meeting
  * - guestName: Name of the guest/client
  * - guestNotes: Optional notes from the guest about the meeting
@@ -60,7 +60,7 @@ export const meetingFormSchema = z
  */
 export const meetingActionSchema = z.object({
   eventId: z.string().uuid(),
-  clerkUserId: z.string(),
+  workosUserId: z.string(),
   guestEmail: z.string().email(),
   guestName: z.string(),
   guestNotes: z.string().optional(),

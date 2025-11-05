@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -18,8 +18,8 @@ export async function GET() {
     }
 
     // Get the user record from the database
-    const dbUser = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, authData.userId),
+    const dbUser = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, authData.userId),
     });
 
     if (!dbUser) {

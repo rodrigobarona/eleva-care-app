@@ -1,6 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
@@ -66,7 +66,7 @@ export const POST = async (request: Request) => {
       case 'account.updated': {
         const account = event.data.object as Stripe.Account;
         await db
-          .update(UserTable)
+          .update(UsersTable)
           .set({
             stripeConnectAccountId: account.id,
             stripeConnectDetailsSubmitted: account.details_submitted,
@@ -76,7 +76,7 @@ export const POST = async (request: Request) => {
               account.details_submitted && account.charges_enabled && account.payouts_enabled,
             updatedAt: new Date(),
           })
-          .where(eq(UserTable.stripeConnectAccountId, account.id));
+          .where(eq(UsersTable.stripeConnectAccountId, account.id));
 
         console.log('Updated Connect account status:', {
           accountId: account.id,
@@ -93,7 +93,7 @@ export const POST = async (request: Request) => {
 
         // Remove Stripe Connect account association
         await db
-          .update(UserTable)
+          .update(UsersTable)
           .set({
             stripeConnectAccountId: null,
             stripeConnectDetailsSubmitted: false,
@@ -102,7 +102,7 @@ export const POST = async (request: Request) => {
             stripeConnectOnboardingComplete: false,
             updatedAt: new Date(),
           })
-          .where(eq(UserTable.stripeConnectAccountId, application.id));
+          .where(eq(UsersTable.stripeConnectAccountId, application.id));
 
         console.log('Deauthorized Connect account:', {
           accountId: application.id,
@@ -120,13 +120,13 @@ export const POST = async (request: Request) => {
         // Update user's bank account status
         if ('bank_name' in externalAccount && typeof externalAccount.account === 'string') {
           await db
-            .update(UserTable)
+            .update(UsersTable)
             .set({
               stripeBankAccountLast4: externalAccount.last4,
               stripeBankName: externalAccount.bank_name,
               updatedAt: new Date(),
             })
-            .where(eq(UserTable.stripeConnectAccountId, externalAccount.account));
+            .where(eq(UsersTable.stripeConnectAccountId, externalAccount.account));
         }
 
         console.log(`Bank account ${eventType} for Connect account:`, {
@@ -145,12 +145,12 @@ export const POST = async (request: Request) => {
 
         if (event.type === 'payout.failed' && typeof payout.destination === 'string') {
           await db
-            .update(UserTable)
+            .update(UsersTable)
             .set({
               stripeConnectPayoutsEnabled: false,
               updatedAt: new Date(),
             })
-            .where(eq(UserTable.stripeConnectAccountId, payout.destination));
+            .where(eq(UsersTable.stripeConnectAccountId, payout.destination));
         }
 
         console.log(`Payout ${event.type.split('.')[1]}:`, {

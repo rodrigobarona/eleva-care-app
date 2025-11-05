@@ -15,7 +15,7 @@ jest.mock('@/lib/integrations/novu/utils');
 jest.mock('@/drizzle/db', () => ({
   db: {
     query: {
-      UserTable: {
+      UsersTable: {
         findFirst: jest.fn(),
       },
     },
@@ -151,7 +151,7 @@ describe('Stripe Identity Webhook Handler', () => {
 
     it('should process identity.verification_session.verified event successfully', async () => {
       // Setup user found by verification ID
-      (db.query.UserTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
         clerkUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
@@ -169,7 +169,7 @@ describe('Stripe Identity Webhook Handler', () => {
 
     it('should handle user lookup by Clerk ID when verification ID lookup fails', async () => {
       // First call (by verification ID) returns null, second call (by Clerk ID) returns user
-      (db.query.UserTable.findFirst as jest.Mock)
+      (db.query.UsersTable.findFirst as jest.Mock)
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({
           id: 1,
@@ -180,12 +180,12 @@ describe('Stripe Identity Webhook Handler', () => {
       const response = await POST(mockRequest);
 
       expect(response.status).toBe(200);
-      expect(db.query.UserTable.findFirst).toHaveBeenCalledTimes(2);
+      expect(db.query.UsersTable.findFirst).toHaveBeenCalledTimes(2);
       expect(db.update).toHaveBeenCalled();
     });
 
     it('should skip processing when no user is found', async () => {
-      (db.query.UserTable.findFirst as jest.Mock).mockResolvedValue(null);
+      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue(null);
 
       const response = await POST(mockRequest);
 
@@ -213,7 +213,7 @@ describe('Stripe Identity Webhook Handler', () => {
         details: { verified: false },
       });
 
-      (db.query.UserTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
         clerkUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
@@ -227,7 +227,7 @@ describe('Stripe Identity Webhook Handler', () => {
     });
 
     it('should skip Connect sync when user has no Connect account', async () => {
-      (db.query.UserTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
         clerkUserId: 'user_123',
         stripeConnectAccountId: null, // No Connect account
@@ -240,7 +240,7 @@ describe('Stripe Identity Webhook Handler', () => {
     });
 
     it('should retry Connect sync on failure', async () => {
-      (db.query.UserTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
         clerkUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
@@ -259,7 +259,7 @@ describe('Stripe Identity Webhook Handler', () => {
     });
 
     it('should handle Connect sync maximum retries exceeded', async () => {
-      (db.query.UserTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
         clerkUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
@@ -291,7 +291,7 @@ describe('Stripe Identity Webhook Handler', () => {
       const response = await POST(mockRequest);
 
       expect(response.status).toBe(200);
-      expect(db.query.UserTable.findFirst).not.toHaveBeenCalled();
+      expect(db.query.UsersTable.findFirst).not.toHaveBeenCalled();
     });
   });
 
@@ -311,7 +311,7 @@ describe('Stripe Identity Webhook Handler', () => {
         },
       });
 
-      (db.query.UserTable.findFirst as jest.Mock).mockRejectedValue(
+      (db.query.UsersTable.findFirst as jest.Mock).mockRejectedValue(
         new Error('Database connection failed'),
       );
 
@@ -335,7 +335,7 @@ describe('Stripe Identity Webhook Handler', () => {
         },
       });
 
-      (db.query.UserTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
         clerkUserId: 'user_123',
       });
@@ -362,7 +362,7 @@ describe('Stripe Identity Webhook Handler', () => {
         },
       });
 
-      (db.query.UserTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
         clerkUserId: 'user_123',
       });
@@ -400,13 +400,13 @@ describe('Stripe Identity Webhook Handler', () => {
         },
       });
 
-      (db.query.UserTable.findFirst as jest.Mock).mockResolvedValue(null);
+      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue(null);
 
       const response = await POST(mockRequest);
 
       expect(response.status).toBe(200);
       // The test should verify that findFirst was called with the verification ID
-      expect(db.query.UserTable.findFirst).toHaveBeenCalledWith({
+      expect(db.query.UsersTable.findFirst).toHaveBeenCalledWith({
         where: expect.objectContaining({
           field: expect.any(Object),
           value: 'vs_test_123',
@@ -427,7 +427,7 @@ describe('Stripe Identity Webhook Handler', () => {
         },
       });
 
-      (db.query.UserTable.findFirst as jest.Mock).mockResolvedValue(null);
+      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue(null);
 
       const response = await POST(mockRequest);
 
@@ -450,7 +450,7 @@ describe('Stripe Identity Webhook Handler', () => {
       });
 
       // User found by Clerk ID but needs verification ID update
-      (db.query.UserTable.findFirst as jest.Mock)
+      (db.query.UsersTable.findFirst as jest.Mock)
         .mockResolvedValueOnce(null) // First lookup by verification ID fails
         .mockResolvedValueOnce({
           // Second lookup by Clerk ID succeeds

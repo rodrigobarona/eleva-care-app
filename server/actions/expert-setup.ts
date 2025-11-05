@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { ProfileTable, UserTable } from '@/drizzle/schema';
+import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
 import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
 import { auth, clerkClient, currentUser } from '@clerk/nextjs/server';
@@ -207,8 +207,8 @@ export async function checkExpertSetupStatus() {
     const setupStatus = user.unsafeMetadata?.expertSetup || {};
 
     // Get the published status directly from the database (single source of truth)
-    const profile = await db.query.ProfileTable.findFirst({
-      where: eq(ProfileTable.clerkUserId, user.id),
+    const profile = await db.query.ProfilesTable.findFirst({
+      where: eq(ProfilesTable.workosUserId, user.id),
       columns: {
         published: true,
       },
@@ -394,8 +394,8 @@ export async function checkSetupSequence() {
     }
 
     // Get the DB user for more detailed info
-    const dbUser = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, user.id),
+    const dbUser = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, user.id),
     });
 
     if (!dbUser) {

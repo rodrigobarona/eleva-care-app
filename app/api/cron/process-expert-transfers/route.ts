@@ -1,7 +1,7 @@
 import { ENV_CONFIG } from '@/config/env';
 import { PAYOUT_DELAY_DAYS, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { EventTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import { EventsTable, PaymentTransfersTable, UsersTable } from '@/drizzle/schema-workos';
 import {
   PAYMENT_TRANSFER_STATUS_APPROVED,
   PAYMENT_TRANSFER_STATUS_COMPLETED,
@@ -118,19 +118,19 @@ export async function GET(request: Request) {
     console.log('Looking for transfers to process at:', now.toISOString());
 
     // Get user information to determine country-specific payout delay
-    const pendingTransfers = await db.query.PaymentTransferTable.findMany({
+    const pendingTransfers = await db.query.PaymentTransfersTable.findMany({
       where: and(
         or(
           // Regular time-based transfers
           and(
-            eq(PaymentTransferTable.status, PAYMENT_TRANSFER_STATUS_PENDING),
-            lte(PaymentTransferTable.scheduledTransferTime, now),
-            eq(PaymentTransferTable.requiresApproval, false),
+            eq(PaymentTransfersTable.status, PAYMENT_TRANSFER_STATUS_PENDING),
+            lte(PaymentTransfersTable.scheduledTransferTime, now),
+            eq(PaymentTransfersTable.requiresApproval, false),
           ),
           // Manually approved transfers
-          eq(PaymentTransferTable.status, PAYMENT_TRANSFER_STATUS_APPROVED),
+          eq(PaymentTransfersTable.status, PAYMENT_TRANSFER_STATUS_APPROVED),
         ),
-        isNull(PaymentTransferTable.transferId),
+        isNull(PaymentTransfersTable.transferId),
       ),
     });
 
@@ -149,8 +149,8 @@ export async function GET(request: Request) {
 
       try {
         // Get expert user to determine their country
-        const expertUser = await db.query.UserTable.findFirst({
-          where: eq(UserTable.clerkUserId, transfer.expertClerkUserId),
+        const expertUser = await db.query.UsersTable.findFirst({
+          where: eq(UsersTable.workosUserId, transfer.expertClerkUserId),
         });
 
         if (!expertUser) {
@@ -161,8 +161,8 @@ export async function GET(request: Request) {
         }
 
         // Get event details to calculate appointment end time
-        const event = await db.query.EventTable.findFirst({
-          where: eq(EventTable.id, transfer.eventId),
+        const event = await db.query.EventsTable.findFirst({
+          where: eq(EventsTable.id, transfer.eventId),
           columns: { durationInMinutes: true },
         });
 
@@ -287,13 +287,13 @@ export async function GET(request: Request) {
 
           // Update the transfer record with success
           await db
-            .update(PaymentTransferTable)
+            .update(PaymentTransfersTable)
             .set({
               transferId: stripeTransfer.id,
               status: PAYMENT_TRANSFER_STATUS_COMPLETED,
               updated: new Date(),
             })
-            .where(eq(PaymentTransferTable.id, transfer.id));
+            .where(eq(PaymentTransfersTable.id, transfer.id));
 
           console.log(
             `Successfully transferred ${transfer.amount / 100} ${transfer.currency} to expert ${transfer.expertClerkUserId}`,
@@ -333,7 +333,7 @@ export async function GET(request: Request) {
 
           // Update the transfer record with the error and increment retry count
           await db
-            .update(PaymentTransferTable)
+            .update(PaymentTransfersTable)
             .set({
               status: newStatus,
               stripeErrorCode: stripeError.code || 'unknown_error',
@@ -341,7 +341,7 @@ export async function GET(request: Request) {
               retryCount: newRetryCount,
               updated: new Date(),
             })
-            .where(eq(PaymentTransferTable.id, transfer.id));
+            .where(eq(PaymentTransfersTable.id, transfer.id));
 
           // If we've reached the max retry count, send a notification to the expert
           if (newStatus === PAYMENT_TRANSFER_STATUS_FAILED) {

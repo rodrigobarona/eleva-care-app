@@ -34,17 +34,17 @@ export async function hasValidTokens(userId: string): Promise<boolean> {
  * the specified start and end times. Filters out cancelled events
  * and events marked as "free" (transparent).
  *
- * @param clerkUserId - Clerk user ID to fetch calendar events for
+ * @param workosUserId - Clerk user ID to fetch calendar events for
  * @param options - Object containing start and end dates for the time range
  * @param options.start - Start date of the time range
  * @param options.end - End date of the time range
  * @returns Promise that resolves to an array of event objects with start and end times
  */
 export async function getCalendarEventTimes(
-  clerkUserId: string,
+  workosUserId: string,
   { start, end }: { start: Date; end: Date },
 ) {
-  return GoogleCalendarService.getInstance().getCalendarEventTimes(clerkUserId, {
+  return GoogleCalendarService.getInstance().getCalendarEventTimes(workosUserId, {
     start,
     end,
   });
@@ -59,7 +59,7 @@ export async function getCalendarEventTimes(
  * authentication behind the scenes.
  *
  * @param params - Event creation parameters
- * @param params.clerkUserId - Clerk user ID of the calendar owner (expert)
+ * @param params.workosUserId - Clerk user ID of the calendar owner (expert)
  * @param params.guestName - Name of the guest/client
  * @param params.guestEmail - Email of the guest/client
  * @param params.startTime - Start time of the appointment
@@ -69,7 +69,7 @@ export async function getCalendarEventTimes(
  * @returns Promise that resolves to the created calendar event data with additional meet link information
  */
 export async function createCalendarEvent(params: {
-  clerkUserId: string;
+  workosUserId: string;
   guestName: string;
   guestEmail: string;
   startTime: Date;

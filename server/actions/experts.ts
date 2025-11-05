@@ -2,7 +2,7 @@
 
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
@@ -26,7 +26,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
  * 3. Checks if the account is fully set up (details submitted, payouts enabled, transfers active)
  * 4. Updates the user's onboarding status in the database if needed
  *
- * @param clerkUserId - The Clerk user ID of the expert to verify
+ * @param workosUserId - The Clerk user ID of the expert to verify
  * @returns An object containing:
  *   - error: boolean indicating if an error occurred
  *   - code?: error code if applicable
@@ -38,16 +38,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
  *     - requiresRefresh: whether the account needs updating
  *     - accountId: the Stripe Connect account ID
  */
-export async function verifyExpertConnectAccount(clerkUserId: string) {
+export async function verifyExpertConnectAccount(workosUserId: string) {
   try {
     // Get the user's Stripe Connect account ID
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, clerkUserId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, workosUserId),
     });
     // Log the user's Stripe Connect account ID
     if (!user?.stripeConnectAccountId) {
       console.error('No Stripe Connect account found for user:', {
-        clerkUserId,
+        workosUserId,
         email: user?.email,
       });
       return {
@@ -69,14 +69,14 @@ export async function verifyExpertConnectAccount(clerkUserId: string) {
     if (isFullySetup && !user.stripeConnectOnboardingComplete) {
       // Update the user record to mark onboarding as complete
       await db
-        .update(UserTable)
+        .update(UsersTable)
         .set({
           stripeConnectOnboardingComplete: true,
         })
-        .where(eq(UserTable.clerkUserId, clerkUserId));
+        .where(eq(UsersTable.workosUserId, workosUserId));
 
       console.log('Updated Connect account status to complete:', {
-        clerkUserId,
+        workosUserId,
         email: user.email,
         accountId: user.stripeConnectAccountId,
       });
@@ -95,7 +95,7 @@ export async function verifyExpertConnectAccount(clerkUserId: string) {
   } catch (error) {
     console.error('Error verifying Connect account:', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      clerkUserId,
+      workosUserId,
     });
     return {
       error: true,
@@ -113,7 +113,7 @@ export async function verifyExpertConnectAccount(clerkUserId: string) {
  * 2. Retrieves the account's payout schedule settings
  * 3. Returns the schedule details including interval, anchors, and delay days
  *
- * @param clerkUserId - The Clerk user ID of the expert
+ * @param workosUserId - The Clerk user ID of the expert
  * @returns An object containing:
  *   - error: boolean indicating if an error occurred
  *   - code?: error code if applicable
@@ -124,10 +124,10 @@ export async function verifyExpertConnectAccount(clerkUserId: string) {
  *     - weeklyAnchor: day of week for weekly payouts
  *     - delay_days: days to delay payouts
  */
-export async function getExpertPayoutSchedule(clerkUserId: string) {
+export async function getExpertPayoutSchedule(workosUserId: string) {
   try {
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, clerkUserId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, workosUserId),
     });
 
     if (!user?.stripeConnectAccountId) {
@@ -153,7 +153,7 @@ export async function getExpertPayoutSchedule(clerkUserId: string) {
   } catch (error) {
     console.error('Error getting payout schedule:', {
       error: error instanceof Error ? error.message : 'Unknown error',
-      clerkUserId,
+      workosUserId,
     });
     return {
       error: true,
@@ -177,8 +177,8 @@ export async function getExpertPayoutSchedule(clerkUserId: string) {
 export async function verifySpecificExpertAccount(email: string) {
   try {
     // Get the user by email
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.email, email),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.email, email),
     });
 
     if (!user) {
@@ -190,7 +190,7 @@ export async function verifySpecificExpertAccount(email: string) {
       };
     }
 
-    return verifyExpertConnectAccount(user.clerkUserId);
+    return verifyExpertConnectAccount(user.workosUserId);
   } catch (error) {
     console.error('Error verifying specific expert account:', {
       error: error instanceof Error ? error.message : 'Unknown error',

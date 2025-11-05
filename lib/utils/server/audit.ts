@@ -11,7 +11,7 @@ import type { AuditEventMetadata, AuditEventType, AuditResourceType } from '@/ty
  * @throws {AuditLoggingError} Only in critical scenarios where audit logging must succeed
  */
 export async function logAuditEvent(
-  clerkUserId: string,
+  workosUserId: string,
   action: AuditEventType,
   resourceType: AuditResourceType,
   resourceId: string,
@@ -22,7 +22,8 @@ export async function logAuditEvent(
 ): Promise<void> {
   try {
     await auditDb.insert(auditLogs).values({
-      clerkUserId,
+      // TODO: Migrate schema field from clerkUserId to workosUserId after WorkOS migration
+      clerkUserId: workosUserId, // Using workosUserId parameter but inserting as clerkUserId
       action,
       resourceType,
       resourceId,
@@ -38,7 +39,7 @@ export async function logAuditEvent(
       message: 'AUDIT_LOGGING_FAILED',
       error: error instanceof Error ? error.message : String(error),
       auditData: {
-        clerkUserId,
+        workosUserId,
         action,
         resourceType,
         resourceId,

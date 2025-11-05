@@ -35,7 +35,11 @@
     "**/*.json",
     ".next/dev/types/**/*.ts"
   ],
-  "exclude": ["node_modules"],
+  "exclude": [
+    "node_modules",
+    "scripts/migrate-audit-logs-to-unified.ts",
+    "scripts/verify-payout-data.ts"
+  ],
   "ts-node": {
     "compilerOptions": {
       "module": "CommonJS"

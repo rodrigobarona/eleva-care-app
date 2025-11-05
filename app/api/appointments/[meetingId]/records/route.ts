@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { RecordTable } from '@/drizzle/schema';
+import { RecordsTable } from '@/drizzle/schema-workos';
 import { decryptRecord, encryptRecord } from '@/lib/utils/encryption';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { auth } from '@clerk/nextjs/server';
@@ -10,17 +10,17 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request, props: { params: Promise<{ meetingId: string }> }) {
   const params = await props.params;
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const { userId: workosUserId } = await auth();
+    if (!workosUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { content, metadata } = await request.json();
 
     // Verify the meeting belongs to this expert
-    const meeting = await db.query.MeetingTable.findFirst({
-      where: ({ id, clerkUserId: expertUserId }, { eq, and }) =>
-        and(eq(id, params.meetingId), eq(expertUserId, clerkUserId)),
+    const meeting = await db.query.MeetingsTable.findFirst({
+      where: ({ id, workosUserId: expertUserId }, { eq, and }) =>
+        and(eq(id, params.meetingId), eq(expertUserId, workosUserId)),
     });
 
     if (!meeting) {
@@ -33,10 +33,10 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
 
     // Create the record
     const [record] = await db
-      .insert(RecordTable)
+      .insert(RecordsTable)
       .values({
         meetingId: params.meetingId,
-        expertId: clerkUserId,
+        expertId: workosUserId,
         guestEmail: meeting.guestEmail,
         encryptedContent,
         encryptedMetadata: encryptedMetadata || undefined,
@@ -47,7 +47,7 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
     const headersList = await headers();
     try {
       await logAuditEvent(
-        clerkUserId,
+        workosUserId,
         'CREATE_MEDICAL_RECORD',
         'medical_record',
         record.id,
@@ -55,7 +55,7 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
         {
           recordId: record.id,
           meetingId: params.meetingId,
-          expertId: clerkUserId,
+          expertId: workosUserId,
           guestEmail: meeting.guestEmail,
           contentProvided: !!content,
           metadataProvided: !!metadata,
@@ -75,7 +75,7 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
     // Log security-sensitive failures and errors
     const headersList = await headers();
     try {
-      const { userId: clerkUserId } = await auth();
+      const { userId: workosUserId } = await auth();
       const isSecuritySensitive =
         error instanceof Error &&
         (error.message.includes('unauthorized') ||
@@ -89,7 +89,7 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
         : 'FAILED_CREATE_MEDICAL_RECORD';
 
       await logAuditEvent(
-        clerkUserId || 'unknown',
+        workosUserId || 'unknown',
         auditAction,
         'medical_record',
         params.meetingId,
@@ -115,15 +115,15 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
 export async function GET(request: Request, props: { params: Promise<{ meetingId: string }> }) {
   const params = await props.params;
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const { userId: workosUserId } = await auth();
+    if (!workosUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Verify the meeting belongs to this expert
-    const meeting = await db.query.MeetingTable.findFirst({
-      where: ({ id, clerkUserId: expertUserId }, { eq, and }) =>
-        and(eq(id, params.meetingId), eq(expertUserId, clerkUserId)),
+    const meeting = await db.query.MeetingsTable.findFirst({
+      where: ({ id, workosUserId: expertUserId }, { eq, and }) =>
+        and(eq(id, params.meetingId), eq(expertUserId, workosUserId)),
     });
 
     if (!meeting) {
@@ -131,8 +131,8 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
     }
 
     // Get all records for this meeting
-    const records = await db.query.RecordTable.findMany({
-      where: eq(RecordTable.meetingId, params.meetingId),
+    const records = await db.query.RecordsTable.findMany({
+      where: eq(RecordsTable.meetingId, params.meetingId),
       orderBy: (fields, { desc }) => [desc(fields.createdAt)],
     });
 
@@ -149,14 +149,14 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
     const headersList = await headers();
     try {
       await logAuditEvent(
-        clerkUserId,
+        workosUserId,
         'READ_MEDICAL_RECORDS_FOR_MEETING',
         'medical_record', // resourceType could also be 'meeting_records'
         params.meetingId, // Using meetingId as the primary resource identifier for this action
         null,
         {
           meetingId: params.meetingId,
-          expertId: clerkUserId,
+          expertId: workosUserId,
           recordsFetched: decryptedRecords.length,
           recordIds: decryptedRecords.map((r) => r.id), // Log IDs of records accessed
         },
@@ -174,7 +174,7 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
     // Log security-sensitive failures and errors
     const headersList = await headers();
     try {
-      const { userId: clerkUserId } = await auth();
+      const { userId: workosUserId } = await auth();
       const isSecuritySensitive =
         error instanceof Error &&
         (error.message.includes('unauthorized') ||
@@ -189,7 +189,7 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
         : 'FAILED_READ_MEDICAL_RECORDS';
 
       await logAuditEvent(
-        clerkUserId || 'unknown',
+        workosUserId || 'unknown',
         auditAction,
         'medical_record',
         params.meetingId,
@@ -215,17 +215,17 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
 export async function PUT(request: Request, props: { params: Promise<{ meetingId: string }> }) {
   const params = await props.params;
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const { userId: workosUserId } = await auth();
+    if (!workosUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const { recordId, content, metadata } = await request.json();
 
     // Verify the record belongs to this expert and retrieve its current state for audit logging
-    const oldRecord = await db.query.RecordTable.findFirst({
+    const oldRecord = await db.query.RecordsTable.findFirst({
       where: ({ id, expertId, meetingId }, { eq, and }) =>
-        and(eq(id, recordId), eq(expertId, clerkUserId), eq(meetingId, params.meetingId)),
+        and(eq(id, recordId), eq(expertId, workosUserId), eq(meetingId, params.meetingId)),
     });
 
     if (!oldRecord) {
@@ -238,21 +238,21 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
 
     // Update the record
     const [updatedRecord] = await db
-      .update(RecordTable)
+      .update(RecordsTable)
       .set({
         encryptedContent: newEncryptedContent,
         encryptedMetadata: newEncryptedMetadata || undefined,
         lastModifiedAt: new Date(),
         version: oldRecord.version + 1,
       })
-      .where(eq(RecordTable.id, recordId))
+      .where(eq(RecordsTable.id, recordId))
       .returning();
 
     // Log audit event
     const headersList = await headers();
     try {
       await logAuditEvent(
-        clerkUserId,
+        workosUserId,
         'UPDATE_MEDICAL_RECORD',
         'medical_record',
         recordId,
@@ -268,7 +268,7 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
           newVersion: updatedRecord.version,
           recordId: updatedRecord.id,
           meetingId: params.meetingId,
-          expertId: clerkUserId,
+          expertId: workosUserId,
           contentProvided: !!content, // Indicates if new content was part of the update payload
           metadataProvided: !!metadata, // Indicates if new metadata was part of the update payload
         },
@@ -286,7 +286,7 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
     // Log security-sensitive failures and errors
     const headersList = await headers();
     try {
-      const { userId: clerkUserId } = await auth();
+      const { userId: workosUserId } = await auth();
       const isSecuritySensitive =
         error instanceof Error &&
         (error.message.includes('unauthorized') ||
@@ -302,7 +302,7 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
         : 'FAILED_UPDATE_MEDICAL_RECORD';
 
       await logAuditEvent(
-        clerkUserId || 'unknown',
+        workosUserId || 'unknown',
         auditAction,
         'medical_record',
         params.meetingId,

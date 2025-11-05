@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
   NOTIFICATION_TYPE_SECURITY_ALERT,
@@ -26,22 +26,22 @@ export async function handleIdentityVerificationUpdated(
 
   // First try to find by client_reference_id if available
   if (verificationSession.client_reference_id) {
-    user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.stripeConnectAccountId, verificationSession.client_reference_id),
+    user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.stripeConnectAccountId, verificationSession.client_reference_id),
     });
 
     if (!user) {
       // Maybe the reference is actually a user ID?
-      user = await db.query.UserTable.findFirst({
-        where: eq(UserTable.id, verificationSession.client_reference_id),
+      user = await db.query.UsersTable.findFirst({
+        where: eq(UsersTable.id, verificationSession.client_reference_id),
       });
     }
   }
 
   // If we still don't have a user, check if there's an account ID in metadata
   if (!user && verificationSession.metadata?.user_id) {
-    user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.id, verificationSession.metadata.user_id),
+    user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.id, verificationSession.metadata.user_id),
     });
   }
 
@@ -61,17 +61,17 @@ export async function handleIdentityVerificationUpdated(
         await db.transaction(async (tx) => {
           // Update user record
           await tx
-            .update(UserTable)
+            .update(UsersTable)
             .set({
               stripeIdentityVerificationStatus: verificationSession.status,
               stripeIdentityVerified: verificationSession.status === 'verified',
               updatedAt: new Date(),
             })
-            .where(eq(UserTable.id, user.id));
+            .where(eq(UsersTable.id, user.id));
 
           // Handle verification completion
           if (verificationSession.status === 'verified') {
-            await markStepCompleteForUser('identity', user.clerkUserId);
+            await markStepCompleteForUser('identity', user.workosUserId);
             await createUserNotification({
               userId: user.id,
               type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,

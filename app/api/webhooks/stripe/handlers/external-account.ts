@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
@@ -13,8 +13,8 @@ export async function handleExternalAccountCreated(
   console.log('External account added:', externalAccount.id);
 
   // Find the user associated with this Connect account
-  const user = await db.query.UserTable.findFirst({
-    where: eq(UserTable.stripeConnectAccountId, accountId),
+  const user = await db.query.UsersTable.findFirst({
+    where: eq(UsersTable.stripeConnectAccountId, accountId),
   });
 
   if (!user) {
@@ -58,8 +58,8 @@ export async function handleExternalAccountDeleted(
   console.log('External account removed:', externalAccount.id);
 
   // Find the user associated with this Connect account
-  const user = await db.query.UserTable.findFirst({
-    where: eq(UserTable.stripeConnectAccountId, accountId),
+  const user = await db.query.UsersTable.findFirst({
+    where: eq(UsersTable.stripeConnectAccountId, accountId),
   });
 
   if (!user) {

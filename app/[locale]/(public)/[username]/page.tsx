@@ -49,8 +49,8 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     const { user } = data;
 
     // Get full profile data with relations for metadata
-    const fullProfile = await db.query.ProfileTable.findFirst({
-      where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
+    const fullProfile = await db.query.ProfilesTable.findFirst({
+      where: ({ workosUserId }, { eq }) => eq(workosUserId, user.id),
       with: {
         primaryCategory: true,
         secondaryCategory: true,
@@ -140,7 +140,7 @@ async function UserLayoutContent({ username, locale }: { username: string; local
           <ProfileInfo
             username={username}
             locale={locale}
-            clerkUserId={user.id}
+            workosUserId={user.id}
             clerkUserImageUrl={user.imageUrl}
             clerkUserFullName={user.fullName}
           />
@@ -159,7 +159,7 @@ async function UserLayoutContent({ username, locale }: { username: string; local
 interface ProfileInfoProps {
   username: string; // Keep username for potential future use or logging
   locale: string;
-  clerkUserId: string;
+  workosUserId: string;
   clerkUserImageUrl: string;
   clerkUserFullName: string | null;
 }
@@ -167,18 +167,18 @@ interface ProfileInfoProps {
 async function ProfileInfo({
   username: _username, // Renamed to avoid confusion if used directly
   locale: _locale,
-  clerkUserId,
+  workosUserId,
   clerkUserImageUrl,
   clerkUserFullName, // Ensure this is used or remove if not needed
 }: ProfileInfoProps) {
   try {
-    console.log(`[ProfileInfo] Loading profile for clerkUserId: ${clerkUserId}`);
+    console.log(`[ProfileInfo] Loading profile for workosUserId: ${workosUserId}`);
 
     // User data is now passed from UserLayout, no need to fetch Clerk user here.
     // The 'user' object previously fetched here is replaced by passed props.
 
-    const profile = await db.query.ProfileTable.findFirst({
-      where: ({ clerkUserId: profileClerkUserId }, { eq }) => eq(profileClerkUserId, clerkUserId),
+    const profile = await db.query.ProfilesTable.findFirst({
+      where: ({ workosUserId: profileClerkUserId }, { eq }) => eq(profileClerkUserId, workosUserId),
       with: {
         primaryCategory: true,
         secondaryCategory: true,
@@ -186,7 +186,7 @@ async function ProfileInfo({
     });
 
     console.log(
-      `[ProfileInfo] Profile found: ${profile ? 'yes' : 'no'} for clerkUserId: ${clerkUserId}`,
+      `[ProfileInfo] Profile found: ${profile ? 'yes' : 'no'} for workosUserId: ${workosUserId}`,
     );
 
     return (
@@ -281,7 +281,7 @@ async function ProfileInfo({
       </div>
     );
   } catch (error) {
-    console.error(`[ProfileInfo] Error loading profile for clerkUserId: ${clerkUserId}:`, error);
+    console.error(`[ProfileInfo] Error loading profile for workosUserId: ${workosUserId}:`, error);
     // Re-throw the error to let the parent component handle it
     throw error;
   }

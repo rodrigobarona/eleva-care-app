@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { MeetingTable } from '@/drizzle/schema';
+import { MeetingsTable } from '@/drizzle/schema-workos';
 import { auth } from '@clerk/nextjs/server';
 import { and, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -13,8 +13,8 @@ export async function GET(request: Request, props: { params: Promise<{ email: st
     }
 
     const email = decodeURIComponent(params.email);
-    const appointments = await db.query.MeetingTable.findMany({
-      where: and(eq(MeetingTable.clerkUserId, userId), eq(MeetingTable.guestEmail, email)),
+    const appointments = await db.query.MeetingsTable.findMany({
+      where: and(eq(MeetingsTable.workosUserId, userId), eq(MeetingsTable.guestEmail, email)),
       orderBy: (meetings) => [meetings.startTime],
     });
 

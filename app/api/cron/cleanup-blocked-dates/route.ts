@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { BlockedDatesTable } from '@/drizzle/schema';
+import { BlockedDatesTable } from '@/drizzle/schema-workos';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { formatInTimeZone } from 'date-fns-tz';
 import { inArray } from 'drizzle-orm';

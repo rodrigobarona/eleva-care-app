@@ -1,6 +1,6 @@
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
-import { SlotReservationTable } from '@/drizzle/schema';
+import { SlotReservationsTable } from '@/drizzle/schema-workos';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
@@ -84,8 +84,8 @@ export async function GET(request: NextRequest) {
 
     // **Step 1: Clean up expired reservations**
     const deletedExpiredReservations = await db
-      .delete(SlotReservationTable)
-      .where(lt(SlotReservationTable.expiresAt, currentTime))
+      .delete(SlotReservationsTable)
+      .where(lt(SlotReservationsTable.expiresAt, currentTime))
       .returning();
 
     console.log(

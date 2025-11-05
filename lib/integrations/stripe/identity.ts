@@ -1,6 +1,6 @@
 import { getMinimumPayoutDelay, STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { eq } from 'drizzle-orm';
 import type Stripe from 'stripe';
 
@@ -15,13 +15,13 @@ import { getBaseUrl, getServerStripe } from './client';
  * - Sets stripeIdentityVerificationLastChecked to current timestamp
  *
  * @param userId - Database user ID
- * @param clerkUserId - Clerk user ID for authentication
+ * @param workosUserId - Clerk user ID for authentication
  * @param email - User's email address
  * @returns Response object with success status and session details or error information
  */
 export async function createIdentityVerification(
   userId: string,
-  clerkUserId: string,
+  workosUserId: string,
   email: string,
 ): Promise<
   | {
@@ -41,8 +41,8 @@ export async function createIdentityVerification(
 
   try {
     // Check if user already has an active verification
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, clerkUserId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, workosUserId),
     });
 
     if (user?.stripeIdentityVerificationId) {
@@ -69,7 +69,7 @@ export async function createIdentityVerification(
       type: 'document',
       metadata: {
         userId,
-        clerkUserId,
+        workosUserId,
         email,
         created_at: new Date().toISOString(),
       },
@@ -78,14 +78,14 @@ export async function createIdentityVerification(
 
     // Store the verification session ID in the database
     await db
-      .update(UserTable)
+      .update(UsersTable)
       .set({
         stripeIdentityVerificationId: verificationSession.id,
         stripeIdentityVerificationStatus: verificationSession.status,
         stripeIdentityVerificationLastChecked: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(UserTable.clerkUserId, clerkUserId));
+      .where(eq(UsersTable.workosUserId, workosUserId));
 
     return {
       success: true,
@@ -186,13 +186,13 @@ async function createAccountLink(
  * - Creates a Stripe Connect account if one doesn't exist
  * - Updates the user record in the database with Connect account ID and status
  *
- * @param clerkUserId - Clerk user ID for authentication
+ * @param workosUserId - Clerk user ID for authentication
  * @param email - User's email address
  * @param country - Two-letter country code
  * @returns Response object with success status and account details or error information
  */
 export async function createConnectAccountWithVerifiedIdentity(
-  clerkUserId: string,
+  workosUserId: string,
   email: string,
   country: string,
 ): Promise<
@@ -216,7 +216,7 @@ export async function createConnectAccountWithVerifiedIdentity(
   const countryCode = country.toUpperCase();
   // Type assertion to make TypeScript happy with the readonly array
   if (!(validCountryCodes as readonly string[]).includes(countryCode)) {
-    logError('Invalid country code', { clerkUserId, email, country });
+    logError('Invalid country code', { workosUserId, email, country });
     return {
       success: false,
       error: `Invalid country code: ${country}. Must be one of: ${validCountryCodes.join(', ')}`,
@@ -225,18 +225,18 @@ export async function createConnectAccountWithVerifiedIdentity(
 
   try {
     // Get the user from the database
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, clerkUserId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, workosUserId),
     });
 
     if (!user) {
-      logError('User not found', { clerkUserId, email });
+      logError('User not found', { workosUserId, email });
       throw new Error('User not found');
     }
 
     // Check if the user has a verified identity
     if (!user.stripeIdentityVerificationId) {
-      logError('User has not completed identity verification', { clerkUserId, userId: user.id });
+      logError('User has not completed identity verification', { workosUserId, userId: user.id });
       throw new Error('User has not completed identity verification');
     }
 
@@ -247,7 +247,7 @@ export async function createConnectAccountWithVerifiedIdentity(
 
     if (verificationStatus.status !== 'verified') {
       logError('Identity verification is not complete', {
-        clerkUserId,
+        workosUserId,
         userId: user.id,
         status: verificationStatus.status,
       });
@@ -280,7 +280,7 @@ export async function createConnectAccountWithVerifiedIdentity(
       } catch (error: unknown) {
         // If the existing account ID is invalid, we'll create a new one
         logError('Existing Connect account not found in Stripe', {
-          clerkUserId,
+          workosUserId,
           accountId: user.stripeConnectAccountId,
           error,
         });
@@ -308,21 +308,21 @@ export async function createConnectAccountWithVerifiedIdentity(
           },
         },
         metadata: {
-          clerkUserId,
+          workosUserId,
           identity_verified: 'true',
           identity_verified_at: new Date().toISOString(),
           identity_verification_id: user.stripeIdentityVerificationId,
         },
       });
     } catch (error) {
-      logError('Failed to create Stripe Connect account', { clerkUserId, email, country, error });
+      logError('Failed to create Stripe Connect account', { workosUserId, email, country, error });
       throw error;
     }
 
     // Step 3: Update the user record with the Connect account ID
     try {
       await db
-        .update(UserTable)
+        .update(UsersTable)
         .set({
           stripeConnectAccountId: account.id,
           stripeConnectDetailsSubmitted: account.details_submitted,
@@ -330,11 +330,11 @@ export async function createConnectAccountWithVerifiedIdentity(
           stripeConnectChargesEnabled: account.charges_enabled,
           updatedAt: new Date(),
         })
-        .where(eq(UserTable.clerkUserId, clerkUserId));
+        .where(eq(UsersTable.workosUserId, workosUserId));
     } catch (dbError) {
       // If database update fails, we should delete the Stripe account to maintain consistency
       logError('Failed to update user record with Connect account', {
-        clerkUserId,
+        workosUserId,
         accountId: account.id,
         error: dbError,
       });
@@ -344,7 +344,7 @@ export async function createConnectAccountWithVerifiedIdentity(
         await stripe.accounts.del(account.id);
       } catch (deleteError) {
         logError('Failed to delete orphaned Connect account after DB update failure', {
-          clerkUserId,
+          workosUserId,
           accountId: account.id,
           error: deleteError,
         });
@@ -359,7 +359,7 @@ export async function createConnectAccountWithVerifiedIdentity(
       accountLink = await createAccountLink(stripe, account.id, baseUrl);
     } catch (linkError: unknown) {
       logError('Failed to create account link for onboarding', {
-        clerkUserId,
+        workosUserId,
         accountId: account.id,
         error: linkError,
       });
@@ -369,7 +369,7 @@ export async function createConnectAccountWithVerifiedIdentity(
         // Wait a moment before retrying
         await new Promise((resolve) => setTimeout(resolve, 1000));
         logError('Retrying account link creation after failure', {
-          clerkUserId,
+          workosUserId,
           accountId: account.id,
         });
 
@@ -384,7 +384,7 @@ export async function createConnectAccountWithVerifiedIdentity(
         };
       } catch (retryError) {
         logError('Failed to create account link after retry', {
-          clerkUserId,
+          workosUserId,
           accountId: account.id,
           error: retryError,
         });
@@ -402,7 +402,7 @@ export async function createConnectAccountWithVerifiedIdentity(
     };
   } catch (error) {
     logError('Error creating Connect account with verified identity', {
-      clerkUserId,
+      workosUserId,
       email,
       country,
       error,

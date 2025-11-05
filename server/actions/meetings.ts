@@ -2,7 +2,8 @@
 
 import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
-import { MeetingTable } from '@/drizzle/schema';
+import { MeetingsTable } from '@/drizzle/schema-workos';
+import { createOrGetGuestUser } from '@/lib/integrations/workos/guest-users';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { meetingActionSchema } from '@/schema/meetings';
@@ -40,7 +41,7 @@ import type { z } from 'zod';
  * @example
  * const meetingData = {
  *   eventId: "event-123",
- *   clerkUserId: "user-123",
+ *   workosUserId: "user-123",
  *   guestEmail: "guest@example.com",
  *   guestName: "John Doe",
  *   startTime: new Date(),
@@ -71,8 +72,53 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
   if (!success) return { error: true, code: 'VALIDATION_ERROR' };
 
   try {
+    // Step 1.5: Auto-create WorkOS user for guest (transparently during booking)
+    console.log('📝 Auto-registering guest user in WorkOS...');
+    let guestWorkosUserId: string;
+    let guestOrgId: string;
+
+    try {
+      const guestUserResult = await createOrGetGuestUser({
+        email: data.guestEmail,
+        name: data.guestName,
+        metadata: {
+          bookingEventId: data.eventId,
+          bookingStartTime: data.startTime.toISOString(),
+          registrationSource: 'meeting_booking',
+        },
+      });
+
+      guestWorkosUserId = guestUserResult.userId;
+      guestOrgId = guestUserResult.organizationId;
+
+      if (guestUserResult.isNewUser) {
+        console.log('✅ New guest user created:', {
+          email: data.guestEmail,
+          workosUserId: guestWorkosUserId,
+          organizationId: guestOrgId,
+        });
+      } else {
+        console.log('✅ Existing guest user found:', {
+          email: data.guestEmail,
+          workosUserId: guestWorkosUserId,
+        });
+      }
+    } catch (guestUserError) {
+      console.error('❌ Failed to create/get guest user:', {
+        error: guestUserError instanceof Error ? guestUserError.message : 'Unknown error',
+        email: data.guestEmail,
+      });
+      // Don't fail the booking if guest user creation fails
+      // We'll create the meeting with legacy fields only
+      return {
+        error: true,
+        code: 'GUEST_USER_CREATION_ERROR',
+        message: 'Failed to register guest user',
+      };
+    }
+
     // Step 2: Check for duplicate booking from the same user first
-    const existingUserMeeting = await db.query.MeetingTable.findFirst({
+    const existingUserMeeting = await db.query.MeetingsTable.findFirst({
       where: (fields, operators) =>
         operators.or(
           data.stripePaymentIntentId
@@ -100,7 +146,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
     }
 
     // Step 3: Check if time slot is already taken by a different user
-    const conflictingMeeting = await db.query.MeetingTable.findFirst({
+    const conflictingMeeting = await db.query.MeetingsTable.findFirst({
       where: (fields, operators) =>
         operators.and(
           operators.eq(fields.eventId, data.eventId),
@@ -128,7 +174,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
     }
 
     // Step 3.5: Check for active slot reservations by other users
-    const conflictingReservation = await db.query.SlotReservationTable.findFirst({
+    const conflictingReservation = await db.query.SlotReservationsTable.findFirst({
       where: (fields, operators) =>
         operators.and(
           operators.eq(fields.eventId, data.eventId),
@@ -158,9 +204,9 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
     }
 
     // Step 4: Find the associated event and verify it exists and is active
-    const event = await db.query.EventTable.findFirst({
-      where: ({ clerkUserId, isActive, id }, { eq, and }) =>
-        and(eq(isActive, true), eq(clerkUserId, data.clerkUserId), eq(id, data.eventId)),
+    const event = await db.query.EventsTable.findFirst({
+      where: ({ workosUserId, isActive, id }, { eq, and }) =>
+        and(eq(isActive, true), eq(workosUserId, data.workosUserId), eq(id, data.eventId)),
       with: {
         user: true, // Include user data for Novu notifications
       },
@@ -182,7 +228,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
 
       // Get calendar events for the time slot
       const calendarService = GoogleCalendarService.getInstance();
-      const calendarEvents = await calendarService.getCalendarEventTimes(event.clerkUserId, {
+      const calendarEvents = await calendarService.getCalendarEventTimes(event.workosUserId, {
         start: startTimeUTC,
         end: addMinutes(startTimeUTC, event.durationInMinutes),
       });
@@ -231,7 +277,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         try {
           console.log('🚀 Creating Google Calendar event...');
           calendarEvent = await createCalendarEvent({
-            clerkUserId: data.clerkUserId,
+            workosUserId: data.workosUserId,
             guestName: data.guestName,
             guestEmail: data.guestEmail,
             startTime: startTimeUTC,
@@ -252,7 +298,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
             error: calendarError instanceof Error ? calendarError.message : calendarError,
             stack: calendarError instanceof Error ? calendarError.stack : undefined,
             eventId: data.eventId,
-            clerkUserId: data.clerkUserId,
+            workosUserId: data.workosUserId,
             guestEmail: data.guestEmail,
           });
           // Don't fail the meeting creation - calendar can be created later
@@ -266,12 +312,14 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
 
       // Step 8: Create the meeting record in the database
       const [meeting] = await db
-        .insert(MeetingTable)
+        .insert(MeetingsTable)
         .values({
           eventId: data.eventId,
-          clerkUserId: data.clerkUserId,
-          guestEmail: data.guestEmail,
-          guestName: data.guestName,
+          workosUserId: data.workosUserId, // Expert's WorkOS ID
+          guestWorkosUserId, // Guest's WorkOS ID (auto-created)
+          guestOrgId, // Guest's organization ID (auto-created)
+          guestEmail: data.guestEmail, // Keep for backward compatibility
+          guestName: data.guestName, // Keep for backward compatibility
           guestNotes: data.guestNotes,
           startTime: startTimeUTC,
           endTime: endTimeUTC,
@@ -292,7 +340,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
 
       // Step 9: Log audit event
       await logAuditEvent(
-        data.clerkUserId,
+        data.workosUserId,
         'MEETING_CREATED',
         'meeting',
         data.eventId,
@@ -310,8 +358,8 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       // Step 10: Fetch expert's timezone and trigger Novu workflow for expert notification
       try {
         // CRITICAL: Fetch expert's timezone from their schedule settings
-        const expertSchedule = await db.query.ScheduleTable.findFirst({
-          where: (fields, { eq: eqOp }) => eqOp(fields.clerkUserId, data.clerkUserId),
+        const expertSchedule = await db.query.SchedulesTable.findFirst({
+          where: (fields, { eq: eqOp }) => eqOp(fields.workosUserId, data.workosUserId),
         });
 
         const expertTimezone = expertSchedule?.timezone || 'UTC';
@@ -330,7 +378,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         const novuResult = await triggerWorkflow({
           workflowId: 'appointment-confirmation',
           to: {
-            subscriberId: data.clerkUserId, // Expert's Clerk ID
+            subscriberId: data.workosUserId, // Expert's WorkOS ID
             email: event.user?.email || undefined,
             firstName: event.user?.firstName || undefined,
             lastName: event.user?.lastName || undefined,
@@ -352,7 +400,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         });
 
         if (novuResult) {
-          console.log('✅ Novu appointment confirmation sent to expert:', data.clerkUserId);
+          console.log('✅ Novu appointment confirmation sent to expert:', data.workosUserId);
         } else {
           console.warn('⚠️ Failed to send Novu notification to expert');
         }
@@ -369,7 +417,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         eventId: data.eventId,
         startTime: data.startTime,
         guestEmail: data.guestEmail,
-        clerkUserId: data.clerkUserId,
+        workosUserId: data.workosUserId,
       });
       return { error: true, code: 'CREATION_ERROR' };
     }
@@ -378,7 +426,7 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       error: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
       eventId: unsafeData.eventId,
-      clerkUserId: unsafeData.clerkUserId,
+      workosUserId: unsafeData.workosUserId,
       guestEmail: unsafeData.guestEmail,
     });
     return { error: true, code: 'UNEXPECTED_ERROR' };

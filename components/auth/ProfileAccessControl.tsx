@@ -47,8 +47,8 @@ export async function ProfileAccessControl({
   }
 
   // Get profile data to check published status
-  const profile = await db.query.ProfileTable.findFirst({
-    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
+  const profile = await db.query.ProfilesTable.findFirst({
+    where: ({ workosUserId }, { eq }) => eq(workosUserId, user.id),
   });
 
   // Check if profile is published
@@ -87,8 +87,8 @@ export async function getProfileAccessData(username: string) {
     return null;
   }
 
-  const profile = await db.query.ProfileTable.findFirst({
-    where: ({ clerkUserId }, { eq }) => eq(clerkUserId, user.id),
+  const profile = await db.query.ProfilesTable.findFirst({
+    where: ({ workosUserId }, { eq }) => eq(workosUserId, user.id),
   });
 
   return { user, profile };

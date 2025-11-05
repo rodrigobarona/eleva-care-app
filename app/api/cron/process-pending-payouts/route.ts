@@ -1,7 +1,12 @@
 import { ENV_CONFIG } from '@/config/env';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { EventTable, MeetingTable, PaymentTransferTable, UserTable } from '@/drizzle/schema';
+import {
+  EventsTable,
+  MeetingsTable,
+  PaymentTransfersTable,
+  UsersTable,
+} from '@/drizzle/schema-workos';
 import {
   PAYMENT_TRANSFER_STATUS_COMPLETED,
   PAYMENT_TRANSFER_STATUS_PAID_OUT,
@@ -36,8 +41,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
 const APPOINTMENT_COMPLAINT_WINDOW_HOURS = 24; // Post-appointment dispute window (Airbnb-style)
 
 // Define types for database entities
-type PaymentTransfer = typeof PaymentTransferTable.$inferSelect;
-type User = typeof UserTable.$inferSelect;
+type PaymentTransfer = typeof PaymentTransfersTable.$inferSelect;
+type User = typeof UsersTable.$inferSelect;
 
 // Define types for payout results
 type SuccessResult = {
@@ -63,7 +68,7 @@ type PayoutResult = SuccessResult | ErrorResult;
 
 // Type for the expert user data needed for payouts
 type ExpertUserForPayout = {
-  clerkUserId: string;
+  workosUserId: string;
   firstName: string | null;
   lastName: string | null;
   email: string;
@@ -120,12 +125,12 @@ export async function GET(request: Request) {
     console.log('\n📊 PHASE 1: Processing database-tracked completed transfers...');
 
     // Find completed transfers that don't have payouts yet
-    const completedTransfers = await db.query.PaymentTransferTable.findMany({
+    const completedTransfers = await db.query.PaymentTransfersTable.findMany({
       where: and(
-        eq(PaymentTransferTable.status, PAYMENT_TRANSFER_STATUS_COMPLETED),
-        isNull(PaymentTransferTable.payoutId), // No payout created yet
+        eq(PaymentTransfersTable.status, PAYMENT_TRANSFER_STATUS_COMPLETED),
+        isNull(PaymentTransfersTable.payoutId), // No payout created yet
       ),
-      orderBy: desc(PaymentTransferTable.created),
+      orderBy: desc(PaymentTransfersTable.created),
     });
 
     console.log(`Found ${completedTransfers.length} completed transfers to evaluate for payout`);
@@ -135,8 +140,8 @@ export async function GET(request: Request) {
     for (const transfer of completedTransfers) {
       try {
         // Get expert user to determine their country and payout delay
-        const expertUser = await db.query.UserTable.findFirst({
-          where: eq(UserTable.clerkUserId, transfer.expertClerkUserId),
+        const expertUser = await db.query.UsersTable.findFirst({
+          where: eq(UsersTable.workosUserId, transfer.expertClerkUserId),
         });
 
         if (!expertUser) {
@@ -154,8 +159,8 @@ export async function GET(request: Request) {
         }
 
         // Get event details to calculate appointment end time
-        const event = await db.query.EventTable.findFirst({
-          where: eq(EventTable.id, transfer.eventId),
+        const event = await db.query.EventsTable.findFirst({
+          where: eq(EventsTable.id, transfer.eventId),
           columns: { durationInMinutes: true },
         });
 
@@ -213,13 +218,13 @@ export async function GET(request: Request) {
           if (result.success) {
             // Update the transfer record with payout information
             await db
-              .update(PaymentTransferTable)
+              .update(PaymentTransfersTable)
               .set({
                 payoutId: result.payoutId,
                 status: PAYMENT_TRANSFER_STATUS_PAID_OUT,
                 updated: new Date(),
               })
-              .where(eq(PaymentTransferTable.id, transfer.id));
+              .where(eq(PaymentTransfersTable.id, transfer.id));
 
             // Send notification with real appointment data
             await sendPayoutNotification(transfer, expertUser, result.payoutId);
@@ -248,10 +253,10 @@ export async function GET(request: Request) {
     console.log('\n🔍 PHASE 2: Stripe fallback verification for legal compliance...');
 
     // Get all users with Connect accounts (these are experts who can receive payouts)
-    const expertUsers = await db.query.UserTable.findMany({
-      where: isNotNull(UserTable.stripeConnectAccountId), // Has a Connect account
+    const expertUsers = await db.query.UsersTable.findMany({
+      where: isNotNull(UsersTable.stripeConnectAccountId), // Has a Connect account
       columns: {
-        clerkUserId: true,
+        workosUserId: true,
         stripeConnectAccountId: true,
         firstName: true,
         lastName: true,
@@ -458,7 +463,7 @@ async function createPayoutForTransfer(
         metadata: {
           paymentTransferId: transfer.id?.toString() || 'stripe_fallback',
           eventId: transfer.eventId || 'unknown',
-          expertClerkUserId: transfer.expertClerkUserId || expertUser.clerkUserId,
+          expertClerkUserId: transfer.expertClerkUserId || expertUser.workosUserId,
           originalTransferAmount: transfer.amount?.toString() || payoutAmount.toString(),
           source,
           processedAt: new Date().toISOString(),
@@ -471,7 +476,7 @@ async function createPayoutForTransfer(
     );
 
     console.log(
-      `✅ Successfully created payout ${payout.id} for ${payoutAmount / 100} ${transfer.currency} to expert ${expertUser.clerkUserId} (${source})`,
+      `✅ Successfully created payout ${payout.id} for ${payoutAmount / 100} ${transfer.currency} to expert ${expertUser.workosUserId} (${source})`,
     );
 
     return {
@@ -582,7 +587,7 @@ async function checkConnectAccountForOverdueBalance(
         metadata: {
           source: 'stripe_fallback',
           reason: 'legal_compliance_verification',
-          expertClerkUserId: expertUser.clerkUserId,
+          expertClerkUserId: expertUser.workosUserId,
           processedAt: new Date().toISOString(),
           automaticComplianceCheck: 'true',
         },
@@ -632,19 +637,19 @@ async function sendPayoutNotification(
     // Get real appointment and client data
     const meetingData = await db
       .select({
-        clientName: UserTable.firstName,
-        clientLastName: UserTable.lastName,
-        serviceName: EventTable.name,
-        appointmentDate: MeetingTable.startTime,
+        clientName: UsersTable.firstName,
+        clientLastName: UsersTable.lastName,
+        serviceName: EventsTable.name,
+        appointmentDate: MeetingsTable.startTime,
       })
-      .from(PaymentTransferTable)
+      .from(PaymentTransfersTable)
       .leftJoin(
-        MeetingTable,
-        eq(MeetingTable.stripePaymentIntentId, PaymentTransferTable.paymentIntentId),
+        MeetingsTable,
+        eq(MeetingsTable.stripePaymentIntentId, PaymentTransfersTable.paymentIntentId),
       )
-      .leftJoin(UserTable, eq(UserTable.clerkUserId, MeetingTable.clerkUserId))
-      .leftJoin(EventTable, eq(EventTable.id, PaymentTransferTable.eventId))
-      .where(eq(PaymentTransferTable.id, transfer.id))
+      .leftJoin(UsersTable, eq(UsersTable.workosUserId, MeetingsTable.workosUserId))
+      .leftJoin(EventsTable, eq(EventsTable.id, PaymentTransfersTable.eventId))
+      .where(eq(PaymentTransfersTable.id, transfer.id))
       .limit(1);
 
     const meeting = meetingData[0];
@@ -692,7 +697,7 @@ async function sendStripeVerificationNotification(
 ) {
   try {
     await createPayoutCompletedNotification({
-      userId: expertUser.clerkUserId,
+      userId: expertUser.workosUserId,
       expertName: `${expertUser.firstName} ${expertUser.lastName}`,
       clientName: 'Various Clients',
       serviceName: 'Account Balance Verification',
@@ -709,7 +714,7 @@ async function sendStripeVerificationNotification(
       eventId: 'stripe_verification',
     });
 
-    console.log(`📧 Stripe verification notification sent to expert ${expertUser.clerkUserId}`);
+    console.log(`📧 Stripe verification notification sent to expert ${expertUser.workosUserId}`);
   } catch (notificationError) {
     console.error('Error sending Stripe verification notification:', notificationError);
     // Continue processing even if notification fails

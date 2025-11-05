@@ -1,7 +1,7 @@
 import { ENV_CONFIG } from '@/config/env';
 import { PAYOUT_DELAY_DAYS } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable } from '@/drizzle/schema';
+import { PaymentTransfersTable } from '@/drizzle/schema-workos';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,
@@ -88,12 +88,12 @@ export async function GET(request: Request) {
     // Get all pending transfers that have not been notified yet
     const pendingTransfers = await db
       .select()
-      .from(PaymentTransferTable)
+      .from(PaymentTransfersTable)
       .where(
         and(
-          eq(PaymentTransferTable.status, 'PENDING'),
-          isNull(PaymentTransferTable.notifiedAt),
-          isNull(PaymentTransferTable.transferId),
+          eq(PaymentTransfersTable.status, 'PENDING'),
+          isNull(PaymentTransfersTable.notifiedAt),
+          isNull(PaymentTransfersTable.transferId),
         ),
       );
 
@@ -141,12 +141,12 @@ export async function GET(request: Request) {
 
           // Update the transfer record with notification timestamp
           await db
-            .update(PaymentTransferTable)
+            .update(PaymentTransfersTable)
             .set({
               notifiedAt: new Date(),
               updated: new Date(),
             })
-            .where(eq(PaymentTransferTable.id, transfer.id));
+            .where(eq(PaymentTransfersTable.id, transfer.id));
 
           console.log(
             `Sent upcoming payout notification to expert ${transfer.expertClerkUserId} for payment transfer ${transfer.id}`,

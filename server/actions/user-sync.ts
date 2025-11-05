@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import { getOrCreateStripeCustomer, syncStripeDataToKV } from '@/lib/integrations/stripe';
 import { eq } from 'drizzle-orm';
@@ -13,27 +13,27 @@ import Stripe from 'stripe';
 /**
  * Get a user by their Clerk user ID from the database
  */
-export async function getUserByClerkId(clerkUserId: string) {
-  return db.query.UserTable.findFirst({
-    where: eq(UserTable.clerkUserId, clerkUserId),
+export async function getUserByClerkId(workosUserId: string) {
+  return db.query.UsersTable.findFirst({
+    where: eq(UsersTable.workosUserId, workosUserId),
   });
 }
 
 /**
  * Get a user from Clerk by their ID using cache
  */
-export async function getUserFromClerk(clerkUserId: string) {
-  return getCachedUserById(clerkUserId);
+export async function getUserFromClerk(workosUserId: string) {
+  return getCachedUserById(workosUserId);
 }
 
 /**
  * Creates a user in the database based on Clerk user data
  */
-export async function createUserFromClerk(clerkUserId: string) {
-  const clerkUser = await getUserFromClerk(clerkUserId);
+export async function createUserFromClerk(workosUserId: string) {
+  const clerkUser = await getUserFromClerk(workosUserId);
 
   if (!clerkUser) {
-    throw new Error(`No Clerk user found with ID: ${clerkUserId}`);
+    throw new Error(`No Clerk user found with ID: ${workosUserId}`);
   }
 
   // Get primary email
@@ -42,7 +42,7 @@ export async function createUserFromClerk(clerkUserId: string) {
   );
 
   if (!primaryEmailObject) {
-    throw new Error(`No primary email found for Clerk user: ${clerkUserId}`);
+    throw new Error(`No primary email found for Clerk user: ${workosUserId}`);
   }
 
   const email = primaryEmailObject.emailAddress;
@@ -53,9 +53,9 @@ export async function createUserFromClerk(clerkUserId: string) {
 
   // Insert the user
   const [newUser] = await db
-    .insert(UserTable)
+    .insert(UsersTable)
     .values({
-      clerkUserId,
+      workosUserId,
       email,
       firstName,
       lastName,
@@ -67,7 +67,7 @@ export async function createUserFromClerk(clerkUserId: string) {
 
   console.log('Created new user in database from Clerk:', {
     id: newUser.id,
-    clerkUserId,
+    workosUserId,
     email,
     firstName,
     lastName,
@@ -80,12 +80,12 @@ export async function createUserFromClerk(clerkUserId: string) {
 /**
  * Get user data from the database or create if it doesn't exist
  */
-export async function getOrCreateUserByClerkId(clerkUserId: string) {
-  let user = await getUserByClerkId(clerkUserId);
+export async function getOrCreateUserByClerkId(workosUserId: string) {
+  let user = await getUserByClerkId(workosUserId);
 
   if (!user) {
-    console.log('User not found in database, creating from Clerk:', clerkUserId);
-    user = await createUserFromClerk(clerkUserId);
+    console.log('User not found in database, creating from Clerk:', workosUserId);
+    user = await createUserFromClerk(workosUserId);
   }
 
   return user;
@@ -94,7 +94,7 @@ export async function getOrCreateUserByClerkId(clerkUserId: string) {
 /**
  * Ensure user has a Stripe customer ID and it's properly synced
  */
-export async function ensureUserStripeCustomer(user: typeof UserTable.$inferSelect) {
+export async function ensureUserStripeCustomer(user: typeof UsersTable.$inferSelect) {
   // Already has a Stripe customer ID
   if (user.stripeCustomerId) {
     console.log('User already has Stripe customer ID:', user.stripeCustomerId);
@@ -122,12 +122,12 @@ export async function ensureUserStripeCustomer(user: typeof UserTable.$inferSele
 
   // Update the user record with the customer ID
   await db
-    .update(UserTable)
+    .update(UsersTable)
     .set({
       stripeCustomerId: customerId,
       updatedAt: new Date(),
     })
-    .where(eq(UserTable.id, user.id));
+    .where(eq(UsersTable.id, user.id));
 
   console.log('Updated user with Stripe customer ID:', {
     userId: user.id,
@@ -180,11 +180,11 @@ export async function updateStripeCustomerEmail(customerId: string, email: strin
  * Main function to ensure user is fully synchronized across all systems
  * Call this function at critical points in the application
  */
-export async function ensureFullUserSynchronization(clerkUserId: string) {
+export async function ensureFullUserSynchronization(workosUserId: string) {
   // Step 1: Get the user from our database or create if needed
-  const dbUser = await getOrCreateUserByClerkId(clerkUserId);
+  const dbUser = await getOrCreateUserByClerkId(workosUserId);
   if (!dbUser) {
-    console.error('Failed to get or create user in database:', clerkUserId);
+    console.error('Failed to get or create user in database:', workosUserId);
     return null;
   }
 
@@ -208,12 +208,12 @@ export async function ensureFullUserSynchronization(clerkUserId: string) {
         if (newCustomerId) {
           // Update the user record with the new customer ID
           await db
-            .update(UserTable)
+            .update(UsersTable)
             .set({
               stripeCustomerId: newCustomerId,
               updatedAt: new Date(),
             })
-            .where(eq(UserTable.id, dbUser.id));
+            .where(eq(UsersTable.id, dbUser.id));
 
           // Update our local copy of the user
           dbUser.stripeCustomerId = newCustomerId;
@@ -236,12 +236,12 @@ export async function ensureFullUserSynchronization(clerkUserId: string) {
         if (newCustomerId) {
           // Update the user record with the new customer ID
           await db
-            .update(UserTable)
+            .update(UsersTable)
             .set({
               stripeCustomerId: newCustomerId,
               updatedAt: new Date(),
             })
-            .where(eq(UserTable.id, dbUser.id));
+            .where(eq(UsersTable.id, dbUser.id));
 
           // Update our local copy of the user
           dbUser.stripeCustomerId = newCustomerId;

@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable } from '@/drizzle/schema';
+import { PaymentTransfersTable } from '@/drizzle/schema-workos';
 import { PAYMENT_TRANSFER_STATUS_COMPLETED } from '@/lib/constants/payment-transfers';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
@@ -45,13 +45,13 @@ export async function checkExistingTransfer(
 
     // Update our database record with the existing transfer ID
     await db
-      .update(PaymentTransferTable)
+      .update(PaymentTransfersTable)
       .set({
         status: PAYMENT_TRANSFER_STATUS_COMPLETED,
         transferId: existingTransferId,
         updated: new Date(),
       })
-      .where(eq(PaymentTransferTable.id, transferRecord.id));
+      .where(eq(PaymentTransfersTable.id, transferRecord.id));
 
     console.log(
       `✅ Updated database record ${transferRecord.id} with existing transfer ID: ${existingTransferId}`,
@@ -90,13 +90,13 @@ export async function checkExistingTransfer(
 
       // Update our database record with the existing transfer ID
       await db
-        .update(PaymentTransferTable)
+        .update(PaymentTransfersTable)
         .set({
           status: PAYMENT_TRANSFER_STATUS_COMPLETED,
           transferId: transfer.id,
           updated: new Date(),
         })
-        .where(eq(PaymentTransferTable.id, transferRecord.id));
+        .where(eq(PaymentTransfersTable.id, transferRecord.id));
 
       console.log(
         `✅ Updated database record ${transferRecord.id} with existing transfer ID: ${transfer.id}`,

@@ -37,7 +37,7 @@ async function getPublishedUsernames(): Promise<string[]> {
     });
 
     // Try to get published profiles from database
-    const profiles = await db.query.ProfileTable.findMany({
+    const profiles = await db.query.ProfilesTable.findMany({
       where: ({ published }) => eq(published, true),
       with: {
         primaryCategory: true,
@@ -50,7 +50,7 @@ async function getPublishedUsernames(): Promise<string[]> {
     if (profiles.length > 0) {
       // Database query succeeded, get usernames from Clerk
       const users = await clerk.users.getUserList({
-        userId: profiles.map((profile) => profile.clerkUserId),
+        userId: profiles.map((profile) => profile.workosUserId),
       });
 
       console.log(`🗺️ [Sitemap] Found ${users.data.length} users in Clerk for published profiles`);
@@ -91,24 +91,24 @@ async function getPublishedUserEvents(): Promise<Array<{ username: string; event
     });
 
     // Try to get published profiles and their events from database
-    const profiles = await db.query.ProfileTable.findMany({
+    const profiles = await db.query.ProfilesTable.findMany({
       where: ({ published }) => eq(published, true),
     });
 
     if (profiles.length > 0) {
       // Get all active events for published users
-      const events = await db.query.EventTable.findMany({
+      const events = await db.query.EventsTable.findMany({
         where: ({ isActive }) => eq(isActive, true),
       });
 
       // Filter events to only include those from published users
       const publishedUserEvents = events.filter((event) =>
-        profiles.some((profile) => profile.clerkUserId === event.clerkUserId),
+        profiles.some((profile) => profile.workosUserId === event.workosUserId),
       );
 
       if (publishedUserEvents.length > 0) {
         // Get usernames for all users with events
-        const eventUserIds = [...new Set(publishedUserEvents.map((event) => event.clerkUserId))];
+        const eventUserIds = [...new Set(publishedUserEvents.map((event) => event.workosUserId))];
         const users = await clerk.users.getUserList({
           userId: eventUserIds,
         });
@@ -121,7 +121,7 @@ async function getPublishedUserEvents(): Promise<Array<{ username: string; event
         // Generate the username/eventSlug combinations
         const userEvents = publishedUserEvents
           .map((event) => {
-            const username = userIdToUsername.get(event.clerkUserId);
+            const username = userIdToUsername.get(event.workosUserId);
             if (!username) return null;
 
             return {

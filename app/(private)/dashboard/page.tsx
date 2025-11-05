@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/drizzle/db';
-import { ProfileTable } from '@/drizzle/schema';
+import { ProfilesTable } from '@/drizzle/schema-workos';
 import { ROLE_COMMUNITY_EXPERT, ROLE_TOP_EXPERT } from '@/lib/auth/roles';
 import { UserButton } from '@clerk/nextjs';
 import { auth, currentUser } from '@clerk/nextjs/server';
@@ -45,8 +45,8 @@ export default async function HomePage() {
 
   // Get profile publication status from database (single source of truth)
   const profile = isExpert
-    ? await db.query.ProfileTable.findFirst({
-        where: eq(ProfileTable.clerkUserId, userId),
+    ? await db.query.ProfilesTable.findFirst({
+        where: eq(ProfilesTable.workosUserId, userId),
         columns: {
           published: true,
         },

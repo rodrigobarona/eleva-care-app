@@ -18,8 +18,8 @@ export default async function SchedulePage() {
   if (userId == null) return redirectToSignIn();
 
   const [scheduleData, blockedDates] = await Promise.all([
-    db.query.ScheduleTable.findFirst({
-      where: ({ clerkUserId }, { eq }) => eq(clerkUserId, userId),
+    db.query.SchedulesTable.findFirst({
+      where: ({ workosUserId }, { eq }) => eq(workosUserId, userId),
       with: { availabilities: true },
     }),
     getBlockedDates(),

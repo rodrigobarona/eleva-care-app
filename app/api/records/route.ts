@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { RecordTable } from '@/drizzle/schema';
+import { RecordsTable } from '@/drizzle/schema-workos';
 import { decryptRecord } from '@/lib/utils/encryption';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { auth } from '@clerk/nextjs/server';
@@ -9,14 +9,14 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const { userId: clerkUserId } = await auth();
-    if (!clerkUserId) {
+    const { userId: workosUserId } = await auth();
+    if (!workosUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get all records for this expert
-    const records = await db.query.RecordTable.findMany({
-      where: eq(RecordTable.expertId, clerkUserId),
+    const records = await db.query.RecordsTable.findMany({
+      where: eq(RecordsTable.expertId, workosUserId),
       orderBy: (fields, { desc }) => [desc(fields.createdAt)],
     });
 
@@ -33,13 +33,13 @@ export async function GET() {
     const headersList = await headers();
     try {
       await logAuditEvent(
-        clerkUserId,
+        workosUserId,
         'READ_MEDICAL_RECORDS_FOR_MEETING',
         'medical_record', // resourceType could also be 'expert_records_collection'
-        clerkUserId, // Using expert's clerkUserId as the resource identifier for this bulk action
+        workosUserId, // Using expert's workosUserId as the resource identifier for this bulk action
         null,
         {
-          expertId: clerkUserId,
+          expertId: workosUserId,
           recordsFetched: decryptedRecords.length,
           recordIds: decryptedRecords.map((r) => r.id), // Log IDs of all records accessed
         },

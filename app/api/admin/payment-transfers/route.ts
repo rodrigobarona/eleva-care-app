@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable } from '@/drizzle/schema';
+import { PaymentTransfersTable } from '@/drizzle/schema-workos';
 import { adminAuthMiddleware } from '@/lib/auth/admin-middleware';
 import {
   PAYMENT_TRANSFER_STATUSES,
@@ -59,28 +59,28 @@ export async function GET(request: NextRequest) {
           { status: 400 },
         );
       }
-      conditions.push(eq(PaymentTransferTable.status, filters.status as PaymentTransferStatus));
+      conditions.push(eq(PaymentTransfersTable.status, filters.status as PaymentTransferStatus));
     }
 
     if (filters.expertId) {
-      conditions.push(eq(PaymentTransferTable.expertClerkUserId, filters.expertId));
+      conditions.push(eq(PaymentTransfersTable.expertClerkUserId, filters.expertId));
     }
 
     if (filters.eventId) {
-      conditions.push(like(PaymentTransferTable.eventId, `%${filters.eventId}%`));
+      conditions.push(like(PaymentTransfersTable.eventId, `%${filters.eventId}%`));
     }
 
     if (filters.startDate) {
       const startDate = new Date(filters.startDate);
       if (!Number.isNaN(startDate.getTime())) {
-        conditions.push(gte(PaymentTransferTable.scheduledTransferTime, startDate));
+        conditions.push(gte(PaymentTransfersTable.scheduledTransferTime, startDate));
       }
     }
 
     if (filters.endDate) {
       const endDate = new Date(filters.endDate);
       if (!Number.isNaN(endDate.getTime())) {
-        conditions.push(lte(PaymentTransferTable.scheduledTransferTime, endDate));
+        conditions.push(lte(PaymentTransfersTable.scheduledTransferTime, endDate));
       }
     }
 
@@ -90,7 +90,7 @@ export async function GET(request: NextRequest) {
     // Get count of total records matching filter
     const countResult = await db
       .select({ count: sql<number>`count(*)` })
-      .from(PaymentTransferTable)
+      .from(PaymentTransfersTable)
       .where(conditions.length ? and(...conditions) : undefined);
 
     const totalCount = countResult[0]?.count || 0;
@@ -99,20 +99,20 @@ export async function GET(request: NextRequest) {
     const getSortColumn = () => {
       switch (filters.sortBy) {
         case 'amount':
-          return PaymentTransferTable.amount;
+          return PaymentTransfersTable.amount;
         case 'created':
-          return PaymentTransferTable.created;
+          return PaymentTransfersTable.created;
         case 'status':
-          return PaymentTransferTable.status;
+          return PaymentTransfersTable.status;
         case 'sessionStartTime':
-          return PaymentTransferTable.sessionStartTime;
+          return PaymentTransfersTable.sessionStartTime;
         default:
-          return PaymentTransferTable.scheduledTransferTime;
+          return PaymentTransfersTable.scheduledTransferTime;
       }
     };
 
     // Get paginated results with sorting
-    const transfers = await db.query.PaymentTransferTable.findMany({
+    const transfers = await db.query.PaymentTransfersTable.findMany({
       where: conditions.length ? and(...conditions) : undefined,
       orderBy: filters.sortDirection === 'asc' ? asc(getSortColumn()) : desc(getSortColumn()),
       offset,
@@ -162,8 +162,8 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Check if the transfer exists
-    const transfer = await db.query.PaymentTransferTable.findFirst({
-      where: eq(PaymentTransferTable.id, transferId),
+    const transfer = await db.query.PaymentTransfersTable.findFirst({
+      where: eq(PaymentTransfersTable.id, transferId),
     });
 
     if (!transfer) {
@@ -186,9 +186,9 @@ export async function PATCH(request: NextRequest) {
 
     // Update the transfer
     await db
-      .update(PaymentTransferTable)
+      .update(PaymentTransfersTable)
       .set(updates)
-      .where(eq(PaymentTransferTable.id, transferId));
+      .where(eq(PaymentTransfersTable.id, transferId));
 
     console.log(`Admin ${userId} updated transfer ${transferId}`);
 

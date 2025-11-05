@@ -3,13 +3,13 @@ import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
   BlockedDatesTable,
-  EventTable,
-  MeetingTable,
-  PaymentTransferTable,
-  schedulingSettings,
-  SlotReservationTable,
-  UserTable,
-} from '@/drizzle/schema';
+  EventsTable,
+  MeetingsTable,
+  PaymentTransfersTable,
+  SchedulingSettingsTable,
+  SlotReservationsTable,
+  UsersTable,
+} from '@/drizzle/schema-workos';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
@@ -204,8 +204,8 @@ async function checkAppointmentConflict(
     console.log(`🔍 Enhanced collision check for expert ${expertId} at ${startTime.toISOString()}`);
 
     // Get the event details to calculate the appointment end time
-    const event = await db.query.EventTable.findFirst({
-      where: eq(EventTable.id, eventId),
+    const event = await db.query.EventsTable.findFirst({
+      where: eq(EventsTable.id, eventId),
       columns: { durationInMinutes: true },
     });
 
@@ -225,7 +225,7 @@ async function checkAppointmentConflict(
     // Get all blocked dates for the expert (with their individual timezones)
     // Note: Each blocked date has its own timezone field that must be used for accurate detection
     const blockedDates = await db.query.BlockedDatesTable.findMany({
-      where: eq(BlockedDatesTable.clerkUserId, expertId),
+      where: eq(BlockedDatesTable.workosUserId, expertId),
     });
 
     console.log(`🗓️  Checking ${blockedDates.length} blocked dates for expert ${expertId}`);
@@ -277,10 +277,10 @@ async function checkAppointmentConflict(
     );
 
     // PRIORITY 2: Check for existing confirmed meetings with TIME RANGE OVERLAP
-    const conflictingMeetings = await db.query.MeetingTable.findMany({
+    const conflictingMeetings = await db.query.MeetingsTable.findMany({
       where: and(
-        eq(MeetingTable.clerkUserId, expertId),
-        eq(MeetingTable.stripePaymentStatus, 'succeeded'),
+        eq(MeetingsTable.workosUserId, expertId),
+        eq(MeetingsTable.stripePaymentStatus, 'succeeded'),
       ),
       with: {
         event: {
@@ -309,8 +309,8 @@ async function checkAppointmentConflict(
     console.log('✅ No time range conflicts found');
 
     // PRIORITY 3: Check minimum notice period requirements from expert's settings
-    const expertSchedulingSettings = await db.query.schedulingSettings.findFirst({
-      where: eq(schedulingSettings.userId, expertId),
+    const expertSchedulingSettings = await db.query.SchedulingSettingsTable.findFirst({
+      where: eq(SchedulingSettingsTable.workosUserId, expertId),
     });
 
     // Get the minimum notice in minutes from expert's settings, default to 1440 (24 hours)
@@ -641,8 +641,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
           if (refund) {
             // Get expert's name for notification
-            const expertUser = await db.query.UserTable.findFirst({
-              where: eq(UserTable.clerkUserId, meetingData.expert),
+            const expertUser = await db.query.UsersTable.findFirst({
+              where: eq(UsersTable.workosUserId, meetingData.expert),
               columns: { firstName: true, lastName: true },
             });
 
@@ -669,12 +669,12 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
             // Mark the meeting as refunded and return early
             await db
-              .update(MeetingTable)
+              .update(MeetingsTable)
               .set({
                 stripePaymentStatus: 'refunded',
                 updatedAt: new Date(),
               })
-              .where(eq(MeetingTable.stripePaymentIntentId, paymentIntent.id));
+              .where(eq(MeetingsTable.stripePaymentIntentId, paymentIntent.id));
 
             return; // Exit early - don't create calendar event or proceed with normal flow
           }
@@ -687,12 +687,12 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
     // If no conflict or not a Multibanco payment, proceed with normal flow
     // Update Meeting status
     const updatedMeeting = await db
-      .update(MeetingTable)
+      .update(MeetingsTable)
       .set({
         stripePaymentStatus: 'succeeded',
         updatedAt: new Date(),
       })
-      .where(eq(MeetingTable.stripePaymentIntentId, paymentIntent.id))
+      .where(eq(MeetingsTable.stripePaymentIntentId, paymentIntent.id))
       .returning();
 
     if (updatedMeeting.length === 0) {
@@ -714,8 +714,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           console.log(`📅 Creating deferred calendar event for meeting ${meeting.id}...`);
 
           // Get the event details for calendar creation
-          const event = await db.query.EventTable.findFirst({
-            where: eq(EventTable.id, meeting.eventId),
+          const event = await db.query.EventsTable.findFirst({
+            where: eq(EventsTable.id, meeting.eventId),
           });
 
           if (event) {
@@ -725,13 +725,13 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
             console.log('🚀 Calling createCalendarEvent for deferred booking:', {
               meetingId: meeting.id,
-              clerkUserId: meeting.clerkUserId,
+              workosUserId: meeting.workosUserId,
               guestEmail: meeting.guestEmail,
               timezone: meeting.timezone,
             });
 
             const calendarEvent = await createCalendarEvent({
-              clerkUserId: meeting.clerkUserId,
+              workosUserId: meeting.workosUserId,
               guestName: meeting.guestName,
               guestEmail: meeting.guestEmail,
               startTime: meeting.startTime,
@@ -747,12 +747,12 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             // Update meeting with the new URL
             if (meetingUrl) {
               await db
-                .update(MeetingTable)
+                .update(MeetingsTable)
                 .set({
                   meetingUrl: meetingUrl,
                   updatedAt: new Date(),
                 })
-                .where(eq(MeetingTable.id, meeting.id));
+                .where(eq(MeetingsTable.id, meeting.id));
 
               console.log(
                 `✅ Calendar event created and meeting URL updated for meeting ${meeting.id}`,
@@ -766,8 +766,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             // Clean up slot reservation if it exists
             try {
               await db
-                .delete(SlotReservationTable)
-                .where(eq(SlotReservationTable.stripePaymentIntentId, paymentIntent.id));
+                .delete(SlotReservationsTable)
+                .where(eq(SlotReservationsTable.stripePaymentIntentId, paymentIntent.id));
               console.log(`🧹 Cleaned up slot reservation for payment intent ${paymentIntent.id}`);
             } catch (cleanupError) {
               console.error('❌ Failed to clean up slot reservation:', cleanupError);
@@ -790,8 +790,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
       }
 
       // Find the payment transfer record
-      const transfer = await db.query.PaymentTransferTable.findFirst({
-        where: eq(PaymentTransferTable.paymentIntentId, paymentIntent.id),
+      const transfer = await db.query.PaymentTransfersTable.findFirst({
+        where: eq(PaymentTransfersTable.paymentIntentId, paymentIntent.id),
       });
 
       // Handle transfer status update
@@ -870,12 +870,12 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           }
 
           // All validations passed, create transfer record
-          await db.insert(PaymentTransferTable).values({
+          await db.insert(PaymentTransfersTable).values({
             paymentIntentId: paymentIntent.id,
             checkoutSessionId: 'UNKNOWN', // Session ID not available in payment intent metadata per best practices
             eventId: meeting.eventId,
             expertConnectAccountId: transferData.account,
-            expertClerkUserId: meeting.clerkUserId,
+            expertClerkUserId: meeting.workosUserId,
             amount: amount,
             platformFee: fee,
             currency: 'eur',
@@ -896,12 +896,12 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         await withRetry(
           async () => {
             await db
-              .update(PaymentTransferTable)
+              .update(PaymentTransfersTable)
               .set({
                 status: PAYMENT_TRANSFER_STATUS_READY,
                 updated: new Date(),
               })
-              .where(eq(PaymentTransferTable.id, transfer.id));
+              .where(eq(PaymentTransfersTable.id, transfer.id));
           },
           3,
           1000,
@@ -913,9 +913,9 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
         // Also trigger Novu marketplace workflow for enhanced notifications
         try {
-          const user = await db.query.UserTable.findFirst({
-            where: eq(UserTable.clerkUserId, transfer.expertClerkUserId),
-            columns: { clerkUserId: true, firstName: true, lastName: true, email: true },
+          const user = await db.query.UsersTable.findFirst({
+            where: eq(UsersTable.workosUserId, transfer.expertClerkUserId),
+            columns: { workosUserId: true, firstName: true, lastName: true, email: true },
           });
 
           if (user) {
@@ -933,7 +933,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             await triggerWorkflow({
               workflowId: 'marketplace-payment-received',
               to: {
-                subscriberId: user.clerkUserId,
+                subscriberId: user.workosUserId,
                 email: user.email || 'no-email@eleva.care',
                 firstName: user.firstName || '',
                 lastName: user.lastName || '',
@@ -966,8 +966,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
 
       // Send email notification to the guest
       if (meeting) {
-        const meetingDetails = await db.query.MeetingTable.findFirst({
-          where: eq(MeetingTable.stripePaymentIntentId, paymentIntent.id),
+        const meetingDetails = await db.query.MeetingsTable.findFirst({
+          where: eq(MeetingsTable.stripePaymentIntentId, paymentIntent.id),
           with: {
             event: {
               columns: {
@@ -978,10 +978,10 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           },
         });
 
-        // Fetch user details separately since there's no user relation on MeetingTable
+        // Fetch user details separately since there's no user relation on MeetingsTable
         const userDetails = meetingDetails
-          ? await db.query.UserTable.findFirst({
-              where: eq(UserTable.clerkUserId, meetingDetails.clerkUserId),
+          ? await db.query.UsersTable.findFirst({
+              where: eq(UsersTable.workosUserId, meetingDetails.workosUserId),
               columns: {
                 firstName: true,
                 lastName: true,
@@ -1066,22 +1066,22 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
   try {
     // Update Meeting status
     const updatedMeetings = await db
-      .update(MeetingTable)
+      .update(MeetingsTable)
       .set({
         stripePaymentStatus: 'failed',
         updatedAt: new Date(),
       })
-      .where(eq(MeetingTable.stripePaymentIntentId, paymentIntent.id))
+      .where(eq(MeetingsTable.stripePaymentIntentId, paymentIntent.id))
       .returning({
-        id: MeetingTable.id,
-        clerkUserId: MeetingTable.clerkUserId, // expert's clerkId
-        guestEmail: MeetingTable.guestEmail,
-        guestName: MeetingTable.guestName,
-        startTime: MeetingTable.startTime,
-        timezone: MeetingTable.timezone,
-        meetingUrl: MeetingTable.meetingUrl,
-        guestNotes: MeetingTable.guestNotes,
-        eventId: MeetingTable.eventId,
+        id: MeetingsTable.id,
+        workosUserId: MeetingsTable.workosUserId, // expert's clerkId
+        guestEmail: MeetingsTable.guestEmail,
+        guestName: MeetingsTable.guestName,
+        startTime: MeetingsTable.startTime,
+        timezone: MeetingsTable.timezone,
+        meetingUrl: MeetingsTable.meetingUrl,
+        guestNotes: MeetingsTable.guestNotes,
+        eventId: MeetingsTable.eventId,
       });
 
     const meetingDetails = updatedMeetings.length > 0 ? updatedMeetings[0] : null;
@@ -1099,7 +1099,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
       try {
         // const headersList = headers(); // Cannot use headers() in this context directly, not a NextApiRequest
         await logAuditEvent(
-          meetingDetails.clerkUserId, // Expert's clerkId as the user associated with the event being impacted
+          meetingDetails.workosUserId, // Expert's clerkId as the user associated with the event being impacted
           'MEETING_PAYMENT_FAILED',
           'meeting',
           meetingDetails.id,
@@ -1108,7 +1108,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
             meetingId: meetingDetails.id,
             paymentIntentId: paymentIntent.id,
             guestEmail: meetingDetails.guestEmail,
-            expertId: meetingDetails.clerkUserId,
+            expertId: meetingDetails.workosUserId,
             failureReason: lastPaymentError,
           },
           'SYSTEM_WEBHOOK', // IP Address
@@ -1123,8 +1123,8 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
     }
 
     // Find the payment transfer record
-    const transfer = await db.query.PaymentTransferTable.findFirst({
-      where: eq(PaymentTransferTable.paymentIntentId, paymentIntent.id),
+    const transfer = await db.query.PaymentTransfersTable.findFirst({
+      where: eq(PaymentTransfersTable.paymentIntentId, paymentIntent.id),
     });
 
     if (!transfer) {
@@ -1141,13 +1141,13 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
       await withRetry(
         async () => {
           await db
-            .update(PaymentTransferTable)
+            .update(PaymentTransfersTable)
             .set({
               status: PAYMENT_TRANSFER_STATUS_FAILED,
               stripeErrorMessage: lastPaymentError, // Store the failure reason
               updated: new Date(),
             })
-            .where(eq(PaymentTransferTable.id, transfer.id));
+            .where(eq(PaymentTransfersTable.id, transfer.id));
         },
         3,
         1000,
@@ -1169,13 +1169,13 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
 
     // Send email notification to the guest about cancellation
     if (meetingDetails) {
-      const eventInfo = await db.query.EventTable.findFirst({
-        where: eq(EventTable.id, meetingDetails.eventId),
+      const eventInfo = await db.query.EventsTable.findFirst({
+        where: eq(EventsTable.id, meetingDetails.eventId),
         columns: { name: true, durationInMinutes: true },
       });
 
-      const expertInfo = await db.query.UserTable.findFirst({
-        where: eq(UserTable.clerkUserId, meetingDetails.clerkUserId),
+      const expertInfo = await db.query.UsersTable.findFirst({
+        where: eq(UsersTable.workosUserId, meetingDetails.workosUserId),
         columns: { firstName: true, lastName: true },
       });
 
@@ -1254,12 +1254,12 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
   try {
     // Update Meeting status
     const updatedMeeting = await db
-      .update(MeetingTable)
+      .update(MeetingsTable)
       .set({
-        stripePaymentStatus: 'refunded', // Ensure this matches the enum in MeetingTable schema
+        stripePaymentStatus: 'refunded', // Ensure this matches the enum in MeetingsTable schema
         updatedAt: new Date(),
       })
-      .where(eq(MeetingTable.stripePaymentIntentId, paymentIntentId))
+      .where(eq(MeetingsTable.stripePaymentIntentId, paymentIntentId))
       .returning();
 
     if (updatedMeeting.length === 0) {
@@ -1273,8 +1273,8 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
     }
 
     // Find and update the payment transfer record
-    const transfer = await db.query.PaymentTransferTable.findFirst({
-      where: eq(PaymentTransferTable.paymentIntentId, paymentIntentId),
+    const transfer = await db.query.PaymentTransfersTable.findFirst({
+      where: eq(PaymentTransfersTable.paymentIntentId, paymentIntentId),
     });
 
     if (!transfer) {
@@ -1289,12 +1289,12 @@ export async function handleChargeRefunded(charge: Stripe.Charge) {
     // Update transfer status
     // No need for withRetry here usually as charge.refunded is a final state from Stripe's perspective.
     await db
-      .update(PaymentTransferTable)
+      .update(PaymentTransfersTable)
       .set({
-        status: PAYMENT_TRANSFER_STATUS_REFUNDED, // Ensure this matches PaymentTransferTable schema/enum if any
+        status: PAYMENT_TRANSFER_STATUS_REFUNDED, // Ensure this matches PaymentTransfersTable schema/enum if any
         updated: new Date(),
       })
-      .where(eq(PaymentTransferTable.id, transfer.id));
+      .where(eq(PaymentTransfersTable.id, transfer.id));
     console.log(`Transfer record ${transfer.id} status updated to REFUNDED.`);
 
     // Notify the expert about the refund
@@ -1323,8 +1323,8 @@ export async function handleDisputeCreated(dispute: Stripe.Dispute) {
     // So, we primarily update the transfer record.
 
     // Find and update the payment transfer record
-    const transfer = await db.query.PaymentTransferTable.findFirst({
-      where: eq(PaymentTransferTable.paymentIntentId, paymentIntentId),
+    const transfer = await db.query.PaymentTransfersTable.findFirst({
+      where: eq(PaymentTransfersTable.paymentIntentId, paymentIntentId),
     });
 
     if (!transfer) {
@@ -1334,12 +1334,12 @@ export async function handleDisputeCreated(dispute: Stripe.Dispute) {
 
     // Update transfer status
     await db
-      .update(PaymentTransferTable)
+      .update(PaymentTransfersTable)
       .set({
-        status: PAYMENT_TRANSFER_STATUS_DISPUTED, // Ensure this matches PaymentTransferTable schema/enum
+        status: PAYMENT_TRANSFER_STATUS_DISPUTED, // Ensure this matches PaymentTransfersTable schema/enum
         updated: new Date(),
       })
-      .where(eq(PaymentTransferTable.id, transfer.id));
+      .where(eq(PaymentTransfersTable.id, transfer.id));
     console.log(`Transfer record ${transfer.id} status updated to DISPUTED.`);
 
     // Create notification for the expert
@@ -1376,10 +1376,10 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
 
       // Create slot reservation for Multibanco payments
       try {
-        const { eventId, clerkUserId, selectedDate, selectedTime, customerEmail } =
+        const { eventId, workosUserId, selectedDate, selectedTime, customerEmail } =
           paymentIntent.metadata;
 
-        if (!eventId || !clerkUserId || !selectedDate || !selectedTime) {
+        if (!eventId || !workosUserId || !selectedDate || !selectedTime) {
           console.error('Missing required metadata for slot reservation');
           return;
         }
@@ -1387,7 +1387,11 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
         const startDateTime = new Date(`${selectedDate}T${selectedTime}`);
 
         // Get event details to calculate end time
-        const event = await db.select().from(EventTable).where(eq(EventTable.id, eventId)).limit(1);
+        const event = await db
+          .select()
+          .from(EventsTable)
+          .where(eq(EventsTable.id, eventId))
+          .limit(1);
 
         if (event.length === 0) {
           console.error(`Event ${eventId} not found`);
@@ -1398,9 +1402,9 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
         endDateTime.setMinutes(endDateTime.getMinutes() + event[0].durationInMinutes);
 
         // Create slot reservation
-        await db.insert(SlotReservationTable).values({
+        await db.insert(SlotReservationsTable).values({
           eventId,
-          clerkUserId,
+          workosUserId,
           guestEmail: customerEmail || '',
           startTime: startDateTime,
           endTime: endDateTime,
@@ -1415,13 +1419,13 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
           try {
             // Get expert details
             const expert = await db
-              .select({ clerkUserId: UserTable.clerkUserId })
-              .from(UserTable)
-              .where(eq(UserTable.clerkUserId, clerkUserId))
+              .select({ workosUserId: UsersTable.workosUserId })
+              .from(UsersTable)
+              .where(eq(UsersTable.workosUserId, workosUserId))
               .limit(1);
 
             if (expert.length === 0) {
-              console.error(`Expert ${clerkUserId} not found`);
+              console.error(`Expert ${workosUserId} not found`);
               return;
             }
 

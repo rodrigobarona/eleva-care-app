@@ -17,7 +17,7 @@ import ReactMarkdown from 'react-markdown';
 type Event = {
   id: string;
   name: string;
-  clerkUserId: string;
+  workosUserId: string;
   description: string | null;
   durationInMinutes: number;
   slug: string;
@@ -30,15 +30,15 @@ interface EventBookingListProps {
   username: string;
 }
 
-async function getCalendarStatus(clerkUserId: string) {
+async function getCalendarStatus(workosUserId: string) {
   try {
-    logger.info('Checking calendar status', { userId: clerkUserId });
+    logger.info('Checking calendar status', { userId: workosUserId });
 
     const calendarService = GoogleCalendarService.getInstance();
-    const hasValidTokens = await calendarService.hasValidTokens(clerkUserId);
+    const hasValidTokens = await calendarService.hasValidTokens(workosUserId);
 
     if (!hasValidTokens) {
-      logger.info('No valid calendar tokens', { userId: clerkUserId });
+      logger.info('No valid calendar tokens', { userId: workosUserId });
       return { isConnected: false, error: 'Calendar not connected' };
     }
 
@@ -46,16 +46,16 @@ async function getCalendarStatus(clerkUserId: string) {
     // Just check a single day to minimize API overhead
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
-    await calendarService.getCalendarEventTimes(clerkUserId, {
+    await calendarService.getCalendarEventTimes(workosUserId, {
       start: now,
       end: tomorrow,
     });
 
-    logger.info('Calendar connected successfully', { userId: clerkUserId });
+    logger.info('Calendar connected successfully', { userId: workosUserId });
     return { isConnected: true, error: null };
   } catch (error) {
     logger.error('Calendar status check failed', {
-      userId: clerkUserId,
+      userId: workosUserId,
       error: error instanceof Error ? error.message : String(error),
     });
     return { isConnected: false, error: 'Calendar access error' };
@@ -64,7 +64,7 @@ async function getCalendarStatus(clerkUserId: string) {
 
 async function getValidTimesForEvent(eventId: string) {
   try {
-    const event = await db.query.EventTable.findFirst({
+    const event = await db.query.EventsTable.findFirst({
       where: ({ id }, { eq }) => eq(id, eventId),
     });
 
@@ -75,8 +75,8 @@ async function getValidTimesForEvent(eventId: string) {
     // Fetch scheduling settings for the user
     let timeSlotInterval = 15; // Default fallback value
     try {
-      const settings = await db.query.schedulingSettings.findFirst({
-        where: ({ userId }, { eq }) => eq(userId, event.clerkUserId),
+      const settings = await db.query.SchedulingSettingsTable.findFirst({
+        where: ({ workosUserId }, { eq }) => eq(workosUserId, event.workosUserId),
       });
 
       if (settings?.timeSlotInterval) {
@@ -103,7 +103,7 @@ async function getValidTimesForEvent(eventId: string) {
     const endDate = addMonths(startTime, 2);
 
     const calendarService = GoogleCalendarService.getInstance();
-    const calendarEvents = await calendarService.getCalendarEventTimes(event.clerkUserId, {
+    const calendarEvents = await calendarService.getCalendarEventTimes(event.workosUserId, {
       start: startTime,
       end: endDate,
     });
@@ -282,8 +282,8 @@ async function EventsList({ userId, username }: { userId: string; username: stri
   }
 
   logger.info('Fetching events from database', { userId });
-  const events = await db.query.EventTable.findMany({
-    where: ({ clerkUserId: userIdCol, isActive }, { eq, and }) =>
+  const events = await db.query.EventsTable.findMany({
+    where: ({ workosUserId: userIdCol, isActive }, { eq, and }) =>
       and(eq(userIdCol, userId), eq(isActive, true)),
     orderBy: ({ order }, { asc }) => asc(order),
   });

@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     }
 
     // First get the event by slug
-    const event = await db.query.EventTable.findFirst({
+    const event = await db.query.EventsTable.findFirst({
       where: (events, { eq }) => eq(events.slug, eventSlug),
     });
 
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
     }
 
     // Then check for the meeting
-    const meeting = await db.query.MeetingTable.findFirst({
+    const meeting = await db.query.MeetingsTable.findFirst({
       where: ({ eventId, startTime: meetingStartTime }, { eq, and }) =>
         and(eq(eventId, event.id), eq(meetingStartTime, new Date(startTime))),
     });

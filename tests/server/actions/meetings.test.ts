@@ -1,4 +1,4 @@
-import { EventTable, MeetingTable } from '@/drizzle/schema';
+import { EventsTable, MeetingsTable } from '@/drizzle/schema-workos';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { createMeeting } from '@/server/actions/meetings';
@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals
 import { addMinutes } from 'date-fns';
 import type { InferSelectModel } from 'drizzle-orm';
 
-type DbMeeting = InferSelectModel<typeof MeetingTable>;
-type DbEvent = InferSelectModel<typeof EventTable>;
+type DbMeeting = InferSelectModel<typeof MeetingsTable>;
+type DbEvent = InferSelectModel<typeof EventsTable>;
 
 // Mock modules
 jest.mock('@/schema/meetings', () => ({
@@ -16,7 +16,7 @@ jest.mock('@/schema/meetings', () => ({
       // Validate required fields
       const requiredFields = [
         'eventId',
-        'clerkUserId',
+        'workosUserId',
         'guestEmail',
         'guestName',
         'timezone',
@@ -92,10 +92,10 @@ jest.mock('@/server/googleCalendar', () => ({
 const mockDb = {
   db: {
     query: {
-      MeetingTable: {
+      MeetingsTable: {
         findFirst: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
       },
-      EventTable: {
+      EventsTable: {
         findFirst: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
       },
     },
@@ -122,7 +122,7 @@ describe('Meeting Actions', () => {
   const mockDate = new Date('2024-02-18T10:00:00Z');
   const validMeetingData = {
     eventId: '123e4567-e89b-12d3-a456-426614174000',
-    clerkUserId: 'user-123',
+    workosUserId: 'user-123',
     guestEmail: 'guest@example.com',
     guestName: 'John Doe',
     startTime: mockDate,
@@ -153,7 +153,7 @@ describe('Meeting Actions', () => {
   const mockMeeting: DbMeeting = {
     id: 'meeting-123',
     eventId: validMeetingData.eventId,
-    clerkUserId: validMeetingData.clerkUserId,
+    workosUserId: validMeetingData.workosUserId,
     guestEmail: validMeetingData.guestEmail,
     guestName: validMeetingData.guestName,
     guestNotes: null,
@@ -193,8 +193,8 @@ describe('Meeting Actions', () => {
     consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     // Mock database queries with default values
-    (mockDb.db.query.MeetingTable.findFirst as any).mockResolvedValue(null);
-    (mockDb.db.query.EventTable.findFirst as any).mockResolvedValue(mockEvent);
+    (mockDb.db.query.MeetingsTable.findFirst as any).mockResolvedValue(null);
+    (mockDb.db.query.EventsTable.findFirst as any).mockResolvedValue(mockEvent);
     (getValidTimesFromSchedule as any).mockResolvedValue([mockDate]);
 
     // Mock database insert
@@ -212,8 +212,8 @@ describe('Meeting Actions', () => {
 
   describe('createMeeting', () => {
     it('should successfully create a meeting with valid data', async () => {
-      // Mock the EventTable.findFirst to return the event
-      (mockDb.db.query.EventTable.findFirst as any).mockResolvedValueOnce(mockEvent);
+      // Mock the EventsTable.findFirst to return the event
+      (mockDb.db.query.EventsTable.findFirst as any).mockResolvedValueOnce(mockEvent);
 
       // Use jest.spyOn to monitor console.log calls without hiding them (but keep errors hidden)
       const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
@@ -238,11 +238,11 @@ describe('Meeting Actions', () => {
     });
 
     it('should return existing meeting if duplicate booking is found', async () => {
-      // Mock the EventTable.findFirst to return the event
-      (mockDb.db.query.EventTable.findFirst as any).mockResolvedValueOnce(mockEvent);
+      // Mock the EventsTable.findFirst to return the event
+      (mockDb.db.query.EventsTable.findFirst as any).mockResolvedValueOnce(mockEvent);
 
-      // Mock MeetingTable.findFirst to return an existing meeting
-      (mockDb.db.query.MeetingTable.findFirst as any).mockResolvedValueOnce(mockMeeting);
+      // Mock MeetingsTable.findFirst to return an existing meeting
+      (mockDb.db.query.MeetingsTable.findFirst as any).mockResolvedValueOnce(mockMeeting);
 
       const result = await createMeeting(validMeetingData);
 
@@ -257,11 +257,11 @@ describe('Meeting Actions', () => {
     });
 
     it('handles conflicting bookings', async () => {
-      // Mock the EventTable.findFirst to return the event
-      (mockDb.db.query.EventTable.findFirst as any).mockResolvedValueOnce(mockEvent);
+      // Mock the EventsTable.findFirst to return the event
+      (mockDb.db.query.EventsTable.findFirst as any).mockResolvedValueOnce(mockEvent);
 
       // Initial findFirst returns null (no duplicate)
-      (mockDb.db.query.MeetingTable.findFirst as any)
+      (mockDb.db.query.MeetingsTable.findFirst as any)
         .mockResolvedValueOnce(null)
         // Second call (for conflict check) returns a meeting, indicating conflict
         .mockResolvedValueOnce(mockMeeting);
@@ -274,7 +274,7 @@ describe('Meeting Actions', () => {
     });
 
     it('should handle inactive or non-existent events', async () => {
-      (mockDb.db.query.EventTable.findFirst as any).mockResolvedValue(null);
+      (mockDb.db.query.EventsTable.findFirst as any).mockResolvedValue(null);
 
       const result = await createMeeting(validMeetingData);
       expect(result).toEqual({

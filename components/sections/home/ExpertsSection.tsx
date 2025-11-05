@@ -18,7 +18,7 @@ const ExpertsSection = async () => {
   const t = await getTranslations('experts');
 
   // Optimize: Get only published profiles with necessary fields and limit to top experts
-  const profiles = await db.query.ProfileTable.findMany({
+  const profiles = await db.query.ProfilesTable.findMany({
     where: ({ published }) => eq(published, true),
     with: {
       primaryCategory: true,
@@ -33,12 +33,12 @@ const ExpertsSection = async () => {
   }
 
   // Get only the users that have profiles (batch request with caching)
-  const users = await getCachedUsersByIds(profiles.map((profile) => profile.clerkUserId));
+  const users = await getCachedUsersByIds(profiles.map((profile) => profile.workosUserId));
 
   const expertsData = await Promise.all(
     users.map(async (user) => {
       // Get the corresponding profile
-      const profile = profiles.find((p) => p.clerkUserId === user.id);
+      const profile = profiles.find((p) => p.workosUserId === user.id);
 
       if (!profile) return null; // This shouldn't happen due to our filtered users list
 

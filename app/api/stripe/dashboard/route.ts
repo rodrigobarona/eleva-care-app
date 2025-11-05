@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UserTable } from '@/drizzle/schema';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { getStripeConnectSetupOrLoginLink } from '@/lib/integrations/stripe';
 import { auth } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
@@ -18,8 +18,8 @@ export async function POST() {
     }
 
     // Get user's Stripe Connect account ID
-    const user = await db.query.UserTable.findFirst({
-      where: eq(UserTable.clerkUserId, userId),
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, userId),
     });
     console.log('User query completed', {
       found: !!user,

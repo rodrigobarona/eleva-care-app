@@ -1,12 +1,12 @@
 import { createClerkClient } from '@clerk/nextjs/server';
 import { google } from 'googleapis';
 
-export async function checkAndRefreshToken(clerkUserId: string) {
+export async function checkAndRefreshToken(workosUserId: string) {
   const clerk = createClerkClient({
     secretKey: process.env.CLERK_SECRET_KEY,
   });
 
-  const user = await clerk.users.getUser(clerkUserId);
+  const user = await clerk.users.getUser(workosUserId);
   const tokenExpiryDate = user.privateMetadata?.googleTokenExpiry
     ? new Date(user.privateMetadata.googleTokenExpiry as number)
     : null;
@@ -20,7 +20,7 @@ export async function checkAndRefreshToken(clerkUserId: string) {
     );
 
     try {
-      const tokenResponse = await clerk.users.getUserOauthAccessToken(clerkUserId, 'google');
+      const tokenResponse = await clerk.users.getUserOauthAccessToken(workosUserId, 'google');
 
       if (tokenResponse.data.length === 0 || !tokenResponse.data[0].token) {
         throw new Error('No OAuth token found');
@@ -35,7 +35,7 @@ export async function checkAndRefreshToken(clerkUserId: string) {
       const { credentials } = await client.refreshAccessToken();
       client.setCredentials(credentials);
 
-      await clerk.users.updateUser(clerkUserId, {
+      await clerk.users.updateUser(workosUserId, {
         privateMetadata: {
           ...user.privateMetadata,
           googleAccessToken: credentials.access_token,
@@ -53,13 +53,13 @@ export async function checkAndRefreshToken(clerkUserId: string) {
   return null;
 }
 
-export async function getGoogleAccessToken(clerkUserId: string): Promise<string | null> {
+export async function getGoogleAccessToken(workosUserId: string): Promise<string | null> {
   try {
     const clerk = createClerkClient({
       secretKey: process.env.CLERK_SECRET_KEY,
     });
 
-    const tokenResponse = await clerk.users.getUserOauthAccessToken(clerkUserId, 'google');
+    const tokenResponse = await clerk.users.getUserOauthAccessToken(workosUserId, 'google');
     return tokenResponse.data[0]?.token ?? null;
   } catch (error) {
     console.error('[getGoogleAccessToken] Error:', error);
@@ -67,9 +67,9 @@ export async function getGoogleAccessToken(clerkUserId: string): Promise<string 
   }
 }
 
-export async function hasValidGoogleToken(clerkUserId: string): Promise<boolean> {
+export async function hasValidGoogleToken(workosUserId: string): Promise<boolean> {
   try {
-    const token = await getGoogleAccessToken(clerkUserId);
+    const token = await getGoogleAccessToken(workosUserId);
     return !!token;
   } catch {
     return false;

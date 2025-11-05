@@ -57,7 +57,7 @@ interface EventType {
   slug: string;
   description: string | null;
   durationInMinutes: number;
-  clerkUserId: string;
+  workosUserId: string;
   isActive: boolean;
   order: number;
   price: number;
@@ -96,8 +96,8 @@ async function BookEventPageContent({
 
   const { user } = data;
 
-  const event = await db.query.EventTable.findFirst({
-    where: ({ clerkUserId: userIdCol, isActive, slug }, { eq, and }) =>
+  const event = await db.query.EventsTable.findFirst({
+    where: ({ workosUserId: userIdCol, isActive, slug }, { eq, and }) =>
       and(eq(isActive, true), eq(userIdCol, user.id), eq(slug, eventSlug)),
   });
 
@@ -176,8 +176,8 @@ async function CalendarWithAvailability({
   let beforeEventBuffer = DEFAULT_BEFORE_EVENT_BUFFER;
   let afterEventBuffer = DEFAULT_AFTER_EVENT_BUFFER;
   try {
-    const settings = await db.query.schedulingSettings.findFirst({
-      where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, userId),
+    const settings = await db.query.SchedulingSettingsTable.findFirst({
+      where: ({ workosUserId: userIdCol }, { eq }) => eq(userIdCol, userId),
     });
 
     if (settings?.timeSlotInterval) {
@@ -288,7 +288,7 @@ async function CalendarWithAvailability({
     <MeetingForm
       validTimes={validTimes}
       eventId={eventId}
-      clerkUserId={userId}
+      workosUserId={userId}
       price={price}
       username={username}
       eventSlug={eventSlug}

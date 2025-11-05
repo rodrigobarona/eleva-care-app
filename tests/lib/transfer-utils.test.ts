@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { PaymentTransferTable } from '@/drizzle/schema';
+import { PaymentTransfersTable } from '@/drizzle/schema-workos';
 import { PAYMENT_TRANSFER_STATUS_COMPLETED } from '@/lib/constants/payment-transfers';
 import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
@@ -11,8 +11,8 @@ jest.mock('@/drizzle/db', () => ({
     update: jest.fn(),
   },
 }));
-jest.mock('@/drizzle/schema', () => ({
-  PaymentTransferTable: {
+jest.mock('@/drizzle/schema-workos', () => ({
+  PaymentTransfersTable: {
     id: 'id',
   },
 }));
@@ -119,7 +119,7 @@ describe('Transfer Utils', () => {
       });
 
       // Verify database was updated correctly
-      expect(db.update).toHaveBeenCalledWith(PaymentTransferTable);
+      expect(db.update).toHaveBeenCalledWith(PaymentTransfersTable);
       expect(mockSet).toHaveBeenCalledWith({
         status: PAYMENT_TRANSFER_STATUS_COMPLETED,
         transferId: 'tr_existing123',
@@ -158,7 +158,7 @@ describe('Transfer Utils', () => {
       });
 
       // Verify database was updated correctly
-      expect(db.update).toHaveBeenCalledWith(PaymentTransferTable);
+      expect(db.update).toHaveBeenCalledWith(PaymentTransfersTable);
       expect(mockSet).toHaveBeenCalledWith({
         status: PAYMENT_TRANSFER_STATUS_COMPLETED,
         transferId: 'tr_existing456',
@@ -198,7 +198,7 @@ describe('Transfer Utils', () => {
       await checkExistingTransfer(mockStripe, 'ch_123', transferRecord);
 
       // Verify the correct record ID was used in the where clause
-      expect(db.update).toHaveBeenCalledWith(PaymentTransferTable);
+      expect(db.update).toHaveBeenCalledWith(PaymentTransfersTable);
       expect(mockWhere).toHaveBeenCalled();
     });
 
@@ -290,7 +290,7 @@ describe('Transfer Utils', () => {
       });
 
       // Verify database was updated
-      expect(db.update).toHaveBeenCalledWith(PaymentTransferTable);
+      expect(db.update).toHaveBeenCalledWith(PaymentTransfersTable);
       expect(mockSet).toHaveBeenCalledWith({
         status: PAYMENT_TRANSFER_STATUS_COMPLETED,
         transferId: 'tr_separate123',
@@ -332,7 +332,7 @@ describe('Transfer Utils', () => {
       });
 
       // Verify database was updated
-      expect(db.update).toHaveBeenCalledWith(PaymentTransferTable);
+      expect(db.update).toHaveBeenCalledWith(PaymentTransfersTable);
       expect(mockSet).toHaveBeenCalledWith({
         status: PAYMENT_TRANSFER_STATUS_COMPLETED,
         transferId: 'tr_separate456',

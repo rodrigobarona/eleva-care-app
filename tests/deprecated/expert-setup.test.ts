@@ -3,7 +3,7 @@
 // This file is deprecated and kept only for historical reference
 // Type checking is disabled to avoid maintenance burden
 import { db } from '@/drizzle/db';
-// import { ProfileTable, UserTable } from '@/drizzle/schema';
+// import { ProfileTable, UserTable } from '@/drizzle/schema-workos';
 import {
   checkExpertSetupStatus,
   markStepComplete,

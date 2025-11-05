@@ -1,6 +1,6 @@
 import type { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
 import { db } from '@/drizzle/db';
-import type { ScheduleAvailabilityTable } from '@/drizzle/schema';
+import type { ScheduleAvailabilitiesTable } from '@/drizzle/schema-workos';
 import 'core-js/actual/object/group-by';
 import {
   addMinutes,
@@ -21,7 +21,7 @@ import {
 import { fromZonedTime } from 'date-fns-tz';
 
 interface ScheduleEvent {
-  clerkUserId: string;
+  workosUserId: string;
   durationInMinutes: number;
 }
 
@@ -30,8 +30,8 @@ export async function getValidTimesFromSchedule(
   event: ScheduleEvent,
   calendarEvents: Array<{ start: Date; end: Date }>,
 ) {
-  const schedule = await db.query.ScheduleTable.findFirst({
-    where: ({ clerkUserId: userIdCol }, { eq }) => eq(userIdCol, event.clerkUserId),
+  const schedule = await db.query.SchedulesTable.findFirst({
+    where: ({ workosUserId: userIdCol }, { eq }) => eq(userIdCol, event.workosUserId),
     with: { availabilities: true },
   });
 
@@ -39,9 +39,9 @@ export async function getValidTimesFromSchedule(
 
   // Get active slot reservations for this expert
   const currentTime = new Date();
-  const activeReservations = await db.query.SlotReservationTable.findMany({
+  const activeReservations = await db.query.SlotReservationsTable.findMany({
     where: (fields, { eq, and, gt }) =>
-      and(eq(fields.clerkUserId, event.clerkUserId), gt(fields.expiresAt, currentTime)),
+      and(eq(fields.workosUserId, event.workosUserId), gt(fields.expiresAt, currentTime)),
   });
 
   // Convert reservations to a Set for faster lookup
@@ -54,7 +54,7 @@ export async function getValidTimesFromSchedule(
     console.log(
       `[getValidTimesFromSchedule] Found ${activeReservations.length} active slot reservations:`,
       {
-        expertId: event.clerkUserId,
+        expertId: event.workosUserId,
         reservedSlots: activeReservations.map((r) => ({
           startTime: r.startTime.toISOString(),
           guestEmail: r.guestEmail,
@@ -65,13 +65,13 @@ export async function getValidTimesFromSchedule(
   } else {
     // In production, just log the count
     console.log(
-      `[getValidTimesFromSchedule] Found ${activeReservations.length} active slot reservations for expert ${event.clerkUserId}`,
+      `[getValidTimesFromSchedule] Found ${activeReservations.length} active slot reservations for expert ${event.workosUserId}`,
     );
   }
 
   // Get scheduling settings for minimum notice period and buffer times
-  const settings = await db.query.schedulingSettings.findFirst({
-    where: ({ userId: userIdCol }, { eq }) => eq(userIdCol, event.clerkUserId),
+  const settings = await db.query.SchedulingSettingsTable.findFirst({
+    where: ({ workosUserId: userIdCol }, { eq }) => eq(userIdCol, event.workosUserId),
   });
 
   const minimumNotice = settings?.minimumNotice ?? 1440; // Default to 24 hours if not set
@@ -169,13 +169,13 @@ function getAvailabilities(
   groupedAvailabilities: Partial<
     Record<
       (typeof DAYS_OF_WEEK_IN_ORDER)[number],
-      (typeof ScheduleAvailabilityTable.$inferSelect)[]
+      (typeof ScheduleAvailabilitiesTable.$inferSelect)[]
     >
   >,
   date: Date,
   timezone: string,
 ) {
-  let availabilities: (typeof ScheduleAvailabilityTable.$inferSelect)[] | undefined;
+  let availabilities: (typeof ScheduleAvailabilitiesTable.$inferSelect)[] | undefined;
 
   if (isMonday(date)) {
     availabilities = groupedAvailabilities.monday;

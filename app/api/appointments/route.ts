@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { MeetingTable, SlotReservationTable } from '@/drizzle/schema';
+import { MeetingsTable, SlotReservationsTable } from '@/drizzle/schema-workos';
 import { auth } from '@clerk/nextjs/server';
 import { and, eq, gt } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -15,25 +15,25 @@ export async function GET() {
     }
 
     // Fetch the expert's timezone from their schedule
-    const schedule = await db.query.ScheduleTable.findFirst({
-      where: (fields, { eq: eqOp }) => eqOp(fields.clerkUserId, userId),
+    const schedule = await db.query.SchedulesTable.findFirst({
+      where: (fields, { eq: eqOp }) => eqOp(fields.workosUserId, userId),
     });
 
     // Default to UTC if no schedule is found (fallback)
     const expertTimezone = schedule?.timezone || 'UTC';
 
     // Fetch all confirmed meetings for the expert
-    const appointments = await db.query.MeetingTable.findMany({
-      where: eq(MeetingTable.clerkUserId, userId),
+    const appointments = await db.query.MeetingsTable.findMany({
+      where: eq(MeetingsTable.workosUserId, userId),
       orderBy: (meetings, { desc }) => [desc(meetings.startTime)],
     });
 
     // Fetch active slot reservations for the expert
     const currentTime = new Date();
-    const reservations = await db.query.SlotReservationTable.findMany({
+    const reservations = await db.query.SlotReservationsTable.findMany({
       where: and(
-        eq(SlotReservationTable.clerkUserId, userId),
-        gt(SlotReservationTable.expiresAt, currentTime),
+        eq(SlotReservationsTable.workosUserId, userId),
+        gt(SlotReservationsTable.expiresAt, currentTime),
       ),
       orderBy: (reservations, { desc }) => [desc(reservations.startTime)],
     });

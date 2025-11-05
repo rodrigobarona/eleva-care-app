@@ -6,8 +6,7 @@
  * how bookings are made and ensure sufficient time between meetings.
  */
 import { db } from '@/drizzle/db';
-import { schedulingSettings } from '@/drizzle/schema';
-import type { NewSchedulingSettings, SchedulingSettings } from '@/drizzle/schema';
+import { SchedulingSettingsTable } from '@/drizzle/schema-workos';
 import {
   DEFAULT_AFTER_EVENT_BUFFER,
   DEFAULT_BEFORE_EVENT_BUFFER,
@@ -16,12 +15,16 @@ import {
   DEFAULT_SCHEDULING_SETTINGS,
   DEFAULT_TIME_SLOT_INTERVAL,
 } from '@/lib/constants/scheduling';
+import type { InferInsertModel, InferSelectModel } from 'drizzle-orm';
 import { eq } from 'drizzle-orm';
+
+type SchedulingSettings = InferSelectModel<typeof SchedulingSettingsTable>;
+type NewSchedulingSettings = InferInsertModel<typeof SchedulingSettingsTable>;
 
 /**
  * Default scheduling settings values
  */
-const DEFAULT_SETTINGS: Omit<NewSchedulingSettings, 'userId'> = DEFAULT_SCHEDULING_SETTINGS;
+const DEFAULT_SETTINGS: Omit<NewSchedulingSettings, 'workosUserId'> = DEFAULT_SCHEDULING_SETTINGS;
 
 /**
  * Get scheduling settings for a user
@@ -35,8 +38,8 @@ export async function getUserSchedulingSettings(userId: string): Promise<Schedul
 
     const settings = await db
       .select()
-      .from(schedulingSettings)
-      .where(eq(schedulingSettings.userId, userId))
+      .from(SchedulingSettingsTable)
+      .where(eq(SchedulingSettingsTable.workosUserId, userId))
       .limit(1);
 
     // Return existing settings or create default settings
@@ -53,7 +56,8 @@ export async function getUserSchedulingSettings(userId: string): Promise<Schedul
     // Return default settings as fallback to prevent booking flow failures
     const fallbackSettings: SchedulingSettings = {
       id: 0,
-      userId,
+      workosUserId: userId,
+      orgId: null,
       beforeEventBuffer: DEFAULT_BEFORE_EVENT_BUFFER,
       afterEventBuffer: DEFAULT_AFTER_EVENT_BUFFER,
       minimumNotice: DEFAULT_MINIMUM_NOTICE,
@@ -76,11 +80,14 @@ export async function getUserSchedulingSettings(userId: string): Promise<Schedul
  */
 async function createDefaultSchedulingSettings(userId: string): Promise<SchedulingSettings> {
   const newSettings: NewSchedulingSettings = {
-    userId,
+    workosUserId: userId,
     ...DEFAULT_SETTINGS,
   };
 
-  const [createdSettings] = await db.insert(schedulingSettings).values(newSettings).returning();
+  const [createdSettings] = await db
+    .insert(SchedulingSettingsTable)
+    .values(newSettings)
+    .returning();
 
   return createdSettings;
 }
@@ -101,12 +108,12 @@ export async function updateSchedulingSettings(
 
   // Apply updates
   const [updatedSettings] = await db
-    .update(schedulingSettings)
+    .update(SchedulingSettingsTable)
     .set({
       ...updates,
       updatedAt: new Date(),
     })
-    .where(eq(schedulingSettings.id, settings.id))
+    .where(eq(SchedulingSettingsTable.id, settings.id))
     .returning();
 
   return updatedSettings;

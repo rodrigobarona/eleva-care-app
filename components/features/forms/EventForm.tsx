@@ -152,7 +152,7 @@ export function EventForm({
             description: values.description || undefined,
             price: values.price,
             currency: values.currency,
-            clerkUserId: user?.id || '',
+            workosUserId: user?.id || '',
           });
         } else if (event.stripeProductId && event.stripePriceId) {
           stripeData = await updateStripeProduct({
@@ -162,7 +162,7 @@ export function EventForm({
             description: values.description || undefined,
             price: values.price,
             currency: values.currency,
-            clerkUserId: user?.id || '',
+            workosUserId: user?.id || '',
           });
         } else {
           form.setError('root', {
