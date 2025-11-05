@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { db } from '@/drizzle/db';
-import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import {
   DEFAULT_AFTER_EVENT_BUFFER,
   DEFAULT_BEFORE_EVENT_BUFFER,
@@ -23,7 +22,6 @@ import { Link } from '@/lib/i18n/navigation';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { getBlockedDatesForUser } from '@/server/actions/blocked-dates';
 import GoogleCalendarService from '@/server/googleCalendar';
-import type { User } from '@clerk/nextjs/server';
 import {
   addDays,
   addMinutes,
@@ -103,8 +101,10 @@ async function BookEventPageContent({
 
   if (event == null) return notFound();
 
-  // Use cached Clerk user lookup instead of direct API call
-  const calendarUser = await getCachedUserById(user.id);
+  // Fetch user from database (WorkOS)
+  const calendarUser = await db.query.UsersTable.findFirst({
+    where: (users, { eq }) => eq(users.workosUserId, user.id),
+  });
 
   // Handle case where user is not found
   if (!calendarUser) {

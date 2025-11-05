@@ -1,46 +1,34 @@
 'use server';
 
-import { getCachedUserById } from '@/lib/cache/clerk-cache';
-import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
-import { clerkClient } from '@clerk/nextjs/server';
+import { db } from '@/drizzle/db';
+import { UsersTable } from '@/drizzle/schema-workos';
+import { eq } from 'drizzle-orm';
 
 /**
  * Helper function to clean up metadata and remove completion flags
  * This helps prevent inconsistent states in the expert setup flow
+ * 
+ * Note: With WorkOS, metadata management is simplified as we use database fields
+ * instead of external user metadata. This function is kept for backward compatibility.
  */
 export async function fixInconsistentMetadata(userId: string) {
   try {
-    // Get the user using cached lookup
-    const clerk = await clerkClient();
-    const user = await getCachedUserById(userId);
+    // Get the user from database
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, userId),
+    });
 
     if (!user) {
       return { success: false, error: 'User not found' };
     }
 
-    // Create a clean metadata object without completion flags
-    const cleanMetadata: Record<string, unknown> = {};
+    // With WorkOS and database-first approach, metadata is simpler
+    // We can clear specific flags if needed in the database
+    // For now, this is a no-op as we don't store completion flags the same way
 
-    // Copy all existing metadata except for specific completion flags
-    for (const key in user.unsafeMetadata) {
-      if (
-        key !== 'setup_completion_toast_shown' &&
-        key !== 'setup_completion_toast_shown_at' &&
-        key !== 'setup_completed_at'
-      ) {
-        cleanMetadata[key] = user.unsafeMetadata[key];
-      }
-    }
+    console.log(`[fixes] Metadata cleanup called for user ${userId} (no-op with WorkOS)`);
 
-    // Update user metadata with the clean version
-    await clerk.users.updateUser(userId, {
-      unsafeMetadata: cleanMetadata,
-    });
-
-    // Invalidate cache after updating user metadata
-    await invalidateUserCache(userId);
-
-    return { success: true };
+    return { success: true, message: 'Metadata management handled by database' };
   } catch (error) {
     console.error('Error fixing inconsistent metadata:', error);
     return { success: false, error: 'Failed to fix inconsistent metadata' };

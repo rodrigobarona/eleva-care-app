@@ -10,7 +10,6 @@
  */
 import { createShortMeetLink } from '@/lib/integrations/dub/client';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
-import { createClerkClient } from '@clerk/nextjs/server';
 import { addMinutes, endOfDay, startOfDay } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { google } from 'googleapis';

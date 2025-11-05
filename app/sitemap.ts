@@ -1,6 +1,5 @@
 import { db } from '@/drizzle/db';
 import { locales } from '@/lib/i18n/routing';
-import { createClerkClient } from '@clerk/nextjs/server';
 import { eq } from 'drizzle-orm';
 import { MetadataRoute } from 'next';
 
@@ -26,21 +25,22 @@ const KNOWN_EXPERT_USERNAMES = [
 
 /**
  * Fetch all published user profiles with their usernames for sitemap generation
- * Following the same pattern as ExpertsSection.tsx with robust fallback
+ * Using database-backed approach (WorkOS)
  */
 async function getPublishedUsernames(): Promise<string[]> {
   try {
     console.log('🗺️ [Sitemap] Starting to fetch published usernames...');
 
-    const clerk = createClerkClient({
-      secretKey: process.env.CLERK_SECRET_KEY,
-    });
-
-    // Try to get published profiles from database
+    // Get published profiles from database
     const profiles = await db.query.ProfilesTable.findMany({
       where: ({ published }) => eq(published, true),
       with: {
         primaryCategory: true,
+        user: {
+          columns: {
+            username: true,
+          },
+        },
       },
       orderBy: ({ order }) => order,
     });
@@ -48,15 +48,9 @@ async function getPublishedUsernames(): Promise<string[]> {
     console.log(`🗺️ [Sitemap] Found ${profiles.length} published profiles in database`);
 
     if (profiles.length > 0) {
-      // Database query succeeded, get usernames from Clerk
-      const users = await clerk.users.getUserList({
-        userId: profiles.map((profile) => profile.workosUserId),
-      });
-
-      console.log(`🗺️ [Sitemap] Found ${users.data.length} users in Clerk for published profiles`);
-
-      const usernames = users.data
-        .map((user) => user.username)
+      // Get usernames from profiles (now includes user relation)
+      const usernames = profiles
+        .map((profile) => profile.user?.username)
         .filter((username): username is string => Boolean(username));
 
       if (usernames.length > 0) {
@@ -86,13 +80,17 @@ async function getPublishedUsernames(): Promise<string[]> {
  */
 async function getPublishedUserEvents(): Promise<Array<{ username: string; eventSlug: string }>> {
   try {
-    const clerk = createClerkClient({
-      secretKey: process.env.CLERK_SECRET_KEY,
-    });
-
-    // Try to get published profiles and their events from database
+    // Get published profiles with their events from database
     const profiles = await db.query.ProfilesTable.findMany({
       where: ({ published }) => eq(published, true),
+      with: {
+        user: {
+          columns: {
+            username: true,
+            workosUserId: true,
+          },
+        },
+      },
     });
 
     if (profiles.length > 0) {
@@ -107,15 +105,11 @@ async function getPublishedUserEvents(): Promise<Array<{ username: string; event
       );
 
       if (publishedUserEvents.length > 0) {
-        // Get usernames for all users with events
-        const eventUserIds = [...new Set(publishedUserEvents.map((event) => event.workosUserId))];
-        const users = await clerk.users.getUserList({
-          userId: eventUserIds,
-        });
-
         // Create a map of userId to username for quick lookup
         const userIdToUsername = new Map(
-          users.data.filter((user) => user.username).map((user) => [user.id, user.username!]),
+          profiles
+            .filter((profile) => profile.user?.username)
+            .map((profile) => [profile.workosUserId, profile.user!.username!]),
         );
 
         // Generate the username/eventSlug combinations

@@ -1,17 +1,32 @@
-import { createClerkClient } from '@clerk/nextjs/server';
+import { db } from '@/drizzle/db';
+import { UsersTable } from '@/drizzle/schema-workos';
+import { eq } from 'drizzle-orm';
 import { google } from 'googleapis';
 
+/**
+ * OAuth Token Management for WorkOS
+ * 
+ * Stores OAuth tokens in database user metadata
+ * Note: For production, consider using a dedicated tokens table with encryption
+ */
+
 export async function checkAndRefreshToken(workosUserId: string) {
-  const clerk = createClerkClient({
-    secretKey: process.env.CLERK_SECRET_KEY,
+  // Fetch user from database
+  const user = await db.query.UsersTable.findFirst({
+    where: eq(UsersTable.workosUserId, workosUserId),
   });
 
-  const user = await clerk.users.getUser(workosUserId);
-  const tokenExpiryDate = user.privateMetadata?.googleTokenExpiry
-    ? new Date(user.privateMetadata.googleTokenExpiry as number)
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Get token expiry from user metadata (stored in JSON column)
+  const tokenExpiryDate = user.googleTokenExpiry
+    ? new Date(user.googleTokenExpiry)
     : null;
   const isExpired = tokenExpiryDate ? tokenExpiryDate < new Date() : true;
 
+  // If token is expired or expiring soon (within 5 minutes)
   if (isExpired || (tokenExpiryDate && tokenExpiryDate.getTime() - Date.now() < 300000)) {
     const client = new google.auth.OAuth2(
       process.env.GOOGLE_OAUTH_CLIENT_ID,
@@ -20,28 +35,29 @@ export async function checkAndRefreshToken(workosUserId: string) {
     );
 
     try {
-      const tokenResponse = await clerk.users.getUserOauthAccessToken(workosUserId, 'google');
-
-      if (tokenResponse.data.length === 0 || !tokenResponse.data[0].token) {
-        throw new Error('No OAuth token found');
+      // Get the stored refresh token
+      if (!user.googleRefreshToken) {
+        throw new Error('No refresh token found');
       }
 
-      const token = tokenResponse.data[0];
       client.setCredentials({
-        access_token: token.token,
+        refresh_token: user.googleRefreshToken,
         expiry_date: tokenExpiryDate?.getTime(),
       });
 
       const { credentials } = await client.refreshAccessToken();
       client.setCredentials(credentials);
 
-      await clerk.users.updateUser(workosUserId, {
-        privateMetadata: {
-          ...user.privateMetadata,
-          googleAccessToken: credentials.access_token,
-          googleTokenExpiry: credentials.expiry_date,
-        },
-      });
+      // Update database with new tokens
+      await db
+        .update(UsersTable)
+        .set({
+          googleAccessToken: credentials.access_token || user.googleAccessToken,
+          googleTokenExpiry: credentials.expiry_date ? new Date(credentials.expiry_date) : null,
+          googleRefreshToken: credentials.refresh_token || user.googleRefreshToken,
+          updatedAt: new Date(),
+        })
+        .where(eq(UsersTable.workosUserId, workosUserId));
 
       return client;
     } catch (error) {
@@ -50,28 +66,61 @@ export async function checkAndRefreshToken(workosUserId: string) {
     }
   }
 
-  return null;
+  // Token is still valid, return client with existing credentials
+  const client = new google.auth.OAuth2(
+    process.env.GOOGLE_OAUTH_CLIENT_ID,
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET,
+    process.env.GOOGLE_OAUTH_REDIRECT_URL,
+  );
+
+  client.setCredentials({
+    access_token: user.googleAccessToken,
+    expiry_date: tokenExpiryDate?.getTime(),
+  });
+
+  return client;
 }
 
-export async function getGoogleAccessToken(workosUserId: string): Promise<string | null> {
-  try {
-    const clerk = createClerkClient({
-      secretKey: process.env.CLERK_SECRET_KEY,
-    });
+/**
+ * Store OAuth tokens for a user
+ */
+export async function storeOAuthTokens(
+  workosUserId: string,
+  accessToken: string,
+  refreshToken: string,
+  expiryDate: number,
+) {
+  await db
+    .update(UsersTable)
+    .set({
+      googleAccessToken: accessToken,
+      googleRefreshToken: refreshToken,
+      googleTokenExpiry: new Date(expiryDate),
+      updatedAt: new Date(),
+    })
+    .where(eq(UsersTable.workosUserId, workosUserId));
+}
 
-    const tokenResponse = await clerk.users.getUserOauthAccessToken(workosUserId, 'google');
-    return tokenResponse.data[0]?.token ?? null;
-  } catch (error) {
-    console.error('[getGoogleAccessToken] Error:', error);
+/**
+ * Get OAuth tokens for a user
+ */
+export async function getOAuthTokens(workosUserId: string) {
+  const user = await db.query.UsersTable.findFirst({
+    where: eq(UsersTable.workosUserId, workosUserId),
+    columns: {
+      googleAccessToken: true,
+      googleRefreshToken: true,
+      googleTokenExpiry: true,
+    },
+  });
+
+  if (!user) {
     return null;
   }
-}
 
-export async function hasValidGoogleToken(workosUserId: string): Promise<boolean> {
-  try {
-    const token = await getGoogleAccessToken(workosUserId);
-    return !!token;
-  } catch {
-    return false;
-  }
+  return {
+    accessToken: user.googleAccessToken,
+    refreshToken: user.googleRefreshToken,
+    expiryDate: user.googleTokenExpiry,
+  };
 }
