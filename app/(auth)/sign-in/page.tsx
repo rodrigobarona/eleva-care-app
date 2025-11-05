@@ -19,7 +19,7 @@ async function handleSignIn() {
   const authUrl = await workos.userManagement.getAuthorizationUrl({
     provider: 'authkit',
     clientId: WORKOS_CLIENT_ID,
-    redirectUri: process.env.WORKOS_REDIRECT_URI || 'http://localhost:3000/auth/callback',
+    redirectUri: process.env.WORKOS_REDIRECT_URI || 'http://localhost:3000/api/auth/callback',
     state: JSON.stringify({ returnTo: '/dashboard' }),
   });
 

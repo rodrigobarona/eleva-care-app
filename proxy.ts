@@ -251,18 +251,13 @@ function isPrivateRoute(request: NextRequest): boolean {
 }
 
 /**
- * Check if a path is in the auth directory and should be publicly accessible
- * This ensures all auth pages are accessible without login
+ * Check if a path is an auth page (sign-in, sign-up, etc.) that should be publicly accessible
+ * Note: WorkOS auth API handlers are now under /api/auth/* and handled by API route logic
  */
 function isAuthRoute(path: string): boolean {
   const segments = path.split('/').filter(Boolean);
 
-  // WorkOS auth routes under /auth/ directory (e.g., /auth/callback, /auth/sign-out)
-  if (segments.length >= 1 && segments[0] === 'auth') {
-    return true;
-  }
-
-  // List of paths that should be public under auth
+  // List of auth pages that should be public (not API routes)
   const authPaths = ['sign-in', 'sign-up', 'unauthorized', 'onboarding'];
 
   // Direct auth routes (e.g., /sign-in)
@@ -319,7 +314,6 @@ function isUsernameRoute(path: string): boolean {
       'booking',
       'admin',
       'api',
-      'auth', // WorkOS authentication routes
       'sign-in',
       'sign-up',
       'unauthorized',
@@ -342,7 +336,6 @@ function isUsernameRoute(path: string): boolean {
       'booking',
       'admin',
       'api',
-      'auth', // WorkOS authentication routes
       'sign-in',
       'sign-up',
       'unauthorized',
@@ -525,17 +518,11 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
     return handleI18nRouting(req);
   }
 
-  // Check auth routes - explicitly allow without authentication
+  // Check auth pages - explicitly allow without authentication
+  // Note: WorkOS auth API routes (/api/auth/*) are handled by API route logic above
   if (isAuthRoute(path)) {
-    console.log(`🔓 Auth route allowed without login: ${path}`);
-
-    // WorkOS auth handlers (/auth/*) are API-like routes, don't apply i18n
-    // They should pass through directly like API routes
-    if (path.startsWith('/auth/')) {
-      return NextResponse.next();
-    }
-
-    // Other auth pages (sign-in, sign-up, etc.) need i18n
+    console.log(`🔓 Auth page allowed without login: ${path}`);
+    // Auth pages (sign-in, sign-up, etc.) need i18n
     return handleI18nRouting(req);
   }
 
@@ -560,7 +547,13 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   if (path.startsWith('/api/')) {
     console.log(`🔌 API route processing: ${path}`);
 
-    // Check authentication first
+    // WorkOS auth routes are public (users arrive during OAuth flow before authentication)
+    if (path.startsWith('/api/auth/')) {
+      console.log(`🔓 Auth API route allowed without login: ${path}`);
+      return NextResponse.next();
+    }
+
+    // Check authentication first (for all other API routes)
     const { userId } = await auth();
     if (!userId) {
       console.log('❌ Unauthenticated API request - denying access');
