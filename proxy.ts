@@ -314,6 +314,7 @@ function isUsernameRoute(path: string): boolean {
       'booking',
       'admin',
       'api',
+      'auth', // WorkOS authentication routes
       'sign-in',
       'sign-up',
       'unauthorized',
@@ -336,6 +337,7 @@ function isUsernameRoute(path: string): boolean {
       'booking',
       'admin',
       'api',
+      'auth', // WorkOS authentication routes
       'sign-in',
       'sign-up',
       'unauthorized',
