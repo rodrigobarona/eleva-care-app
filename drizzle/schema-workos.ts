@@ -108,6 +108,15 @@ export const UsersTable = pgTable(
     firstName: text('first_name'),
     lastName: text('last_name'),
 
+    // Application role (Phase 3: Roles & Permissions)
+    // WorkOS membership roles are stored in UserOrgMembershipsTable
+    role: text('role')
+      .notNull()
+      .default('user')
+      .$type<
+        'user' | 'expert_top' | 'expert_community' | 'expert_lecturer' | 'admin' | 'superadmin'
+      >(),
+
     // Stripe IDs
     stripeCustomerId: text('stripe_customer_id').unique(),
     stripeConnectAccountId: text('stripe_connect_account_id').unique(),
@@ -176,6 +185,103 @@ export const UserOrgMembershipsTable = pgTable(
     userIdIndex: index('memberships_user_id_idx').on(table.workosUserId),
     orgIdIndex: index('memberships_org_id_idx').on(table.orgId),
     userOrgUnique: unique('user_org_unique').on(table.workosUserId, table.orgId),
+  }),
+);
+
+// ============================================================================
+// USER METADATA TABLES (Phase 3: Roles & Permissions)
+// ============================================================================
+
+/**
+ * Expert Setup Table
+ *
+ * Tracks expert onboarding progress in database (replaces Clerk unsafeMetadata).
+ *
+ * Benefits over Clerk metadata:
+ * - Queryable: Can find all incomplete setups
+ * - Indexed: Fast filtering and analytics
+ * - Audit trail: Track completion dates
+ * - No size limits: Store unlimited data
+ * - No API calls: Direct database access
+ */
+export const ExpertSetupTable = pgTable(
+  'expert_setup',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workosUserId: text('workos_user_id')
+      .notNull()
+      .unique()
+      .references(() => UsersTable.workosUserId, { onDelete: 'cascade' }),
+    orgId: uuid('org_id').references(() => OrganizationsTable.id, { onDelete: 'cascade' }),
+
+    // Setup steps (each can be marked complete independently)
+    profileCompleted: boolean('profile_completed').notNull().default(false),
+    availabilityCompleted: boolean('availability_completed').notNull().default(false),
+    eventsCompleted: boolean('events_completed').notNull().default(false),
+    identityCompleted: boolean('identity_completed').notNull().default(false),
+    paymentCompleted: boolean('payment_completed').notNull().default(false),
+    googleAccountCompleted: boolean('google_account_completed').notNull().default(false),
+
+    // Overall status (automatically set when all steps complete)
+    setupComplete: boolean('setup_complete').notNull().default(false),
+    setupCompletedAt: timestamp('setup_completed_at'),
+
+    // Timestamps
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    // 🔒 RLS: Applied via SQL migration (drizzle/migrations-manual/002_phase3_enable_rls.sql)
+    // Policies: Users can only access their own setup records (matched by workos_user_id)
+    userIdIndex: index('expert_setup_user_id_idx').on(table.workosUserId),
+    orgIdIndex: index('expert_setup_org_id_idx').on(table.orgId),
+    setupCompleteIndex: index('expert_setup_complete_idx').on(table.setupComplete),
+  }),
+);
+
+/**
+ * User Preferences Table
+ *
+ * Stores user preferences and settings (replaces Clerk publicMetadata).
+ *
+ * Benefits over Clerk metadata:
+ * - Queryable: Can filter by preferences
+ * - Indexed: Fast queries for notifications, etc.
+ * - Type-safe: Schema validation
+ * - Unlimited: No 32KB limit
+ * - Versioned: Track changes with updatedAt
+ */
+export const UserPreferencesTable = pgTable(
+  'user_preferences',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workosUserId: text('workos_user_id')
+      .notNull()
+      .unique()
+      .references(() => UsersTable.workosUserId, { onDelete: 'cascade' }),
+    orgId: uuid('org_id').references(() => OrganizationsTable.id, { onDelete: 'cascade' }),
+
+    // Security preferences
+    securityAlerts: boolean('security_alerts').notNull().default(true),
+    newDeviceAlerts: boolean('new_device_alerts').notNull().default(false),
+    emailNotifications: boolean('email_notifications').notNull().default(true),
+    inAppNotifications: boolean('in_app_notifications').notNull().default(true),
+    unusualTimingAlerts: boolean('unusual_timing_alerts').notNull().default(true),
+    locationChangeAlerts: boolean('location_change_alerts').notNull().default(true),
+
+    // UI preferences
+    theme: text('theme').notNull().default('light').$type<'light' | 'dark' | 'system'>(),
+    language: text('language').notNull().default('en').$type<'en' | 'es' | 'pt' | 'br'>(),
+
+    // Timestamps
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    // 🔒 RLS: Applied via SQL migration (drizzle/migrations-manual/002_phase3_enable_rls.sql)
+    // Policies: Users can only access their own preferences (matched by workos_user_id)
+    userIdIndex: index('user_preferences_user_id_idx').on(table.workosUserId),
+    orgIdIndex: index('user_preferences_org_id_idx').on(table.orgId),
   }),
 );
 

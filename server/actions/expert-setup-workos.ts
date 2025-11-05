@@ -1,0 +1,394 @@
+/**
+ * Expert Setup Server Actions (WorkOS)
+ *
+ * Manages expert onboarding progress in database (replaces Clerk unsafeMetadata).
+ *
+ * Benefits over Clerk metadata:
+ * - Queryable: Can find all incomplete setups
+ * - Indexed: Fast filtering for analytics
+ * - Audit trail: Track completion dates
+ * - No size limits: Store unlimited data
+ * - No API calls: Direct database access
+ */
+
+'use server';
+
+import { db } from '@/drizzle/db';
+import { ExpertSetupTable } from '@/drizzle/schema-workos';
+import { requireAuth } from '@/lib/auth/workos-session';
+import { count, eq } from 'drizzle-orm';
+import { revalidatePath } from 'next/cache';
+import { z } from 'zod';
+
+/**
+ * Expert Setup Server Actions (WorkOS)
+ *
+ * Manages expert onboarding progress in database (replaces Clerk unsafeMetadata).
+ *
+ * Benefits over Clerk metadata:
+ * - Queryable: Can find all incomplete setups
+ * - Indexed: Fast filtering for analytics
+ * - Audit trail: Track completion dates
+ * - No size limits: Store unlimited data
+ * - No API calls: Direct database access
+ */
+
+/**
+ * Valid setup step names
+ */
+export const SetupStep = z.enum([
+  'profile',
+  'availability',
+  'events',
+  'identity',
+  'payment',
+  'google_account',
+]);
+
+export type SetupStepType = z.infer<typeof SetupStep>;
+
+/**
+ * Setup status interface
+ */
+export interface SetupStatus {
+  profile: boolean;
+  availability: boolean;
+  events: boolean;
+  identity: boolean;
+  payment: boolean;
+  google_account: boolean;
+}
+
+/**
+ * Setup statistics interface
+ */
+export interface SetupStats {
+  total: number;
+  complete: number;
+  incomplete: number;
+  completionRate: number;
+  averageStepsCompleted: number;
+}
+
+/**
+ * Get expert setup status from database
+ *
+ * Fetches the current setup progress for the authenticated user.
+ * If no setup record exists, creates one with all steps incomplete.
+ *
+ * @returns Setup status and completion flag
+ *
+ * @example
+ * ```tsx
+ * // In Server Component or Server Action
+ * const { setupStatus, isSetupComplete } = await checkExpertSetupStatus();
+ *
+ * if (!isSetupComplete) {
+ *   return <SetupWizard status={setupStatus} />;
+ * }
+ * ```
+ */
+export async function checkExpertSetupStatus(): Promise<{
+  setupStatus: SetupStatus;
+  isSetupComplete: boolean;
+  setupCompletedAt: Date | null;
+}> {
+  const session = await requireAuth();
+
+  // Try to fetch existing setup record
+  const setup = await db.query.ExpertSetupTable.findFirst({
+    where: eq(ExpertSetupTable.workosUserId, session.userId),
+  });
+
+  // If no setup record exists, create one
+  if (!setup) {
+    await db.insert(ExpertSetupTable).values({
+      workosUserId: session.userId,
+      orgId: session.organizationId || null,
+    });
+
+    return {
+      setupStatus: {
+        profile: false,
+        availability: false,
+        events: false,
+        identity: false,
+        payment: false,
+        google_account: false,
+      },
+      isSetupComplete: false,
+      setupCompletedAt: null,
+    };
+  }
+
+  // Return existing setup status
+  return {
+    setupStatus: {
+      profile: setup.profileCompleted,
+      availability: setup.availabilityCompleted,
+      events: setup.eventsCompleted,
+      identity: setup.identityCompleted,
+      payment: setup.paymentCompleted,
+      google_account: setup.googleAccountCompleted,
+    },
+    isSetupComplete: setup.setupComplete,
+    setupCompletedAt: setup.setupCompletedAt,
+  };
+}
+
+/**
+ * Mark a setup step as complete
+ *
+ * Updates the database and checks if all steps are now complete.
+ * If all steps are complete, sets setupComplete flag and timestamp.
+ *
+ * @param step - Setup step to mark complete
+ *
+ * @example
+ * ```ts
+ * 'use server';
+ *
+ * export async function completeProfileSetup() {
+ *   await markStepComplete('profile');
+ *   revalidatePath('/setup');
+ * }
+ * ```
+ */
+export async function markStepComplete(step: SetupStepType): Promise<void> {
+  // Validate step name
+  const validatedStep = SetupStep.parse(step);
+
+  const session = await requireAuth();
+
+  // Map step name to database column
+  const columnMap: Record<SetupStepType, keyof typeof ExpertSetupTable.$inferInsert> = {
+    profile: 'profileCompleted',
+    availability: 'availabilityCompleted',
+    events: 'eventsCompleted',
+    identity: 'identityCompleted',
+    payment: 'paymentCompleted',
+    google_account: 'googleAccountCompleted',
+  };
+
+  const columnName = columnMap[validatedStep];
+
+  // Fetch current setup
+  const setup = await db.query.ExpertSetupTable.findFirst({
+    where: eq(ExpertSetupTable.workosUserId, session.userId),
+  });
+
+  if (!setup) {
+    throw new Error('Setup record not found. Please refresh the page.');
+  }
+
+  // Update the specific step
+  await db
+    .update(ExpertSetupTable)
+    .set({ [columnName]: true })
+    .where(eq(ExpertSetupTable.workosUserId, session.userId));
+
+  // Check if all steps are now complete
+  const updatedSetup = await db.query.ExpertSetupTable.findFirst({
+    where: eq(ExpertSetupTable.workosUserId, session.userId),
+  });
+
+  if (updatedSetup) {
+    const allComplete =
+      updatedSetup.profileCompleted &&
+      updatedSetup.availabilityCompleted &&
+      updatedSetup.eventsCompleted &&
+      updatedSetup.identityCompleted &&
+      updatedSetup.paymentCompleted &&
+      updatedSetup.googleAccountCompleted;
+
+    // If all steps complete and not already marked, update setupComplete
+    if (allComplete && !updatedSetup.setupComplete) {
+      await db
+        .update(ExpertSetupTable)
+        .set({
+          setupComplete: true,
+          setupCompletedAt: new Date(),
+        })
+        .where(eq(ExpertSetupTable.workosUserId, session.userId));
+    }
+  }
+
+  // Revalidate setup page
+  revalidatePath('/setup');
+  revalidatePath('/dashboard');
+}
+
+/**
+ * Mark a setup step as incomplete (for admin or testing)
+ *
+ * @param step - Setup step to mark incomplete
+ */
+export async function markStepIncomplete(step: SetupStepType): Promise<void> {
+  const validatedStep = SetupStep.parse(step);
+  const session = await requireAuth();
+
+  const columnMap: Record<SetupStepType, keyof typeof ExpertSetupTable.$inferInsert> = {
+    profile: 'profileCompleted',
+    availability: 'availabilityCompleted',
+    events: 'eventsCompleted',
+    identity: 'identityCompleted',
+    payment: 'paymentCompleted',
+    google_account: 'googleAccountCompleted',
+  };
+
+  const columnName = columnMap[validatedStep];
+
+  await db
+    .update(ExpertSetupTable)
+    .set({
+      [columnName]: false,
+      setupComplete: false, // Automatically mark setup as incomplete
+      setupCompletedAt: null,
+    })
+    .where(eq(ExpertSetupTable.workosUserId, session.userId));
+
+  revalidatePath('/setup');
+  revalidatePath('/dashboard');
+}
+
+/**
+ * Reset all setup steps to incomplete
+ *
+ * Useful for testing or if an expert needs to re-do setup.
+ * Requires admin permissions.
+ *
+ * @param workosUserId - User ID to reset (optional, defaults to current user)
+ */
+export async function resetSetup(workosUserId?: string): Promise<void> {
+  const session = await requireAuth();
+
+  // TODO: Add admin permission check
+  // const isAdmin = await isUserAdmin(session.userId);
+  // if (!isAdmin && workosUserId && workosUserId !== session.userId) {
+  //   throw new Error('Unauthorized: Only admins can reset other users\' setup');
+  // }
+
+  const targetUserId = workosUserId || session.userId;
+
+  await db
+    .update(ExpertSetupTable)
+    .set({
+      profileCompleted: false,
+      availabilityCompleted: false,
+      eventsCompleted: false,
+      identityCompleted: false,
+      paymentCompleted: false,
+      googleAccountCompleted: false,
+      setupComplete: false,
+      setupCompletedAt: null,
+    })
+    .where(eq(ExpertSetupTable.workosUserId, targetUserId));
+
+  revalidatePath('/setup');
+  revalidatePath('/dashboard');
+}
+
+/**
+ * Get list of experts with incomplete setup (Admin only)
+ *
+ * Useful for admin dashboard to track expert onboarding.
+ *
+ * @returns Array of users with incomplete setup
+ */
+export async function getIncompleteExperts(): Promise<
+  Array<{
+    workosUserId: string;
+    setupStatus: SetupStatus;
+    createdAt: Date;
+  }>
+> {
+  // TODO: Add authentication and admin permission check
+  // const session = await requireAuth();
+  // const isAdmin = await isUserAdmin(session.userId);
+  // if (!isAdmin) {
+  //   throw new Error('Unauthorized: Only admins can view incomplete experts');
+  // }
+
+  const incompleteSetups = await db.query.ExpertSetupTable.findMany({
+    where: eq(ExpertSetupTable.setupComplete, false),
+    orderBy: (table, { desc }) => [desc(table.createdAt)],
+    limit: 100, // Prevent huge queries
+  });
+
+  return incompleteSetups.map((setup) => ({
+    workosUserId: setup.workosUserId,
+    setupStatus: {
+      profile: setup.profileCompleted,
+      availability: setup.availabilityCompleted,
+      events: setup.eventsCompleted,
+      identity: setup.identityCompleted,
+      payment: setup.paymentCompleted,
+      google_account: setup.googleAccountCompleted,
+    },
+    createdAt: setup.createdAt,
+  }));
+}
+
+/**
+ * Get setup completion statistics (Admin only)
+ *
+ * Provides analytics on expert onboarding progress.
+ *
+ * @returns Setup statistics
+ */
+export async function getSetupStats(): Promise<SetupStats> {
+  // TODO: Add authentication and admin permission check
+  // const session = await requireAuth();
+  // const isAdmin = await isUserAdmin(session.userId);
+  // if (!isAdmin) throw new Error('Unauthorized: Only admins can view stats');
+
+  // Get total count
+  const totalResult = await db.select({ count: count() }).from(ExpertSetupTable);
+
+  const total = totalResult[0]?.count || 0;
+
+  if (total === 0) {
+    return {
+      total: 0,
+      complete: 0,
+      incomplete: 0,
+      completionRate: 0,
+      averageStepsCompleted: 0,
+    };
+  }
+
+  // Get complete count
+  const completeResult = await db
+    .select({ count: count() })
+    .from(ExpertSetupTable)
+    .where(eq(ExpertSetupTable.setupComplete, true));
+
+  const complete = completeResult[0]?.count || 0;
+  const incomplete = total - complete;
+  const completionRate = (complete / total) * 100;
+
+  // Calculate average steps completed (for incomplete setups)
+  const allSetups = await db.query.ExpertSetupTable.findMany();
+
+  const totalStepsCompleted = allSetups.reduce((sum, setup) => {
+    return (
+      sum +
+      (setup.profileCompleted ? 1 : 0) +
+      (setup.availabilityCompleted ? 1 : 0) +
+      (setup.eventsCompleted ? 1 : 0) +
+      (setup.identityCompleted ? 1 : 0) +
+      (setup.paymentCompleted ? 1 : 0) +
+      (setup.googleAccountCompleted ? 1 : 0)
+    );
+  }, 0);
+
+  const averageStepsCompleted = totalStepsCompleted / total;
+
+  return {
+    total,
+    complete,
+    incomplete,
+    completionRate: Math.round(completionRate * 10) / 10, // Round to 1 decimal
+    averageStepsCompleted: Math.round(averageStepsCompleted * 10) / 10,
+  };
+}

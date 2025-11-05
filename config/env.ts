@@ -18,7 +18,7 @@ export const ENV_CONFIG = {
   UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL || '',
   UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN || '',
 
-  // Authentication (Clerk)
+  // Authentication (Clerk - Legacy, being migrated to WorkOS)
   CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY || '',
   CLERK_PUBLISHABLE_KEY: process.env.CLERK_PUBLISHABLE_KEY || '',
   CLERK_WEBHOOK_SIGNING_SECRET: process.env.CLERK_WEBHOOK_SIGNING_SECRET || '',
@@ -35,6 +35,14 @@ export const ENV_CONFIG = {
   NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL || '/sign-in',
   NEXT_PUBLIC_CLERK_SIGN_UP_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL || '/sign-up',
   NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL: process.env.NEXT_PUBLIC_CLERK_AFTER_SIGN_OUT_URL || '/',
+
+  // Authentication (WorkOS - New)
+  WORKOS_API_KEY: process.env.WORKOS_API_KEY || '',
+  WORKOS_CLIENT_ID: process.env.WORKOS_CLIENT_ID || '',
+  NEXT_PUBLIC_WORKOS_CLIENT_ID: process.env.NEXT_PUBLIC_WORKOS_CLIENT_ID || '',
+  WORKOS_COOKIE_PASSWORD: process.env.WORKOS_COOKIE_PASSWORD || '',
+  WORKOS_REDIRECT_URI: process.env.WORKOS_REDIRECT_URI || '',
+  WORKOS_WEBHOOK_SECRET: process.env.WORKOS_WEBHOOK_SECRET || '',
 
   // Stripe Configuration
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
@@ -156,7 +164,7 @@ export const ENV_VALIDATORS = {
   },
 
   /**
-   * Validate authentication environment variables
+   * Validate authentication environment variables (Clerk - Legacy)
    */
   auth(): EnvValidationResult {
     const missingVars: string[] = [];
@@ -175,10 +183,47 @@ export const ENV_VALIDATORS = {
       isValid: missingVars.length === 0,
       message:
         missingVars.length > 0
-          ? `Missing authentication environment variables: ${missingVars.join(', ')}`
+          ? `Missing Clerk authentication environment variables: ${missingVars.join(', ')}`
           : optionalVars.length > 0
-            ? `Authentication configuration is valid. Optional variables for better OAuth handling: ${optionalVars.join(', ')}`
-            : 'Authentication configuration is valid',
+            ? `Clerk authentication configuration is valid. Optional variables for better OAuth handling: ${optionalVars.join(', ')}`
+            : 'Clerk authentication configuration is valid',
+      missingVars,
+    };
+  },
+
+  /**
+   * Validate WorkOS authentication environment variables
+   */
+  workos(): EnvValidationResult {
+    const missingVars: string[] = [];
+
+    // Required for server-side operations
+    if (!ENV_CONFIG.WORKOS_API_KEY) missingVars.push('WORKOS_API_KEY');
+    if (!ENV_CONFIG.WORKOS_CLIENT_ID) missingVars.push('WORKOS_CLIENT_ID');
+
+    // Required for client-side operations
+    if (!ENV_CONFIG.NEXT_PUBLIC_WORKOS_CLIENT_ID) missingVars.push('NEXT_PUBLIC_WORKOS_CLIENT_ID');
+
+    // Required for session management
+    if (!ENV_CONFIG.WORKOS_COOKIE_PASSWORD) missingVars.push('WORKOS_COOKIE_PASSWORD');
+
+    // Optional but recommended
+    const optionalVars: string[] = [];
+    if (!ENV_CONFIG.WORKOS_REDIRECT_URI) optionalVars.push('WORKOS_REDIRECT_URI');
+    if (!ENV_CONFIG.WORKOS_WEBHOOK_SECRET) optionalVars.push('WORKOS_WEBHOOK_SECRET');
+
+    let message = '';
+    if (missingVars.length > 0) {
+      message = `Missing WorkOS environment variables: ${missingVars.join(', ')}`;
+    } else if (optionalVars.length > 0) {
+      message = `WorkOS configuration is valid. Optional variables for webhooks: ${optionalVars.join(', ')}`;
+    } else {
+      message = 'WorkOS configuration is complete';
+    }
+
+    return {
+      isValid: missingVars.length === 0,
+      message,
       missingVars,
     };
   },
@@ -382,6 +427,7 @@ export const ENV_HELPERS = {
   getEnvironmentSummary() {
     const redisValidation = ENV_VALIDATORS.redis();
     const posthogValidation = ENV_VALIDATORS.posthog();
+    const workosValidation = ENV_VALIDATORS.workos();
 
     return {
       nodeEnv: ENV_CONFIG.NODE_ENV,
@@ -389,6 +435,8 @@ export const ENV_HELPERS = {
       isProduction: this.isProduction(),
       hasDatabase: Boolean(ENV_CONFIG.DATABASE_URL),
       hasAuth: Boolean(ENV_CONFIG.CLERK_SECRET_KEY),
+      hasWorkOS: workosValidation.isValid,
+      authProvider: workosValidation.isValid ? 'WorkOS' : 'Clerk',
       hasStripe: Boolean(ENV_CONFIG.STRIPE_SECRET_KEY),
       hasRedis: redisValidation.isValid,
       redisMode: ENV_CONFIG.UPSTASH_REDIS_REST_URL ? 'unified' : 'in-memory',

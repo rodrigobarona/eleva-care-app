@@ -4,8 +4,7 @@ import * as React from 'react';
 import { SetupCompletePublishCard } from '@/components/features/expert-setup/SetupCompletePublishCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
-import { useUser } from '@clerk/nextjs';
+import { checkExpertSetupStatus } from '@/server/actions/expert-setup-workos';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -34,7 +33,7 @@ type SetupStep = {
 };
 
 export default function ExpertSetupPage() {
-  const { isLoaded, user } = useUser();
+  const [isLoading, setIsLoading] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isProfilePublished, setIsProfilePublished] = useState(false);
 
@@ -97,14 +96,42 @@ export default function ExpertSetupPage() {
     },
   ]);
 
-  // Load setup status on component mount and when user changes
+  // Load setup status on component mount
   useEffect(() => {
     const loadSetupStatus = async () => {
-      if (!isLoaded || !user) return;
-
       try {
         const result = await checkExpertSetupStatus();
-        if (result.success && result.setupStatus) {
+
+        // Update completed steps
+        setSteps((prev) =>
+          prev.map((step) => ({
+            ...step,
+            completed: !!result.setupStatus?.[step.id as keyof typeof result.setupStatus],
+          })),
+        );
+
+        // Show confetti if all complete
+        if (result.isSetupComplete && !showConfetti) {
+          setShowConfetti(true);
+          setTimeout(() => setShowConfetti(false), 8000);
+        }
+      } catch (error) {
+        console.error('Failed to load setup status:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadSetupStatus();
+  }, [showConfetti]);
+
+  // Refresh status when the page gains focus (user comes back from another tab)
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (!document.hidden && !isLoading) {
+        try {
+          const result = await checkExpertSetupStatus();
+
           // Update completed steps
           setSteps((prev) =>
             prev.map((step) => ({
@@ -112,39 +139,6 @@ export default function ExpertSetupPage() {
               completed: !!result.setupStatus?.[step.id as keyof typeof result.setupStatus],
             })),
           );
-
-          // Use the direct isSetupComplete flag if available
-          if (result.isSetupComplete !== undefined) {
-            const allCompleted = result.isSetupComplete;
-            if (allCompleted && !showConfetti) {
-              setShowConfetti(true);
-              const timer = setTimeout(() => setShowConfetti(false), 8000);
-              return () => clearTimeout(timer);
-            }
-          }
-
-          // Update the profile published status (now reading from database)
-          if (result.isPublished !== undefined) {
-            setIsProfilePublished(Boolean(result.isPublished));
-          }
-        }
-      } catch (error) {
-        console.error('Failed to load setup status:', error);
-      }
-    };
-
-    loadSetupStatus();
-  }, [isLoaded, user, showConfetti]);
-
-  // Refresh status when the page gains focus (user comes back from another tab)
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (!document.hidden && isLoaded && user) {
-        try {
-          const result = await checkExpertSetupStatus();
-          if (result.success && result.isPublished !== undefined) {
-            setIsProfilePublished(Boolean(result.isPublished));
-          }
         } catch (error) {
           console.error('Failed to refresh setup status:', error);
         }
@@ -153,7 +147,7 @@ export default function ExpertSetupPage() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isLoaded, user]);
+  }, [isLoading]);
 
   // Check if all steps are completed
   const allStepsCompleted = steps.every((step) => step.completed);
@@ -186,7 +180,7 @@ export default function ExpertSetupPage() {
     );
   };
 
-  if (!isLoaded) {
+  if (isLoading) {
     return <SetupSkeleton />;
   }
 
