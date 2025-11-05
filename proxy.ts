@@ -257,6 +257,11 @@ function isPrivateRoute(request: NextRequest): boolean {
 function isAuthRoute(path: string): boolean {
   const segments = path.split('/').filter(Boolean);
 
+  // WorkOS auth routes under /auth/ directory (e.g., /auth/callback, /auth/sign-out)
+  if (segments.length >= 1 && segments[0] === 'auth') {
+    return true;
+  }
+
   // List of paths that should be public under auth
   const authPaths = ['sign-in', 'sign-up', 'unauthorized', 'onboarding'];
 
