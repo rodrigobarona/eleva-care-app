@@ -528,7 +528,14 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
   // Check auth routes - explicitly allow without authentication
   if (isAuthRoute(path)) {
     console.log(`🔓 Auth route allowed without login: ${path}`);
-    // Apply i18n middleware to auth routes
+
+    // WorkOS auth handlers (/auth/*) are API-like routes, don't apply i18n
+    // They should pass through directly like API routes
+    if (path.startsWith('/auth/')) {
+      return NextResponse.next();
+    }
+
+    // Other auth pages (sign-in, sign-up, etc.) need i18n
     return handleI18nRouting(req);
   }
 
