@@ -135,7 +135,7 @@ describe('Meeting Actions', () => {
 
   const mockEvent: DbEvent = {
     id: '123e4567-e89b-12d3-a456-426614174000',
-    clerkUserId: 'user-123',
+    workosUserId: 'user-123',
     name: 'Test Event',
     slug: 'test-event',
     description: 'Test Description',
@@ -166,7 +166,6 @@ describe('Meeting Actions', () => {
     stripePaymentStatus: validMeetingData.stripePaymentStatus,
     stripeAmount: validMeetingData.stripeAmount,
     stripeApplicationFeeAmount: null,
-    stripeApplicationFeeId: null,
     stripeRefundId: null,
     stripeMetadata: null,
     stripeTransferId: null,

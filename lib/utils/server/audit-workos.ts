@@ -158,6 +158,31 @@ import { headers } from 'next/headers';
  */
 
 /**
+ * Unified Audit Logging System (WorkOS Migration)
+ *
+ * This replaces the separate audit database approach with a unified schema
+ * protected by Row-Level Security (RLS).
+ *
+ * Key Features:
+ * - Automatic context extraction from JWT (no manual params!)
+ * - RLS ensures org-scoped access
+ * - Append-only audit logs (HIPAA compliant)
+ * - Hybrid approach: WorkOS for auth, this DB for PHI
+ *
+ * @example
+ * ```typescript
+ * // Old way (separate DB, manual params):
+ * await logAuditEvent(
+ *   workosUserId, action, resourceType, resourceId,
+ *   oldValues, newValues, ipAddress, userAgent
+ * );
+ *
+ * // New way (automatic context):
+ * await logAuditEvent('MEDICAL_RECORD_VIEWED', 'medical_record', 'rec_123');
+ * ```
+ */
+
+/**
  * Get request context (IP address and user agent)
  * Automatically extracts from Next.js headers
  */
@@ -235,7 +260,7 @@ export async function logAuditEvent(
 ): Promise<void> {
   try {
     // Get session (includes userId and orgId from JWT)
-    await requireAuth();
+    const session = await requireAuth();
 
     // Get request context
     const { ipAddress, userAgent } = await getRequestContext();
