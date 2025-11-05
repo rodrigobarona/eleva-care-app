@@ -10,41 +10,41 @@ export async function POST() {
     console.log('Starting dashboard route handler');
 
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
     console.log('Auth check completed', { userId });
 
-    if (!user) {
+    if (!user || !userId) {
       console.log('No userId found in auth');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user's Stripe Connect account ID
-    const user = await db.query.UsersTable.findFirst({
+    const dbUser = await db.query.UsersTable.findFirst({
       where: eq(UsersTable.workosUserId, userId),
     });
     console.log('User query completed', {
-      found: !!user,
-      hasConnectAccount: !!user?.stripeConnectAccountId,
-      connectAccountId: user?.stripeConnectAccountId,
-      connectDetailsSubmitted: user?.stripeConnectDetailsSubmitted,
-      connectChargesEnabled: user?.stripeConnectChargesEnabled,
-      connectPayoutsEnabled: user?.stripeConnectPayoutsEnabled,
+      found: !!dbUser,
+      hasConnectAccount: !!dbUser?.stripeConnectAccountId,
+      connectAccountId: dbUser?.stripeConnectAccountId,
+      connectDetailsSubmitted: dbUser?.stripeConnectDetailsSubmitted,
+      connectChargesEnabled: dbUser?.stripeConnectChargesEnabled,
+      connectPayoutsEnabled: dbUser?.stripeConnectPayoutsEnabled,
     });
 
-    if (!user?.stripeConnectAccountId) {
+    if (!dbUser?.stripeConnectAccountId) {
       return NextResponse.json({ error: 'No Stripe Connect account found' }, { status: 404 });
     }
 
     try {
       // Get the appropriate URL (setup or login link)
-      console.log('Attempting to create Stripe link', { accountId: user.stripeConnectAccountId });
-      const url = await getStripeConnectSetupOrLoginLink(user.stripeConnectAccountId);
+      console.log('Attempting to create Stripe link', { accountId: dbUser.stripeConnectAccountId });
+      const url = await getStripeConnectSetupOrLoginLink(dbUser.stripeConnectAccountId);
       console.log('Successfully created Stripe link');
       return NextResponse.json({ url });
     } catch (stripeError) {
       console.error('Stripe link creation failed', {
         error: stripeError,
-        accountId: user.stripeConnectAccountId,
+        accountId: dbUser.stripeConnectAccountId,
         errorMessage: stripeError instanceof Error ? stripeError.message : 'Unknown error',
       });
       throw stripeError;

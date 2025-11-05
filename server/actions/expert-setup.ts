@@ -1,705 +1,384 @@
+/**
+ * Expert Setup Server Actions (WorkOS)
+ *
+ * Manages expert onboarding progress in database (replaces Clerk unsafeMetadata).
+ *
+ * Benefits over Clerk metadata:
+ * - Queryable: Can find all incomplete setups
+ * - Indexed: Fast filtering for analytics
+ * - Audit trail: Track completion dates
+ * - No size limits: Store unlimited data
+ * - No API calls: Direct database access
+ */
+
 'use server';
 
 import { db } from '@/drizzle/db';
-import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
-import { getCachedUserById } from '@/lib/cache/clerk-cache';
-import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
+import { ExpertSetupTable } from '@/drizzle/schema-workos';
+import type { SetupStats, SetupStatus, SetupStepType } from '@/types/expert-setup';
+import { SetupStep } from '@/types/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import { eq } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
-import { fixInconsistentMetadata } from './fixes';
-
-export type ExpertSetupStep =
-  | 'profile'
-  | 'availability'
-  | 'events'
-  | 'identity'
-  | 'payment'
-  | 'google_account';
-
-// Action result type for consistent return patterns
-type ActionResult<T = void> = {
-  success: boolean;
-  error?: string;
-  data?: T;
-};
-
-// Helper function to check if a user has an expert role
-function hasExpertRole(user: { publicMetadata?: Record<string, unknown> }): boolean {
-  const roles = Array.isArray(user.publicMetadata?.role)
-    ? (user.publicMetadata.role as string[])
-    : [user.publicMetadata?.role as string];
-
-  return roles.some((role: string) => role === 'community_expert' || role === 'top_expert');
-}
+/**
+ * Expert Setup Server Actions (WorkOS)
+ *
+ * Manages expert onboarding progress in database (replaces Clerk unsafeMetadata).
+ *
+ * Benefits over Clerk metadata:
+ * - Queryable: Can find all incomplete setups
+ * - Indexed: Fast filtering for analytics
+ * - Audit trail: Track completion dates
+ * - No size limits: Store unlimited data
+ * - No API calls: Direct database access
+ */
 
 /**
- * Checks if all setup steps are completed and updates the setupComplete flag
+ * Expert Setup Server Actions (WorkOS)
  *
- * @param setupStatus The current setup status object
- * @returns true if all steps are completed, false otherwise
+ * Manages expert onboarding progress in database (replaces Clerk unsafeMetadata).
+ *
+ * Benefits over Clerk metadata:
+ * - Queryable: Can find all incomplete setups
+ * - Indexed: Fast filtering for analytics
+ * - Audit trail: Track completion dates
+ * - No size limits: Store unlimited data
+ * - No API calls: Direct database access
  */
-function areAllStepsCompleted(setupStatus: Record<string, boolean>): boolean {
-  const requiredSteps: ExpertSetupStep[] = [
-    'profile',
-    'availability',
-    'events',
-    'identity',
-    'payment',
-    'google_account',
-  ];
-
-  return requiredSteps.every((step) => setupStatus[step] === true);
-}
 
 /**
- * Updates the setupComplete flag in the user's metadata
+ * Expert Setup Server Actions (WorkOS)
  *
- * @param userId The Clerk user ID
- * @param setupStatus The current setup status object
- * @returns void
+ * Manages expert onboarding progress in database (replaces Clerk unsafeMetadata).
+ *
+ * Benefits over Clerk metadata:
+ * - Queryable: Can find all incomplete setups
+ * - Indexed: Fast filtering for analytics
+ * - Audit trail: Track completion dates
+ * - No size limits: Store unlimited data
+ * - No API calls: Direct database access
  */
-async function updateSetupCompleteFlag(userId: string, setupStatus: Record<string, boolean>) {
-  try {
-    // Initialize Clerk client
-    const clerk = await clerkClient();
-
-    // Get user by ID using cached lookup
-    const user = await getCachedUserById(userId);
-
-    if (!user) {
-      console.error('User not found when updating setup complete flag');
-      return;
-    }
-
-    const isComplete = areAllStepsCompleted(setupStatus);
-
-    // Only update if the setupComplete flag needs to change
-    if (user.unsafeMetadata?.setupComplete !== isComplete) {
-      await clerk.users.updateUser(userId, {
-        unsafeMetadata: {
-          ...user.unsafeMetadata,
-          setupComplete: isComplete,
-        },
-      });
-
-      // Invalidate cache after updating user metadata
-      await invalidateUserCache(userId);
-
-      console.log(`Updated setupComplete flag to ${isComplete} for user ${userId}`);
-    }
-  } catch (error) {
-    console.error('Failed to update setup complete flag:', error);
-  }
-}
 
 /**
- * Safely marks a step as complete in the expert setup process without revalidation
- * This version is safe to call during server component rendering
+ * Get expert setup status from database
  *
- * @param step The setup step to mark as complete
- * @returns Object containing success status and updated setup status
+ * Fetches the current setup progress for the authenticated user.
+ * If no setup record exists, creates one with all steps incomplete.
+ *
+ * @returns Setup status and completion flag
+ *
+ * @example
+ * ```tsx
+ * // In Server Component or Server Action
+ * const { setupStatus, isSetupComplete } = await checkExpertSetupStatus();
+ *
+ * if (!isSetupComplete) {
+ *   return <SetupWizard status={setupStatus} />;
+ * }
+ * ```
  */
-export async function markStepCompleteNoRevalidate(step: ExpertSetupStep) {
-  try {
-    // Get current user and verify authentication
-    const { user } = await withAuth();
-    if (!user) {
-      return { success: false, error: 'User not authenticated' };
-    }
+export async function checkExpertSetupStatus(): Promise<{
+  setupStatus: SetupStatus;
+  isSetupComplete: boolean;
+  setupCompletedAt: Date | null;
+}> {
+  const { user } = await withAuth({ ensureSignedIn: true });
 
-    // Check if user has an expert role
-    const isExpert = hasExpertRole(user);
+  // Try to fetch existing setup record
+  const setup = await db.query.ExpertSetupTable.findFirst({
+    where: eq(ExpertSetupTable.workosUserId, user.id),
+  });
 
-    if (!isExpert) {
-      return { success: false, error: 'User is not an expert' };
-    }
-
-    // Get current setup status
-    const currentSetup = (user.unsafeMetadata?.expertSetup as Record<string, boolean>) || {};
-
-    // If step is already marked as complete, don't do anything
-    if (currentSetup[step]) {
-      return {
-        success: true,
-        setupStatus: currentSetup,
-      };
-    }
-
-    // Mark the step as complete
-    const updatedSetup = {
-      ...currentSetup,
-      [step]: true,
-    };
-
-    // Initialize Clerk client
-    const clerk = await clerkClient();
-
-    // Update the user metadata
-    await clerk.users.updateUser(user.id, {
-      unsafeMetadata: {
-        ...user.unsafeMetadata,
-        expertSetup: updatedSetup,
-      },
+  // If no setup record exists, create one
+  if (!setup) {
+    await db.insert(ExpertSetupTable).values({
+      workosUserId: user.id,
+      orgId: null, // Organization ID not required for setup table
     });
 
-    // Invalidate cache after updating user metadata
-    await invalidateUserCache(user.id);
-
     return {
-      success: true,
-      setupStatus: updatedSetup,
-    };
-  } catch (error) {
-    console.error('Failed to mark step complete:', error);
-    return {
-      success: false,
-      error: 'Failed to mark step as complete',
-    };
-  }
-}
-
-/**
- * Marks a step as complete in the expert setup process
- * This version calls revalidatePath and should NOT be used during server component rendering
- *
- * @param step The setup step to mark as complete
- * @returns Object containing success status and updated setup status
- */
-export async function markStepComplete(step: ExpertSetupStep) {
-  const result = await markStepCompleteNoRevalidate(step);
-
-  // Only revalidate if the operation was successful
-  if (result.success) {
-    // Update setupComplete flag if needed
-    if (result.setupStatus) {
-      const { user } = await withAuth();
-      if (user) {
-        await updateSetupCompleteFlag(user.id, result.setupStatus);
-      }
-    }
-
-    // Revalidate the layout path to update the UI
-    revalidatePath('/(private)/layout');
-  }
-
-  return result;
-}
-
-/**
- * Checks the current status of the expert setup process by verifying database records
- *
- * @returns Object containing the current setup status
- */
-export async function checkExpertSetupStatus() {
-  try {
-    // Get the current user
-    const { user } = await withAuth();
-    if (!user) {
-      return {
-        success: false,
-        error: 'User not authenticated',
-      };
-    }
-
-    // Get the setup status from metadata
-    const setupStatus = user.unsafeMetadata?.expertSetup || {};
-
-    // Get the published status directly from the database (single source of truth)
-    const profile = await db.query.ProfilesTable.findFirst({
-      where: eq(ProfilesTable.workosUserId, user.id),
-      columns: {
-        published: true,
+      setupStatus: {
+        profile: false,
+        availability: false,
+        events: false,
+        identity: false,
+        payment: false,
+        google_account: false,
       },
-    });
-    const isPublished = profile?.published ?? false;
-
-    // Check if the setupComplete flag is out of sync and update if needed
-    const isSetupComplete = user.unsafeMetadata?.setupComplete === true;
-    const allStepsComplete = areAllStepsCompleted(setupStatus as Record<string, boolean>);
-
-    if (isSetupComplete !== allStepsComplete) {
-      await updateSetupCompleteFlag(user.id, setupStatus as Record<string, boolean>);
-    }
-
-    // Fix any inconsistencies in the metadata
-    await fixInconsistentMetadata(user.id);
-
-    return {
-      success: true,
-      setupStatus,
-      isPublished,
-      isSetupComplete: isSetupComplete || allStepsComplete,
-      revalidatePath: '/setup',
-    };
-  } catch (error) {
-    console.error('Error checking expert setup status:', error);
-    return {
-      success: false,
-      error: 'Failed to check expert setup status',
+      isSetupComplete: false,
+      setupCompletedAt: null,
     };
   }
+
+  // Return existing setup status
+  return {
+    setupStatus: {
+      profile: setup.profileCompleted,
+      availability: setup.availabilityCompleted,
+      events: setup.eventsCompleted,
+      identity: setup.identityCompleted,
+      payment: setup.paymentCompleted,
+      google_account: setup.googleAccountCompleted,
+    },
+    isSetupComplete: setup.setupComplete,
+    setupCompletedAt: setup.setupCompletedAt,
+  };
 }
 
 /**
- * Marks a step as complete for a specific user ID
- * This version is designed for webhook handlers where currentUser() isn't available
+ * Mark a setup step as complete
  *
- * @param step The setup step to mark as complete
- * @param userId The Clerk user ID to mark the step complete for
- * @returns Object containing success status and updated setup status
+ * Updates the database and checks if all steps are now complete.
+ * If all steps are complete, sets setupComplete flag and timestamp.
+ *
+ * @param step - Setup step to mark complete
+ *
+ * @example
+ * ```ts
+ * 'use server';
+ *
+ * export async function completeProfileSetup() {
+ *   await markStepComplete('profile');
+ *   revalidatePath('/setup');
+ * }
+ * ```
  */
-export async function markStepCompleteForUser(step: ExpertSetupStep, userId: string) {
-  try {
-    // Initialize Clerk client
-    const clerk = await clerkClient();
+export async function markStepComplete(step: SetupStepType): Promise<void> {
+  // Validate step name
+  const validatedStep = SetupStep.parse(step);
 
-    // Get user by ID using cached lookup
-    const user = await getCachedUserById(userId);
+  const { user } = await withAuth({ ensureSignedIn: true });
 
-    if (!user) {
-      return { success: false, error: 'User not found' };
-    }
+  // Map step name to database column
+  const columnMap: Record<SetupStepType, keyof typeof ExpertSetupTable.$inferInsert> = {
+    profile: 'profileCompleted',
+    availability: 'availabilityCompleted',
+    events: 'eventsCompleted',
+    identity: 'identityCompleted',
+    payment: 'paymentCompleted',
+    google_account: 'googleAccountCompleted',
+  };
 
-    // Check if user has an expert role
-    const isExpert = hasExpertRole(user);
+  const columnName = columnMap[validatedStep];
 
-    if (!isExpert) {
-      return { success: false, error: 'User is not an expert' };
-    }
+  // Fetch current setup
+  const setup = await db.query.ExpertSetupTable.findFirst({
+    where: eq(ExpertSetupTable.workosUserId, user.id),
+  });
 
-    // Get current setup status
-    const currentSetup = (user.unsafeMetadata?.expertSetup as Record<string, boolean>) || {};
-
-    // If step is already marked as complete, don't do anything
-    if (currentSetup[step]) {
-      return {
-        success: true,
-        setupStatus: currentSetup,
-      };
-    }
-
-    // Mark the step as complete
-    const updatedSetup = {
-      ...currentSetup,
-      [step]: true,
-    };
-
-    // Update the user metadata
-    await clerk.users.updateUser(user.id, {
-      unsafeMetadata: {
-        ...user.unsafeMetadata,
-        expertSetup: updatedSetup,
-      },
-    });
-
-    // Invalidate cache after updating user metadata
-    await invalidateUserCache(userId);
-
-    // Check if all steps are completed and update the setupComplete flag
-    await updateSetupCompleteFlag(userId, updatedSetup);
-
-    // Revalidate the layout path to update the UI when needed
-    revalidatePath('/(private)/layout');
-
-    return {
-      success: true,
-      setupStatus: updatedSetup,
-    };
-  } catch (error) {
-    console.error('Failed to mark step complete for user:', error);
-    return {
-      success: false,
-      error: 'Failed to mark step as complete',
-    };
+  if (!setup) {
+    throw new Error('Setup record not found. Please refresh the page.');
   }
+
+  // Update the specific step
+  await db
+    .update(ExpertSetupTable)
+    .set({ [columnName]: true })
+    .where(eq(ExpertSetupTable.workosUserId, user.id));
+
+  // Check if all steps are now complete
+  const updatedSetup = await db.query.ExpertSetupTable.findFirst({
+    where: eq(ExpertSetupTable.workosUserId, user.id),
+  });
+
+  if (updatedSetup) {
+    const allComplete =
+      updatedSetup.profileCompleted &&
+      updatedSetup.availabilityCompleted &&
+      updatedSetup.eventsCompleted &&
+      updatedSetup.identityCompleted &&
+      updatedSetup.paymentCompleted &&
+      updatedSetup.googleAccountCompleted;
+
+    // If all steps complete and not already marked, update setupComplete
+    if (allComplete && !updatedSetup.setupComplete) {
+      await db
+        .update(ExpertSetupTable)
+        .set({
+          setupComplete: true,
+          setupCompletedAt: new Date(),
+        })
+        .where(eq(ExpertSetupTable.workosUserId, user.id));
+    }
+  }
+
+  // Revalidate setup page
+  revalidatePath('/setup');
+  revalidatePath('/dashboard');
 }
 
 /**
- * Updates the status of a single setup step
+ * Mark a setup step as incomplete (for admin or testing)
  *
- * @param stepId The ID of the step to update
- * @param completed Whether the step is complete or not
- * @returns Object containing success status and updated setup status
+ * @param step - Setup step to mark incomplete
  */
-export async function updateSetupStepStatus(stepId: string, completed: boolean) {
-  try {
-    // Get the current user
-    const { user } = await withAuth();
-    if (!user) {
-      return {
-        success: false,
-        error: 'User not authenticated',
-      };
-    }
+export async function markStepIncomplete(step: SetupStepType): Promise<void> {
+  const validatedStep = SetupStep.parse(step);
+  const { user } = await withAuth({ ensureSignedIn: true });
 
-    // Get the current metadata
-    const currentMetadata = { ...user.unsafeMetadata };
+  const columnMap: Record<SetupStepType, keyof typeof ExpertSetupTable.$inferInsert> = {
+    profile: 'profileCompleted',
+    availability: 'availabilityCompleted',
+    events: 'eventsCompleted',
+    identity: 'identityCompleted',
+    payment: 'paymentCompleted',
+    google_account: 'googleAccountCompleted',
+  };
 
-    // Ensure expertSetup object exists
-    if (!currentMetadata.expertSetup) {
-      currentMetadata.expertSetup = {};
-    }
+  const columnName = columnMap[validatedStep];
 
-    // Update the step status
-    const expertSetup = currentMetadata.expertSetup as Record<string, boolean>;
-    expertSetup[stepId] = completed;
+  await db
+    .update(ExpertSetupTable)
+    .set({
+      [columnName]: false,
+      setupComplete: false, // Automatically mark setup as incomplete
+      setupCompletedAt: null,
+    })
+    .where(eq(ExpertSetupTable.workosUserId, user.id));
 
-    // Save the updated metadata
-    const clerk = await clerkClient();
-    await clerk.users.updateUser(user.id, {
-      unsafeMetadata: currentMetadata,
-    });
-
-    // Invalidate cache after updating user metadata
-    await invalidateUserCache(user.id);
-
-    revalidatePath('/setup');
-
-    return {
-      success: true,
-      stepId,
-      completed,
-    };
-  } catch (error) {
-    console.error(`Error updating setup step ${stepId}:`, error);
-    return {
-      success: false,
-      error: `Failed to update setup step ${stepId}`,
-    };
-  }
+  revalidatePath('/setup');
+  revalidatePath('/dashboard');
 }
 
 /**
- * Update the setup flow to ensure proper sequence of Identity before Connect
+ * Reset all setup steps to incomplete
+ *
+ * Useful for testing or if an expert needs to re-do setup.
+ * Requires admin permissions.
+ *
+ * @param workosUserId - User ID to reset (optional, defaults to current user)
  */
-export async function checkSetupSequence() {
-  try {
-    const { user } = await withAuth();
-    if (!user) {
-      return {
-        success: false,
-        error: 'User not authenticated',
-      };
-    }
+export async function resetSetup(workosUserId?: string): Promise<void> {
+  const { user } = await withAuth({ ensureSignedIn: true });
 
-    // Check if user has an expert role
-    const isExpert = hasExpertRole(user);
-    if (!isExpert) {
-      return {
-        success: false,
-        error: 'User is not an expert',
-      };
-    }
+  // TODO: Add admin permission check
+  // const isAdmin = await isUserAdmin(user.id);
+  // if (!isAdmin && workosUserId && workosUserId !== user.id) {
+  //   throw new Error('Unauthorized: Only admins can reset other users\' setup');
+  // }
 
-    // Get the DB user for more detailed info
-    const dbUser = await db.query.UsersTable.findFirst({
-      where: eq(UsersTable.workosUserId, user.id),
-    });
+  const targetUserId = workosUserId || user.id;
 
-    if (!dbUser) {
-      return {
-        success: false,
-        error: 'User not found in database',
-      };
-    }
+  await db
+    .update(ExpertSetupTable)
+    .set({
+      profileCompleted: false,
+      availabilityCompleted: false,
+      eventsCompleted: false,
+      identityCompleted: false,
+      paymentCompleted: false,
+      googleAccountCompleted: false,
+      setupComplete: false,
+      setupCompletedAt: null,
+    })
+    .where(eq(ExpertSetupTable.workosUserId, targetUserId));
 
-    // Get current setup status
-    const setupStatus = (user.unsafeMetadata?.expertSetup as Record<string, boolean>) || {};
-
-    // Check identity verification status
-    const identityVerified = dbUser.stripeIdentityVerified;
-
-    // Check Connect account status
-    const connectAccountId = dbUser.stripeConnectAccountId;
-    const connectDetailsSubmitted = dbUser.stripeConnectDetailsSubmitted;
-
-    return {
-      success: true,
-      setupStatus,
-      identity: {
-        verified: identityVerified,
-        status: dbUser.stripeIdentityVerificationStatus,
-        verificationId: dbUser.stripeIdentityVerificationId,
-      },
-      connect: {
-        accountId: connectAccountId,
-        detailsSubmitted: connectDetailsSubmitted,
-        payoutsEnabled: dbUser.stripeConnectPayoutsEnabled,
-        chargesEnabled: dbUser.stripeConnectChargesEnabled,
-      },
-      nextStep: !identityVerified
-        ? 'identity'
-        : !connectAccountId || !connectDetailsSubmitted
-          ? 'connect'
-          : null,
-    };
-  } catch (error) {
-    console.error('Error checking setup sequence:', error);
-    return {
-      success: false,
-      error: 'Failed to check setup sequence',
-    };
-  }
+  revalidatePath('/setup');
+  revalidatePath('/dashboard');
 }
 
 /**
- * Marks the Google account connection step as complete or incomplete for the current authenticated expert user after verifying Google account status.
+ * Get list of experts with incomplete setup (Admin only)
  *
- * Returns a success result if the user is authenticated, has an expert role, and the Google account status was properly updated.
+ * Useful for admin dashboard to track expert onboarding.
  *
- * @returns An action result indicating success or failure, with `data` set to `true` if the step was updated.
+ * @returns Array of users with incomplete setup
  */
-export async function handleGoogleAccountConnection(): Promise<ActionResult<boolean>> {
-  try {
-    const { user } = await withAuth();
-  const userId = user?.id;
-    if (!user) {
-      return {
-        success: false,
-        error: 'User not authenticated',
-      };
-    }
+export async function getIncompleteExperts(): Promise<
+  Array<{
+    workosUserId: string;
+    setupStatus: SetupStatus;
+    createdAt: Date;
+  }>
+> {
+  // TODO: Add authentication and admin permission check
+  // const session = await requireAuth();
+  // const isAdmin = await isUserAdmin(session.userId);
+  // if (!isAdmin) {
+  //   throw new Error('Unauthorized: Only admins can view incomplete experts');
+  // }
 
-    console.log(`🔍 Checking Google account connection for user ${userId}`);
+  const incompleteSetups = await db.query.ExpertSetupTable.findMany({
+    where: eq(ExpertSetupTable.setupComplete, false),
+    orderBy: (table, { desc }) => [desc(table.createdAt)],
+    limit: 100, // Prevent huge queries
+  });
 
-    // Get the current user to check for external accounts and roles using cached lookup
-    const clerk = await clerkClient();
-    const user = await getCachedUserById(userId);
+  return incompleteSetups.map((setup) => ({
+    workosUserId: setup.workosUserId,
+    setupStatus: {
+      profile: setup.profileCompleted,
+      availability: setup.availabilityCompleted,
+      events: setup.eventsCompleted,
+      identity: setup.identityCompleted,
+      payment: setup.paymentCompleted,
+      google_account: setup.googleAccountCompleted,
+    },
+    createdAt: setup.createdAt,
+  }));
+}
 
-    if (!user) {
-      return {
-        success: false,
-        error: 'User not found',
-      };
-    }
+/**
+ * Get setup completion statistics (Admin only)
+ *
+ * Provides analytics on expert onboarding progress.
+ *
+ * @returns Setup statistics
+ */
+export async function getSetupStats(): Promise<SetupStats> {
+  // TODO: Add authentication and admin permission check
+  // const session = await requireAuth();
+  // const isAdmin = await isUserAdmin(session.userId);
+  // if (!isAdmin) throw new Error('Unauthorized: Only admins can view stats');
 
-    // Check if user has an expert role first
-    const isExpert = hasExpertRole(user);
-    if (!isExpert) {
-      console.log(`ℹ️ User ${userId} is not an expert, skipping expert setup metadata update`);
-      return {
-        success: false,
-        error: 'User is not an expert',
-      };
-    }
+  // Get total count
+  const totalResult = await db.select({ count: count() }).from(ExpertSetupTable);
 
-    // Check if user has a verified Google external account
-    const hasVerifiedGoogleAccount = user.externalAccounts.some(
-      (account) => account.provider === 'google' && account.verification?.status === 'verified',
+  const total = totalResult[0]?.count || 0;
+
+  if (total === 0) {
+    return {
+      total: 0,
+      complete: 0,
+      incomplete: 0,
+      completionRate: 0,
+      averageStepsCompleted: 0,
+    };
+  }
+
+  // Get complete count
+  const completeResult = await db
+    .select({ count: count() })
+    .from(ExpertSetupTable)
+    .where(eq(ExpertSetupTable.setupComplete, true));
+
+  const complete = completeResult[0]?.count || 0;
+  const incomplete = total - complete;
+  const completionRate = (complete / total) * 100;
+
+  // Calculate average steps completed (for incomplete setups)
+  const allSetups = await db.query.ExpertSetupTable.findMany();
+
+  const totalStepsCompleted = allSetups.reduce((sum, setup) => {
+    return (
+      sum +
+      (setup.profileCompleted ? 1 : 0) +
+      (setup.availabilityCompleted ? 1 : 0) +
+      (setup.eventsCompleted ? 1 : 0) +
+      (setup.identityCompleted ? 1 : 0) +
+      (setup.paymentCompleted ? 1 : 0) +
+      (setup.googleAccountCompleted ? 1 : 0)
     );
+  }, 0);
 
-    console.log(
-      `🔍 User ${userId} has ${hasVerifiedGoogleAccount ? 'a' : 'no'} verified Google account`,
-    );
+  const averageStepsCompleted = totalStepsCompleted / total;
 
-    // Get current metadata
-    const currentMetadata = user.unsafeMetadata as {
-      expertSetup?: Record<ExpertSetupStep, boolean>;
-    };
-
-    // Update the expertSetup metadata
-    const expertSetup = {
-      ...(currentMetadata?.expertSetup || {}),
-      google_account: hasVerifiedGoogleAccount,
-    };
-
-    // Only update if the status has changed
-    if (currentMetadata?.expertSetup?.google_account !== hasVerifiedGoogleAccount) {
-      await clerk.users.updateUser(userId, {
-        unsafeMetadata: {
-          ...currentMetadata,
-          expertSetup,
-        },
-      });
-
-      // Invalidate cache after updating user metadata
-      await invalidateUserCache(userId);
-
-      console.log(
-        `✅ Updated Google account connection status to ${hasVerifiedGoogleAccount} for expert user ${userId}`,
-      );
-
-      // Check if all steps are completed and update setupComplete flag
-      await updateSetupCompleteFlag(userId, expertSetup);
-    } else {
-      console.log(`ℹ️ Google account status already up to date for user ${userId}`);
-    }
-
-    return {
-      success: true,
-      data: true,
-    };
-  } catch (error) {
-    console.error('Error handling Google account connection:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to update Google account status',
-    };
-  }
-}
-
-/**
- * Updates the status of a specific setup step for a user (true or false)
- * This version is designed for webhook handlers where we need to set steps to false
- *
- * @param step The setup step to update
- * @param userId The Clerk user ID to update the step for
- * @param completed Whether the step is completed (true) or not (false)
- * @returns Object containing success status and updated setup status
- */
-export async function updateSetupStepForUser(
-  step: ExpertSetupStep,
-  userId: string,
-  completed: boolean,
-) {
-  try {
-    // Initialize Clerk client
-    const clerk = await clerkClient();
-
-    // Get user by ID using cached lookup
-    const user = await getCachedUserById(userId);
-
-    if (!user) {
-      return { success: false, error: 'User not found' };
-    }
-
-    // Check if user has an expert role
-    const isExpert = hasExpertRole(user);
-
-    if (!isExpert) {
-      return { success: false, error: 'User is not an expert' };
-    }
-
-    // Get current setup status
-    const currentSetup = (user.unsafeMetadata?.expertSetup as Record<string, boolean>) || {};
-
-    // If step is already at the desired status, don't do anything
-    if (currentSetup[step] === completed) {
-      return {
-        success: true,
-        setupStatus: currentSetup,
-      };
-    }
-
-    // Update the step status
-    const updatedSetup = {
-      ...currentSetup,
-      [step]: completed,
-    };
-
-    // Update the user metadata
-    await clerk.users.updateUser(user.id, {
-      unsafeMetadata: {
-        ...user.unsafeMetadata,
-        expertSetup: updatedSetup,
-      },
-    });
-
-    // Invalidate cache after updating user metadata
-    await invalidateUserCache(userId);
-
-    // Check if all steps are completed and update the setupComplete flag
-    await updateSetupCompleteFlag(userId, updatedSetup);
-
-    // Revalidate the layout path to update the UI when needed
-    revalidatePath('/(private)/layout');
-
-    return {
-      success: true,
-      setupStatus: updatedSetup,
-    };
-  } catch (error) {
-    console.error('Failed to update setup step for user:', error);
-    return {
-      success: false,
-      error: 'Failed to update setup step',
-    };
-  }
-}
-
-/**
- * Manually syncs the Google account connection status for the current authenticated expert user.
- * This can be called from the frontend as a fallback when webhooks might not trigger properly.
- *
- * @returns An action result indicating success or failure
- */
-export async function syncGoogleAccountConnectionStatus(): Promise<ActionResult<boolean>> {
-  try {
-    const { user } = await withAuth();
-    if (!user) {
-      return {
-        success: false,
-        error: 'User not authenticated',
-      };
-    }
-
-    console.log(`🔍 Manually syncing Google account connection for user ${user.id}`);
-
-    // Check if user has an expert role first
-    const isExpert = hasExpertRole(user);
-    if (!isExpert) {
-      console.log(`ℹ️ User ${user.id} is not an expert, skipping expert setup metadata update`);
-      return {
-        success: false,
-        error: 'User is not an expert',
-      };
-    }
-
-    // Check if user has a verified Google external account
-    const hasVerifiedGoogleAccount = user.externalAccounts.some(
-      (account) => account.provider === 'google' && account.verification?.status === 'verified',
-    );
-
-    console.log(
-      `🔍 User ${user.id} has ${hasVerifiedGoogleAccount ? 'a' : 'no'} verified Google account`,
-    );
-
-    // Get current expert setup data
-    const currentSetup = (user.unsafeMetadata?.expertSetup as Record<string, boolean>) || {};
-    const currentGoogleStatus = currentSetup.google_account === true;
-
-    // Only update if the status has changed
-    if (currentGoogleStatus !== hasVerifiedGoogleAccount) {
-      console.log(
-        `📝 Updating Google account connection status from ${currentGoogleStatus} to ${hasVerifiedGoogleAccount} for expert user ${user.id}`,
-      );
-
-      // Update the step status
-      const result = await updateSetupStepForUser(
-        'google_account',
-        user.id,
-        hasVerifiedGoogleAccount,
-      );
-
-      if (result.success) {
-        console.log(
-          `✅ Successfully synced Google account connection status to ${hasVerifiedGoogleAccount} for expert user ${user.id}`,
-        );
-        return {
-          success: true,
-          data: hasVerifiedGoogleAccount,
-        };
-      } else {
-        console.error(`❌ Failed to sync Google account status for user ${user.id}:`, result.error);
-        return {
-          success: false,
-          error: result.error,
-        };
-      }
-    } else {
-      console.log(`ℹ️ Google account status already up to date for user ${user.id}`);
-      return {
-        success: true,
-        data: hasVerifiedGoogleAccount,
-      };
-    }
-  } catch (error) {
-    console.error('Error syncing Google account connection status:', error);
-    return {
-      success: false,
-      error: error instanceof Error ? error.message : 'Failed to sync Google account status',
-    };
-  }
+  return {
+    total,
+    complete,
+    incomplete,
+    completionRate: Math.round(completionRate * 10) / 10, // Round to 1 decimal
+    averageStepsCompleted: Math.round(averageStepsCompleted * 10) / 10,
+  };
 }

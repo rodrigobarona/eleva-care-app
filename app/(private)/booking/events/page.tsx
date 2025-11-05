@@ -1,7 +1,7 @@
 import { EventsList } from '@/components/features/booking/EventsList';
 import { db } from '@/drizzle/db';
 import { EventsTable, UserOrgMembershipsTable } from '@/drizzle/schema-workos';
-import { markStepComplete } from '@/server/actions/expert-setup-workos';
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 

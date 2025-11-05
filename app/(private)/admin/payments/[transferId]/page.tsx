@@ -39,20 +39,11 @@ export default async function TransferDetailsPage({
 
 // Server component to fetch and display transfer details
 async function TransferDetails({ transferId }: { transferId: string }) {
-  const { getToken } = await auth();
-  const token = await getToken();
-
-  if (!token) {
-    return <div>Authentication error. Please reload the page.</div>;
-  }
-
+  // Admin auth is handled by layout, just fetch the data
   // Fetch transfer details
   const response = await fetch(
     `${process.env.NEXT_PUBLIC_APP_URL}/api/admin/payment-transfers/${transferId}`,
     {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
       cache: 'no-store',
     },
   );

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/drizzle/db';
 import { ProfilesTable } from '@/drizzle/schema-workos';
 import { isUserExpert } from '@/lib/integrations/workos/roles';
-import { checkExpertSetupStatus } from '@/server/actions/expert-setup-workos';
+import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { CalendarIcon, CheckCircle2, CompassIcon, User, UsersIcon } from 'lucide-react';

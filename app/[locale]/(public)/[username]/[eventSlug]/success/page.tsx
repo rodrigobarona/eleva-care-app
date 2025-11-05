@@ -2,7 +2,6 @@ import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/Pr
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import { formatDateTime } from '@/lib/utils/formatters';
 import { Calendar, CheckCircle, Clock, CreditCard, User } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
@@ -80,8 +79,10 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
     },
   });
 
-  // Use cached Clerk user lookup instead of direct API call
-  const calendarUser = await getCachedUserById(user.id);
+  // Fetch user from database (WorkOS)
+  const calendarUser = await db.query.UsersTable.findFirst({
+    where: (users, { eq }) => eq(users.workosUserId, user.id),
+  });
 
   // Handle case where user is not found
   if (!calendarUser) {
@@ -115,8 +116,8 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
     const displayTimezone = meeting.timezone || userTimezone;
     const expertName = expertProfile
       ? `${expertProfile.firstName} ${expertProfile.lastName}`
-      : calendarUser.fullName;
-    const expertImage = expertProfile?.profilePicture || calendarUser.imageUrl;
+      : calendarUser.firstName ? `${calendarUser.firstName} ${calendarUser.lastName || ""}`.trim() : "Expert";
+    const expertImage = expertProfile?.profilePicture || calendarUser.imageUrl || "/placeholder-avatar.jpg";
 
     return (
       <div className="flex min-h-screen items-center bg-gray-50 px-4 py-8 sm:px-6 lg:px-8">
@@ -290,8 +291,8 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
 
     const expertName = expertProfile
       ? `${expertProfile.firstName} ${expertProfile.lastName}`
-      : calendarUser.fullName;
-    const expertImage = expertProfile?.profilePicture || calendarUser.imageUrl;
+      : calendarUser.firstName ? `${calendarUser.firstName} ${calendarUser.lastName || ""}`.trim() : "Expert";
+    const expertImage = expertProfile?.profilePicture || calendarUser.imageUrl || "/placeholder-avatar.jpg";
 
     try {
       console.log('Checking session status:', {

@@ -1,6 +1,5 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema-workos';
-import { getCachedUserById } from '@/lib/cache/clerk-cache';
 import { getOrCreateStripeCustomer, syncStripeDataToKV } from '@/lib/integrations/stripe';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';

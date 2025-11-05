@@ -3,7 +3,7 @@ import { ScheduleForm } from '@/components/features/forms/ScheduleForm';
 import { db } from '@/drizzle/db';
 import { SchedulesTable } from '@/drizzle/schema-workos';
 import { getBlockedDates } from '@/server/actions/blocked-dates';
-import { markStepComplete } from '@/server/actions/expert-setup-workos';
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 

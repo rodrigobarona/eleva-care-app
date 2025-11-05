@@ -1,5 +1,5 @@
 import { isUserExpert } from '@/lib/integrations/workos/roles';
-import { markStepComplete } from '@/server/actions/expert-setup-workos';
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { redirect } from 'next/navigation';
 

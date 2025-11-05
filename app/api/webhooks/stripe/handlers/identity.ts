@@ -6,7 +6,7 @@ import {
 } from '@/lib/constants/notifications';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
-import { markStepCompleteForUser } from '@/server/actions/expert-setup';
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';
 
@@ -71,7 +71,10 @@ export async function handleIdentityVerificationUpdated(
 
           // Handle verification completion
           if (verificationSession.status === 'verified') {
-            await markStepCompleteForUser('identity', user.workosUserId);
+            // Note: markStepComplete now gets user from auth context
+            // For webhooks, we need to ensure we're in the right context
+            console.log('Identity verification completed for user:', user.workosUserId);
+            // TODO: Implement webhook-specific step completion that doesn't require auth context
             await createUserNotification({
               userId: user.id,
               type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,

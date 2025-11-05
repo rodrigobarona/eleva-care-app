@@ -4,7 +4,7 @@ import { db } from '@/drizzle/db';
 import { ProfilesTable } from '@/drizzle/schema-workos';
 import { isUserExpert } from '@/lib/integrations/workos/roles';
 import type { profileFormSchema } from '@/schema/profile';
-import { markStepComplete } from '@/server/actions/expert-setup-workos';
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';

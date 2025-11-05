@@ -14,8 +14,8 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
-    if (!user) {
+    const userId = user?.id;
+    if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -74,16 +74,16 @@ export async function POST(request: Request) {
     console.log('Creating Connect account with country:', country);
 
     // Check if user already has a Connect account
-    const user = await db.query.UsersTable.findFirst({
+    const dbUser = await db.query.UsersTable.findFirst({
       where: eq(UsersTable.workosUserId, userId),
     });
 
-    if (!user) {
+    if (!dbUser) {
       return NextResponse.json({ error: 'User not found in database' }, { status: 404 });
     }
 
     // Check if user is identity verified before allowing Connect account creation
-    if (!user.stripeIdentityVerified) {
+    if (!dbUser.stripeIdentityVerified) {
       return NextResponse.json(
         {
           error: 'Identity verification required',
@@ -94,10 +94,10 @@ export async function POST(request: Request) {
       );
     }
 
-    if (user.stripeConnectAccountId) {
+    if (dbUser.stripeConnectAccountId) {
       // User already has a Connect account, return the setup/login link
       try {
-        const url = await getStripeConnectSetupOrLoginLink(user.stripeConnectAccountId);
+        const url = await getStripeConnectSetupOrLoginLink(dbUser.stripeConnectAccountId);
         return NextResponse.json({ url });
       } catch (error) {
         console.error('Error getting Connect setup link:', error);
@@ -232,24 +232,24 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
-    if (!user) {
+    const userId = user?.id;
+    if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await db.query.UsersTable.findFirst({
+    const dbUser = await db.query.UsersTable.findFirst({
       where: eq(UsersTable.workosUserId, userId),
     });
 
-    if (!user) {
+    if (!dbUser) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    if (!user.stripeConnectAccountId) {
+    if (!dbUser.stripeConnectAccountId) {
       return NextResponse.json({ error: 'No Connect account found' }, { status: 404 });
     }
 
-    const balance = await getConnectAccountBalance(user.stripeConnectAccountId);
+    const balance = await getConnectAccountBalance(dbUser.stripeConnectAccountId);
     return NextResponse.json({ balance });
   } catch (error) {
     console.error('Error fetching Connect account balance:', error);

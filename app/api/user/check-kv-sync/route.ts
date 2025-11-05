@@ -27,10 +27,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
  */
 export async function GET() {
   try {
-    // Get current user from Clerk
+    // Get current user from WorkOS
     const { user } = await withAuth();
-  const userId = user?.id;
-    const { user } = await withAuth();
+    const userId = user?.id;
 
     if (!userId || !user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });

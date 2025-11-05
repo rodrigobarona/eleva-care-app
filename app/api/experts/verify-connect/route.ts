@@ -1,4 +1,4 @@
-import { getCachedUserById } from '@/lib/cache/clerk-cache';
+import { hasRole } from '@/lib/auth/roles.server';
 import { verifyExpertConnectAccount } from '@/server/actions/experts';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
@@ -8,19 +8,14 @@ export const preferredRegion = 'auto';
 export async function POST() {
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
 
-    if (!user) {
+    if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify if the user is an expert using cached lookup
-    const user = await getCachedUserById(userId);
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
-    const isExpert = user.publicMetadata?.role === 'expert';
+    // Verify if the user is an expert
+    const isExpert = (await hasRole('expert_top')) || (await hasRole('expert_community'));
 
     if (!isExpert) {
       return NextResponse.json(

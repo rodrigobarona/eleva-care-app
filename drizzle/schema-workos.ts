@@ -92,6 +92,30 @@ export const OrganizationsTable = pgTable(
 );
 
 /**
+ * Roles Table
+ *
+ * Stores user roles for RBAC (Role-Based Access Control).
+ * Replaces Clerk's publicMetadata.role approach.
+ */
+export const RolesTable = pgTable(
+  'roles',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workosUserId: text('workos_user_id').notNull(),
+    role: text('role').notNull(), // 'user', 'expert', 'admin', 'superadmin', etc.
+
+    // Metadata
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    workosUserIdIndex: index('roles_workos_user_id_idx').on(table.workosUserId),
+    // Allow multiple roles per user
+    uniqueUserRole: unique('unique_user_role').on(table.workosUserId, table.role),
+  }),
+);
+
+/**
  * Users Table (Minimal - WorkOS is Source of Truth)
  *
  * Stores only essential user data needed for application logic.

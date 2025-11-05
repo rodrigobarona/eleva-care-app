@@ -4,7 +4,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import type { UserSecurityPreferences } from '@/lib/integrations/clerk/security-utils';
+import type { UserSecurityPreferences } from '@/lib/integrations/workos/security-utils';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { Bell, Clock, Loader2, Mail, MapPin, Shield, Smartphone } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -18,7 +18,7 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
   const { user, loading } = useAuth();
   const isLoaded = !loading;
   const [preferences, setPreferences] = useState<UserSecurityPreferences | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoadingPrefs, setIsLoadingPrefs] = useState(true);
   const [saving, setSaving] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [lastSavedPreferences, setLastSavedPreferences] = useState<UserSecurityPreferences | null>(
@@ -28,7 +28,7 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
   // Load current preferences
   const loadPreferences = useCallback(async () => {
     try {
-      setLoading(true);
+      setIsLoadingPrefs(true);
       const response = await fetch('/api/user/security-preferences');
       const data = await response.json();
 
@@ -42,7 +42,7 @@ export function SecurityPreferencesForm({ className }: SecurityPreferencesFormPr
       console.error('Error loading preferences:', error);
       toast.error('Failed to load security preferences');
     } finally {
-      setLoading(false);
+      setIsLoadingPrefs(false);
     }
   }, []);
 

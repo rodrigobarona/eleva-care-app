@@ -157,10 +157,9 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
     // If verification is verified, add to expert onboarding progress
     if (isVerified) {
       try {
-        // Call the markStepCompleteForUser function, imported dynamically to avoid circular dependencies
-        const { markStepCompleteForUser } = await import('@/server/actions/expert-setup');
-        await markStepCompleteForUser('identity', user.workosUserId);
-        console.log(`Marked identity step as complete for user ${user.workosUserId}`);
+        // Note: markStepComplete now gets user from auth context
+        // For webhooks, expert setup completion should be tracked separately
+        console.log(`Identity verification completed for user ${user.workosUserId}`);
 
         // Now sync the identity verification to the Connect account if it exists
         try {

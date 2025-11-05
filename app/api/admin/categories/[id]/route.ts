@@ -17,7 +17,7 @@ export async function PATCH(request: NextRequest, props: { params: Promise<{ id:
     const { user } = await withAuth();
   const userId = user?.id;
 
-    if (!user) {
+    if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -65,7 +65,7 @@ export async function DELETE(request: NextRequest, props: { params: Promise<{ id
     const { user } = await withAuth();
   const userId = user?.id;
 
-    if (!user) {
+    if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

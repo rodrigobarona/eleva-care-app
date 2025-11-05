@@ -2,7 +2,7 @@ import {
   getUserSecurityPreferences,
   updateUserSecurityPreferences,
   type UserSecurityPreferences,
-} from '@/lib/integrations/clerk/security-utils';
+} from '@/lib/integrations/workos/security-utils';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET() {
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -38,7 +38,7 @@ export async function GET() {
 export async function PUT(req: NextRequest) {
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

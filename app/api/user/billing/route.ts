@@ -18,18 +18,18 @@ export async function GET() {
   try {
     // Get the authenticated user ID
     const { user } = await withAuth();
-  const userId = user?.id;
+    const userId = user?.id;
     workosUserId = userId;
     console.log('Auth check result:', { userId, hasId: !!userId });
 
-    if (!user) {
+    if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Use our synchronization service to ensure all systems are in sync
-    const user = await ensureFullUserSynchronization(userId);
+    const dbUser = await ensureFullUserSynchronization(userId);
 
-    if (!user) {
+    if (!dbUser) {
       console.error('Failed to synchronize user:', { workosUserId: userId });
       return NextResponse.json({ error: 'User synchronization failed' }, { status: 500 });
     }
@@ -37,8 +37,8 @@ export async function GET() {
     // Fetch customer data from Stripe directly
     let customerData: Stripe.Customer | null = null;
     try {
-      if (user.stripeCustomerId) {
-        const customerResponse = await stripe.customers.retrieve(user.stripeCustomerId);
+      if (dbUser.stripeCustomerId) {
+        const customerResponse = await stripe.customers.retrieve(dbUser.stripeCustomerId);
         if (!('deleted' in customerResponse)) {
           customerData = customerResponse;
           console.log('Retrieved customer data:', {
@@ -53,9 +53,9 @@ export async function GET() {
 
     // Get Stripe account status if connected
     let accountStatus = null;
-    if (user.stripeConnectAccountId) {
+    if (dbUser.stripeConnectAccountId) {
       try {
-        accountStatus = await getStripeConnectAccountStatus(user.stripeConnectAccountId);
+        accountStatus = await getStripeConnectAccountStatus(dbUser.stripeConnectAccountId);
       } catch (stripeError) {
         console.error('Error retrieving Stripe Connect account status:', stripeError);
       }
@@ -63,8 +63,8 @@ export async function GET() {
 
     return NextResponse.json({
       user: {
-        id: user.id,
-        stripeConnectAccountId: user.stripeConnectAccountId,
+        id: dbUser.id,
+        stripeConnectAccountId: dbUser.stripeConnectAccountId,
       },
       customer: customerData
         ? {

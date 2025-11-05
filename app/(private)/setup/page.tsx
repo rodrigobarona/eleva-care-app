@@ -4,7 +4,7 @@ import * as React from 'react';
 import { SetupCompletePublishCard } from '@/components/features/expert-setup/SetupCompletePublishCard';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { checkExpertSetupStatus } from '@/server/actions/expert-setup-workos';
+import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';

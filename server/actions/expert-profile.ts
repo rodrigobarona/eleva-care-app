@@ -23,7 +23,6 @@ import { revalidatePath } from 'next/cache';
 export async function toggleProfilePublication() {
   const { user } = await withAuth();
   const userId = user?.id;
-  const { user } = await withAuth();
 
   if (!userId || !user) {
     return { success: false, message: 'Not authenticated', isPublished: false };

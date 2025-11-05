@@ -149,7 +149,14 @@ async function CalendarWithAvailability({
   eventSlug: string;
   price: number;
   event: EventType;
-  calendarUser: User;
+  calendarUser: {
+    id: string;
+    workosUserId: string;
+    email: string;
+    firstName: string | null;
+    lastName: string | null;
+    imageUrl: string | null;
+  };
   locale: string;
 }) {
   const calendarService = GoogleCalendarService.getInstance();
@@ -295,7 +302,7 @@ async function CalendarWithAvailability({
       expertName={
         calendarUser.firstName
           ? `${calendarUser.firstName} ${calendarUser.lastName || ''}`.trim()
-          : calendarUser.fullName || 'Expert'
+          : 'Expert'
       }
       expertImageUrl={calendarUser.imageUrl || '/placeholder-avatar.jpg'}
       eventTitle={event.name}
@@ -320,16 +327,20 @@ function NoTimeSlots({
   username,
   _locale,
 }: {
-  calendarUser: { id: string; fullName: string | null };
+  calendarUser: { id: string; firstName: string | null; lastName: string | null };
   username: string;
   _locale: string;
 }) {
+  const expertName = calendarUser.firstName 
+    ? `${calendarUser.firstName} ${calendarUser.lastName || ''}`.trim()
+    : 'This expert';
+    
   return (
     <Card className="mx-auto max-w-lg">
       <CardHeader>
         <CardTitle>No Available Time Slots</CardTitle>
         <CardDescription>
-          {calendarUser.fullName || 'This expert'} doesn&apos;t have any available time slots in the
+          {expertName} doesn&apos;t have any available time slots in the
           next two months.
         </CardDescription>
       </CardHeader>

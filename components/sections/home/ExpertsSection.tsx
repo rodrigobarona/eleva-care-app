@@ -8,7 +8,6 @@ import {
   CarouselPrevious,
 } from '@/components/ui/carousel';
 import { db } from '@/drizzle/db';
-import { getCachedUsersByIds } from '@/lib/cache/clerk-cache';
 import { eq } from 'drizzle-orm';
 import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';

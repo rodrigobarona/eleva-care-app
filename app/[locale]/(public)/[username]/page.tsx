@@ -3,6 +3,7 @@ import { EventBookingList } from '@/components/features/booking/EventBookingList
 import { ProfileColumnSkeleton } from '@/components/features/profile/ProfilePageLoadingSkeleton';
 import { db } from '@/drizzle/db';
 import { generateUserProfileMetadata } from '@/lib/seo/metadata-utils';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
@@ -59,10 +60,10 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
     // Check if profile is published - if not, return generic metadata
     if (!fullProfile?.published) {
       // Get current authenticated user to check if they're the profile owner
-      const { userId: currentUserId } = await auth();
+      const { user: currentUser } = await withAuth();
 
       // If profile is not published and user is not the owner, return generic metadata
-      if (!currentUserId || currentUserId !== user.id) {
+      if (!currentUser || currentUser.id !== user.id) {
         return {
           title: 'Profile Not Available | Eleva Care',
           description: 'This profile is not currently available.',

@@ -18,8 +18,7 @@ export async function POST() {
   try {
     // Get current user
     const { user } = await withAuth();
-  const userId = user?.id;
-    const { user } = await withAuth();
+    const userId = user?.id;
 
     if (!userId || !user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
@@ -27,7 +26,7 @@ export async function POST() {
 
     console.log('Rebuilding KV data for user:', {
       userId,
-      email: user.emailAddresses[0]?.emailAddress,
+      email: user.email,
     });
 
     // 1. Ensure user is fully synchronized with all systems
