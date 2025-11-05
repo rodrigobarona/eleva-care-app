@@ -60,6 +60,13 @@ export async function GET(req: NextRequest) {
     const role = 'owner';
 
     console.log('💾 Creating session...');
+    console.log('Session data:', {
+      userId: user.id,
+      email: user.email,
+      organizationId,
+      role,
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+    });
 
     // Create session
     await setSession({
@@ -72,10 +79,11 @@ export async function GET(req: NextRequest) {
       expiresAt: Date.now() + 3600000, // 1 hour
     });
 
-    console.log('✅ Session created');
+    console.log('✅ Session created successfully');
 
     // Parse return URL from state
-    let returnTo = '/dashboard';
+    // TODO: Change back to '/dashboard' after migrating dashboard from Clerk to WorkOS
+    let returnTo = '/'; // Temporarily redirect to home page
     if (state) {
       try {
         const stateData = JSON.parse(state);
