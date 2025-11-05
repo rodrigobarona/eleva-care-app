@@ -12,7 +12,10 @@
  * 5. Redirect to app (dashboard or returnTo URL)
  */
 import { setSession } from '@/lib/auth/workos-session';
+import { db } from '@/drizzle/db';
+import { UserOrgMembershipsTable } from '@/drizzle/schema-workos';
 import { workos } from '@/lib/integrations/workos/client';
+import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest) {
@@ -55,9 +58,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(new URL('/onboarding', req.url));
     }
 
-    // TODO: Get user's role in organization from database
-    // For now, default to 'owner' since it's their personal org
-    const role = 'owner';
+    // Get user's role in organization from database
+    const membership = await db.query.UserOrgMembershipsTable.findFirst({
+      where: eq(UserOrgMembershipsTable.workosUserId, user.id),
+    });
+
+    // Default to 'owner' if no membership found (org-per-user model)
+    const role = membership?.role || 'owner';
+    console.log('User role in org:', role);
 
     console.log('💾 Creating session...');
     console.log('Session data:', {
@@ -82,8 +90,7 @@ export async function GET(req: NextRequest) {
     console.log('✅ Session created successfully');
 
     // Parse return URL from state
-    // TODO: Change back to '/dashboard' after migrating dashboard from Clerk to WorkOS
-    let returnTo = '/'; // Temporarily redirect to home page
+    let returnTo = '/dashboard'; // Default to dashboard (now WorkOS-compatible)
     if (state) {
       try {
         const stateData = JSON.parse(state);
