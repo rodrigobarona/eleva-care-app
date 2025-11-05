@@ -1,5 +1,5 @@
 /**
- * Practitioner Agreement Acceptance Endpoint
+ * Practitioner Agreement Acceptance Endpoint (AuthKit)
  *
  * Records when an expert accepts the practitioner agreement (required for GDPR/HIPAA compliance).
  * This creates an audit trail that can be used for legal compliance and investigations.
@@ -8,7 +8,7 @@
  */
 import { db } from '@/drizzle/db';
 import { ProfilesTable } from '@/drizzle/schema-workos';
-import { requireAuth } from '@/lib/auth/workos-session';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -16,7 +16,7 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     // 1. Authenticate user
-    const { userId } = await requireAuth();
+    const { user } = await withAuth({ ensureSignedIn: true });
 
     // 2. Parse request body
     const body = await request.json();
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
         practitionerAgreementMetadata: metadata, // Store all geolocation data as JSON
         updatedAt: new Date(),
       })
-      .where(eq(ProfilesTable.workosUserId, userId))
+      .where(eq(ProfilesTable.workosUserId, user.id))
       .returning();
 
     if (!profile) {
@@ -109,7 +109,7 @@ export async function POST(request: Request) {
 export async function GET() {
   try {
     // 1. Authenticate user
-    const { userId } = await requireAuth();
+    const { user } = await withAuth({ ensureSignedIn: true });
 
     // 2. Get profile
     const [profile] = await db
@@ -118,7 +118,7 @@ export async function GET() {
         version: ProfilesTable.practitionerAgreementVersion,
       })
       .from(ProfilesTable)
-      .where(eq(ProfilesTable.workosUserId, userId))
+      .where(eq(ProfilesTable.workosUserId, user.id))
       .limit(1);
 
     if (!profile) {

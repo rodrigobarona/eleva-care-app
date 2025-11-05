@@ -1,6 +1,6 @@
-import { requireAuth } from '@/lib/auth/workos-session';
 import { isUserExpert } from '@/lib/integrations/workos/roles';
 import { markStepComplete } from '@/server/actions/expert-setup-workos';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { redirect } from 'next/navigation';
 
 import { BillingPageClient } from './billing-client';
@@ -8,26 +8,26 @@ import { BillingPageClient } from './billing-client';
 // Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
 
 /**
- * Billing Page - WorkOS Implementation
+ * Billing Page - AuthKit Implementation
  *
  * Experts can manage Stripe Connect account and payouts.
- * Uses WorkOS session for authentication and JWT for API calls.
+ * Uses AuthKit session for authentication and access token for API calls.
  */
 export default async function BillingPage() {
   // Require authentication - auto-redirects if not logged in
-  const session = await requireAuth();
+  const { user, accessToken } = await withAuth({ ensureSignedIn: true });
 
   // Check if user has expert role, redirect if not
-  if (!(await isUserExpert(session.userId))) {
+  if (!(await isUserExpert(user.id))) {
     return redirect('/dashboard');
   }
 
   try {
-    // Use WorkOS access token for API authentication
+    // Use AuthKit access token for API authentication
     const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/user/billing`, {
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${session.accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       cache: 'no-store',
     });

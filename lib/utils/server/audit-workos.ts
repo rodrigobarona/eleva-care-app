@@ -27,10 +27,35 @@
 
 import type { AuditEventAction, AuditResourceType } from '@/drizzle/schema-workos';
 import { AuditLogsTable } from '@/drizzle/schema-workos';
-import { requireAuth } from '@/lib/auth/workos-session';
 import { getOrgScopedDb } from '@/lib/integrations/neon/rls-client';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { desc, eq, gte, lte } from 'drizzle-orm';
 import { headers } from 'next/headers';
+
+/**
+ * Unified Audit Logging System (WorkOS Migration)
+ *
+ * This replaces the separate audit database approach with a unified schema
+ * protected by Row-Level Security (RLS).
+ *
+ * Key Features:
+ * - Automatic context extraction from JWT (no manual params!)
+ * - RLS ensures org-scoped access
+ * - Append-only audit logs (HIPAA compliant)
+ * - Hybrid approach: WorkOS for auth, this DB for PHI
+ *
+ * @example
+ * ```typescript
+ * // Old way (separate DB, manual params):
+ * await logAuditEvent(
+ *   workosUserId, action, resourceType, resourceId,
+ *   oldValues, newValues, ipAddress, userAgent
+ * );
+ *
+ * // New way (automatic context):
+ * await logAuditEvent('MEDICAL_RECORD_VIEWED', 'medical_record', 'rec_123');
+ * ```
+ */
 
 /**
  * Unified Audit Logging System (WorkOS Migration)
@@ -259,8 +284,8 @@ export async function logAuditEvent(
   metadata?: Record<string, unknown>,
 ): Promise<void> {
   try {
-    // Get session (includes userId and orgId from JWT)
-    const session = await requireAuth();
+    // Get session (includes user.id and organizationId)
+    const { user, organizationId } = await withAuth({ ensureSignedIn: true });
 
     // Get request context
     const { ipAddress, userAgent } = await getRequestContext();
@@ -270,8 +295,8 @@ export async function logAuditEvent(
 
     // Insert audit log - RLS automatically scopes by org!
     await db.insert(AuditLogsTable).values({
-      workosUserId: session.userId,
-      orgId: session.organizationId!,
+      workosUserId: user.id,
+      orgId: organizationId!,
       action,
       resourceType,
       resourceId,
@@ -348,7 +373,7 @@ export async function getAuditLogs(filters?: {
   workosUserId?: string;
   limit?: number;
 }) {
-  await requireAuth(); // Verify authentication
+  await withAuth({ ensureSignedIn: true }); // Verify authentication
   const db = await getOrgScopedDb();
 
   // Build query with filters

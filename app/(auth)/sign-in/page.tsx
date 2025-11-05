@@ -1,31 +1,38 @@
 /**
- * Sign-In Page
+ * Sign-In Page (AuthKit Next.js)
  *
- * WorkOS AuthKit sign-in flow.
- * Redirects to WorkOS hosted sign-in page.
- * Respects redirect_url query parameter for post-login navigation.
+ * Uses official @workos-inc/authkit-nextjs package for authentication.
+ * Generates sign-in URL with redirect support and custom state.
  */
-import { workos, WORKOS_CLIENT_ID } from '@/lib/integrations/workos/client';
+import { getSignInUrl } from '@workos-inc/authkit-nextjs';
 import { redirect } from 'next/navigation';
 
 interface SignInPageProps {
   searchParams: Promise<{ redirect_url?: string }>;
 }
 
+/**
+ * Sign-In Page
+ *
+ * Automatically redirects to WorkOS AuthKit sign-in with:
+ * - Redirect URL preservation (where user wanted to go)
+ * - Custom state for tracking
+ */
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   const params = await searchParams;
   const redirectUrl = params.redirect_url || '/dashboard';
 
-  // Generate WorkOS authorization URL with return path
-  const authUrl = await workos.userManagement.getAuthorizationUrl({
-    provider: 'authkit',
-    clientId: WORKOS_CLIENT_ID,
-    redirectUri: process.env.WORKOS_REDIRECT_URI || 'http://localhost:3000/api/auth/callback',
-    state: JSON.stringify({ returnTo: redirectUrl }),
+  // Generate WorkOS sign-in URL with redirect path
+  const signInUrl = await getSignInUrl({
+    state: JSON.stringify({
+      returnTo: redirectUrl,
+      // Add custom tracking data if needed
+      timestamp: Date.now(),
+    }),
   });
 
   // Redirect to WorkOS sign-in
-  redirect(authUrl);
+  redirect(signInUrl);
 
   // This return is never reached due to redirect, but required for TypeScript
   return (

@@ -1,40 +1,30 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/drizzle/db';
-import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
-import { requireAuth } from '@/lib/auth/workos-session';
+import { ProfilesTable } from '@/drizzle/schema-workos';
 import { isUserExpert } from '@/lib/integrations/workos/roles';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup-workos';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { CalendarIcon, CheckCircle2, CompassIcon, User, UsersIcon } from 'lucide-react';
 import Link from 'next/link';
 
 /**
- * Dashboard - WorkOS Implementation
+ * Dashboard - AuthKit Next.js Implementation
  *
- * Replaces Clerk metadata with database queries:
- * - User data from UsersTable (firstName, role)
+ * Uses AuthKit for authentication with database queries for:
  * - Expert status from roles utility
  * - Setup status from ExpertSetupTable
  * - Profile status from ProfilesTable
  */
 export default async function HomePage() {
   // Require authentication - auto-redirects if not logged in
-  const session = await requireAuth();
+  const { user } = await withAuth({ ensureSignedIn: true });
 
   // Parallel fetch from database for optimal performance
-  const [user, isExpert, setupData, profile] = await Promise.all([
-    // Get user data from database
-    db.query.UsersTable.findFirst({
-      where: eq(UsersTable.workosUserId, session.userId),
-      columns: {
-        firstName: true,
-        lastName: true,
-        email: true,
-      },
-    }),
+  const [isExpert, setupData, profile] = await Promise.all([
     // Check if user has expert role
-    isUserExpert(session.userId),
+    isUserExpert(user.id),
     // Get expert setup status (only if expert)
     checkExpertSetupStatus().catch(() => ({
       setupStatus: {
@@ -50,7 +40,7 @@ export default async function HomePage() {
     })),
     // Get profile publication status
     db.query.ProfilesTable.findFirst({
-      where: eq(ProfilesTable.workosUserId, session.userId),
+      where: eq(ProfilesTable.workosUserId, user.id),
       columns: {
         published: true,
       },
@@ -58,7 +48,7 @@ export default async function HomePage() {
   ]);
 
   // Extract first name with fallback
-  const firstName = user?.firstName || 'there';
+  const firstName = user.firstName || 'there';
 
   // Setup completion status
   const isSetupCompleted = isExpert ? setupData.isSetupComplete : false;

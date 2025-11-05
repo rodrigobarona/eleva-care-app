@@ -1,5 +1,5 @@
 /**
- * Neon RLS Client - Standard Approach
+ * Neon RLS Client - Standard Approach (AuthKit)
  *
  * This approach uses SET LOCAL to set user context for RLS policies.
  * More portable and production-ready than JWT-based approaches.
@@ -10,7 +10,7 @@
  *   // RLS automatically filters to user's org
  */
 import { db } from '@/drizzle/db';
-import { requireAuth } from '@/lib/auth/workos-session';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { sql } from 'drizzle-orm';
 
 /**
@@ -68,12 +68,12 @@ export async function clearRLSContext(
  * @throws {Error} If user is not authenticated
  */
 export async function getOrgScopedDb() {
-  const session = await requireAuth();
+  const { user, organizationId } = await withAuth({ ensureSignedIn: true });
 
   // Start a transaction (required for SET LOCAL)
   return await db.transaction(async (tx) => {
     // Set RLS context
-    await setRLSContext(tx, session.userId, session.organizationId!);
+    await setRLSContext(tx, user.id, organizationId!);
 
     // Return transaction for queries
     return tx;
@@ -97,10 +97,10 @@ export async function getOrgScopedDb() {
 export async function withRLSContext<T>(
   fn: (tx: Parameters<Parameters<typeof db.transaction>[0]>[0]) => Promise<T>,
 ): Promise<T> {
-  const session = await requireAuth();
+  const { user, organizationId } = await withAuth({ ensureSignedIn: true });
 
   return await db.transaction(async (tx) => {
-    await setRLSContext(tx, session.userId, session.organizationId!);
+    await setRLSContext(tx, user.id, organizationId!);
     return await fn(tx);
   });
 }
@@ -159,8 +159,8 @@ export async function withAdminContext<T>(
  */
 export async function testRLSContext() {
   return await db.transaction(async (tx) => {
-    const session = await requireAuth();
-    await setRLSContext(tx, session.userId, session.organizationId!);
+    const { user, organizationId } = await withAuth({ ensureSignedIn: true });
+    await setRLSContext(tx, user.id, organizationId!);
 
     const userIdResult = await tx.execute(
       sql`SELECT current_setting('app.user_id', true) as user_id`,
@@ -170,8 +170,8 @@ export async function testRLSContext() {
     return {
       userId: userIdResult.rows[0]?.user_id,
       orgId: orgIdResult.rows[0]?.org_id,
-      expectedUserId: session.userId,
-      expectedOrgId: session.organizationId,
+      expectedUserId: user.id,
+      expectedOrgId: organizationId,
     };
   });
 }

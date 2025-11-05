@@ -1,115 +1,79 @@
 /**
- * WorkOS Authentication Callback Handler
+ * WorkOS Authentication Callback Handler (AuthKit Next.js)
  *
  * Handles the OAuth callback from WorkOS after user authentication.
- * Exchanges authorization code for tokens and creates session.
+ * Uses the official @workos-inc/authkit-nextjs package for automatic session management.
  *
  * Flow:
  * 1. User signs in via WorkOS AuthKit
  * 2. WorkOS redirects here with authorization code
- * 3. Exchange code for access/refresh tokens
- * 4. Create session cookie with JWT
- * 5. Redirect to app (dashboard or returnTo URL)
+ * 3. handleAuth() exchanges code for tokens and creates encrypted session
+ * 4. Custom logic runs in onSuccess callback
+ * 5. User redirected to returnPathname (default: /dashboard)
  */
-import { setSession } from '@/lib/auth/workos-session';
 import { db } from '@/drizzle/db';
-import { UserOrgMembershipsTable } from '@/drizzle/schema-workos';
-import { workos } from '@/lib/integrations/workos/client';
+import { UserOrgMembershipsTable, UsersTable } from '@/drizzle/schema-workos';
+import { handleAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
-import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
-  console.log('🔐 Auth callback hit:', req.nextUrl.toString());
+export const GET = handleAuth({
+  returnPathname: '/dashboard',
+  baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 
-  const code = req.nextUrl.searchParams.get('code');
-  const state = req.nextUrl.searchParams.get('state');
-
-  console.log('Code:', code ? 'Present' : 'Missing');
-  console.log('State:', state || 'None');
-
-  if (!code) {
-    console.error('❌ No code provided in callback');
-    return NextResponse.redirect(new URL('/sign-in?error=no_code', req.url));
-  }
-
-  try {
-    console.log('🔄 Exchanging code with WorkOS...');
-
-    // Exchange authorization code for tokens
-    const { user, organizationId, accessToken, refreshToken } =
-      await workos.userManagement.authenticateWithCode({
-        code,
-        clientId: process.env.WORKOS_CLIENT_ID!,
-      });
-
+  onSuccess: async ({ user, organizationId, authenticationMethod, state }) => {
     console.log('✅ WorkOS authentication successful');
     console.log('User ID:', user.id);
     console.log('Email:', user.email);
     console.log('Organization ID:', organizationId || 'None');
+    console.log('Authentication Method:', authenticationMethod || 'N/A');
 
-    // Get or create organization for user (org-per-user model)
-    if (!organizationId) {
-      // User doesn't have an org yet - this shouldn't happen in prod
-      // but handle gracefully in development
-      console.warn('⚠️  User authenticated without organization - redirecting to onboarding');
+    // Ensure user exists in database
+    try {
+      const existingUser = await db.query.UsersTable.findFirst({
+        where: eq(UsersTable.workosUserId, user.id),
+      });
 
-      // TODO: Call createUserOrganization() from onboarding actions
-      // For now, redirect to onboarding
-      return NextResponse.redirect(new URL('/onboarding', req.url));
-    }
-
-    // Get user's role in organization from database
-    const membership = await db.query.UserOrgMembershipsTable.findFirst({
-      where: eq(UserOrgMembershipsTable.workosUserId, user.id),
-    });
-
-    // Default to 'owner' if no membership found (org-per-user model)
-    const role = membership?.role || 'owner';
-    console.log('User role in org:', role);
-
-    console.log('💾 Creating session...');
-    console.log('Session data:', {
-      userId: user.id,
-      email: user.email,
-      organizationId,
-      role,
-      expiresAt: new Date(Date.now() + 3600000).toISOString(),
-    });
-
-    // Create session
-    await setSession({
-      userId: user.id,
-      email: user.email,
-      organizationId,
-      role,
-      accessToken,
-      refreshToken,
-      expiresAt: Date.now() + 3600000, // 1 hour
-    });
-
-    console.log('✅ Session created successfully');
-
-    // Parse return URL from state
-    let returnTo = '/dashboard'; // Default to dashboard (now WorkOS-compatible)
-    if (state) {
-      try {
-        const stateData = JSON.parse(state);
-        returnTo = stateData.returnTo || returnTo;
-      } catch {
-        // Invalid state, use default
+      if (!existingUser) {
+        console.log('📝 Creating new user in database');
+        await db.insert(UsersTable).values({
+          workosUserId: user.id,
+          email: user.email,
+          firstName: user.firstName || '',
+          lastName: user.lastName || '',
+        });
+      } else {
+        console.log('👤 Existing user found');
       }
+
+      // Track authentication method if available (only on initial login)
+      if (authenticationMethod) {
+        console.log(`🔐 User authenticated via: ${authenticationMethod}`);
+        // TODO: Track authentication method in analytics
+      }
+
+      // Handle custom state if passed
+      if (state) {
+        console.log('📦 Custom state received:', state);
+        // TODO: Process custom state (e.g., team invites, feature flags)
+      }
+    } catch (error) {
+      console.error('❌ Error in onSuccess callback:', error);
+      // Don't throw - let authentication succeed even if database operations fail
+      // This prevents auth loops if database is temporarily unavailable
     }
+  },
 
-    console.log('🚀 Redirecting to:', returnTo);
-    return NextResponse.redirect(new URL(returnTo, req.url));
-  } catch (error) {
+  onError: async ({ error, request }) => {
     console.error('❌ Authentication error:', error);
+    console.error('Request URL:', request.url);
 
+    // Log error details for debugging
     if (error instanceof Error) {
       console.error('Error message:', error.message);
       console.error('Error stack:', error.stack);
     }
 
-    return NextResponse.redirect(new URL('/sign-in?error=authentication_failed', req.url));
-  }
-}
+    // Return error response (handleAuth will redirect to sign-in with error)
+    return new Response('Authentication failed', { status: 401 });
+  },
+});

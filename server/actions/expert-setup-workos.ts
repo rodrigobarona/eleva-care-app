@@ -15,11 +15,24 @@
 
 import { db } from '@/drizzle/db';
 import { ExpertSetupTable } from '@/drizzle/schema-workos';
-import { requireAuth } from '@/lib/auth/workos-session';
 import type { SetupStats, SetupStatus, SetupStepType } from '@/types/expert-setup';
 import { SetupStep } from '@/types/expert-setup';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
+
+/**
+ * Expert Setup Server Actions (WorkOS)
+ *
+ * Manages expert onboarding progress in database (replaces Clerk unsafeMetadata).
+ *
+ * Benefits over Clerk metadata:
+ * - Queryable: Can find all incomplete setups
+ * - Indexed: Fast filtering for analytics
+ * - Audit trail: Track completion dates
+ * - No size limits: Store unlimited data
+ * - No API calls: Direct database access
+ */
 
 /**
  * Expert Setup Server Actions (WorkOS)
@@ -57,18 +70,18 @@ export async function checkExpertSetupStatus(): Promise<{
   isSetupComplete: boolean;
   setupCompletedAt: Date | null;
 }> {
-  const session = await requireAuth();
+  const { user } = await withAuth({ ensureSignedIn: true });
 
   // Try to fetch existing setup record
   const setup = await db.query.ExpertSetupTable.findFirst({
-    where: eq(ExpertSetupTable.workosUserId, session.userId),
+    where: eq(ExpertSetupTable.workosUserId, user.id),
   });
 
   // If no setup record exists, create one
   if (!setup) {
     await db.insert(ExpertSetupTable).values({
-      workosUserId: session.userId,
-      orgId: session.organizationId || null,
+      workosUserId: user.id,
+      orgId: null, // Organization ID not required for setup table
     });
 
     return {
@@ -122,7 +135,7 @@ export async function markStepComplete(step: SetupStepType): Promise<void> {
   // Validate step name
   const validatedStep = SetupStep.parse(step);
 
-  const session = await requireAuth();
+  const { user } = await withAuth({ ensureSignedIn: true });
 
   // Map step name to database column
   const columnMap: Record<SetupStepType, keyof typeof ExpertSetupTable.$inferInsert> = {
@@ -138,7 +151,7 @@ export async function markStepComplete(step: SetupStepType): Promise<void> {
 
   // Fetch current setup
   const setup = await db.query.ExpertSetupTable.findFirst({
-    where: eq(ExpertSetupTable.workosUserId, session.userId),
+    where: eq(ExpertSetupTable.workosUserId, user.id),
   });
 
   if (!setup) {
@@ -149,11 +162,11 @@ export async function markStepComplete(step: SetupStepType): Promise<void> {
   await db
     .update(ExpertSetupTable)
     .set({ [columnName]: true })
-    .where(eq(ExpertSetupTable.workosUserId, session.userId));
+    .where(eq(ExpertSetupTable.workosUserId, user.id));
 
   // Check if all steps are now complete
   const updatedSetup = await db.query.ExpertSetupTable.findFirst({
-    where: eq(ExpertSetupTable.workosUserId, session.userId),
+    where: eq(ExpertSetupTable.workosUserId, user.id),
   });
 
   if (updatedSetup) {
@@ -173,7 +186,7 @@ export async function markStepComplete(step: SetupStepType): Promise<void> {
           setupComplete: true,
           setupCompletedAt: new Date(),
         })
-        .where(eq(ExpertSetupTable.workosUserId, session.userId));
+        .where(eq(ExpertSetupTable.workosUserId, user.id));
     }
   }
 
@@ -189,7 +202,7 @@ export async function markStepComplete(step: SetupStepType): Promise<void> {
  */
 export async function markStepIncomplete(step: SetupStepType): Promise<void> {
   const validatedStep = SetupStep.parse(step);
-  const session = await requireAuth();
+  const { user } = await withAuth({ ensureSignedIn: true });
 
   const columnMap: Record<SetupStepType, keyof typeof ExpertSetupTable.$inferInsert> = {
     profile: 'profileCompleted',
@@ -209,7 +222,7 @@ export async function markStepIncomplete(step: SetupStepType): Promise<void> {
       setupComplete: false, // Automatically mark setup as incomplete
       setupCompletedAt: null,
     })
-    .where(eq(ExpertSetupTable.workosUserId, session.userId));
+    .where(eq(ExpertSetupTable.workosUserId, user.id));
 
   revalidatePath('/setup');
   revalidatePath('/dashboard');
@@ -224,15 +237,15 @@ export async function markStepIncomplete(step: SetupStepType): Promise<void> {
  * @param workosUserId - User ID to reset (optional, defaults to current user)
  */
 export async function resetSetup(workosUserId?: string): Promise<void> {
-  const session = await requireAuth();
+  const { user } = await withAuth({ ensureSignedIn: true });
 
   // TODO: Add admin permission check
-  // const isAdmin = await isUserAdmin(session.userId);
-  // if (!isAdmin && workosUserId && workosUserId !== session.userId) {
+  // const isAdmin = await isUserAdmin(user.id);
+  // if (!isAdmin && workosUserId && workosUserId !== user.id) {
   //   throw new Error('Unauthorized: Only admins can reset other users\' setup');
   // }
 
-  const targetUserId = workosUserId || session.userId;
+  const targetUserId = workosUserId || user.id;
 
   await db
     .update(ExpertSetupTable)

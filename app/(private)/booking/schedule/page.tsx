@@ -2,9 +2,9 @@ import type { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
 import { ScheduleForm } from '@/components/features/forms/ScheduleForm';
 import { db } from '@/drizzle/db';
 import { SchedulesTable } from '@/drizzle/schema-workos';
-import { requireAuth } from '@/lib/auth/workos-session';
 import { getBlockedDates } from '@/server/actions/blocked-dates';
 import { markStepComplete } from '@/server/actions/expert-setup-workos';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 
 // Note: Route is dynamic by default with cacheComponents enabled in Next.js 16
@@ -16,18 +16,18 @@ type Availability = {
 };
 
 /**
- * Schedule Page - WorkOS Implementation
+ * Schedule Page - AuthKit Implementation
  *
  * Allows experts to set their availability schedule.
  * Automatically marks 'availability' setup step as complete when schedule exists.
  */
 export default async function SchedulePage() {
   // Require authentication - auto-redirects if not logged in
-  const session = await requireAuth();
+  const { user } = await withAuth({ ensureSignedIn: true });
 
   const [scheduleData, blockedDates] = await Promise.all([
     db.query.SchedulesTable.findFirst({
-      where: eq(SchedulesTable.workosUserId, session.userId),
+      where: eq(SchedulesTable.workosUserId, user.id),
       with: { availabilities: true },
     }),
     getBlockedDates(),

@@ -2,10 +2,10 @@ import { ExpertForm } from '@/components/features/forms/ExpertForm';
 import { ProfilePublishToggle } from '@/components/features/profile/ProfilePublishToggle';
 import { db } from '@/drizzle/db';
 import { ProfilesTable } from '@/drizzle/schema-workos';
-import { requireAuth } from '@/lib/auth/workos-session';
 import { isUserExpert } from '@/lib/integrations/workos/roles';
 import type { profileFormSchema } from '@/schema/profile';
 import { markStepComplete } from '@/server/actions/expert-setup-workos';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { redirect } from 'next/navigation';
 import type { z } from 'zod';
@@ -18,17 +18,17 @@ type ExpertFormValues = z.infer<typeof profileFormSchema> & {
 };
 
 /**
- * Expert Profile Page - WorkOS Implementation
+ * Expert Profile Page - AuthKit Implementation
  *
  * Allows experts to manage their public profile.
  * Requires expert role, auto-marks profile setup step as complete.
  */
 export default async function ProfilePage() {
   // Require authentication - auto-redirects if not logged in
-  const session = await requireAuth();
+  const { user } = await withAuth({ ensureSignedIn: true });
 
   // Check if user is an expert
-  const userIsExpert = await isUserExpert(session.userId);
+  const userIsExpert = await isUserExpert(user.id);
 
   if (!userIsExpert) {
     redirect('/dashboard');
@@ -36,7 +36,7 @@ export default async function ProfilePage() {
 
   // Try to find existing profile
   const profile = await db.query.ProfilesTable.findFirst({
-    where: eq(ProfilesTable.workosUserId, session.userId),
+    where: eq(ProfilesTable.workosUserId, user.id),
   });
 
   // If profile exists and has required fields filled, mark step as complete
@@ -54,9 +54,9 @@ export default async function ProfilePage() {
     const newProfile = await db
       .insert(ProfilesTable)
       .values({
-        workosUserId: session.userId,
-        firstName: '', // Required fields with empty defaults
-        lastName: '',
+        workosUserId: user.id,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
         isVerified: false,
         isTopExpert: false,
       })

@@ -4,6 +4,7 @@ import { defaultLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { AuthKitProvider } from '@workos-inc/authkit-nextjs/components';
 import { DM_Sans, IBM_Plex_Mono, Lora } from 'next/font/google';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 
@@ -72,11 +73,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         {/* DNS Prefetch and Preconnect for external services */}
 
-        {/* Clerk Authentication */}
-        <link rel="dns-prefetch" href="https://clerk.eleva.care" />
-        <link rel="dns-prefetch" href="https://api.clerk.com" />
-        <link rel="preconnect" href="https://clerk.eleva.care" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://api.clerk.com" crossOrigin="anonymous" />
+        {/* WorkOS Authentication */}
+        <link rel="dns-prefetch" href="https://api.workos.com" />
+        <link rel="preconnect" href="https://api.workos.com" crossOrigin="anonymous" />
 
         {/* Vercel Analytics & Speed Insights */}
         <link rel="dns-prefetch" href="https://vercel-insights.com" />
@@ -113,11 +112,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-background font-sans antialiased">
         <ErrorBoundaryWrapper>
           <NuqsAdapter>
-            <ClientProviders messages={defaultMessages}>
-              {children}
-              <Analytics />
-              <SpeedInsights />
-            </ClientProviders>
+            <AuthKitProvider>
+              <ClientProviders messages={defaultMessages}>
+                {children}
+                <Analytics />
+                <SpeedInsights />
+              </ClientProviders>
+            </AuthKitProvider>
           </NuqsAdapter>
         </ErrorBoundaryWrapper>
       </body>
