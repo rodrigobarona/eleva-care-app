@@ -18,7 +18,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useClerk } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import {
   BadgeCheck,
   BanknoteIcon,
@@ -33,6 +33,7 @@ import {
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 function NavUserSkeleton() {
   return (
@@ -53,7 +54,16 @@ function NavUserSkeleton() {
 
 export function NavUser() {
   const { user } = useAuth();
-  const { signOut } = useClerk();
+  const router = useRouter();
+  
+  const handleSignOut = async () => {
+    try {
+      await fetch('/api/auth/sign-out', { method: 'POST' });
+      router.push('/sign-in');
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  };
   const { isMobile } = useSidebar();
   if (!user) return null;
 
@@ -170,7 +180,7 @@ export function NavUser() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => signOut({ redirectUrl: '/' })}>
+            <DropdownMenuItem onClick={handleSignOut}>
               <LogOut className="mr-2 h-4 w-4" />
               <span>Log out</span>
             </DropdownMenuItem>

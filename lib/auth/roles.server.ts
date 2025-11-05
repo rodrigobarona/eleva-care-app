@@ -1,5 +1,5 @@
-import { getCachedUserById } from '@/lib/cache/clerk-cache';
-import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
+import { db } from '@/drizzle/db';
+import { RolesTable } from '@/drizzle/schema-workos';
 import {
   ADMIN_ROLES,
   ROLE_ADMIN,
@@ -8,8 +8,8 @@ import {
   ROLE_TOP_EXPERT,
   ROLE_USER,
 } from '@/lib/constants/roles';
-import { auth, clerkClient } from '@clerk/nextjs/server';
-import type { User } from '@clerk/nextjs/server';
+import { withAuth } from '@workos-inc/authkit-nextjs';
+import { eq } from 'drizzle-orm';
 
 import type { UserRole, UserRoles } from './roles';
 
@@ -19,28 +19,17 @@ import type { UserRole, UserRoles } from './roles';
  */
 
 /**
- * Helper function to get user by ID with fallback to Clerk on cache miss
- * This prevents false negatives when cache is cold or degraded
+ * Helper function to get user roles from database
  */
-async function getUserByIdWithFallback(userId: string): Promise<User | null> {
-  let user = await getCachedUserById(userId);
-  if (!user) {
-    // Cold cache or eviction: fall back to Clerk to avoid false negatives
-    const clerk = await clerkClient();
-    user = await clerk.users.getUser(userId).catch(() => null);
-  }
-  return user;
+async function getUserRolesFromDB(workosUserId: string): Promise<UserRole[]> {
+  const userRoles = await db
+    .select({ role: RolesTable.role })
+    .from(RolesTable)
+    .where(eq(RolesTable.workosUserId, workosUserId));
+
+  return userRoles.map((r) => r.role as UserRole);
 }
 
-/**
- * Helper function to check if a user has a specific role
- */
-function userHasRole(userRoles: UserRoles, roleToCheck: UserRole): boolean {
-  if (Array.isArray(userRoles)) {
-    return userRoles.includes(roleToCheck);
-  }
-  return userRoles === roleToCheck;
-}
 
 /**
  * Middleware helper function to check if a user has any of the specified roles
@@ -74,23 +63,14 @@ export function checkRoles(
  */
 export async function hasAnyRole(roles: UserRole[]): Promise<boolean> {
   const { user } = await withAuth();
-  const userId = user?.id;
   if (!user) return false;
 
-  const user = await getUserByIdWithFallback(userId);
-  if (!user) return false;
+  const userRoles = await getUserRolesFromDB(user.id);
 
-  const userRoles = user.publicMetadata.role as UserRoles;
-
-  if (!userRoles) return false;
+  if (userRoles.length === 0) return false;
 
   // Check if user has any of the required roles
-  if (Array.isArray(userRoles)) {
-    return roles.some((role) => userRoles.includes(role));
-  }
-
-  // String role case
-  return roles.includes(userRoles);
+  return roles.some((role) => userRoles.includes(role));
 }
 
 /**
@@ -98,15 +78,11 @@ export async function hasAnyRole(roles: UserRole[]): Promise<boolean> {
  */
 export async function hasRole(role: UserRole): Promise<boolean> {
   const { user } = await withAuth();
-  const userId = user?.id;
   if (!user) return false;
 
-  const user = await getUserByIdWithFallback(userId);
-  if (!user) return false;
+  const userRoles = await getUserRolesFromDB(user.id);
 
-  const userRoles = user.publicMetadata.role as UserRoles;
-
-  return userHasRole(userRoles, role);
+  return userRoles.includes(role);
 }
 
 /**
@@ -142,47 +118,48 @@ export async function isCommunityExpert(): Promise<boolean> {
  */
 export async function getUserRole(): Promise<UserRoles> {
   const { user } = await withAuth();
-  const userId = user?.id;
   if (!user) return ROLE_USER;
 
-  const user = await getUserByIdWithFallback(userId);
-  if (!user) return ROLE_USER;
+  const userRoles = await getUserRolesFromDB(user.id);
 
-  return (user.publicMetadata.role as UserRoles) || ROLE_USER;
+  if (userRoles.length === 0) return ROLE_USER;
+  if (userRoles.length === 1) return userRoles[0];
+
+  return userRoles;
 }
 
 /**
  * Update a user's role(s) (requires admin/superadmin)
  */
-export async function updateUserRole(userId: string, roles: UserRoles): Promise<void> {
-  const { userId: currentUserId } = await auth();
-  if (!currentUserId) throw new Error('Unauthorized');
+export async function updateUserRole(workosUserId: string, roles: UserRoles): Promise<void> {
+  const { user: currentUser } = await withAuth();
+  if (!currentUser) throw new Error('Unauthorized');
 
-  // Check if current user has permission to update roles with fallback
-  const clerk = await clerkClient();
-  const currentUser = await getUserByIdWithFallback(currentUserId);
-  if (!currentUser) throw new Error('User not found');
+  // Check if current user has permission to update roles
+  const currentUserRoles = await getUserRolesFromDB(currentUser.id);
 
-  const currentUserRoles = currentUser.publicMetadata.role as UserRoles;
-
-  const isAdmin = userHasRole(currentUserRoles, ROLE_ADMIN);
-  const isSuperAdmin = userHasRole(currentUserRoles, ROLE_SUPERADMIN);
+  const isAdmin = currentUserRoles.includes(ROLE_ADMIN);
+  const isSuperAdmin = currentUserRoles.includes(ROLE_SUPERADMIN);
 
   if (!isAdmin && !isSuperAdmin) {
     throw new Error('Insufficient permissions');
   }
 
   // Only superadmins can assign the superadmin role
-  const rolesToCheck = Array.isArray(roles) ? roles : [roles];
+  const rolesToAssign = Array.isArray(roles) ? roles : [roles];
 
-  if (rolesToCheck.includes(ROLE_SUPERADMIN) && !isSuperAdmin) {
+  if (rolesToAssign.includes(ROLE_SUPERADMIN) && !isSuperAdmin) {
     throw new Error('Only superadmins can assign the superadmin role');
   }
 
-  await clerk.users.updateUser(userId, {
-    publicMetadata: { role: roles },
-  });
+  // Delete existing roles for this user
+  await db.delete(RolesTable).where(eq(RolesTable.workosUserId, workosUserId));
 
-  // Invalidate cache after updating user roles
-  await invalidateUserCache(userId);
+  // Insert new roles
+  const roleInserts = rolesToAssign.map((role) => ({
+    workosUserId,
+    role,
+  }));
+
+  await db.insert(RolesTable).values(roleInserts);
 }

@@ -1,4 +1,4 @@
-import { useAuth } from '@clerk/nextjs';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { useCounts } from '@novu/react';
 import { useEffect, useState } from 'react';
 
@@ -22,7 +22,9 @@ interface UseSecureNovuResult {
  * @returns Object containing subscriber data, loading state, and error state
  */
 export function useSecureNovu(): UseSecureNovuResult {
-  const { userId, isLoaded } = useAuth();
+  const { user, loading } = useAuth();
+  const isLoaded = !loading;
+  const userId = user?.id;
   const [subscriberData, setSubscriberData] = useState<SecureSubscriberData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

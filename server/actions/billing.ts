@@ -3,12 +3,11 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema-workos';
-import { getCachedUserById } from '@/lib/cache/clerk-cache';
-import { invalidateUserCache } from '@/lib/cache/clerk-cache-utils';
 import {
   createStripeConnectAccount,
   getStripeConnectSetupOrLoginLink,
 } from '@/lib/integrations/stripe';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
@@ -25,13 +24,13 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
  * Initiates the Stripe Connect account creation process for an expert.
  *
  * This function:
- * 1. Validates the user exists in both Clerk and our database
- * 2. Gets or sets the user's country from Clerk metadata
+ * 1. Validates the user exists in our database
+ * 2. Gets or sets the user's country from user metadata
  * 3. Creates a Stripe Connect account for the expert
  * 4. Updates the user's record with the new Stripe Connect account ID
  * 5. Returns the onboarding URL for the expert to complete their setup
  *
- * @param workosUserId - The Clerk user ID of the expert
+ * @param workosUserId - The WorkOS user ID of the expert
  * @returns Promise that resolves to either:
  *   - The Stripe Connect onboarding URL (string)
  *   - null if the process fails or user is not found
@@ -48,78 +47,51 @@ export async function handleConnectStripe(workosUserId: string): Promise<string 
   if (!workosUserId) return null;
 
   try {
-    // Get user data from both Clerk and our database
-    try {
-      const clerk = await clerkClient();
-      const [clerkUser, dbUser] = await Promise.all([
-        getCachedUserById(workosUserId).catch((error: Error) => {
-          console.error('Failed to fetch Clerk user:', error);
-          return null;
-        }),
-        db.query.UsersTable.findFirst({
-          where: eq(UsersTable.workosUserId, workosUserId),
-        }),
-      ]);
+    // Get user data from our database
+    const dbUser = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, workosUserId),
+    });
 
-      if (!dbUser || !clerkUser) {
-        console.error('User not found in', !dbUser ? 'database' : 'Clerk');
-        return null;
-      }
-
-      if (!dbUser.email) {
-        console.error('User email not found');
-        return null;
-      }
-
-      // Get country from Clerk metadata or default to US
-      let country = (clerkUser.publicMetadata.country as string) || 'US';
-
-      // Ensure country code is uppercase
-      country = country.toUpperCase();
-
-      // Validate country is supported by Stripe Connect
-      // See: https://stripe.com/global
-      const supportedCountries = ['US', 'GB', 'DE', 'FR', 'ES', 'IT', 'NL', 'BE', 'PT', 'IE', 'PT']; // Add more as needed
-      if (!supportedCountries.includes(country)) {
-        console.error('Country not supported by Stripe Connect:', country);
-        return null;
-      }
-
-      // Create Stripe Connect account
-      const { accountId } = await createStripeConnectAccount(dbUser.email, country);
-
-      // Update user records
-      await Promise.all([
-        // Update our database
-        db
-          .update(UsersTable)
-          .set({
-            stripeConnectAccountId: accountId,
-            country: country, // Store the country in our database
-            updatedAt: new Date(),
-          })
-          .where(eq(UsersTable.workosUserId, workosUserId)),
-
-        // Update Clerk metadata
-        clerk.users.updateUser(workosUserId, {
-          publicMetadata: {
-            ...clerkUser.publicMetadata,
-            country: country,
-            stripeConnectAccountId: accountId,
-          },
-        }),
-      ]);
-
-      // Invalidate cache after updating user metadata
-      await invalidateUserCache(workosUserId);
-
-      // Generate the onboarding URL
-      const url = await getStripeConnectSetupOrLoginLink(accountId);
-      return url;
-    } catch (error) {
-      console.error('Failed to fetch user data:', error);
+    if (!dbUser) {
+      console.error('User not found in database');
       return null;
     }
+
+    if (!dbUser.email) {
+      console.error('User email not found');
+      return null;
+    }
+
+    // Get country from database or default to US
+    let country = dbUser.country || 'US';
+
+    // Ensure country code is uppercase
+    country = country.toUpperCase();
+
+    // Validate country is supported by Stripe Connect
+    // See: https://stripe.com/global
+    const supportedCountries = ['US', 'GB', 'DE', 'FR', 'ES', 'IT', 'NL', 'BE', 'PT', 'IE']; // Add more as needed
+    if (!supportedCountries.includes(country)) {
+      console.error('Country not supported by Stripe Connect:', country);
+      return null;
+    }
+
+    // Create Stripe Connect account
+    const { accountId } = await createStripeConnectAccount(dbUser.email, country);
+
+    // Update our database
+    await db
+      .update(UsersTable)
+      .set({
+        stripeConnectAccountId: accountId,
+        country: country, // Store the country in our database
+        updatedAt: new Date(),
+      })
+      .where(eq(UsersTable.workosUserId, workosUserId));
+
+    // Generate the onboarding URL
+    const url = await getStripeConnectSetupOrLoginLink(accountId);
+    return url;
   } catch (error) {
     console.error('Failed to create Stripe Connect account:', error);
     return null;
