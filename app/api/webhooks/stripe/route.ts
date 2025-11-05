@@ -86,7 +86,7 @@ const PaymentMetadataSchema = z.object({
  */
 const TransferDelaySchema = z.object({
   aging: z.number().int().min(0, 'Aging days must be non-negative'),
-  remaining: z.number().int().min(0, 'Remaining days must be non-negative'),
+  remaining: z.number().int().min(0, 'Remaining days must be non-negative').optional(),
   required: z.number().int().min(0, 'Required days must be non-negative'),
 });
 
@@ -104,6 +104,13 @@ const TransferMetadataSchema = z.object({
       (val) => !Number.isNaN(Date.parse(val)),
       'Invalid scheduled time format - must be ISO 8601',
     ),
+  appointmentEnd: z
+    .string()
+    .refine(
+      (val) => !Number.isNaN(Date.parse(val)),
+      'Invalid appointment end time format - must be ISO 8601',
+    )
+    .optional(),
 });
 
 // Update interfaces to match Zod schemas
@@ -277,7 +284,10 @@ function validateTransferMetadata(
     missingFields.push('delay configuration');
   } else {
     if (typeof metadata.delay.aging !== 'number') missingFields.push('delay.aging');
-    if (typeof metadata.delay.remaining !== 'number') missingFields.push('delay.remaining');
+    // remaining is optional, only validate if present
+    if (metadata.delay.remaining !== undefined && typeof metadata.delay.remaining !== 'number') {
+      missingFields.push('delay.remaining');
+    }
     if (typeof metadata.delay.required !== 'number') missingFields.push('delay.required');
   }
 
