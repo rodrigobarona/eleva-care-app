@@ -16,6 +16,7 @@ import {
   getWorkflowFromStripeEvent,
   triggerNovuWorkflow,
 } from '@/lib/integrations/novu/utils';
+import { webhookMonitor } from '@/lib/redis/webhook-monitor';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
 import { eq } from 'drizzle-orm';
@@ -779,6 +780,7 @@ async function triggerNovuNotificationFromStripeEvent(event: Stripe.Event) {
  * @returns A JSON response indicating success or failure
  */
 export async function POST(request: NextRequest) {
+  const processingStartTime = Date.now(); // Track processing time for monitoring
   const body = await request.text();
   const signature = request.headers.get('stripe-signature');
 
@@ -801,6 +803,15 @@ export async function POST(request: NextRequest) {
       '❌ Webhook signature verification failed:',
       err instanceof Error ? err.message : err,
     );
+    // Record monitoring failure for signature verification issues
+    await webhookMonitor
+      .recordFailure(
+        'stripe',
+        'signature_verification',
+        'unknown',
+        err instanceof Error ? err.message : 'Invalid signature',
+      )
+      .catch((monitorErr) => console.error('Failed to record monitoring failure:', monitorErr));
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
@@ -911,15 +922,29 @@ export async function POST(request: NextRequest) {
       // Don't throw - Novu failures shouldn't block webhook processing
     }
 
+    // 📊 Record successful webhook processing for monitoring
+    const processingTime = Date.now() - processingStartTime;
+    await webhookMonitor
+      .recordSuccess('stripe', event.type, event.id, processingTime)
+      .catch((monitorErr) => console.error('Failed to record monitoring success:', monitorErr));
+
     return NextResponse.json({ received: true });
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
     console.error('❌ Error processing webhook event:', {
-      error: error instanceof Error ? error.message : error,
+      error: errorMessage,
       stack: error instanceof Error ? error.stack : undefined,
       eventType: event?.type || 'unknown',
       eventId: event?.id || 'unknown',
       timestamp: new Date().toISOString(),
     });
+
+    // 📊 Record failed webhook processing for monitoring
+    await webhookMonitor
+      .recordFailure('stripe', event?.type || 'unknown', event?.id || 'unknown', errorMessage)
+      .catch((monitorErr) => console.error('Failed to record monitoring failure:', monitorErr));
+
     return NextResponse.json(
       { error: 'Internal server error processing webhook' },
       { status: 500 },
