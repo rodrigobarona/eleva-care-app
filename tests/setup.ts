@@ -256,38 +256,34 @@ jest.mock('@clerk/nextjs/server', () => ({
   } as never),
 }));
 
-// Add comprehensive Clerk auth mock
-jest.mock('@clerk/nextjs', () => ({
-  auth: jest.fn().mockResolvedValue({
-    userId: 'user_123',
-    sessionId: 'sess_123',
-    sessionClaims: {
-      sub: 'user_123',
-      sid: 'sess_123',
-      role: ['community_expert'],
+// Add WorkOS auth mock (replacing Clerk)
+jest.mock('@workos-inc/authkit-nextjs', () => ({
+  withAuth: jest.fn().mockResolvedValue({
+    user: {
+      id: 'user_123',
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      emailVerified: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
     },
-    getToken: jest.fn().mockResolvedValue('mock-token' as never),
-  } as never),
-  ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
-  useAuth: jest.fn().mockReturnValue({
-    isLoaded: true,
+  }),
+}));
+
+jest.mock('@workos-inc/authkit-nextjs/components', () => ({
+  useAuth: jest.fn(() => ({
+    user: {
+      id: 'user_123',
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      emailVerified: true,
+    },
+    loading: false,
     isSignedIn: true,
-    userId: 'user_123',
-    sessionId: 'sess_123',
-  }),
-  useUser: jest.fn().mockReturnValue({
-    isLoaded: true,
-    isSignedIn: true,
-    user: mockClerkUser,
-  }),
-  useOrganization: jest.fn().mockReturnValue({
-    isLoaded: true,
-    organization: null,
-  }),
-  SignIn: () => 'SignIn',
-  SignUp: () => 'SignUp',
-  SignedIn: ({ children }: { children: React.ReactNode }) => children,
-  SignedOut: () => null,
+  })),
+  AuthKitProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
 jest.mock('next/cache', () => ({
