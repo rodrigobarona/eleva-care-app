@@ -9,19 +9,7 @@ import {
   mockMarkStepComplete,
   mockToggleProfilePublication,
   mockUpdateProfile,
-  mockUser,
 } from './expert-setup-mocks';
-
-// Mock modules
-jest.mock('@clerk/nextjs/server', () => ({
-  currentUser: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue(mockUser),
-  clerkClient: {
-    users: {
-      updateUser: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue(mockUser),
-      getUser: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue(mockUser),
-    },
-  },
-}));
 
 jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),

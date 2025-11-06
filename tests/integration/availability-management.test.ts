@@ -64,16 +64,6 @@ jest.mock('@/drizzle/db', () => ({
   },
 }));
 
-// Mock clerk
-jest.mock('@clerk/nextjs/server', () => ({
-  currentUser: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue(mockUser),
-  clerkClient: {
-    users: {
-      updateUser: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue(mockUser),
-    },
-  },
-}));
-
 // Mock next cache
 jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),

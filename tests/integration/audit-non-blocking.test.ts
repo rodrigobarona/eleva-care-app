@@ -241,7 +241,7 @@ describe('Audit Logging - Non-Blocking Behavior', () => {
       (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
 
       const testData = {
-        clerkUserId: 'user_abc123',
+        workosUserId: 'user_abc123',
         action: 'MEETING_PAYMENT_FAILED' as const,
         resourceType: 'meeting' as const,
         resourceId: 'mtg_xyz789',
@@ -256,7 +256,7 @@ describe('Audit Logging - Non-Blocking Behavior', () => {
       };
 
       await logAuditEvent(
-        testData.clerkUserId,
+        testData.workosUserId,
         testData.action,
         testData.resourceType,
         testData.resourceId,
@@ -276,7 +276,7 @@ describe('Audit Logging - Non-Blocking Behavior', () => {
       const parsedError = JSON.parse(errorLog);
 
       expect(parsedError.auditData).toMatchObject({
-        clerkUserId: testData.clerkUserId,
+        workosUserId: testData.workosUserId,
         action: testData.action,
         resourceType: testData.resourceType,
         resourceId: testData.resourceId,

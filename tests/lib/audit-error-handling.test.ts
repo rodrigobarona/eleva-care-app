@@ -36,7 +36,7 @@ describe('Audit Error Handling', () => {
 
   describe('logAuditEvent', () => {
     const mockAuditData = {
-      clerkUserId: 'user_123',
+      workosUserId: 'user_123',
       action: 'MEETING_CREATED' as const,
       resourceType: 'meeting' as const,
       resourceId: 'mtg_456',
@@ -55,7 +55,7 @@ describe('Audit Error Handling', () => {
       (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
 
       const result = logAuditEvent(
-        mockAuditData.clerkUserId,
+        mockAuditData.workosUserId,
         mockAuditData.action,
         mockAuditData.resourceType,
         mockAuditData.resourceId,
@@ -77,7 +77,7 @@ describe('Audit Error Handling', () => {
 
       // Should NOT throw despite database error
       const result = logAuditEvent(
-        mockAuditData.clerkUserId,
+        mockAuditData.workosUserId,
         mockAuditData.action,
         mockAuditData.resourceType,
         mockAuditData.resourceId,
@@ -100,7 +100,7 @@ describe('Audit Error Handling', () => {
       (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
 
       await logAuditEvent(
-        mockAuditData.clerkUserId,
+        mockAuditData.workosUserId,
         mockAuditData.action,
         mockAuditData.resourceType,
         mockAuditData.resourceId,
@@ -122,7 +122,7 @@ describe('Audit Error Handling', () => {
       (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
 
       await logAuditEvent(
-        mockAuditData.clerkUserId,
+        mockAuditData.workosUserId,
         mockAuditData.action,
         mockAuditData.resourceType,
         mockAuditData.resourceId,
@@ -144,7 +144,7 @@ describe('Audit Error Handling', () => {
         message: 'AUDIT_LOGGING_FAILED',
         error: 'Connection timeout',
         auditData: {
-          clerkUserId: mockAuditData.clerkUserId,
+          workosUserId: mockAuditData.workosUserId,
           action: mockAuditData.action,
           resourceType: mockAuditData.resourceType,
           resourceId: mockAuditData.resourceId,
@@ -158,7 +158,7 @@ describe('Audit Error Handling', () => {
       (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
 
       const result = logAuditEvent(
-        mockAuditData.clerkUserId,
+        mockAuditData.workosUserId,
         mockAuditData.action,
         mockAuditData.resourceType,
         mockAuditData.resourceId,
@@ -181,7 +181,7 @@ describe('Audit Error Handling', () => {
       (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
 
       await logAuditEvent(
-        mockAuditData.clerkUserId,
+        mockAuditData.workosUserId,
         mockAuditData.action,
         mockAuditData.resourceType,
         mockAuditData.resourceId,

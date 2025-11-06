@@ -135,7 +135,7 @@ describe('Stripe Identity Webhook Handler', () => {
             id: 'vs_test_123',
             status: 'verified',
             metadata: {
-              clerkUserId: 'user_123',
+              workosUserId: 'user_123',
             },
             verification_flow: 'standard',
           },
@@ -153,7 +153,7 @@ describe('Stripe Identity Webhook Handler', () => {
       // Setup user found by verification ID
       (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
-        clerkUserId: 'user_123',
+        workosUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
       });
 
@@ -164,7 +164,7 @@ describe('Stripe Identity Webhook Handler', () => {
       expect(data.received).toBe(true);
       expect(data.status).toBe('success');
       expect(db.update).toHaveBeenCalled();
-      expect(markStepComplete).toHaveBeenCalledWith('user_123', 'identityCompleted');
+      // Note: markStepComplete is no longer called from webhooks as they don't have auth context
     });
 
     it('should handle user lookup by Clerk ID when verification ID lookup fails', async () => {
@@ -173,7 +173,7 @@ describe('Stripe Identity Webhook Handler', () => {
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({
           id: 1,
-          clerkUserId: 'user_123',
+          workosUserId: 'user_123',
           stripeConnectAccountId: 'acct_test_123',
         });
 
@@ -202,7 +202,7 @@ describe('Stripe Identity Webhook Handler', () => {
             id: 'vs_test_123',
             status: 'requires_input',
             metadata: {
-              clerkUserId: 'user_123',
+              workosUserId: 'user_123',
             },
           },
         },
@@ -215,7 +215,7 @@ describe('Stripe Identity Webhook Handler', () => {
 
       (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
-        clerkUserId: 'user_123',
+        workosUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
       });
 
@@ -229,7 +229,7 @@ describe('Stripe Identity Webhook Handler', () => {
     it('should skip Connect sync when user has no Connect account', async () => {
       (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
-        clerkUserId: 'user_123',
+        workosUserId: 'user_123',
         stripeConnectAccountId: null, // No Connect account
       });
 
@@ -242,7 +242,7 @@ describe('Stripe Identity Webhook Handler', () => {
     it('should retry Connect sync on failure', async () => {
       (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
-        clerkUserId: 'user_123',
+        workosUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
       });
 
@@ -261,7 +261,7 @@ describe('Stripe Identity Webhook Handler', () => {
     it('should handle Connect sync maximum retries exceeded', async () => {
       (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
-        clerkUserId: 'user_123',
+        workosUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
       });
 
@@ -305,7 +305,7 @@ describe('Stripe Identity Webhook Handler', () => {
             id: 'vs_test_123',
             status: 'verified',
             metadata: {
-              clerkUserId: 'user_123',
+              workosUserId: 'user_123',
             },
           },
         },
@@ -329,7 +329,7 @@ describe('Stripe Identity Webhook Handler', () => {
             id: 'vs_test_123',
             status: 'verified',
             metadata: {
-              clerkUserId: 'user_123',
+              workosUserId: 'user_123',
             },
           },
         },
@@ -337,7 +337,7 @@ describe('Stripe Identity Webhook Handler', () => {
 
       (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
-        clerkUserId: 'user_123',
+        workosUserId: 'user_123',
       });
 
       (getIdentityVerificationStatus as jest.Mock).mockRejectedValue(new Error('Stripe API error'));
@@ -356,7 +356,7 @@ describe('Stripe Identity Webhook Handler', () => {
             id: 'vs_test_123',
             status: 'verified',
             metadata: {
-              clerkUserId: 'user_123',
+              workosUserId: 'user_123',
             },
           },
         },
@@ -364,7 +364,7 @@ describe('Stripe Identity Webhook Handler', () => {
 
       (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
         id: 1,
-        clerkUserId: 'user_123',
+        workosUserId: 'user_123',
       });
 
       (getIdentityVerificationStatus as jest.Mock).mockResolvedValue({
@@ -443,7 +443,7 @@ describe('Stripe Identity Webhook Handler', () => {
             id: 'vs_test_123',
             status: 'verified',
             metadata: {
-              clerkUserId: 'user_123',
+              workosUserId: 'user_123',
             },
           },
         },
@@ -455,7 +455,7 @@ describe('Stripe Identity Webhook Handler', () => {
         .mockResolvedValueOnce({
           // Second lookup by Clerk ID succeeds
           id: 1,
-          clerkUserId: 'user_123',
+          workosUserId: 'user_123',
           stripeIdentityVerificationId: null,
         });
 

@@ -91,7 +91,7 @@ jest.mock('@/drizzle/db', () => {
   return {
     db: {
       query: {
-        ProfileTable: {
+        ProfilesTable: {
           findFirst: jest
             .fn()
             .mockImplementation((...args: Parameters<typeof findFirstMock>) =>
@@ -120,9 +120,22 @@ jest.mock('drizzle-orm', () => ({
 
 // Mock schema
 jest.mock('@/drizzle/schema-workos', () => ({
-  ProfileTable: {
-    clerkUserId: 'clerkUserId',
+  ProfilesTable: {
+    workosUserId: 'workosUserId',
   },
+}));
+
+// Mock request metadata
+jest.mock('@/lib/utils/server', () => ({
+  getRequestMetadata: jest.fn().mockResolvedValue({
+    ipAddress: '127.0.0.1',
+    userAgent: 'Test User Agent',
+  }),
+}));
+
+// Mock audit logging
+jest.mock('@/lib/utils/server/audit', () => ({
+  logAuditEvent: jest.fn().mockResolvedValue(undefined),
 }));
 
 describe('toggleProfilePublication', () => {
@@ -133,8 +146,8 @@ describe('toggleProfilePublication', () => {
     withAuthMock.mockResolvedValue(mockUserInfo);
     hasRoleMock.mockResolvedValue(true);
     findFirstMock.mockResolvedValue({
-      id: 1,
-      clerkUserId: 'test-user-id',
+      id: '1',
+      workosUserId: 'test-user-id',
       published: false, // Default to unpublished
     });
     checkExpertSetupStatusMock.mockResolvedValue({
@@ -180,8 +193,8 @@ describe('toggleProfilePublication', () => {
   it('should only record agreement data on first publish', async () => {
     // Arrange - profile that already accepted the agreement
     findFirstMock.mockResolvedValue({
-      id: 1,
-      clerkUserId: 'test-user-id',
+      id: '1',
+      workosUserId: 'test-user-id',
       published: false,
       practitionerAgreementAcceptedAt: new Date('2025-01-01'),
       practitionerAgreementVersion: '1.0',
@@ -208,8 +221,8 @@ describe('toggleProfilePublication', () => {
   it('should unpublish a profile when it is published', async () => {
     // Arrange - set up mock for a published profile
     findFirstMock.mockResolvedValue({
-      id: 1,
-      clerkUserId: 'test-user-id',
+      id: '1',
+      workosUserId: 'test-user-id',
       published: true, // Already published
     });
 

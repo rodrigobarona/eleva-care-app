@@ -37,7 +37,7 @@ const customJestConfig = {
     '/tests/integration/services/email.test.ts', // Test logic issues - mock setup needs work
   ],
   // Transform ESM modules that Jest can't handle
-  transformIgnorePatterns: ['node_modules/(?!(jose|@upstash|uncrypto|next-intl)/)'],
+  transformIgnorePatterns: ['node_modules/(?!(jose|@upstash|uncrypto|next-intl|@workos-inc)/)'],
   // Performance optimization
   maxWorkers: '50%',
   // Better error reporting

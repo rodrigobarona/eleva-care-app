@@ -102,6 +102,14 @@ describe('ProfilePublishToggle', () => {
       },
     });
 
+    // Mock toggle to return incomplete steps
+    (mockToggleProfilePublication as any).mockResolvedValue({
+      success: false,
+      isPublished: false,
+      message: 'Cannot publish profile until all setup steps are complete',
+      incompleteSteps: ['events', 'availability', 'payment'],
+    });
+
     render(<ProfilePublishToggle {...mockProps} />);
 
     const toggle = screen.getByRole('switch');
