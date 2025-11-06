@@ -17,6 +17,7 @@ import {
   AnnualPlanEligibilityTable,
   MeetingsTable,
   TransactionCommissionsTable,
+  UserOrgMembershipsTable,
   UsersTable,
 } from '@/drizzle/schema-workos';
 import { and, eq } from 'drizzle-orm';
@@ -216,12 +217,13 @@ export async function updateEligibilityMetrics(workosUserId: string): Promise<bo
     const eligibility = await checkAnnualEligibility(workosUserId);
 
     // Get user's organization
-    const user = await db.query.UsersTable.findFirst({
-      where: eq(UsersTable.workosUserId, workosUserId),
-      columns: { id: true },
+    const membership = await db.query.UserOrgMembershipsTable.findFirst({
+      where: eq(UserOrgMembershipsTable.workosUserId, workosUserId),
+      columns: { orgId: true },
     });
 
-    if (!user) {
+    if (!membership?.orgId) {
+      console.error('No organization found for user:', workosUserId);
       return false;
     }
 
@@ -249,7 +251,7 @@ export async function updateEligibilityMetrics(workosUserId: string): Promise<bo
 
     const eligibilityData = {
       workosUserId,
-      orgId: null, // TODO: Get from user's organization
+      orgId: membership.orgId,
       monthsActive: eligibility.currentMetrics.monthsActive,
       totalBookings: eligibility.currentMetrics.totalBookings,
       bookingsLast90Days: eligibility.currentMetrics.totalBookings, // TODO: Calculate separately

@@ -786,7 +786,9 @@ export const TransactionCommissionsTable = pgTable(
     refundedAt: timestamp('refunded_at'),
 
     // Metadata for reporting
-    planTypeAtTransaction: text('plan_type_at_transaction').$type<'commission' | 'annual'>(),
+    planTypeAtTransaction: text('plan_type_at_transaction').$type<
+      'commission' | 'monthly' | 'annual'
+    >(),
     tierLevelAtTransaction: text('tier_level_at_transaction').$type<'community' | 'top'>(),
 
     createdAt,

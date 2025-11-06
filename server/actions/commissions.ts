@@ -13,7 +13,12 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { MeetingsTable, TransactionCommissionsTable, UsersTable } from '@/drizzle/schema-workos';
+import {
+  MeetingsTable,
+  SubscriptionPlansTable,
+  TransactionCommissionsTable,
+  UsersTable,
+} from '@/drizzle/schema-workos';
 import { eq } from 'drizzle-orm';
 
 import { getCurrentCommissionRate } from './subscriptions';
@@ -44,7 +49,7 @@ export interface CommissionTransaction {
   netAmount: number; // Amount expert receives in cents
   currency: string;
   status: 'pending' | 'processed' | 'refunded' | 'disputed';
-  planTypeAtTransaction: 'commission' | 'annual';
+  planTypeAtTransaction: 'commission' | 'monthly' | 'annual';
   tierLevelAtTransaction: 'community' | 'top';
   createdAt: Date;
 }
@@ -89,6 +94,17 @@ export async function recordCommission(
       return null;
     }
 
+    // Validate required fields
+    if (!meeting.orgId) {
+      console.error('Meeting missing orgId:', meetingId);
+      return null;
+    }
+
+    if (!stripePaymentIntentId) {
+      console.error('Missing stripePaymentIntentId for meeting:', meetingId);
+      return null;
+    }
+
     // Check if commission already recorded
     const existingCommission = await db.query.TransactionCommissionsTable.findFirst({
       where: eq(TransactionCommissionsTable.meetingId, meetingId),
@@ -106,7 +122,10 @@ export async function recordCommission(
         netAmount: existingCommission.netAmount,
         currency: existingCommission.currency,
         status: existingCommission.status as 'pending' | 'processed' | 'refunded' | 'disputed',
-        planTypeAtTransaction: existingCommission.planTypeAtTransaction as 'commission' | 'annual',
+        planTypeAtTransaction: existingCommission.planTypeAtTransaction as
+          | 'commission'
+          | 'monthly'
+          | 'annual',
         tierLevelAtTransaction: existingCommission.tierLevelAtTransaction as 'community' | 'top',
         createdAt: existingCommission.createdAt,
       };
@@ -130,9 +149,14 @@ export async function recordCommission(
     const tierLevel =
       user?.role === 'expert_top' || user?.role === 'expert_lecturer' ? 'top' : 'community';
 
-    // Determine plan type based on commission rate
-    // If commission rate is lower than standard, user is on annual plan
-    const isAnnualPlan = commissionRateDecimal < 0.15; // Less than 15% suggests annual plan
+    // Get organization subscription to determine plan type
+    const orgSubscription = await db.query.SubscriptionPlansTable.findFirst({
+      where: eq(SubscriptionPlansTable.orgId, meeting.orgId),
+      columns: { planType: true },
+    });
+
+    // Determine plan type (commission, monthly, or annual)
+    const planType = orgSubscription?.planType || 'commission';
 
     // Create commission record
     const [commission] = await db
@@ -147,10 +171,10 @@ export async function recordCommission(
         netAmount,
         currency: currency.toLowerCase(),
         stripePaymentIntentId,
-        stripeTransferId: stripeTransferId || null,
-        status: 'processed',
+        stripeTransferId: stripeTransferId || undefined,
+        status: 'processed' as const,
         processedAt: new Date(),
-        planTypeAtTransaction: isAnnualPlan ? 'annual' : 'commission',
+        planTypeAtTransaction: planType,
         tierLevelAtTransaction: tierLevel,
       })
       .returning();
