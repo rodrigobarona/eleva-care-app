@@ -149,25 +149,73 @@ function PostHogUserTracker() {
   return null;
 }
 
-// Novu wrapper component (WorkOS version)
+// Novu wrapper component (WorkOS version with HMAC security)
 function NovuWrapper({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
+  const [subscriberData, setSubscriberData] = useState<{
+    subscriberId: string;
+    subscriberHash: string;
+    applicationIdentifier: string;
+  } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  // Ensure WorkOS user is loaded and applicationIdentifier is available
+  // Fetch subscriber hash from backend for HMAC auth
+  useEffect(() => {
+    if (loading || !user || !ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) {
+      return;
+    }
+
+    const fetchSubscriberHash = async () => {
+      try {
+        console.log('[Novu] Fetching subscriber hash for user:', user.id);
+        const response = await fetch('/api/novu/subscriber-hash');
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch subscriber hash: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('[Novu] Subscriber hash fetched successfully');
+        setSubscriberData(data);
+        setError(null);
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Failed to initialize Novu';
+        console.error('[Novu] Initialization error:', errorMessage);
+        setError(errorMessage);
+      }
+    };
+
+    fetchSubscriberHash();
+  }, [user, loading]);
+
+  // Show children without Novu if user is not loaded or app ID is missing
   if (loading || !user || !ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER) {
     return <>{children}</>;
   }
 
-  console.log('[Novu] Provider initialized for user:', user.id);
+  // Show children without Novu if there's an error (graceful degradation)
+  if (error) {
+    console.warn('[Novu] Running without notifications due to error:', error);
+    return <>{children}</>;
+  }
+
+  // Wait for subscriber data to be loaded
+  if (!subscriberData) {
+    return <>{children}</>;
+  }
+
+  console.log('[Novu] Provider initialized for user:', subscriberData.subscriberId);
 
   return (
     <NovuProvider
-      subscriberId={user.id}
-      applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
+      subscriberId={subscriberData.subscriberId}
+      subscriberHash={subscriberData.subscriberHash}
+      applicationIdentifier={subscriberData.applicationIdentifier}
     >
       <ReactNovuProvider
-        applicationIdentifier={ENV_CONFIG.NEXT_PUBLIC_NOVU_APPLICATION_IDENTIFIER}
-        subscriberId={user.id}
+        applicationIdentifier={subscriberData.applicationIdentifier}
+        subscriberId={subscriberData.subscriberId}
+        subscriberHash={subscriberData.subscriberHash}
         apiUrl="https://eu.api.novu.co"
         socketUrl="https://eu.ws.novu.co"
       >

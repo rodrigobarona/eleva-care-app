@@ -397,9 +397,10 @@ export default async function proxy(request: NextRequest) {
 
 /**
  * Configure which paths the middleware runs on
+ * Note: api/webhooks includes the Novu bridge at /api/webhooks/novu
  */
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|\\.well-known|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/health|api/create-payment-intent|api/novu$|_vercel|_botid).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|\\.well-known|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/health|api/create-payment-intent|_vercel|_botid).*)',
   ],
 };
