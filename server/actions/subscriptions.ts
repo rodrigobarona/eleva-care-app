@@ -15,6 +15,7 @@
 
 'use server';
 
+import { STRIPE_CONFIG } from '@/config/stripe';
 import { SUBSCRIPTION_PRICING } from '@/config/subscription-pricing';
 import { db } from '@/drizzle/db';
 import {
@@ -72,8 +73,38 @@ import Stripe from 'stripe';
  * - Audit logging
  */
 
+/**
+ * Subscription Management Server Actions
+ *
+ * Handles all subscription-related operations:
+ * - Creating new subscriptions (annual plans)
+ * - Canceling subscriptions
+ * - Updating subscription plans
+ * - Fetching subscription status
+ *
+ * Integrates with:
+ * - Stripe Subscriptions API
+ * - Database (SubscriptionPlansTable)
+ * - Audit logging
+ */
+
+/**
+ * Subscription Management Server Actions
+ *
+ * Handles all subscription-related operations:
+ * - Creating new subscriptions (annual plans)
+ * - Canceling subscriptions
+ * - Updating subscription plans
+ * - Fetching subscription status
+ *
+ * Integrates with:
+ * - Stripe Subscriptions API
+ * - Database (SubscriptionPlansTable)
+ * - Audit logging
+ */
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-02-24.acacia',
+  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
 // ============================================================================

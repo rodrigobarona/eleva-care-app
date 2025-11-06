@@ -681,14 +681,14 @@ export const SubscriptionPlansTable = pgTable(
   'subscription_plans',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    
+
     // 🏢 PRIMARY OWNER: Organization
     // One subscription per organization (industry standard)
     orgId: uuid('org_id')
       .notNull()
       .unique() // ✅ Ensures one subscription per organization
       .references(() => OrganizationsTable.id, { onDelete: 'cascade' }),
-    
+
     // 👤 SECONDARY: Billing Administrator
     // User who manages the subscription (can be transferred to another org member)
     // Uses 'restrict' to prevent accidental deletion if admin leaves org
