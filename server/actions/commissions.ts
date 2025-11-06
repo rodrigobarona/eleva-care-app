@@ -4,10 +4,53 @@
  * Records and tracks commission transactions for all expert bookings.
  * Integrates with subscription system to apply correct commission rates.
  *
+ * 💰 COMMISSION RATE DETERMINATION:
+ *
+ * Solo Experts (type: 'expert_individual'):
+ * ----------------------------------------
+ * Commission rate = f(Expert Role, Subscription Plan)
+ *
+ * Community Expert (role: 'expert_community'):
+ *   • Commission-only plan → 20%
+ *   • Monthly subscription → 12% (saves 40%)
+ *   • Annual subscription → 12% (saves 40%)
+ *
+ * Top Expert (role: 'expert_top'):
+ *   • Commission-only plan → 18%
+ *   • Monthly subscription → 8% (saves 55%)
+ *   • Annual subscription → 8% (saves 55%)
+ *
+ * Clinics (type: 'clinic') - Future:
+ * ----------------------------------
+ * Each expert in the clinic keeps their INDIVIDUAL commission rate
+ * based on their own role, regardless of the clinic's subscription.
+ *
+ * Example:
+ *   Clinic subscribes to workspace plan ($99/month)
+ *   ├─ Dr. Maria (expert_top) → 8% commission on her bookings
+ *   ├─ Dr. João (expert_community) → 12% on his bookings
+ *   └─ Commission per expert ensures fair compensation
+ *
+ * 🎯 WHY PER-EXPERT RATES IN CLINICS?
+ * - Fair compensation (top experts earned their lower rates)
+ * - Talent retention (experts keep benefits when joining clinics)
+ * - Growth incentive (community → top progression)
+ * - Industry standard (Cal.com, Vercel use similar models)
+ *
+ * 📊 CALCULATION LOGIC:
+ * 1. Patient books appointment → Payment succeeds
+ * 2. recordCommission() called with booking details
+ * 3. Lookup expert's role from UsersTable
+ * 4. Lookup org subscription from SubscriptionPlansTable
+ * 5. Determine commission rate based on role + plan type
+ * 6. Calculate: commission = bookingAmount × rate
+ * 7. Record transaction with metadata (tierLevel, planType)
+ * 8. Expert receives: bookingAmount - commission
+ *
  * Used by:
- * - Payment processing (when booking payment succeeds)
- * - Financial reporting
- * - Eligibility calculations
+ * - Stripe webhook (when payment_intent.succeeded)
+ * - Financial reporting and analytics
+ * - Eligibility calculations for subscription upgrades
  */
 
 'use server';
@@ -22,6 +65,30 @@ import {
 import { eq } from 'drizzle-orm';
 
 import { getCurrentCommissionRate } from './subscriptions';
+
+/**
+ * Commission Tracking Server Actions
+ *
+ * Records and tracks commission transactions for all expert bookings.
+ * Integrates with subscription system to apply correct commission rates.
+ *
+ * Used by:
+ * - Payment processing (when booking payment succeeds)
+ * - Financial reporting
+ * - Eligibility calculations
+ */
+
+/**
+ * Commission Tracking Server Actions
+ *
+ * Records and tracks commission transactions for all expert bookings.
+ * Integrates with subscription system to apply correct commission rates.
+ *
+ * Used by:
+ * - Payment processing (when booking payment succeeds)
+ * - Financial reporting
+ * - Eligibility calculations
+ */
 
 /**
  * Commission Tracking Server Actions
@@ -139,23 +206,35 @@ export async function recordCommission(
     const commissionAmount = Math.round((grossAmount * commissionRateDecimal) / 100) * 100; // Round to nearest dollar
     const netAmount = grossAmount - commissionAmount;
 
-    // Get subscription info for metadata
+    // Get expert's role to determine their tier level
+    // This determines their commission rate regardless of organization type
     const user = await db.query.UsersTable.findFirst({
       where: eq(UsersTable.workosUserId, meeting.workosUserId),
       columns: { role: true },
     });
 
-    // Determine tier level from role
+    // 🎯 TIER LEVEL DETERMINATION
+    // User's role determines their commission tier:
+    // - expert_top / expert_lecturer → 'top' tier (8-18% commission)
+    // - expert_community → 'community' tier (12-20% commission)
+    //
+    // For SOLO EXPERTS: This matches their org subscription tier (1:1)
+    // For CLINICS (future): Each expert keeps their own tier regardless of org subscription
     const tierLevel =
       user?.role === 'expert_top' || user?.role === 'expert_lecturer' ? 'top' : 'community';
 
     // Get organization subscription to determine plan type
+    // Plan type affects the commission rate (commission/monthly/annual)
     const orgSubscription = await db.query.SubscriptionPlansTable.findFirst({
       where: eq(SubscriptionPlansTable.orgId, meeting.orgId),
       columns: { planType: true },
     });
 
-    // Determine plan type (commission, monthly, or annual)
+    // 💳 PLAN TYPE DETERMINATION
+    // Defaults to 'commission' if no active subscription found
+    // - 'commission': Pay per transaction only (20% or 18%)
+    // - 'monthly': Fixed monthly fee + reduced rate (12% or 8%)
+    // - 'annual': Fixed annual fee + lowest rate (12% or 8%)
     const planType = orgSubscription?.planType || 'commission';
 
     // Create commission record

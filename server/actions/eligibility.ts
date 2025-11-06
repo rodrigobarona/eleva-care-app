@@ -33,6 +33,17 @@ import { and, eq } from 'drizzle-orm';
  * - Top Expert: 3+ months active, $1,774+/month avg, 50+ bookings, 4.5+ rating
  */
 
+/**
+ * Subscription Eligibility Checker
+ *
+ * Calculates and tracks eligibility for annual subscription plans.
+ * Updates metrics used to determine if an expert qualifies for annual pricing.
+ *
+ * Eligibility Criteria:
+ * - Community Expert: 3+ months active, $510+/month avg, 15+ bookings, 4.0+ rating
+ * - Top Expert: 3+ months active, $1,774+/month avg, 50+ bookings, 4.5+ rating
+ */
+
 // ============================================================================
 // Types
 // ============================================================================

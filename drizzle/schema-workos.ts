@@ -52,12 +52,39 @@ const updatedAt = timestamp('updated_at')
 // ============================================================================
 
 /**
- * Organization types for different use cases
+ * Organization Types for Different Use Cases
+ *
+ * ELEVA BUSINESS MODEL:
+ * =====================
+ *
+ * 1️⃣ SOLO EXPERTS (Current - Phase 1):
+ *    - 1 Expert = 1 Personal Organization (type: 'expert_individual')
+ *    - Expert's level (community/top) determines their org's subscription tier
+ *    - Only 1 member (the expert themselves)
+ *    - Subscription tier and user role are synchronized
+ *
+ * 2️⃣ CLINICS (Future - Phase 2):
+ *    - Multi-expert organization (type: 'clinic')
+ *    - Can have multiple experts with DIFFERENT levels (community/top)
+ *    - Each expert's commission based on THEIR individual level
+ *    - Example:
+ *      Clinic Org → Subscription ($99/month workspace fee)
+ *        ├─ Dr. Maria (Top Expert) → 8% annual commission
+ *        ├─ Dr. João (Community Expert) → 12% annual commission
+ *        └─ Dr. Ana (Community → Top) → Commission upgrades when eligible
+ *
+ * 3️⃣ PATIENTS:
+ *    - Personal organization for data isolation (HIPAA/GDPR)
+ *    - No subscription required
+ *
+ * 4️⃣ EDUCATIONAL INSTITUTIONS (Future - Phase 3):
+ *    - For courses and lectures
+ *    - Lecturers can be community or top level
  */
 export type OrganizationType =
   | 'patient_personal' // Individual patient's personal organization
-  | 'expert_individual' // Solo expert's organization
-  | 'clinic' // Multi-expert clinic
+  | 'expert_individual' // Solo expert's organization (1 expert = 1 org)
+  | 'clinic' // Multi-expert clinic (multiple experts, mixed levels allowed)
   | 'educational_institution'; // For courses/lectures (future)
 
 /**
@@ -139,6 +166,28 @@ export const UsersTable = pgTable(
 
     // Application role (Phase 3: Roles & Permissions)
     // WorkOS membership roles are stored in UserOrgMembershipsTable
+    //
+    // 🎯 ROLE BEHAVIOR BY ORGANIZATION TYPE:
+    //
+    // For SOLO EXPERTS (type: 'expert_individual'):
+    //   - role = 'expert_community' → Community tier subscription → 20% monthly, 12% annual commission
+    //   - role = 'expert_top' → Top tier subscription → 18% monthly, 8% annual commission
+    //   - Role and subscription tier are SYNCHRONIZED (1:1 mapping)
+    //
+    // For CLINICS (type: 'clinic') - Future:
+    //   - Multiple experts can have DIFFERENT roles (mixed community/top)
+    //   - Each expert's commission based on THEIR role, not the org's subscription
+    //   - Example: Same clinic can have both community (12%) and top (8%) experts
+    //   - Clinic pays workspace subscription fee separately
+    //
+    // For LECTURERS (type: 'expert_lecturer'):
+    //   - Can be community or top level (affects course platform fees)
+    //   - Same commission logic applies to course sales
+    //
+    // NOTE: Role determines BOTH permissions AND pricing tier
+    //       In future phases, these might be separated into:
+    //       - Permission roles (what they can DO)
+    //       - Qualification badges (achievement-based status)
     role: text('role')
       .notNull()
       .default('user')
@@ -672,10 +721,56 @@ export const SlotReservationsTable = pgTable(
  * Industry Pattern (Cal.com, Vercel, Dub):
  * Organization → Subscription → Members (shared access)
  *
- * Tracks which pricing plan each organization is on:
- * - Commission-based (pay per transaction, no upfront fee)
- * - Monthly subscription (fixed monthly fee + reduced commission)
- * - Annual subscription (fixed yearly fee + lowest commission)
+ * 📊 SUBSCRIPTION BEHAVIOR BY ORGANIZATION TYPE:
+ *
+ * 1️⃣ SOLO EXPERTS (type: 'expert_individual') - Current:
+ *    ┌─────────────────────────────────────────────────────────────┐
+ *    │ Community Expert                                            │
+ *    │   ├─ Personal Org (only 1 member: the expert)             │
+ *    │   ├─ tierLevel: 'community'                               │
+ *    │   ├─ planType: 'commission' | 'monthly' | 'annual'        │
+ *    │   └─ Commission Rates:                                     │
+ *    │       • Commission-only: 20%                              │
+ *    │       • Monthly ($49/mo): 20% → 12% discount              │
+ *    │       • Annual ($490/yr): 20% → 12% discount              │
+ *    └─────────────────────────────────────────────────────────────┘
+ *
+ *    ┌─────────────────────────────────────────────────────────────┐
+ *    │ Top Expert                                                  │
+ *    │   ├─ Personal Org (only 1 member: the expert)             │
+ *    │   ├─ tierLevel: 'top'                                     │
+ *    │   ├─ planType: 'commission' | 'monthly' | 'annual'        │
+ *    │   └─ Commission Rates:                                     │
+ *    │       • Commission-only: 18%                              │
+ *    │       • Monthly ($177/mo): 18% → 8% discount              │
+ *    │       • Annual ($1,774/yr): 18% → 8% discount             │
+ *    └─────────────────────────────────────────────────────────────┘
+ *
+ * 2️⃣ CLINICS (type: 'clinic') - Future Phase:
+ *    ┌─────────────────────────────────────────────────────────────┐
+ *    │ Multi-Expert Clinic                                         │
+ *    │   ├─ Clinic Org (multiple members)                         │
+ *    │   ├─ tierLevel: Clinic's primary tier                     │
+ *    │   ├─ Workspace Subscription: $99-199/month base fee       │
+ *    │   └─ Per-Expert Commission (based on individual role):    │
+ *    │       ├─ Dr. Maria (expert_top) → 8% annual               │
+ *    │       ├─ Dr. João (expert_community) → 12% annual         │
+ *    │       └─ Dr. Ana (expert_community → top) → 12% → 8%      │
+ *    │                                                             │
+ *    │   💡 Key Insight: Commission is ALWAYS per-expert,        │
+ *    │      regardless of clinic's subscription tier             │
+ *    └─────────────────────────────────────────────────────────────┘
+ *
+ * 🔑 CRITICAL DESIGN DECISIONS:
+ * - Solo experts: User role = Subscription tier (1:1 mapping)
+ * - Clinics: Each expert keeps their individual tier for commission
+ * - Commission rates determined by expert's role, NOT org subscription
+ * - This allows fair compensation and talent retention in clinics
+ *
+ * Plan Types:
+ * - 'commission': Pay per transaction, no upfront fee (default for new experts)
+ * - 'monthly': Fixed monthly fee + reduced commission rate
+ * - 'annual': Fixed yearly fee + lowest commission rate (best value)
  */
 export const SubscriptionPlansTable = pgTable(
   'subscription_plans',
@@ -744,11 +839,59 @@ export const SubscriptionPlansTable = pgTable(
 /**
  * Transaction Commissions Table
  *
- * Records every commission transaction for:
- * - Tracking total commissions paid
- * - Calculating eligibility for annual plans
+ * Records every commission transaction when a patient books an appointment.
+ *
+ * 💰 COMMISSION CALCULATION LOGIC:
+ *
+ * 1️⃣ SOLO EXPERTS (type: 'expert_individual'):
+ *    Commission rate determined by expert's role + subscription plan:
+ *
+ *    Community Expert (role: 'expert_community'):
+ *      • Commission-only: 20% of booking
+ *      • Monthly subscription: 12% of booking ($49/mo + 12%)
+ *      • Annual subscription: 12% of booking ($490/yr + 12%)
+ *
+ *    Top Expert (role: 'expert_top'):
+ *      • Commission-only: 18% of booking
+ *      • Monthly subscription: 8% of booking ($177/mo + 8%)
+ *      • Annual subscription: 8% of booking ($1,774/yr + 8%)
+ *
+ * 2️⃣ CLINICS (type: 'clinic') - Future:
+ *    Commission rate determined by INDIVIDUAL expert's role, NOT clinic subscription:
+ *
+ *    Example Clinic with mixed experts:
+ *      • Dr. Maria (expert_top + annual) → 8% commission
+ *      • Dr. João (expert_community + monthly) → 12% commission
+ *      • Clinic pays workspace fee separately (~$99-199/month)
+ *
+ *    💡 Why per-expert rates?
+ *       - Fair compensation (top experts earned their lower commission)
+ *       - Talent retention (experts keep their benefits when joining clinics)
+ *       - Growth incentive (community experts can progress to top)
+ *
+ * 📊 CALCULATION FLOW:
+ *    1. Patient pays $100 for appointment
+ *    2. Lookup expert's role (expert_top or expert_community)
+ *    3. Lookup org subscription (commission/monthly/annual)
+ *    4. Calculate commission (e.g., expert_top + annual = 8% = $8)
+ *    5. Expert receives net amount ($92 in this example)
+ *    6. Record transaction with metadata:
+ *       - planTypeAtTransaction: 'annual' (for historical tracking)
+ *       - tierLevelAtTransaction: 'top' (for reporting)
+ *       - commissionRate: 800 basis points (8%)
+ *
+ * 🎯 METADATA FIELDS (planTypeAtTransaction, tierLevelAtTransaction):
+ *    These capture the expert's state at transaction time for:
+ *    - Historical accuracy (even if they upgrade/downgrade later)
+ *    - Financial reporting and analytics
+ *    - Eligibility calculations (how much they paid in commissions)
+ *    - Audit trail for dispute resolution
+ *
+ * Used for:
+ * - Tracking total commissions paid per expert
+ * - Calculating eligibility for subscription upgrades
  * - Financial reporting and reconciliation
- * - Audit trail for payments
+ * - Audit trail for payments and disputes
  */
 export const TransactionCommissionsTable = pgTable(
   'transaction_commissions',
@@ -785,11 +928,17 @@ export const TransactionCommissionsTable = pgTable(
     processedAt: timestamp('processed_at'),
     refundedAt: timestamp('refunded_at'),
 
-    // Metadata for reporting
+    // 📸 Metadata for reporting (snapshot at transaction time)
+    // These fields capture the expert's state when the transaction occurred,
+    // ensuring historical accuracy even if the expert upgrades/downgrades later.
+    //
+    // Example: Expert pays 20% commission on Jan 1, then upgrades to annual (12%)
+    //          on Feb 1. All Jan transactions show planTypeAtTransaction: 'commission'
+    //          for accurate historical reporting and eligibility calculations.
     planTypeAtTransaction: text('plan_type_at_transaction').$type<
       'commission' | 'monthly' | 'annual'
-    >(),
-    tierLevelAtTransaction: text('tier_level_at_transaction').$type<'community' | 'top'>(),
+    >(), // What subscription plan they were on when this transaction occurred
+    tierLevelAtTransaction: text('tier_level_at_transaction').$type<'community' | 'top'>(), // Their expert level at transaction time
 
     createdAt,
     updatedAt,

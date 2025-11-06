@@ -2,10 +2,46 @@
  * Eleva Subscription Pricing Configuration
  *
  * Defines pricing tiers, commission rates, and eligibility criteria
- * for both commission-based and annual subscription models.
+ * for the Eleva expert marketplace pricing model.
  *
- * @see docs/.cursor/plans/optimized-pricing-model.plan.md
+ * 🏗️ BUSINESS MODEL ARCHITECTURE:
+ *
+ * 1️⃣ SOLO EXPERTS (Current - Phase 1):
+ *    Each expert has their own organization (type: 'expert_individual')
+ *    with a subscription that matches their expert level.
+ *
+ *    Community Expert:
+ *      • Commission-only: 20% per booking
+ *      • Monthly ($49/mo): 12% commission (40% savings)
+ *      • Annual ($490/yr): 12% commission (40% savings)
+ *
+ *    Top Expert:
+ *      • Commission-only: 18% per booking
+ *      • Monthly ($177/mo): 8% commission (55% savings)
+ *      • Annual ($1,774/yr): 8% commission (55% savings)
+ *
+ * 2️⃣ CLINICS (Future - Phase 2):
+ *    Multi-expert organizations (type: 'clinic') where each expert
+ *    maintains their individual commission rate based on their role.
+ *
+ *    Example:
+ *      Clinic Organization ($99/month workspace fee)
+ *        ├─ Dr. Maria (expert_top) → 8% commission on her bookings
+ *        ├─ Dr. João (expert_community) → 12% on his bookings
+ *        └─ Dr. Ana (expert_community) → 12% on her bookings
+ *
+ *    💡 Per-expert rates ensure:
+ *       - Fair compensation (top experts earned their benefits)
+ *       - Talent retention (experts keep benefits in clinics)
+ *       - Growth incentive (community → top progression)
+ *
+ * 🎯 COMMISSION CALCULATION:
+ *    Commission Rate = f(Expert Role, Plan Type)
+ *    Always based on the INDIVIDUAL expert's role, never the org subscription.
+ *
+ * @see docs/.cursor/plans/SUBSCRIPTION-PRICING-MASTER.md
  * @see docs/02-core-systems/ROLE-PROGRESSION-SYSTEM.md
+ * @see drizzle/schema-workos.ts - OrganizationType documentation
  */
 
 export type PlanType = 'commission' | 'monthly' | 'annual';
