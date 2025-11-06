@@ -82,7 +82,7 @@ If you want ALL workflows in production (not just expert payout):
 
 Your production environment is configured to use:
 
-- Bridge URL: `https://eleva.care/api/novu`
+- Bridge URL: `https://eleva.care/api/webhooks/novu`
 - This should work for production
 
 ## ✅ Ready to Go Live

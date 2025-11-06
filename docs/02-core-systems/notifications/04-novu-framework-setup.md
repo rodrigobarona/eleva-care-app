@@ -25,9 +25,9 @@
 
 ### **✅ Production Bridge Success**
 
-- **Bridge URL**: `https://eleva.care/api/novu` ✅ Working
+- **Bridge URL**: `https://eleva.care/api/webhooks/novu` ✅ Working
 - **Discovery**: 11 workflows, 8 steps detected
-- **Sync Command**: `npx novu sync --bridge-url https://eleva.care/api/novu`
+- **Sync Command**: `npx novu sync --bridge-url https://eleva.care/api/webhooks/novu`
 
 ---
 
@@ -101,7 +101,7 @@ export const newWorkflow = workflow(
 
 ```bash
 # After updating config/novu.ts, sync to cloud:
-npx novu sync --bridge-url https://eleva.care/api/novu --secret-key $NOVU_SECRET_KEY
+npx novu sync --bridge-url https://eleva.care/api/webhooks/novu --secret-key $NOVU_SECRET_KEY
 ```
 
 ### **Testing Workflows**

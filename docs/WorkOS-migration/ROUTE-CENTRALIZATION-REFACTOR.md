@@ -184,7 +184,7 @@ if (
   path.startsWith('/api/health/') ||
   path.startsWith('/api/create-payment-intent') ||
   path.startsWith('/api/og/') ||
-  path === '/api/novu' ||
+  path.startsWith('/api/webhooks/novu') ||
   path.startsWith('/_vercel/insights/') ||
   path.startsWith('/_botid/')
 ) {

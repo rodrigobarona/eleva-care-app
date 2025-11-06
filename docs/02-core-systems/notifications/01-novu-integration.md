@@ -304,7 +304,7 @@ The migration from deprecated packages has been completed successfully:
    - Check environment variables
    - Verify user is properly subscribed
    - Check browser console for errors
-   - Ensure `/api/novu` endpoint is accessible
+   - Ensure `/api/webhooks/novu` endpoint is accessible
 
 2. **WebSocket connection issues**
    - Verify `socketUrl` configuration
@@ -314,7 +314,7 @@ The migration from deprecated packages has been completed successfully:
    - Verify workflow exists in configuration
    - Check API key permissions
    - Verify workflow is included in the workflows array
-   - Check the `/api/novu` endpoint logs
+   - Check the `/api/webhooks/novu` endpoint logs
 
 ### Debug Mode
 

@@ -140,6 +140,7 @@ export const STATIC_FILE_PATTERNS = [
 
 /**
  * API route patterns to skip authentication
+ * Note: Novu bridge moved to /api/webhooks/novu (covered by /api/webhooks/ pattern)
  */
 export const SKIP_AUTH_API_PATTERNS = [
   '/api/webhooks/',
@@ -150,7 +151,6 @@ export const SKIP_AUTH_API_PATTERNS = [
   '/api/health/',
   '/api/create-payment-intent',
   '/api/og/',
-  '/api/novu',
 ] as const;
 
 // ============================================
