@@ -22,6 +22,7 @@ This document tracks the implementation status of the hybrid subscription and co
 - [x] All relations configured
 
 **Files:**
+
 - `drizzle/schema-workos.ts`
 - `drizzle/migrations/0013_colossal_the_captain.sql`
 
@@ -37,6 +38,7 @@ This document tracks the implementation status of the hybrid subscription and co
 - [x] Lecturer Annual Add-on Price (`price_1SQXF5K5Ap4Um3SpQCBwSFml`)
 
 **Files:**
+
 - `scripts/utilities/setup-stripe-recurring-prices.ts`
 
 ### Configuration
@@ -50,6 +52,7 @@ This document tracks the implementation status of the hybrid subscription and co
 - [x] Break-even calculations
 
 **Files:**
+
 - `config/subscription-pricing.ts`
 
 ### Documentation
@@ -62,6 +65,7 @@ This document tracks the implementation status of the hybrid subscription and co
 - [x] Implementation Status Tracking
 
 **Files:**
+
 - `docs/02-core-systems/ROLE-PROGRESSION-SYSTEM.md`
 - `docs/02-core-systems/ROLE-PROGRESSION-SUMMARY.md`
 - `docs/02-core-systems/STRIPE-SUBSCRIPTION-SETUP.md`
@@ -152,6 +156,7 @@ This document tracks the implementation status of the hybrid subscription and co
 - [ ] Handle commission on refunds/cancellations
 
 **Files to Create/Update:**
+
 - `app/api/webhooks/stripe/route.ts` (existing payment webhook)
 - Update to include commission tracking
 
@@ -165,6 +170,7 @@ This document tracks the implementation status of the hybrid subscription and co
 - [ ] Update profile settings to show plan info
 
 **Files to Update:**
+
 - `components/layout/DashboardNav.tsx`
 - `components/layout/HeaderContent.tsx`
 
@@ -179,6 +185,7 @@ This document tracks the implementation status of the hybrid subscription and co
 - [ ] Upgrade successful email
 
 **Files to Create:**
+
 - `emails/subscriptions/eligibility-notification.tsx`
 - `emails/subscriptions/subscription-confirmation.tsx`
 - `emails/subscriptions/payment-failed.tsx`
@@ -194,6 +201,7 @@ This document tracks the implementation status of the hybrid subscription and co
 - [ ] Deploy and test in production
 
 **Commands:**
+
 ```bash
 # Local testing
 stripe listen --forward-to localhost:3000/api/webhooks/stripe-subscriptions
@@ -286,6 +294,7 @@ stripe webhooks create --url https://your-domain.com/api/webhooks/stripe-subscri
 ### Environment Variables
 
 **Required:**
+
 ```bash
 # Stripe (already set)
 STRIPE_SECRET_KEY=sk_live_...
@@ -325,7 +334,6 @@ STRIPE_PRICE_LECTURER_ADDON_ANNUAL=price_1SQXF5K5Ap4Um3SpQCBwSFml
 1. **Integrate commission tracking with payments** (2 hours)
    - Update payment webhook
    - Test commission recording
-   
 2. **Add subscription to navigation** (1 hour)
    - Add nav link
    - Show subscription badge

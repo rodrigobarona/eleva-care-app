@@ -678,17 +678,19 @@ export const SubscriptionPlansTable = pgTable(
       .references(() => OrganizationsTable.id, { onDelete: 'cascade' }),
 
     // Plan configuration
-    planType: text('plan_type').notNull().$type<'commission' | 'annual'>(), // Current plan type
+    planType: text('plan_type').notNull().$type<'commission' | 'monthly' | 'annual'>(), // Current plan type
     tierLevel: text('tier_level').notNull().$type<'community' | 'top'>(), // Expert tier
 
     // Commission-based plan details
     commissionRate: integer('commission_rate'), // Store as basis points (e.g., 2000 = 20%)
 
-    // Annual subscription details
+    // Subscription details (monthly or annual)
     stripeSubscriptionId: text('stripe_subscription_id').unique(),
     stripeCustomerId: text('stripe_customer_id'), // Denormalized for quick access
     stripePriceId: text('stripe_price_id'), // The specific price they're subscribed to
-    annualFee: integer('annual_fee'), // in cents (e.g., 49000 = $490)
+    billingInterval: text('billing_interval').$type<'month' | 'year'>(), // Monthly or annual billing
+    monthlyFee: integer('monthly_fee'), // in cents (e.g., 4900 = $49/mo)
+    annualFee: integer('annual_fee'), // in cents (e.g., 49000 = $490/year)
     subscriptionStartDate: timestamp('subscription_start_date'),
     subscriptionEndDate: timestamp('subscription_end_date'),
     subscriptionStatus: text('subscription_status').$type<
@@ -697,7 +699,7 @@ export const SubscriptionPlansTable = pgTable(
     autoRenew: boolean('auto_renew').default(true),
 
     // Upgrade/transition tracking
-    previousPlanType: text('previous_plan_type').$type<'commission' | 'annual'>(),
+    previousPlanType: text('previous_plan_type').$type<'commission' | 'monthly' | 'annual'>(),
     upgradedAt: timestamp('upgraded_at'),
     commissionsPaidBeforeUpgrade: integer('commissions_paid_before_upgrade'), // in cents
 
@@ -885,8 +887,8 @@ export const SubscriptionEventsTable = pgTable(
       >(),
 
     // Plan state before/after
-    previousPlanType: text('previous_plan_type').$type<'commission' | 'annual'>(),
-    newPlanType: text('new_plan_type').$type<'commission' | 'annual'>(),
+    previousPlanType: text('previous_plan_type').$type<'commission' | 'monthly' | 'annual'>(),
+    newPlanType: text('new_plan_type').$type<'commission' | 'monthly' | 'annual'>(),
     previousTierLevel: text('previous_tier_level').$type<'community' | 'top'>(),
     newTierLevel: text('new_tier_level').$type<'community' | 'top'>(),
 

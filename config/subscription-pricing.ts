@@ -8,8 +8,9 @@
  * @see docs/02-core-systems/ROLE-PROGRESSION-SYSTEM.md
  */
 
-export type PlanType = 'commission' | 'annual';
+export type PlanType = 'commission' | 'monthly' | 'annual';
 export type TierLevel = 'community' | 'top';
+export type BillingInterval = 'month' | 'year';
 
 export interface PricingPlan {
   tier: TierLevel;
@@ -94,6 +95,62 @@ export const SUBSCRIPTION_PRICING = {
       ],
       limits: {
         maxServices: -1, // unlimited
+        payoutFrequency: 'daily' as const,
+      },
+    },
+  },
+
+  monthly_subscription: {
+    community_expert: {
+      tier: 'community' as const,
+      planType: 'monthly' as const,
+      monthlyFee: 4900, // $49/month ($588/year total)
+      commissionRate: 0.12, // 12% commission
+      commissionDiscount: 0.08, // 8% reduction (from 20% to 12%)
+      stripePriceId: process.env.STRIPE_PRICE_COMMUNITY_MONTHLY || 'price_1SQbV5K5Ap4Um3SpD65qOwZB',
+      breakEvenMonthlyRevenue: 510, // $510/month
+      features: [
+        'List up to 5 services',
+        'Basic calendar integration',
+        'Standard analytics',
+        'Weekly payouts',
+        'Email support',
+        'Community forum',
+        '✨ Commission reduced to 12% (was 20%)',
+        '✨ Cancel anytime flexibility',
+        '✨ Low monthly commitment ($49/mo)',
+        '✨ Save vs annual: $98/year with annual plan',
+      ],
+      limits: {
+        maxServices: 5,
+        payoutFrequency: 'weekly' as const,
+      },
+    },
+    top_expert: {
+      tier: 'top' as const,
+      planType: 'monthly' as const,
+      monthlyFee: 15500, // $155/month ($1,860/year total)
+      commissionRate: 0.08, // 8% commission
+      commissionDiscount: 0.07, // 7% reduction (from 15% to 8%)
+      stripePriceId: process.env.STRIPE_PRICE_TOP_MONTHLY || 'price_1SQbV6K5Ap4Um3SpwFKRCoJo',
+      breakEvenMonthlyRevenue: 1774, // $1,774/month
+      features: [
+        'All Top Expert features',
+        'Unlimited services',
+        'Advanced analytics',
+        'Priority support',
+        'Featured placement',
+        'Daily payout option',
+        'Custom branding',
+        'Group sessions',
+        'Direct messaging',
+        '✨ Commission reduced to 8% (was 15%)',
+        '✨ Cancel anytime flexibility',
+        '✨ Save vs annual: $370/year with annual plan',
+        '✨ VIP subscriber benefits',
+      ],
+      limits: {
+        maxServices: -1,
         payoutFrequency: 'daily' as const,
       },
     },
@@ -279,7 +336,8 @@ export function checkAnnualEligibility(
   criteria: EligibilityCriteria;
   failedCriteria?: string[];
 } {
-  const criteria = SUBSCRIPTION_PRICING.eligibility[tier];
+  const criteria =
+    SUBSCRIPTION_PRICING.eligibility[tier as keyof typeof SUBSCRIPTION_PRICING.eligibility];
   const failedCriteria: string[] = [];
 
   if (monthsActive < criteria.minMonthsActive) {
@@ -315,6 +373,8 @@ export function checkAnnualEligibility(
 export function getPricingPlan(tier: TierLevel, planType: PlanType): PricingPlan {
   if (planType === 'commission') {
     return SUBSCRIPTION_PRICING.commission_based[`${tier}_expert`];
+  } else if (planType === 'monthly') {
+    return SUBSCRIPTION_PRICING.monthly_subscription[`${tier}_expert`];
   } else {
     return SUBSCRIPTION_PRICING.annual_subscription[`${tier}_expert`];
   }
@@ -325,6 +385,7 @@ export function getPricingPlan(tier: TierLevel, planType: PlanType): PricingPlan
  */
 export type SubscriptionPricing = typeof SUBSCRIPTION_PRICING;
 export type CommissionBasedPlan = typeof SUBSCRIPTION_PRICING.commission_based;
+export type MonthlySubscriptionPlan = typeof SUBSCRIPTION_PRICING.monthly_subscription;
 export type AnnualSubscriptionPlan = typeof SUBSCRIPTION_PRICING.annual_subscription;
 export type Addons = typeof SUBSCRIPTION_PRICING.addons;
 export type EligibilityConfig = typeof SUBSCRIPTION_PRICING.eligibility;

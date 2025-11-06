@@ -20,6 +20,7 @@ import { db } from '@/drizzle/db';
 import {
   SubscriptionEventsTable,
   SubscriptionPlansTable,
+  UserOrgMembershipsTable,
   UsersTable,
 } from '@/drizzle/schema-workos';
 import { withAuth } from '@workos-inc/authkit-nextjs';
@@ -41,8 +42,23 @@ import Stripe from 'stripe';
  * - Audit logging
  */
 
+/**
+ * Subscription Management Server Actions
+ *
+ * Handles all subscription-related operations:
+ * - Creating new subscriptions (annual plans)
+ * - Canceling subscriptions
+ * - Updating subscription plans
+ * - Fetching subscription status
+ *
+ * Integrates with:
+ * - Stripe Subscriptions API
+ * - Database (SubscriptionPlansTable)
+ * - Audit logging
+ */
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-02-24.acacia',
 });
 
 // ============================================================================
@@ -53,13 +69,15 @@ export type SubscriptionStatus = 'active' | 'canceled' | 'past_due' | 'unpaid' |
 
 export interface SubscriptionInfo {
   id: string;
-  planType: 'commission' | 'annual';
+  planType: 'commission' | 'monthly' | 'annual';
   tierLevel: 'community' | 'top';
+  billingInterval: 'month' | 'year' | null;
   status: SubscriptionStatus | null;
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
   stripeSubscriptionId: string | null;
+  monthlyFee: number | null;
   annualFee: number | null;
   commissionRate: number;
 }
@@ -119,11 +137,13 @@ export async function getSubscriptionStatus(
         id: 'default',
         planType: 'commission',
         tierLevel,
+        billingInterval: null,
         status: null,
         currentPeriodStart: null,
         currentPeriodEnd: null,
         cancelAtPeriodEnd: false,
         stripeSubscriptionId: null,
+        monthlyFee: null,
         annualFee: null,
         commissionRate,
       };
@@ -151,11 +171,13 @@ export async function getSubscriptionStatus(
       id: subscription.id,
       planType: subscription.planType,
       tierLevel: subscription.tierLevel,
+      billingInterval: subscription.billingInterval,
       status: subscription.subscriptionStatus as SubscriptionStatus | null,
       currentPeriodStart,
       currentPeriodEnd,
       cancelAtPeriodEnd,
       stripeSubscriptionId: subscription.stripeSubscriptionId,
+      monthlyFee: subscription.monthlyFee,
       annualFee: subscription.annualFee,
       commissionRate: subscription.commissionRate ? subscription.commissionRate / 10000 : 0,
     };
@@ -181,6 +203,7 @@ export async function getSubscriptionStatus(
 export async function createSubscription(
   priceId: string,
   tierLevel: 'community' | 'top',
+  billingInterval: 'month' | 'year' = 'year', // Default to annual for backward compatibility
 ): Promise<CreateSubscriptionResult> {
   try {
     const { user } = await withAuth({ ensureSignedIn: true });
@@ -196,6 +219,18 @@ export async function createSubscription(
 
     if (!userRecord) {
       return { success: false, error: 'User not found' };
+    }
+
+    // Get user's orgId from memberships table
+    const membership = await db.query.UserOrgMembershipsTable.findFirst({
+      where: eq(UserOrgMembershipsTable.workosUserId, user.id),
+      columns: {
+        orgId: true,
+      },
+    });
+
+    if (!membership || !membership.orgId) {
+      return { success: false, error: 'Organization not found for user' };
     }
 
     // Check if user already has an active subscription
@@ -242,22 +277,25 @@ export async function createSubscription(
         workosUserId: user.id,
         tierLevel,
         priceId,
+        billingInterval,
       },
       subscription_data: {
         metadata: {
           workosUserId: user.id,
           tierLevel,
+          billingInterval,
         },
       },
     });
 
     // Log subscription creation initiated
+    const planType = billingInterval === 'month' ? 'monthly' : 'annual';
     await db.insert(SubscriptionEventsTable).values({
       workosUserId: user.id,
-      orgId: null, // Will be set by webhook
+      orgId: membership.orgId,
       subscriptionPlanId: existingSubscription?.id || null,
       eventType: 'plan_created',
-      newPlanType: 'annual',
+      newPlanType: planType,
       newTierLevel: tierLevel,
       stripeEventId: null,
       reason: 'user_initiated',
@@ -317,7 +355,7 @@ export async function cancelSubscription(reason?: string): Promise<CreateSubscri
     // Log cancellation event
     await db.insert(SubscriptionEventsTable).values({
       workosUserId: user.id,
-      orgId: null,
+      orgId: subscription.orgId,
       subscriptionPlanId: subscription.id,
       eventType: 'subscription_canceled',
       previousPlanType: subscription.planType,
@@ -363,7 +401,7 @@ export async function reactivateSubscription(): Promise<CreateSubscriptionResult
     // Log reactivation
     await db.insert(SubscriptionEventsTable).values({
       workosUserId: user.id,
-      orgId: null,
+      orgId: subscription.orgId,
       subscriptionPlanId: subscription.id,
       eventType: 'subscription_renewed',
       newPlanType: subscription.planType,

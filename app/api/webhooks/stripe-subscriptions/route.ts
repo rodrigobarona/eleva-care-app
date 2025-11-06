@@ -15,6 +15,7 @@
  * 3. Update database (SubscriptionPlansTable, SubscriptionEventsTable)
  * 4. Log audit trail
  */
+import { STRIPE_CONFIG } from '@/config/stripe';
 import { SUBSCRIPTION_PRICING } from '@/config/subscription-pricing';
 import { db } from '@/drizzle/db';
 import {
@@ -29,7 +30,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
 const webhookSecret = process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET!;
@@ -58,7 +59,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   const body = await request.text();
-  const signature = headers().get('stripe-signature');
+  const signature = (await headers()).get('stripe-signature');
 
   if (!signature) {
     console.error('❌ Missing Stripe signature header');
@@ -237,7 +238,10 @@ async function handleSubscriptionUpdate(
     // Update existing subscription
     await db
       .update(SubscriptionPlansTable)
-      .set(subscriptionData)
+      .set({
+        ...subscriptionData,
+        orgId: org?.id || undefined,
+      })
       .where(eq(SubscriptionPlansTable.id, existingPlan.id));
 
     console.log(`✅ Updated subscription plan: ${existingPlan.id}`);
@@ -245,12 +249,12 @@ async function handleSubscriptionUpdate(
     // Log event
     await db.insert(SubscriptionEventsTable).values({
       workosUserId,
-      orgId: org?.id || null,
+      orgId: org?.id as string,
       subscriptionPlanId: existingPlan.id,
       eventType: eventType === 'customer.subscription.created' ? 'plan_created' : 'plan_upgraded',
-      previousPlanType: existingPlan.planType,
+      previousPlanType: existingPlan.planType as 'commission' | 'annual',
       previousTierLevel: existingPlan.tierLevel,
-      newPlanType: 'annual',
+      newPlanType: subscriptionData.planType,
       newTierLevel: tierLevel,
       stripeEventId: subscription.id,
       stripeSubscriptionId: subscription.id,
@@ -262,7 +266,7 @@ async function handleSubscriptionUpdate(
       .insert(SubscriptionPlansTable)
       .values({
         ...subscriptionData,
-        createdAt: new Date(),
+        orgId: org?.id as string,
       })
       .returning();
 
@@ -271,7 +275,7 @@ async function handleSubscriptionUpdate(
     // Log event
     await db.insert(SubscriptionEventsTable).values({
       workosUserId,
-      orgId: org?.id || null,
+      orgId: org?.id as string,
       subscriptionPlanId: newPlan.id,
       eventType: 'subscription_started',
       newPlanType: 'annual',
@@ -317,7 +321,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   // Log event
   await db.insert(SubscriptionEventsTable).values({
     workosUserId,
-    orgId: plan.orgId,
+    orgId: plan.orgId as string,
     subscriptionPlanId: plan.id,
     eventType: 'subscription_expired',
     previousPlanType: plan.planType,
@@ -366,7 +370,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
   // Log payment success
   await db.insert(SubscriptionEventsTable).values({
     workosUserId: plan.workosUserId,
-    orgId: plan.orgId,
+    orgId: plan.orgId as string,
     subscriptionPlanId: plan.id,
     eventType: 'payment_succeeded',
     stripeEventId: invoice.id,
@@ -415,17 +419,12 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
   // Log payment failure
   await db.insert(SubscriptionEventsTable).values({
     workosUserId: plan.workosUserId,
-    orgId: plan.orgId,
+    orgId: plan.orgId as string,
     subscriptionPlanId: plan.id,
-    eventType: 'payment_failed',
-    stripeEventId: invoice.id,
-    stripeSubscriptionId: subscriptionId,
+    eventType: 'payment_failed' as const,
+    stripeEventId: invoice.id as string,
+    stripeSubscriptionId: subscriptionId as string,
     reason: 'invoice_payment_failed',
-    metadata: {
-      invoiceId: invoice.id,
-      amountDue: invoice.amount_due,
-      attemptCount: invoice.attempt_count,
-    },
   });
 
   console.log(`❌ Payment failed for subscription: ${plan.id}`);
