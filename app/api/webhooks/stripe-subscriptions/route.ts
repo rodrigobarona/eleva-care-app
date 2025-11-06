@@ -174,6 +174,7 @@ async function handleSubscriptionUpdate(
 ) {
   const workosUserId = subscription.metadata.workosUserId;
   const tierLevel = (subscription.metadata.tierLevel as 'community' | 'top') || 'community';
+  const billingInterval = (subscription.metadata.billingInterval as 'month' | 'year') || 'year';
 
   if (!workosUserId) {
     console.error('Missing workosUserId in subscription metadata:', subscription.id);
@@ -202,10 +203,18 @@ async function handleSubscriptionUpdate(
   });
 
   // Determine pricing details
+  // Determine plan type from billing interval
+  const planType: 'monthly' | 'annual' = billingInterval === 'month' ? 'monthly' : 'annual';
+
+  // Get pricing config based on billing interval and tier
   const pricingConfig =
-    tierLevel === 'top'
-      ? SUBSCRIPTION_PRICING.annual_subscription.top_expert
-      : SUBSCRIPTION_PRICING.annual_subscription.community_expert;
+    billingInterval === 'month'
+      ? tierLevel === 'top'
+        ? SUBSCRIPTION_PRICING.monthly_subscription.top_expert
+        : SUBSCRIPTION_PRICING.monthly_subscription.community_expert
+      : tierLevel === 'top'
+        ? SUBSCRIPTION_PRICING.annual_subscription.top_expert
+        : SUBSCRIPTION_PRICING.annual_subscription.community_expert;
 
   // Get price item
   const priceItem = subscription.items.data[0];
@@ -219,14 +228,20 @@ async function handleSubscriptionUpdate(
   const subscriptionData = {
     workosUserId,
     orgId: org?.id || null,
-    planType: 'annual' as const,
+    planType,
     tierLevel,
+    billingInterval,
     commissionRate: Math.round(pricingConfig.commissionRate * 10000), // Convert to basis points
     stripeSubscriptionId: subscription.id,
     stripeCustomerId:
       typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id,
     stripePriceId: priceId,
-    annualFee: pricingConfig.annualFee,
+    monthlyFee:
+      billingInterval === 'month' && 'monthlyFee' in pricingConfig
+        ? pricingConfig.monthlyFee
+        : null,
+    annualFee:
+      billingInterval === 'year' && 'annualFee' in pricingConfig ? pricingConfig.annualFee : null,
     subscriptionStartDate: new Date(subscription.current_period_start * 1000),
     subscriptionEndDate: new Date(subscription.current_period_end * 1000),
     subscriptionStatus: subscription.status as 'active' | 'canceled' | 'past_due' | 'unpaid',
@@ -252,7 +267,7 @@ async function handleSubscriptionUpdate(
       orgId: org?.id as string,
       subscriptionPlanId: existingPlan.id,
       eventType: eventType === 'customer.subscription.created' ? 'plan_created' : 'plan_upgraded',
-      previousPlanType: existingPlan.planType as 'commission' | 'annual',
+      previousPlanType: existingPlan.planType as 'commission' | 'monthly' | 'annual',
       previousTierLevel: existingPlan.tierLevel,
       newPlanType: subscriptionData.planType,
       newTierLevel: tierLevel,
