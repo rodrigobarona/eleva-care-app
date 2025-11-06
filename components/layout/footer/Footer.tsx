@@ -157,7 +157,7 @@ export default function Footer() {
                             </li>
                             <li>
                               <NextLink
-                                href={`${process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL}`}
+                                href="/register"
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
                                 {t('nav.company.join')}
@@ -165,7 +165,7 @@ export default function Footer() {
                             </li>
                             <li>
                               <NextLink
-                                href={`${process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL}`}
+                                href="/login"
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
                                 {t('nav.company.dashboard')}
