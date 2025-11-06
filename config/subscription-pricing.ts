@@ -108,7 +108,7 @@ export const SUBSCRIPTION_PRICING = {
       monthlyEquivalent: 4083, // $40.83/month
       commissionRate: 0.12, // 12% - Updated from 8%
       commissionDiscount: 0.08, // 8% reduction (from 20% to 12%)
-      stripePriceId: process.env.STRIPE_PRICE_COMMUNITY_ANNUAL!,
+      stripePriceId: process.env.STRIPE_PRICE_COMMUNITY_ANNUAL || 'price_1SQXF5K5Ap4Um3SpekZpC9fQ',
       breakEvenMonthlyRevenue: 510, // $510/month - Updated break-even
       features: [
         'List up to 5 services',
@@ -136,7 +136,7 @@ export const SUBSCRIPTION_PRICING = {
       monthlyEquivalent: 12417, // $124.17/month
       commissionRate: 0.08, // 8% - Updated from 5%
       commissionDiscount: 0.07, // 7% reduction (from 15% to 8%)
-      stripePriceId: process.env.STRIPE_PRICE_TOP_ANNUAL!,
+      stripePriceId: process.env.STRIPE_PRICE_TOP_ANNUAL || 'price_1SQXF5K5Ap4Um3SpzT4S3agl',
       breakEvenMonthlyRevenue: 1774, // $1,774/month - Updated break-even
       features: [
         'All Top Expert features',
@@ -171,7 +171,8 @@ export const SUBSCRIPTION_PRICING = {
       name: 'Lecturer Module (Annual)',
       annualFee: 49000, // $490/year
       commissionRate: 0.03, // 3% on course sales
-      stripePriceId: process.env.STRIPE_PRICE_LECTURER_ADDON_ANNUAL!,
+      stripePriceId:
+        process.env.STRIPE_PRICE_LECTURER_ADDON_ANNUAL || 'price_1SQXF5K5Ap4Um3SpQCBwSFml',
       breakEvenAnnualSales: 14000, // $14,000 in course sales
     },
   },

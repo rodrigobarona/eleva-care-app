@@ -1,0 +1,435 @@
+/**
+ * Stripe Subscription Webhook Handler
+ *
+ * Handles subscription lifecycle events:
+ * - customer.subscription.created
+ * - customer.subscription.updated
+ * - customer.subscription.deleted
+ * - invoice.payment_succeeded
+ * - invoice.payment_failed
+ * - checkout.session.completed (for subscriptions)
+ *
+ * Flow:
+ * 1. Verify webhook signature
+ * 2. Process event based on type
+ * 3. Update database (SubscriptionPlansTable, SubscriptionEventsTable)
+ * 4. Log audit trail
+ */
+import { SUBSCRIPTION_PRICING } from '@/config/subscription-pricing';
+import { db } from '@/drizzle/db';
+import {
+  OrganizationsTable,
+  SubscriptionEventsTable,
+  SubscriptionPlansTable,
+  UsersTable,
+} from '@/drizzle/schema-workos';
+import { eq } from 'drizzle-orm';
+import { headers } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-12-18.acacia',
+});
+
+const webhookSecret = process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET!;
+
+// ============================================================================
+// GET Handler - Webhook Info
+// ============================================================================
+
+export async function GET() {
+  return NextResponse.json({
+    message: 'Stripe Subscription Webhook Endpoint',
+    events: [
+      'customer.subscription.created',
+      'customer.subscription.updated',
+      'customer.subscription.deleted',
+      'invoice.payment_succeeded',
+      'invoice.payment_failed',
+      'checkout.session.completed',
+    ],
+  });
+}
+
+// ============================================================================
+// POST Handler - Process Webhook Events
+// ============================================================================
+
+export async function POST(request: NextRequest) {
+  const body = await request.text();
+  const signature = headers().get('stripe-signature');
+
+  if (!signature) {
+    console.error('❌ Missing Stripe signature header');
+    return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
+  }
+
+  if (!webhookSecret) {
+    console.error('❌ Missing STRIPE_SUBSCRIPTION_WEBHOOK_SECRET');
+    return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
+  }
+
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+  } catch (err) {
+    console.error('❌ Webhook signature verification failed:', err);
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  }
+
+  console.log(`✅ Webhook received: ${event.type} (${event.id})`);
+
+  try {
+    switch (event.type) {
+      case 'checkout.session.completed': {
+        const session = event.data.object as Stripe.Checkout.Session;
+        if (session.mode === 'subscription') {
+          await handleCheckoutCompleted(session);
+        }
+        break;
+      }
+
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated': {
+        const subscription = event.data.object as Stripe.Subscription;
+        await handleSubscriptionUpdate(subscription, event.type);
+        break;
+      }
+
+      case 'customer.subscription.deleted': {
+        const subscription = event.data.object as Stripe.Subscription;
+        await handleSubscriptionDeleted(subscription);
+        break;
+      }
+
+      case 'invoice.payment_succeeded': {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (invoice.subscription) {
+          await handlePaymentSucceeded(invoice);
+        }
+        break;
+      }
+
+      case 'invoice.payment_failed': {
+        const invoice = event.data.object as Stripe.Invoice;
+        if (invoice.subscription) {
+          await handlePaymentFailed(invoice);
+        }
+        break;
+      }
+
+      default:
+        console.log(`Unhandled event type: ${event.type}`);
+    }
+
+    return NextResponse.json({ received: true });
+  } catch (error) {
+    console.error('❌ Error processing webhook:', error);
+    return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
+  }
+}
+
+// ============================================================================
+// Handler Functions
+// ============================================================================
+
+/**
+ * Handle successful checkout session completion
+ */
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+  const workosUserId = session.metadata?.workosUserId;
+  const tierLevel = session.metadata?.tierLevel as 'community' | 'top';
+  const priceId = session.metadata?.priceId;
+
+  if (!workosUserId || !tierLevel || !priceId) {
+    console.error('Missing metadata in checkout session:', session.id);
+    return;
+  }
+
+  console.log(`✅ Checkout completed for user ${workosUserId}, tier: ${tierLevel}`);
+
+  // Get subscription ID from session
+  const subscriptionId =
+    typeof session.subscription === 'string' ? session.subscription : session.subscription?.id;
+
+  if (!subscriptionId) {
+    console.error('No subscription ID in checkout session:', session.id);
+    return;
+  }
+
+  // Subscription will be created/updated by the subscription.created event
+  // Just log the checkout completion
+  console.log(`Subscription ${subscriptionId} will be processed by subscription.created event`);
+}
+
+/**
+ * Handle subscription created or updated
+ */
+async function handleSubscriptionUpdate(
+  subscription: Stripe.Subscription,
+  eventType: 'customer.subscription.created' | 'customer.subscription.updated',
+) {
+  const workosUserId = subscription.metadata.workosUserId;
+  const tierLevel = (subscription.metadata.tierLevel as 'community' | 'top') || 'community';
+
+  if (!workosUserId) {
+    console.error('Missing workosUserId in subscription metadata:', subscription.id);
+    return;
+  }
+
+  // Get user and organization
+  const user = await db.query.UsersTable.findFirst({
+    where: eq(UsersTable.workosUserId, workosUserId),
+    columns: {
+      id: true,
+      workosUserId: true,
+      stripeCustomerId: true,
+    },
+  });
+
+  if (!user) {
+    console.error('User not found for workosUserId:', workosUserId);
+    return;
+  }
+
+  // Get user's organization
+  const org = await db.query.OrganizationsTable.findFirst({
+    where: eq(OrganizationsTable.workosOrgId, workosUserId),
+    columns: { id: true },
+  });
+
+  // Determine pricing details
+  const pricingConfig =
+    tierLevel === 'top'
+      ? SUBSCRIPTION_PRICING.annual_subscription.top_expert
+      : SUBSCRIPTION_PRICING.annual_subscription.community_expert;
+
+  // Get price item
+  const priceItem = subscription.items.data[0];
+  const priceId = typeof priceItem.price === 'string' ? priceItem.price : priceItem.price.id;
+
+  // Check if subscription plan already exists
+  const existingPlan = await db.query.SubscriptionPlansTable.findFirst({
+    where: eq(SubscriptionPlansTable.workosUserId, workosUserId),
+  });
+
+  const subscriptionData = {
+    workosUserId,
+    orgId: org?.id || null,
+    planType: 'annual' as const,
+    tierLevel,
+    commissionRate: Math.round(pricingConfig.commissionRate * 10000), // Convert to basis points
+    stripeSubscriptionId: subscription.id,
+    stripeCustomerId:
+      typeof subscription.customer === 'string' ? subscription.customer : subscription.customer.id,
+    stripePriceId: priceId,
+    annualFee: pricingConfig.annualFee,
+    subscriptionStartDate: new Date(subscription.current_period_start * 1000),
+    subscriptionEndDate: new Date(subscription.current_period_end * 1000),
+    subscriptionStatus: subscription.status as 'active' | 'canceled' | 'past_due' | 'unpaid',
+    autoRenew: !subscription.cancel_at_period_end,
+    updatedAt: new Date(),
+  };
+
+  if (existingPlan) {
+    // Update existing subscription
+    await db
+      .update(SubscriptionPlansTable)
+      .set(subscriptionData)
+      .where(eq(SubscriptionPlansTable.id, existingPlan.id));
+
+    console.log(`✅ Updated subscription plan: ${existingPlan.id}`);
+
+    // Log event
+    await db.insert(SubscriptionEventsTable).values({
+      workosUserId,
+      orgId: org?.id || null,
+      subscriptionPlanId: existingPlan.id,
+      eventType: eventType === 'customer.subscription.created' ? 'plan_created' : 'plan_upgraded',
+      previousPlanType: existingPlan.planType,
+      previousTierLevel: existingPlan.tierLevel,
+      newPlanType: 'annual',
+      newTierLevel: tierLevel,
+      stripeEventId: subscription.id,
+      stripeSubscriptionId: subscription.id,
+      reason: 'stripe_webhook',
+    });
+  } else {
+    // Create new subscription plan
+    const [newPlan] = await db
+      .insert(SubscriptionPlansTable)
+      .values({
+        ...subscriptionData,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    console.log(`✅ Created subscription plan: ${newPlan.id}`);
+
+    // Log event
+    await db.insert(SubscriptionEventsTable).values({
+      workosUserId,
+      orgId: org?.id || null,
+      subscriptionPlanId: newPlan.id,
+      eventType: 'subscription_started',
+      newPlanType: 'annual',
+      newTierLevel: tierLevel,
+      stripeEventId: subscription.id,
+      stripeSubscriptionId: subscription.id,
+      reason: 'stripe_webhook',
+    });
+  }
+}
+
+/**
+ * Handle subscription deleted (canceled and expired)
+ */
+async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+  const workosUserId = subscription.metadata.workosUserId;
+
+  if (!workosUserId) {
+    console.error('Missing workosUserId in subscription metadata:', subscription.id);
+    return;
+  }
+
+  // Find subscription plan
+  const plan = await db.query.SubscriptionPlansTable.findFirst({
+    where: eq(SubscriptionPlansTable.stripeSubscriptionId, subscription.id),
+  });
+
+  if (!plan) {
+    console.error('Subscription plan not found for Stripe subscription:', subscription.id);
+    return;
+  }
+
+  // Update subscription status to canceled
+  await db
+    .update(SubscriptionPlansTable)
+    .set({
+      subscriptionStatus: 'canceled',
+      autoRenew: false,
+      updatedAt: new Date(),
+    })
+    .where(eq(SubscriptionPlansTable.id, plan.id));
+
+  // Log event
+  await db.insert(SubscriptionEventsTable).values({
+    workosUserId,
+    orgId: plan.orgId,
+    subscriptionPlanId: plan.id,
+    eventType: 'subscription_expired',
+    previousPlanType: plan.planType,
+    previousTierLevel: plan.tierLevel,
+    stripeEventId: subscription.id,
+    stripeSubscriptionId: subscription.id,
+    reason: 'subscription_canceled',
+  });
+
+  console.log(`✅ Subscription canceled: ${plan.id}`);
+
+  // TODO: Revert user to commission-based plan
+  // This could be handled by the application logic when checking subscription status
+}
+
+/**
+ * Handle successful invoice payment
+ */
+async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
+  const subscriptionId =
+    typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+
+  if (!subscriptionId) {
+    return;
+  }
+
+  // Find subscription plan
+  const plan = await db.query.SubscriptionPlansTable.findFirst({
+    where: eq(SubscriptionPlansTable.stripeSubscriptionId, subscriptionId),
+  });
+
+  if (!plan) {
+    console.error('Subscription plan not found for invoice:', invoice.id);
+    return;
+  }
+
+  // Update subscription status to active
+  await db
+    .update(SubscriptionPlansTable)
+    .set({
+      subscriptionStatus: 'active',
+      updatedAt: new Date(),
+    })
+    .where(eq(SubscriptionPlansTable.id, plan.id));
+
+  // Log payment success
+  await db.insert(SubscriptionEventsTable).values({
+    workosUserId: plan.workosUserId,
+    orgId: plan.orgId,
+    subscriptionPlanId: plan.id,
+    eventType: 'payment_succeeded',
+    stripeEventId: invoice.id,
+    stripeSubscriptionId: subscriptionId,
+    reason: 'invoice_paid',
+    metadata: {
+      invoiceId: invoice.id,
+      amountPaid: invoice.amount_paid,
+      currency: invoice.currency,
+    },
+  });
+
+  console.log(`✅ Payment succeeded for subscription: ${plan.id}`);
+}
+
+/**
+ * Handle failed invoice payment
+ */
+async function handlePaymentFailed(invoice: Stripe.Invoice) {
+  const subscriptionId =
+    typeof invoice.subscription === 'string' ? invoice.subscription : invoice.subscription?.id;
+
+  if (!subscriptionId) {
+    return;
+  }
+
+  // Find subscription plan
+  const plan = await db.query.SubscriptionPlansTable.findFirst({
+    where: eq(SubscriptionPlansTable.stripeSubscriptionId, subscriptionId),
+  });
+
+  if (!plan) {
+    console.error('Subscription plan not found for invoice:', invoice.id);
+    return;
+  }
+
+  // Update subscription status to past_due
+  await db
+    .update(SubscriptionPlansTable)
+    .set({
+      subscriptionStatus: 'past_due',
+      updatedAt: new Date(),
+    })
+    .where(eq(SubscriptionPlansTable.id, plan.id));
+
+  // Log payment failure
+  await db.insert(SubscriptionEventsTable).values({
+    workosUserId: plan.workosUserId,
+    orgId: plan.orgId,
+    subscriptionPlanId: plan.id,
+    eventType: 'payment_failed',
+    stripeEventId: invoice.id,
+    stripeSubscriptionId: subscriptionId,
+    reason: 'invoice_payment_failed',
+    metadata: {
+      invoiceId: invoice.id,
+      amountDue: invoice.amount_due,
+      attemptCount: invoice.attempt_count,
+    },
+  });
+
+  console.log(`❌ Payment failed for subscription: ${plan.id}`);
+
+  // TODO: Send notification to user about failed payment
+  // TODO: Implement dunning management (retry logic, grace period)
+}

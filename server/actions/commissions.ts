@@ -1,0 +1,307 @@
+/**
+ * Commission Tracking Server Actions
+ *
+ * Records and tracks commission transactions for all expert bookings.
+ * Integrates with subscription system to apply correct commission rates.
+ *
+ * Used by:
+ * - Payment processing (when booking payment succeeds)
+ * - Financial reporting
+ * - Eligibility calculations
+ */
+
+'use server';
+
+import { db } from '@/drizzle/db';
+import { MeetingsTable, TransactionCommissionsTable, UsersTable } from '@/drizzle/schema-workos';
+import { eq } from 'drizzle-orm';
+
+import { getCurrentCommissionRate } from './subscriptions';
+
+/**
+ * Commission Tracking Server Actions
+ *
+ * Records and tracks commission transactions for all expert bookings.
+ * Integrates with subscription system to apply correct commission rates.
+ *
+ * Used by:
+ * - Payment processing (when booking payment succeeds)
+ * - Financial reporting
+ * - Eligibility calculations
+ */
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface CommissionTransaction {
+  id: string;
+  workosUserId: string;
+  meetingId: string;
+  grossAmount: number; // Total booking amount in cents
+  commissionRate: number; // Commission rate in basis points (e.g., 2000 = 20%)
+  commissionAmount: number; // Commission amount in cents
+  netAmount: number; // Amount expert receives in cents
+  currency: string;
+  status: 'pending' | 'processed' | 'refunded' | 'disputed';
+  planTypeAtTransaction: 'commission' | 'annual';
+  tierLevelAtTransaction: 'community' | 'top';
+  createdAt: Date;
+}
+
+// ============================================================================
+// Record Commission Transaction
+// ============================================================================
+
+/**
+ * Record a commission transaction when a payment is processed
+ *
+ * Called by Stripe webhook when payment_intent.succeeded
+ *
+ * @param meetingId - The meeting/booking ID
+ * @param grossAmount - Total amount paid by customer (in cents)
+ * @param currency - Currency code (e.g., 'usd', 'eur')
+ * @param stripePaymentIntentId - Stripe Payment Intent ID
+ * @param stripeTransferId - Stripe Transfer ID (optional)
+ * @returns The created commission record
+ */
+export async function recordCommission(
+  meetingId: string,
+  grossAmount: number,
+  currency: string,
+  stripePaymentIntentId: string,
+  stripeTransferId?: string,
+): Promise<CommissionTransaction | null> {
+  try {
+    // Get meeting details
+    const meeting = await db.query.MeetingsTable.findFirst({
+      where: eq(MeetingsTable.id, meetingId),
+      columns: {
+        id: true,
+        workosUserId: true,
+        orgId: true,
+        stripePaymentIntentId: true,
+      },
+    });
+
+    if (!meeting) {
+      console.error('Meeting not found:', meetingId);
+      return null;
+    }
+
+    // Check if commission already recorded
+    const existingCommission = await db.query.TransactionCommissionsTable.findFirst({
+      where: eq(TransactionCommissionsTable.meetingId, meetingId),
+    });
+
+    if (existingCommission) {
+      console.log('Commission already recorded for meeting:', meetingId);
+      return {
+        id: existingCommission.id,
+        workosUserId: existingCommission.workosUserId,
+        meetingId: existingCommission.meetingId,
+        grossAmount: existingCommission.grossAmount,
+        commissionRate: existingCommission.commissionRate,
+        commissionAmount: existingCommission.commissionAmount,
+        netAmount: existingCommission.netAmount,
+        currency: existingCommission.currency,
+        status: existingCommission.status as 'pending' | 'processed' | 'refunded' | 'disputed',
+        planTypeAtTransaction: existingCommission.planTypeAtTransaction as 'commission' | 'annual',
+        tierLevelAtTransaction: existingCommission.tierLevelAtTransaction as 'community' | 'top',
+        createdAt: existingCommission.createdAt,
+      };
+    }
+
+    // Get user's subscription to determine commission rate
+    const commissionRateDecimal = await getCurrentCommissionRate(meeting.workosUserId);
+    const commissionRateBasisPoints = Math.round(commissionRateDecimal * 10000); // Convert to basis points
+
+    // Calculate commission and net amounts
+    const commissionAmount = Math.round((grossAmount * commissionRateDecimal) / 100) * 100; // Round to nearest dollar
+    const netAmount = grossAmount - commissionAmount;
+
+    // Get subscription info for metadata
+    const user = await db.query.UsersTable.findFirst({
+      where: eq(UsersTable.workosUserId, meeting.workosUserId),
+      columns: { role: true },
+    });
+
+    // Determine tier level from role
+    const tierLevel =
+      user?.role === 'expert_top' || user?.role === 'expert_lecturer' ? 'top' : 'community';
+
+    // Determine plan type based on commission rate
+    // If commission rate is lower than standard, user is on annual plan
+    const isAnnualPlan = commissionRateDecimal < 0.15; // Less than 15% suggests annual plan
+
+    // Create commission record
+    const [commission] = await db
+      .insert(TransactionCommissionsTable)
+      .values({
+        workosUserId: meeting.workosUserId,
+        orgId: meeting.orgId,
+        meetingId,
+        grossAmount,
+        commissionRate: commissionRateBasisPoints,
+        commissionAmount,
+        netAmount,
+        currency: currency.toLowerCase(),
+        stripePaymentIntentId,
+        stripeTransferId: stripeTransferId || null,
+        status: 'processed',
+        processedAt: new Date(),
+        planTypeAtTransaction: isAnnualPlan ? 'annual' : 'commission',
+        tierLevelAtTransaction: tierLevel,
+      })
+      .returning();
+
+    console.log(`✅ Commission recorded: ${commission.id} (${commissionAmount} cents)`);
+
+    return {
+      id: commission.id,
+      workosUserId: commission.workosUserId,
+      meetingId: commission.meetingId,
+      grossAmount: commission.grossAmount,
+      commissionRate: commission.commissionRate,
+      commissionAmount: commission.commissionAmount,
+      netAmount: commission.netAmount,
+      currency: commission.currency,
+      status: commission.status as 'pending' | 'processed' | 'refunded' | 'disputed',
+      planTypeAtTransaction: commission.planTypeAtTransaction as 'commission' | 'annual',
+      tierLevelAtTransaction: commission.tierLevelAtTransaction as 'community' | 'top',
+      createdAt: commission.createdAt,
+    };
+  } catch (error) {
+    console.error('Error recording commission:', error);
+    return null;
+  }
+}
+
+// ============================================================================
+// Get Commission History
+// ============================================================================
+
+/**
+ * Get commission history for a user
+ *
+ * @param workosUserId - The WorkOS user ID
+ * @param limit - Maximum number of records to return
+ * @returns Array of commission transactions
+ */
+export async function getCommissionHistory(
+  workosUserId: string,
+  limit: number = 50,
+): Promise<CommissionTransaction[]> {
+  try {
+    const commissions = await db.query.TransactionCommissionsTable.findMany({
+      where: eq(TransactionCommissionsTable.workosUserId, workosUserId),
+      orderBy: (commissions, { desc }) => [desc(commissions.createdAt)],
+      limit,
+    });
+
+    return commissions.map((c) => ({
+      id: c.id,
+      workosUserId: c.workosUserId,
+      meetingId: c.meetingId,
+      grossAmount: c.grossAmount,
+      commissionRate: c.commissionRate,
+      commissionAmount: c.commissionAmount,
+      netAmount: c.netAmount,
+      currency: c.currency,
+      status: c.status as 'pending' | 'processed' | 'refunded' | 'disputed',
+      planTypeAtTransaction: c.planTypeAtTransaction as 'commission' | 'annual',
+      tierLevelAtTransaction: c.tierLevelAtTransaction as 'community' | 'top',
+      createdAt: c.createdAt,
+    }));
+  } catch (error) {
+    console.error('Error getting commission history:', error);
+    return [];
+  }
+}
+
+// ============================================================================
+// Calculate Total Commissions
+// ============================================================================
+
+/**
+ * Calculate total commissions paid by a user
+ *
+ * @param workosUserId - The WorkOS user ID
+ * @param startDate - Start date for calculation (optional)
+ * @param endDate - End date for calculation (optional)
+ * @returns Total commission amount in cents
+ */
+export async function calculateTotalCommissions(
+  workosUserId: string,
+  _startDate?: Date,
+  _endDate?: Date,
+): Promise<{
+  totalCommissions: number;
+  totalGrossRevenue: number;
+  totalNetRevenue: number;
+  transactionCount: number;
+}> {
+  try {
+    // TODO: Add date filtering when needed (using _startDate and _endDate)
+    const commissions = await db.query.TransactionCommissionsTable.findMany({
+      where: eq(TransactionCommissionsTable.workosUserId, workosUserId),
+    });
+
+    const totalCommissions = commissions.reduce((sum, c) => sum + c.commissionAmount, 0);
+    const totalGrossRevenue = commissions.reduce((sum, c) => sum + c.grossAmount, 0);
+    const totalNetRevenue = commissions.reduce((sum, c) => sum + c.netAmount, 0);
+
+    return {
+      totalCommissions,
+      totalGrossRevenue,
+      totalNetRevenue,
+      transactionCount: commissions.length,
+    };
+  } catch (error) {
+    console.error('Error calculating total commissions:', error);
+    return {
+      totalCommissions: 0,
+      totalGrossRevenue: 0,
+      totalNetRevenue: 0,
+      transactionCount: 0,
+    };
+  }
+}
+
+// ============================================================================
+// Mark Commission as Refunded
+// ============================================================================
+
+/**
+ * Mark a commission as refunded (when booking is refunded)
+ *
+ * @param meetingId - The meeting ID
+ * @returns Success status
+ */
+export async function markCommissionRefunded(meetingId: string): Promise<boolean> {
+  try {
+    const commission = await db.query.TransactionCommissionsTable.findFirst({
+      where: eq(TransactionCommissionsTable.meetingId, meetingId),
+    });
+
+    if (!commission) {
+      console.error('Commission not found for meeting:', meetingId);
+      return false;
+    }
+
+    await db
+      .update(TransactionCommissionsTable)
+      .set({
+        status: 'refunded',
+        refundedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(TransactionCommissionsTable.id, commission.id));
+
+    console.log(`✅ Commission marked as refunded: ${commission.id}`);
+    return true;
+  } catch (error) {
+    console.error('Error marking commission as refunded:', error);
+    return false;
+  }
+}

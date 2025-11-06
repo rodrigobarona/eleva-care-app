@@ -655,6 +655,262 @@ export const SlotReservationsTable = pgTable(
 );
 
 // ============================================================================
+// SUBSCRIPTION & BILLING TABLES
+// ============================================================================
+
+/**
+ * Subscription Plans Table
+ *
+ * Tracks which pricing plan each expert is on:
+ * - Commission-based (pay per transaction, no upfront fee)
+ * - Annual subscription (fixed yearly fee + reduced commission)
+ */
+export const SubscriptionPlansTable = pgTable(
+  'subscription_plans',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workosUserId: text('workos_user_id')
+      .notNull()
+      .unique()
+      .references(() => UsersTable.workosUserId, { onDelete: 'cascade' }),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => OrganizationsTable.id, { onDelete: 'cascade' }),
+
+    // Plan configuration
+    planType: text('plan_type').notNull().$type<'commission' | 'annual'>(), // Current plan type
+    tierLevel: text('tier_level').notNull().$type<'community' | 'top'>(), // Expert tier
+
+    // Commission-based plan details
+    commissionRate: integer('commission_rate'), // Store as basis points (e.g., 2000 = 20%)
+
+    // Annual subscription details
+    stripeSubscriptionId: text('stripe_subscription_id').unique(),
+    stripeCustomerId: text('stripe_customer_id'), // Denormalized for quick access
+    stripePriceId: text('stripe_price_id'), // The specific price they're subscribed to
+    annualFee: integer('annual_fee'), // in cents (e.g., 49000 = $490)
+    subscriptionStartDate: timestamp('subscription_start_date'),
+    subscriptionEndDate: timestamp('subscription_end_date'),
+    subscriptionStatus: text('subscription_status').$type<
+      'active' | 'canceled' | 'past_due' | 'unpaid' | 'trialing'
+    >(),
+    autoRenew: boolean('auto_renew').default(true),
+
+    // Upgrade/transition tracking
+    previousPlanType: text('previous_plan_type').$type<'commission' | 'annual'>(),
+    upgradedAt: timestamp('upgraded_at'),
+    commissionsPaidBeforeUpgrade: integer('commissions_paid_before_upgrade'), // in cents
+
+    // Eligibility flags
+    isEligibleForAnnual: boolean('is_eligible_for_annual').default(false),
+    eligibilityNotificationSent: boolean('eligibility_notification_sent').default(false),
+    eligibilityLastChecked: timestamp('eligibility_last_checked'),
+
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    // 🔒 RLS: Applied via SQL migration
+    userIdIndex: index('subscription_plans_user_id_idx').on(table.workosUserId),
+    orgIdIndex: index('subscription_plans_org_id_idx').on(table.orgId),
+    stripeSubscriptionIdIndex: index('subscription_plans_stripe_sub_idx').on(
+      table.stripeSubscriptionId,
+    ),
+    planTypeIndex: index('subscription_plans_plan_type_idx').on(table.planType),
+  }),
+);
+
+/**
+ * Transaction Commissions Table
+ *
+ * Records every commission transaction for:
+ * - Tracking total commissions paid
+ * - Calculating eligibility for annual plans
+ * - Financial reporting and reconciliation
+ * - Audit trail for payments
+ */
+export const TransactionCommissionsTable = pgTable(
+  'transaction_commissions',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workosUserId: text('workos_user_id')
+      .notNull()
+      .references(() => UsersTable.workosUserId, { onDelete: 'cascade' }),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => OrganizationsTable.id, { onDelete: 'cascade' }),
+
+    // Related appointment
+    meetingId: uuid('meeting_id')
+      .notNull()
+      .references(() => MeetingsTable.id, { onDelete: 'cascade' }),
+
+    // Transaction details
+    grossAmount: integer('gross_amount').notNull(), // Total booking amount in cents
+    commissionRate: integer('commission_rate').notNull(), // Basis points at time of transaction
+    commissionAmount: integer('commission_amount').notNull(), // Commission taken in cents
+    netAmount: integer('net_amount').notNull(), // Amount expert receives in cents
+    currency: text('currency').notNull().default('eur'),
+
+    // Stripe references
+    stripePaymentIntentId: text('stripe_payment_intent_id')
+      .notNull()
+      .references(() => MeetingsTable.stripePaymentIntentId),
+    stripeTransferId: text('stripe_transfer_id'), // Stripe Connect transfer ID
+    stripeApplicationFeeId: text('stripe_application_fee_id'), // Application fee ID
+
+    // Status tracking
+    status: text('status').notNull().$type<'pending' | 'processed' | 'refunded' | 'disputed'>(),
+    processedAt: timestamp('processed_at'),
+    refundedAt: timestamp('refunded_at'),
+
+    // Metadata for reporting
+    planTypeAtTransaction: text('plan_type_at_transaction').$type<'commission' | 'annual'>(),
+    tierLevelAtTransaction: text('tier_level_at_transaction').$type<'community' | 'top'>(),
+
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    // 🔒 RLS: Applied via SQL migration
+    userIdIndex: index('transaction_commissions_user_id_idx').on(table.workosUserId),
+    orgIdIndex: index('transaction_commissions_org_id_idx').on(table.orgId),
+    meetingIdIndex: index('transaction_commissions_meeting_id_idx').on(table.meetingId),
+    statusIndex: index('transaction_commissions_status_idx').on(table.status),
+    createdAtIndex: index('transaction_commissions_created_at_idx').on(table.createdAt),
+    paymentIntentIdIndex: index('transaction_commissions_payment_intent_idx').on(
+      table.stripePaymentIntentId,
+    ),
+  }),
+);
+
+/**
+ * Annual Plan Eligibility Table
+ *
+ * Tracks metrics to determine if an expert qualifies for annual subscription:
+ * - Monthly revenue averages
+ * - Appointment counts
+ * - Active duration
+ * - Projected savings
+ *
+ * Updated by cron job daily/weekly
+ */
+export const AnnualPlanEligibilityTable = pgTable(
+  'annual_plan_eligibility',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workosUserId: text('workos_user_id')
+      .notNull()
+      .unique()
+      .references(() => UsersTable.workosUserId, { onDelete: 'cascade' }),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => OrganizationsTable.id, { onDelete: 'cascade' }),
+
+    // Eligibility metrics (rolling 90-day window)
+    monthsActive: integer('months_active').default(0), // Months since becoming expert
+    totalBookings: integer('total_bookings').default(0), // All-time completed bookings
+    bookingsLast90Days: integer('bookings_last_90_days').default(0),
+    avgMonthlyRevenue: integer('avg_monthly_revenue').default(0), // in cents, last 90 days
+    totalCommissionsPaid: integer('total_commissions_paid').default(0), // All-time, in cents
+    commissionsLast90Days: integer('commissions_last_90_days').default(0), // in cents
+    currentRating: integer('current_rating'), // Store as integer (e.g., 450 = 4.50)
+
+    // Eligibility status
+    isEligible: boolean('is_eligible').default(false),
+    eligibleSince: timestamp('eligible_since'),
+    tierLevel: text('tier_level').$type<'community' | 'top'>(),
+
+    // Projected savings calculation
+    projectedAnnualCommissions: integer('projected_annual_commissions'), // in cents
+    projectedAnnualSavings: integer('projected_annual_savings'), // in cents
+    savingsPercentage: integer('savings_percentage'), // Store as basis points (e.g., 3600 = 36%)
+    breakEvenMonthlyRevenue: integer('break_even_monthly_revenue'), // in cents
+
+    // Calculation metadata
+    lastCalculated: timestamp('last_calculated').notNull().defaultNow(),
+    calculationVersion: integer('calculation_version').default(1), // For formula updates
+
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    // 🔒 RLS: Applied via SQL migration
+    userIdIndex: index('annual_eligibility_user_id_idx').on(table.workosUserId),
+    orgIdIndex: index('annual_eligibility_org_id_idx').on(table.orgId),
+    eligibleIndex: index('annual_eligibility_eligible_idx').on(table.isEligible),
+    lastCalculatedIndex: index('annual_eligibility_last_calc_idx').on(table.lastCalculated),
+  }),
+);
+
+/**
+ * Subscription Events Table
+ *
+ * Audit trail for all subscription-related events:
+ * - Plan changes (commission → annual, annual → commission)
+ * - Upgrades/downgrades
+ * - Cancellations
+ * - Renewals
+ * - Payment failures
+ */
+export const SubscriptionEventsTable = pgTable(
+  'subscription_events',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workosUserId: text('workos_user_id')
+      .notNull()
+      .references(() => UsersTable.workosUserId, { onDelete: 'cascade' }),
+    orgId: uuid('org_id')
+      .notNull()
+      .references(() => OrganizationsTable.id, { onDelete: 'cascade' }),
+    subscriptionPlanId: uuid('subscription_plan_id').references(() => SubscriptionPlansTable.id, {
+      onDelete: 'set null',
+    }),
+
+    // Event details
+    eventType: text('event_type')
+      .notNull()
+      .$type<
+        | 'plan_created'
+        | 'plan_upgraded'
+        | 'plan_downgraded'
+        | 'subscription_started'
+        | 'subscription_renewed'
+        | 'subscription_canceled'
+        | 'subscription_expired'
+        | 'payment_succeeded'
+        | 'payment_failed'
+        | 'eligibility_achieved'
+        | 'eligibility_lost'
+      >(),
+
+    // Plan state before/after
+    previousPlanType: text('previous_plan_type').$type<'commission' | 'annual'>(),
+    newPlanType: text('new_plan_type').$type<'commission' | 'annual'>(),
+    previousTierLevel: text('previous_tier_level').$type<'community' | 'top'>(),
+    newTierLevel: text('new_tier_level').$type<'community' | 'top'>(),
+
+    // Stripe event reference
+    stripeEventId: text('stripe_event_id'),
+    stripeSubscriptionId: text('stripe_subscription_id'),
+
+    // Additional context
+    metadata: jsonb('metadata').$type<Record<string, unknown>>(),
+    reason: text('reason'), // e.g., "user_requested", "payment_failed", "auto_upgrade"
+
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (table) => ({
+    // 🔒 RLS: Applied via SQL migration
+    userIdIndex: index('subscription_events_user_id_idx').on(table.workosUserId),
+    orgIdIndex: index('subscription_events_org_id_idx').on(table.orgId),
+    subscriptionPlanIdIndex: index('subscription_events_plan_id_idx').on(table.subscriptionPlanId),
+    eventTypeIndex: index('subscription_events_type_idx').on(table.eventType),
+    createdAtIndex: index('subscription_events_created_at_idx').on(table.createdAt),
+  }),
+);
+
+// ============================================================================
 // UNIFIED AUDIT LOGGING (from schema-audit-workos.ts)
 // ============================================================================
 
@@ -851,5 +1107,63 @@ export const recordsRelations = relations(RecordsTable, ({ one }) => ({
   expert: one(UsersTable, {
     fields: [RecordsTable.expertId],
     references: [UsersTable.workosUserId],
+  }),
+}));
+
+export const subscriptionPlanRelations = relations(SubscriptionPlansTable, ({ one, many }) => ({
+  user: one(UsersTable, {
+    fields: [SubscriptionPlansTable.workosUserId],
+    references: [UsersTable.workosUserId],
+  }),
+  organization: one(OrganizationsTable, {
+    fields: [SubscriptionPlansTable.orgId],
+    references: [OrganizationsTable.id],
+  }),
+  events: many(SubscriptionEventsTable),
+  commissions: many(TransactionCommissionsTable),
+}));
+
+export const transactionCommissionRelations = relations(TransactionCommissionsTable, ({ one }) => ({
+  user: one(UsersTable, {
+    fields: [TransactionCommissionsTable.workosUserId],
+    references: [UsersTable.workosUserId],
+  }),
+  organization: one(OrganizationsTable, {
+    fields: [TransactionCommissionsTable.orgId],
+    references: [OrganizationsTable.id],
+  }),
+  meeting: one(MeetingsTable, {
+    fields: [TransactionCommissionsTable.meetingId],
+    references: [MeetingsTable.id],
+  }),
+  subscriptionPlan: one(SubscriptionPlansTable, {
+    fields: [TransactionCommissionsTable.workosUserId],
+    references: [SubscriptionPlansTable.workosUserId],
+  }),
+}));
+
+export const annualPlanEligibilityRelations = relations(AnnualPlanEligibilityTable, ({ one }) => ({
+  user: one(UsersTable, {
+    fields: [AnnualPlanEligibilityTable.workosUserId],
+    references: [UsersTable.workosUserId],
+  }),
+  organization: one(OrganizationsTable, {
+    fields: [AnnualPlanEligibilityTable.orgId],
+    references: [OrganizationsTable.id],
+  }),
+}));
+
+export const subscriptionEventRelations = relations(SubscriptionEventsTable, ({ one }) => ({
+  user: one(UsersTable, {
+    fields: [SubscriptionEventsTable.workosUserId],
+    references: [UsersTable.workosUserId],
+  }),
+  organization: one(OrganizationsTable, {
+    fields: [SubscriptionEventsTable.orgId],
+    references: [OrganizationsTable.id],
+  }),
+  subscriptionPlan: one(SubscriptionPlansTable, {
+    fields: [SubscriptionEventsTable.subscriptionPlanId],
+    references: [SubscriptionPlansTable.id],
   }),
 }));
