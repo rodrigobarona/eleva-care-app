@@ -31,21 +31,26 @@ const ExpertsSection = async () => {
     return null;
   }
 
-  // Get only the users that have profiles (batch request with caching)
-  const users = await getCachedUsersByIds(profiles.map((profile) => profile.workosUserId));
+  // Get user data from database for username (using WorkOS IDs)
+  const userPromises = profiles.map((profile) =>
+    db.query.UsersTable.findFirst({
+      where: ({ workosUserId }) => eq(workosUserId, profile.workosUserId),
+      columns: { username: true, workosUserId: true },
+    }),
+  );
+  const users = await Promise.all(userPromises);
 
   const expertsData = await Promise.all(
-    users.map(async (user) => {
-      // Get the corresponding profile
-      const profile = profiles.find((p) => p.workosUserId === user.id);
+    profiles.map(async (profile, index) => {
+      const user = users[index];
 
-      if (!profile) return null; // This shouldn't happen due to our filtered users list
+      if (!user) return null;
 
       return {
-        id: user.id,
+        id: profile.workosUserId,
         name: `${profile.firstName} ${profile.lastName}`,
         username: user.username,
-        image: profile.profilePicture || user.imageUrl,
+        image: profile.profilePicture || '/images/placeholder-avatar.png',
         headline: profile.headline || '',
         shortBio: profile.shortBio || '',
         order: profile.order || 0,

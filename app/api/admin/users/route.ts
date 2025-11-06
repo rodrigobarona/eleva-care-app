@@ -42,13 +42,9 @@ export async function GET(req: Request) {
     const search = url.searchParams.get('search') || '';
 
     // Build query conditions
-    const conditions = search
-      ? or(
-          ilike(UsersTable.email, `%${search}%`),
-          ilike(UsersTable.firstName, `%${search}%`),
-          ilike(UsersTable.lastName, `%${search}%`),
-        )
-      : undefined;
+    // Note: firstName/lastName removed from UsersTable (Phase 5)
+    // Search by email only for now. Future: could search WorkOS API for name-based search
+    const conditions = search ? ilike(UsersTable.email, `%${search}%`) : undefined;
 
     // Fetch users from database
     const users = await db
@@ -56,8 +52,7 @@ export async function GET(req: Request) {
         id: UsersTable.id,
         workosUserId: UsersTable.workosUserId,
         email: UsersTable.email,
-        firstName: UsersTable.firstName,
-        lastName: UsersTable.lastName,
+        username: UsersTable.username,
         createdAt: UsersTable.createdAt,
       })
       .from(UsersTable)
@@ -93,7 +88,8 @@ export async function GET(req: Request) {
     const formattedUsers: ApiUser[] = users.map((user) => ({
       id: user.workosUserId,
       email: user.email,
-      name: user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email,
+      // Use username or email for display (WorkOS API could be called here for full name if needed)
+      name: user.username || user.email,
       role: roleMap.get(user.workosUserId)?.[0] || 'user',
     }));
 

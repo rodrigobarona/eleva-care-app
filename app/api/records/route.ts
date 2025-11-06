@@ -2,13 +2,15 @@ import { db } from '@/drizzle/db';
 import { RecordsTable } from '@/drizzle/schema-workos';
 import { decryptRecord } from '@/lib/utils/encryption';
 import { logAuditEvent } from '@/lib/utils/server/audit';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    const { userId: workosUserId } = await auth();
+    const { user } = await withAuth();
+    const workosUserId = user?.id;
     if (!workosUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }

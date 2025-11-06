@@ -83,13 +83,13 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get and validate email from either Clerk or database
+    // Get and validate email from WorkOS user or database
     let email: string;
     try {
-      // Try Clerk email first
-      const clerkEmail = user.emailAddresses?.[0]?.emailAddress;
-      if (clerkEmail) {
-        email = emailSchema.parse(clerkEmail);
+      // Try WorkOS email first
+      const workosEmail = user.email;
+      if (workosEmail) {
+        email = emailSchema.parse(workosEmail);
       } else if (dbUser.email) {
         // Fallback to database email
         email = emailSchema.parse(dbUser.email);

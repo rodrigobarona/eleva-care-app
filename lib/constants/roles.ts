@@ -7,9 +7,9 @@
 
 // Individual Role Names
 export const ROLE_USER = 'user' as const;
-export const ROLE_TOP_EXPERT = 'top_expert' as const;
-export const ROLE_COMMUNITY_EXPERT = 'community_expert' as const;
-export const ROLE_LECTURER = 'lecturer' as const;
+export const ROLE_TOP_EXPERT = 'expert_top' as const;
+export const ROLE_COMMUNITY_EXPERT = 'expert_community' as const;
+export const ROLE_LECTURER = 'expert_lecturer' as const;
 export const ROLE_ADMIN = 'admin' as const;
 export const ROLE_SUPERADMIN = 'superadmin' as const;
 
@@ -36,8 +36,8 @@ export const EXPERT_ROLES = [
 export const PUBLIC_ROUTES = [
   // Public pages
   '/',
-  '/sign-in(.*)',
-  '/sign-up(.*)',
+  '/login(.*)',
+  '/register(.*)',
   '/unauthorized(.*)',
   '/about',
   '/profile/:username', // Public expert profiles (e.g., /profile/barona)

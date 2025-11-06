@@ -3,7 +3,7 @@ import { GET, POST } from '@/app/api/webhooks/stripe-identity/route';
 import { db } from '@/drizzle/db';
 import { syncIdentityVerificationToConnect } from '@/lib/integrations/stripe';
 import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
-import { markStepCompleteForUser } from '@/server/actions/expert-setup';
+import { markStepComplete } from '@/server/actions/expert-setup';
 import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 
@@ -32,7 +32,7 @@ jest.mock('@/lib/integrations/stripe/identity', () => ({
 }));
 
 jest.mock('@/server/actions/expert-setup', () => ({
-  markStepCompleteForUser: jest.fn().mockResolvedValue({ success: true }),
+  markStepComplete: jest.fn().mockResolvedValue({ success: true }),
 }));
 
 jest.mock('@/lib/integrations/stripe', () => ({
@@ -164,7 +164,7 @@ describe('Stripe Identity Webhook Handler', () => {
       expect(data.received).toBe(true);
       expect(data.status).toBe('success');
       expect(db.update).toHaveBeenCalled();
-      expect(markStepCompleteForUser).toHaveBeenCalledWith('identity', 'user_123');
+      expect(markStepComplete).toHaveBeenCalledWith('user_123', 'identityCompleted');
     });
 
     it('should handle user lookup by Clerk ID when verification ID lookup fails', async () => {
@@ -190,7 +190,7 @@ describe('Stripe Identity Webhook Handler', () => {
       const response = await POST(mockRequest);
 
       expect(response.status).toBe(200);
-      expect(markStepCompleteForUser).not.toHaveBeenCalled();
+      expect(markStepComplete).not.toHaveBeenCalled();
     });
 
     it('should handle verification status requiring_input', async () => {
@@ -223,7 +223,7 @@ describe('Stripe Identity Webhook Handler', () => {
 
       expect(response.status).toBe(200);
       expect(db.update).toHaveBeenCalled();
-      expect(markStepCompleteForUser).not.toHaveBeenCalled();
+      expect(markStepComplete).not.toHaveBeenCalled();
     });
 
     it('should skip Connect sync when user has no Connect account', async () => {
@@ -347,7 +347,7 @@ describe('Stripe Identity Webhook Handler', () => {
       expect(response.status).toBe(500);
     });
 
-    it('should handle markStepCompleteForUser errors gracefully', async () => {
+    it('should handle markStepComplete errors gracefully', async () => {
       mockStripeConstructEvent.mockReturnValue({
         type: 'identity.verification_session.verified',
         id: 'evt_test_123',
@@ -372,8 +372,8 @@ describe('Stripe Identity Webhook Handler', () => {
         details: { verified: true },
       });
 
-      // Make markStepCompleteForUser throw an error - the webhook should continue and return 200
-      (markStepCompleteForUser as jest.Mock).mockImplementation(() => {
+      // Make markStepComplete throw an error - the webhook should continue and return 200
+      (markStepComplete as jest.Mock).mockImplementation(() => {
         throw new Error('Expert setup service error');
       });
 

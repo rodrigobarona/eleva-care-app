@@ -17,6 +17,15 @@ import {
   PUBLIC_ROUTES,
   SPECIAL_AUTH_ROUTES,
 } from '@/lib/constants/roles';
+import {
+  getSeoRedirect,
+  isAuthPath,
+  isPrivateSegment,
+  isPublicContentPath,
+  isReservedRoute,
+  isStaticFile,
+  shouldSkipAuthForApi,
+} from '@/lib/constants/routes';
 import { defaultLocale, locales } from '@/lib/i18n';
 import { detectLocaleFromHeaders } from '@/lib/i18n/utils';
 import { getUserApplicationRole } from '@/lib/integrations/workos/roles';
@@ -59,13 +68,7 @@ function createCustomI18nMiddleware() {
     if (detectedLocale && detectedLocale !== defaultLocale) {
       if (
         pathname === '/' ||
-        pathname.startsWith('/about') ||
-        pathname.startsWith('/legal') ||
-        pathname.startsWith('/trust') ||
-        pathname.startsWith('/services') ||
-        pathname.startsWith('/help') ||
-        pathname.startsWith('/contact') ||
-        pathname.startsWith('/community') ||
+        isPublicContentPath(pathname) ||
         isUsernameRoute(pathname) ||
         isLocalePublicRoute(pathname)
       ) {
@@ -113,31 +116,36 @@ function matchPatternsArray(path: string, patterns: readonly string[]): boolean 
   return patterns.some((pattern) => isPathMatch(path, pattern));
 }
 
+/**
+ * Check if request is for a private route (requires authentication)
+ */
 function isPrivateRoute(request: NextRequest): boolean {
   const path = request.nextUrl.pathname;
-  return (
-    path.startsWith('/dashboard') ||
-    path.startsWith('/setup') ||
-    path.startsWith('/account') ||
-    path.startsWith('/appointments') ||
-    path.startsWith('/booking') ||
-    path.startsWith('/admin') ||
-    path.startsWith('/api/')
-  );
+  const segments = path.split('/').filter(Boolean);
+
+  // Skip locale prefix if present
+  const startIndex = locales.includes(segments[0] as (typeof locales)[number]) ? 1 : 0;
+  const firstSegment = segments[startIndex];
+
+  return firstSegment ? isPrivateSegment(firstSegment) || path.startsWith('/api/') : false;
 }
 
+/**
+ * Check if path is an authentication route
+ */
 function isAuthRoute(path: string): boolean {
   const segments = path.split('/').filter(Boolean);
-  const authPaths = ['sign-in', 'sign-up', 'unauthorized', 'onboarding'];
 
-  if (segments.length >= 1 && authPaths.includes(segments[0])) {
+  // Check first segment (no locale)
+  if (segments.length >= 1 && isAuthPath(segments[0])) {
     return true;
   }
 
+  // Check second segment (with locale prefix)
   if (
     segments.length >= 2 &&
     locales.includes(segments[0] as (typeof locales)[number]) &&
-    authPaths.includes(segments[1])
+    isAuthPath(segments[1])
   ) {
     return true;
   }
@@ -159,57 +167,20 @@ function isUsernameRoute(path: string): boolean {
 
   if (segments.length === 1) {
     const segment = segments[0];
-    const isReserved = [
-      'dashboard',
-      'setup',
-      'account',
-      'appointments',
-      'booking',
-      'admin',
-      'api',
-      'sign-in',
-      'sign-up',
-      'unauthorized',
-      'onboarding',
-      '.well-known',
-      ...locales,
-    ].includes(segment);
+    // Check against centralized RESERVED_ROUTES constant + locales
+    const isReserved =
+      isReservedRoute(segment) || locales.includes(segment as (typeof locales)[number]);
     return !isReserved;
   }
 
   if (segments.length > 1) {
-    const isReservedFirstSegment = [
-      'dashboard',
-      'setup',
-      'account',
-      'appointments',
-      'booking',
-      'admin',
-      'api',
-      'sign-in',
-      'sign-up',
-      'unauthorized',
-      'onboarding',
-      'dev',
-      '.well-known',
-    ].includes(segments[0]);
-
+    // Check if first segment is reserved or is a locale
+    const isReservedFirstSegment = isReservedRoute(segments[0]);
     const isLocalePrefix = locales.includes(segments[0] as (typeof locales)[number]);
+
+    // If first segment is locale, check if second segment is reserved
     const isReservedSecondSegment =
-      isLocalePrefix &&
-      segments.length > 1 &&
-      [
-        'dashboard',
-        'setup',
-        'account',
-        'appointments',
-        'booking',
-        'admin',
-        'sign-in',
-        'sign-up',
-        'unauthorized',
-        'onboarding',
-      ].includes(segments[1]);
+      isLocalePrefix && segments.length > 1 && isReservedRoute(segments[1]);
 
     return !isReservedFirstSegment && !isReservedSecondSegment;
   }
@@ -217,18 +188,17 @@ function isUsernameRoute(path: string): boolean {
   return false;
 }
 
+/**
+ * Check if path is a public route with locale prefix
+ */
 function isLocalePublicRoute(path: string): boolean {
   const segments = path.split('/').filter(Boolean);
 
   if (segments.length >= 1) {
     const isLocale = locales.includes(segments[0] as (typeof locales)[number]);
     if (isLocale) {
-      if (
-        segments.length === 1 ||
-        !['dashboard', 'setup', 'account', 'appointments', 'booking', 'admin'].includes(segments[1])
-      ) {
-        return true;
-      }
+      // If only locale segment, or second segment is not private
+      return segments.length === 1 || (segments[1] ? !isPrivateSegment(segments[1]) : true);
     }
   }
 
@@ -236,29 +206,15 @@ function isLocalePublicRoute(path: string): boolean {
 }
 
 /**
- * Main middleware using AuthKit for authentication
+ * Main proxy function using AuthKit for authentication
+ * Next.js 16 renamed middleware to proxy
  */
-export default async function middleware(request: NextRequest) {
+export default async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   console.log(`🔍 Processing route: ${path}`);
 
-  // Skip middleware for static files, Next.js internals, and webhook routes
-  if (
-    /\.(.*)$/.test(path) ||
-    path.startsWith('/_next') ||
-    path.startsWith('/.well-known') ||
-    path.startsWith('/api/webhooks/') ||
-    path.startsWith('/api/cron/') ||
-    path.startsWith('/api/qstash/') ||
-    path.startsWith('/api/internal/') ||
-    path.startsWith('/api/healthcheck') ||
-    path.startsWith('/api/health/') ||
-    path.startsWith('/api/create-payment-intent') ||
-    path.startsWith('/api/og/') ||
-    path === '/api/novu' ||
-    path.startsWith('/_vercel/insights/') ||
-    path.startsWith('/_botid/')
-  ) {
+  // Skip proxy for static files and special API routes
+  if (isStaticFile(path) || shouldSkipAuthForApi(path)) {
     console.log(`📁 Static/internal route, skipping: ${path}`);
     return NextResponse.next();
   }
@@ -296,24 +252,11 @@ export default async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Handle SEO redirects
-  if (path.includes('/legal/security') || path.includes('/legal/dpa')) {
-    const newPath = path
-      .replace('/legal/security', '/trust/security')
-      .replace('/legal/dpa', '/trust/dpa');
-    return NextResponse.redirect(new URL(newPath, request.url), 301);
-  }
-
-  // Public routes that don't need authentication
-  if (
-    isUsernameRoute(path) ||
-    isLocalePublicRoute(path) ||
-    isHomePage(path) ||
-    isAuthRoute(path) ||
-    matchPatternsArray(path, PUBLIC_ROUTES)
-  ) {
-    console.log(`🌐 Public route: ${path}`);
-    return handleI18nRouting(request);
+  // Handle SEO redirects (centralized in routes.ts)
+  const seoRedirectPath = getSeoRedirect(path);
+  if (seoRedirectPath) {
+    console.log(`🔀 SEO redirect: ${path} → ${seoRedirectPath}`);
+    return NextResponse.redirect(new URL(seoRedirectPath, request.url), 301);
   }
 
   // WorkOS auth API routes are public (OAuth callback flow)
@@ -323,10 +266,10 @@ export default async function middleware(request: NextRequest) {
   }
 
   // =============================================
-  // PROTECTED ROUTES - Require Authentication
+  // RUN AUTHKIT ON ALL ROUTES
   // =============================================
-
-  // Get session using AuthKit
+  // AuthKit middleware must run on ALL routes (including public ones)
+  // so that withAuth() can be called anywhere in the application
   const {
     session,
     headers: authkitHeaders,
@@ -335,9 +278,55 @@ export default async function middleware(request: NextRequest) {
     debug: process.env.NODE_ENV === 'development',
   });
 
-  // If no user session, redirect to sign-in
+  // Check if this is a public route
+  const isPublicRoute =
+    isUsernameRoute(path) ||
+    isLocalePublicRoute(path) ||
+    isHomePage(path) ||
+    isAuthRoute(path) ||
+    matchPatternsArray(path, PUBLIC_ROUTES);
+
+  // Auth routes: skip i18n routing (sign-in, sign-up are not localized)
+  if (isAuthRoute(path)) {
+    console.log(
+      `🔓 Auth route (no i18n): ${path} (session: ${session.user ? 'authenticated' : 'guest'})`,
+    );
+    const response = NextResponse.next();
+
+    // Preserve AuthKit headers (session cookies)
+    for (const [key, value] of authkitHeaders) {
+      if (key.toLowerCase() === 'set-cookie') {
+        response.headers.append(key, value);
+      } else {
+        response.headers.set(key, value);
+      }
+    }
+    return response;
+  }
+
+  // Other public routes: allow access with i18n routing
+  if (isPublicRoute) {
+    console.log(`🌐 Public route: ${path} (session: ${session.user ? 'authenticated' : 'guest'})`);
+    const response = await handleI18nRouting(request);
+
+    // Preserve AuthKit headers (session cookies) for public routes too
+    for (const [key, value] of authkitHeaders) {
+      if (key.toLowerCase() === 'set-cookie') {
+        response.headers.append(key, value);
+      } else {
+        response.headers.set(key, value);
+      }
+    }
+    return response;
+  }
+
+  // =============================================
+  // PROTECTED ROUTES - Require Authentication
+  // =============================================
+
+  // If no user session on protected route, redirect to sign-in
   if (!session.user) {
-    console.log('❌ No session - redirecting to sign-in');
+    console.log('❌ No session on protected route - redirecting to sign-in');
     const response = NextResponse.redirect(authorizationUrl!);
 
     // Preserve AuthKit headers (session cookies)

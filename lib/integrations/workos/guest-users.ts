@@ -97,12 +97,10 @@ export async function createOrGetGuestUser(params: {
       })
       .returning();
 
-    // Insert user into database
+    // Insert user into database (firstName/lastName are in ProfilesTable, not UsersTable)
     await db.insert(UsersTable).values({
       workosUserId: workosUser.id,
       email,
-      firstName,
-      lastName,
     });
 
     // Create WorkOS membership

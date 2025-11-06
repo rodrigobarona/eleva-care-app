@@ -2,6 +2,7 @@ import { db } from '@/drizzle/db';
 import { RecordsTable } from '@/drizzle/schema-workos';
 import { decryptRecord, encryptRecord } from '@/lib/utils/encryption';
 import { logAuditEvent } from '@/lib/utils/server/audit';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
@@ -9,7 +10,8 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request, props: { params: Promise<{ meetingId: string }> }) {
   const params = await props.params;
   try {
-    const { userId: workosUserId } = await auth();
+    const { user } = await withAuth();
+    const workosUserId = user?.id;
     if (!workosUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -74,7 +76,8 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
     // Log security-sensitive failures and errors
     const headersList = await headers();
     try {
-      const { userId: workosUserId } = await auth();
+      const { user } = await withAuth();
+      const workosUserId = user?.id;
       const isSecuritySensitive =
         error instanceof Error &&
         (error.message.includes('unauthorized') ||
@@ -114,7 +117,8 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
 export async function GET(request: Request, props: { params: Promise<{ meetingId: string }> }) {
   const params = await props.params;
   try {
-    const { userId: workosUserId } = await auth();
+    const { user } = await withAuth();
+    const workosUserId = user?.id;
     if (!workosUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -173,7 +177,8 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
     // Log security-sensitive failures and errors
     const headersList = await headers();
     try {
-      const { userId: workosUserId } = await auth();
+      const { user } = await withAuth();
+      const workosUserId = user?.id;
       const isSecuritySensitive =
         error instanceof Error &&
         (error.message.includes('unauthorized') ||
@@ -214,7 +219,8 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
 export async function PUT(request: Request, props: { params: Promise<{ meetingId: string }> }) {
   const params = await props.params;
   try {
-    const { userId: workosUserId } = await auth();
+    const { user } = await withAuth();
+    const workosUserId = user?.id;
     if (!workosUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -285,7 +291,8 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
     // Log security-sensitive failures and errors
     const headersList = await headers();
     try {
-      const { userId: workosUserId } = await auth();
+      const { user } = await withAuth();
+      const workosUserId = user?.id;
       const isSecuritySensitive =
         error instanceof Error &&
         (error.message.includes('unauthorized') ||

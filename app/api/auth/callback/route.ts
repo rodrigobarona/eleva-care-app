@@ -12,6 +12,7 @@
  * 5. User redirected to returnPathname (default: /dashboard)
  */
 import { db } from '@/drizzle/db';
+import { UsersTable } from '@/drizzle/schema-workos';
 import { handleAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 
@@ -37,8 +38,8 @@ export const GET = handleAuth({
         await db.insert(UsersTable).values({
           workosUserId: user.id,
           email: user.email,
-          firstName: user.firstName || '',
-          lastName: user.lastName || '',
+          // Note: firstName/lastName are stored in ProfilesTable, not UsersTable
+          // They will be created during onboarding or profile setup
         });
       } else {
         console.log('👤 Existing user found');

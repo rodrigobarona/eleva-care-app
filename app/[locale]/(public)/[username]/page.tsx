@@ -2,8 +2,8 @@ import { getProfileAccessData, ProfileAccessControl } from '@/components/auth/Pr
 import { EventBookingList } from '@/components/features/booking/EventBookingList';
 import { ProfileColumnSkeleton } from '@/components/features/profile/ProfilePageLoadingSkeleton';
 import { db } from '@/drizzle/db';
+import { isReservedRoute } from '@/lib/constants/routes';
 import { generateUserProfileMetadata } from '@/lib/seo/metadata-utils';
-import { withAuth } from '@workos-inc/authkit-nextjs';
 import { Instagram, Linkedin, Music, Twitter, Youtube } from 'lucide-react';
 import type { Metadata } from 'next';
 import Image from 'next/image';
@@ -35,6 +35,14 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
   const params = await props.params;
   const { username, locale } = params;
 
+  // Check if this is a reserved route - return default metadata
+  if (isReservedRoute(username)) {
+    return {
+      title: 'Eleva Care',
+      description: 'Mental health care platform',
+    };
+  }
+
   try {
     // Use the centralized utility to get profile data
     const data = await getProfileAccessData(username);
@@ -59,25 +67,34 @@ export async function generateMetadata(props: PageProps): Promise<Metadata> {
 
     // Check if profile is published - if not, return generic metadata
     if (!fullProfile?.published) {
-      // Get current authenticated user to check if they're the profile owner
-      const { user: currentUser } = await withAuth();
-
-      // If profile is not published and user is not the owner, return generic metadata
-      if (!currentUser || currentUser.id !== user.id) {
-        return {
-          title: 'Profile Not Available | Eleva Care',
-          description: 'This profile is not currently available.',
-        };
-      }
+      // TODO: Check if current user is the profile owner once session is available in metadata
+      // For now, return generic metadata for unpublished profiles
+      return {
+        title: 'Profile Not Available | Eleva Care',
+        description: 'This profile is not currently available.',
+      };
     }
 
-    // Prepare data for OG image and metadata
-    const name = fullProfile
-      ? `${fullProfile.firstName} ${fullProfile.lastName}`
-      : user.fullName || username;
+    // IMPORTANT: Always use ProfilesTable for display name on public expert profiles
+    // ProfilesTable.firstName/lastName = Professional display name (e.g., "Dr. Patricia")
+    // UsersTable.firstName/lastName = Legal name (e.g., "Patricia")
+    // Expert chooses their public display name in their profile settings
+    if (!fullProfile) {
+      // If no profile exists, this shouldn't happen (ProfileAccessControl checks this)
+      console.error(`[generateMetadata] No profile found for username: ${username}`);
+      return {
+        title: 'Profile Not Available | Eleva Care',
+        description: 'This profile is not currently available.',
+      };
+    }
+
+    const name = `${fullProfile.firstName} ${fullProfile.lastName}`;
     const bio = fullProfile?.shortBio || fullProfile?.longBio || undefined;
     const headline = fullProfile?.headline;
-    const image = (fullProfile?.profilePicture || user.imageUrl) ?? undefined;
+
+    // IMPORTANT: Use ProfilesTable.profilePicture for professional image
+    // If not set, fallback to WorkOS (not cached UsersTable.imageUrl)
+    const image = fullProfile?.profilePicture ?? undefined;
 
     // Extract specialties from categories
     const specialties: string[] = [];
@@ -112,6 +129,14 @@ export default async function UserLayout(props: PageProps) {
   const params = await props.params;
   const { username, locale } = params;
 
+  // CRITICAL: Check if this is a reserved route
+  // These routes have dedicated pages and should NOT be handled here
+  if (isReservedRoute(username)) {
+    console.log(`[UserLayout] Reserved route detected: ${username} - returning 404`);
+    // Return 404 so Next.js falls through to the actual route
+    return notFound();
+  }
+
   return (
     <ProfileAccessControl username={username} context="UserLayout">
       <UserLayoutContent username={username} locale={locale} />
@@ -137,13 +162,7 @@ async function UserLayoutContent({ username, locale }: { username: string; local
       <div className="grid grid-cols-1 gap-8 md:grid-cols-[400px_1fr]">
         {/* Left Column - Profile Info with Suspense */}
         <React.Suspense fallback={<ProfileColumnSkeleton />}>
-          <ProfileInfo
-            username={username}
-            locale={locale}
-            workosUserId={user.id}
-            clerkUserImageUrl={user.imageUrl}
-            clerkUserFullName={user.fullName}
-          />
+          <ProfileInfo username={username} locale={locale} workosUserId={user.id} />
         </React.Suspense>
 
         {/* Right Column - Content */}
@@ -157,25 +176,18 @@ async function UserLayoutContent({ username, locale }: { username: string; local
 
 // Separate component for profile info
 interface ProfileInfoProps {
-  username: string; // Keep username for potential future use or logging
+  username: string;
   locale: string;
   workosUserId: string;
-  clerkUserImageUrl: string;
-  clerkUserFullName: string | null;
 }
 
 async function ProfileInfo({
-  username: _username, // Renamed to avoid confusion if used directly
+  username: _username,
   locale: _locale,
   workosUserId,
-  clerkUserImageUrl,
-  clerkUserFullName, // Ensure this is used or remove if not needed
 }: ProfileInfoProps) {
   try {
     console.log(`[ProfileInfo] Loading profile for workosUserId: ${workosUserId}`);
-
-    // User data is now passed from UserLayout, no need to fetch Clerk user here.
-    // The 'user' object previously fetched here is replaced by passed props.
 
     const profile = await db.query.ProfilesTable.findFirst({
       where: ({ workosUserId: profileClerkUserId }, { eq }) => eq(profileClerkUserId, workosUserId),
@@ -189,19 +201,34 @@ async function ProfileInfo({
       `[ProfileInfo] Profile found: ${profile ? 'yes' : 'no'} for workosUserId: ${workosUserId}`,
     );
 
+    // CRITICAL: ProfilesTable MUST exist for public expert pages
+    // ProfileAccessControl ensures this, but double-check here
+    if (!profile) {
+      console.error(`[ProfileInfo] No profile found for workosUserId: ${workosUserId}`);
+      throw new Error('Profile not found');
+    }
+
+    // Display name from ProfilesTable (professional name chosen by expert)
+    const displayName = `${profile.firstName} ${profile.lastName}`;
+
+    // IMPORTANT: Use ProfilesTable.profilePicture for professional image
+    // If not set, we could fetch from WorkOS API here, but for now use default
+    // TODO: Fetch from WorkOS API if profile.profilePicture is null
+    const profileImage = profile.profilePicture || '/img/default-avatar.png';
+
     return (
       <div className="space-y-6">
         <div className="relative aspect-[18/21] w-full overflow-hidden rounded-lg">
           <Image
-            src={profile?.profilePicture || clerkUserImageUrl}
-            alt={clerkUserFullName || 'Profile picture'}
+            src={profileImage}
+            alt={displayName}
             fill
             className="object-cover"
             priority
             sizes="(max-width: 768px) 100vw, 50vw"
           />
           {/* Top Expert Badge */}
-          {profile?.isTopExpert && (
+          {profile.isTopExpert && (
             <div className="absolute bottom-4 left-3">
               <span className="rounded-sm bg-white px-3 py-2 text-base font-medium text-eleva-neutral-900">
                 <span>Top Expert</span>
@@ -212,7 +239,7 @@ async function ProfileInfo({
         <div className="space-y-12">
           <div>
             <h1 className="flex items-center gap-2 text-xl font-medium">
-              {profile ? `${profile.firstName} ${profile.lastName}` : clerkUserFullName}
+              {displayName}
               {profile?.isVerified && (
                 <Image
                   src="/img/expert-verified-icon.svg"

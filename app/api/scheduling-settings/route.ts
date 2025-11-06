@@ -19,7 +19,7 @@ export async function GET() {
     const { user } = await withAuth();
   const userId = user?.id;
 
-    if (!user) {
+    if (!user || !userId) {
       return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
       });
@@ -47,7 +47,7 @@ export async function PATCH(request: Request) {
     const { user } = await withAuth();
   const userId = user?.id;
 
-    if (!user) {
+    if (!user || !userId) {
       return new NextResponse(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
       });

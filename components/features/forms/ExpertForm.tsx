@@ -26,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { SOCIAL_MEDIA_LIST } from '@/lib/constants/social-media';
 import { cn } from '@/lib/utils';
 import { profileFormSchema } from '@/schema/profile';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { InfoCircledIcon } from '@radix-ui/react-icons';
 import Image from 'next/image';
@@ -55,7 +56,7 @@ interface ExpertFormProps {
 }
 
 export function ExpertForm({ initialData }: ExpertFormProps) {
-  const { user, isLoaded: isUserLoaded } = useUser();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -66,7 +67,11 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
     defaultValues: {
       firstName: initialData?.firstName || user?.firstName || '',
       lastName: initialData?.lastName || user?.lastName || '',
-      profilePicture: initialData?.profilePicture || user?.imageUrl || '',
+      profilePicture:
+        initialData?.profilePicture ||
+        (user as any)?.profilePictureUrl ||
+        (user as any)?.profile_picture_url ||
+        '',
       headline: initialData?.headline || '',
       shortBio: initialData?.shortBio || '',
       longBio: initialData?.longBio || '',
@@ -83,7 +88,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
   });
 
   React.useEffect(() => {
-    if (isUserLoaded && user) {
+    if (user) {
       // Set values if there's no initialData or if the fields are empty
       if (!initialData?.firstName || form.getValues('firstName') === '') {
         form.setValue('firstName', user.firstName || '');
@@ -92,7 +97,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
         form.setValue('lastName', user.lastName || '');
       }
     }
-  }, [isUserLoaded, user, form, initialData]);
+  }, [user, form, initialData]);
 
   // Helper function to safely clean up blob URLs
   const cleanupBlobUrl = React.useCallback((url: string) => {
@@ -161,20 +166,8 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
     try {
       setIsLoading(true);
 
-      // Update username in Clerk if it has changed
-      if (data.username && data.username !== user?.username) {
-        try {
-          await user?.update({
-            username: data.username,
-          });
-        } catch (error) {
-          console.error('Failed to update Clerk username:', error);
-          toast.error('Failed to update username', {
-            description: error instanceof Error ? error.message : 'Please try again',
-          });
-          return;
-        }
-      }
+      // Note: Username is updated via the profile API endpoint along with other profile data
+      // WorkOS doesn't have a user.update() method like Clerk did
 
       // Transform usernames to full URLs
       const transformedData = {
@@ -302,13 +295,14 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                           priority
                           onError={(_e) => {
                             console.warn('Image failed to load:', field.value);
-                            // If blob URL fails, try to clean it up and reset to Clerk image
+                            // If blob URL fails, try to clean it up and reset
                             if (field.value?.startsWith('blob:')) {
                               cleanupBlobUrl(field.value);
-                              if (user?.imageUrl) {
-                                form.setValue('profilePicture', user.imageUrl);
-                                setSelectedFile(null);
-                              }
+                              // Fallback to WorkOS profile picture if available
+                              const workosImageUrl =
+                                (user as any)?.profilePictureUrl || (user as any)?.profile_picture_url || '';
+                              form.setValue('profilePicture', workosImageUrl);
+                              setSelectedFile(null);
                             }
                           }}
                         />
@@ -333,15 +327,16 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
                           className="hidden"
                           disabled={isUploading}
                         />
-                        {field.value && isUserLoaded && field.value !== user?.imageUrl && (
+                        {field.value && (
                           <button
                             type="button"
                             onClick={() => {
-                              // Clean up blob URL before resetting to Clerk image
+                              // Clean up blob URL if removing
                               const currentProfilePicture = form.getValues('profilePicture');
                               cleanupBlobUrl(currentProfilePicture);
 
-                              form.setValue('profilePicture', user?.imageUrl || '');
+                              // WorkOS doesn't have imageUrl - just clear the field
+                              form.setValue('profilePicture', '');
                               setSelectedFile(null);
                             }}
                             className={cn(
@@ -407,7 +402,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               <FormItem>
                 <FormLabel>Username</FormLabel>
                 <FormControl>
-                  <Input placeholder="username" {...field} defaultValue={user?.username || ''} />
+                  <Input placeholder="username" {...field} />
                 </FormControl>
                 <FormDescription>Choose a unique username for your profile</FormDescription>
                 <FormMessage />

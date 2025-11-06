@@ -190,11 +190,13 @@ export async function createPayoutFailedNotification({
   amount,
   currency,
   errorMessage,
+  expertName,
 }: {
   userId: string;
   amount: number;
   currency: string;
   errorMessage: string;
+  expertName?: string;
 }) {
   const formattedAmount = formatCurrency(amount, currency);
 
@@ -203,7 +205,7 @@ export async function createPayoutFailedNotification({
       userId,
       type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
       data: {
-        userName: 'Expert', // Default username for payment notifications
+        userName: expertName || 'Expert', // Use actual expert name
         title: 'Payment Issue: Action Required',
         message: `We encountered an issue sending your payment of ${formattedAmount}. Error: ${errorMessage}. Please check your Stripe account settings.`,
         actionUrl: '/account/billing',

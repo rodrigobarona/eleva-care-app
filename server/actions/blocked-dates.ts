@@ -24,7 +24,7 @@ interface BlockedDate {
 export async function addBlockedDates(dates: BlockedDateInput[]): Promise<void> {
   const { user } = await withAuth();
   const userId = user?.id;
-  if (!user) throw new Error('Unauthorized');
+  if (!user || !userId) throw new Error('Unauthorized');
 
   // Get user's timezone from their schedule as fallback
   const schedule = await db.query.SchedulesTable.findFirst({
@@ -52,7 +52,7 @@ export async function addBlockedDates(dates: BlockedDateInput[]): Promise<void> 
 export async function removeBlockedDate(id: number): Promise<void> {
   const { user } = await withAuth();
   const userId = user?.id;
-  if (!user) throw new Error('Unauthorized');
+  if (!user || !userId) throw new Error('Unauthorized');
 
   await db
     .delete(BlockedDatesTable)
@@ -64,7 +64,7 @@ export async function removeBlockedDate(id: number): Promise<void> {
 export async function getBlockedDates(): Promise<BlockedDate[]> {
   const { user } = await withAuth();
   const userId = user?.id;
-  if (!user) throw new Error('Unauthorized');
+  if (!user || !userId) throw new Error('Unauthorized');
 
   const blockedDates = await db.query.BlockedDatesTable.findMany({
     where: (table, { eq }) => eq(table.workosUserId, userId),
@@ -115,8 +115,7 @@ export async function updateBlockedDate(
 ): Promise<BlockedDate> {
   const { user } = await withAuth();
   const userId = user?.id;
-
-  if (!user) {
+  if (!user || !userId) {
     throw new Error('User not authenticated');
   }
 

@@ -166,8 +166,8 @@ export async function POST(request: NextRequest) {
   try {
     // Get userId for audit logging and rate limiting
     const { user } = await withAuth();
-  const userId = user?.id;
-    if (!user) {
+    const userId = user?.id;
+    if (!user || !userId) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 

@@ -479,8 +479,8 @@ export async function POST(request: NextRequest) {
         user: {
           columns: {
             stripeConnectAccountId: true,
-            firstName: true,
-            lastName: true,
+            username: true,
+            email: true,
             country: true,
           },
         },
@@ -507,7 +507,7 @@ export async function POST(request: NextRequest) {
     const meetingMetadata = {
       eventId,
       expertId: event.workosUserId,
-      expertName: `${event.user.firstName || ''} ${event.user.lastName || ''}`.trim() || 'Expert',
+      expertName: event.user.username || event.user.email || 'Expert',
       guestName: meetingData.guestName,
       guestEmail: meetingData.guestEmail,
       start: meetingData.startTime,

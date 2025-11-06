@@ -469,10 +469,10 @@ export async function getUserRoles(workosUserId: string): Promise<string[]> {
 
 2.  **Implement Core Functions**:
 
-                                                                                                                                                                                                - `getUserRoles(workosUserId)` - Get all roles (app + org)
-                                                                                                                                                                                                - `hasRole(workosUserId, role)` - Check single role
-                                                                                                                                                                                                - `hasAnyRole(workosUserId, roles[])` - Check multiple roles
-                                                                                                                                                                                                - `hasPermission(workosUserId, permission)` - Check permission
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `getUserRoles(workosUserId)` - Get all roles (app + org)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `hasRole(workosUserId, role)` - Check single role
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `hasAnyRole(workosUserId, roles[])` - Check multiple roles
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `hasPermission(workosUserId, permission)` - Check permission
 
 3.  **Add Type Definitions**:
     ```typescript
@@ -612,10 +612,10 @@ export async function markStepComplete(step: string) {
 
 2.  **Implement Core Functions**:
 
-                                                                                                                                                                                                - `checkExpertSetupStatus()` - Get current setup progress
-                                                                                                                                                                                                - `markStepComplete(step)` - Mark a step as done
-                                                                                                                                                                                                - `resetSetup()` - Reset all steps (admin only)
-                                                                                                                                                                                                - `getIncompleteExperts()` - Admin analytics
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `checkExpertSetupStatus()` - Get current setup progress
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `markStepComplete(step)` - Mark a step as done
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `resetSetup()` - Reset all steps (admin only)
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `getIncompleteExperts()` - Admin analytics
 
 3.  **Add Validation**:
 ```typescript
@@ -766,10 +766,10 @@ export async function updateUserPreferences(
 
 2.  **Implement Core Functions**:
 
-                                                                                                                                                                                                - `getUserPreferences(userId)` - Get current preferences
-                                                                                                                                                                                                - `updateUserPreferences(userId, prefs)` - Update preferences
-                                                                                                                                                                                                - `resetToDefaults(userId)` - Reset all preferences
-                                                                                                                                                                                                - `getDefaultPreferences()` - Get system defaults
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `getUserPreferences(userId)` - Get current preferences
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `updateUserPreferences(userId, prefs)` - Update preferences
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `resetToDefaults(userId)` - Reset all preferences
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - `getDefaultPreferences()` - Get system defaults
 
 3.  **Add Type Safety**:
     ```typescript
@@ -1461,7 +1461,7 @@ Configure Neon Auth and apply Row-Level Security policies.
 2.  Enable Data API
 3.  Configure Authentication Provider: - Provider: "Other Provider"
 
-                                                                                                                                                                                                - JWKS URL: `https://api.workos.com/sso/jwks/{YOUR_CLIENT_ID}` - JWT Audience: Leave blank or `api://default`
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                - JWKS URL: `https://api.workos.com/sso/jwks/{YOUR_CLIENT_ID}` - JWT Audience: Leave blank or `api://default`
 
 4.  Check: "Grant public schema access to authenticated users"
 5.  Save
@@ -1722,9 +1722,239 @@ SELECT tablename, policyname FROM pg_policies WHERE schemaname = 'public';
 
 ---
 
+## 📝 Outstanding TODOs by Category
+
+### 🚨 CRITICAL - Blocking Migration (Must Complete for Phase 4+)
+
+#### Database Schema (`drizzle/schema-workos.ts`)
+
+- [ ] **Line 131-133**: Remove `firstName` and `lastName` from UsersTable after migration (Phase 5) - fetch from WorkOS API or ProfilesTable instead
+- [ ] **Line 164-165**: Remove `imageUrl` and related fields from UsersTable after migration (Phase 5) - fetch from WorkOS
+- [ ] **Lines 325, 356, 398, 470, 515, 548, 587, 611, 639**: Make `orgId` fields `.notNull()` after Clerk → WorkOS migration complete (Phase 5)
+- [ ] **Line 554**: Rename `expertClerkUserId` to `workosUserId` in PaymentTransfersTable after migration (Phase 5)
+
+#### Username Field Implementation
+
+- [ ] **`components/auth/ProfileAccessControl.tsx:36`**: Implement `getUserByUsername()` once username field is added to UsersTable
+- [ ] **`components/features/expert-setup/SetupCompletePublishCard.tsx:22`**: Get username from database once username field is added
+- [ ] **`app/sitemap.ts:37, 57`**: Re-enable database query once username field is added
+
+**Action Required**: Add `username` field to UsersTable in schema migration
+
+### ⚠️ HIGH PRIORITY - Needed Soon After Migration
+
+#### Webhook Handlers
+
+- [ ] **`app/api/webhooks/stripe/handlers/identity.ts:77`**: Implement webhook-specific step completion that doesn't require auth context
+- [ ] **`app/api/webhooks/stripe/handlers/account.ts:85`**: Implement webhook-specific step completion that doesn't require auth context
+
+#### Expert Setup Migration
+
+- [ ] **`components/_archive/features/expert-setup/ExpertSetupChecklist.tsx:148`**: Update database to reflect Google account disconnection
+- [ ] **`components/_archive/features/expert-setup/ExpertSetupChecklist.tsx:176-181`**: Reimplement with WorkOS/database-backed approach (query database for setup status instead of metadata)
+
+#### Authentication Tracking
+
+- [ ] **`app/api/auth/callback/route.ts:51`**: Track authentication method in analytics
+- [ ] **`app/api/auth/callback/route.ts:57`**: Process custom state (e.g., team invites, feature flags)
+
+### 📊 MEDIUM PRIORITY - Operational Improvements
+
+#### Admin Features
+
+- [ ] **`server/actions/expert-setup.ts:255`**: Add admin permission check to `markStepComplete()`
+- [ ] **`server/actions/expert-setup.ts:295`**: Add authentication and admin permission check to `resetSetup()`
+- [ ] **`server/actions/expert-setup.ts:330`**: Add authentication and admin permission check to `getIncompleteExperts()`
+- [ ] **`lib/integrations/workos/preferences.ts:314`**: Add admin permission check
+
+#### Audit & Monitoring
+
+- [ ] **`lib/utils/server/audit-workos.ts:330`**: Add Sentry/monitoring integration
+- [ ] **`lib/utils/server/audit-workos.ts:455`**: Re-implement export record tracking after adding AuditLogExportsTable to schema-workos.ts
+- [ ] **`lib/utils/server/audit.ts:25`**: Migrate schema field from clerkUserId to workosUserId after WorkOS migration
+- [ ] **`app/api/webhooks/stripe/handlers/payment.ts:361`**: Emit metric/alert for monitoring (BetterStack, PostHog, Sentry)
+- [ ] **`lib/integrations/stripe/identity.ts:428`**: Integrate with monitoring services like Sentry, DataDog, etc.
+- [ ] **`lib/utils/logger.ts:62`**: Send to monitoring service in production
+
+#### Migration Scripts
+
+- [ ] **`scripts/migrate-audit-logs-to-unified.ts:86-137`**: Implement actual user mapping logic and orgId population
+- [ ] **`scripts/verify-legacy-schema.ts:14, 29`**: Re-enable database verification for legacy schema
+- [ ] **`scripts/verify-clerk-legacy-schema.ts:7`**: Re-enable Clerk legacy verification
+
+### 🔧 LOW PRIORITY - Future Enhancements
+
+#### Caching & Performance
+
+- [ ] **`app/[locale]/(public)/legal/[document]/page.tsx:11`**: Migrate to `cacheLife('days')` when next-intl supports cacheComponents
+- [ ] **`app/[locale]/(public)/trust/[document]/page.tsx:11`**: Migrate to `cacheLife('days')` when next-intl supports cacheComponents
+- [ ] **`app/[locale]/(public)/history/page.tsx:16`**: Migrate to `cacheLife('days')` when next-intl supports cacheComponents
+- [ ] **`app/[locale]/(public)/about/page.tsx:21`**: Migrate to `cacheLife('days')` when next-intl supports cacheComponents
+- [ ] **`next.config.ts:46`**: Re-enable after next-intl adds cacheComponents support (expected in Next.js 16.x minor release)
+
+#### Feature Development
+
+- [ ] **`app/(auth)/onboarding/page.tsx:19`**: Add onboarding flow logic here
+- [ ] **`emails/index.ts:32`**: Implement Novu workflow integration
+- [ ] **`tests/server/actions/events.test.ts:8`**: Implement test suite
+- [ ] **`tests/integration/services/security.test.ts:243`**: Fix device recognition logic to properly check deviceHistory
+
+#### Legal & Compliance
+
+- [ ] **`docs/06-legal/platform/03-platform-clarity-updates.md`**: Multiple platform clarity updates (see lines 330, 438, 448, 450)
+
+---
+
+## 🎯 TODO Summary by Phase
+
+### Phase 4: Legacy Data Migration
+
+**Critical TODOs that block this phase:**
+
+- None currently blocking
+
+**TODOs to complete during this phase:**
+
+- Implement user mapping logic in migration scripts
+- Migrate all `orgId` references
+- Rename `expertClerkUserId` to `workosUserId`
+
+### Phase 5: Schema Consolidation
+
+**Critical TODOs for this phase:**
+
+- Remove deprecated fields from UsersTable (`firstName`, `lastName`, `imageUrl`)
+- Make all `orgId` fields `.notNull()`
+- Add `username` field to UsersTable
+- Implement `getUserByUsername()` function
+- Update sitemap generation
+
+### Phase 6: Post-Migration Enhancements
+
+**High priority:**
+
+- Implement webhook-specific step completion
+- Add admin permission checks
+- Integrate monitoring services
+
+**Medium priority:**
+
+- Implement caching improvements
+- Add analytics tracking
+- Complete onboarding flow
+
+---
+
 **Last Updated**: November 5, 2025
 
-**Next Action**: Apply Phase 3 database migration, then start Phase 4 - Legacy Data Migration
+**Session Summary**: Completed comprehensive TODO audit, fixed Next.js 16 proxy migration, resolved username routing issue with `/sign-in`
+
+**Next Action**: Add `username` field to database schema (HIGH PRIORITY), then start Phase 4 - Legacy Data Migration
+
+---
+
+## 🔄 Recent Session Summary (November 5, 2025)
+
+### ✅ Completed
+
+**1. Next.js 16 Proxy Migration**
+
+- Confirmed `proxy.ts` is correctly named (not `middleware.ts`)
+- Updated export function from `middleware` → `proxy`
+- Updated `.cursor/rules/nextjs-core.mdc` with comprehensive proxy documentation
+- Created `docs/WorkOS-migration/NEXT-JS-16-PROXY-MIGRATION.md` with full migration guide
+
+**2. Comprehensive TODO Audit**
+
+- Searched entire codebase for TODO comments
+- Found and categorized 64 TODO items
+- Created `docs/WorkOS-migration/TODO-TRACKING.md` with detailed tracking
+- Added TODO summary to migration plan
+- Updated `docs/WorkOS-migration/README.md` with TODO overview
+
+**3. Username Routing Critical Fix**
+
+- **Problem:** `/sign-in` being caught by `[username]` dynamic route
+- **Solution:** Added `RESERVED_ROUTES` check to prevent route hijacking
+- **Impact:** Sign-in page now works correctly
+- **Documentation:** Created `docs/WorkOS-migration/USERNAME-ROUTING-FIX.md`
+
+**4. WorkOS Auth Hook Fixes**
+
+- Fixed `useAuth()` property: `isLoading` → `loading`
+- Updated `ExpertSetupBanner.tsx` and `ExpertSetupChecklist.tsx`
+- Resolved WorkOS AuthKit TypeScript errors
+
+**5. Build Health Improvements**
+
+- Reduced TypeScript errors from 20+ to 10
+- Fixed security preferences API routes
+- Stubbed out complex components for migration
+- All critical errors in active code resolved
+
+### 📊 TODO Breakdown by Priority
+
+**🚨 Critical (17 items):**
+
+- Database schema updates (13 items)
+- Username field implementation (4 items)
+
+**⚠️ High (9 items):**
+
+- Webhook handlers (2 items)
+- Expert setup migration (2 items)
+- Authentication tracking (2 items)
+- Reserved routes protection (✅ DONE)
+
+**📊 Medium (18 items):**
+
+- Admin features (4 items)
+- Audit & monitoring (6 items)
+- Migration scripts (3 items)
+
+**🔧 Low (20 items):**
+
+- Caching & performance (5 items)
+- Feature development (4 items)
+- Testing (2 items)
+- Legal & compliance (4 items)
+
+### 🎯 Critical Next Steps
+
+**1. USERNAME FIELD (BLOCKS EVERYTHING)**
+
+- Add `username` field to `UsersTable`
+- Implement `getUserByUsername()` function
+- Update sitemap generation
+- Backfill usernames from existing data
+
+**2. Phase 4 Preparation**
+
+- Review migration scripts
+- Prepare user mapping logic
+- Test on development database
+
+**3. Form Component Migration**
+
+- Fix `AccountForm.tsx` (6 errors)
+- Fix `EventForm.tsx` (1 error)
+- Fix `ExpertForm.tsx` (1 error)
+- Fix `SecurityPreferencesForm.tsx` (2 errors)
+
+### 📚 New Documentation Created
+
+1. `BUILD-STATUS.md` - Build health tracking
+2. `docs/WorkOS-migration/NEXT-JS-16-PROXY-MIGRATION.md` - Complete proxy guide
+3. `docs/WorkOS-migration/TODO-TRACKING.md` - Comprehensive TODO tracking (64 items)
+4. `docs/WorkOS-migration/USERNAME-ROUTING-FIX.md` - Reserved routes protection
+5. Updated migration plan with TODO tracking section
+6. Updated README with TODO summary
+
+---
+
+**Last Updated**: November 5, 2025
+
+**Next Action**: Add `username` field to database schema (HIGH PRIORITY), then start Phase 4 - Legacy Data Migration
 
 ### To-dos
 

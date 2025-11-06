@@ -29,12 +29,12 @@ jest.mock('@/lib/integrations/stripe', () => ({
 async function createOrUpdateStripeCustomer({
   email,
   name,
-  clerkUserId,
+  workosUserId,
   stripeCustomerId,
 }: {
   email: string;
   name?: string;
-  clerkUserId: string;
+  workosUserId: string;
   stripeCustomerId?: string;
 }) {
   try {
@@ -43,7 +43,7 @@ async function createOrUpdateStripeCustomer({
       const customer = await mockStripe.customers.update(stripeCustomerId, {
         email,
         name,
-        metadata: { clerkUserId },
+        metadata: { workosUserId },
       });
       return {
         customerId: (customer as any).id,
@@ -54,7 +54,7 @@ async function createOrUpdateStripeCustomer({
       const customer = await mockStripe.customers.create({
         email,
         name,
-        metadata: { clerkUserId },
+        metadata: { workosUserId },
       });
       return {
         customerId: (customer as any).id,
@@ -87,7 +87,7 @@ describe('Stripe Actions', () => {
     const mockCustomerData = {
       email: 'test@example.com',
       name: 'Test User',
-      clerkUserId: 'user_123456',
+      workosUserId: 'user_123456',
     };
 
     it('should create a new customer when no stripeCustomerId is provided', async () => {
@@ -99,7 +99,7 @@ describe('Stripe Actions', () => {
       expect(mockStripe.customers.create).toHaveBeenCalledWith({
         email: mockCustomerData.email,
         name: mockCustomerData.name,
-        metadata: { clerkUserId: mockCustomerData.clerkUserId },
+        metadata: { workosUserId: mockCustomerData.workosUserId },
       });
       expect(result).toEqual({
         customerId: mockCustomer.id,
@@ -120,7 +120,7 @@ describe('Stripe Actions', () => {
       expect(mockStripe.customers.update).toHaveBeenCalledWith(stripeCustomerId, {
         email: mockCustomerData.email,
         name: mockCustomerData.name,
-        metadata: { clerkUserId: mockCustomerData.clerkUserId },
+        metadata: { workosUserId: mockCustomerData.workosUserId },
       });
       expect(result).toEqual({
         customerId: mockCustomer.id,

@@ -55,11 +55,11 @@ function NavUserSkeleton() {
 export function NavUser() {
   const { user } = useAuth();
   const router = useRouter();
-  
+
   const handleSignOut = async () => {
     try {
       await fetch('/api/auth/sign-out', { method: 'POST' });
-      router.push('/sign-in');
+      router.push('/login');
     } catch (error) {
       console.error('Sign out failed:', error);
     }
@@ -77,15 +77,20 @@ export function NavUser() {
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
               <Avatar className="h-8 w-8 shrink-0 rounded-lg">
-                <AvatarImage src={user.imageUrl} alt={user.fullName || ''} />
+                <AvatarImage
+                  src={(user as any)?.profilePictureUrl || (user as any)?.profile_picture_url || ''}
+                  alt={`${user.firstName} ${user.lastName}` || ''}
+                />
                 <AvatarFallback className="rounded-lg">
                   {user.firstName?.[0]}
                   {user.lastName?.[0]}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm">
-                <span className="truncate font-semibold">{user.fullName}</span>
-                <span className="truncate text-xs">{user.primaryEmailAddress?.emailAddress}</span>
+                <span className="truncate font-semibold">
+                  {`${user.firstName || ''} ${user.lastName || ''}`.trim()}
+                </span>
+                <span className="truncate text-xs">{user.email}</span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -102,17 +107,22 @@ export function NavUser() {
                 className="flex items-center gap-2 rounded-md px-1 py-1.5 text-left text-sm transition-colors hover:bg-accent"
               >
                 <Avatar className="h-8 w-8 rounded-lg">
-                  <AvatarImage src={user.imageUrl} alt={user.fullName || ''} />
+                  <AvatarImage
+                    src={
+                      (user as any)?.profilePictureUrl || (user as any)?.profile_picture_url || ''
+                    }
+                    alt={`${user.firstName} ${user.lastName}` || ''}
+                  />
                   <AvatarFallback className="rounded-lg">
                     {user.firstName?.[0]}
                     {user.lastName?.[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="grid flex-1">
-                  <span className="text-sm font-medium text-foreground">{user.fullName}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {user.primaryEmailAddress?.emailAddress}
+                  <span className="text-sm font-medium text-foreground">
+                    {`${user.firstName || ''} ${user.lastName || ''}`.trim()}
                   </span>
+                  <span className="text-xs text-muted-foreground">{user.email}</span>
                 </div>
               </Link>
             </DropdownMenuLabel>
@@ -130,7 +140,7 @@ export function NavUser() {
                   <span>Billing</span>
                 </Link>
               </DropdownMenuItem>
-              <RequireRole roles={['community_expert', 'top_expert']}>
+              <RequireRole roles={['expert_community', 'expert_top']}>
                 <DropdownMenuItem asChild>
                   <Link href="/account/billing">
                     <BanknoteIcon className="mr-2 h-4 w-4" />

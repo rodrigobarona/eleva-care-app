@@ -1,4 +1,6 @@
 import { db } from '@/drizzle/db';
+import { getUserByUsername } from '@/server/db/users';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { notFound } from 'next/navigation';
 import { ReactNode } from 'react';
 
@@ -36,8 +38,8 @@ export async function ProfileAccessControl({
   context = 'ProfileAccessControl',
   additionalPath = '',
 }: ProfileAccessControlProps) {
-  // Fetch user data with caching
-  const user = await getCachedUserByUsername(username);
+  // Fetch user data
+  const user = await getUserByUsername(username);
 
   if (!user) {
     console.log(`[${context}] User not found for username: ${username}`);
@@ -46,7 +48,7 @@ export async function ProfileAccessControl({
 
   // Get profile data to check published status
   const profile = await db.query.ProfilesTable.findFirst({
-    where: ({ workosUserId }, { eq }) => eq(workosUserId, user.id),
+    where: ({ workosUserId }, { eq }) => eq(workosUserId, user.workosUserId),
   });
 
   // Check if profile is published
@@ -55,10 +57,10 @@ export async function ProfileAccessControl({
     console.log(`[${context}] Profile not published for username: ${username}`);
 
     // Get current authenticated user
-    const { userId: currentUserId } = await auth();
+    const { user: currentUser } = await withAuth();
 
     // If profile is not published, only allow access to the profile owner
-    if (!currentUserId || currentUserId !== user.id) {
+    if (!currentUser || currentUser.id !== user.workosUserId) {
       console.log(
         `[${context}] Unauthorized access to unpublished profile: ${username}${pathInfo}`,
       );
@@ -79,14 +81,14 @@ export async function ProfileAccessControl({
  * Use this when you need the user/profile data in your component logic
  */
 export async function getProfileAccessData(username: string) {
-  const user = await getCachedUserByUsername(username);
+  const user = await getUserByUsername(username);
 
   if (!user) {
     return null;
   }
 
   const profile = await db.query.ProfilesTable.findFirst({
-    where: ({ workosUserId }, { eq }) => eq(workosUserId, user.id),
+    where: ({ workosUserId }, { eq }) => eq(workosUserId, user.workosUserId),
   });
 
   return { user, profile };
@@ -107,8 +109,8 @@ export async function checkProfileAccess(username: string): Promise<boolean> {
     if (profile?.published) return true;
 
     // If not published, check if current user is the profile owner
-    const { userId: currentUserId } = await auth();
-    return currentUserId === user.id;
+    const { user: currentUser } = await withAuth();
+    return currentUser?.id === user.workosUserId;
   } catch (error) {
     console.error('Error checking profile access:', error);
     return false;

@@ -18,8 +18,9 @@ export function SetupCompletePublishCard({
   isPublished: initialIsPublished,
   onPublishStatusChange,
 }: SetupCompletePublishCardProps) {
-  const { user } = useAuth();
-  const username = user?.username || '';
+  useAuth();
+  // TODO: Get username from database once username field is added
+  const username = ''; // Placeholder until username is implemented
   const [isPublished, setIsPublished] = useState(initialIsPublished);
 
   // Sync with parent prop changes
@@ -32,8 +33,8 @@ export function SetupCompletePublishCard({
     const pollInterval = setInterval(async () => {
       try {
         const result = await checkExpertSetupStatus();
-        if (result.success && result.isPublished !== undefined) {
-          const newStatus = Boolean(result.isPublished);
+        if (result.isSetupComplete !== undefined) {
+          const newStatus = Boolean(result.isSetupComplete);
           if (newStatus !== isPublished) {
             setIsPublished(newStatus);
             onPublishStatusChange?.(newStatus);

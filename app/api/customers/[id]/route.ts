@@ -17,7 +17,7 @@ export async function GET(_request: NextRequest, props: { params: Promise<{ id: 
   const userId = user?.id;
     const customerId = params.id;
 
-    if (!user) {
+    if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -5,89 +5,17 @@ import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';
 
 /**
- * Service to handle all user synchronization between Clerk, database, and Stripe
+ * Service to handle all user synchronization between WorkOS, database, and Stripe
  * This ensures consistency across all systems
  */
 
 /**
- * Get a user by their Clerk user ID from the database
+ * Get a user by their WorkOS user ID from the database
  */
-export async function getUserByClerkId(workosUserId: string) {
+export async function getUserByWorkOsId(workosUserId: string) {
   return db.query.UsersTable.findFirst({
     where: eq(UsersTable.workosUserId, workosUserId),
   });
-}
-
-/**
- * Get a user from Clerk by their ID using cache
- */
-export async function getUserFromClerk(workosUserId: string) {
-  return getCachedUserById(workosUserId);
-}
-
-/**
- * Creates a user in the database based on Clerk user data
- */
-export async function createUserFromClerk(workosUserId: string) {
-  const clerkUser = await getUserFromClerk(workosUserId);
-
-  if (!clerkUser) {
-    throw new Error(`No Clerk user found with ID: ${workosUserId}`);
-  }
-
-  // Get primary email
-  const primaryEmailObject = clerkUser.emailAddresses.find(
-    (email) => email.id === clerkUser.primaryEmailAddressId,
-  );
-
-  if (!primaryEmailObject) {
-    throw new Error(`No primary email found for Clerk user: ${workosUserId}`);
-  }
-
-  const email = primaryEmailObject.emailAddress;
-
-  // Get name
-  const firstName = clerkUser.firstName;
-  const lastName = clerkUser.lastName;
-
-  // Insert the user
-  const [newUser] = await db
-    .insert(UsersTable)
-    .values({
-      workosUserId,
-      email,
-      firstName,
-      lastName,
-      imageUrl: clerkUser.imageUrl,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .returning();
-
-  console.log('Created new user in database from Clerk:', {
-    id: newUser.id,
-    workosUserId,
-    email,
-    firstName,
-    lastName,
-    fullName: [firstName, lastName].filter(Boolean).join(' '),
-  });
-
-  return newUser;
-}
-
-/**
- * Get user data from the database or create if it doesn't exist
- */
-export async function getOrCreateUserByClerkId(workosUserId: string) {
-  let user = await getUserByClerkId(workosUserId);
-
-  if (!user) {
-    console.log('User not found in database, creating from Clerk:', workosUserId);
-    user = await createUserFromClerk(workosUserId);
-  }
-
-  return user;
 }
 
 /**
@@ -108,16 +36,9 @@ export async function ensureUserStripeCustomer(user: typeof UsersTable.$inferSel
     email: user.email,
   });
 
-  // Construct the full name from first and last name if available
-  let fullName: string | undefined;
-  if (user.firstName || user.lastName) {
-    fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
-    if (fullName.trim() === '') {
-      fullName = undefined;
-    }
-  }
-
-  const customerId = await getOrCreateStripeCustomer(user.id, user.email, fullName);
+  // Note: Name is stored in ProfilesTable, not UsersTable
+  // If you need to pass name to Stripe, fetch it from ProfilesTable or WorkOS User API
+  const customerId = await getOrCreateStripeCustomer(user.id, user.email, undefined);
 
   // Update the user record with the customer ID
   await db
@@ -180,10 +101,10 @@ export async function updateStripeCustomerEmail(customerId: string, email: strin
  * Call this function at critical points in the application
  */
 export async function ensureFullUserSynchronization(workosUserId: string) {
-  // Step 1: Get the user from our database or create if needed
-  const dbUser = await getOrCreateUserByClerkId(workosUserId);
+  // Step 1: Get the user from our database
+  const dbUser = await getUserByWorkOsId(workosUserId);
   if (!dbUser) {
-    console.error('Failed to get or create user in database:', workosUserId);
+    console.error('User not found in database:', workosUserId);
     return null;
   }
 

@@ -320,7 +320,7 @@ export async function updateEventActiveState(
   const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
   const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
-  if (!user) {
+  if (!user || !userId) {
     return { error: true };
   }
 

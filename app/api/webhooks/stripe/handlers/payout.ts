@@ -1,6 +1,6 @@
 import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
 import { addDays, format } from 'date-fns';
 import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';
@@ -30,6 +30,16 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
       return;
     }
 
+    // Fetch expert's profile for professional name
+    const profile = await db.query.ProfilesTable.findFirst({
+      where: eq(ProfilesTable.workosUserId, user.workosUserId),
+    });
+
+    // Use professional name from profile, fallback to username
+    const expertName = profile
+      ? `${profile.firstName} ${profile.lastName}`.trim()
+      : user.username || 'Expert';
+
     // Calculate expected arrival date based on payout arrival_date or estimate
     const arrivalDate = payout.arrival_date
       ? new Date(payout.arrival_date * 1000)
@@ -45,11 +55,12 @@ export async function handlePayoutPaid(payout: Stripe.Payout) {
         to: {
           subscriberId: user.workosUserId,
           email: user.email || 'no-email@eleva.care',
-          firstName: user.firstName || '',
-          lastName: user.lastName || '',
+          firstName: profile?.firstName || '',
+          lastName: profile?.lastName || '',
         },
         payload: {
-          expertName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Expert',
+          // Use professional name from profile
+          expertName,
           payoutAmount: amount,
           currency: 'EUR',
           appointmentDate: format(new Date(), 'EEEE, MMMM d, yyyy'),
@@ -95,6 +106,16 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
       return;
     }
 
+    // Fetch expert's profile for professional name
+    const profile = await db.query.ProfilesTable.findFirst({
+      where: eq(ProfilesTable.workosUserId, user.workosUserId),
+    });
+
+    // Use professional name from profile, fallback to username
+    const expertName = profile
+      ? `${profile.firstName} ${profile.lastName}`.trim()
+      : user.username || 'Expert';
+
     const amount = (payout.amount / 100).toFixed(2);
     const failureReason = payout.failure_message || 'Unknown reason';
 
@@ -105,13 +126,14 @@ export async function handlePayoutFailed(payout: Stripe.Payout) {
         to: {
           subscriberId: user.workosUserId,
           email: user.email || 'no-email@eleva.care',
-          firstName: user.firstName || '',
-          lastName: user.lastName || '',
+          firstName: profile?.firstName || '',
+          lastName: profile?.lastName || '',
         },
         payload: {
           eventType: 'payout-failed',
           amount: `€${amount}`,
-          expertName: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Expert',
+          // Use professional name from profile
+          expertName,
           accountStatus: 'action_required',
           message: `Your payout of €${amount} has failed. Reason: ${failureReason}. Please check your bank account details and contact support if needed.`,
         },

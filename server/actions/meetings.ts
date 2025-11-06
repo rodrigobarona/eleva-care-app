@@ -208,7 +208,11 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
       where: ({ workosUserId, isActive, id }, { eq, and }) =>
         and(eq(isActive, true), eq(workosUserId, data.workosUserId), eq(id, data.eventId)),
       with: {
-        user: true, // Include user data for Novu notifications
+        user: {
+          with: {
+            profile: true, // Include profile for name data in Novu notifications
+          },
+        },
       },
     });
     if (event == null) return { error: true, code: 'EVENT_NOT_FOUND' };
@@ -380,12 +384,13 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
           to: {
             subscriberId: data.workosUserId, // Expert's WorkOS ID
             email: event.user?.email || undefined,
-            firstName: event.user?.firstName || undefined,
-            lastName: event.user?.lastName || undefined,
+            firstName: event.user?.profile?.firstName || undefined,
+            lastName: event.user?.profile?.lastName || undefined,
           },
           payload: {
             expertName:
-              `${event.user?.firstName || ''} ${event.user?.lastName || ''}`.trim() || 'Expert',
+              `${event.user?.profile?.firstName || ''} ${event.user?.profile?.lastName || ''}`.trim() ||
+              'Expert',
             clientName: data.guestName,
             appointmentDate: appointmentDateForExpert, // ✅ Expert's timezone
             appointmentTime: appointmentTimeForExpert, // ✅ Expert's timezone

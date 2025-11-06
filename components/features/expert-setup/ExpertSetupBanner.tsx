@@ -8,8 +8,8 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 export function ExpertSetupBanner() {
-  const { user, loading } = useAuth();
-  const isLoaded = !loading;
+  const { user, loading: authLoading } = useAuth();
+  const isLoaded = !authLoading;
   const [isComplete, setIsComplete] = useState(true);
   const [loading, setLoading] = useState(true);
   const [completionPercentage, setCompletionPercentage] = useState(0);
@@ -22,7 +22,7 @@ export function ExpertSetupBanner() {
         setLoading(true);
         const result = await checkExpertSetupStatus();
 
-        if (result.success && result.setupStatus) {
+        if (result.setupStatus) {
           // Count completed steps
           const requiredSteps = [
             'profile',

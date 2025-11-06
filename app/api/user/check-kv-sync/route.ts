@@ -37,18 +37,16 @@ export async function GET() {
 
     console.log('Checking KV sync status for user:', {
       userId,
-      email: user.emailAddresses[0]?.emailAddress,
+      email: user.email,
     });
 
     // Get customer ID from unified CustomerCache (first step)
     const customerId = await CustomerCache.getCustomerByUserId(userId);
 
-    // Get the user's primary email
-    const primaryEmail = user.emailAddresses.find(
-      (email) => email.id === user.primaryEmailAddressId,
-    )?.emailAddress;
+    // Get the user's email
+    const primaryEmail = user.email;
 
-    // Check if basic user data exists in KV and matches Clerk data
+    // Check if basic user data exists in KV and matches WorkOS data
     const firstName = user.firstName || '';
     const lastName = user.lastName || '';
     const fullName = [firstName, lastName].filter(Boolean).join(' ');

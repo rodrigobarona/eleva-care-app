@@ -13,11 +13,13 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
+import { useUserProfile } from '@/hooks/use-user-profile';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { Loader2 } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { toast } from 'sonner';
 
@@ -31,10 +33,11 @@ const profileFormSchema = z.object({
 type AccountFormValues = z.infer<typeof profileFormSchema>;
 
 export function AccountForm() {
-  const { user, loading } = useAuth();
-  const isLoaded = !loading;
-  const [isLoading, setIsLoading] = useState(false);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const router = useRouter();
+  const { user } = useAuth();
+  const { profile: dbUser, isLoading: isLoadingProfile, refresh } = useUserProfile(); // Centralized hook with caching
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false);
 
   const form = useForm<AccountFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -46,16 +49,17 @@ export function AccountForm() {
     },
   });
 
+  // Update form when profile data is loaded
   React.useEffect(() => {
-    if (isLoaded && user) {
+    if (dbUser && user) {
       form.reset({
-        username: user.username || '',
-        firstName: user.firstName || '',
-        lastName: user.lastName || '',
-        email: user.primaryEmailAddress?.emailAddress || '',
+        username: dbUser.username || '',
+        firstName: dbUser.firstName || '',
+        lastName: dbUser.lastName || '',
+        email: user.email || '',
       });
     }
-  }, [isLoaded, user, form]);
+  }, [dbUser, user, form]);
 
   // Add protection against unsaved changes
   useEffect(() => {
@@ -73,12 +77,27 @@ export function AccountForm() {
   async function onSubmit(values: AccountFormValues) {
     setIsLoading(true);
     try {
-      await user?.update({
-        firstName: values.firstName,
-        lastName: values.lastName,
-        username: values.username,
+      // Update user profile via API (WorkOS doesn't have user.update())
+      const response = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: values.firstName,
+          lastName: values.lastName,
+          username: values.username,
+        }),
       });
+
+      if (!response.ok) {
+        throw new Error('Failed to update profile');
+      }
+
       toast.success('Profile updated successfully');
+      
+      // Refresh user profile data (Next.js 16 best practice)
+      refresh(); // Clear cache and refetch
+      router.refresh(); // Revalidate server components
+      
       // Mark form as pristine with current values
       form.reset(values);
     } catch (error: unknown) {
@@ -105,8 +124,24 @@ export function AccountForm() {
 
     setIsUploadingAvatar(true);
     try {
-      await user?.setProfileImage({ file });
+      // WorkOS doesn't have setProfileImage - use API endpoint
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/user/avatar', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload avatar');
+      }
+
       toast.success('Avatar updated successfully');
+
+      // Refresh user data (Next.js 16 best practice)
+      refresh(); // Clear cache and refetch profile
+      router.refresh(); // Revalidate server components
     } catch (error) {
       toast.error(
         `Failed to update avatar: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -134,10 +169,18 @@ export function AccountForm() {
             <div className="rounded-lg border border-eleva-neutral-200 bg-eleva-neutral-100/50 p-6">
               <div className="flex items-center gap-x-6">
                 <Avatar className="h-20 w-20">
-                  <AvatarImage src={user?.imageUrl} alt={user?.username || ''} />
+                  <AvatarImage
+                    src={
+                      dbUser?.imageUrl ||
+                      (user as any)?.profilePictureUrl ||
+                      (user as any)?.profile_picture_url ||
+                      ''
+                    }
+                    alt={dbUser?.username || dbUser?.email || ''}
+                  />
                   <AvatarFallback className="bg-eleva-primary/10 text-eleva-primary">
-                    {user?.firstName?.charAt(0)}
-                    {user?.lastName?.charAt(0)}
+                    {dbUser?.firstName?.charAt(0) || user?.firstName?.charAt(0)}
+                    {dbUser?.lastName?.charAt(0) || user?.lastName?.charAt(0)}
                   </AvatarFallback>
                 </Avatar>
                 <div>

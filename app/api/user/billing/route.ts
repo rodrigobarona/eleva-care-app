@@ -19,7 +19,7 @@ export async function GET() {
     // Get the authenticated user ID
     const { user } = await withAuth();
     const userId = user?.id;
-    workosUserId = userId;
+    workosUserId = userId ?? null;
     console.log('Auth check result:', { userId, hasId: !!userId });
 
     if (!user || !userId) {

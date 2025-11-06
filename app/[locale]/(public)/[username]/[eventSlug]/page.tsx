@@ -153,8 +153,6 @@ async function CalendarWithAvailability({
     id: string;
     workosUserId: string;
     email: string;
-    firstName: string | null;
-    lastName: string | null;
     imageUrl: string | null;
   };
   locale: string;
@@ -284,7 +282,7 @@ async function CalendarWithAvailability({
   const validTimes = await getValidTimesFromSchedule(timeSlots, event, calendarEvents);
 
   if (validTimes.length === 0) {
-    return <NoTimeSlots calendarUser={calendarUser} username={username} _locale={locale} />;
+    return <NoTimeSlots username={username} _locale={locale} />;
   }
 
   // Fetch blocked dates for this user
@@ -299,12 +297,8 @@ async function CalendarWithAvailability({
       price={price}
       username={username}
       eventSlug={eventSlug}
-      expertName={
-        calendarUser.firstName
-          ? `${calendarUser.firstName} ${calendarUser.lastName || ''}`.trim()
-          : 'Expert'
-      }
-      expertImageUrl={calendarUser.imageUrl || '/placeholder-avatar.jpg'}
+      expertName={username}
+      expertImageUrl={'/placeholder-avatar.jpg'} // TODO: Fetch from ProfilesTable if needed
       eventTitle={event.name}
       eventDescription={event.description || 'Book a consultation session'}
       eventDuration={event.durationInMinutes}
@@ -322,26 +316,16 @@ function CalendarLoadingSkeleton() {
   return <BookingLoadingSkeleton />;
 }
 
-function NoTimeSlots({
-  calendarUser,
-  username,
-  _locale,
-}: {
-  calendarUser: { id: string; firstName: string | null; lastName: string | null };
-  username: string;
-  _locale: string;
-}) {
-  const expertName = calendarUser.firstName 
-    ? `${calendarUser.firstName} ${calendarUser.lastName || ''}`.trim()
-    : 'This expert';
-    
+function NoTimeSlots({ username, _locale }: { username: string; _locale: string }) {
+  // Use username for display (professional name would come from ProfilesTable if needed)
+  const expertName = 'This expert';
+
   return (
     <Card className="mx-auto max-w-lg">
       <CardHeader>
         <CardTitle>No Available Time Slots</CardTitle>
         <CardDescription>
-          {expertName} doesn&apos;t have any available time slots in the
-          next two months.
+          {expertName} doesn&apos;t have any available time slots in the next two months.
         </CardDescription>
       </CardHeader>
       <CardContent className="text-muted-foreground">

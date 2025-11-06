@@ -128,9 +128,14 @@ export const UsersTable = pgTable(
     workosUserId: text('workos_user_id').notNull().unique(),
     email: text('email').notNull(),
 
-    // TODO: Remove after migration - fetch from WorkOS API or ProfilesTable (Phase 5)
-    firstName: text('first_name'),
-    lastName: text('last_name'),
+    // Username - unique identifier for public profile URLs
+    // Format: lowercase, alphanumeric + underscore/dash only (e.g., 'dr-maria', 'john_smith')
+    // Used for: /[username] routes, profile links, @mentions
+    username: text('username').unique(),
+
+    // ✅ Phase 5: firstName/lastName removed - fetch from WorkOS User API
+    // Use: workos.userManagement.getUser(workosUserId) to get name
+    // For public display: Use ProfilesTable.firstName/lastName
 
     // Application role (Phase 3: Roles & Permissions)
     // WorkOS membership roles are stored in UserOrgMembershipsTable
@@ -166,12 +171,28 @@ export const UsersTable = pgTable(
     welcomeEmailSentAt: timestamp('welcome_email_sent_at'),
     onboardingCompletedAt: timestamp('onboarding_completed_at'),
 
+    // Google OAuth integration (via WorkOS OAuth provider)
+    // 🔐 Security: All tokens ENCRYPTED at rest using AES-256-GCM
+    // Uses same encryption as medical records (lib/utils/encryption.ts)
+    // Requires ENCRYPTION_KEY environment variable
+    googleAccessToken: text('google_access_token'), // Encrypted access token (JSON: {encryptedContent, iv, tag})
+    googleRefreshToken: text('google_refresh_token'), // Encrypted refresh token (long-lived, SENSITIVE)
+    googleTokenExpiry: timestamp('google_token_expiry'), // When access token expires (NOT encrypted)
+    googleCalendarConnected: boolean('google_calendar_connected').default(false), // Quick check
+    googleCalendarConnectedAt: timestamp('google_calendar_connected_at'), // First connection timestamp
+
+    // User preferences (merged from UserPreferencesTable for simplicity)
+    // NOTE: Notification/security preferences are managed by WorkOS AuthKit and Novu
+    theme: text('theme').notNull().default('light').$type<'light' | 'dark' | 'system'>(),
+    language: text('language').notNull().default('en').$type<'en' | 'es' | 'pt' | 'br'>(),
+
     createdAt,
     updatedAt,
   },
   (table) => ({
     workosUserIdIndex: index('users_workos_user_id_idx').on(table.workosUserId),
     emailIndex: index('users_email_idx').on(table.email),
+    usernameIndex: index('users_username_idx').on(table.username),
     stripeCustomerIdIndex: index('users_stripe_customer_id_idx').on(table.stripeCustomerId),
   }),
 );
@@ -264,50 +285,17 @@ export const ExpertSetupTable = pgTable(
 );
 
 /**
- * User Preferences Table
+ * ⚠️ REMOVED: User Preferences Table
  *
- * Stores user preferences and settings (replaces Clerk publicMetadata).
+ * This table has been removed in favor of storing preferences directly in UsersTable.
+ * Preferences (theme, language) are now columns in the users table.
  *
- * Benefits over Clerk metadata:
- * - Queryable: Can filter by preferences
- * - Indexed: Fast queries for notifications, etc.
- * - Type-safe: Schema validation
- * - Unlimited: No 32KB limit
- * - Versioned: Track changes with updatedAt
+ * Migration: Run the migration SQL to:
+ * 1. Copy data from user_preferences to users (theme, language)
+ * 2. Drop the user_preferences table
+ *
+ * NOTE: Notification preferences are managed by Novu Inbox widget natively.
  */
-export const UserPreferencesTable = pgTable(
-  'user_preferences',
-  {
-    id: uuid('id').primaryKey().defaultRandom(),
-    workosUserId: text('workos_user_id')
-      .notNull()
-      .unique()
-      .references(() => UsersTable.workosUserId, { onDelete: 'cascade' }),
-    orgId: uuid('org_id').references(() => OrganizationsTable.id, { onDelete: 'cascade' }),
-
-    // Security preferences
-    securityAlerts: boolean('security_alerts').notNull().default(true),
-    newDeviceAlerts: boolean('new_device_alerts').notNull().default(false),
-    emailNotifications: boolean('email_notifications').notNull().default(true),
-    inAppNotifications: boolean('in_app_notifications').notNull().default(true),
-    unusualTimingAlerts: boolean('unusual_timing_alerts').notNull().default(true),
-    locationChangeAlerts: boolean('location_change_alerts').notNull().default(true),
-
-    // UI preferences
-    theme: text('theme').notNull().default('light').$type<'light' | 'dark' | 'system'>(),
-    language: text('language').notNull().default('en').$type<'en' | 'es' | 'pt' | 'br'>(),
-
-    // Timestamps
-    createdAt,
-    updatedAt,
-  },
-  (table) => ({
-    // 🔒 RLS: Applied via SQL migration (drizzle/migrations-manual/002_phase3_enable_rls.sql)
-    // Policies: Users can only access their own preferences (matched by workos_user_id)
-    userIdIndex: index('user_preferences_user_id_idx').on(table.workosUserId),
-    orgIdIndex: index('user_preferences_org_id_idx').on(table.orgId),
-  }),
-);
 
 // ============================================================================
 // APPLICATION TABLES (With Org Scoping + RLS)
@@ -722,7 +710,13 @@ export type AuditEventAction =
   | 'COMPLIANCE_REPORT_GENERATED'
   | 'AUDIT_LOG_EXPORTED'
   | 'GDPR_DATA_REQUEST'
-  | 'GDPR_DATA_DELETION';
+  | 'GDPR_DATA_DELETION'
+  // Integrations
+  | 'google_calendar.connection_initiated'
+  | 'google_calendar.connected'
+  | 'google_calendar.connection_failed'
+  | 'google_calendar.disconnected'
+  | 'google_calendar.token_refreshed';
 
 export type AuditResourceType =
   | 'medical_record'
@@ -736,7 +730,8 @@ export type AuditResourceType =
   | 'user'
   | 'subscription'
   | 'security'
-  | 'compliance';
+  | 'compliance'
+  | 'integration';
 
 /**
  * Audit Logs Table

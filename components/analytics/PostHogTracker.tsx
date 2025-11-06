@@ -1,6 +1,6 @@
 'use client';
 
-import { usePostHogEvents, usePostHogFeatureFlag } from '@/lib/hooks/usePostHog';
+import { usePostHogEvents, usePostHogFeatureFlag } from '@/hooks/usePostHog';
 import React, { useEffect, useRef } from 'react';
 
 // PostHog Type Definitions

@@ -8,8 +8,8 @@ export async function GET(request: Request, props: { params: Promise<{ email: st
   const params = await props.params;
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
-    if (!user) {
+    const userId = user?.id;
+    if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

@@ -67,10 +67,10 @@ type ErrorResult = {
 type PayoutResult = SuccessResult | ErrorResult;
 
 // Type for the expert user data needed for payouts
+// Note: firstName/lastName removed (Phase 5) - use username or fetch from WorkOS API if needed
 type ExpertUserForPayout = {
   workosUserId: string;
-  firstName: string | null;
-  lastName: string | null;
+  username: string | null;
   email: string;
   stripeConnectAccountId: string | null;
 };
@@ -258,8 +258,7 @@ export async function GET(request: Request) {
       columns: {
         workosUserId: true,
         stripeConnectAccountId: true,
-        firstName: true,
-        lastName: true,
+        username: true,
         email: true,
       },
     });
@@ -637,8 +636,8 @@ async function sendPayoutNotification(
     // Get real appointment and client data
     const meetingData = await db
       .select({
-        clientName: UsersTable.firstName,
-        clientLastName: UsersTable.lastName,
+        // Note: Use guest name from MeetingsTable, not from UsersTable (guest may not have account)
+        clientName: MeetingsTable.guestName,
         serviceName: EventsTable.name,
         appointmentDate: MeetingsTable.startTime,
       })
@@ -647,16 +646,12 @@ async function sendPayoutNotification(
         MeetingsTable,
         eq(MeetingsTable.stripePaymentIntentId, PaymentTransfersTable.paymentIntentId),
       )
-      .leftJoin(UsersTable, eq(UsersTable.workosUserId, MeetingsTable.workosUserId))
       .leftJoin(EventsTable, eq(EventsTable.id, PaymentTransfersTable.eventId))
       .where(eq(PaymentTransfersTable.id, transfer.id))
       .limit(1);
 
     const meeting = meetingData[0];
-    const clientName =
-      meeting?.clientName && meeting?.clientLastName
-        ? `${meeting.clientName} ${meeting.clientLastName}`
-        : 'Client';
+    const clientName = meeting?.clientName || 'Client';
     const serviceName = meeting?.serviceName || 'Consultation';
     const appointmentDate = meeting?.appointmentDate || transfer.sessionStartTime;
     const appointmentTime = appointmentDate.toLocaleTimeString('en-GB', {
@@ -667,7 +662,7 @@ async function sendPayoutNotification(
 
     await createPayoutCompletedNotification({
       userId: transfer.expertClerkUserId,
-      expertName: `${expertUser.firstName} ${expertUser.lastName}`,
+      expertName: expertUser.username || expertUser.email,
       clientName,
       serviceName,
       appointmentDate: appointmentDate.toISOString().split('T')[0],
@@ -698,7 +693,8 @@ async function sendStripeVerificationNotification(
   try {
     await createPayoutCompletedNotification({
       userId: expertUser.workosUserId,
-      expertName: `${expertUser.firstName} ${expertUser.lastName}`,
+      // Use username for balance verification notifications (internal process)
+      expertName: expertUser.username || expertUser.email,
       clientName: 'Various Clients',
       serviceName: 'Account Balance Verification',
       appointmentDate: new Date().toISOString().split('T')[0],

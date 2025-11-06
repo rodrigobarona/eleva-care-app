@@ -29,7 +29,7 @@ export async function toggleProfilePublication() {
   }
 
   // Check if user has expert role
-  const isExpert = (await hasRole('community_expert')) || (await hasRole('top_expert'));
+  const isExpert = (await hasRole('expert_community')) || (await hasRole('expert_top'));
   if (!isExpert) {
     return { success: false, message: 'Not authorized', isPublished: false };
   }

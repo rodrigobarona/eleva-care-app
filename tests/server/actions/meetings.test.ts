@@ -136,6 +136,7 @@ describe('Meeting Actions', () => {
   const mockEvent: DbEvent = {
     id: '123e4567-e89b-12d3-a456-426614174000',
     workosUserId: 'user-123',
+    orgId: null,
     name: 'Test Event',
     slug: 'test-event',
     description: 'Test Description',
@@ -152,8 +153,11 @@ describe('Meeting Actions', () => {
 
   const mockMeeting: DbMeeting = {
     id: 'meeting-123',
+    orgId: null,
     eventId: validMeetingData.eventId,
     workosUserId: validMeetingData.workosUserId,
+    guestWorkosUserId: null,
+    guestOrgId: null,
     guestEmail: validMeetingData.guestEmail,
     guestName: validMeetingData.guestName,
     guestNotes: null,
@@ -166,18 +170,10 @@ describe('Meeting Actions', () => {
     stripePaymentStatus: validMeetingData.stripePaymentStatus,
     stripeAmount: validMeetingData.stripeAmount,
     stripeApplicationFeeAmount: null,
-    stripeRefundId: null,
-    stripeMetadata: null,
     stripeTransferId: null,
     stripeTransferAmount: null,
     stripeTransferStatus: 'pending',
     stripeTransferScheduledAt: null,
-    stripePayoutId: null,
-    stripePayoutAmount: null,
-    stripePayoutFailureCode: null,
-    stripePayoutFailureMessage: null,
-    stripePayoutPaidAt: null,
-    lastProcessedAt: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

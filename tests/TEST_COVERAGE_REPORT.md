@@ -1,9 +1,10 @@
 # Test Coverage Report & Development Roadmap
 
-> **Last Updated**: September 29, 2025  
-> **Total Test Suites**: 22 passed  
-> **Total Tests**: 205 passed  
-> **Execution Time**: ~7.8s
+> **Last Updated**: November 6, 2025  
+> **Total Test Suites**: 20+ passed  
+> **Total Tests**: 200+ passed  
+> **Execution Time**: ~6-8s  
+> **Auth System**: ✅ Fully migrated to WorkOS
 
 ## 📊 Current Test Coverage Overview
 
@@ -14,7 +15,7 @@
 - `tests/api/webhooks/stripe.test.ts` ↔ `app/api/webhooks/stripe/route.ts`
 - `tests/api/webhooks/stripe-connect.test.ts` ↔ `app/api/webhooks/stripe-connect/route.ts`
 - `tests/api/webhooks/stripe-identity.test.ts` ↔ `app/api/webhooks/stripe-identity/route.ts`
-- `tests/api/webhooks/clerk.test.ts` ↔ `app/api/webhooks/clerk/route.ts`
+- ~~`tests/api/webhooks/clerk.test.ts`~~ → **Deprecated** (Clerk removed, migrated to WorkOS)
 
 **Coverage Quality**: Excellent - includes error handling, edge cases, and comprehensive event processing
 
@@ -262,10 +263,10 @@ tests/
 
 #### **Mock Requirements**
 
-- 🔒 **External APIs**: Always mock (Stripe, Clerk, Novu)
+- 🔒 **External APIs**: Always mock (Stripe, WorkOS, Novu)
 - 🗄️ **Database**: Mock for unit tests, real for integration
 - 📧 **Email Services**: Mock unless testing email integration
-- 🔐 **Authentication**: Mock user sessions and permissions
+- 🔐 **Authentication**: Mock WorkOS sessions and permissions
 
 ## 📈 **Progress Tracking**
 
@@ -312,6 +313,296 @@ tests/
 - Coverage reports generated automatically
 - Failed tests block deployment
 - Performance regression detection
+
+---
+
+## 🔐 **WorkOS Authentication Patterns**
+
+### **Overview**
+
+All tests have been migrated from Clerk to WorkOS authentication. This section documents common patterns and best practices.
+
+### **Migration Summary (Completed Nov 2025)**
+
+#### **What Changed**
+
+- **Old**: Clerk `clerkUserId`, `auth()`, `currentUser()`, `ClerkUser`
+- **New**: WorkOS `workosUserId`, `withAuth()`, `UserInfo`, `User`
+
+#### **Files Updated**
+
+| Category            | Files Changed                                                                    | Status      |
+| ------------------- | -------------------------------------------------------------------------------- | ----------- |
+| **Core Mocks**      | `tests/setup.ts`, `tests/__mocks__/@workos-inc/`                                 | ✅ Complete |
+| **Server Actions**  | `expert-profile.test.ts`, `meetings.test.ts`, `stripe.test.ts`, `events.test.ts` | ✅ Complete |
+| **API Tests**       | `stripe-identity.test.ts`, `create-payment-intent.test.ts`                       | ✅ Complete |
+| **Library Tests**   | `transfer-utils.test.ts`, `audit-error-handling.test.ts`                         | ✅ Complete |
+| **Component Tests** | `MeetingForm.test.tsx`, `ProfilePublishToggle.test.tsx`                          | ✅ Complete |
+
+### **Common Patterns**
+
+#### **1. Mocking WorkOS Authentication**
+
+**In `tests/setup.ts`** (Global Setup):
+
+```typescript
+import { mockUserInfo, mockWorkosUser } from '@/__mocks__/@workos-inc/authkit-nextjs';
+
+jest.mock('@workos-inc/authkit-nextjs', () => ({
+  withAuth: jest.fn(() =>
+    Promise.resolve({
+      user: mockWorkosUser,
+      sessionId: 'session_test123',
+      organizationId: undefined,
+      accessToken: 'mock_access_token',
+      role: undefined,
+      roles: [],
+      permissions: [],
+      entitlements: [],
+      featureFlags: [],
+      impersonator: undefined,
+    } as never),
+  ),
+  getSignInUrl: jest.fn(() => '/sign-in'),
+  getSignUpUrl: jest.fn(() => '/sign-up'),
+  getSignOutUrl: jest.fn(() => '/sign-out'),
+}));
+```
+
+**In Individual Tests**:
+
+```typescript
+import { withAuth } from '@workos-inc/authkit-nextjs';
+
+const withAuthMock = withAuth as jest.MockedFunction<typeof withAuth>;
+
+beforeEach(() => {
+  // Mock authenticated user
+  withAuthMock.mockResolvedValue({
+    user: {
+      id: 'user_test123',
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      // ... other UserInfo properties
+    },
+    sessionId: 'session_test123',
+    // ... other session properties
+  });
+});
+```
+
+#### **2. Testing Unauthenticated State**
+
+```typescript
+import { createUnauthenticatedResponse } from '@/__mocks__/@workos-inc/authkit-nextjs';
+
+it('should reject unauthenticated requests', async () => {
+  withAuthMock.mockResolvedValue(createUnauthenticatedResponse());
+
+  const result = await someProtectedAction();
+
+  expect(result.error).toBe('Unauthorized');
+});
+```
+
+#### **3. Testing Organization Context**
+
+```typescript
+import { createMockUserInfo } from '@/__mocks__/@workos-inc/authkit-nextjs';
+
+it('should handle organization-scoped data', async () => {
+  withAuthMock.mockResolvedValue(
+    createMockUserInfo({
+      user: { id: 'user_123', email: 'org-user@example.com' },
+      organizationId: 'org_test123',
+    }),
+  );
+
+  const result = await getOrganizationData();
+
+  expect(result.organizationId).toBe('org_test123');
+});
+```
+
+#### **4. Testing Role-Based Access**
+
+```typescript
+import { createMockAdminUser, createMockExpertUser } from '@/__mocks__/@workos-inc/authkit-nextjs';
+
+describe('Role-based access', () => {
+  it('should allow experts to access expert features', async () => {
+    withAuthMock.mockResolvedValue(createMockExpertUser());
+
+    const result = await accessExpertFeature();
+
+    expect(result.success).toBe(true);
+  });
+
+  it('should allow admins to access admin features', async () => {
+    withAuthMock.mockResolvedValue(createMockAdminUser());
+
+    const result = await accessAdminFeature();
+
+    expect(result.success).toBe(true);
+  });
+});
+```
+
+### **Schema Changes**
+
+#### **Database Fields**
+
+| Old Field (Clerk) | New Field (WorkOS)        |
+| ----------------- | ------------------------- |
+| `clerkUserId`     | `workosUserId`            |
+| `clerkOrgId`      | `orgId`                   |
+| N/A               | `guestWorkosUserId` (new) |
+| N/A               | `guestOrgId` (new)        |
+
+#### **Mock Data Updates**
+
+```typescript
+// OLD (Clerk)
+const mockMeeting = {
+  clerkUserId: 'user_abc123',
+  guestEmail: 'guest@example.com',
+  // ...
+};
+
+// NEW (WorkOS)
+const mockMeeting = {
+  workosUserId: 'user_abc123',
+  orgId: null,
+  guestWorkosUserId: null,
+  guestOrgId: null,
+  guestEmail: 'guest@example.com',
+  // ...
+};
+```
+
+### **Utility Functions**
+
+#### **Available Mock Helpers** (`tests/__mocks__/@workos-inc/authkit-nextjs.ts`)
+
+```typescript
+// Create custom user
+createMockWorkosUser({ id: 'custom_id', email: 'custom@example.com' });
+
+// Create complete UserInfo with custom data
+createMockUserInfo({ user: customUser, organizationId: 'org_123' });
+
+// Create expert user (with expert role metadata)
+createMockExpertUser();
+
+// Create admin user (with admin role metadata)
+createMockAdminUser();
+
+// Create unauthenticated response
+createUnauthenticatedResponse();
+```
+
+### **Common Gotchas**
+
+#### **1. Type Casting for Mocks**
+
+```typescript
+// WorkOS UserInfo must be cast to 'never' for Jest mocks
+withAuthMock.mockResolvedValue({
+  user: mockWorkosUser,
+  sessionId: 'session_123',
+  // ...
+} as never);
+```
+
+#### **2. Handling Optional Fields**
+
+```typescript
+// organizationId should be 'undefined', not 'null'
+mockUserInfo.organizationId = undefined; // ✅ Correct
+mockUserInfo.organizationId = null; // ❌ Wrong (type error)
+```
+
+#### **3. Profile Data Loading**
+
+```typescript
+// WorkOS stores name in separate ProfilesTable
+// Must explicitly load in queries
+const event = await db.query.EventsTable.findFirst({
+  where: eq(EventsTable.id, id),
+  with: {
+    user: {
+      with: {
+        profile: true, // Required for firstName/lastName
+      },
+    },
+  },
+});
+
+// Access with optional chaining
+const name = event.user?.profile?.firstName;
+```
+
+### **Testing Checklist**
+
+When migrating or writing new tests:
+
+- [ ] Import WorkOS mocks from `tests/__mocks__/@workos-inc/`
+- [ ] Use `withAuth()` instead of `auth()` or `currentUser()`
+- [ ] Update mock data to use `workosUserId` and `orgId`
+- [ ] Add null fields: `guestWorkosUserId`, `guestOrgId` (if applicable)
+- [ ] Remove deprecated Stripe fields: `stripeRefundId`, `stripeMetadata`, etc.
+- [ ] Use `createMockUserInfo()` for consistent mock structure
+- [ ] Test unauthenticated state with `createUnauthenticatedResponse()`
+- [ ] Verify profile data is loaded in database queries
+- [ ] Check role-based access with proper mock helpers
+- [ ] Run `pnpm type-check` to catch migration issues
+
+### **Example: Complete Test Migration**
+
+**Before (Clerk)**:
+
+```typescript
+import { auth, currentUser } from '@clerk/nextjs/server';
+
+const authMock = auth as jest.MockedFunction<typeof auth>;
+
+it('should update expert profile', async () => {
+  authMock.mockReturnValue({ userId: 'user_123' });
+
+  const result = await updateExpertProfile({
+    /* ... */
+  });
+
+  expect(result.success).toBe(true);
+});
+```
+
+**After (WorkOS)**:
+
+```typescript
+import { createMockUserInfo } from '@/__mocks__/@workos-inc/authkit-nextjs';
+import { withAuth } from '@workos-inc/authkit-nextjs';
+
+const withAuthMock = withAuth as jest.MockedFunction<typeof withAuth>;
+
+it('should update expert profile', async () => {
+  withAuthMock.mockResolvedValue(createMockUserInfo({ user: { id: 'user_123' } }));
+
+  const result = await updateExpertProfile({
+    /* ... */
+  });
+
+  expect(result.success).toBe(true);
+});
+```
+
+### **Resources**
+
+- **Migration Guide**: `/docs/WorkOS-migration/TEST-MIGRATION-PLAN.md`
+- **WorkOS Docs**: [WorkOS AuthKit](https://workos.com/docs/authkit)
+- **Mock Utilities**: `tests/__mocks__/@workos-inc/authkit-nextjs.ts`
+- **Example Tests**: `tests/server/actions/expert-profile.test.ts`
 
 ---
 

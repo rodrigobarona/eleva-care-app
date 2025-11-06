@@ -1,6 +1,6 @@
 import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
-import { EventsTable, MeetingsTable, UsersTable } from '@/drizzle/schema-workos';
+import { EventsTable, MeetingsTable, ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';
 import { and, between, eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -40,14 +40,16 @@ async function getUpcomingAppointments(): Promise<Appointment[]> {
         meetingUrl: MeetingsTable.meetingUrl,
         eventName: EventsTable.name,
         expertClerkId: EventsTable.workosUserId,
-        // Expert info
-        expertFirstName: UsersTable.firstName,
-        expertLastName: UsersTable.lastName,
+        // Expert info from UsersTable
         expertCountry: UsersTable.country,
+        // Expert professional name from ProfilesTable (for email display)
+        expertFirstName: ProfilesTable.firstName,
+        expertLastName: ProfilesTable.lastName,
       })
       .from(MeetingsTable)
       .innerJoin(EventsTable, eq(EventsTable.id, MeetingsTable.eventId))
       .innerJoin(UsersTable, eq(UsersTable.workosUserId, EventsTable.workosUserId))
+      .innerJoin(ProfilesTable, eq(ProfilesTable.workosUserId, EventsTable.workosUserId))
       .where(
         and(
           between(MeetingsTable.startTime, in1Hour, in75Minutes),

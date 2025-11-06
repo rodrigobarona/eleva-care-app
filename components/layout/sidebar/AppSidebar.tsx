@@ -14,7 +14,7 @@ import {
   SidebarMenuItem,
 } from '@/components/layout/sidebar/sidebar';
 import { useIsExpert } from '@/components/shared/providers/AuthorizationProvider';
-import { useAuth } from '@workos-inc/authkit-nextjs/components';
+import { useUsername } from '@/hooks/use-user-profile';
 import { Bell, Calendar, ExternalLink, Leaf, LifeBuoy, type LucideIcon, User } from 'lucide-react';
 import { Link as LinkIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -62,8 +62,8 @@ const mainItems: SidebarItem[] = [
 ];
 
 export function AppSidebar() {
-  const { user } = useAuth();
   const isExpert = useIsExpert();
+  const { username } = useUsername(); // Centralized hook with caching
 
   // Build secondary items conditionally
   const secondaryItems: SidebarItem[] = [
@@ -73,11 +73,11 @@ export function AppSidebar() {
       icon: Bell,
     },
     // Only include Public Expert Profile if user has the required role
-    ...(isExpert && user?.username
+    ...(isExpert && username
       ? [
           {
             title: 'Public Expert Profile',
-            url: `/${user.username}`,
+            url: `/${username}`,
             icon: ExternalLink,
           },
         ]

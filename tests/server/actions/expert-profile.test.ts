@@ -6,9 +6,36 @@ import { toggleProfilePublication } from '@/server/actions/expert-profile';
  * Demonstrates proper mocking of complex server dependencies
  */
 
+// Create reusable mock UserInfo
+const mockUserInfo = {
+  user: {
+    object: 'user' as const,
+    id: 'test-user-id',
+    email: 'test@example.com',
+    emailVerified: true,
+    profilePictureUrl: null,
+    firstName: 'Test',
+    lastName: 'User',
+    lastSignInAt: new Date().toISOString(),
+    locale: 'en-US',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    externalId: null,
+    metadata: {},
+  },
+  sessionId: 'test-session-id',
+  organizationId: null,
+  accessToken: 'mock_access_token',
+  role: undefined,
+  roles: [],
+  permissions: [],
+  entitlements: [],
+  featureFlags: [],
+  impersonator: undefined,
+};
+
 // Create reusable mocks
-const authMock = jest.fn(() => Promise.resolve({ userId: 'test-user-id' }));
-const currentUserMock = jest.fn(() => Promise.resolve({ id: 'test-user-id' }));
+const withAuthMock = jest.fn(() => Promise.resolve(mockUserInfo));
 const hasRoleMock = jest.fn(() => Promise.resolve(true));
 const checkExpertSetupStatusMock = jest.fn(() =>
   Promise.resolve({
@@ -26,11 +53,10 @@ const findFirstMock = jest.fn();
 const revalidatePathMock = jest.fn();
 
 // Mock all dependencies before importing the function to test
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn().mockImplementation((...args: Parameters<typeof authMock>) => authMock(...args)),
-  currentUser: jest
+jest.mock('@workos-inc/authkit-nextjs', () => ({
+  withAuth: jest
     .fn()
-    .mockImplementation((...args: Parameters<typeof currentUserMock>) => currentUserMock(...args)),
+    .mockImplementation((...args: Parameters<typeof withAuthMock>) => withAuthMock(...args)),
 }));
 
 jest.mock('@/lib/auth/roles.server', () => ({
@@ -104,8 +130,7 @@ describe('toggleProfilePublication', () => {
     jest.clearAllMocks();
 
     // Set default mock behavior
-    authMock.mockResolvedValue({ userId: 'test-user-id' });
-    currentUserMock.mockResolvedValue({ id: 'test-user-id' });
+    withAuthMock.mockResolvedValue(mockUserInfo);
     hasRoleMock.mockResolvedValue(true);
     findFirstMock.mockResolvedValue({
       id: 1,
@@ -206,8 +231,7 @@ describe('toggleProfilePublication', () => {
 
   it('should return error if user is not authenticated', async () => {
     // Arrange - mock unauthenticated user
-    authMock.mockResolvedValueOnce({ userId: null as any });
-    currentUserMock.mockResolvedValueOnce(null as any);
+    withAuthMock.mockRejectedValueOnce(new Error('Not authenticated'));
 
     // Act
     const result = await toggleProfilePublication();

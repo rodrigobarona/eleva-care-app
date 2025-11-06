@@ -1,6 +1,11 @@
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
-import { EventsTable, SlotReservationsTable, UsersTable } from '@/drizzle/schema-workos';
+import {
+  EventsTable,
+  ProfilesTable,
+  SlotReservationsTable,
+  UsersTable,
+} from '@/drizzle/schema-workos';
 import MultibancoPaymentReminderTemplate from '@/emails/payments/multibanco-payment-reminder';
 import {
   sendHeartbeatFailure,
@@ -129,13 +134,18 @@ export async function GET(request: NextRequest) {
             durationInMinutes: EventsTable.durationInMinutes,
           },
           expert: {
-            firstName: UsersTable.firstName,
-            lastName: UsersTable.lastName,
+            username: UsersTable.username,
+            email: UsersTable.email,
+          },
+          profile: {
+            firstName: ProfilesTable.firstName,
+            lastName: ProfilesTable.lastName,
           },
         })
         .from(SlotReservationsTable)
         .leftJoin(EventsTable, eq(SlotReservationsTable.eventId, EventsTable.id))
         .leftJoin(UsersTable, eq(SlotReservationsTable.workosUserId, UsersTable.workosUserId))
+        .leftJoin(ProfilesTable, eq(UsersTable.workosUserId, ProfilesTable.workosUserId))
         .where(
           and(
             // Reservation expires within the reminder window
@@ -159,7 +169,7 @@ export async function GET(request: NextRequest) {
       let stageRemindersSent = 0;
 
       for (const item of reservationsNeedingReminders) {
-        const { reservation, event, expert } = item;
+        const { reservation, event, expert, profile } = item;
 
         if (!event || !expert) {
           console.warn(
@@ -204,8 +214,10 @@ export async function GET(request: NextRequest) {
           };
 
           // Format appointment details
-          const expertName =
-            `${expert.firstName || ''} ${expert.lastName || ''}`.trim() || 'Expert';
+          // Use profile name if available, otherwise fallback to username or 'Expert'
+          const expertName = profile
+            ? `${profile.firstName || ''} ${profile.lastName || ''}`.trim()
+            : expert.username || 'Expert';
           const appointmentDate = format(reservation.startTime, 'EEEE, MMMM d, yyyy');
           const appointmentTime = format(reservation.startTime, 'h:mm a');
           const voucherExpiresFormatted = format(reservation.expiresAt, 'PPP p');

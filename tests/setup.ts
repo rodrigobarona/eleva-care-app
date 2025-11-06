@@ -8,8 +8,7 @@ import '@testing-library/jest-dom';
 declare global {
   var __mocks: {
     db: never;
-    clerkUser: never;
-    clerkUsers: never;
+    workosUser: never;
   };
 }
 
@@ -203,24 +202,23 @@ const mockDb = {
   }),
 };
 
-// Mock Clerk user for testing
-const mockClerkUser = {
-  id: 'user_123',
-  publicMetadata: { role: ['community_expert'] },
-  unsafeMetadata: {
-    expertSetup: {
-      profile: true,
-      events: false,
-    },
+// Mock WorkOS user for testing
+const mockWorkosUser = {
+  object: 'user' as const,
+  id: 'user_test123',
+  email: 'test@example.com',
+  emailVerified: true,
+  profilePictureUrl: null,
+  firstName: 'Test',
+  lastName: 'User',
+  lastSignInAt: new Date().toISOString(),
+  locale: 'en-US',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+  externalId: null,
+  metadata: {
+    role: 'expert_community', // WorkOS stores role in metadata
   },
-  emailAddresses: [{ emailAddress: 'expert@gmail.com', verification: { status: 'verified' } }],
-  externalAccounts: [{ provider: 'google', verification: { status: 'verified' } }],
-};
-
-// Mock Clerk client
-const mockUsers = {
-  updateUser: jest.fn().mockResolvedValue({ id: 'user_123' } as never),
-  getUser: jest.fn().mockResolvedValue(mockClerkUser as never),
 };
 
 // Setup Jest mocks
@@ -244,41 +242,61 @@ jest.mock('drizzle-orm', () => ({
   relations: jest.fn(() => ({})),
 }));
 
-jest.mock('@clerk/nextjs/server', () => ({
-  currentUser: jest.fn().mockResolvedValue(mockClerkUser as never),
-  clerkClient: jest.fn().mockReturnValue({
-    users: mockUsers,
-  }),
-  auth: jest.fn().mockResolvedValue({
-    userId: 'user_123',
-    orgId: null,
-    getToken: jest.fn().mockResolvedValue('mock-token' as never),
-  } as never),
-}));
+// Old Clerk mock removed - now using WorkOS mock defined above
 
 // Add WorkOS auth mock (replacing Clerk)
+// Mock structure matches @workos-inc/authkit-nextjs UserInfo interface
 jest.mock('@workos-inc/authkit-nextjs', () => ({
-  withAuth: jest.fn().mockResolvedValue({
-    user: {
-      id: 'user_123',
-      email: 'test@example.com',
-      firstName: 'Test',
-      lastName: 'User',
-      emailVerified: true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  }),
+  withAuth: jest.fn(() =>
+    Promise.resolve({
+      user: {
+        object: 'user' as const,
+        id: 'user_test123',
+        email: 'test@example.com',
+        emailVerified: true,
+        profilePictureUrl: null,
+        firstName: 'Test',
+        lastName: 'User',
+        lastSignInAt: new Date().toISOString(),
+        locale: 'en-US',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        externalId: null,
+        metadata: {},
+      },
+      sessionId: 'session_test123',
+      organizationId: 'org_test123',
+      accessToken: 'mock_access_token',
+      role: undefined,
+      roles: [],
+      permissions: [],
+      entitlements: [],
+      featureFlags: [],
+      impersonator: undefined,
+    } as never),
+  ),
+  getSignInUrl: jest.fn(() => '/sign-in'),
+  getSignUpUrl: jest.fn(() => '/sign-up'),
+  getSignOutUrl: jest.fn(() => '/sign-out'),
 }));
 
+// Mock WorkOS client-side components
 jest.mock('@workos-inc/authkit-nextjs/components', () => ({
   useAuth: jest.fn(() => ({
     user: {
-      id: 'user_123',
+      object: 'user' as const,
+      id: 'user_test123',
       email: 'test@example.com',
+      emailVerified: true,
+      profilePictureUrl: null,
       firstName: 'Test',
       lastName: 'User',
-      emailVerified: true,
+      lastSignInAt: new Date().toISOString(),
+      locale: 'en-US',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      externalId: null,
+      metadata: {},
     },
     loading: false,
     isSignedIn: true,
@@ -297,8 +315,7 @@ jest.mock('next/cache', () => ({
 // Make common mocks available to tests
 global.__mocks = {
   db: mockDb as never,
-  clerkUser: mockClerkUser as never,
-  clerkUsers: mockUsers as never,
+  workosUser: mockWorkosUser as never,
 };
 
 // Mock Google Calendar

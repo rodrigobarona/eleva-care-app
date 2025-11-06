@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
   NOTIFICATION_TYPE_SECURITY_ALERT,
@@ -54,6 +54,11 @@ export async function handleIdentityVerificationUpdated(
     return;
   }
 
+  // Fetch user profile for name (firstName/lastName are in ProfilesTable, not UsersTable)
+  const profile = await db.query.ProfilesTable.findFirst({
+    where: eq(ProfilesTable.workosUserId, user.workosUserId),
+  });
+
   try {
     // Use withRetry for the critical database operations to handle transient errors
     await withRetry(
@@ -79,7 +84,7 @@ export async function handleIdentityVerificationUpdated(
               userId: user.id,
               type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
               data: {
-                userName: user.firstName || 'User',
+                userName: profile?.firstName || user.username || 'User',
                 title: 'Identity Verification Complete',
                 message: 'Your identity verification has been completed successfully.',
                 actionUrl: '/account/verification',
@@ -90,7 +95,7 @@ export async function handleIdentityVerificationUpdated(
               userId: user.id,
               type: NOTIFICATION_TYPE_SECURITY_ALERT,
               data: {
-                userName: user.firstName || 'User',
+                userName: profile?.firstName || user.username || 'User',
                 title: 'Identity Verification Needs Attention',
                 message:
                   'Your identity verification requires additional information. Please review and resubmit.',

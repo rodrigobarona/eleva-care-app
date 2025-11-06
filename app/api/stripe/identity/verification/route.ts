@@ -317,13 +317,7 @@ export async function POST(request: NextRequest) {
       .where(eq(UsersTable.id, dbUser.id));
 
     // Create a new verification session
-    const result = await createIdentityVerification(
-      dbUser.id,
-      user.id,
-      user.emailAddresses && user.emailAddresses.length > 0
-        ? user.emailAddresses[0].emailAddress
-        : dbUser.email,
-    );
+    const result = await createIdentityVerification(dbUser.id, user.id, user.email || dbUser.email);
 
     // Add rate limit info to successful responses
     const response = NextResponse.json(result);

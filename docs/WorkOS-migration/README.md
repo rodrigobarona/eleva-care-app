@@ -331,6 +331,39 @@ See [SETUP-WORKOS-ENV.md](./setup/SETUP-WORKOS-ENV.md) for details.
 
 ---
 
+## 📝 Outstanding TODOs
+
+### 🚨 Critical TODOs (64 items tracked)
+
+**By Category:**
+- **Database Schema**: 13 items (orgId fields, username field, deprecated fields)
+- **Authentication**: 5 items (auth tracking, webhook handlers)
+- **Admin Features**: 4 items (permission checks)
+- **Monitoring**: 6 items (Sentry, metrics, alerts)
+- **Caching**: 5 items (next-intl cacheComponents)
+- **Migration Scripts**: 3 items (user mapping, audit logs)
+- **Testing**: 2 items (device recognition, test suite)
+- **Features**: 3 items (onboarding, Novu integration)
+
+**Most Critical (Blocking Migration):**
+1. **Add `username` field to UsersTable** - Required for:
+   - Profile URLs (`/[username]`)
+   - Sitemap generation
+   - User discovery
+   - Affected files: `ProfileAccessControl.tsx`, `SetupCompletePublishCard.tsx`, `sitemap.ts`
+
+2. **Schema `orgId` fields** - Make `.notNull()` after migration complete
+   - Affects 9 tables
+   - Required for Phase 5 (Schema Consolidation)
+
+3. **Webhook handlers** - Implement webhook-specific step completion
+   - Identity verification webhook
+   - Stripe account webhook
+
+**See Full TODO List**: `.cursor/plans/clerk-to-workos-migration-7ad57dce.plan.md` (Section: "📝 Outstanding TODOs by Category")
+
+---
+
 ## 🚨 Important Notes
 
 ### ⚠️ Breaking Changes

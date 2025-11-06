@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
@@ -22,6 +22,11 @@ export async function handleExternalAccountCreated(
     return;
   }
 
+  // Fetch user profile for name (firstName/lastName are in ProfilesTable, not UsersTable)
+  const profile = await db.query.ProfilesTable.findFirst({
+    where: eq(ProfilesTable.workosUserId, user.workosUserId),
+  });
+
   // Create notification for the user with retry
   try {
     await withRetry(
@@ -31,7 +36,7 @@ export async function handleExternalAccountCreated(
             userId: user.id,
             type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
             data: {
-              userName: user.firstName || 'User',
+              userName: profile?.firstName || user.username || 'User',
               title:
                 externalAccount.object === 'bank_account' ? 'Bank Account Added' : 'Card Added',
               message:
@@ -67,13 +72,18 @@ export async function handleExternalAccountDeleted(
     return;
   }
 
+  // Fetch user profile for name (firstName/lastName are in ProfilesTable, not UsersTable)
+  const profile = await db.query.ProfilesTable.findFirst({
+    where: eq(ProfilesTable.workosUserId, user.workosUserId),
+  });
+
   // Create notification for the user
   await db.transaction(async (_tx) => {
     await createUserNotification({
       userId: user.id,
       type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
       data: {
-        userName: user.firstName || 'User',
+        userName: profile?.firstName || user.username || 'User',
         title: externalAccount.object === 'bank_account' ? 'Bank Account Removed' : 'Card Removed',
         message:
           externalAccount.object === 'bank_account'

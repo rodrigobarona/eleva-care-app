@@ -1,5 +1,6 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema-workos';
+import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
@@ -10,15 +11,16 @@ import { NextResponse } from 'next/server';
 export async function GET() {
   try {
     // Authenticate the user
-    const authData = await auth();
+    const { user } = await withAuth();
+    const workosUserId = user?.id;
 
-    if (!authData.userId) {
+    if (!workosUserId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get the user record from the database
     const dbUser = await db.query.UsersTable.findFirst({
-      where: eq(UsersTable.workosUserId, authData.userId),
+      where: eq(UsersTable.workosUserId, workosUserId),
     });
 
     if (!dbUser) {

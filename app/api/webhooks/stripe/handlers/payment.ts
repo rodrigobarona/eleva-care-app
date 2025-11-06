@@ -6,6 +6,7 @@ import {
   EventsTable,
   MeetingsTable,
   PaymentTransfersTable,
+  ProfilesTable,
   SchedulingSettingsTable,
   SlotReservationsTable,
   UsersTable,
@@ -640,14 +641,14 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           );
 
           if (refund) {
-            // Get expert's name for notification
-            const expertUser = await db.query.UsersTable.findFirst({
-              where: eq(UsersTable.workosUserId, meetingData.expert),
+            // Get expert's PROFESSIONAL name from ProfilesTable for patient-facing communication
+            const expertProfile = await db.query.ProfilesTable.findFirst({
+              where: eq(ProfilesTable.workosUserId, meetingData.expert),
               columns: { firstName: true, lastName: true },
             });
 
-            const expertName = expertUser
-              ? `${expertUser.firstName || ''} ${expertUser.lastName || ''}`.trim() || 'Expert'
+            const expertName = expertProfile
+              ? `${expertProfile.firstName} ${expertProfile.lastName}`.trim()
               : 'Expert';
 
             // Notify all parties about the conflict
@@ -915,7 +916,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         try {
           const user = await db.query.UsersTable.findFirst({
             where: eq(UsersTable.workosUserId, transfer.expertClerkUserId),
-            columns: { workosUserId: true, firstName: true, lastName: true, email: true },
+            columns: { workosUserId: true, username: true, email: true },
           });
 
           if (user) {
@@ -935,8 +936,8 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
               to: {
                 subscriberId: user.workosUserId,
                 email: user.email || 'no-email@eleva.care',
-                firstName: user.firstName || '',
-                lastName: user.lastName || '',
+                firstName: '', // Removed: fetch from WorkOS if needed
+                lastName: '', // Removed: fetch from WorkOS if needed
                 data: {
                   paymentIntentId: paymentIntent.id,
                   role: 'expert',
@@ -978,10 +979,10 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           },
         });
 
-        // Fetch user details separately since there's no user relation on MeetingsTable
-        const userDetails = meetingDetails
-          ? await db.query.UsersTable.findFirst({
-              where: eq(UsersTable.workosUserId, meetingDetails.workosUserId),
+        // Fetch expert's PROFESSIONAL profile for patient-facing email
+        const expertProfile = meetingDetails
+          ? await db.query.ProfilesTable.findFirst({
+              where: eq(ProfilesTable.workosUserId, meetingDetails.workosUserId),
               columns: {
                 firstName: true,
                 lastName: true,
@@ -989,11 +990,11 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
             })
           : null;
 
-        if (meetingDetails?.event && userDetails) {
+        if (meetingDetails?.event && expertProfile) {
           const guestEmail = meetingDetails.guestEmail;
           const guestName = meetingDetails.guestName ?? 'Guest';
           const expertName =
-            `${userDetails.firstName ?? ''} ${userDetails.lastName ?? ''}`.trim() || 'Our Expert';
+            `${expertProfile.firstName} ${expertProfile.lastName}`.trim() || 'Our Expert';
           const eventName = meetingDetails.event.name;
           const meetingStartTime = meetingDetails.startTime; // Date object
           const meetingTimezone = meetingDetails.timezone || 'UTC'; // Default to UTC if not set
@@ -1048,7 +1049,7 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
           }
         } else {
           console.warn(
-            `Could not retrieve all necessary details for PI ${paymentIntent.id} to send guest confirmation email. Meeting Details: ${!!meetingDetails}, Event: ${!!meetingDetails?.event}, User: ${!!userDetails}`,
+            `Could not retrieve all necessary details for PI ${paymentIntent.id} to send guest confirmation email. Meeting Details: ${!!meetingDetails}, Event: ${!!meetingDetails?.event}, Expert Profile: ${!!expertProfile}`,
           );
         }
       }
@@ -1174,16 +1175,17 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
         columns: { name: true, durationInMinutes: true },
       });
 
-      const expertInfo = await db.query.UsersTable.findFirst({
-        where: eq(UsersTable.workosUserId, meetingDetails.workosUserId),
+      // Get expert's PROFESSIONAL profile for patient-facing email
+      const expertProfile = await db.query.ProfilesTable.findFirst({
+        where: eq(ProfilesTable.workosUserId, meetingDetails.workosUserId),
         columns: { firstName: true, lastName: true },
       });
 
-      if (eventInfo && expertInfo) {
+      if (eventInfo && expertProfile) {
         const guestEmail = meetingDetails.guestEmail;
         const guestName = meetingDetails.guestName ?? 'Guest';
         const expertName =
-          `${expertInfo.firstName ?? ''} ${expertInfo.lastName ?? ''}`.trim() || 'Our Expert';
+          `${expertProfile.firstName} ${expertProfile.lastName}`.trim() || 'Our Expert';
         const eventName = eventInfo.name;
         const meetingStartTime = meetingDetails.startTime;
         const meetingTimezone = meetingDetails.timezone || 'UTC';
@@ -1232,7 +1234,7 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
         }
       } else {
         console.warn(
-          `Could not retrieve full event/expert details for meeting ${meetingDetails.id} to send guest cancellation email. Event: ${!!eventInfo}, Expert: ${!!expertInfo}`,
+          `Could not retrieve full event/expert details for meeting ${meetingDetails.id} to send guest cancellation email. Event: ${!!eventInfo}, Expert Profile: ${!!expertProfile}`,
         );
       }
     }

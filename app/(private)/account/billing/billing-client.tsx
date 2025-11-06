@@ -4,6 +4,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { getMinimumPayoutDelay } from '@/config/stripe';
+import { useUserProfile } from '@/hooks/use-user-profile';
 import { Link } from '@/lib/i18n/navigation';
 import { syncIdentityToConnect } from '@/server/actions/billing';
 import { FileText, Info } from 'lucide-react';
@@ -30,34 +31,19 @@ function BillingPageContent({ dbUser, accountStatus }: BillingPageClientProps) {
   const [isLoadingDashboard, setIsLoadingDashboard] = React.useState(false);
   const [isInitializing, setIsInitializing] = React.useState(true);
   const [isSyncingIdentity, setIsSyncingIdentity] = useState(false);
-  const [userCountry, setUserCountry] = useState<string | null>(null);
-  const [profileError, setProfileError] = useState<boolean>(false);
+  
+  // Use centralized hook with caching for user profile
+  const { profile, error: profileError } = useUserProfile();
+  const userCountry = profile?.country || null;
 
-  // Fetch user profile data when component mounts
+  // Show error toast if profile fails to load
   React.useEffect(() => {
-    async function fetchUserProfile() {
-      try {
-        setProfileError(false);
-        const response = await fetch('/api/user/profile');
-        if (response.ok) {
-          const data = await response.json();
-          if (data.user?.country) {
-            setUserCountry(data.user.country);
-          }
-        } else {
-          throw new Error('Failed to load profile data');
-        }
-      } catch (error) {
-        console.error('Error fetching user profile:', error);
-        setProfileError(true);
-        toast.error('Failed to load country information', {
-          description: 'Payment timing details may be inaccurate. Please refresh to try again.',
-        });
-      }
+    if (profileError) {
+      toast.error('Failed to load country information', {
+        description: 'Payment timing details may be inaccurate. Please refresh to try again.',
+      });
     }
-
-    fetchUserProfile();
-  }, []);
+  }, [profileError]);
 
   // Rebuild KV data when component mounts
   React.useEffect(() => {

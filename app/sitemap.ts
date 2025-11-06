@@ -1,6 +1,6 @@
-import { db } from '@/drizzle/db';
+import { EventsTable, ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
 import { locales } from '@/lib/i18n/routing';
-import { eq } from 'drizzle-orm';
+import { and, eq, isNotNull } from 'drizzle-orm';
 import { MetadataRoute } from 'next';
 
 // Add any public routes that should be included in the sitemap
@@ -29,45 +29,30 @@ const KNOWN_EXPERT_USERNAMES = [
  */
 async function getPublishedUsernames(): Promise<string[]> {
   try {
-    console.log('🗺️ [Sitemap] Starting to fetch published usernames...');
+    console.log('🗺️ [Sitemap] Fetching published usernames from database...');
 
-    // Get published profiles from database
-    const profiles = await db.query.ProfilesTable.findMany({
-      where: ({ published }) => eq(published, true),
-      with: {
-        primaryCategory: true,
-        user: {
-          columns: {
-            username: true,
-          },
-        },
-      },
-      orderBy: ({ order }) => order,
-    });
+    // Query database for published profiles with usernames
+    const publishedProfiles = await db
+      .select({
+        username: UsersTable.username,
+      })
+      .from(ProfilesTable)
+      .innerJoin(UsersTable, eq(ProfilesTable.workosUserId, UsersTable.workosUserId))
+      .where(and(eq(ProfilesTable.published, true), isNotNull(UsersTable.username)));
 
-    console.log(`🗺️ [Sitemap] Found ${profiles.length} published profiles in database`);
+    const usernames = publishedProfiles
+      .map((p) => p.username)
+      .filter((username): username is string => username !== null);
 
-    if (profiles.length > 0) {
-      // Get usernames from profiles (now includes user relation)
-      const usernames = profiles
-        .map((profile) => profile.user?.username)
-        .filter((username): username is string => Boolean(username));
+    console.log(`🗺️ [Sitemap] Found ${usernames.length} published usernames`);
 
-      if (usernames.length > 0) {
-        console.log(
-          `🗺️ [Sitemap] Successfully fetched ${usernames.length} usernames from database`,
-        );
-        return usernames;
-      }
+    // Fallback to known usernames if database query returns empty
+    if (usernames.length === 0) {
+      console.log(`🗺️ [Sitemap] No published profiles found, using fallback list`);
+      return KNOWN_EXPERT_USERNAMES;
     }
 
-    // Fallback: If database query failed or returned no results, use known usernames
-    console.log(
-      '🗺️ [Sitemap] Database query yielded no usernames, using known expert usernames as fallback',
-    );
-    console.log(`🗺️ [Sitemap] Using ${KNOWN_EXPERT_USERNAMES.length} known expert usernames`);
-
-    return KNOWN_EXPERT_USERNAMES;
+    return usernames;
   } catch (error) {
     console.error('🗺️ [Sitemap] Error fetching published usernames:', error);
     console.log('🗺️ [Sitemap] Falling back to known expert usernames due to error');
@@ -80,62 +65,31 @@ async function getPublishedUsernames(): Promise<string[]> {
  */
 async function getPublishedUserEvents(): Promise<Array<{ username: string; eventSlug: string }>> {
   try {
-    // Get published profiles with their events from database
-    const profiles = await db.query.ProfilesTable.findMany({
-      where: ({ published }) => eq(published, true),
-      with: {
-        user: {
-          columns: {
-            username: true,
-            workosUserId: true,
-          },
-        },
-      },
-    });
+    console.log('🗺️ [Sitemap] Fetching user events from database...');
 
-    if (profiles.length > 0) {
-      // Get all active events for published users
-      const events = await db.query.EventsTable.findMany({
-        where: ({ isActive }) => eq(isActive, true),
-      });
-
-      // Filter events to only include those from published users
-      const publishedUserEvents = events.filter((event) =>
-        profiles.some((profile) => profile.workosUserId === event.workosUserId),
+    // Query database for events of published profiles with usernames
+    const userEvents = await db
+      .select({
+        username: UsersTable.username,
+        eventSlug: EventsTable.slug,
+      })
+      .from(EventsTable)
+      .innerJoin(UsersTable, eq(EventsTable.workosUserId, UsersTable.workosUserId))
+      .innerJoin(ProfilesTable, eq(ProfilesTable.workosUserId, UsersTable.workosUserId))
+      .where(
+        and(
+          eq(ProfilesTable.published, true),
+          eq(EventsTable.isActive, true),
+          isNotNull(UsersTable.username),
+        ),
       );
 
-      if (publishedUserEvents.length > 0) {
-        // Create a map of userId to username for quick lookup
-        const userIdToUsername = new Map(
-          profiles
-            .filter((profile) => profile.user?.username)
-            .map((profile) => [profile.workosUserId, profile.user!.username!]),
-        );
+    const events = userEvents
+      .filter((e): e is { username: string; eventSlug: string } => e.username !== null)
+      .map((e) => ({ username: e.username, eventSlug: e.eventSlug }));
 
-        // Generate the username/eventSlug combinations
-        const userEvents = publishedUserEvents
-          .map((event) => {
-            const username = userIdToUsername.get(event.workosUserId);
-            if (!username) return null;
-
-            return {
-              username,
-              eventSlug: event.slug,
-            };
-          })
-          .filter((item): item is { username: string; eventSlug: string } => item !== null);
-
-        if (userEvents.length > 0) {
-          console.log(`🗺️ [Sitemap] Found ${userEvents.length} user event routes from database`);
-          return userEvents;
-        }
-      }
-    }
-
-    // For now, return empty array if no events found or DB query fails
-    // In the future, you could add known event slugs as fallback if needed
-    console.log('🗺️ [Sitemap] No user events found or database query failed');
-    return [];
+    console.log(`🗺️ [Sitemap] Found ${events.length} published user events`);
+    return events;
   } catch (error) {
     console.error('🗺️ [Sitemap] Error fetching user events:', error);
     return [];

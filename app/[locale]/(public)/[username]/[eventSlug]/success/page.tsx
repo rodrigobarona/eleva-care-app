@@ -114,10 +114,17 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
   if (meeting) {
     // We prioritize the meeting's stored timezone if available
     const displayTimezone = meeting.timezone || userTimezone;
-    const expertName = expertProfile
-      ? `${expertProfile.firstName} ${expertProfile.lastName}`
-      : calendarUser.firstName ? `${calendarUser.firstName} ${calendarUser.lastName || ""}`.trim() : "Expert";
-    const expertImage = expertProfile?.profilePicture || calendarUser.imageUrl || "/placeholder-avatar.jpg";
+
+    // IMPORTANT: Use ProfilesTable for expert display name (professional name)
+    // If no profile exists, this shouldn't happen (required for public expert pages)
+    if (!expertProfile) {
+      console.error('[SuccessPage] No expert profile found for:', calendarUser.workosUserId);
+      return notFound();
+    }
+
+    const expertName = `${expertProfile.firstName} ${expertProfile.lastName}`;
+    // Use ProfilesTable.profilePicture (professional image), not cached UsersTable.imageUrl
+    const expertImage = expertProfile.profilePicture || '/placeholder-avatar.jpg';
 
     return (
       <div className="flex min-h-screen items-center bg-gray-50 px-4 py-8 sm:px-6 lg:px-8">
@@ -289,10 +296,18 @@ async function SuccessPageContent({ props }: { props: PageProps }) {
       apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
     });
 
-    const expertName = expertProfile
-      ? `${expertProfile.firstName} ${expertProfile.lastName}`
-      : calendarUser.firstName ? `${calendarUser.firstName} ${calendarUser.lastName || ""}`.trim() : "Expert";
-    const expertImage = expertProfile?.profilePicture || calendarUser.imageUrl || "/placeholder-avatar.jpg";
+    // IMPORTANT: Use ProfilesTable for expert display name (professional name)
+    if (!expertProfile) {
+      console.error(
+        '[SuccessPage Calendar] No expert profile found for:',
+        calendarUser.workosUserId,
+      );
+      return notFound();
+    }
+
+    const expertName = `${expertProfile.firstName} ${expertProfile.lastName}`;
+    // Use ProfilesTable.profilePicture (professional image), not cached UsersTable.imageUrl
+    const expertImage = expertProfile.profilePicture || '/placeholder-avatar.jpg';
 
     try {
       console.log('Checking session status:', {

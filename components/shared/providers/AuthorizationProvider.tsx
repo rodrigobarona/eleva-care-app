@@ -98,17 +98,17 @@ export function useIsAdmin(): boolean {
 
 export function useIsExpert(): boolean {
   const { hasRole } = useAuthorization();
-  return hasRole(['community_expert', 'top_expert']);
+  return hasRole(['expert_community', 'expert_top']);
 }
 
 export function useIsTopExpert(): boolean {
   const { hasRole } = useAuthorization();
-  return hasRole('top_expert');
+  return hasRole('expert_top');
 }
 
 export function useIsCommunityExpert(): boolean {
   const { hasRole } = useAuthorization();
-  return hasRole('community_expert');
+  return hasRole('expert_community');
 }
 
 // Authorization component for role-based UI rendering

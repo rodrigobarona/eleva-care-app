@@ -39,6 +39,7 @@ import {
   updateEvent,
 } from '@/server/actions/events';
 import { createStripeProduct, updateStripeProduct } from '@/server/actions/stripe';
+import { useUsername } from '@/hooks/use-user-profile';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { zodResolver } from '@hookform/resolvers/zod';
 import dynamic from 'next/dynamic';
@@ -72,11 +73,12 @@ export function EventForm({
     stripePriceId?: string;
   };
 }) {
-  const { user } = useAuth();
+  const { user } = useAuth(); // Still need user.id for workosUserId
   const router = useRouter();
   const [isDeletePending, startDeleteTransition] = useTransition();
   const [isStripeProcessing, setIsStripeProcessing] = React.useState(false);
   const [meetingsCount, setMeetingsCount] = React.useState<number>(0);
+  const { username } = useUsername(); // Centralized hook with caching
 
   const form = useForm<z.infer<typeof eventFormSchema>>({
     resolver: zodResolver(eventFormSchema),
@@ -315,7 +317,7 @@ export function EventForm({
                   <FormLabel>URL</FormLabel>
                   <div className="flex w-full items-center overflow-hidden rounded-md border">
                     <div className="flex h-full items-center bg-muted px-3 py-2 text-sm text-muted-foreground">
-                      eleva.care/{user?.username || 'username'}/
+                      eleva.care/{username || 'username'}/
                     </div>
                     <div className="w-px self-stretch bg-border" />
                     <FormControl>

@@ -5,7 +5,7 @@ export async function POST(req: Request) {
   try {
     const { user } = await withAuth();
   const userId = user?.id;
-    if (!user) {
+    if (!user || !userId) {
       return new Response('Unauthorized', { status: 401 });
     }
 

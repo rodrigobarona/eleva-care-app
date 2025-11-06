@@ -139,10 +139,10 @@ export async function getConnectLoginLink(stripeConnectAccountId: string) {
 export async function syncIdentityToConnect() {
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
     if (!user) {
       return { success: false, message: 'Not authenticated' };
     }
+    const userId = user.id;
 
     // Import the sync function
     const { syncIdentityVerificationToConnect } = await import('@/lib/integrations/stripe');
@@ -231,10 +231,10 @@ export async function createConnectRefund(
 ) {
   try {
     const { user } = await withAuth();
-  const userId = user?.id;
     if (!user) {
       return { success: false, message: 'Not authenticated' };
     }
+    const userId = user.id;
 
     // Get user's connected account ID
     const dbUser = await db.query.UsersTable.findFirst({

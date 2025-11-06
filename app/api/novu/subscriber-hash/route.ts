@@ -13,7 +13,7 @@ export async function GET(_request: NextRequest) {
     const { user } = await withAuth();
   const userId = user?.id;
 
-    if (!user) {
+    if (!user || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

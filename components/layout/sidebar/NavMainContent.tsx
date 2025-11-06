@@ -65,7 +65,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <RequireRole roles={['community_expert', 'top_expert']}>
+            <RequireRole roles={['expert_community', 'expert_top']}>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link href="/setup">
@@ -78,7 +78,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
           </SidebarMenu>
         </SidebarGroup>
         {/* Expert section */}
-        <RequireRole roles={['community_expert', 'top_expert']}>
+        <RequireRole roles={['expert_community', 'expert_top']}>
           <>
             <SidebarGroup>
               <SidebarGroupLabel>Appointments</SidebarGroupLabel>
@@ -197,7 +197,7 @@ export function NavMainContent({ items }: NavMainContentProps) {
             </SidebarMenuItem>
 
             {/* Billing and identity section */}
-            <RequireRole roles={['community_expert', 'top_expert']}>
+            <RequireRole roles={['expert_community', 'expert_top']}>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === '/account/billing'}>
                   <Link href="/account/billing">

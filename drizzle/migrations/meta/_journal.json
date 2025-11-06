@@ -43,6 +43,55 @@
       "when": 1762349201953,
       "tag": "0005_careful_hex",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1762386192665,
+      "tag": "0006_bright_shen",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1762387520327,
+      "tag": "0007_soft_mentor",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1762392029474,
+      "tag": "0008_thick_black_panther",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1762392247979,
+      "tag": "0009_big_black_cat",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1762392526319,
+      "tag": "0010_bitter_riptide",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1762393401063,
+      "tag": "0011_curved_toad_men",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1762395653145,
+      "tag": "0012_wise_spectrum",
+      "breakpoints": true
     }
   ]
 }

@@ -1,6 +1,6 @@
 import { triggerWorkflow } from '@/app/utils/novu';
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
 import { NOTIFICATION_TYPE_ACCOUNT_UPDATE } from '@/lib/constants/notifications';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
@@ -59,6 +59,11 @@ export async function handleAccountUpdated(account: Stripe.Account) {
   const previousPayoutsEnabled = user.stripeConnectPayoutsEnabled;
   const previousChargesEnabled = user.stripeConnectChargesEnabled;
 
+  // Fetch user profile for name (firstName/lastName are in ProfilesTable, not UsersTable)
+  const profile = await db.query.ProfilesTable.findFirst({
+    where: eq(ProfilesTable.workosUserId, user.workosUserId),
+  });
+
   try {
     // Use withRetry for the critical database operations to handle transient errors
     await withRetry(
@@ -95,7 +100,7 @@ export async function handleAccountUpdated(account: Stripe.Account) {
               userId: user.id,
               type: NOTIFICATION_TYPE_ACCOUNT_UPDATE,
               data: {
-                userName: user.firstName || 'User',
+                userName: profile?.firstName || user.username || 'User',
                 message: getAccountUpdateMessage(account),
                 actionUrl: '/account/connect',
                 accountId: account.id,
@@ -110,8 +115,8 @@ export async function handleAccountUpdated(account: Stripe.Account) {
                 to: {
                   subscriberId: user.workosUserId,
                   email: user.email || 'no-email@eleva.care',
-                  firstName: user.firstName || '',
-                  lastName: user.lastName || '',
+                  firstName: profile?.firstName || '',
+                  lastName: profile?.lastName || '',
                   data: {
                     stripeAccountId: account.id,
                     role: 'expert',
