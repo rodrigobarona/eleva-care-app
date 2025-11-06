@@ -7,6 +7,7 @@
  *
  * Run with: pnpm tsx scripts/utilities/setup-stripe-recurring-prices.ts
  */
+import { STRIPE_CONFIG } from '@/config/stripe';
 import dotenv from 'dotenv';
 import Stripe from 'stripe';
 
@@ -14,7 +15,7 @@ import Stripe from 'stripe';
 dotenv.config();
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
 
 const PRODUCTS = {

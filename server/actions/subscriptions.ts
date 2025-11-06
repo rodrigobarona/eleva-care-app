@@ -57,6 +57,21 @@ import Stripe from 'stripe';
  * - Audit logging
  */
 
+/**
+ * Subscription Management Server Actions
+ *
+ * Handles all subscription-related operations:
+ * - Creating new subscriptions (annual plans)
+ * - Canceling subscriptions
+ * - Updating subscription plans
+ * - Fetching subscription status
+ *
+ * Integrates with:
+ * - Stripe Subscriptions API
+ * - Database (SubscriptionPlansTable)
+ * - Audit logging
+ */
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-02-24.acacia',
 });
@@ -90,11 +105,41 @@ export interface CreateSubscriptionResult {
 }
 
 // ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Get user's organization ID
+ *
+ * 🏢 ORGANIZATION-CENTRIC HELPER (Industry Standard)
+ *
+ * Subscriptions are owned by organizations, not users.
+ * This helper retrieves the orgId needed for subscription queries.
+ *
+ * Pattern: User → Membership → Organization → Subscription
+ *
+ * @param workosUserId - The WorkOS user ID
+ * @returns Organization ID or null if not found
+ */
+async function getUserOrgId(workosUserId: string): Promise<string | null> {
+  const membership = await db.query.UserOrgMembershipsTable.findFirst({
+    where: eq(UserOrgMembershipsTable.workosUserId, workosUserId),
+    columns: { orgId: true },
+  });
+
+  return membership?.orgId || null;
+}
+
+// ============================================================================
 // Get Subscription Status
 // ============================================================================
 
 /**
- * Get the current subscription status for a user
+ * Get the current subscription status for a user's organization
+ *
+ * 🏢 ORGANIZATION-CENTRIC (Industry Standard)
+ * Subscriptions are owned by organizations, not users.
+ * All members of the same organization share the same subscription.
  *
  * @param workosUserId - The WorkOS user ID (optional, uses current user if not provided)
  * @returns Subscription information or null if no subscription exists
@@ -110,9 +155,17 @@ export async function getSubscriptionStatus(
       userId = user.id;
     }
 
-    // Get subscription from database
+    // ✅ Get user's organization ID (org-centric lookup)
+    const orgId = await getUserOrgId(userId);
+
+    if (!orgId) {
+      console.warn(`[getSubscriptionStatus] No organization found for user ${userId}`);
+      return null;
+    }
+
+    // ✅ Get subscription from database (by orgId, not userId)
     const subscription = await db.query.SubscriptionPlansTable.findFirst({
-      where: eq(SubscriptionPlansTable.workosUserId, userId),
+      where: eq(SubscriptionPlansTable.orgId, orgId),
     });
 
     if (!subscription) {
@@ -233,13 +286,13 @@ export async function createSubscription(
       return { success: false, error: 'Organization not found for user' };
     }
 
-    // Check if user already has an active subscription
+    // ✅ Check if organization already has an active subscription
     const existingSubscription = await db.query.SubscriptionPlansTable.findFirst({
-      where: eq(SubscriptionPlansTable.workosUserId, user.id),
+      where: eq(SubscriptionPlansTable.orgId, membership.orgId),
     });
 
     if (existingSubscription && existingSubscription.subscriptionStatus === 'active') {
-      return { success: false, error: 'You already have an active subscription' };
+      return { success: false, error: 'Your organization already has an active subscription' };
     }
 
     // Create or get Stripe customer
@@ -273,15 +326,18 @@ export async function createSubscription(
       ],
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?success=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/subscription?canceled=true`,
+      client_reference_id: membership.orgId, // ✅ Organization ID for tracking
       metadata: {
-        workosUserId: user.id,
+        workosUserId: user.id, // User who initiated (billing admin)
+        orgId: membership.orgId, // ✅ Organization owner
         tierLevel,
         priceId,
         billingInterval,
       },
       subscription_data: {
         metadata: {
-          workosUserId: user.id,
+          workosUserId: user.id, // User who initiated (billing admin)
+          orgId: membership.orgId, // ✅ Organization owner
           tierLevel,
           billingInterval,
         },
@@ -323,9 +379,10 @@ export async function createSubscription(
 // ============================================================================
 
 /**
- * Cancel a user's annual subscription
+ * Cancel an organization's subscription
  *
- * Cancels at the end of the current billing period (not immediately)
+ * 🏢 ORGANIZATION-CENTRIC (Industry Standard)
+ * Cancels the organization's subscription at the end of the current billing period.
  *
  * @param reason - Optional reason for cancellation
  * @returns Success status
@@ -334,13 +391,20 @@ export async function cancelSubscription(reason?: string): Promise<CreateSubscri
   try {
     const { user } = await withAuth({ ensureSignedIn: true });
 
-    // Get subscription from database
+    // ✅ Get user's organization ID
+    const orgId = await getUserOrgId(user.id);
+
+    if (!orgId) {
+      return { success: false, error: 'Organization not found' };
+    }
+
+    // ✅ Get subscription from database (by orgId)
     const subscription = await db.query.SubscriptionPlansTable.findFirst({
-      where: eq(SubscriptionPlansTable.workosUserId, user.id),
+      where: eq(SubscriptionPlansTable.orgId, orgId),
     });
 
     if (!subscription) {
-      return { success: false, error: 'No subscription found' };
+      return { success: false, error: 'No subscription found for your organization' };
     }
 
     if (!subscription.stripeSubscriptionId) {
@@ -380,17 +444,28 @@ export async function cancelSubscription(reason?: string): Promise<CreateSubscri
 
 /**
  * Reactivate a canceled subscription before the period ends
+ *
+ * 🏢 ORGANIZATION-CENTRIC (Industry Standard)
+ * Reactivates the organization's subscription if it was set to cancel.
  */
 export async function reactivateSubscription(): Promise<CreateSubscriptionResult> {
   try {
     const { user } = await withAuth({ ensureSignedIn: true });
 
+    // ✅ Get user's organization ID
+    const orgId = await getUserOrgId(user.id);
+
+    if (!orgId) {
+      return { success: false, error: 'Organization not found' };
+    }
+
+    // ✅ Get subscription from database (by orgId)
     const subscription = await db.query.SubscriptionPlansTable.findFirst({
-      where: eq(SubscriptionPlansTable.workosUserId, user.id),
+      where: eq(SubscriptionPlansTable.orgId, orgId),
     });
 
     if (!subscription?.stripeSubscriptionId) {
-      return { success: false, error: 'No subscription found' };
+      return { success: false, error: 'No subscription found for your organization' };
     }
 
     // Remove cancellation in Stripe

@@ -372,11 +372,11 @@ export function checkAnnualEligibility(
  */
 export function getPricingPlan(tier: TierLevel, planType: PlanType): PricingPlan {
   if (planType === 'commission') {
-    return SUBSCRIPTION_PRICING.commission_based[`${tier}_expert`];
+    return SUBSCRIPTION_PRICING.commission_based[`${tier}_expert`] as unknown as PricingPlan;
   } else if (planType === 'monthly') {
-    return SUBSCRIPTION_PRICING.monthly_subscription[`${tier}_expert`];
+    return SUBSCRIPTION_PRICING.monthly_subscription[`${tier}_expert`] as unknown as PricingPlan;
   } else {
-    return SUBSCRIPTION_PRICING.annual_subscription[`${tier}_expert`];
+    return SUBSCRIPTION_PRICING.annual_subscription[`${tier}_expert`] as unknown as PricingPlan;
   }
 }
 

@@ -220,14 +220,14 @@ async function handleSubscriptionUpdate(
   const priceItem = subscription.items.data[0];
   const priceId = typeof priceItem.price === 'string' ? priceItem.price : priceItem.price.id;
 
-  // Check if subscription plan already exists
+  // ✅ Check if subscription plan already exists (by orgId, not userId)
   const existingPlan = await db.query.SubscriptionPlansTable.findFirst({
-    where: eq(SubscriptionPlansTable.workosUserId, workosUserId),
+    where: eq(SubscriptionPlansTable.orgId, org?.id as string),
   });
 
   const subscriptionData = {
-    workosUserId,
-    orgId: org?.id || null,
+    orgId: org?.id as string, // ✅ Primary owner: Organization
+    billingAdminUserId: workosUserId, // ✅ Secondary: Billing administrator
     planType,
     tierLevel,
     billingInterval,
@@ -384,7 +384,7 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 
   // Log payment success
   await db.insert(SubscriptionEventsTable).values({
-    workosUserId: plan.workosUserId,
+    workosUserId: plan.billingAdminUserId,
     orgId: plan.orgId as string,
     subscriptionPlanId: plan.id,
     eventType: 'payment_succeeded',
@@ -433,7 +433,7 @@ async function handlePaymentFailed(invoice: Stripe.Invoice) {
 
   // Log payment failure
   await db.insert(SubscriptionEventsTable).values({
-    workosUserId: plan.workosUserId,
+    workosUserId: plan.billingAdminUserId,
     orgId: plan.orgId as string,
     subscriptionPlanId: plan.id,
     eventType: 'payment_failed' as const,

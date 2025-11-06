@@ -661,21 +661,40 @@ export const SlotReservationsTable = pgTable(
 /**
  * Subscription Plans Table
  *
- * Tracks which pricing plan each expert is on:
+ * 🏢 ORGANIZATION-OWNED SUBSCRIPTIONS (Industry Standard)
+ *
+ * Key Architecture:
+ * - Organizations own subscriptions (one subscription per org)
+ * - billingAdminUserId tracks who manages billing (can be transferred)
+ * - Multiple users in same org share subscription benefits
+ * - Subscription persists even if billing admin leaves
+ *
+ * Industry Pattern (Cal.com, Vercel, Dub):
+ * Organization → Subscription → Members (shared access)
+ *
+ * Tracks which pricing plan each organization is on:
  * - Commission-based (pay per transaction, no upfront fee)
- * - Annual subscription (fixed yearly fee + reduced commission)
+ * - Monthly subscription (fixed monthly fee + reduced commission)
+ * - Annual subscription (fixed yearly fee + lowest commission)
  */
 export const SubscriptionPlansTable = pgTable(
   'subscription_plans',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    workosUserId: text('workos_user_id')
-      .notNull()
-      .unique()
-      .references(() => UsersTable.workosUserId, { onDelete: 'cascade' }),
+    
+    // 🏢 PRIMARY OWNER: Organization
+    // One subscription per organization (industry standard)
     orgId: uuid('org_id')
       .notNull()
+      .unique() // ✅ Ensures one subscription per organization
       .references(() => OrganizationsTable.id, { onDelete: 'cascade' }),
+    
+    // 👤 SECONDARY: Billing Administrator
+    // User who manages the subscription (can be transferred to another org member)
+    // Uses 'restrict' to prevent accidental deletion if admin leaves org
+    billingAdminUserId: text('billing_admin_user_id')
+      .notNull()
+      .references(() => UsersTable.workosUserId, { onDelete: 'restrict' }),
 
     // Plan configuration
     planType: text('plan_type').notNull().$type<'commission' | 'monthly' | 'annual'>(), // Current plan type
@@ -713,8 +732,8 @@ export const SubscriptionPlansTable = pgTable(
   },
   (table) => ({
     // 🔒 RLS: Applied via SQL migration
-    userIdIndex: index('subscription_plans_user_id_idx').on(table.workosUserId),
-    orgIdIndex: index('subscription_plans_org_id_idx').on(table.orgId),
+    orgIdIndex: index('subscription_plans_org_id_idx').on(table.orgId), // Primary lookup
+    billingAdminIndex: index('subscription_plans_billing_admin_idx').on(table.billingAdminUserId), // Secondary
     stripeSubscriptionIdIndex: index('subscription_plans_stripe_sub_idx').on(
       table.stripeSubscriptionId,
     ),
@@ -1113,13 +1132,13 @@ export const recordsRelations = relations(RecordsTable, ({ one }) => ({
 }));
 
 export const subscriptionPlanRelations = relations(SubscriptionPlansTable, ({ one, many }) => ({
-  user: one(UsersTable, {
-    fields: [SubscriptionPlansTable.workosUserId],
-    references: [UsersTable.workosUserId],
-  }),
   organization: one(OrganizationsTable, {
     fields: [SubscriptionPlansTable.orgId],
     references: [OrganizationsTable.id],
+  }),
+  billingAdmin: one(UsersTable, {
+    fields: [SubscriptionPlansTable.billingAdminUserId],
+    references: [UsersTable.workosUserId],
   }),
   events: many(SubscriptionEventsTable),
   commissions: many(TransactionCommissionsTable),
@@ -1138,9 +1157,10 @@ export const transactionCommissionRelations = relations(TransactionCommissionsTa
     fields: [TransactionCommissionsTable.meetingId],
     references: [MeetingsTable.id],
   }),
+  // Link to subscription via organization (org-centric)
   subscriptionPlan: one(SubscriptionPlansTable, {
-    fields: [TransactionCommissionsTable.workosUserId],
-    references: [SubscriptionPlansTable.workosUserId],
+    fields: [TransactionCommissionsTable.orgId],
+    references: [SubscriptionPlansTable.orgId],
   }),
 }));
 
