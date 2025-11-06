@@ -106,13 +106,17 @@ const COMMUNITY_EXPERT_NAVIGATION = [
 
 **Stripe Subscription:**
 
-- **Tier:** Community Expert ($29/month or 15% commission)
+- **Tier:** Community Expert
+- **Pricing Options:**
+  - **Commission-Based:** $0/month + 20% commission per booking
+  - **Annual Subscription:** $490/year + 12% commission per booking
 - **Benefits:**
   - List up to 5 services
   - Basic analytics
   - Standard payout schedule (weekly)
   - Basic profile customization
   - Email support
+  - 30-day free trial (commission-based)
 
 **WorkOS Role:** `expert_community`
 
@@ -181,7 +185,10 @@ const TOP_EXPERT_NAVIGATION = [
 
 **Stripe Subscription:**
 
-- **Tier:** Top Expert ($99/month or 10% commission)
+- **Tier:** Top Expert
+- **Pricing Options:**
+  - **Commission-Based:** $0/month + 15% commission per booking
+  - **Annual Subscription:** $1,490/year + 8% commission per booking
 - **Benefits:**
   - Unlimited services
   - Advanced analytics & insights
@@ -190,7 +197,8 @@ const TOP_EXPERT_NAVIGATION = [
   - Featured placement
   - Priority phone support
   - Marketing tools & promotional credits
-  - Lower commission rates
+  - Industry-leading low commission rates
+  - VIP annual subscriber benefits
 
 **WorkOS Role:** `expert_top`
 
@@ -255,7 +263,9 @@ const LECTURER_NAVIGATION = [
 
 **Stripe Subscription:**
 
-- **Add-on:** eLearning Module (+$49/month or 5% course commission)
+- **Add-on:** eLearning Module
+  - **Commission-Based:** +5% on course sales
+  - **Annual Subscription:** +$490/year + 3% on course sales
 
 **WorkOS Role:** `expert_lecturer`
 
@@ -441,37 +451,90 @@ export const STRIPE_PLANS = {
     features: ['Browse experts', 'Book appointments', 'Leave reviews', 'Basic support'],
   },
 
-  community_expert: {
-    priceId: 'price_community_monthly',
-    amount: 2900, // $29/month
+  community_expert_commission: {
+    priceId: null, // Commission-based (no Stripe subscription)
+    amount: 0,
+    commissionRate: 0.2, // 20%
     features: [
       'List up to 5 services',
       'Basic analytics',
       'Weekly payouts',
       'Email support',
-      'Standard commission (15%)',
+      'Pay only 20% commission',
+      'No monthly fees',
     ],
     trialDays: 30,
   },
 
-  top_expert: {
-    priceId: 'price_top_monthly',
-    amount: 9900, // $99/month
+  community_expert_annual: {
+    priceId: 'price_community_annual',
+    amount: 49000, // $490/year
+    commissionRate: 0.12, // 12%
     features: [
+      'List up to 5 services',
+      'Basic analytics',
+      'Weekly payouts',
+      'Email support',
+      'Reduced 12% commission (was 20%)',
+      'Save up to 40% on costs',
+      'Predictable annual fee',
+    ],
+    commitmentMonths: 12,
+  },
+
+  top_expert_commission: {
+    priceId: null, // Commission-based (no Stripe subscription)
+    amount: 0,
+    commissionRate: 0.15, // 15%
+    features: [
+      'All Community Expert features',
       'Unlimited services',
       'Advanced analytics',
-      'Daily payouts available',
+      'Daily payouts',
       'Priority support',
+      'Top Expert badge',
       'Featured placement',
-      'Lower commission (10%)',
-      'Marketing tools',
+      'Pay only 15% commission',
+      'No monthly fees',
     ],
   },
 
-  lecturer_addon: {
-    priceId: 'price_lecturer_addon',
-    amount: 4900, // $49/month addon
-    features: ['Create & sell courses', 'Host webinars', 'LMS access', 'Course commission (5%)'],
+  top_expert_annual: {
+    priceId: 'price_top_annual',
+    amount: 149000, // $1,490/year
+    commissionRate: 0.08, // 8%
+    features: [
+      'All Top Expert features',
+      'Unlimited services',
+      'Advanced analytics',
+      'Daily payouts',
+      'Priority support',
+      'Top Expert badge',
+      'Featured placement',
+      'Industry-leading 8% commission (was 15%)',
+      'Save up to 40% on costs',
+      'VIP annual benefits',
+    ],
+    commitmentMonths: 12,
+  },
+
+  lecturer_addon_commission: {
+    priceId: null,
+    amount: 0,
+    commissionRate: 0.05, // 5% on course sales
+    features: ['Create & sell courses', 'Host webinars', 'LMS access', 'Pay 5% on course sales'],
+  },
+
+  lecturer_addon_annual: {
+    priceId: 'price_lecturer_addon_annual',
+    amount: 49000, // $490/year
+    commissionRate: 0.03, // 3% on course sales
+    features: [
+      'Create & sell courses',
+      'Host webinars',
+      'LMS access',
+      'Reduced 3% on course sales (was 5%)',
+    ],
   },
 
   enterprise: {
@@ -502,6 +565,8 @@ import { UsersTable } from '@/drizzle/schema-workos';
 import { stripe } from '@/lib/integrations/stripe';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
+
+// server/actions/subscriptions.ts
 
 // server/actions/subscriptions.ts
 

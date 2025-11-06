@@ -27,7 +27,7 @@ _Like Airbnb Guest_
 
 ---
 
-### 2. **Community Expert** ($29/month or 15% commission)
+### 2. **Community Expert** (20% commission or $490/year + 12%)
 
 _Like Airbnb Host_
 
@@ -38,6 +38,11 @@ _Like Airbnb Host_
 - ✅ Stripe Identity check
 - ✅ Complete onboarding
 
+**Pricing Options:**
+
+- **Commission-Based:** $0/month + 20% per booking
+- **Annual Subscription:** $490/year + 12% per booking (save up to 40%)
+
 **New Features:**
 
 - Create up to 5 services
@@ -45,10 +50,11 @@ _Like Airbnb Host_
 - Receive bookings & payouts
 - Basic analytics
 - Email support
+- 30-day free trial (commission-based)
 
 ---
 
-### 3. **Top Expert** ($99/month or 10% commission)
+### 3. **Top Expert** (15% commission or $1,490/year + 8%)
 
 _Like Airbnb Superhost_
 
@@ -62,6 +68,11 @@ _Like Airbnb Superhost_
 - ✨ Promoted profile link
 - 🎖️ 3+ months as Community Expert
 
+**Pricing Options:**
+
+- **Commission-Based:** $0/month + 15% per booking
+- **Annual Subscription:** $1,490/year + 8% per booking (save up to 40%)
+
 **Premium Features:**
 
 - **Top Expert Badge** on profile
@@ -72,7 +83,8 @@ _Like Airbnb Superhost_
 - Group sessions
 - Direct messaging
 - Priority support
-- Lower 10% commission
+- Industry-leading 8-15% commission
+- VIP annual benefits
 
 ---
 
