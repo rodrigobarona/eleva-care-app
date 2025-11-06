@@ -1,6 +1,6 @@
 # Solo Expert vs. Clinic Architecture
 
-**Date:** 2025-02-06  
+**Date:** 2025-11-06  
 **Status:** ✅ Documented & Implemented (Phase 1 - Solo Experts)  
 **Future:** 🔮 Phase 2 - Clinics
 
@@ -67,10 +67,10 @@ Subscription matches Expert Level
 
 ### Commission Rates
 
-| Expert Level | Commission-Only | Monthly | Annual |
-|--------------|----------------|---------|--------|
-| **Community** | 20% | 12% ($49/mo) | 12% ($490/yr) |
-| **Top** | 18% | 8% ($177/mo) | 8% ($1,774/yr) |
+| Expert Level  | Commission-Only | Monthly      | Annual         |
+| ------------- | --------------- | ------------ | -------------- |
+| **Community** | 20%             | 12% ($49/mo) | 12% ($490/yr)  |
+| **Top**       | 15%             | 8% ($177/mo) | 8% ($1,774/yr) |
 
 ### Key Characteristics
 
@@ -189,12 +189,14 @@ Each expert keeps INDIVIDUAL commission rate
 **Decision:** Commission rates are based on individual expert's role, not organization subscription.
 
 **Why?**
+
 - **Fair Compensation:** Top experts earned their lower commission through achievement
 - **Talent Retention:** Experts keep their benefits when joining clinics
 - **Growth Incentive:** Community experts have clear path to top tier
 - **Industry Standard:** Cal.com, Vercel, Dub all use per-member pricing
 
 **Alternative Considered (Rejected):**
+
 - Org-level commission (all experts pay same rate)
 - **Problem:** Unfair to top experts who earned their tier
 - **Problem:** No growth incentive for community experts
@@ -205,6 +207,7 @@ Each expert keeps INDIVIDUAL commission rate
 **Decision:** Organizations own subscriptions (one per org), not users.
 
 **Why?**
+
 - Industry standard (Cal.com, Vercel, Dub)
 - Enables team billing for clinics
 - Subscription persists if billing admin leaves
@@ -217,6 +220,7 @@ Each expert keeps INDIVIDUAL commission rate
 **Decision:** User role (`expert_community` or `expert_top`) determines commission rate.
 
 **Why?**
+
 - Simplifies logic (single source of truth)
 - Works for both solo experts and clinics
 - Clear eligibility criteria
@@ -224,6 +228,7 @@ Each expert keeps INDIVIDUAL commission rate
 
 **Future Consideration:**
 Separate roles into two concepts:
+
 - **Permission Roles:** What they can DO (expert, lecturer, admin)
 - **Qualification Badges:** Achievement status (verified, top_rated, featured)
 
@@ -234,6 +239,7 @@ Separate roles into two concepts:
 ### Database Schema
 
 See detailed documentation in:
+
 - `drizzle/schema-workos.ts` - OrganizationType enum (lines 54-88)
 - `drizzle/schema-workos.ts` - UsersTable role field (lines 167-196)
 - `drizzle/schema-workos.ts` - SubscriptionPlansTable (lines 710-774)
@@ -256,6 +262,7 @@ See detailed documentation in:
 ### Phase 2: Clinic Support (Q2 2025)
 
 **Features:**
+
 - Multi-member organization creation
 - Clinic admin dashboard
 - Member invitation system
@@ -263,6 +270,7 @@ See detailed documentation in:
 - Unified clinic billing
 
 **Migration Path:**
+
 - No changes to solo experts
 - New clinic subscription plans
 - Workspace fee + per-expert commissions
@@ -271,6 +279,7 @@ See detailed documentation in:
 ### Phase 3: Advanced Features (Q3 2025)
 
 **Potential Features:**
+
 - Qualification badge system (separate from roles)
 - Custom commission agreements
 - Revenue sharing models
@@ -291,6 +300,7 @@ See detailed documentation in:
 ## ✅ Verification
 
 **Solo Expert Implementation:**
+
 - [x] OrganizationType enum documented
 - [x] User role field documented
 - [x] SubscriptionPlansTable documented
@@ -299,6 +309,7 @@ See detailed documentation in:
 - [x] Subscription pricing config documented
 
 **Clinic Implementation:**
+
 - [ ] Multi-member org creation
 - [ ] Clinic subscription plans
 - [ ] Per-expert commission logic (already ready in code!)
@@ -309,4 +320,3 @@ See detailed documentation in:
 
 **Last Updated:** 2025-02-06  
 **Next Review:** Q2 2025 (before clinic Phase 2)
-

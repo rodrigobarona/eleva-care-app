@@ -16,9 +16,9 @@
  *      • Annual ($490/yr): 12% commission (40% savings)
  *
  *    Top Expert:
- *      • Commission-only: 18% per booking
- *      • Monthly ($177/mo): 8% commission (55% savings)
- *      • Annual ($1,774/yr): 8% commission (55% savings)
+ *      • Commission-only: 15% per booking
+ *      • Monthly ($177/mo): 8% commission (47% savings)
+ *      • Annual ($1,774/yr): 8% commission (47% savings)
  *
  * 2️⃣ CLINICS (Future - Phase 2):
  *    Multi-expert organizations (type: 'clinic') where each expert

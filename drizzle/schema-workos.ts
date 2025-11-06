@@ -741,9 +741,9 @@ export const SlotReservationsTable = pgTable(
  *    │   ├─ tierLevel: 'top'                                     │
  *    │   ├─ planType: 'commission' | 'monthly' | 'annual'        │
  *    │   └─ Commission Rates:                                     │
- *    │       • Commission-only: 18%                              │
- *    │       • Monthly ($177/mo): 18% → 8% discount              │
- *    │       • Annual ($1,774/yr): 18% → 8% discount             │
+ *    │       • Commission-only: 15%                              │
+ *    │       • Monthly ($177/mo): 15% → 8% discount              │
+ *    │       • Annual ($1,774/yr): 15% → 8% discount             │
  *    └─────────────────────────────────────────────────────────────┘
  *
  * 2️⃣ CLINICS (type: 'clinic') - Future Phase:
@@ -852,7 +852,7 @@ export const SubscriptionPlansTable = pgTable(
  *      • Annual subscription: 12% of booking ($490/yr + 12%)
  *
  *    Top Expert (role: 'expert_top'):
- *      • Commission-only: 18% of booking
+ *      • Commission-only: 15% of booking
  *      • Monthly subscription: 8% of booking ($177/mo + 8%)
  *      • Annual subscription: 8% of booking ($1,774/yr + 8%)
  *

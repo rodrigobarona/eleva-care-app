@@ -16,9 +16,9 @@
  *   • Annual subscription → 12% (saves 40%)
  *
  * Top Expert (role: 'expert_top'):
- *   • Commission-only plan → 18%
- *   • Monthly subscription → 8% (saves 55%)
- *   • Annual subscription → 8% (saves 55%)
+ *   • Commission-only plan → 15%
+ *   • Monthly subscription → 8% (saves 47%)
+ *   • Annual subscription → 8% (saves 47%)
  *
  * Clinics (type: 'clinic') - Future:
  * ----------------------------------
