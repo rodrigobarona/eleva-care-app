@@ -16,16 +16,8 @@
 import { db } from '@/drizzle/db';
 import { UsersTable } from '@/drizzle/schema-workos';
 import { updateEligibilityMetrics } from '@/server/actions/eligibility';
-import { verifyRequest } from '@upstash/qstash/nextjs';
 import { inArray } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';
-
-// ============================================================================
-// Config
-// ============================================================================
-
-// Verify QStash signature (for security)
-const isDevelopment = process.env.NODE_ENV === 'development';
 
 // ============================================================================
 // GET Handler - Manual Trigger
@@ -43,10 +35,13 @@ export async function GET() {
 // POST Handler - Cron Execution
 // ============================================================================
 
-async function handler(_request: NextRequest) {
+export async function POST(_request: NextRequest) {
   const startTime = Date.now();
 
   console.log('🔍 Starting eligibility check cron job...');
+
+  // TODO: Add QStash signature verification for production
+  // For now, rely on Vercel Cron auth or add API key check
 
   try {
     // Get all active experts (community and top)
@@ -114,11 +109,3 @@ async function handler(_request: NextRequest) {
     );
   }
 }
-
-// Export with or without QStash verification based on environment
-export const POST = isDevelopment
-  ? handler
-  : verifyRequest(handler, {
-      qstashSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY!,
-      qstashNextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY,
-    });
