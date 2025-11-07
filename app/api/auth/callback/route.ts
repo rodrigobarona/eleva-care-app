@@ -9,12 +9,17 @@
  * 2. WorkOS redirects here with authorization code
  * 3. handleAuth() exchanges code for tokens and creates encrypted session
  * 4. Custom logic runs in onSuccess callback
- * 5. User redirected to returnPathname (default: /dashboard)
+ * 5. User synced to database (WorkOS as source of truth)
+ * 6. User redirected to returnPathname (from state or default: /dashboard)
+ *
+ * Sync Strategy:
+ * - Always sync user data from WorkOS (single source of truth)
+ * - Sync profile data (firstName/lastName) immediately
+ * - Create personal organization on first login
+ * - Never block authentication on sync failures
  */
-import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { syncWorkOSUserToDatabase } from '@/lib/integrations/workos/sync';
 import { handleAuth } from '@workos-inc/authkit-nextjs';
-import { eq } from 'drizzle-orm';
 
 export const GET = handleAuth({
   returnPathname: '/dashboard',
@@ -27,35 +32,45 @@ export const GET = handleAuth({
     console.log('Organization ID:', organizationId || 'None');
     console.log('Authentication Method:', authenticationMethod || 'N/A');
 
-    // Ensure user exists in database
+    // Sync user to database (WorkOS as source of truth)
     try {
-      const existingUser = await db.query.UsersTable.findFirst({
-        where: eq(UsersTable.workosUserId, user.id),
+      const syncResult = await syncWorkOSUserToDatabase({
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        emailVerified: user.emailVerified,
+        profilePictureUrl: user.profilePictureUrl,
       });
 
-      if (!existingUser) {
-        console.log('📝 Creating new user in database');
-        await db.insert(UsersTable).values({
-          workosUserId: user.id,
-          email: user.email,
-          // Note: firstName/lastName are stored in ProfilesTable, not UsersTable
-          // They will be created during onboarding or profile setup
-        });
+      if (!syncResult.success) {
+        console.error('⚠️ User sync failed (non-blocking):', syncResult.error);
       } else {
-        console.log('👤 Existing user found');
+        console.log('✅ User synced successfully');
       }
 
-      // Track authentication method if available (only on initial login)
+      // Track authentication method if available
       if (authenticationMethod) {
         console.log(`🔐 User authenticated via: ${authenticationMethod}`);
         // TODO: Track authentication method in analytics
       }
 
-      // Handle custom state if passed
+      // Handle custom state for redirect
       if (state) {
-        console.log('📦 Custom state received:', state);
-        // TODO: Process custom state (e.g., team invites, feature flags)
+        try {
+          const stateData = JSON.parse(state);
+          console.log('📦 Custom state received:', stateData);
+
+          if (stateData.returnTo) {
+            console.log(`🔀 Will redirect to: ${stateData.returnTo}`);
+          }
+        } catch {
+          // Invalid state JSON - ignore
+        }
       }
+
+      // TODO: Create personal organization on first login
+      // This will be handled in Phase 5 when we implement org sync
     } catch (error) {
       console.error('❌ Error in onSuccess callback:', error);
       // Don't throw - let authentication succeed even if database operations fail

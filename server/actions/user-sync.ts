@@ -7,6 +7,12 @@ import Stripe from 'stripe';
 /**
  * Service to handle all user synchronization between WorkOS, database, and Stripe
  * This ensures consistency across all systems
+ *
+ * Sync Strategy:
+ * - WorkOS is the source of truth for user authentication data
+ * - Database caches user data for performance and relationships
+ * - Profile data (firstName/lastName) synced from WorkOS immediately after auth
+ * - Stripe customer created lazily when needed
  */
 
 /**
@@ -178,4 +184,54 @@ export async function ensureFullUserSynchronization(workosUserId: string) {
 
   // Return the fully synchronized user
   return dbUser;
+}
+
+/**
+ * Sync WorkOS profile data to ProfilesTable
+ *
+ * This function ensures profile data (firstName/lastName) is populated
+ * immediately after authentication, improving UX.
+ *
+ * @param workosUserId - WorkOS user ID
+ * @returns Success status
+ *
+ * @example
+ * ```typescript
+ * // Call after user authentication
+ * await syncWorkOSProfileToDatabase('user_01H...');
+ * ```
+ */
+export async function syncWorkOSProfileToDatabase(workosUserId: string): Promise<boolean> {
+  try {
+    // Import here to avoid circular dependencies
+    const { getWorkOSUserById, syncUserProfileData } = await import(
+      '@/lib/integrations/workos/sync'
+    );
+
+    console.log(`🔄 Syncing profile data from WorkOS: ${workosUserId}`);
+
+    // Fetch user from WorkOS (source of truth)
+    const workosUser = await getWorkOSUserById(workosUserId);
+
+    if (!workosUser) {
+      console.error(`❌ User not found in WorkOS: ${workosUserId}`);
+      return false;
+    }
+
+    // Sync profile data
+    await syncUserProfileData({
+      id: workosUser.id,
+      email: workosUser.email,
+      firstName: workosUser.firstName,
+      lastName: workosUser.lastName,
+      emailVerified: workosUser.emailVerified,
+      profilePictureUrl: workosUser.profilePictureUrl,
+    });
+
+    console.log(`✅ Profile data synced for: ${workosUser.email}`);
+    return true;
+  } catch (error) {
+    console.error(`❌ Error syncing profile data:`, error);
+    return false;
+  }
 }

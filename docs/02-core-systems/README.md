@@ -22,6 +22,7 @@ This section contains documentation for all core application systems that are es
 Eleva Care uses WorkOS AuthKit for enterprise-grade authentication with organization-per-user isolation.
 
 **Key Features:**
+
 - WorkOS AuthKit for passwordless auth
 - Organization-centric multi-tenancy
 - Row-Level Security (RLS)
@@ -29,12 +30,14 @@ Eleva Care uses WorkOS AuthKit for enterprise-grade authentication with organiza
 - HIPAA/GDPR compliant
 
 📄 **Key Documents:**
+
 - ~~[Clerk Configuration](./authentication/01-clerk-configuration.md)~~ ❌ **DEPRECATED** - See WorkOS docs instead
 - [Role Management](./authentication/02-role-management.md) ✅ Still relevant
 - [Permission System](./authentication/03-permission-system.md) ✅ Still relevant
 - [Route Protection](./authentication/04-route-protection.md) ✅ Still relevant
 
 **🔗 See Also:**
+
 - **[WorkOS Migration Docs](../WorkOS-migration/README.md)** - Complete WorkOS documentation
 - **[Getting Started with WorkOS](../WorkOS-migration/GETTING-STARTED-WITH-WORKOS.md)** - Tutorial
 - **[WorkOS Authentication](../WorkOS-migration/reference/workos-authentication.md)** - Reference
@@ -49,6 +52,7 @@ Eleva Care uses WorkOS AuthKit for enterprise-grade authentication with organiza
 Upstash Redis provides serverless caching for improved performance.
 
 **Key Features:**
+
 - Redis for user data caching
 - Stripe customer/subscription cache
 - Rate limiting and DDoS protection
@@ -56,12 +60,14 @@ Upstash Redis provides serverless caching for improved performance.
 - Query result caching
 
 📄 **Key Documents:**
+
 - [Redis Caching](./caching/01-redis-caching.md) ✅ Core implementation
 - ~~[Clerk User Cache](./caching/02-clerk-user-cache.md)~~ ❌ **DEPRECATED** - Migrated to WorkOS
 - [Stripe Customer Cache](./caching/03-stripe-customer-cache.md) ✅ Still relevant
 - [Rate Limiting](./caching/04-rate-limiting.md) ✅ Still relevant
 
 **Migration Notes:**
+
 - Clerk user caching replaced with WorkOS session caching
 - See [CACHE-MIGRATION-GUIDE.md](../WorkOS-migration/CACHE-MIGRATION-GUIDE.md)
 
@@ -74,6 +80,7 @@ Upstash Redis provides serverless caching for improved performance.
 Novu Framework powers all transactional notifications (email, in-app, SMS).
 
 **Key Features:**
+
 - Multi-channel notifications (email, in-app, SMS)
 - Workflow-based notifications
 - User preference management
@@ -81,6 +88,7 @@ Novu Framework powers all transactional notifications (email, in-app, SMS).
 - Integration with Stripe events
 
 📄 **Key Documents:**
+
 - [Novu Integration](./notifications/01-novu-integration.md) ✅ Core setup
 - [Notification Workflows](./notifications/02-notification-workflows.md) ✅ Workflows
 - [Stripe Notifications](./notifications/03-stripe-notifications.md) ✅ Payment events
@@ -88,6 +96,7 @@ Novu Framework powers all transactional notifications (email, in-app, SMS).
 - [Production Ready](./notifications/07-novu-workflows-production-ready.md) ✅ Status
 
 **Latest Status:**
+
 - All workflows migrated to Novu Framework
 - WorkOS integration complete
 - Production-ready
@@ -101,6 +110,7 @@ Novu Framework powers all transactional notifications (email, in-app, SMS).
 Complete payment infrastructure including card payments, bank transfers, refunds, and expert payouts.
 
 **Key Features:**
+
 - Card and Multibanco payments
 - Stripe Connect for expert payouts
 - Automated refund processing
@@ -109,6 +119,7 @@ Complete payment infrastructure including card payments, bank transfers, refunds
 - Webhook-based event handling
 
 📄 **Key Documents:**
+
 - [Payment Flow Analysis](./payments/01-payment-flow-analysis.md) ✅ Architecture
 - [Stripe Integration](./payments/02-stripe-integration.md) ✅ Core setup
 - [Payout Processing](./payments/03-enhanced-payout-processing.md) ✅ Expert payouts
@@ -126,6 +137,7 @@ Complete payment infrastructure including card payments, bank transfers, refunds
 Core scheduling engine for appointment management and availability.
 
 **Key Features:**
+
 - Expert availability management
 - Google Calendar integration
 - Timezone handling
@@ -133,6 +145,7 @@ Core scheduling engine for appointment management and availability.
 - Conflict prevention
 
 📄 **Key Documents:**
+
 - [Scheduling Engine](./scheduling/01-scheduling-engine.md) ✅ Core logic
 - [Booking Layout](./scheduling/02-booking-layout.md) ✅ UI/UX
 
@@ -145,6 +158,7 @@ Core scheduling engine for appointment management and availability.
 Hybrid pricing model with commission-based, monthly, and annual tiers.
 
 **Key Features:**
+
 - Three-tier pricing (Commission / Monthly / Annual)
 - Organization-owned subscriptions
 - Automated eligibility checks
@@ -152,9 +166,11 @@ Hybrid pricing model with commission-based, monthly, and annual tiers.
 - Stripe Billing integration
 
 📄 **Key Documents:**
+
 - [Subscription Implementation](./SUBSCRIPTION-IMPLEMENTATION-STATUS.md) ✅ Status
 - [Subscription Pricing](../../.cursor/plans/SUBSCRIPTION-PRICING-MASTER.md) ✅ Pricing model
 - [Organization Billing](../../.cursor/plans/subscription-billing-entity-analysis.md) ✅ Architecture
+- [Three-Party Clinic Model](./THREE-PARTY-CLINIC-REVENUE-MODEL.md) ⭐ **Option B** (Future Phase 2)
 
 ---
 
@@ -165,6 +181,7 @@ Hybrid pricing model with commission-based, monthly, and annual tiers.
 Inspired by Airbnb's Host/Superhost model for healthcare services.
 
 **Key Features:**
+
 - Tiered expert system (Community → Top → Lecturer)
 - Performance-based progression
 - Automated eligibility calculation
@@ -172,6 +189,7 @@ Inspired by Airbnb's Host/Superhost model for healthcare services.
 - Integration with subscriptions
 
 📄 **Key Documents:**
+
 - [Role Progression System](./ROLE-PROGRESSION-SYSTEM.md) ✅ Complete design
 - [Role Management](./authentication/02-role-management.md) ✅ RBAC implementation
 
@@ -182,16 +200,19 @@ Inspired by Airbnb's Host/Superhost model for healthcare services.
 ### For New Developers
 
 **Day 1: Authentication**
+
 1. Start with [Getting Started with WorkOS](../WorkOS-migration/GETTING-STARTED-WITH-WORKOS.md)
 2. Review [WorkOS Authentication](../WorkOS-migration/reference/workos-authentication.md)
 3. Understand [Org-Per-User Model](../WorkOS-migration/reference/org-per-user-model.md)
 
 **Day 2: Payments**
+
 1. Read [Payment README](./payments/README.md)
 2. Review [Stripe Integration](./payments/02-stripe-integration.md)
 3. Understand [Payout Processing](./payments/03-enhanced-payout-processing.md)
 
 **Day 3: Core Systems**
+
 1. Learn [Redis Caching](./caching/01-redis-caching.md)
 2. Check [Novu Integration](./notifications/01-novu-integration.md)
 3. Review [Scheduling Engine](./scheduling/01-scheduling-engine.md)
@@ -201,11 +222,13 @@ Inspired by Airbnb's Host/Superhost model for healthcare services.
 ### For Operations
 
 **Daily Monitoring:**
+
 1. Check [Health Endpoints](#health-check-endpoints)
 2. Review error logs in Sentry
 3. Monitor Stripe dashboard
 
 **Weekly Reviews:**
+
 1. Review [Payment Flow](./payments/01-payment-flow-analysis.md)
 2. Check cache hit rates
 3. Monitor notification delivery
@@ -216,16 +239,16 @@ Inspired by Airbnb's Host/Superhost model for healthcare services.
 
 ### External Services
 
-| Service           | Purpose                   | Criticality | Status         |
-| ----------------- | ------------------------- | ----------- | -------------- |
-| **WorkOS**        | Authentication & RBAC     | 🔴 Critical | ✅ Production  |
-| **Stripe**        | Payments & Subscriptions  | 🔴 Critical | ✅ Production  |
-| **Novu**          | Notifications             | 🟡 High     | ✅ Production  |
-| **Upstash Redis** | Caching & Rate Limiting   | 🟡 High     | ✅ Production  |
-| **Neon Database** | Data Storage (Postgres)   | 🔴 Critical | ✅ Production  |
-| **PostHog**       | Analytics                 | 🟢 Medium   | ✅ Production  |
-| **Sentry**        | Error Monitoring          | 🟢 Medium   | ✅ Production  |
-| **Better Stack**  | Uptime Monitoring         | 🟢 Medium   | ✅ Production  |
+| Service           | Purpose                  | Criticality | Status        |
+| ----------------- | ------------------------ | ----------- | ------------- |
+| **WorkOS**        | Authentication & RBAC    | 🔴 Critical | ✅ Production |
+| **Stripe**        | Payments & Subscriptions | 🔴 Critical | ✅ Production |
+| **Novu**          | Notifications            | 🟡 High     | ✅ Production |
+| **Upstash Redis** | Caching & Rate Limiting  | 🟡 High     | ✅ Production |
+| **Neon Database** | Data Storage (Postgres)  | 🔴 Critical | ✅ Production |
+| **PostHog**       | Analytics                | 🟢 Medium   | ✅ Production |
+| **Sentry**        | Error Monitoring         | 🟢 Medium   | ✅ Production |
+| **Better Stack**  | Uptime Monitoring        | 🟢 Medium   | ✅ Production |
 
 ### Internal Dependencies
 
@@ -256,24 +279,28 @@ curl https://app.eleva.care/api/health/database
 ### Key Metrics
 
 **Authentication (WorkOS):**
+
 - Login success rate: 99.5%+
 - Average session duration: 7 days
 - OAuth callback time: <500ms
 - JWT verification time: <10ms
 
 **Payments (Stripe):**
+
 - Payment success rate: 95%+
 - Payout processing time: <2 hours
 - Refund processing time: <1 hour
 - Webhook delivery success: 99%+
 
 **Notifications (Novu):**
+
 - Email delivery rate: 98%+
 - In-app delivery: 100%
 - Average send time: <2 seconds
 - Open rate: 45%+
 
 **Caching (Redis):**
+
 - Cache hit rate: 85%+
 - Average latency: <10ms
 - Memory usage: <50%
@@ -288,24 +315,28 @@ curl https://app.eleva.care/api/health/database
 ### Common Issues
 
 **Authentication Issues**
+
 - ❌ Check WorkOS dashboard for user status
 - ❌ Verify environment variables (`WORKOS_API_KEY`, `WORKOS_CLIENT_ID`)
 - ❌ Review JWT token expiry (1 hour default)
 - ✅ See: [TROUBLESHOOT-NEON-JWKS.md](../WorkOS-migration/setup/TROUBLESHOOT-NEON-JWKS.md)
 
 **Payment Failures**
+
 - ❌ Check Stripe dashboard for error details
 - ❌ Verify webhook delivery (stripe.com/docs/webhooks)
 - ❌ Review payment restrictions
 - ✅ See: [Payment Flow](./payments/01-payment-flow-analysis.md)
 
 **Cache Misses**
+
 - ❌ Check Redis health endpoint
 - ❌ Review cache TTL settings (may be expired)
 - ❌ Verify Redis connection
 - ✅ See: [Redis Caching](./caching/01-redis-caching.md)
 
 **Notification Failures**
+
 - ❌ Check Novu dashboard for delivery logs
 - ❌ Verify workflow configuration
 - ❌ Check user notification preferences
@@ -426,16 +457,19 @@ When updating documentation:
 ## 📖 Quick Links
 
 **Start Here:**
+
 - [Getting Started with WorkOS](../WorkOS-migration/GETTING-STARTED-WITH-WORKOS.md)
 - [Payment System README](./payments/README.md)
 - [Subscription Implementation](./SUBSCRIPTION-IMPLEMENTATION-STATUS.md)
 
 **Reference:**
+
 - [WorkOS Authentication](../WorkOS-migration/reference/workos-authentication.md)
 - [Org-Per-User Model](../WorkOS-migration/reference/org-per-user-model.md)
 - [Row-Level Security](../WorkOS-migration/reference/neon-auth-rls.md)
 
 **Guides:**
+
 - [Setup WorkOS Environment](../WorkOS-migration/setup/SETUP-WORKOS-ENV.md)
 - [Role Management](./authentication/02-role-management.md)
 - [Stripe Integration](./payments/02-stripe-integration.md)

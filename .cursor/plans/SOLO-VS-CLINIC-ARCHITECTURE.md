@@ -83,7 +83,10 @@ Subscription matches Expert Level
 
 ## 2️⃣ Clinic Model (Future - Phase 2)
 
-### Architecture
+### Architecture: Three-Party Revenue Model (Option B)
+
+**Model Type:** Marketplace Model (Industry Standard)  
+**Key Principle:** Platform charges the service provider (expert), not the organization (clinic)
 
 ```
 Clinic Admin Creates Organization
@@ -97,10 +100,21 @@ Invites Multiple Experts
   ↓
 Clinic subscribes to Workspace Plan ($99-199/month)
   ↓
+Clinic sets Marketing Fee (10-25%)
+  ↓
 Each expert keeps INDIVIDUAL commission rate
+  ↓
+THREE-PARTY REVENUE SPLIT:
+  Patient → Eleva (Platform Fee) → Clinic (Marketing Fee) → Expert (Net)
 ```
 
-### Example: Multi-Expert Clinic
+**Real-World Examples:**
+
+- **Upwork:** Freelancer pays platform 10-20%, then agency takes their cut (20-30%)
+- **Airbnb:** Host pays platform 3%, then property manager takes their cut (10-25%)
+- **Cal.com:** Team members pay based on their individual plan tier
+
+### Example: Multi-Expert Clinic with Three-Party Model
 
 ```typescript
 {
@@ -115,60 +129,123 @@ Each expert keeps INDIVIDUAL commission rate
     planType: 'monthly',
     monthlyFee: 9900, // $99/month workspace fee
   },
+  clinicSettings: {
+    clinicCommissionRate: 1500, // 15% marketing fee (basis points)
+    expertMinimumShare: 6000, // 60% minimum to expert
+    clinicMaximumShare: 4000, // 40% maximum total fees
+  },
   members: [
     {
-      // Dr. Maria - Top Expert
+      // Dr. Maria - Top Expert (Annual Plan)
       user: {
         role: 'expert_top',
         workosUserId: 'user_maria'
       },
       commission: {
-        // Her patients pay 8% commission
-        commissionRate: 800 // 8% (basis points)
+        // THREE-PARTY SPLIT (Patient pays $100):
+        platformRate: 800,     // 8% to Eleva ($8)
+        clinicRate: 1500,      // 15% to Clinic ($15)
+        expertNet: 7700,       // 77% to Dr. Maria ($77)
       }
     },
     {
-      // Dr. João - Community Expert
+      // Dr. João - Community Expert (Monthly Plan)
       user: {
         role: 'expert_community',
         workosUserId: 'user_joao'
       },
       commission: {
-        // His patients pay 12% commission
-        commissionRate: 1200 // 12%
+        // THREE-PARTY SPLIT (Patient pays $100):
+        platformRate: 1200,    // 12% to Eleva ($12)
+        clinicRate: 1500,      // 15% to Clinic ($15)
+        expertNet: 7300,       // 73% to Dr. João ($73)
       }
     },
     {
-      // Dr. Ana - Community Expert
+      // Dr. Ana - Community Expert (Commission-only)
       user: {
         role: 'expert_community',
         workosUserId: 'user_ana'
       },
       commission: {
-        // Her patients pay 12% commission
-        commissionRate: 1200 // 12%
+        // THREE-PARTY SPLIT (Patient pays $100):
+        platformRate: 2000,    // 20% to Eleva ($20)
+        clinicRate: 1500,      // 15% to Clinic ($15)
+        expertNet: 6500,       // 65% to Dr. Ana ($65)
       }
     }
   ]
 }
 ```
 
-### Commission Calculation Flow
+**Key Insight:** Each expert pays:
+
+1. **Platform fee** (Eleva) - Based on their individual tier + subscription
+2. **Clinic fee** (Organization) - Fixed rate set by clinic (10-25%)
+3. **Keeps remaining** (minimum 60% guaranteed)
+
+### Commission Calculation Flow (Three-Party Model)
 
 ```typescript
-// When patient books with Dr. Maria (expert_top):
+// When patient books with Dr. Maria (expert_top) in clinic:
 1. Patient pays $100 for appointment
+   ↓
 2. System looks up Dr. Maria's role: 'expert_top'
+   ↓
 3. System looks up clinic subscription: planType: 'annual'
-4. Commission = 8% (based on Dr. Maria's role, NOT clinic tier)
-5. Dr. Maria receives: $92 ($100 - $8)
+   ↓
+4. Calculate Eleva platform fee: 8% = $8
+   (Based on Dr. Maria's role + subscription)
+   ↓
+5. Get clinic's marketing fee: 15% = $15
+   (Set by clinic admin)
+   ↓
+6. Validate: Total fees (8% + 15% = 23%) < 40% ✅
+   Validate: Expert net (77%) > 60% ✅
+   ↓
+7. Revenue split:
+   • Eleva receives: $8 (platform fee)
+   • Clinic receives: $15 (marketing/brand fee)
+   • Dr. Maria receives: $77 (net payment)
+   ↓
+8. Record transaction with full breakdown
 
-// When patient books with Dr. João (expert_community):
+// When patient books with Dr. João (expert_community) in clinic:
 1. Patient pays $100 for appointment
+   ↓
 2. System looks up Dr. João's role: 'expert_community'
-3. System looks up clinic subscription: planType: 'annual'
-4. Commission = 12% (based on Dr. João's role)
-5. Dr. João receives: $88 ($100 - $12)
+   ↓
+3. System looks up clinic subscription: planType: 'monthly'
+   ↓
+4. Calculate Eleva platform fee: 12% = $12
+   ↓
+5. Get clinic's marketing fee: 15% = $15
+   ↓
+6. Validate: Total fees (12% + 15% = 27%) < 40% ✅
+   Validate: Expert net (73%) > 60% ✅
+   ↓
+7. Revenue split:
+   • Eleva receives: $12
+   • Clinic receives: $15
+   • Dr. João receives: $73
+```
+
+**Compare to Solo Expert:**
+
+```typescript
+// Solo Dr. Maria (expert_top, annual):
+Patient pays: $100
+├─ Eleva: $8 (8%)
+└─ Dr. Maria: $92 (92%)
+
+// Clinic Dr. Maria (expert_top, annual):
+Patient pays: $100
+├─ Eleva: $8 (8%)
+├─ Clinic: $15 (15% - for patient acquisition)
+└─ Dr. Maria: $77 (77%)
+
+Difference: -$15 per booking
+Value for expert: Clinic brings patients, marketing, brand recognition
 ```
 
 ### Key Characteristics
@@ -292,8 +369,10 @@ See detailed documentation in:
 
 - `.cursor/plans/subscription-billing-entity-analysis.md` - Why orgs own subscriptions
 - `.cursor/plans/SUBSCRIPTION-PRICING-MASTER.md` - Complete pricing strategy
+- `docs/02-core-systems/THREE-PARTY-CLINIC-REVENUE-MODEL.md` - ⭐ **Detailed Option B documentation**
 - `docs/02-core-systems/ROLE-PROGRESSION-SYSTEM.md` - Role progression details
 - `docs/02-core-systems/SUBSCRIPTION-IMPLEMENTATION-STATUS.md` - Implementation status
+- `drizzle/schema-workos.ts` - Database schema with Option B JSDoc comments
 
 ---
 

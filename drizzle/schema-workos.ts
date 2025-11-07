@@ -66,12 +66,28 @@ const updatedAt = timestamp('updated_at')
  * 2️⃣ CLINICS (Future - Phase 2):
  *    - Multi-expert organization (type: 'clinic')
  *    - Can have multiple experts with DIFFERENT levels (community/top)
- *    - Each expert's commission based on THEIR individual level
- *    - Example:
- *      Clinic Org → Subscription ($99/month workspace fee)
- *        ├─ Dr. Maria (Top Expert) → 8% annual commission
- *        ├─ Dr. João (Community Expert) → 12% annual commission
- *        └─ Dr. Ana (Community → Top) → Commission upgrades when eligible
+ *    - THREE-PARTY REVENUE MODEL (Industry Standard):
+ *      Patient → Eleva (Platform Fee) → Clinic (Marketing Fee) → Expert (Net)
+ *
+ *    Example Three-Party Split:
+ *      Clinic Org → Workspace Subscription ($99-199/month)
+ *      Clinic Settings → Marketing Fee (15%)
+ *
+ *      Patient books $100 appointment with Dr. Maria (Top Expert):
+ *        ├─ Eleva Platform Fee: $8 (8% - based on Dr. Maria's tier)
+ *        ├─ Clinic Marketing Fee: $15 (15% - set by clinic)
+ *        └─ Expert Net Payment: $77 (77% - Dr. Maria receives)
+ *
+ *      Patient books $100 appointment with Dr. João (Community):
+ *        ├─ Eleva Platform Fee: $12 (12% - based on Dr. João's tier)
+ *        ├─ Clinic Marketing Fee: $15 (15% - same clinic rate)
+ *        └─ Expert Net Payment: $73 (73% - Dr. João receives)
+ *
+ *    Key Rules:
+ *      • Expert MUST receive minimum 60% of booking
+ *      • Total fees (platform + clinic) cannot exceed 40%
+ *      • Clinic fee range: 10-25%
+ *      • Each expert's platform fee based on THEIR tier (not clinic tier)
  *
  * 3️⃣ PATIENTS:
  *    - Personal organization for data isolation (HIPAA/GDPR)
@@ -746,20 +762,37 @@ export const SlotReservationsTable = pgTable(
  *    │       • Annual ($1,774/yr): 15% → 8% discount             │
  *    └─────────────────────────────────────────────────────────────┘
  *
- * 2️⃣ CLINICS (type: 'clinic') - Future Phase:
- *    ┌─────────────────────────────────────────────────────────────┐
- *    │ Multi-Expert Clinic                                         │
- *    │   ├─ Clinic Org (multiple members)                         │
- *    │   ├─ tierLevel: Clinic's primary tier                     │
- *    │   ├─ Workspace Subscription: $99-199/month base fee       │
- *    │   └─ Per-Expert Commission (based on individual role):    │
- *    │       ├─ Dr. Maria (expert_top) → 8% annual               │
- *    │       ├─ Dr. João (expert_community) → 12% annual         │
- *    │       └─ Dr. Ana (expert_community → top) → 12% → 8%      │
- *    │                                                             │
- *    │   💡 Key Insight: Commission is ALWAYS per-expert,        │
- *    │      regardless of clinic's subscription tier             │
- *    └─────────────────────────────────────────────────────────────┘
+ * 2️⃣ CLINICS (type: 'clinic') - Future Phase (Three-Party Model):
+ *    ┌─────────────────────────────────────────────────────────────────┐
+ *    │ Multi-Expert Clinic (Option B: Marketplace Model)              │
+ *    │   ├─ Clinic Org (multiple members)                            │
+ *    │   ├─ Workspace Subscription: $99-199/month                    │
+ *    │   ├─ Clinic Marketing Fee: 10-25% (set by clinic)            │
+ *    │   └─ Per-Expert Three-Party Revenue Split:                    │
+ *    │                                                                │
+ *    │       Patient books $100 with Dr. Maria (expert_top):         │
+ *    │       ┌────────────────────────────────────────────┐          │
+ *    │       │ Gross Amount: $100.00                      │          │
+ *    │       ├─ Eleva (Platform): $8.00 (8%)             │          │
+ *    │       ├─ Clinic (Marketing): $15.00 (15%)         │          │
+ *    │       └─ Dr. Maria (Net): $77.00 (77%)            │          │
+ *    │       └────────────────────────────────────────────┘          │
+ *    │                                                                │
+ *    │       Patient books $100 with Dr. João (expert_community):    │
+ *    │       ┌────────────────────────────────────────────┐          │
+ *    │       │ Gross Amount: $100.00                      │          │
+ *    │       ├─ Eleva (Platform): $12.00 (12%)           │          │
+ *    │       ├─ Clinic (Marketing): $15.00 (15%)         │          │
+ *    │       └─ Dr. João (Net): $73.00 (73%)             │          │
+ *    │       └────────────────────────────────────────────┘          │
+ *    │                                                                │
+ *    │   💡 Three-Party Model Rules:                                 │
+ *    │      • Platform charges EXPERT (not clinic)                   │
+ *    │      • Clinic charges EXPERT for marketing/patients           │
+ *    │      • Expert minimum: 60% net payment                        │
+ *    │      • Total fees maximum: 40% (platform + clinic)            │
+ *    │      • Industry standard: Upwork, Airbnb, Cal.com             │
+ *    └─────────────────────────────────────────────────────────────────┘
  *
  * 🔑 CRITICAL DESIGN DECISIONS:
  * - Solo experts: User role = Subscription tier (1:1 mapping)
@@ -856,29 +889,58 @@ export const SubscriptionPlansTable = pgTable(
  *      • Monthly subscription: 8% of booking ($177/mo + 8%)
  *      • Annual subscription: 8% of booking ($1,774/yr + 8%)
  *
- * 2️⃣ CLINICS (type: 'clinic') - Future:
- *    Commission rate determined by INDIVIDUAL expert's role, NOT clinic subscription:
+ * 2️⃣ CLINICS (type: 'clinic') - Future (Option B: Three-Party Model):
+ *    THREE-PARTY REVENUE SPLIT (Industry Standard):
+ *    Patient → Eleva (Platform Fee) → Clinic (Marketing Fee) → Expert (Net)
  *
- *    Example Clinic with mixed experts:
- *      • Dr. Maria (expert_top + annual) → 8% commission
- *      • Dr. João (expert_community + monthly) → 12% commission
- *      • Clinic pays workspace fee separately (~$99-199/month)
+ *    Example: Patient books $100 with Dr. Maria (expert_top + annual):
+ *      ┌─────────────────────────────────────────────────┐
+ *      │ Gross Amount: $100.00                           │
+ *      ├─ Eleva Platform Fee: $8.00 (8%)                │
+ *      │    → Based on Dr. Maria's tier (expert_top)    │
+ *      │    → Based on her subscription (annual)        │
+ *      ├─ Clinic Marketing Fee: $15.00 (15%)            │
+ *      │    → Set by clinic for patient acquisition     │
+ *      │    → Compensates clinic for marketing/brand    │
+ *      └─ Expert Net Payment: $77.00 (77%)              │
+ *          → Dr. Maria receives via Stripe Connect      │
+ *      └─────────────────────────────────────────────────┘
  *
- *    💡 Why per-expert rates?
- *       - Fair compensation (top experts earned their lower commission)
- *       - Talent retention (experts keep their benefits when joining clinics)
- *       - Growth incentive (community experts can progress to top)
+ *    Example: Patient books $100 with Dr. João (expert_community + monthly):
+ *      ┌─────────────────────────────────────────────────┐
+ *      │ Gross Amount: $100.00                           │
+ *      ├─ Eleva Platform Fee: $12.00 (12%)              │
+ *      ├─ Clinic Marketing Fee: $15.00 (15%)            │
+ *      └─ Expert Net Payment: $73.00 (73%)              │
+ *      └─────────────────────────────────────────────────┘
+ *
+ *    💡 Why Three-Party Model (Option B)?
+ *       - Industry standard (Upwork, Airbnb, Cal.com)
+ *       - Fair compensation (experts keep their tier benefits)
+ *       - Clinic compensation (for patient acquisition)
+ *       - Expert protection (minimum 60% net, max 40% total fees)
+ *       - Transparent pricing (experts see full breakdown)
  *
  * 📊 CALCULATION FLOW:
+ *
+ *    SOLO EXPERT (Two-Party):
  *    1. Patient pays $100 for appointment
  *    2. Lookup expert's role (expert_top or expert_community)
  *    3. Lookup org subscription (commission/monthly/annual)
- *    4. Calculate commission (e.g., expert_top + annual = 8% = $8)
- *    5. Expert receives net amount ($92 in this example)
- *    6. Record transaction with metadata:
- *       - planTypeAtTransaction: 'annual' (for historical tracking)
- *       - tierLevelAtTransaction: 'top' (for reporting)
- *       - commissionRate: 800 basis points (8%)
+ *    4. Calculate platform commission (e.g., expert_top + annual = 8% = $8)
+ *    5. Expert receives net amount ($92)
+ *    6. Record: platformCommissionAmount=$8, clinicCommissionAmount=$0, expertNetAmount=$92
+ *
+ *    CLINIC EXPERT (Three-Party - Option B):
+ *    1. Patient pays $100 for appointment
+ *    2. Lookup expert's role (expert_top or expert_community)
+ *    3. Lookup org subscription (commission/monthly/annual)
+ *    4. Calculate platform commission (e.g., expert_top + annual = 8% = $8)
+ *    5. Lookup clinic's marketing fee (e.g., 15% = $15)
+ *    6. Validate: Total fees (8% + 15% = 23%) < 40% ✅
+ *    7. Validate: Expert net (77%) > 60% ✅
+ *    8. Expert receives net amount ($77 = $100 - $8 - $15)
+ *    9. Record: platformCommissionAmount=$8, clinicCommissionAmount=$15, expertNetAmount=$77
  *
  * 🎯 METADATA FIELDS (planTypeAtTransaction, tierLevelAtTransaction):
  *    These capture the expert's state at transaction time for:
