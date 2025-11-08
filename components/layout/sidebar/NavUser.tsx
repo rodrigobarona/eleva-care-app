@@ -33,7 +33,7 @@ import {
   Users,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 function NavUserSkeleton() {
   return (
@@ -53,18 +53,21 @@ function NavUserSkeleton() {
 }
 
 export function NavUser() {
-  const { user } = useAuth();
-  const router = useRouter();
+  const { user, signOut } = useAuth(); // ✅ signOut is built into useAuth hook!
+  const [isSigningOut, setIsSigningOut] = useState(false);
+  const { isMobile } = useSidebar();
 
   const handleSignOut = async () => {
+    setIsSigningOut(true);
     try {
-      await fetch('/api/auth/sign-out', { method: 'POST' });
-      router.push('/login');
+      // Use built-in signOut from useAuth hook
+      // Redirect URL configured in WorkOS Dashboard
+      await signOut();
     } catch (error) {
       console.error('Sign out failed:', error);
+      setIsSigningOut(false);
     }
   };
-  const { isMobile } = useSidebar();
   if (!user) return null;
 
   return (
@@ -190,9 +193,9 @@ export function NavUser() {
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleSignOut}>
+            <DropdownMenuItem onClick={handleSignOut} disabled={isSigningOut}>
               <LogOut className="mr-2 h-4 w-4" />
-              <span>Log out</span>
+              <span>{isSigningOut ? 'Signing out...' : 'Log out'}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
