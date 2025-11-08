@@ -24,6 +24,15 @@
         "siteName": "Eleva Care"
       }
     },
+    "become-expert": {
+      "title": "Become an Expert | Share Your Knowledge | Eleva Care",
+      "description": "Join our community of healthcare professionals, coaches, and consultants. Set your own rates, manage your schedule, and help people achieve their goals.",
+      "og": {
+        "title": "Become an Expert | Share Your Knowledge | Eleva Care",
+        "description": "Join our community of healthcare professionals, coaches, and consultants. Set your own rates and earn on your schedule.",
+        "siteName": "Eleva Care"
+      }
+    },
     "trust": {
       "title": "Trust Center | Eleva Care",
       "description": "Learn about Eleva Care's security practices, data protection measures, and compliance certifications.",
@@ -894,6 +903,90 @@
         "resume": "Resume Verification",
         "tryAgain": "Try Again"
       }
+    }
+  },
+  "become-expert": {
+    "hero": {
+      "badge": "Start Your Expert Journey",
+      "title": "Share Your Expertise,",
+      "subtitle": "Earn on Your Schedule",
+      "description": "Join our community of healthcare professionals, coaches, and consultants. Set your own rates, manage your schedule, and help people achieve their goals.",
+      "cta": "Get Started",
+      "signin": "Already an Expert? Sign In",
+      "features": "Free to join • No hidden fees • Get paid directly"
+    },
+    "benefits": {
+      "title": "Why Join Eleva Care?",
+      "rates": {
+        "title": "Set Your Own Rates",
+        "description": "You decide how much you charge. Keep 80% of your earnings, with transparent fees."
+      },
+      "scheduling": {
+        "title": "Flexible Scheduling",
+        "description": "Integrate with your Google Calendar. Set your availability and let clients book when it works for you."
+      },
+      "clients": {
+        "title": "Grow Your Client Base",
+        "description": "Get discovered by clients actively searching for your expertise. No cold outreach needed."
+      },
+      "virtual": {
+        "title": "Virtual Consultations",
+        "description": "Meet clients anywhere with integrated Google Meet. No need for third-party tools."
+      },
+      "payments": {
+        "title": "Secure Payments",
+        "description": "Get paid automatically through Stripe. Direct deposit to your bank account."
+      },
+      "marketing": {
+        "title": "Built-in Marketing",
+        "description": "Get featured in search results, email reminders, and our expert directory."
+      }
+    },
+    "how": {
+      "title": "How It Works",
+      "step1": {
+        "title": "Create Your Profile",
+        "description": "Tell us about your expertise, credentials, and what makes you unique. Upload a professional photo and set your hourly rate."
+      },
+      "step2": {
+        "title": "Set Your Availability",
+        "description": "Connect your Google Calendar and set your working hours. Our smart booking system handles the rest."
+      },
+      "step3": {
+        "title": "Verify Your Identity",
+        "description": "Complete a quick identity verification for client trust and secure payments. Takes less than 5 minutes."
+      },
+      "step4": {
+        "title": "Start Consulting",
+        "description": "Once approved, clients can book you immediately. Get notified, meet virtually, and get paid automatically."
+      },
+      "cta": "Start Your Journey"
+    },
+    "requirements": {
+      "title": "What You Need to Get Started",
+      "credentials": {
+        "title": "Professional Credentials",
+        "description": "Valid certifications, licenses, or proven expertise in your field"
+      },
+      "internet": {
+        "title": "Reliable Internet",
+        "description": "Stable connection for video consultations"
+      },
+      "communication": {
+        "title": "Communication Skills",
+        "description": "Ability to clearly explain concepts and answer questions"
+      },
+      "passion": {
+        "title": "Passion for Helping",
+        "description": "Genuine desire to help others achieve their goals"
+      }
+    },
+    "cta": {
+      "title": "Ready to Share Your Expertise?",
+      "description": "Join thousands of experts earning on their own terms. Set up takes less than 15 minutes.",
+      "button": "Get Started Now",
+      "questions": "Questions?",
+      "contact": "Contact our team"
     }
   }
 }
