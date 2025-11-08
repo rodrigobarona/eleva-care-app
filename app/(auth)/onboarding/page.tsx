@@ -1,9 +1,19 @@
 /**
  * Onboarding Page
  *
- * Initial setup flow for new users after authentication.
- * Redirects to the appropriate setup page based on user type.
+ * Smart routing based on user organization type (Airbnb-style pattern):
+ * - patient_personal → Redirect to /dashboard (fast, frictionless)
+ * - expert_individual → Redirect to /setup (guided expert onboarding)
+ * - No organization → Auto-create patient_personal org and redirect to /dashboard
+ *
+ * This mirrors Airbnb's approach:
+ * - Most users (patients) get instant access to the platform
+ * - Experts ("hosts") get guided through their setup process
  */
+import {
+  autoCreateUserOrganization,
+  getUserOrganizationType,
+} from '@/lib/integrations/workos/auto-organization';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { redirect } from 'next/navigation';
 
@@ -12,13 +22,44 @@ export default async function OnboardingPage() {
   const { user } = await withAuth({ ensureSignedIn: true });
 
   if (!user) {
-    redirect('/sign-in');
+    redirect('/login');
   }
 
-  // For now, redirect to dashboard
-  // TODO: Add onboarding flow logic here
-  redirect('/dashboard');
+  try {
+    // Check user's organization type
+    const orgType = await getUserOrganizationType(user.id);
 
+    // If no organization exists, auto-create patient_personal (fallback)
+    if (!orgType) {
+      console.log('🏢 No organization found - auto-creating patient organization');
+      await autoCreateUserOrganization({
+        workosUserId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        orgType: 'patient_personal',
+      });
+      redirect('/dashboard');
+      return;
+    }
+
+    // Route based on organization type
+    if (orgType === 'expert_individual' || orgType === 'clinic') {
+      // Expert flow - guided onboarding
+      console.log('🎓 Expert user - redirecting to setup');
+      redirect('/setup');
+    } else {
+      // Patient flow - direct to dashboard
+      console.log('👤 Patient user - redirecting to dashboard');
+      redirect('/dashboard');
+    }
+  } catch (error) {
+    console.error('❌ Error in onboarding:', error);
+    // Fallback: redirect to dashboard on error
+    redirect('/dashboard');
+  }
+
+  // Loading state (rarely seen due to redirects)
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="text-center">

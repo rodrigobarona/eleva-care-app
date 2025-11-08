@@ -12,6 +12,7 @@
  */
 import { getSignUpUrl, withAuth } from '@workos-inc/authkit-nextjs';
 import { ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
 interface SignUpPageProps {
@@ -19,6 +20,7 @@ interface SignUpPageProps {
     redirect_url?: string;
     error?: string;
     error_description?: string;
+    expert?: string; // "Become an Expert" flag (Airbnb-style)
   }>;
 }
 
@@ -45,11 +47,13 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
   const redirectUrl = params.redirect_url || '/onboarding';
   const error = params.error;
   const errorDescription = params.error_description;
+  const isExpertRegistration = params.expert === 'true'; // Expert flag from URL
 
-  // Generate WorkOS sign-up URL with redirect path
+  // Generate WorkOS sign-up URL with redirect path and expert flag
   const signUpUrl = await getSignUpUrl({
     state: JSON.stringify({
       returnTo: redirectUrl,
+      expert: isExpertRegistration, // Pass expert intent to callback
     }),
   });
 
@@ -88,9 +92,13 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
           </div>
 
           <div className="space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight">Creating your account</h1>
+            <h1 className="text-2xl font-bold tracking-tight">
+              {isExpertRegistration ? 'Become an Expert' : 'Creating your account'}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              You'll be redirected to our secure registration page
+              {isExpertRegistration
+                ? "You'll be redirected to complete your expert registration"
+                : "You'll be redirected to our secure registration page"}
             </p>
           </div>
 
@@ -115,7 +123,9 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
 
           {/* Benefits Preview */}
           <div className="mt-6 space-y-1 text-xs text-muted-foreground">
-            <p className="font-medium text-foreground">Join thousands of users</p>
+            <p className="font-medium text-foreground">
+              {isExpertRegistration ? 'Start your expert journey' : 'Join thousands of users'}
+            </p>
             <p>Secure • Private • Professional</p>
           </div>
         </div>
@@ -130,9 +140,9 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
         {/* Already have account link */}
         <div className="text-sm text-muted-foreground">
           Already have an account?{' '}
-          <a href="/login" className="font-medium text-primary hover:underline">
+          <Link href="/login" className="font-medium text-primary hover:underline">
             Sign in
-          </a>
+          </Link>
         </div>
       </div>
     </div>

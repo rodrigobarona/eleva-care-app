@@ -350,6 +350,64 @@ export const ExpertSetupTable = pgTable(
 );
 
 /**
+ * Expert Applications Table
+ *
+ * Manual review system for expert applications (Airbnb-style vetting).
+ * Users apply to become experts, admins review and approve/reject.
+ *
+ * Status Flow:
+ * pending → under_review → approved/rejected
+ *
+ * Upon approval:
+ * - User's organization type converts to 'expert_individual'
+ * - User role updates to 'expert_community' or 'expert_top'
+ * - User redirected to /setup for expert onboarding
+ */
+export const ExpertApplicationsTable = pgTable(
+  'expert_applications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    workosUserId: text('workos_user_id')
+      .notNull()
+      .references(() => UsersTable.workosUserId),
+
+    // Application data
+    expertise: text('expertise').notNull(), // e.g., "Clinical Psychologist"
+    credentials: text('credentials').notNull(), // e.g., "PhD in Psychology, Licensed Therapist"
+    experience: text('experience').notNull(), // Years of experience and description
+    motivation: text('motivation').notNull(), // Why they want to become an expert
+    hourlyRate: integer('hourly_rate'), // Proposed hourly rate in cents
+
+    // Optional fields
+    website: text('website'),
+    linkedIn: text('linkedin'),
+    resume: text('resume'), // URL to uploaded resume/CV
+
+    // Review status
+    status: text('status')
+      .notNull()
+      .default('pending')
+      .$type<'pending' | 'under_review' | 'approved' | 'rejected'>(),
+
+    // Admin review
+    reviewedBy: text('reviewed_by'), // WorkOS user ID of admin who reviewed
+    reviewedAt: timestamp('reviewed_at'),
+    reviewNotes: text('review_notes'), // Admin's notes about the decision
+    rejectionReason: text('rejection_reason'), // If rejected, why?
+
+    // Metadata
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    workosUserIdIndex: index('expert_applications_workos_user_id_idx').on(table.workosUserId),
+    statusIndex: index('expert_applications_status_idx').on(table.status),
+    // Only one active application per user
+    uniqueActiveApplication: unique('unique_active_expert_application').on(table.workosUserId),
+  }),
+);
+
+/**
  * ⚠️ REMOVED: User Preferences Table
  *
  * This table has been removed in favor of storing preferences directly in UsersTable.

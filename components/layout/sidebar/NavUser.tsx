@@ -25,6 +25,7 @@ import {
   Bell,
   ChevronsUpDown,
   CreditCard,
+  GraduationCap,
   Home,
   Lock,
   LogOut,
@@ -185,6 +186,14 @@ export function NavUser() {
                 </DropdownMenuItem>
               </RequireRole>
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            {/* Become an Expert CTA (like Airbnb's "Airbnb your home") */}
+            <DropdownMenuItem asChild className="bg-primary/5 font-medium text-primary">
+              <Link href="/become-expert">
+                <GraduationCap className="mr-2 h-4 w-4" />
+                <span>Become an Expert</span>
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <Link href="/account/security">

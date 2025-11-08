@@ -10,14 +10,23 @@
  * 3. handleAuth() exchanges code for tokens and creates encrypted session
  * 4. Custom logic runs in onSuccess callback
  * 5. User synced to database (WorkOS as source of truth)
- * 6. User redirected to returnPathname (from state or default: /dashboard)
+ * 6. Auto-create personal organization (Airbnb-style pattern)
+ * 7. User redirected based on organization type:
+ *    - patient_personal → /dashboard (default, fast)
+ *    - expert_individual → /onboarding (guided setup)
  *
  * Sync Strategy:
  * - Always sync user data from WorkOS (single source of truth)
  * - Sync profile data (firstName/lastName) immediately
- * - Create personal organization on first login
+ * - Auto-create organization on first login (org-per-user model)
+ * - Detect expert intent from URL state (?expert=true)
  * - Never block authentication on sync failures
+ *
+ * @see lib/integrations/workos/auto-organization.ts
  */
+import {
+  autoCreateUserOrganization,
+} from '@/lib/integrations/workos/auto-organization';
 import { syncWorkOSUserToDatabase } from '@/lib/integrations/workos/sync';
 import { handleAuth } from '@workos-inc/authkit-nextjs';
 
@@ -55,22 +64,65 @@ export const GET = handleAuth({
         // TODO: Track authentication method in analytics
       }
 
-      // Handle custom state for redirect
+      // Parse custom state for expert intent and redirect
+      let isExpertRegistration = false;
+      let customReturnPath: string | null = null;
+
       if (state) {
         try {
           const stateData = JSON.parse(state);
           console.log('📦 Custom state received:', stateData);
 
+          // Check for expert registration flag (from ?expert=true URL param)
+          if (stateData.expert === true || stateData.expert === 'true') {
+            isExpertRegistration = true;
+            console.log('🎓 Expert registration detected');
+          }
+
+          // Store custom redirect path
           if (stateData.returnTo) {
-            console.log(`🔀 Will redirect to: ${stateData.returnTo}`);
+            customReturnPath = stateData.returnTo;
+            console.log(`🔀 Custom redirect path: ${customReturnPath}`);
           }
         } catch {
           // Invalid state JSON - ignore
         }
       }
 
-      // TODO: Create personal organization on first login
-      // This will be handled in Phase 5 when we implement org sync
+      // Auto-create personal organization (Airbnb-style pattern)
+      // - Default: patient_personal (fast, frictionless)
+      // - Expert flow: expert_individual (guided onboarding)
+      try {
+        console.log('🏢 Auto-creating user organization...');
+
+        const orgResult = await autoCreateUserOrganization({
+          workosUserId: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          orgType: isExpertRegistration ? 'expert_individual' : 'patient_personal',
+        });
+
+        if (orgResult.success) {
+          console.log(
+            `✅ Organization ${orgResult.isNewOrg ? 'created' : 'exists'}: ${orgResult.organizationId}`,
+          );
+
+          // For new expert organizations, override redirect to onboarding
+          if (orgResult.isNewOrg && isExpertRegistration) {
+            console.log('🎓 New expert - redirecting to onboarding');
+            // The redirect will be handled by customReturnPath below
+            if (!customReturnPath) {
+              customReturnPath = '/onboarding';
+            }
+          }
+        } else {
+          console.error('⚠️ Organization creation failed (non-blocking):', orgResult.error);
+        }
+      } catch (error) {
+        console.error('❌ Error creating organization:', error);
+        // Don't block authentication if org creation fails
+      }
     } catch (error) {
       console.error('❌ Error in onSuccess callback:', error);
       // Don't throw - let authentication succeed even if database operations fail
