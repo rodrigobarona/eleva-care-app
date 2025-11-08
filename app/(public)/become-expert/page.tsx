@@ -13,8 +13,8 @@
  */
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { withAuth } from '@workos-inc/authkit-nextjs';
 import {
+  ArrowRight,
   BadgeCheck,
   CalendarCheck,
   DollarSign,
@@ -22,26 +22,18 @@ import {
   Heart,
   MessageSquare,
   Shield,
+  Sparkles,
   TrendingUp,
   Users,
   Video,
   Zap,
 } from 'lucide-react';
-// Add missing imports
-import { ArrowRight, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 
 export default async function BecomeExpertPage() {
-  // Check if user is already authenticated
-  const { user } = await withAuth({ ensureSignedIn: false });
-
-  // If user is already authenticated, check if they have an expert organization
-  if (user) {
-    // TODO: Check if user is already an expert
-    // For now, redirect to expert onboarding/setup
-    redirect('/setup');
-  }
+  // This is a public page - no authentication required
+  // Users can view the landing page whether they're logged in or not
+  // If they click "Get Started", they'll be redirected to /register?expert=true
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
