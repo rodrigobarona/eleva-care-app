@@ -24,14 +24,13 @@
  *
  * @see lib/integrations/workos/auto-organization.ts
  */
-import {
-  autoCreateUserOrganization,
-} from '@/lib/integrations/workos/auto-organization';
+import { autoCreateUserOrganization } from '@/lib/integrations/workos/auto-organization';
 import { syncWorkOSUserToDatabase } from '@/lib/integrations/workos/sync';
 import { handleAuth } from '@workos-inc/authkit-nextjs';
 
 export const GET = handleAuth({
-  returnPathname: '/dashboard',
+  // Default return path - will be overridden by returnTo in state
+  returnPathname: '/onboarding',
   baseURL: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 
   onSuccess: async ({ user, organizationId, authenticationMethod, state }) => {
@@ -64,9 +63,8 @@ export const GET = handleAuth({
         // TODO: Track authentication method in analytics
       }
 
-      // Parse custom state for expert intent and redirect
+      // Parse custom state for expert intent
       let isExpertRegistration = false;
-      let customReturnPath: string | null = null;
 
       if (state) {
         try {
@@ -79,10 +77,9 @@ export const GET = handleAuth({
             console.log('🎓 Expert registration detected');
           }
 
-          // Store custom redirect path
+          // Log custom redirect path (handled by handleAuth via state.returnTo)
           if (stateData.returnTo) {
-            customReturnPath = stateData.returnTo;
-            console.log(`🔀 Custom redirect path: ${customReturnPath}`);
+            console.log(`🔀 Custom redirect path: ${stateData.returnTo}`);
           }
         } catch {
           // Invalid state JSON - ignore
@@ -107,15 +104,9 @@ export const GET = handleAuth({
           console.log(
             `✅ Organization ${orgResult.isNewOrg ? 'created' : 'exists'}: ${orgResult.organizationId}`,
           );
-
-          // For new expert organizations, override redirect to onboarding
-          if (orgResult.isNewOrg && isExpertRegistration) {
-            console.log('🎓 New expert - redirecting to onboarding');
-            // The redirect will be handled by customReturnPath below
-            if (!customReturnPath) {
-              customReturnPath = '/onboarding';
-            }
-          }
+          console.log(
+            `📊 Organization type: ${isExpertRegistration ? 'expert_individual' : 'patient_personal'}`,
+          );
         } else {
           console.error('⚠️ Organization creation failed (non-blocking):', orgResult.error);
         }
@@ -128,6 +119,9 @@ export const GET = handleAuth({
       // Don't throw - let authentication succeed even if database operations fail
       // This prevents auth loops if database is temporarily unavailable
     }
+
+    // Note: Custom redirect path is handled by handleAuth via state.returnTo
+    // If state.returnTo is present, handleAuth will use it; otherwise, it uses returnPathname
   },
 
   onError: async ({ error, request }) => {

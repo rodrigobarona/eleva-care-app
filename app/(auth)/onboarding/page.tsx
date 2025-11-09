@@ -22,23 +22,36 @@ export default async function OnboardingPage() {
   const { user } = await withAuth({ ensureSignedIn: true });
 
   if (!user) {
+    console.log('❌ No user in onboarding - redirecting to login');
     redirect('/login');
   }
+
+  console.log('🎯 Onboarding page accessed');
+  console.log('User ID:', user.id);
+  console.log('User email:', user.email);
 
   try {
     // Check user's organization type
     const orgType = await getUserOrganizationType(user.id);
+    console.log('🏢 Organization type:', orgType || 'None');
 
     // If no organization exists, auto-create patient_personal (fallback)
     if (!orgType) {
       console.log('🏢 No organization found - auto-creating patient organization');
-      await autoCreateUserOrganization({
+      const result = await autoCreateUserOrganization({
         workosUserId: user.id,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         orgType: 'patient_personal',
       });
+
+      if (result.success) {
+        console.log('✅ Fallback patient organization created:', result.organizationId);
+      } else {
+        console.error('❌ Failed to create fallback organization:', result.error);
+      }
+
       redirect('/dashboard');
       return;
     }
@@ -46,11 +59,11 @@ export default async function OnboardingPage() {
     // Route based on organization type
     if (orgType === 'expert_individual' || orgType === 'clinic') {
       // Expert flow - guided onboarding
-      console.log('🎓 Expert user - redirecting to setup');
+      console.log('🎓 Expert user detected - redirecting to setup');
       redirect('/setup');
     } else {
       // Patient flow - direct to dashboard
-      console.log('👤 Patient user - redirecting to dashboard');
+      console.log('👤 Patient user detected - redirecting to dashboard');
       redirect('/dashboard');
     }
   } catch (error) {

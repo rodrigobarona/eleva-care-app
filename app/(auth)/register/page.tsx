@@ -49,12 +49,15 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
   const errorDescription = params.error_description;
   const isExpertRegistration = params.expert === 'true'; // Expert flag from URL
 
-  // Generate WorkOS sign-up URL with redirect path and expert flag
+  // Generate WorkOS sign-up URL with expert flag in state
+  // NOTE: returnPathname in handleAuth() callback will always redirect to /onboarding
+  // The /onboarding page will then route based on organization type
   const signUpUrl = await getSignUpUrl({
     state: JSON.stringify({
-      returnTo: redirectUrl,
       expert: isExpertRegistration, // Pass expert intent to callback
+      source: 'become-expert-cta', // Track registration source
     }),
+    screenHint: 'sign-up', // Ensure we show sign-up form, not sign-in
   });
 
   // Redirect to WorkOS sign-up
