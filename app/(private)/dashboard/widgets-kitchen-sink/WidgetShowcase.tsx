@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/accordion';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Theme } from '@radix-ui/themes';
 import {
   AdminPortalDomainVerification,
   AdminPortalSsoConnection,
@@ -59,7 +60,7 @@ const categoryColors: Record<string, string> = {
 };
 
 export function WidgetShowcase({ widgets }: WidgetShowcaseProps) {
-  const [selectedWidget, setSelectedWidget] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'live'>('live'); // Default to live view
 
   // Group widgets by category
   const widgetsByCategory = widgets.reduce(
@@ -75,8 +76,9 @@ export function WidgetShowcase({ widgets }: WidgetShowcaseProps) {
 
   // Render the appropriate widget component
   const renderWidget = (widget: Widget) => {
+    // authToken must be a function that returns a Promise<string>
     const commonProps = {
-      authToken: widget.token,
+      authToken: async () => widget.token,
     };
 
     switch (widget.component) {
@@ -105,139 +107,180 @@ export function WidgetShowcase({ widgets }: WidgetShowcaseProps) {
 
   return (
     <div className="space-y-8">
-      {/* Widget Grid - Overview */}
-      <div>
-        <h2 className="mb-4 text-2xl font-semibold">Available Widgets</h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {widgets.map((widget) => (
-            <Card
-              key={widget.id}
-              className="cursor-pointer transition-shadow hover:shadow-lg"
-              onClick={() => setSelectedWidget(selectedWidget === widget.id ? null : widget.id)}
-            >
-              <CardHeader>
-                <div className="mb-2 flex items-center justify-between">
-                  <Badge className={categoryColors[widget.category]}>{widget.category}</Badge>
-                  {categoryIcons[widget.category]}
-                </div>
-                <CardTitle className="text-lg">{widget.name}</CardTitle>
-                <CardDescription className="text-sm">{widget.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div>
-                    <span className="font-medium">Permissions:</span>
-                    <p className="mt-1 text-xs text-muted-foreground">{widget.permissions}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium">Scopes:</span>
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {widget.scopes.map((scope) => (
-                        <code key={scope} className="rounded bg-muted px-2 py-1 text-xs">
-                          {scope}
-                        </code>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+      {/* View Mode Toggle */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-semibold">Available Widgets</h2>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              viewMode === 'list'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            📋 Overview
+          </button>
+          <button
+            onClick={() => setViewMode('live')}
+            className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              viewMode === 'live'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:bg-muted/80'
+            }`}
+          >
+            🎨 Live Widgets
+          </button>
         </div>
       </div>
 
-      {/* Widget Details & Live Demos */}
-      <div>
-        <h2 className="mb-4 text-2xl font-semibold">Widget Details & Live Demos</h2>
-
-        <Accordion type="multiple" className="space-y-4">
-          {Object.entries(widgetsByCategory).map(([category, categoryWidgets]) => (
-            <div key={category} className="space-y-4">
-              <h3 className="flex items-center gap-2 text-xl font-semibold">
-                {categoryIcons[category]}
-                {category}
-              </h3>
-
-              {categoryWidgets.map((widget) => (
-                <AccordionItem key={widget.id} value={widget.id} className="rounded-lg border">
-                  <AccordionTrigger className="px-4 hover:no-underline">
-                    <div className="flex items-center gap-3 text-left">
-                      <Badge className={categoryColors[widget.category]}>{widget.category}</Badge>
-                      <span className="font-semibold">{widget.name}</span>
+      {/* List View - Widget Grid Overview */}
+      {viewMode === 'list' && (
+        <div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {widgets.map((widget) => (
+              <Card
+                key={widget.id}
+                className="cursor-pointer transition-shadow hover:shadow-lg"
+                onClick={() => {
+                  setViewMode('live');
+                }}
+              >
+                <CardHeader>
+                  <div className="mb-2 flex items-center justify-between">
+                    <Badge className={categoryColors[widget.category]}>{widget.category}</Badge>
+                    {categoryIcons[widget.category]}
+                  </div>
+                  <CardTitle className="text-lg">{widget.name}</CardTitle>
+                  <CardDescription className="text-sm">{widget.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2 text-sm">
+                    <div>
+                      <span className="font-medium">Permissions:</span>
+                      <p className="mt-1 text-xs text-muted-foreground">{widget.permissions}</p>
                     </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <div className="space-y-4">
-                      {/* Description */}
-                      <div>
-                        <h4 className="mb-2 font-medium">Description</h4>
-                        <p className="text-sm text-muted-foreground">{widget.description}</p>
+                    <div>
+                      <span className="font-medium">Scopes:</span>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {widget.scopes.map((scope) => (
+                          <code key={scope} className="rounded bg-muted px-2 py-1 text-xs">
+                            {scope}
+                          </code>
+                        ))}
                       </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
 
-                      {/* Use Cases */}
-                      <div>
-                        <h4 className="mb-2 font-medium">Use Cases</h4>
-                        <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                          {widget.useCases.map((useCase) => (
-                            <li key={useCase}>{useCase}</li>
-                          ))}
-                        </ul>
+      {/* Live View - Interactive Widgets */}
+      {viewMode === 'live' && (
+        <div>
+          <Accordion
+            type="multiple"
+            className="space-y-4"
+            defaultValue={widgets.map((w) => w.id)} // Open all by default
+          >
+            {Object.entries(widgetsByCategory).map(([category, categoryWidgets]) => (
+              <div key={category} className="space-y-4">
+                <h3 className="flex items-center gap-2 text-xl font-semibold">
+                  {categoryIcons[category]}
+                  {category}
+                </h3>
+
+                {categoryWidgets.map((widget) => (
+                  <AccordionItem key={widget.id} value={widget.id} className="rounded-lg border">
+                    <AccordionTrigger className="px-4 hover:no-underline">
+                      <div className="flex items-center gap-3 text-left">
+                        <Badge className={categoryColors[widget.category]}>{widget.category}</Badge>
+                        <span className="font-semibold">{widget.name}</span>
                       </div>
-
-                      {/* Technical Details */}
-                      <div className="grid grid-cols-1 gap-4 rounded-lg bg-muted p-3 md:grid-cols-2">
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <div className="space-y-4">
+                        {/* Description */}
                         <div>
-                          <h5 className="mb-1 text-sm font-medium">Required Scopes</h5>
-                          <div className="flex flex-wrap gap-1">
-                            {widget.scopes.map((scope) => (
-                              <code key={scope} className="rounded bg-background px-2 py-1 text-xs">
-                                {scope}
-                              </code>
+                          <h4 className="mb-2 font-medium">Description</h4>
+                          <p className="text-sm text-muted-foreground">{widget.description}</p>
+                        </div>
+
+                        {/* Use Cases */}
+                        <div>
+                          <h4 className="mb-2 font-medium">Use Cases</h4>
+                          <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
+                            {widget.useCases.map((useCase) => (
+                              <li key={useCase}>{useCase}</li>
                             ))}
+                          </ul>
+                        </div>
+
+                        {/* Technical Details */}
+                        <div className="grid grid-cols-1 gap-4 rounded-lg bg-muted p-3 md:grid-cols-2">
+                          <div>
+                            <h5 className="mb-1 text-sm font-medium">Required Scopes</h5>
+                            <div className="flex flex-wrap gap-1">
+                              {widget.scopes.map((scope) => (
+                                <code
+                                  key={scope}
+                                  className="rounded bg-background px-2 py-1 text-xs"
+                                >
+                                  {scope}
+                                </code>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <h5 className="mb-1 text-sm font-medium">Permissions</h5>
+                            <p className="text-xs text-muted-foreground">{widget.permissions}</p>
                           </div>
                         </div>
+
+                        {/* Live Widget */}
                         <div>
-                          <h5 className="mb-1 text-sm font-medium">Permissions</h5>
-                          <p className="text-xs text-muted-foreground">{widget.permissions}</p>
+                          <h4 className="mb-2 flex items-center gap-2 font-medium">
+                            <Monitor className="h-4 w-4" />
+                            Live Widget
+                          </h4>
+                          <div className="rounded-lg border bg-background p-4">
+                            <WorkOsWidgets>
+                              <Theme appearance="light" accentColor="blue">
+                                {renderWidget(widget)}
+                              </Theme>
+                            </WorkOsWidgets>
+                          </div>
                         </div>
-                      </div>
 
-                      {/* Live Widget */}
-                      <div>
-                        <h4 className="mb-2 flex items-center gap-2 font-medium">
-                          <Monitor className="h-4 w-4" />
-                          Live Widget
-                        </h4>
-                        <div className="rounded-lg border bg-background p-4">
-                          <WorkOsWidgets>{renderWidget(widget)}</WorkOsWidgets>
-                        </div>
-                      </div>
-
-                      {/* Implementation Example */}
-                      <div>
-                        <h4 className="mb-2 font-medium">Implementation Example</h4>
-                        <pre className="overflow-auto rounded-lg bg-muted p-4 text-xs">
-                          <code>{`import { ${widget.component}, WorkOsWidgets } from '@workos-inc/widgets';
+                        {/* Implementation Example */}
+                        <div>
+                          <h4 className="mb-2 font-medium">Implementation Example</h4>
+                          <pre className="overflow-auto rounded-lg bg-muted p-4 text-xs">
+                            <code>{`import { ${widget.component}, WorkOsWidgets } from '@workos-inc/widgets';
 
 export function ${widget.name.replace(/\s+/g, '')}Page({ authToken${widget.sessionId ? ', currentSessionId' : ''} }) {
   return (
     <WorkOsWidgets>
       <${widget.component}
-        authToken={authToken}${widget.sessionId ? '\n        currentSessionId={currentSessionId}' : ''}
+        authToken={async () => authToken} // Must be an async function!${widget.sessionId ? '\n        currentSessionId={currentSessionId}' : ''}
       />
     </WorkOsWidgets>
   );
 }`}</code>
-                        </pre>
+                          </pre>
+                        </div>
                       </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </div>
-          ))}
-        </Accordion>
-      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </div>
+            ))}
+          </Accordion>
+        </div>
+      )}
 
       {/* Documentation Link */}
       <div className="mt-8 rounded-lg border bg-muted p-4">
