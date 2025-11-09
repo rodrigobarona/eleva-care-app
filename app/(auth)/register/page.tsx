@@ -57,7 +57,8 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
       expert: isExpertRegistration, // Pass expert intent to callback
       source: 'become-expert-cta', // Track registration source
     }),
-    screenHint: 'sign-up', // Ensure we show sign-up form, not sign-in
+    // Note: screenHint is not available in getSignUpUrl
+    // The sign-up URL will automatically show the sign-up form
   });
 
   // Redirect to WorkOS sign-up
