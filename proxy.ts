@@ -279,11 +279,18 @@ export default async function proxy(request: NextRequest) {
   });
 
   // Check if this is a public route
+  // Also check for locale-prefixed public content routes (e.g., /es/become-expert)
+  const pathWithoutLocale = locales.some((locale) => path.startsWith(`/${locale}/`))
+    ? path.substring(path.indexOf('/', 1))
+    : path;
+
   const isPublicRoute =
     isUsernameRoute(path) ||
     isLocalePublicRoute(path) ||
     isHomePage(path) ||
     isAuthRoute(path) ||
+    isPublicContentPath(path) ||
+    isPublicContentPath(pathWithoutLocale) ||
     matchPatternsArray(path, PUBLIC_ROUTES);
 
   // Auth routes: skip i18n routing (sign-in, sign-up are not localized)
