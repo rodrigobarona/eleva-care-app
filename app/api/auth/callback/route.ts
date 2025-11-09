@@ -89,30 +89,30 @@ export const GET = handleAuth({
       // Auto-create personal organization (Airbnb-style pattern)
       // - Default: patient_personal (fast, frictionless)
       // - Expert flow: expert_individual (guided onboarding)
-      try {
-        console.log('🏢 Auto-creating user organization...');
+      console.log('🏢 Auto-creating user organization...');
 
-        const orgResult = await autoCreateUserOrganization({
-          workosUserId: user.id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          orgType: isExpertRegistration ? 'expert_individual' : 'patient_personal',
-        });
+      const orgResult = await autoCreateUserOrganization({
+        workosUserId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        orgType: isExpertRegistration ? 'expert_individual' : 'patient_personal',
+      });
 
-        if (orgResult.success) {
-          console.log(
-            `✅ Organization ${orgResult.isNewOrg ? 'created' : 'exists'}: ${orgResult.organizationId}`,
-          );
-          console.log(
-            `📊 Organization type: ${isExpertRegistration ? 'expert_individual' : 'patient_personal'}`,
-          );
-        } else {
-          console.error('⚠️ Organization creation failed (non-blocking):', orgResult.error);
-        }
-      } catch (error) {
-        console.error('❌ Error creating organization:', error);
-        // Don't block authentication if org creation fails
+      if (orgResult.success) {
+        console.log(
+          `✅ Organization ${orgResult.isNewOrg ? 'created' : 'exists'}: ${orgResult.organizationId}`,
+        );
+        console.log(
+          `📊 Organization type: ${isExpertRegistration ? 'expert_individual' : 'patient_personal'}`,
+        );
+        console.log(`🔗 Internal org ID: ${orgResult.internalOrgId}`);
+      } else {
+        console.error('❌ CRITICAL: Organization creation failed!');
+        console.error('Error:', orgResult.error);
+        console.error('User will be stuck on /onboarding page');
+        // This is a critical failure - user can't proceed without an organization
+        // The /onboarding page will attempt to create a fallback organization
       }
     } catch (error) {
       console.error('❌ Error in onSuccess callback:', error);

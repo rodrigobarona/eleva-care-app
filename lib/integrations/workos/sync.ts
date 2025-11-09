@@ -149,8 +149,15 @@ export async function syncWorkOSUserToDatabase(userData: WorkOSUserData): Promis
       console.log(`✅ User created: ${userData.email}`);
     }
 
-    // Sync profile data (firstName/lastName)
-    await syncUserProfileData(userData);
+    // ⚠️ IMPORTANT: Do NOT create ProfilesTable or ExpertSetupTable here
+    // These tables are ONLY for experts and should be created when:
+    // - User becomes an expert (via expert application approval)
+    // - Or registers via /become-expert flow with expert_individual org type
+    //
+    // Creating profiles for all users causes:
+    // 1. Database bloat (profiles for non-experts)
+    // 2. Incorrect UI states (setup banners for patients)
+    // 3. RLS issues (profiles without proper org associations)
 
     return {
       success: true,

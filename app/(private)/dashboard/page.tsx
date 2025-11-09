@@ -22,23 +22,10 @@ export default async function HomePage() {
   const { user } = await withAuth({ ensureSignedIn: true });
 
   // Parallel fetch from database for optimal performance
-  const [isExpert, setupData, profile] = await Promise.all([
+  const [isExpert, profile] = await Promise.all([
     // Check if user has expert role
     isUserExpert(user.id),
-    // Get expert setup status (only if expert)
-    checkExpertSetupStatus().catch(() => ({
-      setupStatus: {
-        profile: false,
-        availability: false,
-        events: false,
-        identity: false,
-        payment: false,
-        google_account: false,
-      },
-      isSetupComplete: false,
-      setupCompletedAt: null,
-    })),
-    // Get profile publication status
+    // Get profile publication status (only exists for experts)
     db.query.ProfilesTable.findFirst({
       where: eq(ProfilesTable.workosUserId, user.id),
       columns: {
@@ -46,6 +33,36 @@ export default async function HomePage() {
       },
     }),
   ]);
+
+  // Get expert setup status ONLY if user is an expert
+  // This prevents auto-creating expert_setup records for regular patients
+  let setupData: {
+    setupStatus: {
+      profile: boolean;
+      availability: boolean;
+      events: boolean;
+      identity: boolean;
+      payment: boolean;
+      google_account: boolean;
+    };
+    isSetupComplete: boolean;
+    setupCompletedAt: Date | null;
+  } = {
+    setupStatus: {
+      profile: false,
+      availability: false,
+      events: false,
+      identity: false,
+      payment: false,
+      google_account: false,
+    },
+    isSetupComplete: false,
+    setupCompletedAt: null,
+  };
+
+  if (isExpert) {
+    setupData = await checkExpertSetupStatus().catch(() => setupData);
+  }
 
   // Extract first name with fallback
   const firstName = user.firstName || 'there';
