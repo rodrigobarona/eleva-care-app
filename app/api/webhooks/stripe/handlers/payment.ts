@@ -1,4 +1,4 @@
-import { triggerWorkflow } from '@/app/utils/novu';
+import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {

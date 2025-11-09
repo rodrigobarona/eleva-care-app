@@ -1,4 +1,4 @@
-import { triggerWorkflow } from '@/app/utils/novu';
+import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,
   NOTIFICATION_TYPE_SECURITY_ALERT,

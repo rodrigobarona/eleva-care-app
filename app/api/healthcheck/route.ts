@@ -1,4 +1,4 @@
-import { getNovuStatus, triggerWorkflow } from '@/app/utils/novu';
+import { getNovuStatus, triggerWorkflow } from '@/lib/integrations/novu/client';
 import { ENV_CONFIG, ENV_HELPERS } from '@/config/env';
 import { checkAllServices, ServiceHealthResult } from '@/lib/utils/server/service-health';
 import { NextResponse } from 'next/server';

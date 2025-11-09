@@ -1,4 +1,4 @@
-import type { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
+import type { DAYS_OF_WEEK_IN_ORDER } from '@/lib/constants/days-of-week';
 import { ScheduleForm } from '@/components/features/forms/ScheduleForm';
 import { db } from '@/drizzle/db';
 import { SchedulesTable } from '@/drizzle/schema-workos';

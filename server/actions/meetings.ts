@@ -1,6 +1,6 @@
 'use server';
 
-import { triggerWorkflow } from '@/app/utils/novu';
+import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import { db } from '@/drizzle/db';
 import { MeetingsTable } from '@/drizzle/schema-workos';
 import { createOrGetGuestUser } from '@/lib/integrations/workos/guest-users';

@@ -1,6 +1,6 @@
 'use client';
 
-import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
+import { DAYS_OF_WEEK_IN_ORDER } from '@/lib/constants/days-of-week';
 import { BlockedDates } from '@/components/shared/blocked-dates/BlockedDates';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';

@@ -1,4 +1,4 @@
-import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
+import { DAYS_OF_WEEK_IN_ORDER } from '@/lib/constants/days-of-week';
 import {
   PAYMENT_TRANSFER_STATUS_PENDING,
   PAYMENT_TRANSFER_STATUSES,

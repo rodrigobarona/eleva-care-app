@@ -1,4 +1,4 @@
-import { triggerWorkflow } from '@/app/utils/novu';
+import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import { db } from '@/drizzle/db';
 import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
 import { addDays, format } from 'date-fns';

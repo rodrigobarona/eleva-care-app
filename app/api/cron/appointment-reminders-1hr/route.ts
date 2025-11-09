@@ -1,4 +1,4 @@
-import { triggerWorkflow } from '@/app/utils/novu';
+import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import { db } from '@/drizzle/db';
 import { EventsTable, MeetingsTable, ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs';

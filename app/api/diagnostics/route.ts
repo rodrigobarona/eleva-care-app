@@ -11,7 +11,7 @@
  *
  * Usage: GET /api/diagnostics?component=all|novu|qstash|webhooks
  */
-import { runNovuDiagnostics } from '@/app/utils/novu';
+import { runNovuDiagnostics } from '@/lib/integrations/novu/client';
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { getScheduleStats, isQStashAvailable } from '@/lib/integrations/qstash/client';

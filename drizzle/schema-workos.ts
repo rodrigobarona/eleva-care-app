@@ -15,7 +15,7 @@
  * 4. RLS enforced at database level via JWT validation
  * 5. Audit logs in same database, protected by RLS
  */
-import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
+import { DAYS_OF_WEEK_IN_ORDER } from '@/lib/constants/days-of-week';
 import {
   PAYMENT_TRANSFER_STATUS_PENDING,
   PAYMENT_TRANSFER_STATUSES,

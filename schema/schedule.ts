@@ -1,4 +1,4 @@
-import { DAYS_OF_WEEK_IN_ORDER } from '@/app/data/constants';
+import { DAYS_OF_WEEK_IN_ORDER } from '@/lib/constants/days-of-week';
 import { timeToInt } from '@/lib/utils';
 import { z } from 'zod';
 
