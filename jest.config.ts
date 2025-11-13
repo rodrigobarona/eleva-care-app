@@ -10,7 +10,8 @@ const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testEnvironment: 'jsdom',
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/$1',
+    '^@/(.*)$': '<rootDir>/src/$1',
+    '^@/drizzle/(.*)$': '<rootDir>/drizzle/$1',
     // Mock svix to avoid binary parsing issues
     '^svix$': '<rootDir>/tests/__mocks__/svix.ts',
     // Mock next-intl modules to prevent ESM parsing issues
@@ -43,9 +44,10 @@ const customJestConfig = {
   // Better error reporting
   verbose: true,
   collectCoverageFrom: [
-    'app/**/*.{ts,tsx}',
-    'components/**/*.{ts,tsx}',
-    'lib/**/*.{ts,tsx}',
+    'src/app/**/*.{ts,tsx}',
+    'src/components/**/*.{ts,tsx}',
+    'src/lib/**/*.{ts,tsx}',
+    'src/server/**/*.{ts,tsx}',
     '!**/*.d.ts',
     '!**/node_modules/**',
   ],
