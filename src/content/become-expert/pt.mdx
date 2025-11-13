@@ -88,43 +88,74 @@ import { Sparkles, TrendingUp } from 'lucide-react';
 
 <ExpertPricingSection
   title="Preços Flexíveis para Cada Especialista"
-  subtitle="Escolha o plano que se adapta à sua prática. Mude entre faturamento mensal e anual com facilidade."
-  toggleLabels={{
-    monthly: 'Mensal',
-    annual: 'Anual',
-    saveText: 'Economize 20%',
-  }}
+  subtitle="Escolha o plano que se adapta à sua prática. Todos os planos incluem pagamentos seguros, gestão de calendário e ferramentas de comunicação com clientes."
   communityTier={{
     tierName: 'Especialista Comunitário',
     tierIcon: <Sparkles className="h-6 w-6" />,
     tierColor: 'primary',
     description: 'Perfeito para profissionais iniciantes ou construindo sua prática',
-    pricing: {
-      monthly: {
+    plans: [
+      {
+        name: 'Pagamento por uso',
+        price: '$0',
+        priceDetail: '/mês',
+        commission: '20%',
+        description: 'Comece a ganhar imediatamente sem custos iniciais',
+        features: [
+          'Liste até 5 serviços',
+          'Integração básica de calendário',
+          'Analíticas padrão',
+          'Pagamentos semanais',
+          'Suporte por email',
+          'Sem taxas de assinatura',
+          'Cancele a qualquer momento',
+        ],
+        cta: {
+          text: 'Começar Grátis',
+          href: '/register?expert=true&plan=community-paygo',
+        },
+      },
+      {
+        name: 'Plano Mensal',
         price: '$49',
         priceDetail: '/mês',
+        commission: '12%',
+        badge: 'Comissão Reduzida',
+        recommended: true,
+        description: 'Comissão reduzida com faturamento mensal previsível',
+        features: [
+          'Tudo em Pagamento por uso',
+          'Comissão reduzida de 12% (economize 8%)',
+          'Integração prioritária',
+          'Revisões trimestrais do negócio',
+          'Mude de plano a qualquer momento',
+        ],
+        cta: {
+          text: 'Escolher Mensal',
+          href: '/register?expert=true&plan=community-monthly',
+        },
       },
-      annual: {
+      {
+        name: 'Plano Anual',
         price: '$470',
         priceDetail: '/ano',
-        savings: '💰 Economize $118/ano (2 meses grátis!)',
+        commission: '12%',
+        badge: 'Melhor Valor',
+        savingsText: '💰 Economize $118 (2 meses grátis!)',
+        description: 'Máxima economia com compromisso anual',
+        features: [
+          'Tudo em Plano Mensal',
+          'Comissão reduzida de 12% (economize 8%)',
+          'Economize $118 vs faturamento mensal',
+          'Desconto por compromisso anual',
+          'Suporte prioritário',
+        ],
+        cta: {
+          text: 'Economizar com Anual',
+          href: '/register?expert=true&plan=community-annual',
+        },
       },
-    },
-    commission: '12%',
-    features: [
-      'Liste até 5 serviços',
-      'Integração básica de calendário',
-      'Analíticas padrão',
-      'Pagamentos semanais',
-      'Suporte por email',
-      'Integração prioritária',
-      'Revisões trimestrais do negócio',
-      'Mude de plano a qualquer momento',
     ],
-    cta: {
-      text: 'Começar',
-      href: '/register?expert=true&plan=community',
-    },
   }}
   topTier={{
     tierName: 'Especialista Top',
@@ -132,19 +163,6 @@ import { Sparkles, TrendingUp } from 'lucide-react';
     tierIcon: <TrendingUp className="h-6 w-6" />,
     tierColor: 'amber',
     description: 'Nível premium para especialistas estabelecidos com histórico comprovado',
-    recommended: true,
-    pricing: {
-      monthly: {
-        price: '$177',
-        priceDetail: '/mês',
-      },
-      annual: {
-        price: '$1,696',
-        priceDetail: '/ano',
-        savings: '💰 Economize $428/ano (2 meses grátis!)',
-      },
-    },
-    commission: '8%',
     requirements: [
       '⭐ Avaliação média de 4.8+',
       '📅 25+ consultas concluídas em 90 dias',
@@ -153,24 +171,72 @@ import { Sparkles, TrendingUp } from 'lucide-react';
       '🎖️ 3+ meses como Especialista Comunitário',
       '✨ Perfil completo com portfólio',
     ],
-    features: [
-      'Serviços ilimitados',
-      'Analíticas e insights avançados',
-      'Pagamentos diários',
-      'Suporte prioritário',
-      'Selo de Especialista Top',
-      'Posicionamento destacado',
-      'Opções de marca personalizada',
-      'Capacidades de sessões em grupo',
-      'Mensagens diretas',
-      'Gerente de conta dedicado',
+    plans: [
+      {
+        name: 'Pagamento por uso',
+        price: '$0',
+        priceDetail: '/mês',
+        commission: '15%',
+        description: 'Recursos premium com preços apenas por comissão',
+        features: [
+          'Serviços ilimitados',
+          'Analíticas e insights avançados',
+          'Pagamentos diários',
+          'Suporte prioritário',
+          'Selo de Especialista Top',
+          'Posicionamento destacado',
+          'Sem taxas de assinatura',
+        ],
+        cta: {
+          text: 'Candidatar-se a Top',
+          href: '/register?expert=true&plan=top-paygo',
+        },
+      },
+      {
+        name: 'Plano Mensal',
+        price: '$177',
+        priceDetail: '/mês',
+        commission: '8%',
+        badge: 'Líder da Indústria',
+        recommended: true,
+        description: 'Taxa de comissão líder da indústria com faturamento mensal',
+        features: [
+          'Tudo em Pagamento por uso',
+          'Comissão líder de 8%',
+          'Opções de marca personalizada',
+          'Capacidades de sessões em grupo',
+          'Mensagens diretas',
+          'Suporte de conta dedicado',
+        ],
+        cta: {
+          text: 'Escolher Mensal',
+          href: '/register?expert=true&plan=top-monthly',
+        },
+      },
+      {
+        name: 'Plano Anual',
+        price: '$1,696',
+        priceDetail: '/ano',
+        commission: '8%',
+        badge: 'Valor Máximo',
+        savingsText: '💰 Economize $428 (2 meses grátis!)',
+        description: 'Melhor valor para os melhores comprometidos',
+        features: [
+          'Tudo em Plano Mensal',
+          'Comissão líder de 8%',
+          'Economize $428 vs faturamento mensal',
+          'Benefícios VIP anuais',
+          'Analíticas premium',
+          'Gerente de conta dedicado',
+        ],
+        cta: {
+          text: 'Economizar com Anual',
+          href: '/register?expert=true&plan=top-annual',
+        },
+      },
     ],
-    cta: {
-      text: 'Candidatar-se a Top',
-      href: '/register?expert=true&plan=top-expert',
-    },
   }}
-  note="💡 Opção de pagamento conforme uso disponível: Comece com 0% de taxa de assinatura e 20% de comissão (Comunitário) ou 15% de comissão (Top). Mude para planos de assinatura a qualquer momento para reduzir taxas de comissão e desbloquear recursos adicionais."
+  note="Cancele ou mude de plano a qualquer momento. Não são necessários contratos de longo prazo. Todos os planos incluem suporte da plataforma, processamento seguro de pagamentos e ferramentas de gestão de clientes."
 />
 
 
