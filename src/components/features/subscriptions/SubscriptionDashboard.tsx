@@ -58,13 +58,11 @@ export function SubscriptionDashboard() {
 
     setActionLoading(true);
     try {
-      const priceId =
-        eligibility.tierLevel === 'top'
-          ? process.env.NEXT_PUBLIC_STRIPE_PRICE_TOP_ANNUAL || 'price_1SQXF5K5Ap4Um3SpzT4S3agl'
-          : process.env.NEXT_PUBLIC_STRIPE_PRICE_COMMUNITY_ANNUAL ||
-            'price_1SQXF5K5Ap4Um3SpekZpC9fQ';
+      // Use lookup keys instead of hardcoded price IDs
+      const { EXPERT_LOOKUP_KEYS } = await import('@/config/subscription-lookup-keys');
+      const lookupKey = EXPERT_LOOKUP_KEYS[eligibility.tierLevel].annual;
 
-      const result = await createSubscription(priceId, eligibility.tierLevel);
+      const result = await createSubscription(lookupKey, eligibility.tierLevel);
 
       if (result.success && result.checkoutUrl) {
         // Redirect to Stripe Checkout

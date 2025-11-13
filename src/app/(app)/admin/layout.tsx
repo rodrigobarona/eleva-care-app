@@ -1,6 +1,6 @@
 import { isAdmin } from '@/lib/auth/roles.server';
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import { BanknoteIcon, Tag, Users } from 'lucide-react';
+import { BanknoteIcon, CreditCard, Tag, Users } from 'lucide-react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 
@@ -42,6 +42,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
               >
                 <BanknoteIcon className="mr-2 h-4 w-4" />
                 <span>Manage Payments</span>
+              </Link>
+              <Link
+                href="/admin/subscriptions"
+                className="group flex w-full items-center rounded-md border border-transparent px-2 py-1 hover:bg-muted hover:text-foreground"
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                <span>Subscriptions</span>
               </Link>
             </div>
           </nav>

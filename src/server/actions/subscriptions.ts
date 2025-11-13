@@ -103,6 +103,36 @@ import Stripe from 'stripe';
  * - Audit logging
  */
 
+/**
+ * Subscription Management Server Actions
+ *
+ * Handles all subscription-related operations:
+ * - Creating new subscriptions (annual plans)
+ * - Canceling subscriptions
+ * - Updating subscription plans
+ * - Fetching subscription status
+ *
+ * Integrates with:
+ * - Stripe Subscriptions API
+ * - Database (SubscriptionPlansTable)
+ * - Audit logging
+ */
+
+/**
+ * Subscription Management Server Actions
+ *
+ * Handles all subscription-related operations:
+ * - Creating new subscriptions (annual plans)
+ * - Canceling subscriptions
+ * - Updating subscription plans
+ * - Fetching subscription status
+ *
+ * Integrates with:
+ * - Stripe Subscriptions API
+ * - Database (SubscriptionPlansTable)
+ * - Audit logging
+ */
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
 });
@@ -344,6 +374,20 @@ export async function createSubscription(
         .where(eq(UsersTable.workosUserId, user.id));
     }
 
+    // Resolve price ID from lookup key (if needed)
+    // If priceId is already a Stripe ID (starts with 'price_'), use it directly
+    // Otherwise, treat it as a lookup key and resolve it
+    let stripePriceId = priceId;
+    if (!priceId.startsWith('price_')) {
+      // priceId is actually a lookup key, resolve it
+      const { getPriceIdByLookupKey } = await import('@/lib/stripe/price-resolver');
+      const resolvedPriceId = await getPriceIdByLookupKey(priceId);
+      if (!resolvedPriceId) {
+        throw new Error(`No active price found for lookup key: ${priceId}`);
+      }
+      stripePriceId = resolvedPriceId;
+    }
+
     // Create Stripe Checkout session
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
@@ -351,7 +395,7 @@ export async function createSubscription(
       payment_method_types: ['card'],
       line_items: [
         {
-          price: priceId,
+          price: stripePriceId,
           quantity: 1,
         },
       ],
