@@ -88,74 +88,43 @@ import { Sparkles, TrendingUp } from 'lucide-react';
 
 <ExpertPricingSection
   title="Precios Flexibles para Cada Experto"
-  subtitle="Elige el plan que se adapte a tu práctica. Todos los planes incluyen pagos seguros, gestión de calendario y herramientas de comunicación con clientes."
+  subtitle="Elige el plan que se adapte a tu práctica. Cambia entre facturación mensual y anual con facilidad."
+  toggleLabels={{
+    monthly: 'Mensual',
+    annual: 'Anual',
+    saveText: 'Ahorra 20%',
+  }}
   communityTier={{
     tierName: 'Experto Comunitario',
     tierIcon: <Sparkles className="h-6 w-6" />,
     tierColor: 'primary',
     description: 'Perfecto para profesionales que están comenzando o construyendo su práctica',
-    plans: [
-      {
-        name: 'Pago por uso',
-        price: '$0',
-        priceDetail: '/mes',
-        commission: '20%',
-        description: 'Comienza a ganar inmediatamente sin costos iniciales',
-        features: [
-          'Lista hasta 5 servicios',
-          'Integración básica de calendario',
-          'Analíticas estándar',
-          'Pagos semanales',
-          'Soporte por email',
-          'Sin tarifas de suscripción',
-          'Cancela en cualquier momento',
-        ],
-        cta: {
-          text: 'Comenzar Gratis',
-          href: '/register?expert=true&plan=community-paygo',
-        },
-      },
-      {
-        name: 'Plan Mensual',
+    pricing: {
+      monthly: {
         price: '$49',
         priceDetail: '/mes',
-        commission: '12%',
-        badge: 'Comisión Reducida',
-        recommended: true,
-        description: 'Comisión reducida con facturación mensual predecible',
-        features: [
-          'Todo en Pago por uso',
-          'Comisión reducida del 12% (ahorra 8%)',
-          'Incorporación prioritaria',
-          'Revisiones trimestrales del negocio',
-          'Cambia de plan en cualquier momento',
-        ],
-        cta: {
-          text: 'Elegir Mensual',
-          href: '/register?expert=true&plan=community-monthly',
-        },
       },
-      {
-        name: 'Plan Anual',
-        price: '$490',
+      annual: {
+        price: '$470',
         priceDetail: '/año',
-        commission: '12%',
-        badge: 'Mejor Valor',
-        savingsText: '💰 Ahorra $98 (¡2 meses gratis!)',
-        description: 'Máximo ahorro con compromiso anual',
-        features: [
-          'Todo en Plan Mensual',
-          'Comisión reducida del 12% (ahorra 8%)',
-          'Ahorra $98 vs facturación mensual',
-          'Descuento por compromiso anual',
-          'Soporte prioritario',
-        ],
-        cta: {
-          text: 'Ahorrar con Anual',
-          href: '/register?expert=true&plan=community-annual',
-        },
+        savings: '💰 Ahorra $118/año (¡2 meses gratis!)',
       },
+    },
+    commission: '12%',
+    features: [
+      'Lista hasta 5 servicios',
+      'Integración básica de calendario',
+      'Analíticas estándar',
+      'Pagos semanales',
+      'Soporte por email',
+      'Incorporación prioritaria',
+      'Revisiones trimestrales del negocio',
+      'Cambia de plan en cualquier momento',
     ],
+    cta: {
+      text: 'Comenzar',
+      href: '/register?expert=true&plan=community',
+    },
   }}
   topTier={{
     tierName: 'Experto Top',
@@ -163,6 +132,19 @@ import { Sparkles, TrendingUp } from 'lucide-react';
     tierIcon: <TrendingUp className="h-6 w-6" />,
     tierColor: 'amber',
     description: 'Nivel premium para expertos establecidos con historial comprobado',
+    recommended: true,
+    pricing: {
+      monthly: {
+        price: '$177',
+        priceDetail: '/mes',
+      },
+      annual: {
+        price: '$1,696',
+        priceDetail: '/año',
+        savings: '💰 Ahorra $428/año (¡2 meses gratis!)',
+      },
+    },
+    commission: '8%',
     requirements: [
       '⭐ Calificación promedio de 4.8+',
       '📅 25+ citas completadas en 90 días',
@@ -171,72 +153,24 @@ import { Sparkles, TrendingUp } from 'lucide-react';
       '🎖️ 3+ meses como Experto Comunitario',
       '✨ Perfil de experto completo con portafolio',
     ],
-    plans: [
-      {
-        name: 'Pago por uso',
-        price: '$0',
-        priceDetail: '/mes',
-        commission: '15%',
-        description: 'Funciones premium con precios solo por comisión',
-        features: [
-          'Servicios ilimitados',
-          'Analíticas e insights avanzados',
-          'Pagos diarios',
-          'Soporte prioritario',
-          'Insignia de Experto Top',
-          'Ubicación destacada',
-          'Sin tarifas de suscripción',
-        ],
-        cta: {
-          text: 'Solicitar Experto Top',
-          href: '/register?expert=true&plan=top-paygo',
-        },
-      },
-      {
-        name: 'Plan Mensual',
-        price: '$177',
-        priceDetail: '/mes',
-        commission: '8%',
-        badge: 'Líder de la Industria',
-        recommended: true,
-        description: 'Tasa de comisión líder en la industria con facturación mensual',
-        features: [
-          'Todo en Pago por uso',
-          'Comisión líder del 8%',
-          'Opciones de marca personalizada',
-          'Capacidades de sesiones grupales',
-          'Mensajería directa',
-          'Soporte de cuenta dedicado',
-        ],
-        cta: {
-          text: 'Elegir Mensual',
-          href: '/register?expert=true&plan=top-monthly',
-        },
-      },
-      {
-        name: 'Plan Anual',
-        price: '$1,774',
-        priceDetail: '/año',
-        commission: '8%',
-        badge: 'Valor Máximo',
-        savingsText: '💰 Ahorra $350 (¡2 meses gratis!)',
-        description: 'Mejor valor para los mejores comprometidos',
-        features: [
-          'Todo en Plan Mensual',
-          'Comisión líder del 8%',
-          'Ahorra $350 vs facturación mensual',
-          'Beneficios anuales VIP',
-          'Analíticas premium',
-          'Gerente de cuenta dedicado',
-        ],
-        cta: {
-          text: 'Ahorrar con Anual',
-          href: '/register?expert=true&plan=top-annual',
-        },
-      },
+    features: [
+      'Servicios ilimitados',
+      'Analíticas e insights avanzados',
+      'Pagos diarios',
+      'Soporte prioritario',
+      'Insignia de Experto Top',
+      'Ubicación destacada',
+      'Opciones de marca personalizada',
+      'Capacidades de sesiones grupales',
+      'Mensajería directa',
+      'Gerente de cuenta dedicado',
     ],
+    cta: {
+      text: 'Solicitar Experto Top',
+      href: '/register?expert=true&plan=top-expert',
+    },
   }}
-  note="Cambia de plan en cualquier momento. No se requieren contratos a largo plazo. Todos los planes incluyen soporte de plataforma, procesamiento seguro de pagos y herramientas de gestión de clientes."
+  note="💡 Opción de pago por uso disponible: Comienza con 0% de tarifa de suscripción y 20% de comisión (Comunitario) o 15% de comisión (Top). Cambia a planes de suscripción en cualquier momento para reducir las tasas de comisión y desbloquear funciones adicionales."
 />
 
 
