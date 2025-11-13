@@ -30,8 +30,8 @@ import type { NextRequest } from 'next/server';
  * @see /docs/02-core-systems/role-based-authorization.md for complete documentation
  */
 
-// Debug: Verify file is loaded
-console.log('🚀 [PROXY.TS] File loaded and evaluated');
+// Enable debug logging with DEBUG_MIDDLEWARE=true
+const DEBUG = process.env.DEBUG_MIDDLEWARE === 'true';
 
 /**
  * Create internationalization middleware using the routing configuration
@@ -106,17 +106,12 @@ function isPrivateRoute(request: NextRequest): boolean {
  */
 export default async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
-  const url = request.url;
 
-  console.log('\n========================================');
-  console.log(`🔍 [MIDDLEWARE START] ${request.method} ${path}`);
-  console.log(`📍 Full URL: ${url}`);
-  console.log(`🌐 Headers:`, {
-    host: request.headers.get('host'),
-    referer: request.headers.get('referer'),
-    'user-agent': request.headers.get('user-agent')?.substring(0, 50),
-  });
-  console.log('========================================\n');
+  if (DEBUG) {
+    console.log('\n========================================');
+    console.log(`🔍 [MIDDLEWARE] ${request.method} ${path}`);
+    console.log('========================================');
+  }
 
   // ==========================================
   // STEP 1: HANDLE SPECIAL ROUTES (no auth/i18n needed)
@@ -124,13 +119,11 @@ export default async function proxy(request: NextRequest) {
 
   // Skip for static files and internal APIs
   if (isStaticFile(path) || shouldSkipAuthForApi(path)) {
-    console.log(`✅ [STEP 1] Static/internal route, skipping middleware: ${path}\n`);
     return NextResponse.next();
   }
 
   // Handle cron jobs with QStash authentication
   if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
-    console.log(`✅ [STEP 1] Special auth route detected: ${path}\n`);
     if (path.startsWith('/api/cron/')) {
       const isQStashRequest =
         request.headers.get('x-qstash-request') === 'true' ||
@@ -152,10 +145,9 @@ export default async function proxy(request: NextRequest) {
         apiKey === process.env.CRON_API_KEY ||
         (process.env.NODE_ENV === 'production' && process.env.ENABLE_CRON_FALLBACK === 'true')
       ) {
-        console.log('✅ Authorized cron request\n');
         return NextResponse.next();
       }
-      console.log('❌ Unauthorized cron request\n');
+      console.warn('❌ Unauthorized cron request:', path);
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     return NextResponse.next();
@@ -164,84 +156,56 @@ export default async function proxy(request: NextRequest) {
   // Handle SEO redirects
   const seoRedirectPath = getSeoRedirect(path);
   if (seoRedirectPath) {
-    console.log(`✅ [STEP 1] SEO redirect: ${path} → ${seoRedirectPath}\n`);
     return NextResponse.redirect(new URL(seoRedirectPath, request.url), 301);
   }
 
   // WorkOS OAuth callback - public route
   if (path.startsWith('/api/auth/')) {
-    console.log(`✅ [STEP 1] Auth API route: ${path}\n`);
     return NextResponse.next();
   }
 
   // ==========================================
   // STEP 2: RUN AUTHKIT (establish auth context)
   // ==========================================
-  console.log(`🔐 [STEP 2] Running AuthKit for: ${path}`);
   const {
     session,
     headers: authkitHeaders,
     authorizationUrl,
   } = await authkit(request, {
-    debug: process.env.NODE_ENV === 'development',
+    debug: DEBUG,
   });
 
-  console.log(`👤 [STEP 2] Auth result:`, {
-    authenticated: !!session.user,
-    email: session.user?.email || 'anonymous',
-    authorizationUrl: authorizationUrl?.substring(0, 50),
-  });
-  console.log(
-    `📝 [STEP 2] AuthKit headers count: ${authkitHeaders.entries ? Array.from(authkitHeaders.entries()).length : 0}`,
-  );
+  if (DEBUG) {
+    console.log(`👤 Auth: ${session.user?.email || 'anonymous'}`);
+  }
 
   // ==========================================
   // STEP 3: RUN I18N MIDDLEWARE (handles locale routing)
   // ==========================================
   // Run i18n middleware to handle locale detection, redirects, and rewrites
   // This MUST happen before authorization checks because we need the final routed path
-  console.log(`\n🌐 [STEP 3] Calling i18n middleware for: ${path}`);
   const i18nResponse = handleI18nRouting(request);
-
-  console.log(`📊 [STEP 3] i18n Response details:`, {
-    status: i18nResponse.status,
-    statusText: i18nResponse.statusText,
-    redirected: i18nResponse.redirected,
-    type: i18nResponse.type,
-    url: i18nResponse.url?.substring(0, 100),
-  });
 
   // Get the rewritten pathname after i18n middleware
   const rewrittenPath = i18nResponse.headers.get('x-middleware-rewrite');
-  const redirectLocation = i18nResponse.headers.get('location');
   const finalPath = rewrittenPath ? new URL(rewrittenPath).pathname : path;
 
-  console.log(`📍 [STEP 3] Path resolution:`, {
-    originalPath: path,
-    rewrittenPath: rewrittenPath || 'none',
-    redirectLocation: redirectLocation || 'none',
-    finalPath,
-  });
+  if (DEBUG) {
+    console.log(`🌐 i18n: ${path} → ${finalPath}`);
+  }
 
   // ==========================================
   // STEP 4: PRESERVE AUTH HEADERS ON I18N RESPONSE
   // ==========================================
   // Preserve AuthKit session cookies on the i18n response
   // This ensures withAuth() works in all components
-  console.log(`\n🔧 [STEP 4] Preserving AuthKit headers on i18n response`);
-  let authHeadersPreserved = 0;
   for (const [key, value] of authkitHeaders) {
     if (key.toLowerCase() === 'set-cookie') {
       i18nResponse.headers.append(key, value);
-      authHeadersPreserved++;
-      console.log(`  ✓ Appended Set-Cookie header (${value.substring(0, 30)}...)`);
     } else {
       i18nResponse.headers.set(key, value);
-      authHeadersPreserved++;
-      console.log(`  ✓ Set header: ${key}`);
     }
   }
-  console.log(`📝 [STEP 4] Total auth headers preserved: ${authHeadersPreserved}`);
 
   // ==========================================
   // STEP 5: APPLY AUTHORIZATION CHECKS
@@ -251,26 +215,15 @@ export default async function proxy(request: NextRequest) {
     ? finalPath.substring(finalPath.indexOf('/', 1))
     : finalPath;
 
-  console.log(`\n🔒 [STEP 5] Authorization check:`, {
-    originalPath: path,
-    finalPath,
-    pathWithoutLocale,
-  });
-
   // Check if this is a protected route
   const isProtectedRoute =
     isPrivateRoute(request) ||
     matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES) ||
     matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES);
 
-  console.log(`🔒 [STEP 5] Route protection:`, {
-    isProtectedRoute,
-    hasSession: !!session.user,
-  });
-
   // If protected route and no session, redirect to sign-in
   if (isProtectedRoute && !session.user) {
-    console.log('❌ [STEP 5] No session on protected route - redirecting to sign-in');
+    if (DEBUG) console.log(`🔒 Redirecting to sign-in: ${path}`);
     const redirectResponse = NextResponse.redirect(authorizationUrl!);
 
     // Preserve auth headers on redirect
@@ -282,23 +235,18 @@ export default async function proxy(request: NextRequest) {
       }
     }
 
-    console.log(`🔄 [STEP 5] Redirecting to: ${authorizationUrl}\n`);
     return redirectResponse;
   }
 
   // For authenticated users on protected routes, check roles
   if (session.user && isProtectedRoute) {
-    console.log(`✅ [STEP 5] Authenticated user: ${session.user.email}`);
-
     const userRole = await getUserApplicationRole(session.user.id);
-    console.log(`👤 [STEP 5] User role: ${userRole}`);
 
     // Check admin routes
     if (matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES)) {
       const isAdmin = ADMIN_ROLES.includes(userRole as (typeof ADMIN_ROLES)[number]);
-      console.log(`🔒 [STEP 5] Admin route check: ${isAdmin}`);
       if (!isAdmin) {
-        console.log(`🚫 [STEP 5] Access denied: ${path} requires admin role\n`);
+        console.warn(`🚫 Access denied: ${path} requires admin role`);
         return NextResponse.redirect(new URL('/unauthorized', request.url));
       }
     }
@@ -306,24 +254,16 @@ export default async function proxy(request: NextRequest) {
     // Check expert routes
     if (matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES)) {
       const isExpert = EXPERT_ROLES.includes(userRole as (typeof EXPERT_ROLES)[number]);
-      console.log(`🔒 [STEP 5] Expert route check: ${isExpert}`);
       if (!isExpert) {
-        console.log(`🚫 [STEP 5] Access denied: ${path} requires expert role\n`);
+        console.warn(`🚫 Access denied: ${path} requires expert role`);
         return NextResponse.redirect(new URL('/unauthorized', request.url));
       }
     }
   }
 
-  // Return the i18n response with auth headers preserved
-  console.log(`\n✅ [MIDDLEWARE END] Request completed successfully`);
-  console.log(`📊 Final summary:`, {
-    originalPath: path,
-    finalPath,
-    authenticated: !!session.user,
-    protected: isProtectedRoute,
-    responseStatus: i18nResponse.status,
-  });
-  console.log('========================================\n');
+  if (DEBUG) {
+    console.log(`✅ Complete: ${path} → ${finalPath}`);
+  }
 
   return i18nResponse;
 }
