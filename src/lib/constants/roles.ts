@@ -40,6 +40,7 @@ export const PUBLIC_ROUTES = [
   '/register(.*)',
   '/unauthorized(.*)',
   '/about',
+  '/history',
   '/profile/:username', // Public expert profiles (e.g., /profile/barona)
   '/profile/:username/(.*)', // Public routes under usernames (e.g., /profile/barona/event-name)
   '/legal/(.*)', // Legal pages (privacy policy, terms, etc.)

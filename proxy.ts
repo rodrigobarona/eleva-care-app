@@ -61,10 +61,20 @@ const handleI18nRouting = createCustomI18nMiddleware();
  */
 function isPathMatch(path: string, pattern: string): boolean {
   if (pattern === path) return true;
+
+  // Handle wildcard patterns (e.g., /admin*)
   if (pattern.endsWith('*')) {
     const basePath = pattern.slice(0, -1);
     return path.startsWith(basePath);
   }
+
+  // Handle regex patterns (e.g., /login(.*) or /admin(.*))
+  if (pattern.includes('(.*)')) {
+    const basePath = pattern.replace('(.*)', '');
+    return path === basePath || path.startsWith(basePath + '/') || path.startsWith(basePath);
+  }
+
+  // Handle dynamic username patterns
   if (pattern === '/:username') {
     const segments = path.split('/').filter(Boolean);
     return segments.length === 1;
@@ -73,6 +83,7 @@ function isPathMatch(path: string, pattern: string): boolean {
     const segments = path.split('/').filter(Boolean);
     return segments.length >= 2;
   }
+
   return false;
 }
 
@@ -230,44 +241,10 @@ export default async function proxy(request: NextRequest) {
   }
 
   // =============================================
-  // RUN I18N MIDDLEWARE FIRST FOR LOCALE ROUTING
+  // RUN AUTHKIT FIRST (Always needed for auth context)
   // =============================================
-  // For public routes, let next-intl handle locale routing first
-  // (next-intl automatically rewrites "/" to "/en" internally with localePrefix: 'as-needed')
-
-  // Extract path without locale prefix for route matching
-  const pathWithoutLocale = locales.some((locale) => path.startsWith(`/${locale}/`))
-    ? path.substring(path.indexOf('/', 1))
-    : path;
-
-  // Determine if route is public (but may still need auth context)
-  const isPublicContentRoute =
-    isLocalePublicRoute(path) ||
-    isHomePage(path) ||
-    isPublicContentPath(path) ||
-    isPublicContentPath(pathWithoutLocale) ||
-    matchPatternsArray(path, PUBLIC_ROUTES);
-
-  // Auth routes: skip i18n routing (sign-in, sign-up are not localized)
-  if (isAuthRoute(path)) {
-    console.log(`🔓 Auth route (no i18n): ${path}`);
-    return NextResponse.next();
-  }
-
-  // Username routes need AuthKit context (for unpublished profile checks)
-  // but should be accessible to everyone
-  const needsAuthContext = isUsernameRoute(path);
-
-  // For public content routes (no auth needed), apply i18n first and return
-  if (isPublicContentRoute && !needsAuthContext) {
-    console.log(`🌐 Public route with i18n: ${path}`);
-    return await handleI18nRouting(request);
-  }
-
-  // =============================================
-  // RUN AUTHKIT FOR PROTECTED ROUTES
-  // =============================================
-  // AuthKit middleware runs for protected routes only
+  // AuthKit must run on all routes to provide auth context
+  // Even public routes may use withAuth() to check login state
   const {
     session,
     headers: authkitHeaders,
@@ -277,19 +254,39 @@ export default async function proxy(request: NextRequest) {
   });
 
   // =============================================
-  // PROTECTED ROUTES - Require Authentication
+  // DETERMINE ROUTE TYPE
   // =============================================
+  // Extract path without locale prefix for route matching
+  const pathWithoutLocale = locales.some((locale) => path.startsWith(`/${locale}/`))
+    ? path.substring(path.indexOf('/', 1))
+    : path;
 
-  // Username routes with auth context (accessible to everyone, auth used for owner checks)
-  if (needsAuthContext) {
+  // Determine if route is public (doesn't require authentication)
+  const isPublicContentRoute =
+    isLocalePublicRoute(path) ||
+    isHomePage(path) ||
+    isAuthRoute(path) || // Auth routes (login, sign-up) are public
+    isPublicContentPath(path) ||
+    isPublicContentPath(pathWithoutLocale) ||
+    matchPatternsArray(path, PUBLIC_ROUTES) ||
+    matchPatternsArray(pathWithoutLocale, PUBLIC_ROUTES);
+
+  // Username routes need AuthKit context (for unpublished profile checks)
+  const needsAuthContext = isUsernameRoute(path);
+
+  // =============================================
+  // PUBLIC ROUTES - Apply i18n with auth context
+  // =============================================
+  // For public content routes (no auth required), apply i18n and return
+  if (isPublicContentRoute || needsAuthContext) {
     console.log(
-      `👤 Username route with auth context: ${path}, user: ${session.user?.email || 'anonymous'}`,
+      `🌐 Public/username route with auth context: ${path}, user: ${session.user?.email || 'anonymous'}`,
     );
 
     // Apply i18n routing with auth headers preserved
     const response = await handleI18nRouting(request);
 
-    // Preserve AuthKit headers (session cookies) so withAuth() can work in components
+    // Preserve AuthKit headers so withAuth() works in components
     for (const [key, value] of authkitHeaders) {
       if (key.toLowerCase() === 'set-cookie') {
         response.headers.append(key, value);
@@ -301,6 +298,9 @@ export default async function proxy(request: NextRequest) {
     return response;
   }
 
+  // =============================================
+  // PROTECTED ROUTES - Require Authentication
+  // =============================================
   // If no user session on protected route, redirect to sign-in
   if (!session.user) {
     console.log('❌ No session on protected route - redirecting to sign-in');
