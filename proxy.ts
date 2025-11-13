@@ -103,7 +103,7 @@ function isPrivateRoute(request: NextRequest): boolean {
 export default async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   const url = request.url;
-  
+
   console.log('\n========================================');
   console.log(`🔍 [MIDDLEWARE START] ${request.method} ${path}`);
   console.log(`📍 Full URL: ${url}`);
@@ -117,7 +117,7 @@ export default async function proxy(request: NextRequest) {
   // ==========================================
   // STEP 1: HANDLE SPECIAL ROUTES (no auth/i18n needed)
   // ==========================================
-  
+
   // Skip for static files and internal APIs
   if (isStaticFile(path) || shouldSkipAuthForApi(path)) {
     console.log(`✅ [STEP 1] Static/internal route, skipping middleware: ${path}\n`);
@@ -187,7 +187,9 @@ export default async function proxy(request: NextRequest) {
     email: session.user?.email || 'anonymous',
     authorizationUrl: authorizationUrl?.substring(0, 50),
   });
-  console.log(`📝 [STEP 2] AuthKit headers count: ${authkitHeaders.entries ? Array.from(authkitHeaders.entries()).length : 0}`);
+  console.log(
+    `📝 [STEP 2] AuthKit headers count: ${authkitHeaders.entries ? Array.from(authkitHeaders.entries()).length : 0}`,
+  );
 
   // ==========================================
   // STEP 3: RUN I18N MIDDLEWARE (handles locale routing)
@@ -196,7 +198,7 @@ export default async function proxy(request: NextRequest) {
   // This MUST happen before authorization checks because we need the final routed path
   console.log(`\n🌐 [STEP 3] Calling i18n middleware for: ${path}`);
   const i18nResponse = handleI18nRouting(request);
-  
+
   console.log(`📊 [STEP 3] i18n Response details:`, {
     status: i18nResponse.status,
     statusText: i18nResponse.statusText,
@@ -204,12 +206,12 @@ export default async function proxy(request: NextRequest) {
     type: i18nResponse.type,
     url: i18nResponse.url?.substring(0, 100),
   });
-  
+
   // Get the rewritten pathname after i18n middleware
   const rewrittenPath = i18nResponse.headers.get('x-middleware-rewrite');
   const redirectLocation = i18nResponse.headers.get('location');
   const finalPath = rewrittenPath ? new URL(rewrittenPath).pathname : path;
-  
+
   console.log(`📍 [STEP 3] Path resolution:`, {
     originalPath: path,
     rewrittenPath: rewrittenPath || 'none',
@@ -252,7 +254,7 @@ export default async function proxy(request: NextRequest) {
   });
 
   // Check if this is a protected route
-  const isProtectedRoute = 
+  const isProtectedRoute =
     isPrivateRoute(request) ||
     matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES) ||
     matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES);
@@ -266,7 +268,7 @@ export default async function proxy(request: NextRequest) {
   if (isProtectedRoute && !session.user) {
     console.log('❌ [STEP 5] No session on protected route - redirecting to sign-in');
     const redirectResponse = NextResponse.redirect(authorizationUrl!);
-    
+
     // Preserve auth headers on redirect
     for (const [key, value] of authkitHeaders) {
       if (key.toLowerCase() === 'set-cookie') {
@@ -275,7 +277,7 @@ export default async function proxy(request: NextRequest) {
         redirectResponse.headers.set(key, value);
       }
     }
-    
+
     console.log(`🔄 [STEP 5] Redirecting to: ${authorizationUrl}\n`);
     return redirectResponse;
   }
@@ -283,7 +285,7 @@ export default async function proxy(request: NextRequest) {
   // For authenticated users on protected routes, check roles
   if (session.user && isProtectedRoute) {
     console.log(`✅ [STEP 5] Authenticated user: ${session.user.email}`);
-    
+
     const userRole = await getUserApplicationRole(session.user.id);
     console.log(`👤 [STEP 5] User role: ${userRole}`);
 
@@ -318,7 +320,7 @@ export default async function proxy(request: NextRequest) {
     responseStatus: i18nResponse.status,
   });
   console.log('========================================\n');
-  
+
   return i18nResponse;
 }
 
@@ -345,18 +347,20 @@ export default async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization)
-     * - favicon.ico, robots.txt (metadata)
-     * - Files with extensions (.png, .jpg, .css, .js, etc.)
-     * - .well-known (security files)
-     * - api/webhooks (public webhooks)
-     * - api/cron, api/qstash (cron jobs)
-     * - api/internal (internal APIs)
-     * - api/healthcheck, api/health (health checks)
-     * - _vercel, _botid (Vercel internals)
+     * Match all paths that should go through middleware
+     * Following WorkOS AuthKit + next-intl recommended patterns
+     * 
+     * This matches:
+     * - / (root)
+     * - All page routes
+     * - All locale-prefixed routes
+     * 
+     * Excludes:
+     * - Static files and Next.js internals
+     * - Public webhooks and health checks
      */
-    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|\\.well-known|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/health|_vercel|_botid).*)',
+    '/',
+    '/(en|es|pt|pt-BR)/:path*',
+    '/((?!_next|_vercel|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/health).*)',
   ],
 };
