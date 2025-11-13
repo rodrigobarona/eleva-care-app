@@ -11,16 +11,16 @@
 This document defines a scalable, role-aware dashboard navigation structure that supports:
 
 - ✅ Solo practitioners (Phase 1 - Current)
-- 🔮 Multi-expert clinics (Phase 2 - Future)
+- 🔮 Multi-expert partners (Phase 2 - Future)
 - 🔮 eLearning/LMS platform (Phase 3 - Future)
-- 🔮 B2B clinic management (Phase 3 - Future)
+- 🔮 B2B partner management (Phase 3 - Future)
 
 **Design Principles:**
 
 1. **Progressive Disclosure**: Show relevant features based on role and plan
 2. **Consistent Patterns**: Similar features grouped logically
 3. **Scalable Structure**: Easy to add new features without reorganization
-4. **Role-Aware**: Different menus for Experts, Admins, Patients, Clinic Managers
+4. **Role-Aware**: Different menus for Experts, Admins, Patients, Partner Managers
 5. **Industry Standards**: Inspired by Cal.com, Dub, Vercel, WorkOS dashboards
 
 ---
@@ -202,59 +202,59 @@ app/
 
 ---
 
-## 🏥 Clinic Dashboard (Clinic Admins Only)
+## 🏥 Partner Dashboard (Partner Admins Only)
 
-**Note:** This appears when user is part of a clinic organization (Phase 2)
+**Note:** This appears when user is part of a partner organization (Phase 2)
 
 ### Primary Navigation
 
 ```
-1. 📊 Clinic Overview
-   └── /clinic
+1. 📊 Partner Overview
+   └── /partner
        ├── Key Metrics (All practitioners)
        ├── Today's Schedule
        ├── Revenue Summary
        └── Quick Actions
 
 2. 👥 Team
-   └── /clinic/team
-       ├── /clinic/team/members         # All practitioners
-       ├── /clinic/team/invite          # Invite new members
-       ├── /clinic/team/roles           # Role management
-       └── /clinic/team/[memberId]      # Member details & analytics
+   └── /partner/team
+       ├── /partner/team/members         # All practitioners
+       ├── /partner/team/invite          # Invite new members
+       ├── /partner/team/roles           # Role management
+       └── /partner/team/[memberId]      # Member details & analytics
 
-3. 📅 Clinic Schedule
-   └── /clinic/schedule
-       ├── /clinic/schedule/calendar    # Multi-practitioner calendar
-       ├── /clinic/schedule/rooms       # Room management (future)
-       └── /clinic/schedule/capacity    # Capacity planning
+3. 📅 Partner Schedule
+   └── /partner/schedule
+       ├── /partner/schedule/calendar    # Multi-practitioner calendar
+       ├── /partner/schedule/rooms       # Room management (future)
+       └── /partner/schedule/capacity    # Capacity planning
 
 4. 👨‍👩‍👧‍👦 Patients
-   └── /clinic/patients
-       ├── /clinic/patients             # All clinic patients
-       ├── /clinic/patients/[id]        # Patient records
-       └── /clinic/patients/insights    # Patient analytics
+   └── /partner/patients
+       ├── /partner/patients             # All partner patients
+       ├── /partner/patients/[id]        # Patient records
+       └── /partner/patients/insights    # Patient analytics
 
-5. 📊 Clinic Analytics
-   └── /clinic/analytics
-       ├── /clinic/analytics/revenue    # Clinic-wide revenue
-       ├── /clinic/analytics/performance # Practitioner performance
-       ├── /clinic/analytics/patients   # Patient insights
-       └── /clinic/analytics/reports    # Custom reports
+5. 📊 Partner Analytics
+   └── /partner/analytics
+       ├── /partner/analytics/revenue    # Partner-wide revenue
+       ├── /partner/analytics/performance # Practitioner performance
+       ├── /partner/analytics/patients   # Patient insights
+       └── /partner/analytics/reports    # Custom reports
 
-6. 💼 Clinic Settings
-   └── /clinic/settings
-       ├── /clinic/settings/organization # Clinic info
-       ├── /clinic/settings/branding     # Logo, colors
-       ├── /clinic/settings/billing      # Clinic subscription
-       └── /clinic/settings/integrations # Clinic-wide integrations
+6. 💼 Partner Settings
+   └── /partner/settings
+       ├── /partner/settings/organization # Partner info
+       ├── /partner/settings/branding     # Logo, colors
+       ├── /partner/settings/billing      # Partner subscription
+       └── /partner/settings/integrations # Partner-wide integrations
 
 7. 💳 Revenue & Payouts
-   └── /clinic/revenue
-       ├── /clinic/revenue/overview     # Total revenue
-       ├── /clinic/revenue/splits       # Commission splits
-       ├── /clinic/revenue/payouts      # Payout management
-       └── /clinic/revenue/invoices     # Client invoices
+   └── /partner/revenue
+       ├── /partner/revenue/overview     # Total revenue
+       ├── /partner/revenue/splits       # Commission splits
+       ├── /partner/revenue/payouts      # Payout management
+       └── /partner/revenue/invoices     # Client invoices
 ```
 
 ---
@@ -332,7 +332,7 @@ app/
 3. 🏥 Organizations
    └── /admin/organizations
        ├── /admin/organizations         # All organizations
-       ├── /admin/organizations/clinics # Clinic organizations
+       ├── /admin/organizations/partners # Partner organizations
        └── /admin/organizations/[id]    # Org details
 
 4. 📊 Platform Analytics
@@ -381,10 +381,10 @@ app/
       <NavMain items={primaryNavItems} />
     </SidebarGroup>
 
-    {/* Conditional: Clinic Section (if clinic member) */}
+    {/* Conditional: Partner Section (if partner member) */}
     {isClinicMember && (
       <SidebarGroup>
-        <SidebarGroupLabel>Clinic</SidebarGroupLabel>
+        <SidebarGroupLabel>Partner</SidebarGroupLabel>
         <NavMain items={clinicNavItems} />
       </SidebarGroup>
     )}
@@ -520,9 +520,9 @@ app/
 │   │   ├── payouts/
 │   │   └── invoices/
 │   │
-│   ├── clinic/                         # 🏥 Clinic Management (Phase 2)
-│   │   ├── layout.tsx                 # Clinic auth check
-│   │   ├── page.tsx                   # Clinic overview
+│   ├── partner/                         # 🏥 Partner Management (Phase 2)
+│   │   ├── layout.tsx                 # Partner auth check
+│   │   ├── page.tsx                   # Partner overview
 │   │   ├── team/
 │   │   │   ├── page.tsx
 │   │   │   ├── invite/
@@ -597,7 +597,7 @@ app/
 
 ---
 
-### Expert (Clinic Member)
+### Expert (Partner Member)
 
 **Primary Menu:**
 
@@ -607,12 +607,12 @@ app/
 - My Event Types
 - My Analytics
 
-**Clinic Section:**
+**Partner Section:**
 
-- Clinic Overview (if admin)
+- Partner Overview (if admin)
 - Team (if admin)
-- Clinic Schedule
-- Clinic Patients (shared access)
+- Partner Schedule
+- Partner Patients (shared access)
 
 **Secondary Menu:**
 
@@ -621,16 +621,16 @@ app/
 
 ---
 
-### Clinic Admin
+### Partner Admin
 
 **Primary Menu:**
 
-- Clinic Overview
+- Partner Overview
 - Team
-- Clinic Schedule
+- Partner Schedule
 - Patients
-- Clinic Analytics
-- Clinic Settings
+- Partner Analytics
+- Partner Settings
 - Revenue & Payouts
 
 **Personal Section:**
@@ -729,7 +729,7 @@ import {
   Clock,
   // Profile
   CreditCard,
-  // Clinic
+  // Partner
   GraduationCap,
   LayoutDashboard,
   // Availability
@@ -769,14 +769,14 @@ import {
    - Add role-based visibility
    - Add icon updates
 
-### Phase 2: Add Clinic Features (Future)
+### Phase 2: Add Partner Features (Future)
 
-1. **Create Clinic Routes:**
-   - `clinic/` (new section)
-   - Implement clinic layout with auth checks
+1. **Create Partner Routes:**
+   - `partner/` (new section)
+   - Implement partner layout with auth checks
 
 2. **Update Sidebar:**
-   - Add clinic section conditionally
+   - Add partner section conditionally
    - Show/hide based on organization membership
 
 ### Phase 3: Add Learning Platform (Future)
@@ -828,13 +828,13 @@ analytics.track('feature_discovered', {
 - [ ] Test all routes
 - [ ] Update documentation
 
-### Phase 2: Clinic Features
+### Phase 2: Partner Features
 
-- [ ] Design clinic data model
-- [ ] Implement clinic routes
-- [ ] Add clinic sidebar section
+- [ ] Design partner data model
+- [ ] Implement partner routes
+- [ ] Add partner sidebar section
 - [ ] Implement organization switcher
-- [ ] Add clinic-specific permissions
+- [ ] Add partner-specific permissions
 - [ ] Test multi-member scenarios
 
 ### Phase 3: Learning Platform
@@ -855,7 +855,7 @@ analytics.track('feature_discovered', {
 - **Vercel Dashboard:** Project-centric with team features
 - **WorkOS Dashboard:** Organization management and RBAC
 - **WorkOS RBAC:** `_docs/02-core-systems/WORKOS-RBAC-QUICK-REFERENCE.md`
-- **Solo vs Clinic:** `.cursor/plans/SOLO-VS-CLINIC-ARCHITECTURE.md`
+- **Solo vs Partner:** `.cursor/plans/SOLO-VS-CLINIC-ARCHITECTURE.md`
 
 ---
 

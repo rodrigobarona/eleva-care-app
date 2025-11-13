@@ -1,6 +1,6 @@
 # WorkOS FGA Evaluation for Eleva Care
 
-**Date:** November 13, 2025  
+**Date:** November 13, 2partner_admin25  
 **Status:** Architecture Decision Record  
 **Decision:** Recommendation on whether to adopt WorkOS FGA
 
@@ -105,7 +105,7 @@ CREATE POLICY "org_isolation" ON users
 CREATE POLICY "expert_patients" ON users
   FOR SELECT USING (
     auth.user_id() IN (
-      SELECT expert_id FROM appointments 
+      SELECT expert_id FROM appointments
       WHERE patient_id = id
     )
   );
@@ -133,7 +133,7 @@ type expert
 CREATE POLICY "expert_session_notes" ON session_notes
   FOR SELECT USING (
     session_id IN (
-      SELECT id FROM sessions 
+      SELECT id FROM sessions
       WHERE expert_id = auth.user_id()
     )
   );
@@ -161,9 +161,10 @@ type session_note
 #### 1. **Resource-Level Sharing (Not Yet Implemented)**
 
 **Example Use Case:**
+
 - Expert wants to share specific session notes with another expert
 - Patient wants to grant access to their records to a family member
-- Clinic admin wants to share specific reports with external auditors
+- Partner admin wants to share specific reports with external auditors
 
 **Current Solution:** Not easily achievable with RLS alone ❌
 
@@ -182,36 +183,38 @@ type session_note
 
 **Verdict:** Would benefit from FGA, but **not needed for Phase 1** 🔮
 
-#### 2. **Delegation & Complex Hierarchies (Future Clinic Features)**
+#### 2. **Delegation & Complex Hierarchies (Future Partner Features)**
 
 **Example Use Case:**
-- Clinic admin delegates scheduling permissions to office manager
+
+- Partner admin delegates scheduling permissions to office manager
 - Department head has access to all team members' data
-- Regional manager oversees multiple clinic locations
+- Regional manager oversees multiple partner locations
 
 **Current Solution:** Hard to model in RLS ❌
 
 **With FGA:** Perfect use case ✅
 
 ```fga
-type clinic
+type partner
   relation admin [user]
   relation member [user]
   relation can_manage_schedule []
-  
+
 type expert
-  relation clinic [clinic]
+  relation partner [partner]
   relation can_view_data []
-  
+
   inherit can_view_data if
-    relation admin on clinic [clinic]
+    relation admin on partner [partner]
 ```
 
-**Verdict:** Important for **Phase 2 clinic features** 🔮
+**Verdict:** Important for **Phase 2 partner features** 🔮
 
 #### 3. **Document/Content Collaboration (Not Planned)**
 
 **Example Use Case:**
+
 - Multiple experts collaborating on treatment plans
 - Shared patient care documents
 - Collaborative research notes
@@ -280,28 +283,28 @@ type expert
 
 ### Phase 1: Current Features (Patient + Expert Platform)
 
-| Feature | Current Solution | Need FGA? | Reason |
-|---------|-----------------|-----------|--------|
-| User authentication | WorkOS AuthKit ✅ | ❌ No | AuthKit sufficient |
-| Role-based permissions | WorkOS RBAC ✅ | ❌ No | RBAC covers this |
-| Data isolation | Neon RLS ✅ | ❌ No | RLS works perfectly |
-| Appointment access | RLS policies ✅ | ❌ No | DB relationships handle this |
-| Expert-patient relationship | RLS policies ✅ | ❌ No | Appointment-based access works |
-| Session notes | RLS policies ✅ | ❌ No | Ownership clear via DB |
+| Feature                     | Current Solution  | Need FGA? | Reason                         |
+| --------------------------- | ----------------- | --------- | ------------------------------ |
+| User authentication         | WorkOS AuthKit ✅ | ❌ No     | AuthKit sufficient             |
+| Role-based permissions      | WorkOS RBAC ✅    | ❌ No     | RBAC covers this               |
+| Data isolation              | Neon RLS ✅       | ❌ No     | RLS works perfectly            |
+| Appointment access          | RLS policies ✅   | ❌ No     | DB relationships handle this   |
+| Expert-patient relationship | RLS policies ✅   | ❌ No     | Appointment-based access works |
+| Session notes               | RLS policies ✅   | ❌ No     | Ownership clear via DB         |
 
 **Phase 1 Verdict:** ❌ **FGA NOT NEEDED**
 
 ---
 
-### Phase 2: Clinic Features
+### Phase 2: Partner Features
 
-| Feature | Current Solution | Need FGA? | Reason |
-|---------|-----------------|-----------|--------|
-| Clinic team management | WorkOS Orgs + RLS | ⚠️ Maybe | Could simplify complex hierarchies |
-| Shared patient access | RLS policies | ⚠️ Maybe | FGA better for dynamic sharing |
-| Delegation | Not implemented | ✅ Yes | Natural FGA use case |
-| Department hierarchies | Not implemented | ✅ Yes | Complex relationships |
-| Resource-level permissions | Not implemented | ✅ Yes | Per-resource access control |
+| Feature                    | Current Solution  | Need FGA? | Reason                             |
+| -------------------------- | ----------------- | --------- | ---------------------------------- |
+| Partner team management    | WorkOS Orgs + RLS | ⚠️ Maybe  | Could simplify complex hierarchies |
+| Shared patient access      | RLS policies      | ⚠️ Maybe  | FGA better for dynamic sharing     |
+| Delegation                 | Not implemented   | ✅ Yes    | Natural FGA use case               |
+| Department hierarchies     | Not implemented   | ✅ Yes    | Complex relationships              |
+| Resource-level permissions | Not implemented   | ✅ Yes    | Per-resource access control        |
 
 **Phase 2 Verdict:** ✅ **FGA WOULD BE BENEFICIAL**
 
@@ -309,12 +312,12 @@ type expert
 
 ### Phase 3: Advanced Features (Hypothetical)
 
-| Feature | Current Solution | Need FGA? | Reason |
-|---------|-----------------|-----------|--------|
-| Document collaboration | Not planned | ✅ Yes | Perfect for FGA |
-| External sharing | Not planned | ✅ Yes | Dynamic resource sharing |
-| API partner access | Not planned | ✅ Yes | Third-party authorization |
-| Multi-tenant SaaS | Not planned | ✅ Yes | Complex tenant isolation |
+| Feature                | Current Solution | Need FGA? | Reason                    |
+| ---------------------- | ---------------- | --------- | ------------------------- |
+| Document collaboration | Not planned      | ✅ Yes    | Perfect for FGA           |
+| External sharing       | Not planned      | ✅ Yes    | Dynamic resource sharing  |
+| API partner access     | Not planned      | ✅ Yes    | Third-party authorization |
+| Multi-tenant SaaS      | Not planned      | ✅ Yes    | Complex tenant isolation  |
 
 **Phase 3 Verdict:** ✅ **FGA HIGHLY RECOMMENDED**
 
@@ -327,6 +330,7 @@ type expert
 **❌ Do NOT implement FGA now**
 
 **Reasons:**
+
 1. ✅ **Your current architecture is sufficient** - RBAC + RLS already provides fine-grained access control
 2. ✅ **Cost-effective** - No additional WorkOS costs, no API latency
 3. ✅ **Simpler** - Less complexity, fewer moving parts
@@ -334,6 +338,7 @@ type expert
 5. ✅ **Performant** - Database-level checks are faster than external API calls
 
 **Continue using:**
+
 - WorkOS RBAC for role-based permissions
 - Neon RLS for fine-grained data access control
 - Database relationships for expert-patient connections
@@ -342,9 +347,10 @@ type expert
 
 ### Future Consideration (Phase 2)
 
-**✅ Evaluate FGA when implementing clinic features**
+**✅ Evaluate FGA when implementing partner features**
 
 **Trigger Criteria:**
+
 - [ ] Need to delegate permissions dynamically
 - [ ] Complex organizational hierarchies (departments, regions)
 - [ ] Resource-level sharing between users
@@ -352,8 +358,9 @@ type expert
 - [ ] External party access (auditors, consultants)
 
 **Implementation Strategy:**
+
 1. **Hybrid Approach:** Keep RLS for basic data isolation, add FGA for complex relationships
-2. **Gradual Migration:** Start with new clinic features, migrate existing gradually
+2. **Gradual Migration:** Start with new partner features, migrate existing gradually
 3. **Testing:** Extensive testing in staging before production
 
 ---
@@ -422,7 +429,7 @@ type expert
 - [ ] Team documentation
 - [ ] Incident response plan
 
-**Total Timeline:** 8-10 weeks
+**Total Timeline:** 8-1partner_admin weeks
 
 ---
 
@@ -461,13 +468,15 @@ If you decide you need FGA for specific features but want to keep RLS:
 ## Summary
 
 ### Current State
+
 ✅ **Well-architected** - Your RBAC + RLS combination is solid  
 ✅ **Sufficient for Phase 1** - Covers all current use cases  
 ✅ **Cost-effective** - No additional infrastructure needed  
 ✅ **Performant** - Database-level checks are fast
 
 ### Future State
-🔮 **Phase 2 Consideration** - Evaluate for clinic features  
+
+🔮 **Phase 2 Consideration** - Evaluate for partner features  
 🔮 **Collaboration Features** - Strong case for FGA  
 🔮 **Complex Hierarchies** - FGA excels here  
 🔮 **Hybrid Approach** - Use both FGA and RLS for different purposes
@@ -476,12 +485,11 @@ If you decide you need FGA for specific features but want to keep RLS:
 
 **For now: ❌ Skip FGA, continue with RBAC + RLS**
 
-Your current architecture is well-designed and sufficient. FGA would add complexity and cost without immediate benefits. Revisit this decision when implementing Phase 2 clinic features or if you add collaboration/sharing functionality.
+Your current architecture is well-designed and sufficient. FGA would add complexity and cost without immediate benefits. Revisit this decision when implementing Phase 2 partner features or if you add collaboration/sharing functionality.
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** November 13, 2025  
+**Document Version:** 1.partner_admin  
+**Last Updated:** November 13, 2partner_admin25  
 **Next Review:** Before Phase 2 development starts  
 **Decision Owner:** Architecture Team
-

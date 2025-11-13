@@ -18,11 +18,13 @@
 ## 📁 Files in This Directory
 
 ### 📖 Documentation
+
 - **[HOW-TO-USE.md](./HOW-TO-USE.md)** - Complete guide for using these files
 - **[IMPORT-CHECKLIST.md](./IMPORT-CHECKLIST.md)** - Step-by-step import checklist with checkboxes
 - **README.md** (this file) - Overview and quick links
 
 ### 📊 Data Files
+
 - **workos-rbac-config.json** - Complete configuration in JSON format
 - **workos-permissions.csv** - All permissions (importable to Excel)
 - **workos-roles.csv** - All roles with metadata
@@ -30,6 +32,7 @@
 - **workos-rbac-config.md** - Full documentation with copy-paste sections
 
 ### 💻 Code Integration
+
 - **workos-rbac-constants.ts** - TypeScript constants for code integration
 
 ---
@@ -69,19 +72,19 @@ if (permissions.includes(WORKOS_PERMISSIONS.ANALYTICS_VIEW)) {
 
 ### Phase 1 Roles (Implement Now)
 
-| Role | Slug | Priority | Permissions | Description |
-|------|------|----------|-------------|-------------|
-| **Patient** | `patient` | 10 | 16 | Basic user/patient role |
-| **Expert Community** | `expert_community` | 70 | 52 | Standard expert tier (20%/12% commission) |
-| **Expert Top** | `expert_top` | 80 | 60 | Premium expert tier (18%/8% commission) |
-| **Platform Admin** | `superadmin` | 100 | 132 | Full system access |
+| Role                 | Slug               | Priority | Permissions | Description                               |
+| -------------------- | ------------------ | -------- | ----------- | ----------------------------------------- |
+| **Patient**          | `patient`          | 10       | 16          | Basic user/patient role                   |
+| **Expert Community** | `expert_community` | 70       | 52          | Standard expert tier (20%/12% commission) |
+| **Expert Top**       | `expert_top`       | 80       | 60          | Premium expert tier (18%/8% commission)   |
+| **Platform Admin**   | `superadmin`       | 100      | 132         | Full system access                        |
 
-### Phase 2 Roles (Future - Clinic Features)
+### Phase 2 Roles (Future - Partner Features)
 
-| Role | Slug | Priority | Permissions | Description |
-|------|------|----------|-------------|-------------|
-| **Clinic Member** 🔮 | `clinic_member` | 60 | 56 | Clinic team member |
-| **Clinic Admin** 🔮 | `clinic_admin` | 90 | 77 | Clinic administrator |
+| Role                  | Slug             | Priority | Permissions | Description           |
+| --------------------- | ---------------- | -------- | ----------- | --------------------- |
+| **Partner Member** 🔮 | `partner_member` | 60       | 56          | Partner team member   |
+| **Partner Admin** 🔮  | `partner_admin`  | 90       | 77          | Partner administrator |
 
 ### Permission Categories
 
@@ -110,9 +113,9 @@ if (permissions.includes(WORKOS_PERMISSIONS.ANALYTICS_VIEW)) {
 </details>
 
 <details>
-<summary>Clinic Features (20 permissions) 🔮</summary>
+<summary>Partner Features (20 permissions) 🔮</summary>
 
-- Clinic (7)
+- Partner (7)
 - Team (5)
 - Schedule (3)
 - Revenue (5)
@@ -135,6 +138,7 @@ if (permissions.includes(WORKOS_PERMISSIONS.ANALYTICS_VIEW)) {
 ## 🔄 Regenerating Files
 
 **When to regenerate:**
+
 - Added new permissions
 - Added new roles
 - Changed role inheritance
@@ -155,6 +159,7 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
 ```
 
 **What gets regenerated:**
+
 - All CSV files
 - JSON configuration
 - Markdown documentation
@@ -162,6 +167,7 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
 - This folder's contents
 
 **⚠️ Important:**
+
 - Files in this folder are auto-generated
 - Don't edit these files directly
 - Edit the source: `scripts/utilities/workos-rbac-config.ts`
@@ -175,7 +181,8 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
 
 **Best file to use:** `workos-rbac-config.md`
 
-**Why:** 
+**Why:**
+
 - Easy to read
 - Copy-paste friendly sections
 - Organized by category
@@ -188,6 +195,7 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
 **Best file to use:** `workos-role-permission-matrix.csv`
 
 **Why:**
+
 - Easy to sort/filter
 - Visual overview
 - Audit-friendly
@@ -200,6 +208,7 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
 **Best file to use:** `workos-rbac-constants.ts`
 
 **Why:**
+
 - Type-safe constants
 - No typos
 - Autocomplete support
@@ -212,6 +221,7 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
 **Best file to use:** `workos-rbac-config.json`
 
 **Why:**
+
 - Machine-readable
 - Complete metadata
 - Structured data
@@ -224,6 +234,7 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
 **Best file to use:** `workos-rbac-config.md`
 
 **Why:**
+
 - Human-readable
 - GitHub-friendly
 - Copy to wiki
@@ -265,9 +276,7 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
 ```typescript
 import { WORKOS_PERMISSIONS } from './workos-rbac-constants';
 
-const canViewAnalytics = permissions.includes(
-  WORKOS_PERMISSIONS.ANALYTICS_VIEW
-);
+const canViewAnalytics = permissions.includes(WORKOS_PERMISSIONS.ANALYTICS_VIEW);
 ```
 
 ### Task: Check if role should have permission
@@ -317,16 +326,19 @@ const canViewAnalytics = permissions.includes(
 ### Common Issues
 
 **"File not found" error**
+
 - Ensure you're in project root
 - Check file path is correct
 - Regenerate files if missing
 
 **"Permission not found" in code**
+
 - Regenerate TypeScript constants
 - Check import path
 - Verify permission exists in WorkOS
 
 **"Duplicate slug" in WorkOS**
+
 - Permission/role already exists
 - Check if created in wrong environment
 - Verify slug spelling
@@ -349,16 +361,19 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
 ## 📚 Related Documentation
 
 ### In This Folder
+
 - [HOW-TO-USE.md](./HOW-TO-USE.md) - Complete usage guide
 - [IMPORT-CHECKLIST.md](./IMPORT-CHECKLIST.md) - Step-by-step checklist
 
 ### In Parent Directory
+
 - `../WORKOS-ROLES-PERMISSIONS-CONFIGURATION.md` - Complete RBAC specification
 - `../WORKOS-DASHBOARD-QUICK-SETUP.md` - Quick setup guide
 - `../WORKOS-RBAC-VISUAL-MATRIX.md` - Visual reference
 - `../README.md` - Overview and navigation
 
 ### External
+
 - [WorkOS RBAC Documentation](https://workos.com/docs/rbac)
 - [WorkOS Dashboard](https://dashboard.workos.com)
 - [Next.js 16 RBAC Guide](https://nextjs.org/docs/app/building-your-application/authentication)
@@ -379,4 +394,3 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
 **Source Control:** Committed to git repository  
 **Last Updated:** November 13, 2025  
 **Next Review:** After Phase 1 deployment
-

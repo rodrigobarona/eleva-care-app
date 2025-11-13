@@ -8,9 +8,10 @@
 
 ## 📚 Documentation Overview
 
-This documentation suite provides a complete redesign of the Eleva Care dashboard navigation structure, designed to scale from solo practitioners to multi-expert clinics and future LMS features.
+This documentation suite provides a complete redesign of the Eleva Care dashboard navigation structure, designed to scale from solo practitioners to multi-expert partners and future LMS features.
 
 **Key Highlights:**
+
 - ✅ User-facing terminology (not developer jargon)
 - ✅ Industry best practices (Cal.com, Dub, Vercel, WorkOS)
 - ✅ Role-aware navigation with WorkOS RBAC integration
@@ -22,11 +23,13 @@ This documentation suite provides a complete redesign of the Eleva Care dashboar
 ## 📖 Document Structure
 
 ### 1. **Quick Reference** (Start Here)
+
 📄 **File:** `DASHBOARD-MENU-QUICK-REFERENCE.md`  
 ⏱️ **Read Time:** 5 minutes  
 🎯 **Purpose:** TL;DR overview with cheat sheets
 
 **What's Inside:**
+
 - Menu structure at a glance
 - Route mappings (old → new)
 - Role & permission matrix
@@ -36,6 +39,7 @@ This documentation suite provides a complete redesign of the Eleva Care dashboar
 - FAQ
 
 **Who Should Read:**
+
 - Everyone (required reading)
 - Developers (implementation quick start)
 - Product managers (feature overview)
@@ -44,11 +48,13 @@ This documentation suite provides a complete redesign of the Eleva Care dashboar
 ---
 
 ### 2. **Architecture Specification** (Design Authority)
+
 📄 **File:** `DASHBOARD-MENU-ARCHITECTURE.md`  
 ⏱️ **Read Time:** 20-30 minutes  
 🎯 **Purpose:** Complete design specification
 
 **What's Inside:**
+
 - Executive summary
 - Complete navigation hierarchy
 - Folder structure recommendations
@@ -59,15 +65,17 @@ This documentation suite provides a complete redesign of the Eleva Care dashboar
 - Implementation checklist
 
 **Who Should Read:**
+
 - Product managers (feature planning)
 - Architects (system design)
 - Tech leads (implementation planning)
 - Stakeholders (approval & sign-off)
 
 **Sections:**
+
 1. Navigation Hierarchy (all roles)
 2. Expert Dashboard (solo practitioners)
-3. Clinic Dashboard (multi-expert organizations)
+3. Partner Dashboard (multi-expert organizations)
 4. Learning Platform (LMS features)
 5. Admin Dashboard (platform management)
 6. Folder structure
@@ -78,11 +86,13 @@ This documentation suite provides a complete redesign of the Eleva Care dashboar
 ---
 
 ### 3. **Implementation Guide** (Developers)
+
 📄 **File:** `DASHBOARD-MENU-IMPLEMENTATION.md`  
 ⏱️ **Read Time:** 30-45 minutes  
 🎯 **Purpose:** Step-by-step implementation instructions
 
 **What's Inside:**
+
 - Before/after comparison
 - TypeScript types & interfaces
 - Navigation configuration patterns
@@ -92,11 +102,13 @@ This documentation suite provides a complete redesign of the Eleva Care dashboar
 - Code examples
 
 **Who Should Read:**
+
 - Developers (primary audience)
 - Tech leads (code review)
 - QA engineers (test planning)
 
 **Sections:**
+
 1. Current vs. Proposed structure
 2. Navigation types & configuration
 3. AppSidebar component implementation
@@ -107,6 +119,7 @@ This documentation suite provides a complete redesign of the Eleva Care dashboar
 8. Future enhancements
 
 **Key Code Files:**
+
 ```typescript
 // Created/Updated Files
 types/navigation.ts              # Navigation types
@@ -120,11 +133,13 @@ components/layout/sidebar/
 ---
 
 ### 4. **Visual Hierarchy** (Designers & Visual Learners)
+
 📄 **File:** `DASHBOARD-MENU-VISUAL-HIERARCHY.md`  
 ⏱️ **Read Time:** 15-20 minutes  
 🎯 **Purpose:** ASCII diagrams and visual representations
 
 **What's Inside:**
+
 - ASCII menu trees for each role
 - Responsive layout diagrams
 - Navigation pattern examples
@@ -135,14 +150,16 @@ components/layout/sidebar/
 - Accessibility features
 
 **Who Should Read:**
+
 - Designers (visual reference)
 - Product managers (user flows)
 - Documentation writers (screenshots)
 - Everyone (visual learning style)
 
 **Diagrams Included:**
+
 1. Expert Dashboard (Solo)
-2. Clinic Dashboard (Admin)
+2. Partner Dashboard (Admin)
 3. Learning Platform (Expert view)
 4. Learning Platform (Student view)
 5. Platform Admin
@@ -157,11 +174,13 @@ components/layout/sidebar/
 ### For Product Review & Approval
 
 **Read in this order:**
+
 1. `DASHBOARD-MENU-QUICK-REFERENCE.md` (5 min overview)
 2. `DASHBOARD-MENU-VISUAL-HIERARCHY.md` (visualize the experience)
 3. `DASHBOARD-MENU-ARCHITECTURE.md` (complete spec for approval)
 
 **Decision Points:**
+
 - [ ] Approve menu structure
 - [ ] Approve route naming
 - [ ] Approve role-based access
@@ -173,11 +192,13 @@ components/layout/sidebar/
 ### For Implementation Planning
 
 **Read in this order:**
+
 1. `DASHBOARD-MENU-ARCHITECTURE.md` (understand the why)
 2. `DASHBOARD-MENU-IMPLEMENTATION.md` (understand the how)
 3. `DASHBOARD-MENU-QUICK-REFERENCE.md` (quick lookup during dev)
 
 **Action Items:**
+
 - [ ] Create GitHub project board
 - [ ] Break down into user stories
 - [ ] Assign estimation points
@@ -189,10 +210,12 @@ components/layout/sidebar/
 ### For Development
 
 **Keep open while coding:**
+
 1. `DASHBOARD-MENU-IMPLEMENTATION.md` (primary reference)
 2. `DASHBOARD-MENU-QUICK-REFERENCE.md` (quick lookups)
 
 **Workflow:**
+
 1. Read implementation guide section
 2. Implement feature
 3. Reference quick guide for routes/icons
@@ -204,11 +227,13 @@ components/layout/sidebar/
 ### For QA Testing
 
 **Read in this order:**
+
 1. `DASHBOARD-MENU-QUICK-REFERENCE.md` (test scenarios)
 2. `DASHBOARD-MENU-VISUAL-HIERARCHY.md` (expected UI)
 3. Use testing checklist from Implementation guide
 
 **Test Coverage:**
+
 - [ ] All routes accessible
 - [ ] Role-based visibility correct
 - [ ] Redirects working
@@ -232,12 +257,12 @@ components/layout/sidebar/
    - Show features based on role & tier
    - Community sees basics
    - Top tier sees analytics
-   - Clinic admins see management features
+   - Partner admins see management features
    - Platform admins see everything
 
 3. **Scalable Structure**
    - Solo practitioners (Phase 1) ✅
-   - Multi-expert clinics (Phase 2) 🔮
+   - Multi-expert partners (Phase 2) 🔮
    - LMS platform (Phase 3) 🔮
    - Easy to add features without reorganization
 
@@ -253,27 +278,28 @@ components/layout/sidebar/
 
 ### Renamed Routes
 
-| Old Route | New Route | Reason |
-|-----------|-----------|--------|
-| `booking/events` | `events` | Simpler, user-facing |
-| `booking/schedule` | `availability` | Clearer intention |
-| `booking/expert` | `profile/expert` | Better grouping |
+| Old Route          | New Route        | Reason               |
+| ------------------ | ---------------- | -------------------- |
+| `booking/events`   | `events`         | Simpler, user-facing |
+| `booking/schedule` | `availability`   | Clearer intention    |
+| `booking/expert`   | `profile/expert` | Better grouping      |
 
 ### New Sections
 
-| Section | Purpose | Phase |
-|---------|---------|-------|
-| `analytics` | Business insights | Phase 1 (Top tier) |
-| `billing` | Consolidated billing | Phase 1 |
-| `settings` | Personal settings | Phase 1 |
-| `notifications` | Notification center | Phase 1 |
-| `clinic` | Clinic management | Phase 2 |
-| `learn` | LMS (expert view) | Phase 3 |
-| `learning` | LMS (student view) | Phase 3 |
+| Section         | Purpose              | Phase              |
+| --------------- | -------------------- | ------------------ |
+| `analytics`     | Business insights    | Phase 1 (Top tier) |
+| `billing`       | Consolidated billing | Phase 1            |
+| `settings`      | Personal settings    | Phase 1            |
+| `notifications` | Notification center  | Phase 1            |
+| `partner`       | Partner management   | Phase 2            |
+| `learn`         | LMS (expert view)    | Phase 3            |
+| `learning`      | LMS (student view)   | Phase 3            |
 
 ### Navigation Improvements
 
 **Before:**
+
 ```
 Events
 Calendar
@@ -282,6 +308,7 @@ Expert Profile
 ```
 
 **After:**
+
 ```
 📊 Overview
 📅 Appointments → Upcoming, Past, Calendar, Patients
@@ -297,6 +324,7 @@ Expert Profile
 ## 🚀 Implementation Timeline
 
 ### Phase 1: Core Restructure (Weeks 1-2)
+
 **Goal:** Implement new navigation for current features
 
 - Week 1: Setup & file migration
@@ -313,6 +341,7 @@ Expert Profile
   - Production rollout
 
 **Deliverables:**
+
 - ✅ New navigation structure
 - ✅ All routes working
 - ✅ Old URLs redirect correctly
@@ -321,28 +350,33 @@ Expert Profile
 
 ---
 
-### Phase 2: Clinic Features (Future)
+### Phase 2: Partner Features (Future)
+
 **Goal:** Add multi-expert organization support
 
 **Features:**
-- Clinic organization management
+
+- Partner organization management
 - Team member invitations
 - Multi-practitioner calendar
 - Shared patient records
-- Clinic-wide analytics
+- Partner-wide analytics
 - Revenue splitting
 
 **Prerequisites:**
+
 - Phase 1 complete and stable
-- Clinic data model finalized
+- Partner data model finalized
 - WorkOS organization setup complete
 
 ---
 
 ### Phase 3: Learning Platform (Future)
+
 **Goal:** Add LMS capabilities
 
 **Features:**
+
 - Course creation & management
 - Content library (videos, docs, quizzes)
 - Student enrollment & progress tracking
@@ -350,6 +384,7 @@ Expert Profile
 - Course marketplace
 
 **Prerequisites:**
+
 - Phase 1 & 2 complete
 - LMS data model finalized
 - Content delivery infrastructure ready
@@ -361,31 +396,33 @@ Expert Profile
 ### WorkOS RBAC Integration
 
 **Permissions Used:**
+
 ```typescript
 WORKOS_PERMISSIONS = {
   EVENTS_MANAGE: 'events:manage',
   ANALYTICS_VIEW: 'analytics:view',
   ANALYTICS_ADVANCED: 'analytics:advanced',
-  CLINIC_VIEW: 'clinic:view',
-  CLINIC_MANAGE: 'clinic:manage',
+  CLINIC_VIEW: 'partner:view',
+  CLINIC_MANAGE: 'partner:manage',
   ADMIN_ACCESS: 'admin:access',
   // ... more
-}
+};
 ```
 
 **Role Hierarchy:**
+
 ```
 Admin (Platform)
   ├─ Full access to all features
   └─ Platform management
 
-Clinic Admin
-  ├─ Full clinic features
+Partner Admin
+  ├─ Full partner features
   ├─ Team management
   └─ Own expert features
 
-Clinic Member
-  ├─ View clinic features
+Partner Member
+  ├─ View partner features
   └─ Own expert features
 
 Expert (Top)
@@ -400,23 +437,25 @@ Expert (Community)
 ### Next.js 16 Patterns
 
 **Server Components (Default):**
+
 ```typescript
 export default async function Page() {
   const { user } = await withAuth({ ensureSignedIn: true });
   const hasAnalytics = await hasPermission(WORKOS_PERMISSIONS.ANALYTICS_VIEW);
-  
+
   return <Dashboard user={user} showAnalytics={hasAnalytics} />;
 }
 ```
 
 **Client Components (When Needed):**
+
 ```typescript
 'use client';
 
 export function NavigationClient() {
   const { hasPermission } = useRBAC();
   const canViewAnalytics = hasPermission(WORKOS_PERMISSIONS.ANALYTICS_VIEW);
-  
+
   return <NavMenu showAnalytics={canViewAnalytics} />;
 }
 ```
@@ -426,17 +465,20 @@ export function NavigationClient() {
 ## 📈 Success Metrics
 
 ### User Experience
+
 - **Navigation Time:** < 5 seconds to find any feature
 - **Click Depth:** ≤ 2 clicks to reach any page
 - **Feature Discovery:** 80%+ users discover Analytics (Top tier)
 - **404 Rate:** < 0.1% after migration
 
 ### Technical
+
 - **Page Load:** < 1s (p95)
 - **Navigation:** < 100ms (client transitions)
 - **Bundle Size:** Sidebar < 50KB
 
 ### Business
+
 - **User Satisfaction:** NPS > 50
 - **Tier Upgrades:** Track Analytics impact on conversions
 - **Support Tickets:** < 10 navigation-related tickets/month
@@ -446,6 +488,7 @@ export function NavigationClient() {
 ## ✅ Pre-Implementation Checklist
 
 ### Documentation Review
+
 - [ ] All stakeholders have reviewed documents
 - [ ] Architecture approved by Product
 - [ ] Design approved by UX
@@ -453,6 +496,7 @@ export function NavigationClient() {
 - [ ] Timeline approved by Project Management
 
 ### Technical Prerequisites
+
 - [ ] Next.js 16 App Router in use
 - [ ] WorkOS RBAC implemented
 - [ ] Subscription tier system working
@@ -460,6 +504,7 @@ export function NavigationClient() {
 - [ ] Test environment ready
 
 ### Team Readiness
+
 - [ ] Developers assigned
 - [ ] QA resources allocated
 - [ ] Designer available for UI review
@@ -467,6 +512,7 @@ export function NavigationClient() {
 - [ ] Stakeholders informed of timeline
 
 ### Deployment Preparation
+
 - [ ] Staging environment ready
 - [ ] Feature flags configured
 - [ ] Rollback plan documented
@@ -478,18 +524,21 @@ export function NavigationClient() {
 ## 🔗 External References
 
 ### Inspiration & Best Practices
+
 - [Cal.com Dashboard](https://cal.com) - Event-centric navigation
 - [Dub Dashboard](https://dub.co) - Analytics & link management
 - [Vercel Dashboard](https://vercel.com) - Project management
 - [WorkOS Dashboard](https://workos.com) - RBAC & organizations
 
 ### Technical Documentation
+
 - [Next.js 16 App Router](https://nextjs.org/docs)
 - [WorkOS RBAC](https://workos.com/docs/user-management/rbac)
 - [shadcn/ui Sidebar](https://ui.shadcn.com/docs/components/sidebar)
 - [Lucide Icons](https://lucide.dev/)
 
 ### Internal Documentation
+
 - `_docs/02-core-systems/WORKOS-RBAC-QUICK-REFERENCE.md`
 - `.cursor/plans/SOLO-VS-CLINIC-ARCHITECTURE.md`
 - `.cursor/rules/ui-components.mdc`
@@ -500,6 +549,7 @@ export function NavigationClient() {
 ## 🤝 Contributing to This Documentation
 
 ### How to Update
+
 1. Make changes to relevant markdown files
 2. Update version numbers and dates
 3. Add to version history section
@@ -507,6 +557,7 @@ export function NavigationClient() {
 5. Review for consistency across all docs
 
 ### Documentation Standards
+
 - Use emojis for visual scanning
 - Include code examples for technical content
 - Provide both text and visual explanations
@@ -516,6 +567,7 @@ export function NavigationClient() {
 ### Version History
 
 **v2.0 (Nov 12, 2025)**
+
 - Complete documentation suite created
 - Architecture redesign for scalability
 - Implementation guide added
@@ -523,6 +575,7 @@ export function NavigationClient() {
 - Quick reference guide
 
 **v1.0 (Previous)**
+
 - Initial basic sidebar structure
 - Limited to solo practitioner features
 
@@ -531,11 +584,13 @@ export function NavigationClient() {
 ## 📞 Support & Questions
 
 ### During Development
+
 - 💬 **Slack:** #dev-platform channel
 - 📧 **Email:** dev-team@eleva.care
 - 🐛 **Issues:** GitHub Issues with `[navigation]` tag
 
 ### After Deployment
+
 - 📊 **Monitoring:** Datadog dashboard
 - 🔍 **Analytics:** PostHog navigation events
 - 📈 **Metrics:** Weekly review meeting
@@ -579,13 +634,13 @@ export function NavigationClient() {
 
 ## 📚 Document Quick Links
 
-| Document | Purpose | Audience | Priority |
-|----------|---------|----------|----------|
-| [Quick Reference](DASHBOARD-MENU-QUICK-REFERENCE.md) | TL;DR & cheat sheets | Everyone | 🔴 High |
-| [Architecture](DASHBOARD-MENU-ARCHITECTURE.md) | Complete design spec | PM, Architects | 🔴 High |
-| [Implementation](DASHBOARD-MENU-IMPLEMENTATION.md) | Dev guide | Developers | 🔴 High |
-| [Visual Hierarchy](DASHBOARD-MENU-VISUAL-HIERARCHY.md) | Diagrams | Designers, Visual learners | 🟡 Medium |
-| [This Index](DASHBOARD-MENU-INDEX.md) | Documentation map | Everyone | 🟡 Medium |
+| Document                                               | Purpose              | Audience                   | Priority  |
+| ------------------------------------------------------ | -------------------- | -------------------------- | --------- |
+| [Quick Reference](DASHBOARD-MENU-QUICK-REFERENCE.md)   | TL;DR & cheat sheets | Everyone                   | 🔴 High   |
+| [Architecture](DASHBOARD-MENU-ARCHITECTURE.md)         | Complete design spec | PM, Architects             | 🔴 High   |
+| [Implementation](DASHBOARD-MENU-IMPLEMENTATION.md)     | Dev guide            | Developers                 | 🔴 High   |
+| [Visual Hierarchy](DASHBOARD-MENU-VISUAL-HIERARCHY.md) | Diagrams             | Designers, Visual learners | 🟡 Medium |
+| [This Index](DASHBOARD-MENU-INDEX.md)                  | Documentation map    | Everyone                   | 🟡 Medium |
 
 ---
 
@@ -596,4 +651,3 @@ export function NavigationClient() {
 ---
 
 **Built with ❤️ by the Eleva Care Team**
-

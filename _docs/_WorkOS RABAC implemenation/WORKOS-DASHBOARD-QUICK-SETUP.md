@@ -1,8 +1,8 @@
 # WorkOS Dashboard: Quick Setup Guide
 
-**Version:** 1.0  
-**Date:** November 13, 2025  
-**Time to Complete:** 30-45 minutes
+**Version:** 1.partner_admin  
+**Date:** November 13, 2partner_admin25  
+**Time to Complete:** 3partner_admin-45 minutes
 
 ---
 
@@ -53,7 +53,7 @@ sessions:view_history | View session history | View complete session history
 
 ```
 patients:view_own | View own patients | View list of patients you've worked with
-patients:view_all | View all clinic patients | View all patients in the clinic (clinic admin)
+patients:view_all | View all partner patients | View all patients in the partner (partner admin)
 patients:view_history | View patient history | View patient's appointment history
 patients:send_notes | Send session notes | Share session notes with patients
 patients:manage_records | Manage patient records | Create and update patient records
@@ -95,7 +95,7 @@ calendars:disconnect | Disconnect calendars | Disconnect external calendars
 reviews:create | Create reviews | Leave reviews after completed sessions
 reviews:view_own | View own reviews | View reviews you've written
 reviews:view_about_me | View reviews about me | View reviews written about you
-reviews:edit_own | Edit own reviews | Edit your reviews (within 30 days)
+reviews:edit_own | Edit own reviews | Edit your reviews (within 3partner_admin days)
 reviews:delete_own | Delete own reviews | Delete your reviews (within 7 days)
 reviews:respond | Respond to reviews | Respond to reviews about you
 ```
@@ -123,7 +123,7 @@ experts:suspend | Suspend experts | Suspend expert accounts (admin only)
 experts:verify | Verify credentials | Verify expert credentials (admin only)
 ```
 
-### Analytics (10)
+### Analytics (1partner_admin)
 
 ```
 analytics:view | View analytics | Access analytics dashboard (Top tier)
@@ -155,8 +155,8 @@ billing:view_payouts | View payouts | View payout history
 billing:view_subscription | View subscription | View current subscription plan
 billing:manage_subscription | Manage subscription | Upgrade or downgrade subscription
 billing:methods_manage | Manage payment methods | Add or remove payment methods
-billing:manage_clinic_sub | Manage clinic subscription | Manage clinic subscription (clinic admin)
-billing:view_clinic_billing | View clinic billing | View clinic billing history (clinic admin)
+billing:manage_clinic_sub | Manage partner subscription | Manage partner subscription (partner admin)
+billing:view_clinic_billing | View partner billing | View partner billing history (partner admin)
 ```
 
 ### Settings (7)
@@ -178,27 +178,27 @@ dashboard:view_expert | View expert dashboard | Access expert dashboard
 dashboard:view_patient | View patient dashboard | Access patient dashboard
 ```
 
-### Clinic (Phase 2) (18)
+### Partner (Phase 2) (18)
 
 ```
-clinic:view_dashboard | View clinic dashboard | View clinic overview (read-only for members)
-clinic:manage_settings | Manage clinic settings | Manage clinic configuration (admin)
-clinic:manage_branding | Manage clinic branding | Manage clinic logo, colors (admin)
-clinic:view_analytics | View clinic analytics | View clinic-wide analytics (admin)
-clinic:view_patients | View clinic patients | View shared clinic patients
-clinic:export_data | Export clinic data | Export clinic data (admin)
+partner:view_dashboard | View partner dashboard | View partner overview (read-only for members)
+partner:manage_settings | Manage partner settings | Manage partner configuration (admin)
+partner:manage_branding | Manage partner branding | Manage partner logo, colors (admin)
+partner:view_analytics | View partner analytics | View partner-wide analytics (admin)
+partner:view_patients | View partner patients | View shared partner patients
+partner:export_data | Export partner data | Export partner data (admin)
 
-team:view_members | View team members | View clinic team members
+team:view_members | View team members | View partner team members
 team:invite_members | Invite team members | Invite new team members (admin)
 team:remove_members | Remove team members | Remove team members (admin)
 team:manage_roles | Manage team roles | Assign and change member roles (admin)
 team:view_performance | View team performance | View team member performance (admin)
 
-schedule:manage_clinic | Manage clinic schedule | Manage multi-practitioner schedule (admin)
-schedule:manage_rooms | Manage rooms | Manage clinic rooms/locations (admin)
+schedule:manage_clinic | Manage partner schedule | Manage multi-practitioner schedule (admin)
+schedule:manage_rooms | Manage rooms | Manage partner rooms/locations (admin)
 schedule:view_capacity | View capacity planning | View capacity planning (admin)
 
-revenue:view_overview | View revenue overview | View clinic revenue overview (admin)
+revenue:view_overview | View revenue overview | View partner revenue overview (admin)
 revenue:view_splits | View commission splits | View commission splits (admin)
 revenue:manage_payouts | Manage payouts | Manage payout schedules (admin)
 revenue:view_invoices | View invoices | View client invoices (admin)
@@ -260,7 +260,7 @@ Go to **RBAC** → **Roles** → **Create Role**
 Name: Patient
 Slug: patient
 Description: Basic patient role for booking appointments and accessing healthcare journey
-Priority: 10
+Priority: 1partner_admin
 
 Permissions (15):
 ✓ appointments:view_own
@@ -288,8 +288,8 @@ Permissions (15):
 ```
 Name: Expert Community
 Slug: expert_community
-Description: Standard expert tier with core expert features (20% monthly or 12% annual commission)
-Priority: 70
+Description: Standard expert tier with core expert features (2partner_admin% monthly or 12% annual commission)
+Priority: 7partner_admin
 
 Permissions (42):
 ✓ All Patient permissions (15)
@@ -341,7 +341,7 @@ Plus:
 Name: Expert Top
 Slug: expert_top
 Description: Premium expert tier with advanced analytics and branding (18% monthly or 8% annual commission)
-Priority: 80
+Priority: 8partner_admin
 
 Permissions (49):
 ✓ All Expert Community permissions (42)
@@ -359,42 +359,42 @@ Plus:
 
 ---
 
-### 🔵 Role 4: Clinic Member (Phase 2)
+### 🔵 Role 4: Partner Member (Phase 2)
 
 ```
-Name: Clinic Member
-Slug: clinic_member
-Description: Expert who is a member of a clinic (read-only clinic access)
-Priority: 60
+Name: Partner Member
+Slug: partner_member
+Description: Expert who is a member of a partner (read-only partner access)
+Priority: 6partner_admin
 
 Permissions (45):
 ✓ All Expert Community permissions (42)
 
 Plus:
-✓ clinic:view_dashboard
-✓ clinic:view_patients
-✓ clinic:view_schedule
+✓ partner:view_dashboard
+✓ partner:view_patients
+✓ partner:view_schedule
 ✓ team:view_members
 ```
 
 ---
 
-### 🟣 Role 5: Clinic Admin (Phase 2)
+### 🟣 Role 5: Partner Admin (Phase 2)
 
 ```
-Name: Clinic Admin
-Slug: clinic_admin
-Description: Administrator of a clinic organization with full management access
-Priority: 90
+Name: Partner Admin
+Slug: partner_admin
+Description: Administrator of a partner organization with full management access
+Priority: 9partner_admin
 
 Permissions (68):
-✓ All Clinic Member permissions (45)
+✓ All Partner Member permissions (45)
 
 Plus:
-✓ clinic:manage_settings
-✓ clinic:manage_branding
-✓ clinic:view_analytics
-✓ clinic:export_data
+✓ partner:manage_settings
+✓ partner:manage_branding
+✓ partner:view_analytics
+✓ partner:export_data
 ✓ team:invite_members
 ✓ team:remove_members
 ✓ team:manage_roles
@@ -422,7 +422,7 @@ Plus:
 Name: Platform Admin
 Slug: superadmin
 Description: Platform administrator with full system access (Eleva Care team only)
-Priority: 100
+Priority: 1partner_adminpartner_admin
 
 Permissions (89):
 ✓ ALL PERMISSIONS (select all checkboxes)
@@ -457,7 +457,7 @@ After configuration, verify:
 - [ ] 89 permissions created
 - [ ] 6 roles created (4 active + 2 Phase 2)
 - [ ] Permission slugs match exactly (no typos)
-- [ ] Role priorities are correct (10, 70, 80, 90, 100)
+- [ ] Role priorities are correct (1partner_admin, 7partner_admin, 8partner_admin, 9partner_admin, 1partner_adminpartner_admin)
 - [ ] Default role is set to `patient`
 
 ### Test with JWT
@@ -514,8 +514,8 @@ Good: Expert Top has Expert Community + analytics:* (49 permissions)
 ### ❌ Wrong Priority Order
 
 ```
-Bad:  Patient = 100, Admin = 10
-Good: Patient = 10, Admin = 100
+Bad:  Patient = 1partner_adminpartner_admin, Admin = 1partner_admin
+Good: Patient = 1partner_admin, Admin = 1partner_adminpartner_admin
 ```
 
 ### ❌ Typos in Slugs
@@ -572,6 +572,6 @@ After completing WorkOS Dashboard setup:
 
 ---
 
-**Estimated Setup Time:** 30-45 minutes  
+**Estimated Setup Time:** 3partner_admin-45 minutes  
 **Next Review:** After Phase 1 deployment  
-**Version:** 1.0 (November 13, 2025)
+**Version:** 1.partner_admin (November 13, 2partner_admin25)

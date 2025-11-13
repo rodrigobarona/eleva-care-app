@@ -73,6 +73,7 @@ export const PUBLIC_CONTENT_ROUTES = [
   'contact',
   'community',
   'become-expert',
+  'become-partner',
 ] as const;
 
 /**

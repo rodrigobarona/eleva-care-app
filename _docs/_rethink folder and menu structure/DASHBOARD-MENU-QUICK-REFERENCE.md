@@ -8,19 +8,22 @@
 ## 📋 TL;DR
 
 ### What Changed?
+
 ❌ **Old:** `booking/events`, `booking/schedule`, `booking/expert`  
 ✅ **New:** `events`, `availability`, `profile/expert`
 
 ### Why?
+
 - User-facing names (not developer terminology)
-- Scalable for clinics and LMS
+- Scalable for partners and LMS
 - Industry best practices (Cal.com, Dub, Vercel)
 - Role-aware navigation
 - Clearer feature grouping
 
 ### When?
+
 - **Phase 1:** Restructure (2 weeks) - Current features
-- **Phase 2:** Clinic features (Future)
+- **Phase 2:** Partner features (Future)
 - **Phase 3:** LMS features (Future)
 
 ---
@@ -28,6 +31,7 @@
 ## 🗂️ Menu Structure at a Glance
 
 ### Solo Expert (Community Tier)
+
 ```
 📊 Overview
 📅 Appointments → Upcoming | Past | Calendar (Built-in) | Patients
@@ -39,13 +43,15 @@
 ```
 
 ### Solo Expert (Top Tier)
+
 ```
 + All Community features
 + 📈 Analytics → Overview, Revenue, Patients, Performance
 + 📚 Resources (future)
 ```
 
-### Clinic Admin
+### Partner Admin
+
 ```
 PERSONAL
   📊 My Overview
@@ -54,7 +60,7 @@ PERSONAL
   🔗 My Event Types
 
 CLINIC
-  🏥 Clinic Overview
+  🏥 Partner Overview
   👥 Team → Members, Invite, Roles
   📅 Schedule → Multi-calendar, Rooms
   👨‍👩‍👧‍👦 Patients → All, Records, Insights
@@ -64,10 +70,11 @@ CLINIC
 ```
 
 ### Platform Admin
+
 ```
 🏢 Platform Overview
 👥 Users → All, Experts, Patients
-🏥 Organizations → All, Clinics, Details
+🏥 Organizations → All, Partners, Details
 📊 Analytics → Growth, Revenue, Engagement
 💳 Payments → Transactions, Transfers, Disputes
 🏷️ Categories → Specialties, Services, Tags
@@ -80,27 +87,28 @@ CLINIC
 
 ### Current State → New State
 
-| Old Path | New Path | Status |
-|----------|----------|--------|
-| `booking/events` | `events` | Move |
-| `booking/schedule` | `availability` | Move |
-| `booking/expert` | `profile/expert` | Move |
-| `dashboard` | `dashboard` | Keep |
-| `appointments` | `appointments` | Enhance |
-| `admin` | `admin` | Keep |
-| `dashboard/subscription` | `billing/subscription` | Move |
-| `admin/payments` | `billing/payments` | Move |
-| - | `analytics` | New |
-| - | `settings` | New |
-| - | `notifications` | New |
-| - | `clinic` | Future |
-| - | `learn` | Future |
+| Old Path                 | New Path               | Status  |
+| ------------------------ | ---------------------- | ------- |
+| `booking/events`         | `events`               | Move    |
+| `booking/schedule`       | `availability`         | Move    |
+| `booking/expert`         | `profile/expert`       | Move    |
+| `dashboard`              | `dashboard`            | Keep    |
+| `appointments`           | `appointments`         | Enhance |
+| `admin`                  | `admin`                | Keep    |
+| `dashboard/subscription` | `billing/subscription` | Move    |
+| `admin/payments`         | `billing/payments`     | Move    |
+| -                        | `analytics`            | New     |
+| -                        | `settings`             | New     |
+| -                        | `notifications`        | New     |
+| -                        | `partner`              | Future  |
+| -                        | `learn`                | Future  |
 
 ---
 
 ## 🎯 Routes Cheat Sheet
 
 ### Appointments
+
 ```
 /appointments                    # Upcoming (default)
 /appointments?tab=past          # Past appointments
@@ -110,6 +118,7 @@ CLINIC
 ```
 
 **Built-in Calendar Features:**
+
 - ✅ Day, Week, Month views
 - ✅ Works without external calendar
 - ✅ Filter by schedule/location
@@ -117,6 +126,7 @@ CLINIC
 - ✅ Click to view/reschedule
 
 ### Availability (Enhanced - Like Cal.com)
+
 ```
 /availability/schedules                    # All schedules list
 /availability/schedules/new                # Create new schedule
@@ -131,13 +141,15 @@ CLINIC
 ```
 
 **New Features:**
-- ✅ Multiple schedules (Remote, In-person, Clinic, etc.)
+
+- ✅ Multiple schedules (Remote, In-person, Partner, etc.)
 - ✅ Each schedule has own hours, location, timezone
 - ✅ Assign schedule to event types
 - ✅ Calendar integration is OPTIONAL (not mandatory)
 - ✅ Built-in calendar view in `/appointments/calendar`
 
 ### Event Types
+
 ```
 /events                        # All event types
 /events/new                    # Create new event
@@ -146,6 +158,7 @@ CLINIC
 ```
 
 ### Analytics (Top Tier Only)
+
 ```
 /analytics                     # Overview & KPIs
 /analytics/revenue            # Financial insights
@@ -154,6 +167,7 @@ CLINIC
 ```
 
 ### Profile
+
 ```
 /profile/expert               # Edit public profile
 /profile/preview              # Preview as patient sees
@@ -161,6 +175,7 @@ CLINIC
 ```
 
 ### Billing
+
 ```
 /billing/subscription         # Current plan & upgrade
 /billing/payments            # Payment history
@@ -169,6 +184,7 @@ CLINIC
 ```
 
 ### Settings
+
 ```
 /settings/account            # Personal information
 /settings/notifications      # Email/SMS preferences
@@ -176,20 +192,22 @@ CLINIC
 /settings/security           # 2FA, sessions
 ```
 
-### Clinic (Future)
+### Partner (Future)
+
 ```
-/clinic                      # Clinic overview
-/clinic/team                # Team management
-/clinic/team/invite         # Invite member
-/clinic/team/[id]           # Member details
-/clinic/schedule            # Multi-practitioner calendar
-/clinic/patients            # All clinic patients
-/clinic/analytics           # Clinic-wide analytics
-/clinic/settings            # Clinic configuration
-/clinic/revenue             # Revenue & payouts
+/partner                      # Partner overview
+/partner/team                # Team management
+/partner/team/invite         # Invite member
+/partner/team/[id]           # Member details
+/partner/schedule            # Multi-practitioner calendar
+/partner/patients            # All partner patients
+/partner/analytics           # Partner-wide analytics
+/partner/settings            # Partner configuration
+/partner/revenue             # Revenue & payouts
 ```
 
 ### Learning (Future)
+
 ```
 /learn/courses              # My courses (expert)
 /learn/courses/new          # Create course
@@ -203,6 +221,7 @@ CLINIC
 ```
 
 ### Admin
+
 ```
 /admin                     # Platform overview
 /admin/users              # User management
@@ -217,17 +236,17 @@ CLINIC
 
 ## 🔑 Role & Permission Matrix
 
-| Feature | Community | Top | Clinic Member | Clinic Admin | Platform Admin |
-|---------|-----------|-----|---------------|--------------|----------------|
-| Overview | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Appointments | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Availability | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Event Types | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Analytics** | ❌ | ✅ | ❌ | ✅ (clinic) | ✅ |
-| Profile | ✅ | ✅ | ✅ | ✅ | ✅ |
-| Billing | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Clinic Section** | ❌ | ❌ | ✅ (view) | ✅ (full) | ✅ |
-| **Admin Section** | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Feature             | Community | Top | Partner Member | Partner Admin | Platform Admin |
+| ------------------- | --------- | --- | -------------- | ------------- | -------------- |
+| Overview            | ✅        | ✅  | ✅             | ✅            | ✅             |
+| Appointments        | ✅        | ✅  | ✅             | ✅            | ✅             |
+| Availability        | ✅        | ✅  | ✅             | ✅            | ✅             |
+| Event Types         | ✅        | ✅  | ✅             | ✅            | ✅             |
+| **Analytics**       | ❌        | ✅  | ❌             | ✅ (partner)  | ✅             |
+| Profile             | ✅        | ✅  | ✅             | ✅            | ✅             |
+| Billing             | ✅        | ✅  | ✅             | ✅            | ✅             |
+| **Partner Section** | ❌        | ❌  | ✅ (view)      | ✅ (full)     | ✅             |
+| **Admin Section**   | ❌        | ❌  | ❌             | ❌            | ✅             |
 
 ---
 
@@ -235,26 +254,45 @@ CLINIC
 
 ```typescript
 import {
-  LayoutDashboard,    // 📊 Overview
-  Calendar,           // 📅 Appointments, Schedule
-  Clock,              // 🗓️ Availability
-  Link2,              // 🔗 Event Types
-  BarChart3,          // 📈 Analytics
-  User,               // 👤 Profile, User
-  CreditCard,         // 💳 Billing
-  Users,              // 👥 Team, Patients
-  Building2,          // 🏥 Clinic
-  GraduationCap,      // 🎓 Learning
-  Settings,           // ⚙️ Settings
-  Bell,               // 🔔 Notifications
-  FileText,           // 📝 Documents, Content
-  Shield,             // 🛡️ Admin, Security
-  HelpCircle,         // ❓ Help
-  ExternalLink,       // 🔗 External links
-  Search,             // 🔍 Search
-  Plus,               // ➕ Create/Add
-  ChevronRight,       // ▶️ Expand menu
-  ChevronDown,        // ▼ Dropdown
+  // 🔗 Event Types
+  BarChart3,
+  // ⚙️ Settings
+  Bell,
+  // 👥 Team, Patients
+  Building2,
+  // 📊 Overview
+  Calendar,
+  // ▶️ Expand menu
+  ChevronDown, // ▼ Dropdown
+  // ➕ Create/Add
+  ChevronRight,
+  // 📅 Appointments, Schedule
+  Clock,
+  // 👤 Profile, User
+  CreditCard,
+  // ❓ Help
+  ExternalLink,
+  // 🔔 Notifications
+  FileText,
+  // 🏥 Partner
+  GraduationCap,
+  // 🛡️ Admin, Security
+  HelpCircle,
+  LayoutDashboard,
+  // 🗓️ Availability
+  Link2,
+  // 🔍 Search
+  Plus,
+  // 🔗 External links
+  Search,
+  // 🎓 Learning
+  Settings,
+  // 📝 Documents, Content
+  Shield,
+  // 📈 Analytics
+  User,
+  // 💳 Billing
+  Users,
 } from 'lucide-react';
 ```
 
@@ -263,6 +301,7 @@ import {
 ## 🚀 Migration Steps (Simple)
 
 ### 1. Create New Folders
+
 ```bash
 cd app/(private)
 mkdir -p availability/{dates,limits,timezone}
@@ -273,6 +312,7 @@ mkdir -p settings/{account,notifications,integrations,security}
 ```
 
 ### 2. Move Existing Files
+
 ```bash
 # Events
 mv booking/events/* events/
@@ -291,6 +331,7 @@ mv admin/payments/* billing/payments/
 ```
 
 ### 3. Update AppSidebar
+
 ```typescript
 // components/layout/sidebar/AppSidebar.tsx
 const mainItems = [
@@ -305,6 +346,7 @@ const mainItems = [
 ```
 
 ### 4. Add Redirects
+
 ```typescript
 // app/(private)/booking/[...slug]/page.tsx
 export default function BookingRedirect({ params }: { params: Promise<{ slug: string[] }> }) {
@@ -319,7 +361,9 @@ export default function BookingRedirect({ params }: { params: Promise<{ slug: st
 ```
 
 ### 5. Update All Links
+
 Search and replace across project:
+
 - `booking/events` → `events`
 - `booking/schedule` → `availability`
 - `booking/expert` → `profile/expert`
@@ -338,7 +382,7 @@ Navigation
 Permissions
   [ ] Community tier sees correct menu
   [ ] Top tier sees Analytics
-  [ ] Clinic members see clinic section
+  [ ] Partner members see partner section
   [ ] Admins see admin section
 
 Redirects
@@ -362,6 +406,7 @@ Accessibility
 ## 📞 Implementation Support
 
 ### Key Files to Edit
+
 ```
 1. config/navigation.ts                    # Navigation config
 2. components/layout/sidebar/AppSidebar.tsx # Main sidebar
@@ -392,6 +437,7 @@ Accessibility
 ## 📊 Success Metrics
 
 Track these after launch:
+
 - Navigation time to features
 - 404 error rate
 - Feature discovery rate (especially Analytics)
@@ -402,13 +448,13 @@ Track these after launch:
 
 ## 🔗 Related Documents
 
-| Document | Purpose |
-|----------|---------|
-| `DASHBOARD-MENU-ARCHITECTURE.md` | Complete design specification |
-| `DASHBOARD-MENU-IMPLEMENTATION.md` | Step-by-step implementation guide |
-| `DASHBOARD-MENU-VISUAL-HIERARCHY.md` | Visual diagrams and layouts |
-| `WORKOS-RBAC-QUICK-REFERENCE.md` | Permission system |
-| `SOLO-VS-CLINIC-ARCHITECTURE.md` | Business logic |
+| Document                             | Purpose                           |
+| ------------------------------------ | --------------------------------- |
+| `DASHBOARD-MENU-ARCHITECTURE.md`     | Complete design specification     |
+| `DASHBOARD-MENU-IMPLEMENTATION.md`   | Step-by-step implementation guide |
+| `DASHBOARD-MENU-VISUAL-HIERARCHY.md` | Visual diagrams and layouts       |
+| `WORKOS-RBAC-QUICK-REFERENCE.md`     | Permission system                 |
+| `SOLO-VS-CLINIC-ARCHITECTURE.md`     | Business logic                    |
 
 ---
 
@@ -420,7 +466,7 @@ A: "Booking" is developer terminology. "Events" and "Availability" are clearer t
 **Q: Will old URLs break?**  
 A: No, we'll add redirects for backward compatibility.
 
-**Q: When will clinic features be available?**  
+**Q: When will partner features be available?**  
 A: Phase 2, timeline TBD after Phase 1 stabilizes.
 
 **Q: Can I hide features I don't use?**  
@@ -429,7 +475,7 @@ A: Future enhancement - Phase 4 will add customizable navigation.
 **Q: How do I test the new navigation?**  
 A: Run locally, check all routes, verify permissions per role.
 
-**Q: What if a user is in multiple clinics?**  
+**Q: What if a user is in multiple partners?**  
 A: Organization switcher will be added (Phase 2).
 
 ---
@@ -450,6 +496,7 @@ A: Organization switcher will be added (Phase 2).
 ---
 
 **Need Help?**
+
 - 📖 Read full docs: `_docs/DASHBOARD-MENU-*.md`
 - 💬 Ask in #dev-platform channel
 - 🐛 Report issues in GitHub
@@ -458,8 +505,8 @@ A: Organization switcher will be added (Phase 2).
 ---
 
 **Version History**
+
 - v1.0 (Nov 12, 2025) - Initial design
 - v1.1 (TBD) - Post Phase 1 updates
-- v2.0 (TBD) - Clinic features
+- v2.0 (TBD) - Partner features
 - v3.0 (TBD) - LMS features
-

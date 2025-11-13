@@ -1,9 +1,9 @@
 # WorkOS RBAC: Complete Roles & Permissions Configuration
 
-**Version:** 1.0  
-**Date:** November 13, 2025  
+**Version:** 1.partner_admin  
+**Date:** November 13, 2partner_admin25  
 **Status:** Ready for WorkOS Dashboard Configuration  
-**Based On:** Dashboard Architecture v2.0 + Industry Best Practices
+**Based On:** Dashboard Architecture v2.partner_admin + Industry Best Practices
 
 ---
 
@@ -13,7 +13,7 @@ This document provides a **complete, production-ready list** of roles and permis
 
 **Total Configuration:**
 
-- **6 Primary Roles** (Patient, Expert Community, Expert Top, Clinic Admin, Clinic Member, Platform Admin)
+- **6 Primary Roles** (Patient, Expert Community, Expert Top, Partner Admin, Partner Member, Platform Admin)
 - **89 Granular Permissions** across 15 resource categories
 - **4 Future Roles** (Expert Lecturer, Student, Content Creator, Moderator)
 
@@ -24,7 +24,7 @@ This document provides a **complete, production-ready list** of roles and permis
 3. ✅ **Principle of Least Privilege** - Minimal permissions per role
 4. ✅ **Role Inheritance** - Higher roles inherit lower role permissions
 5. ✅ **Healthcare Compliance** - HIPAA/LGPD-ready permission structure
-6. ✅ **Scalable** - Ready for clinics, LMS, and future features
+6. ✅ **Scalable** - Ready for partners, LMS, and future features
 
 ---
 
@@ -32,7 +32,7 @@ This document provides a **complete, production-ready list** of roles and permis
 
 - [🎯 Phase 1: Current Roles (Implement Now)](#phase-1-current-roles-implement-now)
 - [📋 All Permissions List](#complete-permissions-list-89-permissions)
-- [🔮 Phase 2: Future Roles](#phase-2-future-roles-clinics--lms)
+- [🔮 Phase 2: Future Roles](#phase-2-future-roles-partners--lms)
 - [📖 WorkOS Dashboard Configuration Steps](#workos-dashboard-configuration-steps)
 - [✅ Validation Checklist](#validation-checklist)
 
@@ -43,12 +43,12 @@ This document provides a **complete, production-ready list** of roles and permis
 ### Role Hierarchy & Priority
 
 ```
-Priority 100: Platform Admin (superadmin)
-Priority 90:  Clinic Admin (clinic_admin) [Future]
-Priority 80:  Expert Top (expert_top)
-Priority 70:  Expert Community (expert_community)
-Priority 60:  Clinic Member (clinic_member) [Future]
-Priority 10:  Patient (patient)
+Priority 1partner_adminpartner_admin: Platform Admin (superadmin)
+Priority 9partner_admin:  Partner Admin (partner_admin) [Future]
+Priority 8partner_admin:  Expert Top (expert_top)
+Priority 7partner_admin:  Expert Community (expert_community)
+Priority 6partner_admin:  Partner Member (partner_member) [Future]
+Priority 1partner_admin:  Patient (patient)
 ```
 
 ---
@@ -61,7 +61,7 @@ Basic user/patient role for booking appointments and accessing their healthcare 
 
 ### Priority
 
-10 (Lowest)
+1partner_admin (Lowest)
 
 ### Permissions (15 permissions)
 
@@ -78,7 +78,7 @@ sessions: view_own; // View own session notes (shared by expert)
 // Reviews - Own Reviews Only
 reviews: create; // Leave reviews after sessions
 reviews: view_own; // View own reviews
-reviews: edit_own; // Edit own reviews (within 30 days)
+reviews: edit_own; // Edit own reviews (within 3partner_admin days)
 reviews: delete_own; // Delete own reviews (within 7 days)
 
 // Experts - Browse & View
@@ -105,7 +105,7 @@ billing: methods_manage; // Manage own payment methods
 ✅ /patient/billing
 ✅ /patient/profile
 ✅ /patient/settings
-❌ All other routes (403 Forbidden)
+❌ All other routes (4partner_admin3 Forbidden)
 ```
 
 ### Use Cases
@@ -122,11 +122,11 @@ billing: methods_manage; // Manage own payment methods
 
 ### Description
 
-Standard expert tier with core expert features. Pays 20% commission (monthly) or 12% (annual subscription).
+Standard expert tier with core expert features. Pays 2partner_admin% commission (monthly) or 12% (annual subscription).
 
 ### Priority
 
-70
+7partner_admin
 
 ### Permissions (42 permissions)
 
@@ -204,7 +204,7 @@ settings: security; // Manage 2FA, sessions
 ✅ /settings
 ❌ /analytics (Community tier doesn't have access)
 ❌ /admin
-❌ /clinic
+❌ /partner
 ```
 
 ### Use Cases
@@ -226,7 +226,7 @@ Premium expert tier with advanced features. Pays 18% commission (monthly) or 8% 
 
 ### Priority
 
-80
+8partner_admin
 
 ### Permissions (49 permissions)
 
@@ -268,7 +268,7 @@ resources:view_guides       // Access premium guides
 ✅ /analytics (Top tier exclusive)
 ✅ /resources (Top tier exclusive - future)
 ❌ /admin
-❌ /clinic
+❌ /partner
 ```
 
 ### Use Cases
@@ -282,27 +282,27 @@ resources:view_guides       // Access premium guides
 
 ---
 
-## 4. **Clinic Member** (clinic_member) 🔮 Phase 2
+## 4. **Partner Member** (partner_member) 🔮 Phase 2
 
 ### Description
 
-Expert who is a member of a clinic organization (not admin). Can manage their own practice + view shared clinic resources.
+Expert who is a member of a partner organization (not admin). Can manage their own practice + view shared partner resources.
 
 ### Priority
 
-60
+6partner_admin
 
 ### Permissions (45 permissions)
 
 **Inherits from Expert Community:** All 42 expert_community permissions
 
-**Plus Clinic Member Permissions:**
+**Plus Partner Member Permissions:**
 
 ```typescript
-// Clinic - Read-Only Access
-clinic: view_dashboard; // View clinic overview (read-only)
-clinic: view_patients; // View shared clinic patients (read-only)
-clinic: view_schedule; // View clinic schedule (read-only)
+// Partner - Read-Only Access
+partner: view_dashboard; // View partner overview (read-only)
+partner: view_patients; // View shared partner patients (read-only)
+partner: view_schedule; // View partner schedule (read-only)
 
 // Team - View Only
 team: view_members; // View team members
@@ -312,47 +312,47 @@ team: view_members; // View team members
 
 ```
 ✅ All Expert Community routes
-✅ /clinic (read-only view)
-✅ /clinic/patients (view only)
-✅ /clinic/schedule (view only)
-✅ /clinic/team (view only)
-❌ /clinic/settings
-❌ /clinic/revenue
+✅ /partner (read-only view)
+✅ /partner/patients (view only)
+✅ /partner/schedule (view only)
+✅ /partner/team (view only)
+❌ /partner/settings
+❌ /partner/revenue
 ❌ /admin
 ```
 
 ### Use Cases
 
 - Manage own practice (appointments, events, availability)
-- View shared clinic patients
-- See clinic-wide schedule
+- View shared partner patients
+- See partner-wide schedule
 - View team members
 - No administrative access
 
 ---
 
-## 5. **Clinic Admin** (clinic_admin) 🔮 Phase 2
+## 5. **Partner Admin** (partner_admin) 🔮 Phase 2
 
 ### Description
 
-Administrator of a clinic organization. Can manage team, patients, schedule, and clinic settings.
+Administrator of a partner organization. Can manage team, patients, schedule, and partner settings.
 
 ### Priority
 
-90
+9partner_admin
 
 ### Permissions (68 permissions)
 
-**Inherits from Clinic Member:** All 45 clinic_member permissions
+**Inherits from Partner Member:** All 45 partner_member permissions
 
-**Plus Clinic Admin Permissions:**
+**Plus Partner Admin Permissions:**
 
 ```typescript
-// Clinic - Full Management
-clinic: manage_settings; // Manage clinic settings
-clinic: manage_branding; // Manage clinic branding
-clinic: view_analytics; // View clinic-wide analytics
-clinic: export_data; // Export clinic data
+// Partner - Full Management
+partner: manage_settings; // Manage partner settings
+partner: manage_branding; // Manage partner branding
+partner: view_analytics; // View partner-wide analytics
+partner: export_data; // Export partner data
 
 // Team - Full Management
 team: invite_members; // Invite new team members
@@ -360,50 +360,50 @@ team: remove_members; // Remove team members
 team: manage_roles; // Assign/change member roles
 team: view_performance; // View team member performance
 
-// Schedule - Clinic-Wide Management
+// Schedule - Partner-Wide Management
 schedule: manage_clinic; // Manage multi-practitioner schedule
 schedule: manage_rooms; // Manage rooms/locations (future)
 schedule: view_capacity; // View capacity planning
 
-// Patients - Clinic-Wide Access
-patients: view_all; // View all clinic patients
+// Patients - Partner-Wide Access
+patients: view_all; // View all partner patients
 patients: manage_records; // Manage patient records
 patients: view_insights; // View patient analytics
 
-// Revenue - Clinic Financial Management
-revenue: view_overview; // View clinic revenue overview
+// Revenue - Partner Financial Management
+revenue: view_overview; // View partner revenue overview
 revenue: view_splits; // View commission splits
 revenue: manage_payouts; // Manage payout schedules
 revenue: view_invoices; // View client invoices
 revenue: export_financial; // Export financial reports
 
-// Billing - Clinic Subscription
-billing: manage_clinic_sub; // Manage clinic subscription
-billing: view_clinic_billing; // View clinic billing history
+// Billing - Partner Subscription
+billing: manage_clinic_sub; // Manage partner subscription
+billing: view_clinic_billing; // View partner billing history
 ```
 
 ### Dashboard Access
 
 ```
-✅ All Clinic Member routes
-✅ /clinic (full access)
-✅ /clinic/team (full management)
-✅ /clinic/schedule (full management)
-✅ /clinic/patients (full access)
-✅ /clinic/analytics
-✅ /clinic/settings
-✅ /clinic/revenue
+✅ All Partner Member routes
+✅ /partner (full access)
+✅ /partner/team (full management)
+✅ /partner/schedule (full management)
+✅ /partner/patients (full access)
+✅ /partner/analytics
+✅ /partner/settings
+✅ /partner/revenue
 ❌ /admin (platform admin only)
 ```
 
 ### Use Cases
 
-- Everything Clinic Member can do
-- Invite and manage clinic team members
-- Manage clinic-wide schedule and rooms
-- Access all clinic patient records
-- View clinic-wide analytics and revenue
-- Manage clinic subscription and settings
+- Everything Partner Member can do
+- Invite and manage partner team members
+- Manage partner-wide schedule and rooms
+- Access all partner patient records
+- View partner-wide analytics and revenue
+- Manage partner subscription and settings
 
 ---
 
@@ -415,7 +415,7 @@ Platform-level administrator with full system access. For Eleva Care team only.
 
 ### Priority
 
-100 (Highest)
+1partner_adminpartner_admin (Highest)
 
 ### Permissions (89 permissions - ALL)
 
@@ -544,7 +544,7 @@ sessions:view_history          - View session history
 
 ```
 patients:view_own              - View own patients
-patients:view_all              - View all clinic patients
+patients:view_all              - View all partner patients
 patients:view_history          - View patient appointment history
 patients:send_notes            - Share session notes
 patients:manage_records        - Manage patient records
@@ -637,7 +637,7 @@ branding:upload_logo           - Upload custom logo
 branding:custom_colors         - Set custom colors
 ```
 
-### Category: Billing (10)
+### Category: Billing (1partner_admin)
 
 ```
 billing:view_own               - View own billing
@@ -646,8 +646,8 @@ billing:view_payouts           - View payouts
 billing:view_subscription      - View subscription
 billing:manage_subscription    - Manage subscription
 billing:methods_manage         - Manage payment methods
-billing:manage_clinic_sub      - Manage clinic subscription
-billing:view_clinic_billing    - View clinic billing
+billing:manage_clinic_sub      - Manage partner subscription
+billing:view_clinic_billing    - View partner billing
 ```
 
 ### Category: Settings (4)
@@ -662,15 +662,15 @@ settings:manage_features       - Manage feature flags (admin)
 settings:manage_integrations   - Manage integrations (admin)
 ```
 
-### Category: Clinic (15) 🔮 Phase 2
+### Category: Partner (15) 🔮 Phase 2
 
 ```
-clinic:view_dashboard          - View clinic overview
-clinic:manage_settings         - Manage clinic settings
-clinic:manage_branding         - Manage clinic branding
-clinic:view_analytics          - View clinic analytics
-clinic:view_patients           - View clinic patients
-clinic:export_data             - Export clinic data
+partner:view_dashboard          - View partner overview
+partner:manage_settings         - Manage partner settings
+partner:manage_branding         - Manage partner branding
+partner:view_analytics          - View partner analytics
+partner:view_patients           - View partner patients
+partner:export_data             - Export partner data
 
 // Team Management
 team:view_members              - View team members
@@ -680,7 +680,7 @@ team:manage_roles              - Manage roles
 team:view_performance          - View performance
 
 // Schedule Management
-schedule:manage_clinic         - Manage clinic schedule
+schedule:manage_clinic         - Manage partner schedule
 schedule:manage_rooms          - Manage rooms
 schedule:view_capacity         - View capacity planning
 
@@ -699,7 +699,7 @@ dashboard:view_expert          - Access expert dashboard
 dashboard:view_patient         - Access patient dashboard
 ```
 
-### Category: Platform Admin (20)
+### Category: Platform Admin (2partner_admin)
 
 ```
 // Users
@@ -751,7 +751,7 @@ support:close_tickets          - Close tickets
 
 ---
 
-## Phase 2: Future Roles (Clinics & LMS)
+## Phase 2: Future Roles (Partners & LMS)
 
 ### 7. Expert Lecturer (expert_lecturer) 🔮
 
@@ -790,7 +790,7 @@ courses:download_certificates
 ### 9. Content Creator (content_creator) 🔮
 
 **Description:** Creates content for resource library  
-**Priority:** 70  
+**Priority:** 7partner_admin  
 **Permissions:**
 
 ```
@@ -802,7 +802,7 @@ resources:upload
 resources:manage_library
 ```
 
-### 10. Moderator (moderator) 🔮
+### 1partner_admin. Moderator (moderator) 🔮
 
 **Description:** Moderates user-generated content (reviews, comments)  
 **Priority:** 85  
@@ -865,7 +865,7 @@ sessions:view_history | View session history
 
 # Patients (7 permissions)
 patients:view_own | View own patients
-patients:view_all | View all clinic patients
+patients:view_all | View all partner patients
 patients:view_history | View patient appointment history
 patients:send_notes | Share session notes with patients
 patients:manage_records | Manage patient records
@@ -895,7 +895,7 @@ calendars:disconnect | Disconnect calendars
 reviews:create | Leave reviews after sessions
 reviews:view_own | View own reviews
 reviews:view_about_me | View reviews about me
-reviews:edit_own | Edit own reviews (within 30 days)
+reviews:edit_own | Edit own reviews (within 3partner_admin days)
 reviews:delete_own | Delete own reviews (within 7 days)
 reviews:respond | Respond to reviews
 
@@ -916,7 +916,7 @@ experts:reject | Reject expert applications
 experts:suspend | Suspend expert accounts
 experts:verify | Verify expert credentials
 
-# Analytics (10 permissions)
+# Analytics (1partner_admin permissions)
 analytics:view | Access analytics dashboard
 analytics:revenue | View revenue analytics
 analytics:patients | View patient insights
@@ -940,8 +940,8 @@ billing:view_payouts | View payouts
 billing:view_subscription | View subscription
 billing:manage_subscription | Manage subscription
 billing:methods_manage | Manage payment methods
-billing:manage_clinic_sub | Manage clinic subscription
-billing:view_clinic_billing | View clinic billing
+billing:manage_clinic_sub | Manage partner subscription
+billing:view_clinic_billing | View partner billing
 
 # Settings (7 permissions)
 settings:view_own | View own settings
@@ -980,37 +980,37 @@ dashboard:view_patient | Access patient dashboard
 Role 1:
 Name: Patient
 Slug: patient
-Priority: 10
+Priority: 1partner_admin
 Permissions: [List 15 permissions from Patient section]
 
 Role 2:
 Name: Expert Community
 Slug: expert_community
-Priority: 70
+Priority: 7partner_admin
 Permissions: [All Patient permissions + 27 expert permissions]
 
 Role 3:
 Name: Expert Top
 Slug: expert_top
-Priority: 80
+Priority: 8partner_admin
 Permissions: [All Expert Community permissions + 7 top expert permissions]
 
 Role 4:
-Name: Clinic Member (Phase 2)
-Slug: clinic_member
-Priority: 60
-Permissions: [All Expert Community permissions + 3 clinic permissions]
+Name: Partner Member (Phase 2)
+Slug: partner_member
+Priority: 6partner_admin
+Permissions: [All Expert Community permissions + 3 partner permissions]
 
 Role 5:
-Name: Clinic Admin (Phase 2)
-Slug: clinic_admin
-Priority: 90
-Permissions: [All Clinic Member permissions + 23 clinic admin permissions]
+Name: Partner Admin (Phase 2)
+Slug: partner_admin
+Priority: 9partner_admin
+Permissions: [All Partner Member permissions + 23 partner admin permissions]
 
 Role 6:
 Name: Platform Admin
 Slug: superadmin
-Priority: 100
+Priority: 1partner_adminpartner_admin
 Permissions: [ALL 89 permissions]
 ```
 
@@ -1104,20 +1104,20 @@ async function upgradeToTopTier(workosUserId: string) {
 }
 ```
 
-### Clinic Member Invitation
+### Partner Member Invitation
 
 ```typescript
-// Invite expert to join clinic (Phase 2)
+// Invite expert to join partner (Phase 2)
 async function inviteExpertToClinic(expertEmail: string, clinicOrgId: string) {
   // WorkOS handles invitation
   const invitation = await workos.userManagement.createOrganizationInvitation({
     email: expertEmail,
     organizationId: clinicOrgId,
-    roleSlug: 'clinic_member', // Start as member
+    roleSlug: 'partner_member', // Start as member
   });
 
   // Expert maintains their own expert role in personal org
-  // Gets additional clinic_member role in clinic org
+  // Gets additional partner_member role in partner org
 }
 ```
 
@@ -1152,21 +1152,21 @@ const topPermissions = [
 ];
 ```
 
-### Example 2: Clinic Member → Clinic Admin
+### Example 2: Partner Member → Partner Admin
 
 ```typescript
-// Clinic Member permissions (45)
+// Partner Member permissions (45)
 const memberPermissions = [
   ...communityPermissions, // All expert community (42)
-  'clinic:view_dashboard', // +3 clinic view
-  'clinic:view_patients',
-  'clinic:view_schedule',
+  'partner:view_dashboard', // +3 partner view
+  'partner:view_patients',
+  'partner:view_schedule',
 ];
 
-// Clinic Admin = Member + Management (68 total)
+// Partner Admin = Member + Management (68 total)
 const adminPermissions = [
   ...memberPermissions, // Inherits all 45
-  'clinic:manage_settings', // +23 management
+  'partner:manage_settings', // +23 management
   'team:invite_members',
   'team:remove_members',
   'revenue:view_overview',
@@ -1281,15 +1281,15 @@ Before deploying to production:
 6. ✅ Test thoroughly in staging
 7. ✅ Deploy to production
 
-### Phase 2: Clinic Features (Q1 2026)
+### Phase 2: Partner Features (Q1 2partner_admin26)
 
-8. ✅ Create Clinic Member role
-9. ✅ Create Clinic Admin role
-10. ✅ Add clinic permissions
-11. ✅ Test multi-org scenarios
-12. ✅ Launch clinic beta
+8. ✅ Create Partner Member role
+9. ✅ Create Partner Admin role
+   1partner_admin. ✅ Add partner permissions
+10. ✅ Test multi-org scenarios
+11. ✅ Launch partner beta
 
-### Phase 3: Learning Platform (Q2 2026)
+### Phase 3: Learning Platform (Q2 2partner_admin26)
 
 13. ✅ Create Expert Lecturer role
 14. ✅ Create Student role
@@ -1322,6 +1322,6 @@ Before deploying to production:
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** November 13, 2025  
+**Document Version:** 1.partner_admin  
+**Last Updated:** November 13, 2partner_admin25  
 **Next Review:** After Phase 1 deployment

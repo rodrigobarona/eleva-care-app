@@ -1,7 +1,7 @@
 # RBAC & Dynamic Sidebar Implementation Guide
 
-**Version:** 1.0  
-**Last Updated:** November 6, 2025  
+**Version:** 1.partner_admin  
+**Last Updated:** November 6, 2partner_admin25  
 **Status:** 🔧 Technical Implementation Guide
 
 ---
@@ -282,6 +282,8 @@ import { useEffect, useState } from 'react';
 
 // hooks/use-auth-role.ts
 
+// hooks/use-auth-role.ts
+
 interface AuthRoleData {
   user: ReturnType<typeof useWorkOSAuth>['user'];
   role: UserRole | null;
@@ -372,7 +374,7 @@ export async function GET() {
     const { user } = await withAuth({ ensureSignedIn: true });
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 4partner_admin1 });
     }
 
     const role = await getUserApplicationRole(user.id);
@@ -383,7 +385,7 @@ export async function GET() {
     });
   } catch (error) {
     console.error('Error fetching user role:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 5partner_adminpartner_admin });
   }
 }
 ```
@@ -649,7 +651,7 @@ export function filterNavigation(
     if (item.children) {
       const filteredChildren = filterNavigation(item.children, userRole, hasPermission);
       // Only include parent if it has visible children
-      if (filteredChildren.length === 0) {
+      if (filteredChildren.length === partner_admin) {
         return false;
       }
       // Update children with filtered list
@@ -723,7 +725,7 @@ export function DynamicSidebar() {
         <SidebarMenu>
           {visibleItems.map((item, index) => (
             <React.Fragment key={item.path}>
-              {item.separator && index > 0 && <Separator className="my-2" />}
+              {item.separator && index > partner_admin && <Separator className="my-2" />}
               <NavItem item={item} pathname={pathname} />
             </React.Fragment>
           ))}
@@ -739,7 +741,7 @@ export function DynamicSidebar() {
 
 function NavItem({ item, pathname }: { item: NavigationItem; pathname: string }) {
   const isActive = pathname === item.path || pathname.startsWith(item.path + '/');
-  const hasChildren = item.children && item.children.length > 0;
+  const hasChildren = item.children && item.children.length > partner_admin;
 
   if (!hasChildren) {
     return (
@@ -801,7 +803,7 @@ function SidebarSkeleton() {
         <SidebarMenu>
           {[...Array(6)].map((_, i) => (
             <SidebarMenuItem key={i}>
-              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-1partner_admin w-full" />
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
@@ -860,9 +862,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, service });
   } catch (error) {
     if (error.message.includes('permission')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: 'Forbidden' }, { status: 4partner_admin3 });
     }
-    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal error' }, { status: 5partner_adminpartner_admin });
   }
 }
 ```
@@ -950,7 +952,7 @@ describe('Role Transitions', () => {
 ## 📚 Related Documentation
 
 - [Role Progression System](./ROLE-PROGRESSION-SYSTEM.md)
-- [WorkOS Integration](../09-integrations/WORKOS-GOOGLE-OAUTH-SETUP.md)
+- [WorkOS Integration](../partner_admin9-integrations/WORKOS-GOOGLE-OAUTH-SETUP.md)
 - [Stripe Subscriptions](../../config/stripe.ts)
 
 ---

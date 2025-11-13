@@ -8,3 +8,266 @@ export const metadata = {
   }
 };
 
+import HeroSection from '@/components/sections/become-expert/HeroSection';
+import BenefitsSection from '@/components/sections/become-expert/BenefitsSection';
+import ExpertPricingSection from '@/components/sections/become-expert/ExpertPricingSection';
+import HowItWorksSection from '@/components/sections/become-expert/HowItWorksSection';
+import RequirementsSection from '@/components/sections/become-expert/RequirementsSection';
+import FinalCTASection from '@/components/sections/become-expert/FinalCTASection';
+import { Sparkles, TrendingUp } from 'lucide-react';
+
+<HeroSection
+  badge="Join Our Expert Network"
+  title="Share Your Expertise,"
+  subtitle="Earn on Your Terms"
+  description="Help people achieve their health and wellness goals while building a flexible practice. Set your own schedule, rates, and work from anywhere."
+  ctaButton="Get Started"
+  signInButton="Sign In"
+  features="✓ No upfront costs  ✓ Keep 80% of earnings  ✓ Professional support"
+/>
+
+<BenefitsSection
+  title="Why Join Eleva Care?"
+  benefits={[
+    {
+      icon: 'dollar',
+      title: 'Set Your Own Rates',
+      description: 'You decide what your time is worth. Keep 80% of your earnings and get paid weekly.',
+    },
+    {
+      icon: 'calendar',
+      title: 'Flexible Scheduling',
+      description: 'Control your calendar completely. Work as much or as little as you want, whenever you want.',
+    },
+    {
+      icon: 'users',
+      title: 'Quality Clients',
+      description: 'Connect with motivated clients who are serious about their health and wellness journey.',
+    },
+    {
+      icon: 'video',
+      title: 'Virtual Sessions',
+      description: 'Conduct sessions from anywhere. All you need is a computer and internet connection.',
+    },
+    {
+      icon: 'shield',
+      title: 'Secure Payments',
+      description: 'Automatic invoicing and secure payment processing. No chasing payments or paperwork hassles.',
+    },
+    {
+      icon: 'trending',
+      title: 'Marketing Support',
+      description: 'Get discovered by new clients through our platform. Focus on your expertise, not marketing.',
+    },
+  ]}
+/>
+
+<HowItWorksSection
+  title="How It Works"
+  steps={[
+    {
+      title: 'Create Your Profile',
+      description: 'Share your expertise, credentials, and availability. Tell clients what makes you unique.',
+    },
+    {
+      title: 'Set Your Services & Rates',
+      description: 'Define your offerings and pricing. You have complete control over your business.',
+    },
+    {
+      title: 'Get Discovered',
+      description: 'Clients find you through search and recommendations. Start receiving booking requests.',
+    },
+    {
+      title: 'Provide Your Service',
+      description: 'Conduct sessions, help clients achieve their goals, and build your reputation through reviews.',
+    },
+  ]}
+  ctaButton="Start Your Journey"
+/>
+
+<ExpertPricingSection
+  title="Flexible Pricing for Every Expert"
+  subtitle="Choose the plan that fits your practice. All plans include secure payments, calendar management, and client communication tools."
+  communityTier={{
+    tierName: 'Community Expert',
+    tierIcon: <Sparkles className="h-6 w-6" />,
+    tierColor: 'primary',
+    description: 'Perfect for professionals getting started or building their practice',
+    plans: [
+      {
+        name: 'Pay-as-you-go',
+        price: '$0',
+        priceDetail: '/month',
+        commission: '20%',
+        description: 'Start earning immediately with no upfront costs',
+        features: [
+          'List up to 5 services',
+          'Basic calendar integration',
+          'Standard analytics',
+          'Weekly payouts',
+          'Email support',
+          'No subscription fees',
+          'Cancel anytime',
+        ],
+        cta: {
+          text: 'Get Started Free',
+          href: '/register?expert=true&plan=community-paygo',
+        },
+      },
+      {
+        name: 'Monthly Plan',
+        price: '$49',
+        priceDetail: '/month',
+        commission: '12%',
+        badge: 'Lower Commission',
+        recommended: true,
+        description: 'Reduced commission with predictable monthly billing',
+        features: [
+          'Everything in Pay-as-you-go',
+          'Reduced 12% commission (save 8%)',
+          'Priority onboarding',
+          'Quarterly business reviews',
+          'Cancel or switch plans anytime',
+        ],
+        cta: {
+          text: 'Choose Monthly',
+          href: '/register?expert=true&plan=community-monthly',
+        },
+      },
+      {
+        name: 'Annual Plan',
+        price: '$490',
+        priceDetail: '/year',
+        commission: '12%',
+        badge: 'Best Value',
+        savingsText: '💰 Save $98 (2 months free!)',
+        description: 'Maximum savings with annual commitment',
+        features: [
+          'Everything in Monthly',
+          'Reduced 12% commission (save 8%)',
+          'Save $98 vs monthly billing',
+          'Annual commitment discount',
+          'Priority support',
+        ],
+        cta: {
+          text: 'Save with Annual',
+          href: '/register?expert=true&plan=community-annual',
+        },
+      },
+    ],
+  }}
+  topTier={{
+    tierName: 'Top Expert',
+    tierBadge: 'Performance-Based',
+    tierIcon: <TrendingUp className="h-6 w-6" />,
+    tierColor: 'amber',
+    description: 'Premium tier for established experts with proven track records',
+    requirements: [
+      '⭐ 4.8+ average rating',
+      '📅 25+ completed appointments in 90 days',
+      '💯 Less than 5% cancellation rate',
+      '📊 90%+ response rate within 24 hours',
+      '🎖️ 3+ months as Community Expert',
+      '✨ Complete expert profile with portfolio',
+    ],
+    plans: [
+      {
+        name: 'Pay-as-you-go',
+        price: '$0',
+        priceDetail: '/month',
+        commission: '15%',
+        description: 'Premium features with commission-only pricing',
+        features: [
+          'Unlimited services',
+          'Advanced analytics & insights',
+          'Daily payouts',
+          'Priority support',
+          'Top Expert badge',
+          'Featured placement',
+          'No subscription fees',
+        ],
+        cta: {
+          text: 'Apply for Top Expert',
+          href: '/register?expert=true&plan=top-paygo',
+        },
+      },
+      {
+        name: 'Monthly Plan',
+        price: '$177',
+        priceDetail: '/month',
+        commission: '8%',
+        badge: 'Industry-Leading',
+        recommended: true,
+        description: 'Industry-leading commission rate with monthly billing',
+        features: [
+          'Everything in Pay-as-you-go',
+          'Industry-leading 8% commission',
+          'Custom branding options',
+          'Group session capabilities',
+          'Direct messaging',
+          'Dedicated account support',
+        ],
+        cta: {
+          text: 'Choose Monthly',
+          href: '/register?expert=true&plan=top-monthly',
+        },
+      },
+      {
+        name: 'Annual Plan',
+        price: '$1,774',
+        priceDetail: '/year',
+        commission: '8%',
+        badge: 'Maximum Value',
+        savingsText: '💰 Save $350 (2 months free!)',
+        description: 'Best value for committed top performers',
+        features: [
+          'Everything in Monthly',
+          'Industry-leading 8% commission',
+          'Save $350 vs monthly billing',
+          'VIP annual benefits',
+          'Premium analytics',
+          'Dedicated account manager',
+        ],
+        cta: {
+          text: 'Save with Annual',
+          href: '/register?expert=true&plan=top-annual',
+        },
+      },
+    ],
+  }}
+  note="Switch plans anytime. No long-term contracts required. All plans include platform support, secure payment processing, and client management tools."
+/>
+
+<RequirementsSection
+  title="What You Need"
+  requirements={[
+    {
+      icon: 'badge',
+      title: 'Professional Credentials',
+      description: 'Valid license or certification in your field (healthcare, coaching, consulting, etc.)',
+    },
+    {
+      icon: 'globe',
+      title: 'Reliable Internet',
+      description: 'Stable internet connection for virtual sessions and platform communication',
+    },
+    {
+      icon: 'message',
+      title: 'Communication Skills',
+      description: 'Ability to connect with clients professionally and compassionately',
+    },
+    {
+      icon: 'heart',
+      title: 'Passion for Helping',
+      description: 'Genuine desire to help people improve their health and wellbeing',
+    },
+  ]}
+/>
+
+<FinalCTASection
+  title="Ready to Make a Difference?"
+  description="Join hundreds of experts already helping clients achieve their goals on Eleva Care. Start building your flexible practice today."
+  button="Create Expert Profile"
+  questions="Have questions?"
+  contact="Contact us"
+/>

@@ -10,6 +10,7 @@
 ## Executive Summary
 
 This document defines the **Patient Portal** - a dedicated dashboard for patients to:
+
 - ✅ View and manage their appointments
 - ✅ Access session summaries and notes
 - ✅ Update personal information
@@ -126,16 +127,16 @@ Implement a **post-session review system** that allows patients to rate and revi
 ```typescript
 interface Review {
   id: string;
-  
+
   // Relationships
   patientId: string; // Patient who left review
   expertId: string; // Expert being reviewed
   appointmentId: string; // Specific appointment
-  organizationId?: string; // If part of clinic
-  
+  organizationId?: string; // If part of partner
+
   // Rating (1-5 stars)
   overallRating: number; // Required: 1, 2, 3, 4, or 5
-  
+
   // Category Ratings (optional)
   categoryRatings?: {
     professionalism?: number; // 1-5
@@ -143,35 +144,35 @@ interface Review {
     effectiveness?: number; // 1-5
     environment?: number; // 1-5 (for in-person)
   };
-  
+
   // Review Content
   title?: string; // Short title (optional)
   comment: string; // Required: detailed review
   highlights?: string[]; // Tags: ['Great listener', 'Very helpful', 'Punctual']
-  
+
   // Media (optional - future)
   photos?: string[]; // Photo URLs
-  
+
   // Metadata
   isAnonymous: boolean; // Hide patient name
   isVerified: boolean; // Confirmed attended session
-  
+
   // Response (expert can respond)
   expertResponse?: {
     comment: string;
     respondedAt: Date;
   };
-  
+
   // Moderation
   status: 'pending' | 'published' | 'flagged' | 'removed';
   flagReason?: string;
   moderatedBy?: string;
   moderatedAt?: Date;
-  
+
   // Helpfulness
   helpfulCount: number; // Users who found review helpful
   reportCount: number; // Users who reported review
-  
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -191,7 +192,7 @@ const REVIEW_HIGHLIGHTS = [
   'Clear communication',
   'Effective treatment',
   'Highly recommend',
-  
+
   // Neutral/Constructive
   'Good value',
   'Convenient location',
@@ -205,7 +206,7 @@ const REVIEW_HIGHLIGHTS = [
 ```typescript
 interface Appointment {
   // ... existing fields
-  
+
   // Review tracking
   reviewStatus: {
     canReview: boolean; // True after session ends
@@ -214,7 +215,7 @@ interface Appointment {
     reviewRequestedAt?: Date; // When review email was sent
     reviewReminderSentAt?: Date; // When reminder was sent
   };
-  
+
   // Session completion
   sessionCompletedAt?: Date; // When session actually happened
   sessionStatus: 'scheduled' | 'completed' | 'cancelled' | 'no-show';
@@ -226,6 +227,7 @@ interface Appointment {
 ## Review Flow (Patient Journey)
 
 ### 1. Session Completion
+
 ```
 Session ends (sessionCompletedAt recorded)
     ↓
@@ -238,6 +240,7 @@ Send review request
 ```
 
 ### 2. Patient Writes Review
+
 ```
 ┌─────────────────────────────────────────┐
 │ Rate Your Experience with Dr. João      │
@@ -266,6 +269,7 @@ Send review request
 ```
 
 ### 3. Review Moderation (Optional)
+
 ```
 Review submitted
     ↓
@@ -275,6 +279,7 @@ Auto-check for inappropriate content
 ```
 
 ### 4. Review Display
+
 ```
 Expert Public Profile:
 ┌─────────────────────────────────────────┐
@@ -303,6 +308,7 @@ Expert Public Profile:
 ### Option A: Self-Hosted (Recommended) ✅
 
 **Pros:**
+
 - Full control over data
 - No recurring costs
 - HIPAA/LGPD compliant
@@ -310,11 +316,13 @@ Expert Public Profile:
 - No vendor lock-in
 
 **Cons:**
+
 - Need to build UI components
 - Build moderation tools
 - Maintain system
 
 **Implementation:**
+
 ```typescript
 // Simple implementation using your existing stack
 
@@ -348,6 +356,7 @@ GET  /api/patient/reviews/pending     # Pending reviews
 ### Option B: Yotpo (Third-Party) ❌ Not Recommended
 
 **Why not Yotpo for healthcare:**
+
 - ❌ Designed for e-commerce, not healthcare
 - ❌ Expensive ($299-$999/month+)
 - ❌ Data privacy concerns (third-party)
@@ -367,9 +376,11 @@ GET  /api/patient/reviews/pending     # Pending reviews
 **Recommended Libraries:**
 
 1. **`react-rating-stars-component`** (Simple stars)
+
 ```bash
 pnpm add react-rating-stars-component
 ```
+
 ```typescript
 import ReactStars from 'react-rating-stars-component';
 
@@ -383,9 +394,11 @@ import ReactStars from 'react-rating-stars-component';
 ```
 
 2. **`@smastrom/react-rating`** (Modern, accessible)
+
 ```bash
 pnpm add @smastrom/react-rating
 ```
+
 ```typescript
 import { Rating } from '@smastrom/react-rating';
 
@@ -397,15 +410,16 @@ import { Rating } from '@smastrom/react-rating';
 ```
 
 3. **Custom with shadcn/ui** (Most flexible)
+
 ```typescript
 // components/reviews/star-rating.tsx
 import { Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export function StarRating({ 
-  value, 
-  onChange, 
-  readonly = false 
+export function StarRating({
+  value,
+  onChange,
+  readonly = false
 }: StarRatingProps) {
   return (
     <div className="flex gap-1">
@@ -423,8 +437,8 @@ export function StarRating({
           <Star
             className={cn(
               "h-6 w-6",
-              star <= value 
-                ? "fill-yellow-400 text-yellow-400" 
+              star <= value
+                ? "fill-yellow-400 text-yellow-400"
                 : "fill-muted text-muted-foreground"
             )}
           />
@@ -445,51 +459,51 @@ export function StarRating({
 -- Reviews table
 CREATE TABLE reviews (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  
+
   -- Relationships
   patient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   expert_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   appointment_id UUID NOT NULL REFERENCES meetings(id) ON DELETE CASCADE,
   organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-  
+
   -- Ratings
   overall_rating INT NOT NULL CHECK (overall_rating BETWEEN 1 AND 5),
   category_ratings JSONB, -- {professionalism: 5, communication: 4, ...}
-  
+
   -- Content
   title VARCHAR(255),
   comment TEXT NOT NULL,
   highlights TEXT[], -- Array of tags
   photos TEXT[], -- Photo URLs (future)
-  
+
   -- Metadata
   is_anonymous BOOLEAN DEFAULT false,
   is_verified BOOLEAN DEFAULT true,
-  
+
   -- Expert response
   expert_response JSONB, -- {comment: string, respondedAt: timestamp}
-  
+
   -- Moderation
-  status VARCHAR(50) DEFAULT 'published' 
+  status VARCHAR(50) DEFAULT 'published'
     CHECK (status IN ('pending', 'published', 'flagged', 'removed')),
   flag_reason TEXT,
   moderated_by UUID REFERENCES users(id),
   moderated_at TIMESTAMPTZ,
-  
+
   -- Engagement
   helpful_count INT DEFAULT 0,
   report_count INT DEFAULT 0,
-  
+
   -- Timestamps
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   published_at TIMESTAMPTZ,
-  
+
   -- Constraints
   UNIQUE(appointment_id), -- One review per appointment
   CONSTRAINT valid_ratings CHECK (
     overall_rating BETWEEN 1 AND 5 AND
-    (category_ratings IS NULL OR 
+    (category_ratings IS NULL OR
      jsonb_typeof(category_ratings) = 'object')
   )
 );
@@ -501,7 +515,7 @@ CREATE TABLE review_votes (
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   vote_type VARCHAR(20) NOT NULL CHECK (vote_type IN ('helpful', 'report')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   UNIQUE(review_id, user_id, vote_type)
 );
 
@@ -514,9 +528,9 @@ CREATE INDEX idx_reviews_published_at ON reviews(published_at DESC);
 CREATE INDEX idx_reviews_overall_rating ON reviews(overall_rating);
 
 -- Update meetings table
-ALTER TABLE meetings 
+ALTER TABLE meetings
   ADD COLUMN session_completed_at TIMESTAMPTZ,
-  ADD COLUMN session_status VARCHAR(50) DEFAULT 'scheduled' 
+  ADD COLUMN session_status VARCHAR(50) DEFAULT 'scheduled'
     CHECK (session_status IN ('scheduled', 'completed', 'cancelled', 'no-show')),
   ADD COLUMN review_requested_at TIMESTAMPTZ,
   ADD COLUMN review_reminder_sent_at TIMESTAMPTZ;
@@ -615,9 +629,9 @@ interface StarRatingProps {
   size?: 'sm' | 'md' | 'lg';
 }
 
-export function StarRating({ 
-  value, 
-  onChange, 
+export function StarRating({
+  value,
+  onChange,
   readonly = false,
   size = 'md'
 }: StarRatingProps) {
@@ -644,8 +658,8 @@ export function StarRating({
           <Star
             className={cn(
               sizeClasses[size],
-              star <= value 
-                ? "fill-yellow-400 text-yellow-400" 
+              star <= value
+                ? "fill-yellow-400 text-yellow-400"
                 : "fill-none text-muted-foreground"
             )}
           />
@@ -688,10 +702,10 @@ interface ReviewFormProps {
   onSuccess?: () => void;
 }
 
-export function ReviewForm({ 
-  appointmentId, 
-  expertName, 
-  onSuccess 
+export function ReviewForm({
+  appointmentId,
+  expertName,
+  onSuccess
 }: ReviewFormProps) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -709,12 +723,12 @@ export function ReviewForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (rating === 0) {
       toast.error('Please select a rating');
       return;
     }
-    
+
     if (comment.length < 20) {
       toast.error('Please write at least 20 characters');
       return;
@@ -786,8 +800,8 @@ export function ReviewForm({
       </div>
 
       <div className="flex items-center space-x-2">
-        <Checkbox 
-          id="anonymous" 
+        <Checkbox
+          id="anonymous"
           checked={isAnonymous}
           onCheckedChange={(checked) => setIsAnonymous(checked as boolean)}
         />
@@ -835,12 +849,12 @@ interface ReviewCardProps {
 }
 
 export function ReviewCard({ review }: ReviewCardProps) {
-  const patientName = review.isAnonymous 
-    ? 'Anonymous' 
+  const patientName = review.isAnonymous
+    ? 'Anonymous'
     : review.patient?.name || 'Patient';
-  
-  const initials = review.isAnonymous 
-    ? 'A' 
+
+  const initials = review.isAnonymous
+    ? 'A'
     : patientName.split(' ').map(n => n[0]).join('');
 
   return (
@@ -853,14 +867,14 @@ export function ReviewCard({ review }: ReviewCardProps) {
             )}
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
-          
+
           <div className="flex-1 space-y-3">
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-medium">{patientName}</p>
                 <p className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(new Date(review.createdAt), { 
-                    addSuffix: true 
+                  {formatDistanceToNow(new Date(review.createdAt), {
+                    addSuffix: true
                   })}
                 </p>
               </div>
@@ -908,7 +922,7 @@ export async function sendReviewRequests() {
     where: and(
       eq(MeetingsTable.sessionStatus, 'completed'),
       gte(MeetingsTable.sessionCompletedAt, yesterday),
-      isNull(MeetingsTable.reviewRequestedAt)
+      isNull(MeetingsTable.reviewRequestedAt),
     ),
     with: {
       patient: true,
@@ -930,7 +944,8 @@ export async function sendReviewRequests() {
     });
 
     // Update appointment
-    await db.update(MeetingsTable)
+    await db
+      .update(MeetingsTable)
       .set({ reviewRequestedAt: new Date() })
       .where(eq(MeetingsTable.id, appointment.id));
   }
@@ -961,13 +976,16 @@ export async function GET(request: Request) {
 ```
 
 **Vercel Cron Configuration:**
+
 ```json
 // vercel.json
 {
-  "crons": [{
-    "path": "/api/cron/review-requests",
-    "schedule": "0 */6 * * *"
-  }]
+  "crons": [
+    {
+      "path": "/api/cron/review-requests",
+      "schedule": "0 */6 * * *"
+    }
+  ]
 }
 ```
 
@@ -976,17 +994,20 @@ export async function GET(request: Request) {
 ## Success Metrics
 
 ### Review System Health
+
 - **Review Rate:** % of completed sessions with reviews
 - **Average Rating:** Overall expert rating average
 - **Response Time:** How quickly experts respond to reviews
 - **Moderation Rate:** % of reviews flagged/removed
 
 ### Patient Engagement
+
 - **Portal Usage:** % of patients who log in
 - **Review Completion:** % who complete reviews within 7 days
 - **Repeat Bookings:** Correlation between reviews and re-bookings
 
 ### Expert Benefits
+
 - **Profile Views:** Increase after positive reviews
 - **Booking Rate:** Correlation between rating and bookings
 - **Expert Satisfaction:** NPS for review system
@@ -1013,6 +1034,7 @@ export async function GET(request: Request) {
    - Anonymous reviews protect patient identity
 
 4. **Review Guidelines**
+
 ```
 ✅ DO share:
 - Your overall experience
@@ -1032,6 +1054,7 @@ export async function GET(request: Request) {
 ## Implementation Roadmap
 
 ### Phase 1: Basic Review System (Week 1-2)
+
 - [ ] Database schema
 - [ ] API endpoints (create, read)
 - [ ] Review form component
@@ -1039,12 +1062,14 @@ export async function GET(request: Request) {
 - [ ] Basic star rating
 
 ### Phase 2: Review Requests (Week 3)
+
 - [ ] Automated review request emails
 - [ ] Cron job setup
 - [ ] Dashboard banner for pending reviews
 - [ ] In-app notifications
 
 ### Phase 3: Enhanced Features (Week 4)
+
 - [ ] Category ratings
 - [ ] Review highlights/tags
 - [ ] Expert response to reviews
@@ -1052,6 +1077,7 @@ export async function GET(request: Request) {
 - [ ] Review moderation
 
 ### Phase 4: Analytics & Optimization (Week 5)
+
 - [ ] Review analytics dashboard
 - [ ] A/B test review request timing
 - [ ] Review impact on bookings
@@ -1062,6 +1088,7 @@ export async function GET(request: Request) {
 ## Recommendation
 
 **Build self-hosted review system with:**
+
 - ✅ Custom backend (Next.js API routes + Neon database)
 - ✅ shadcn/ui components for UI
 - ✅ Simple star rating library (`@smastrom/react-rating`)
@@ -1070,7 +1097,7 @@ export async function GET(request: Request) {
 
 **Total Effort:** 3-4 weeks (1 developer)  
 **Cost:** $0 (no third-party fees)  
-**Control:** Full ownership and customization  
+**Control:** Full ownership and customization
 
 **Skip:** Yotpo, Trustpilot, or other third-party review platforms (expensive, not healthcare-specific, privacy concerns)
 
@@ -1091,4 +1118,3 @@ export async function GET(request: Request) {
 
 **Questions or Feedback?**  
 Contact: dev-team@eleva.care
-

@@ -70,12 +70,12 @@ FOOTER
 
 ---
 
-## 🏥 Clinic Dashboard (Clinic Admin)
+## 🏥 Partner Dashboard (Partner Admin)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  🍃 ELEVA CARE                                              │
-│     [Clinic Name] ▼                   [Switch Organization] │
+│     [Partner Name] ▼                   [Switch Organization] │
 └─────────────────────────────────────────────────────────────┘
 
 PERSONAL SECTION
@@ -88,7 +88,7 @@ PERSONAL SECTION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 CLINIC SECTION
-├─ 🏥 Clinic Overview
+├─ 🏥 Partner Overview
 │
 ├─ 👥 Team
 │  ├─ Members
@@ -96,7 +96,7 @@ CLINIC SECTION
 │  ├─ Roles & Permissions
 │  └─ [Member Details]
 │
-├─ 📅 Clinic Schedule
+├─ 📅 Partner Schedule
 │  ├─ Multi-Practitioner Calendar
 │  ├─ Room Management 🔮
 │  └─ Capacity Planning
@@ -106,13 +106,13 @@ CLINIC SECTION
 │  ├─ [Patient Records]
 │  └─ Patient Insights
 │
-├─ 📊 Clinic Analytics
+├─ 📊 Partner Analytics
 │  ├─ Revenue
 │  ├─ Performance
 │  ├─ Patient Insights
 │  └─ Custom Reports
 │
-├─ 💼 Clinic Settings
+├─ 💼 Partner Settings
 │  ├─ Organization Info
 │  ├─ Branding
 │  ├─ Billing
@@ -249,7 +249,7 @@ ADMIN SECTION
 │
 ├─ 🏥 Organizations
 │  ├─ All Organizations
-│  ├─ Clinics
+│  ├─ Partners
 │  ├─ Solo Practices
 │  └─ [Org Details]
 │
@@ -288,6 +288,7 @@ SECONDARY NAVIGATION
 ## 🎯 Role-Based Menu Summary
 
 ### Community Expert (Basic)
+
 ```
 ✅ Overview
 ✅ Appointments
@@ -300,6 +301,7 @@ SECONDARY NAVIGATION
 ```
 
 ### Top Expert (Premium)
+
 ```
 ✅ Overview
 ✅ Appointments
@@ -312,7 +314,8 @@ SECONDARY NAVIGATION
 ✅ Advanced Features
 ```
 
-### Clinic Member (Expert in Clinic)
+### Partner Member (Expert in Partner)
+
 ```
 PERSONAL:
 ✅ My Overview
@@ -321,29 +324,31 @@ PERSONAL:
 ✅ My Event Types
 
 CLINIC:
-✅ Clinic Overview
-✅ Clinic Schedule
+✅ Partner Overview
+✅ Partner Schedule
 ✅ Shared Patients
 ❌ Team Management (admin only)
-❌ Clinic Settings (admin only)
+❌ Partner Settings (admin only)
 ```
 
-### Clinic Admin
+### Partner Admin
+
 ```
 PERSONAL:
 ✅ All personal features
 
 CLINIC:
-✅ Clinic Overview
+✅ Partner Overview
 ✅ Team Management
-✅ Clinic Schedule
+✅ Partner Schedule
 ✅ All Patients
-✅ Clinic Analytics
-✅ Clinic Settings
+✅ Partner Analytics
+✅ Partner Settings
 ✅ Revenue & Payouts
 ```
 
 ### Platform Admin
+
 ```
 ADMIN:
 ✅ Platform Overview
@@ -391,7 +396,7 @@ Home / Appointments / Patients / John Doe
 
 Home / Availability / Weekly Hours
 
-Home / Clinic / Team / Jane Smith
+Home / Partner / Team / Jane Smith
 
 Home / Learn / Courses / Introduction to Therapy / Edit
 
@@ -468,6 +473,7 @@ Full sidebar with labels
 ## 🎨 Color Coding & Visual Cues
 
 ### Status Indicators
+
 ```
 ✅ Active/Available
 ❌ Disabled/Locked
@@ -478,18 +484,20 @@ Full sidebar with labels
 ```
 
 ### Section Colors (Suggestions)
+
 ```
 Personal Section:     Default (Slate)
-Clinic Section:       Blue tint
+Partner Section:       Blue tint
 Learning Section:     Purple tint
 Admin Section:        Orange/Red tint
 ```
 
 ### Tier Indicators
+
 ```
 Community Tier:   🌱 (Green)
 Top Tier:         ⭐ (Gold)
-Clinic:           🏥 (Blue)
+Partner:           🏥 (Blue)
 Admin:            🛡️ (Red)
 ```
 
@@ -498,6 +506,7 @@ Admin:            🛡️ (Red)
 ## 🔍 Search & Quick Actions
 
 ### Command Palette (Future)
+
 ```
 ⌘K  or  Ctrl+K
 
@@ -528,6 +537,7 @@ RECENT
 ## 📏 Accessibility Features
 
 ### Keyboard Navigation
+
 ```
 Tab           - Navigate forward
 Shift+Tab     - Navigate backward
@@ -541,6 +551,7 @@ End           - Last item
 ```
 
 ### Screen Reader Structure
+
 ```
 <nav aria-label="Primary navigation">
   <ul>
@@ -572,12 +583,12 @@ User logs in
     ├─ Is Platform Admin?
     │   └─ YES → Show Admin Dashboard
     │
-    ├─ Is Clinic Member?
+    ├─ Is Partner Member?
     │   │
-    │   ├─ Is Clinic Admin?
-    │   │   └─ YES → Show Clinic Admin Dashboard + Personal
+    │   ├─ Is Partner Admin?
+    │   │   └─ YES → Show Partner Admin Dashboard + Personal
     │   │
-    │   └─ NO → Show Clinic Member Dashboard + Personal
+    │   └─ NO → Show Partner Member Dashboard + Personal
     │
     ├─ Has Learning Platform Access?
     │   └─ YES → Show Expert + Learning Sections
@@ -594,7 +605,7 @@ User logs in
 ---
 
 **Reference Documents:**
+
 - Main Architecture: `DASHBOARD-MENU-ARCHITECTURE.md`
 - Implementation: `DASHBOARD-MENU-IMPLEMENTATION.md`
 - Component Code: `components/layout/sidebar/`
-

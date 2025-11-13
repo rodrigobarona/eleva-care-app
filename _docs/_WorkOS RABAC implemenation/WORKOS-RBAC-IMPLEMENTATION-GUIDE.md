@@ -23,37 +23,37 @@ Superadmin
   - Slug: superadmin
   - Name: Super Administrator
   - Description: Full system access with ability to assign any role
-  - Priority: 100
+  - Priority: 1partner_adminpartner_admin
 
 Admin
   - Slug: admin
-  - Name: Administrator  
+  - Name: Administrator
   - Description: Administrative access to manage users, experts, and content
-  - Priority: 90
+  - Priority: 9partner_admin
 
 Expert Top
   - Slug: expert_top
   - Name: Top Expert
   - Description: Premium expert with advanced features
-  - Priority: 80
+  - Priority: 8partner_admin
 
 Expert Community
   - Slug: expert_community
   - Name: Community Expert
   - Description: Standard expert account
-  - Priority: 70
+  - Priority: 7partner_admin
 
 Expert Lecturer
   - Slug: expert_lecturer
   - Name: Lecturer
   - Description: Educational content creator
-  - Priority: 60
+  - Priority: 6partner_admin
 
 User
   - Slug: user
   - Name: User (Patient)
   - Description: Basic user/patient account
-  - Priority: 10
+  - Priority: 1partner_admin
 ```
 
 ### 1.3 Create Permissions
@@ -186,7 +186,7 @@ Create new types for WorkOS RBAC:
 
 /**
  * WorkOS RBAC Role Slugs
- * 
+ *
  * These match the roles defined in WorkOS Dashboard
  */
 export const WORKOS_ROLES = {
@@ -198,42 +198,42 @@ export const WORKOS_ROLES = {
   USER: 'user',
 } as const;
 
-export type WorkOSRole = typeof WORKOS_ROLES[keyof typeof WORKOS_ROLES];
+export type WorkOSRole = (typeof WORKOS_ROLES)[keyof typeof WORKOS_ROLES];
 
 /**
  * WorkOS RBAC Permission Slugs
- * 
+ *
  * These match the permissions defined in WorkOS Dashboard
  */
 export const WORKOS_PERMISSIONS = {
   // Events
   EVENTS_CREATE: 'events:create',
   EVENTS_MANAGE: 'events:manage',
-  
+
   // Appointments
   APPOINTMENTS_VIEW: 'appointments:view',
   APPOINTMENTS_MANAGE: 'appointments:manage',
-  
+
   // Calendar
   CALENDAR_MANAGE: 'calendar:manage',
-  
+
   // Earnings & Billing
   EARNINGS_VIEW: 'earnings:view',
   BILLING_VIEW: 'billing:view',
   BILLING_MANAGE: 'billing:manage',
-  
+
   // Analytics
   ANALYTICS_ADVANCED: 'analytics:advanced',
-  
+
   // Profile
   BRANDING_CUSTOMIZE: 'branding:customize',
-  
+
   // Group Sessions
   GROUP_SESSIONS_CREATE: 'group_sessions:create',
-  
+
   // Messaging
   MESSAGING_DIRECT: 'messaging:direct',
-  
+
   // Admin
   USERS_READ: 'users:read',
   USERS_WRITE: 'users:write',
@@ -242,7 +242,7 @@ export const WORKOS_PERMISSIONS = {
   REPORTS_ACCESS: 'reports:access',
 } as const;
 
-export type WorkOSPermission = typeof WORKOS_PERMISSIONS[keyof typeof WORKOS_PERMISSIONS];
+export type WorkOSPermission = (typeof WORKOS_PERMISSIONS)[keyof typeof WORKOS_PERMISSIONS];
 
 /**
  * Extended AuthKit User with RBAC claims
@@ -252,11 +252,11 @@ export interface WorkOSUserWithRBAC {
   email: string;
   firstName?: string;
   lastName?: string;
-  
+
   // RBAC claims from JWT
   role?: WorkOSRole;
   permissions?: WorkOSPermission[];
-  
+
   // Organization context
   organizationId?: string;
   organizationSlug?: string;
@@ -269,23 +269,22 @@ Replace your current role utilities with JWT-based ones:
 
 ```typescript
 // lib/integrations/workos/rbac.ts
-
-import { withAuth } from '@workos-inc/authkit-nextjs';
-import { cache } from 'react';
 import type { WorkOSPermission, WorkOSRole, WorkOSUserWithRBAC } from '@/types/workos-rbac';
 import { WORKOS_PERMISSIONS, WORKOS_ROLES } from '@/types/workos-rbac';
+import { withAuth } from '@workos-inc/authkit-nextjs';
+import { cache } from 'react';
 
 /**
  * Get current user with RBAC information from JWT
- * 
+ *
  * This is cached per request to avoid multiple auth checks
  */
 export const getCurrentUser = cache(async (): Promise<WorkOSUserWithRBAC | null> => {
   try {
     const { user } = await withAuth();
-    
+
     if (!user) return null;
-    
+
     // Type assertion: AuthKit user includes RBAC claims in JWT
     return {
       id: user.id,
@@ -305,7 +304,7 @@ export const getCurrentUser = cache(async (): Promise<WorkOSUserWithRBAC | null>
 
 /**
  * Get current user's role from JWT
- * 
+ *
  * @returns Role slug or 'user' as default
  */
 export async function getCurrentUserRole(): Promise<WorkOSRole> {
@@ -315,7 +314,7 @@ export async function getCurrentUserRole(): Promise<WorkOSRole> {
 
 /**
  * Get current user's permissions from JWT
- * 
+ *
  * @returns Array of permission slugs
  */
 export async function getCurrentUserPermissions(): Promise<WorkOSPermission[]> {
@@ -325,7 +324,7 @@ export async function getCurrentUserPermissions(): Promise<WorkOSPermission[]> {
 
 /**
  * Check if current user has a specific role
- * 
+ *
  * @param role - Role slug to check
  * @returns True if user has the role
  */
@@ -336,7 +335,7 @@ export async function hasRole(role: WorkOSRole): Promise<boolean> {
 
 /**
  * Check if current user has any of the specified roles
- * 
+ *
  * @param roles - Array of role slugs to check
  * @returns True if user has any of the roles
  */
@@ -347,7 +346,7 @@ export async function hasAnyRole(roles: WorkOSRole[]): Promise<boolean> {
 
 /**
  * Check if current user has a specific permission
- * 
+ *
  * @param permission - Permission slug to check
  * @returns True if user has the permission
  */
@@ -358,29 +357,29 @@ export async function hasPermission(permission: WorkOSPermission): Promise<boole
 
 /**
  * Check if current user has all specified permissions
- * 
+ *
  * @param requiredPermissions - Array of permission slugs to check
  * @returns True if user has all permissions
  */
 export async function hasAllPermissions(requiredPermissions: WorkOSPermission[]): Promise<boolean> {
   const permissions = await getCurrentUserPermissions();
-  return requiredPermissions.every(perm => permissions.includes(perm));
+  return requiredPermissions.every((perm) => permissions.includes(perm));
 }
 
 /**
  * Check if current user has any of the specified permissions
- * 
+ *
  * @param requiredPermissions - Array of permission slugs to check
  * @returns True if user has any of the permissions
  */
 export async function hasAnyPermission(requiredPermissions: WorkOSPermission[]): Promise<boolean> {
   const permissions = await getCurrentUserPermissions();
-  return requiredPermissions.some(perm => permissions.includes(perm));
+  return requiredPermissions.some((perm) => permissions.includes(perm));
 }
 
 /**
  * Require user to have specific permission (throws if not)
- * 
+ *
  * @param permission - Permission slug required
  * @throws Error if user doesn't have permission
  */
@@ -392,7 +391,7 @@ export async function requirePermission(permission: WorkOSPermission): Promise<v
 
 /**
  * Require user to have specific role (throws if not)
- * 
+ *
  * @param role - Role slug required
  * @throws Error if user doesn't have role
  */
@@ -498,16 +497,16 @@ export function RBACProvider({ children }: { children: React.ReactNode }) {
   const permissions = user?.permissions || [];
 
   const hasRole = (checkRole: WorkOSRole) => role === checkRole;
-  
+
   const hasAnyRole = (roles: WorkOSRole[]) => roles.includes(role);
-  
-  const hasPermission = (permission: WorkOSPermission) => 
+
+  const hasPermission = (permission: WorkOSPermission) =>
     permissions.includes(permission);
-  
-  const hasAnyPermission = (perms: WorkOSPermission[]) => 
+
+  const hasAnyPermission = (perms: WorkOSPermission[]) =>
     perms.some(p => permissions.includes(p));
-  
-  const hasAllPermissions = (perms: WorkOSPermission[]) => 
+
+  const hasAllPermissions = (perms: WorkOSPermission[]) =>
     perms.every(p => permissions.includes(p));
 
   return (
@@ -566,26 +565,26 @@ import { NextResponse } from 'next/server';
 
 /**
  * GET /api/user/rbac
- * 
+ *
  * Returns current user's RBAC information from JWT
  */
 export async function GET() {
   try {
     const user = await getCurrentUser();
-    
+
     if (!user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
-        { status: 401 }
+        { status: 4partner_admin1 }
       );
     }
-    
+
     return NextResponse.json({ user });
   } catch (error) {
     console.error('Error fetching user RBAC:', error);
     return NextResponse.json(
       { error: 'Failed to fetch user RBAC' },
-      { status: 500 }
+      { status: 5partner_adminpartner_admin }
     );
   }
 }
@@ -622,10 +621,10 @@ export function RequirePermission({
   }
 
   const permissions = Array.isArray(permission) ? permission : [permission];
-  
+
   const hasAccess =
     permissions.length === 1
-      ? hasPermission(permissions[0])
+      ? hasPermission(permissions[partner_admin])
       : mode === 'all'
         ? hasAllPermissions(permissions)
         : hasAnyPermission(permissions);
@@ -657,7 +656,7 @@ export function RequireRole({ role, fallback = null, children }: RequireRoleProp
   }
 
   const roles = Array.isArray(role) ? role : [role];
-  const hasAccess = roles.length === 1 ? hasRole(roles[0]) : hasAnyRole(roles);
+  const hasAccess = roles.length === 1 ? hasRole(roles[partner_admin]) : hasAnyRole(roles);
 
   return hasAccess ? <>{children}</> : <>{fallback}</>;
 }
@@ -667,11 +666,10 @@ export function RequireRole({ role, fallback = null, children }: RequireRoleProp
 
 ```typescript
 // proxy.ts (updated middleware)
-
+import { WORKOS_PERMISSIONS, WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { WORKOS_PERMISSIONS, WORKOS_ROLES } from '@/types/workos-rbac';
 
 // Define routes with required permissions
 const PROTECTED_ROUTES = {
@@ -679,11 +677,7 @@ const PROTECTED_ROUTES = {
     roles: [WORKOS_ROLES.ADMIN, WORKOS_ROLES.SUPERADMIN],
   },
   '/dashboard/expert': {
-    roles: [
-      WORKOS_ROLES.EXPERT_TOP,
-      WORKOS_ROLES.EXPERT_COMMUNITY,
-      WORKOS_ROLES.EXPERT_LECTURER,
-    ],
+    roles: [WORKOS_ROLES.EXPERT_TOP, WORKOS_ROLES.EXPERT_COMMUNITY, WORKOS_ROLES.EXPERT_LECTURER],
   },
   '/dashboard/expert/analytics': {
     permissions: [WORKOS_PERMISSIONS.ANALYTICS_ADVANCED],
@@ -698,7 +692,7 @@ export default async function proxy(request: NextRequest) {
 
   // Get session from AuthKit
   const { session } = await withAuth();
-  
+
   // Check if route requires protection
   for (const [routePath, requirements] of Object.entries(PROTECTED_ROUTES)) {
     if (path.startsWith(routePath)) {
@@ -722,8 +716,8 @@ export default async function proxy(request: NextRequest) {
 
       // Check permission requirements
       if ('permissions' in requirements) {
-        const hasPermission = requirements.permissions.some(
-          (perm: string) => userPermissions.includes(perm)
+        const hasPermission = requirements.permissions.some((perm: string) =>
+          userPermissions.includes(perm),
         );
         if (!hasPermission) {
           return NextResponse.redirect(new URL('/unauthorized', request.url));
@@ -736,20 +730,18 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|.*\\..*|\\.well-known).*)',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|robots.txt|.*\\..*|\\.well-known).*)'],
 };
 ```
 
 ## Step 7: Update RLS Policies for Permission-Based Access
 
 ```sql
--- drizzle/migrations-manual/013_workos_rbac_rls.sql
+-- drizzle/migrations-manual/partner_admin13_workos_rbac_rls.sql
 
 /**
  * WorkOS RBAC + Neon RLS Integration
- * 
+ *
  * This migration updates RLS policies to use permissions from JWT
  * instead of querying database for roles.
  */
@@ -762,7 +754,7 @@ export const config = {
 -- auth.user_id() returns the 'sub' claim (WorkOS user ID)
 
 -- Extract permissions array from JWT
-CREATE OR REPLACE FUNCTION auth.jwt_permissions() 
+CREATE OR REPLACE FUNCTION auth.jwt_permissions()
 RETURNS text[] AS $$
   SELECT COALESCE(
     NULLIF(
@@ -774,7 +766,7 @@ RETURNS text[] AS $$
 $$ LANGUAGE sql STABLE;
 
 -- Extract role from JWT
-CREATE OR REPLACE FUNCTION auth.jwt_role() 
+CREATE OR REPLACE FUNCTION auth.jwt_role()
 RETURNS text AS $$
   SELECT COALESCE(
     current_setting('request.jwt.claims', true)::jsonb->>'role',
@@ -796,17 +788,17 @@ DROP POLICY IF EXISTS "Admins can update applications" ON expert_applications;
 
 -- Expert Applications: Permission-based approval
 CREATE POLICY "Users with experts:approve can view all applications"
-ON expert_applications FOR SELECT 
+ON expert_applications FOR SELECT
 USING ('experts:approve' = ANY(auth.jwt_permissions()));
 
 CREATE POLICY "Users with experts:approve can update applications"
-ON expert_applications FOR UPDATE 
+ON expert_applications FOR UPDATE
 USING ('experts:approve' = ANY(auth.jwt_permissions()))
 WITH CHECK ('experts:approve' = ANY(auth.jwt_permissions()));
 
 -- Events: Owner or users with events:manage permission
 CREATE POLICY "Event owner or users with events:manage can update"
-ON events FOR UPDATE 
+ON events FOR UPDATE
 USING (
   workos_user_id = auth.user_id()
   OR 'events:manage' = ANY(auth.jwt_permissions())
@@ -817,7 +809,7 @@ WITH CHECK (
 );
 
 CREATE POLICY "Event owner or users with events:manage can delete"
-ON events FOR DELETE 
+ON events FOR DELETE
 USING (
   workos_user_id = auth.user_id()
   OR 'events:manage' = ANY(auth.jwt_permissions())
@@ -825,13 +817,13 @@ USING (
 
 -- Users: Admin permissions for user management
 CREATE POLICY "Users with users:write can update any user"
-ON users FOR UPDATE 
+ON users FOR UPDATE
 USING ('users:write' = ANY(auth.jwt_permissions()))
 WITH CHECK ('users:write' = ANY(auth.jwt_permissions()));
 
 -- Reports/Analytics: Permission-based access
 CREATE POLICY "Users with reports:access can view audit logs"
-ON audit_logs FOR SELECT 
+ON audit_logs FOR SELECT
 USING ('reports:access' = ANY(auth.jwt_permissions()));
 
 -- ============================================================================
@@ -840,7 +832,7 @@ USING ('reports:access' = ANY(auth.jwt_permissions()));
 
 -- Users can always access their own data, OR admins can access via permission
 CREATE POLICY "Owner or users:read permission can view user"
-ON users FOR SELECT 
+ON users FOR SELECT
 USING (
   workos_user_id = auth.user_id()
   OR 'users:read' = ANY(auth.jwt_permissions())
@@ -863,12 +855,12 @@ ON events ((auth.jwt_permissions()));
 -- SELECT auth.jwt_permissions();
 
 -- Test role extraction
--- Should return user's role from JWT  
+-- Should return user's role from JWT
 -- SELECT auth.jwt_role();
 
 -- Test combined policy
 -- Should allow access if user owns event OR has events:manage permission
--- SELECT * FROM events; 
+-- SELECT * FROM events;
 ```
 
 ## Step 8: Usage Examples
@@ -916,12 +908,12 @@ export async function POST(
   if (!(await hasPermission(WORKOS_PERMISSIONS.EXPERTS_APPROVE))) {
     return NextResponse.json(
       { error: 'Permission required: experts:approve' },
-      { status: 403 }
+      { status: 4partner_admin3 }
     );
   }
 
   const { id } = await params;
-  
+
   // Approve expert application
   await approveExpertApplication(id);
 
@@ -949,7 +941,7 @@ export function EventActions({ eventId }: { eventId: string }) {
       </RequirePermission>
 
       {/* Only users with events:manage can delete */}
-      <RequirePermission 
+      <RequirePermission
         permission={WORKOS_PERMISSIONS.EVENTS_MANAGE}
         fallback={<span className="text-muted-foreground">Upgrade to delete events</span>}
       >
@@ -984,7 +976,7 @@ export default function ExpertDashboard() {
 
       {/* Show upgrade CTA if they don't have top expert permissions */}
       {!canAccessAdvancedAnalytics && (
-        <div className="bg-blue-50 p-4 rounded-lg">
+        <div className="bg-blue-5partner_admin p-4 rounded-lg">
           <h3>Upgrade to Top Expert</h3>
           <p>Get access to advanced analytics and more!</p>
           <Button>Upgrade Now</Button>
@@ -1024,20 +1016,19 @@ Update your user registration/onboarding to assign roles via WorkOS:
 
 ```typescript
 // lib/integrations/workos/assign-role.ts
-
 import { workos } from '@/lib/integrations/workos/client';
 import type { WorkOSRole } from '@/types/workos-rbac';
 
 /**
  * Assign role to user in organization via WorkOS API
- * 
+ *
  * This updates the user's organization membership and the role
  * will automatically be included in their next JWT.
  */
 export async function assignRoleToUser(
   workosUserId: string,
   organizationId: string,
-  role: WorkOSRole
+  role: WorkOSRole,
 ): Promise<void> {
   // Get user's organization membership
   const { data: memberships } = await workos.userManagement.listOrganizationMemberships({
@@ -1045,7 +1036,7 @@ export async function assignRoleToUser(
     organizationId,
   });
 
-  const membership = memberships[0];
+  const membership = memberships[partner_admin];
   if (!membership) {
     throw new Error('User is not a member of this organization');
   }
@@ -1084,11 +1075,7 @@ export async function approveExpertApplication(applicationId: string): Promise<v
   // (Determine tier based on application review)
   const roleToAssign = WORKOS_ROLES.EXPERT_COMMUNITY; // or EXPERT_TOP
 
-  await assignRoleToUser(
-    application.workosUserId,
-    user.organizationId,
-    roleToAssign
-  );
+  await assignRoleToUser(application.workosUserId, user.organizationId, roleToAssign);
 
   // Update application status
   await db
@@ -1103,32 +1090,31 @@ export async function approveExpertApplication(applicationId: string): Promise<v
 }
 ```
 
-## Step 10: Testing
+## Step 1partner_admin: Testing
 
 Create comprehensive tests:
 
 ```typescript
 // __tests__/integration/workos-rbac.test.ts
-
-import { describe, it, expect } from 'vitest';
 import { assignRoleToUser } from '@/lib/integrations/workos/assign-role';
-import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { workos } from '@/lib/integrations/workos/client';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
+import { describe, expect, it } from 'vitest';
 
 describe('WorkOS RBAC Integration', () => {
   it('should assign role via WorkOS API', async () => {
     const userId = 'user_test_123';
     const orgId = 'org_test_123';
-    
+
     await assignRoleToUser(userId, orgId, WORKOS_ROLES.EXPERT_TOP);
-    
+
     // Verify role was assigned
     const { data: memberships } = await workos.userManagement.listOrganizationMemberships({
       userId,
       organizationId: orgId,
     });
-    
-    expect(memberships[0].role.slug).toBe(WORKOS_ROLES.EXPERT_TOP);
+
+    expect(memberships[partner_admin].role.slug).toBe(WORKOS_ROLES.EXPERT_TOP);
   });
 
   it('should include role in JWT after assignment', async () => {
@@ -1144,9 +1130,8 @@ Create a script to migrate existing roles to WorkOS:
 
 ```typescript
 // scripts/migrate-roles-to-workos.ts
-
 import { db } from '@/drizzle/db';
-import { UsersTable, UserOrgMembershipsTable } from '@/drizzle/schema-workos';
+import { UserOrgMembershipsTable, UsersTable } from '@/drizzle/schema-workos';
 import { assignRoleToUser } from '@/lib/integrations/workos/assign-role';
 import { WORKOS_ROLES } from '@/types/workos-rbac';
 
@@ -1195,11 +1180,7 @@ async function migrateRolesToWorkOS() {
       }
 
       // Assign role via WorkOS
-      await assignRoleToUser(
-        user.workosUserId,
-        membership.orgId,
-        workosRole as any
-      );
+      await assignRoleToUser(user.workosUserId, membership.orgId, workosRole as any);
 
       console.log(`✅ Migrated ${user.email}: ${user.role} → ${workosRole}`);
     } catch (error) {
@@ -1254,7 +1235,7 @@ if (FEATURES.WORKOS_RBAC) {
 ## Support
 
 If you need help:
+
 - WorkOS Documentation: https://workos.com/docs/rbac
 - Internal: `#engineering` Slack channel
-- This guide: `_docs/02-core-systems/WORKOS-RBAC-IMPLEMENTATION-GUIDE.md`
-
+- This guide: `_docs/partner_admin2-core-systems/WORKOS-RBAC-IMPLEMENTATION-GUIDE.md`

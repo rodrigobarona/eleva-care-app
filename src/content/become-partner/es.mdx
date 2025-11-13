@@ -1,0 +1,249 @@
+export const metadata = {
+  title: 'Conviértete en Partner | Haz Crecer Tu Práctica | Eleva Care',
+  description:
+    'Asóciate con Eleva Care para expandir tu práctica de salud femenina. Accede a nuestra plataforma tecnológica, amplía tu red de expertas y alcanza más clientas manteniendo tu marca independiente.',
+  og: {
+    title: 'Conviértete en Partner | Haz Crecer Tu Práctica | Eleva Care',
+    description:
+      'Asóciate con Eleva Care para expandir tu práctica de salud femenina y alcanzar más clientas.',
+    siteName: 'Eleva Care',
+  },
+};
+
+import { ArrowRight, Sparkles } from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+
+import BenefitsSection from '@/components/sections/become-partner/BenefitsSection';
+import FinalCTASection from '@/components/sections/become-partner/FinalCTASection';
+import HeroSection from '@/components/sections/become-partner/HeroSection';
+import HowItWorksSection from '@/components/sections/become-partner/HowItWorksSection';
+import PricingPreviewSection from '@/components/sections/become-partner/PricingPreviewSection';
+import WhoCanJoinSection from '@/components/sections/become-partner/WhoCanJoinSection';
+
+<HeroSection
+  badge={{
+    text: 'Para Empresas de Salud',
+    icon: <Sparkles className="mr-2 inline h-4 w-4" />,
+  }}
+  title="Escala Tu Práctica con"
+  subtitle="Tecnología Eleva Care"
+  description="Únete a nuestra red de partners para expandir tus servicios de salud femenina. Accede a tecnología de plataforma de vanguardia, amplía tu equipo de expertas y alcanza más clientas manteniendo tu identidad de marca independiente."
+  cta={{
+    text: 'Conviértete en Partner',
+    href: '/contact?partner=true',
+    icon: <ArrowRight className="ml-2 h-5 w-5" />,
+  }}
+  secondaryCta={{
+    text: 'Programar una Demo',
+    href: '/contact?demo=true',
+  }}
+  features="Confiado por centros de bienestar, prácticas de salud y organizaciones de coaching en el sector de salud femenina."
+/>
+
+<BenefitsSection
+  title="¿Por Qué Asociarse con Eleva Care?"
+  benefits={[
+    {
+      icon: 'building',
+      title: 'Expande Tu Alcance',
+      description:
+        'Accede a una red creciente de clientas que buscan activamente servicios de salud femenina. Aumenta la visibilidad y las reservas de tu práctica.',
+    },
+    {
+      icon: 'users',
+      title: 'Construye Tu Equipo de Expertas',
+      description:
+        'Atrae e incorpora profesionales de la salud cualificadas. Gestiona tu equipo sin problemas a través de nuestra plataforma.',
+    },
+    {
+      icon: 'zap',
+      title: 'Plataforma Tecnológica',
+      description:
+        'Herramientas completas de gestión de práctica: programación, consultas por video, pagos y comunicaciones con clientas, todo en un solo lugar.',
+    },
+    {
+      icon: 'dollar',
+      title: 'Crecimiento de Ingresos',
+      description:
+        'Modelo de ingresos transparente con suscripciones de espacio de trabajo y estructura de comisiones justa. Mantén tu identidad de marca y relaciones con clientas.',
+    },
+    {
+      icon: 'chart',
+      title: 'Análisis e Insights',
+      description:
+        'Rastrea el rendimiento, las reservas y los ingresos con paneles completos. Toma decisiones basadas en datos para tu práctica.',
+    },
+    {
+      icon: 'headphones',
+      title: 'Soporte Dedicado',
+      description:
+        'Asistencia en la incorporación, soporte técnico y gestión continua de la asociación para garantizar tu éxito.',
+    },
+  ]}
+/>
+
+<WhoCanJoinSection
+  title="¿Quién Puede Convertirse en Partner?"
+  subtitle="Eleva Care da la bienvenida a todos los tipos de organizaciones de salud femenina comprometidas con la atención de calidad y nuestra misión compartida."
+  partnerTypes={[
+    {
+      icon: 'stethoscope',
+      title: 'Prácticas Médicas',
+      examples: [
+        'Clínicas de Ginecología',
+        'Centros de Salud Femenina',
+        'Prácticas de Atención Primaria',
+        'Grupos Médicos Especializados',
+      ],
+    },
+    {
+      icon: 'heartPulse',
+      title: 'Centros de Bienestar',
+      examples: [
+        'Centros de Salud Integrativa',
+        'Espacios de Bienestar Holístico',
+        'Clínicas de Bienestar Femenino',
+        'Centros Mente-Cuerpo',
+      ],
+    },
+    {
+      icon: 'apple',
+      title: 'Nutrición y Dieta',
+      examples: [
+        'Clínicas de Nutrición',
+        'Prácticas de Dietistas',
+        'Centros de Nutrición Prenatal',
+        'Grupos de Salud Metabólica',
+      ],
+    },
+    {
+      icon: 'brain',
+      title: 'Salud Mental',
+      examples: [
+        'Prácticas de Terapia',
+        'Centros de Asesoramiento',
+        'Salud Mental Perinatal',
+        'Grupos de Psicología Femenina',
+      ],
+    },
+    {
+      icon: 'dumbbell',
+      title: 'Fitness y Movimiento',
+      examples: [
+        'Estudios de Salud Pélvica',
+        'Fitness Pre/Postnatal',
+        'Prácticas de Fisioterapia',
+        'Estudios de Pilates y Yoga',
+      ],
+    },
+    {
+      icon: 'activity',
+      title: 'Prácticas de Coaching',
+      examples: [
+        'Coaching de Salud',
+        'Apoyo Posparto',
+        'Coaching de Fertilidad',
+        'Bienestar en la Menopausia',
+      ],
+    },
+  ]}
+/>
+
+<HowItWorksSection
+  title="Cómo Funciona la Asociación"
+  subtitle="Proceso simple de incorporación para poner tu práctica en vivo en nuestra plataforma"
+  steps={[
+    {
+      title: 'Aplica y Obtén Aprobación',
+      description:
+        'Completa nuestra solicitud de asociación. Revisamos las credenciales de tu práctica, servicios y alineación con nuestra misión. La mayoría de las solicitudes se aprueban en 5 días hábiles.',
+    },
+    {
+      title: 'Configura Tu Perfil de Partner',
+      description:
+        'Crea el perfil de tu organización con branding, servicios e información del equipo. Configura precios, disponibilidad y políticas de práctica a través de nuestro panel.',
+    },
+    {
+      title: 'Incorpora a Tus Expertas',
+      description:
+        'Invita a tus profesionales de la salud a unirse a tu organización partner. Mantienen sus perfiles individuales mientras forman parte de tu red de práctica.',
+    },
+    {
+      title: 'Lanza y Crece',
+      description:
+        'Entra en vivo en la plataforma Eleva Care. Comienza a recibir reservas, gestionar citas y hacer crecer tu base de clientas. Accede a análisis para seguir el rendimiento.',
+    },
+  ]}
+  cta={{
+    text: 'Inicia Tu Solicitud de Asociación',
+    href: '/contact?partner=true',
+    icon: <ArrowRight className="ml-2 h-5 w-5" />,
+  }}
+/>
+
+<PricingPreviewSection
+  title="Precios de Asociación"
+  subtitle="Elige el plan que se adapte al tamaño y necesidades de tu práctica"
+  note="Todos los planes incluyen: Acceso a la plataforma, procesamiento de pagos, panel de análisis y soporte para partners. Se aplica reparto de ingresos en las reservas de expertas."
+  tiers={[
+    {
+      name: 'Inicial',
+      price: '€99/mes',
+      description: 'Perfecto para prácticas pequeñas que empiezan',
+      features: [
+        'Hasta 3 perfiles de expertas',
+        'Análisis e informes básicos',
+        'Gestión de programación y calendario',
+        'Plataforma de consulta por video',
+        'Soporte por correo electrónico',
+        'Branding de práctica',
+      ],
+    },
+    {
+      name: 'Profesional',
+      price: '€199/mes',
+      description: 'Ideal para prácticas en crecimiento y centros de bienestar',
+      recommended: true,
+      features: [
+        'Hasta 10 perfiles de expertas',
+        'Análisis e insights avanzados',
+        'Herramientas de gestión de clientas',
+        'Páginas de reserva personalizables',
+        'Soporte prioritario',
+        'Soporte de marketing',
+        'Panel de gestión de equipo',
+      ],
+    },
+    {
+      name: 'Enterprise',
+      price: 'Personalizado',
+      description: 'Para organizaciones grandes con necesidades específicas',
+      features: [
+        'Perfiles de expertas ilimitados',
+        'Opciones de marca blanca',
+        'Acceso API',
+        'Gerente de cuenta dedicado',
+        'Soporte prioritario 24/7',
+        'Integraciones personalizadas',
+        'Informes y exportaciones avanzadas',
+      ],
+    },
+  ]}
+/>
+
+<FinalCTASection
+  title="¿Lista para Hacer Crecer Tu Práctica?"
+  description="Únete a la red de partners de Eleva Care y forma parte de un movimiento para transformar la atención sanitaria de las mujeres. Juntas, ayudaremos a más mujeres a acceder a la atención de calidad que merecen."
+  cta={{
+    text: 'Solicita Convertirte en Partner',
+    href: '/contact?partner=true',
+    icon: <ArrowRight className="ml-2 h-5 w-5" />,
+  }}
+  support={{
+    text: '¿Tienes preguntas sobre la asociación?',
+    linkText: 'Programa una llamada con nuestro equipo.',
+    linkHref: '/contact?demo=true',
+  }}
+/>
+

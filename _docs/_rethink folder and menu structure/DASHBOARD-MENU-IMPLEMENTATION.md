@@ -33,6 +33,7 @@ app/(private)/
 ```
 
 **Current Sidebar:**
+
 - Events
 - Calendar
 - Expert Profile
@@ -41,11 +42,12 @@ app/(private)/
 - Need help?
 
 **Issues:**
+
 - "Booking" is developer terminology, not user-facing
 - Scattered settings across multiple locations
 - No clear analytics section
 - Billing spread across admin and account
-- No scalable structure for clinics or LMS
+- No scalable structure for partners or LMS
 - Mixing internal terminology with user features
 
 ---
@@ -95,9 +97,9 @@ app/(private)/
 │   ├── payouts/                 # Earnings & payouts
 │   └── invoices/                # Generated invoices
 │
-├── clinic/                       # 🔮 FUTURE: Clinic features
-│   ├── layout.tsx              # Clinic member check
-│   ├── page.tsx                # Clinic overview
+├── partner/                       # 🔮 FUTURE: Partner features
+│   ├── layout.tsx              # Partner member check
+│   ├── page.tsx                # Partner overview
 │   ├── team/
 │   ├── schedule/
 │   ├── patients/
@@ -136,6 +138,7 @@ app/(private)/
 **New Sidebar:**
 
 **Primary (Expert)**
+
 - 📊 Overview
 - 📅 Appointments
 - 🗓️ Availability
@@ -145,6 +148,7 @@ app/(private)/
 - 💳 Billing
 
 **Secondary**
+
 - ⚙️ Settings
 - 📚 Resources (top tier)
 - ❓ Help & Support
@@ -189,25 +193,25 @@ export interface NavigationSection {
 
 ```typescript
 // config/navigation.ts
+import type { NavigationSection } from '@/types/navigation';
+import { WORKOS_PERMISSIONS } from '@/types/workos-rbac';
 import {
-  LayoutDashboard,
+  BarChart3,
+  Bell,
+  Building2,
   Calendar,
   Clock,
-  Link2,
-  BarChart3,
-  User,
   CreditCard,
-  Users,
-  Building2,
-  GraduationCap,
-  Settings,
-  Bell,
   FileText,
-  Shield,
+  GraduationCap,
   HelpCircle,
+  LayoutDashboard,
+  Link2,
+  Settings,
+  Shield,
+  User,
+  Users,
 } from 'lucide-react';
-import { WORKOS_PERMISSIONS } from '@/types/workos-rbac';
-import type { NavigationSection } from '@/types/navigation';
 
 /**
  * Expert Primary Navigation
@@ -292,54 +296,54 @@ export function getExpertNavigation(): NavigationSection[] {
 }
 
 /**
- * Clinic Navigation
- * Additional section for clinic members/admins
+ * Partner Navigation
+ * Additional section for partner members/admins
  */
 export function getClinicNavigation(isClinicAdmin: boolean): NavigationSection {
   return {
-    label: 'Clinic',
-    condition: true, // Only show if user is clinic member
+    label: 'Partner',
+    condition: true, // Only show if user is partner member
     items: [
       {
-        title: 'Clinic Overview',
-        url: '/clinic',
+        title: 'Partner Overview',
+        url: '/partner',
         icon: Building2,
         permission: WORKOS_PERMISSIONS.CLINIC_VIEW,
       },
       {
         title: 'Team',
-        url: '/clinic/team',
+        url: '/partner/team',
         icon: Users,
         permission: WORKOS_PERMISSIONS.CLINIC_MANAGE,
         items: isClinicAdmin
           ? [
-              { title: 'Members', url: '/clinic/team' },
-              { title: 'Invite', url: '/clinic/team/invite' },
-              { title: 'Roles', url: '/clinic/team/roles' },
+              { title: 'Members', url: '/partner/team' },
+              { title: 'Invite', url: '/partner/team/invite' },
+              { title: 'Roles', url: '/partner/team/roles' },
             ]
           : undefined,
       },
       {
         title: 'Schedule',
-        url: '/clinic/schedule',
+        url: '/partner/schedule',
         icon: Calendar,
         permission: WORKOS_PERMISSIONS.CLINIC_VIEW,
       },
       {
         title: 'Patients',
-        url: '/clinic/patients',
+        url: '/partner/patients',
         icon: Users,
         permission: WORKOS_PERMISSIONS.CLINIC_VIEW,
       },
       {
         title: 'Analytics',
-        url: '/clinic/analytics',
+        url: '/partner/analytics',
         icon: BarChart3,
         permission: WORKOS_PERMISSIONS.CLINIC_ANALYTICS,
       },
       {
         title: 'Settings',
-        url: '/clinic/settings',
+        url: '/partner/settings',
         icon: Settings,
         permission: WORKOS_PERMISSIONS.CLINIC_MANAGE,
       },
@@ -484,10 +488,10 @@ export function AppSidebar() {
   const pathname = usePathname();
   const { hasPermission, role } = useRBAC();
   const { tier } = useSubscription();
-  
+
   // Check user context
-  const isClinicMember = false; // TODO: Implement clinic membership check
-  const isClinicAdmin = false; // TODO: Implement clinic admin check
+  const isClinicMember = false; // TODO: Implement partner membership check
+  const isClinicAdmin = false; // TODO: Implement partner admin check
   const isAdmin = role === 'admin';
 
   // Get navigation sections
@@ -541,10 +545,10 @@ export function AppSidebar() {
             <NavMain items={expertNav[0].items} />
           </SidebarGroup>
 
-          {/* Clinic Navigation (conditional) */}
+          {/* Partner Navigation (conditional) */}
           {clinicNav && (
             <SidebarGroup>
-              <SidebarGroupLabel>Clinic</SidebarGroupLabel>
+              <SidebarGroupLabel>Partner</SidebarGroupLabel>
               <NavMain items={clinicNav[0].items} />
             </SidebarGroup>
           )}
@@ -770,7 +774,7 @@ mkdir -p app/\(private\)/appointments/calendar
 mkdir -p app/\(private\)/notifications
 
 # Future folders (create when ready)
-mkdir -p app/\(private\)/clinic/{team,schedule,patients,analytics,settings,revenue}
+mkdir -p app/\(private\)/partner/{team,schedule,patients,analytics,settings,revenue}
 mkdir -p app/\(private\)/learn/{courses,content,students}
 ```
 
@@ -803,14 +807,14 @@ import { redirect } from 'next/navigation';
 export default function BookingRedirect({ params }: { params: Promise<{ slug: string[] }> }) {
   const { slug } = await params;
   const path = slug.join('/');
-  
+
   // Map old routes to new routes
   const redirects: Record<string, string> = {
     'events': '/events',
     'schedule': '/availability',
     'expert': '/profile/expert',
   };
-  
+
   const newPath = redirects[slug[0]] || '/dashboard';
   redirect(newPath);
 }
@@ -853,17 +857,20 @@ Update all E2E and integration tests with new routes.
 ## 📊 Success Metrics
 
 ### User Experience
+
 - **Navigation Time**: Time to find features < 5 seconds
 - **Click Depth**: Average clicks to reach feature ≤ 2
 - **Feature Discovery**: % users who discover Analytics (Top tier)
 - **404 Rate**: < 0.1% after migration
 
 ### Performance
+
 - **Page Load**: All pages < 1s (p95)
 - **Navigation**: Client transitions < 100ms
 - **Bundle Size**: Sidebar component < 50KB
 
 ### Adoption
+
 - **Feature Usage**: Track which menu items are most used
 - **Tier Upgrades**: Monitor Analytics section impact on upgrades
 - **User Satisfaction**: NPS score for navigation
@@ -873,6 +880,7 @@ Update all E2E and integration tests with new routes.
 ## 🐛 Testing Checklist
 
 ### Functional Tests
+
 - [ ] All primary navigation links work
 - [ ] All sub-navigation links work
 - [ ] Active states show correctly
@@ -881,13 +889,15 @@ Update all E2E and integration tests with new routes.
 - [ ] External links open in new tab
 
 ### Permission Tests
+
 - [ ] Community tier sees correct menu
 - [ ] Top tier sees Analytics
 - [ ] Admin sees Admin section
-- [ ] Clinic members see Clinic section
-- [ ] Non-clinic members don't see Clinic section
+- [ ] Partner members see Partner section
+- [ ] Non-partner members don't see Partner section
 
 ### Responsive Tests
+
 - [ ] Mobile sidebar opens/closes
 - [ ] Collapsed sidebar shows icons
 - [ ] Tooltips work in collapsed mode
@@ -895,6 +905,7 @@ Update all E2E and integration tests with new routes.
 - [ ] Horizontal scroll doesn't occur
 
 ### Accessibility Tests
+
 - [ ] Keyboard navigation works
 - [ ] Focus indicators visible
 - [ ] Screen reader announces correctly
@@ -906,6 +917,7 @@ Update all E2E and integration tests with new routes.
 ## 💡 Future Enhancements
 
 ### Phase 2: Command Palette
+
 ```typescript
 // Global search and navigation
 <CommandPalette>
@@ -929,6 +941,7 @@ Update all E2E and integration tests with new routes.
 ```
 
 ### Phase 3: Organization Switcher
+
 ```typescript
 // For users in multiple organizations
 <SidebarHeader>
@@ -941,6 +954,7 @@ Update all E2E and integration tests with new routes.
 ```
 
 ### Phase 4: Customizable Navigation
+
 - Allow users to pin favorite pages
 - Reorder menu items
 - Hide unused features
@@ -959,7 +973,7 @@ Update all E2E and integration tests with new routes.
 ---
 
 **Questions or Issues?**
+
 - Create an issue in the repository
 - Contact the dev team
 - Review `DASHBOARD-MENU-ARCHITECTURE.md` for overall design
-

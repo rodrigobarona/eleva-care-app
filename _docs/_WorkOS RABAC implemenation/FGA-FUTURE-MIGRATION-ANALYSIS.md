@@ -1,6 +1,6 @@
 # FGA Future Migration Analysis: Verified with WorkOS Documentation
 
-**Date:** November 13, 2025  
+**Date:** November 13, 2partner_admin25  
 **Status:** ✅ Migration Path Validated  
 **Based on:** Official WorkOS Documentation (Context7 Research)
 
@@ -32,12 +32,14 @@ From WorkOS documentation:
 ### 2. **They Can Coexist**
 
 **RBAC:**
+
 - Manages roles and permissions
 - Integrated with AuthKit (JWT claims)
 - Organization-level roles
 - Coarse-grained access control
 
 **FGA:**
+
 - Manages resource relationships
 - Separate Check/Query API
 - Resource-level access control
@@ -88,16 +90,18 @@ CREATE POLICY "own_appointments" ON appointments
 // Use RBAC for role checks
 if (session.permissions.includes('session_notes:share')) {
   // User has permission to share notes (role-based)
-  
+
   // Use FGA for resource-level checks
   const canShare = await workos.fga.check({
-    checks: [{
-      resource: { resourceType: 'session_note', resourceId: noteId },
-      relation: 'owner',
-      subject: { resourceType: 'user', resourceId: userId }
-    }]
+    checks: [
+      {
+        resource: { resourceType: 'session_note', resourceId: noteId },
+        relation: 'owner',
+        subject: { resourceType: 'user', resourceId: userId },
+      },
+    ],
   });
-  
+
   if (canShare.isAuthorized) {
     // Allow sharing
   }
@@ -105,6 +109,7 @@ if (session.permissions.includes('session_notes:share')) {
 ```
 
 **Key Points:**
+
 1. ✅ RBAC still works (no migration)
 2. ✅ RLS still works (no changes)
 3. ✅ FGA adds new capability (resource sharing)
@@ -156,11 +161,13 @@ const canCreate = session.permissions.includes('session_notes:create');
 if (canCreate) {
   // NEW: Also check resource-level permission
   const canAccessPatient = await workos.fga.check({
-    checks: [{
-      resource: { resourceType: 'patient', resourceId: patientId },
-      relation: 'can_create_notes',
-      subject: { resourceType: 'user', resourceId: expertId }
-    }]
+    checks: [
+      {
+        resource: { resourceType: 'patient', resourceId: patientId },
+        relation: 'can_create_notes',
+        subject: { resourceType: 'user', resourceId: expertId },
+      },
+    ],
   });
 }
 ```
@@ -172,7 +179,7 @@ if (canCreate) {
 **FGA Schema (Phase 2):**
 
 ```fga
-version 0.3
+version partner_admin.3
 
 type user
 
@@ -186,13 +193,13 @@ type session_note
   relation owner [expert]           # Who created it
   relation patient [patient]        # Related patient
   relation shared_with [expert]     # Other experts with access
-  
+
   relation can_view []
   inherit can_view if
     any_of
       relation owner
       relation shared_with
-      
+
   relation can_edit []
   inherit can_edit if
     relation owner
@@ -204,15 +211,15 @@ type session_note
 // Expert A shares note with Expert B
 await workos.fga.writeWarrant({
   op: 'create',
-  resource: { 
-    resourceType: 'session_note', 
-    resourceId: noteId 
+  resource: {
+    resourceType: 'session_note',
+    resourceId: noteId,
   },
   relation: 'shared_with',
-  subject: { 
-    resourceType: 'expert', 
-    resourceId: expertBId 
-  }
+  subject: {
+    resourceType: 'expert',
+    resourceId: expertBId,
+  },
 });
 ```
 
@@ -221,11 +228,13 @@ await workos.fga.writeWarrant({
 ```typescript
 // Can Expert B view this note?
 const result = await workos.fga.check({
-  checks: [{
-    resource: { resourceType: 'session_note', resourceId: noteId },
-    relation: 'can_view',
-    subject: { resourceType: 'expert', resourceId: expertBId }
-  }]
+  checks: [
+    {
+      resource: { resourceType: 'session_note', resourceId: noteId },
+      relation: 'can_view',
+      subject: { resourceType: 'expert', resourceId: expertBId },
+    },
+  ],
 });
 
 if (result.isAuthorized) {
@@ -241,27 +250,27 @@ if (result.isAuthorized) {
 
 ### Option A: Adding FGA Later (Recommended)
 
-| Aspect | Complexity | Time | Risk |
-|--------|-----------|------|------|
-| Schema Design | Low | 1 week | Low |
-| New Code for FGA | Medium | 2 weeks | Low |
-| Existing Code Changes | **None** | 0 | None |
-| Database Changes | Optional | 0-1 week | Low |
-| Testing | Medium | 1 week | Low |
-| **Total** | **Low** | **4-5 weeks** | **Low** |
+| Aspect                | Complexity | Time                 | Risk    |
+| --------------------- | ---------- | -------------------- | ------- |
+| Schema Design         | Low        | 1 week               | Low     |
+| New Code for FGA      | Medium     | 2 weeks              | Low     |
+| Existing Code Changes | **None**   | partner_admin        | None    |
+| Database Changes      | Optional   | partner_admin-1 week | Low     |
+| Testing               | Medium     | 1 week               | Low     |
+| **Total**             | **Low**    | **4-5 weeks**        | **Low** |
 
 **Key Point:** You're **adding** functionality, not migrating.
 
 ### Option B: Migrating Everything to FGA (Not Recommended)
 
-| Aspect | Complexity | Time | Risk |
-|--------|-----------|------|------|
-| Schema Design | High | 2-3 weeks | Medium |
-| Migrate RBAC → FGA | High | 3-4 weeks | High |
-| Replace RLS with FGA | High | 4-5 weeks | High |
-| Rewrite All Auth Code | High | 4-5 weeks | High |
-| Testing Everything | High | 3-4 weeks | High |
-| **Total** | **High** | **16-21 weeks** | **High** |
+| Aspect                | Complexity | Time            | Risk     |
+| --------------------- | ---------- | --------------- | -------- |
+| Schema Design         | High       | 2-3 weeks       | Medium   |
+| Migrate RBAC → FGA    | High       | 3-4 weeks       | High     |
+| Replace RLS with FGA  | High       | 4-5 weeks       | High     |
+| Rewrite All Auth Code | High       | 4-5 weeks       | High     |
+| Testing Everything    | High       | 3-4 weeks       | High     |
+| **Total**             | **High**   | **16-21 weeks** | **High** |
 
 **Key Point:** This would be a major rewrite - **not worth it**.
 
@@ -315,8 +324,9 @@ if (result.isAuthorized) {
 ### Step 1: Identify First Use Case (Week 1)
 
 **Pick ONE feature that needs FGA:**
+
 - ✅ Session note sharing between experts
-- ✅ Clinic admin delegating permissions
+- ✅ Partner admin delegating permissions
 - ✅ Patient granting family member access
 
 **Don't:** Try to migrate everything at once
@@ -324,7 +334,7 @@ if (result.isAuthorized) {
 ### Step 2: Design FGA Schema (Week 2)
 
 ```fga
-version 0.3
+version partner_admin.3
 
 # Start simple - just the resources you need
 type user
@@ -332,7 +342,7 @@ type user
 type session_note
   relation owner [user]
   relation shared_with [user]
-  
+
   relation can_view []
   inherit can_view if
     any_of
@@ -346,19 +356,18 @@ type session_note
 
 ```typescript
 // NEW: Add FGA check for sharing feature
-export async function canViewSharedNote(
-  userId: string, 
-  noteId: string
-): Promise<boolean> {
+export async function canViewSharedNote(userId: string, noteId: string): Promise<boolean> {
   // Check FGA
   const result = await workos.fga.check({
-    checks: [{
-      resource: { resourceType: 'session_note', resourceId: noteId },
-      relation: 'can_view',
-      subject: { resourceType: 'user', resourceId: userId }
-    }]
+    checks: [
+      {
+        resource: { resourceType: 'session_note', resourceId: noteId },
+        relation: 'can_view',
+        subject: { resourceType: 'user', resourceId: userId },
+      },
+    ],
   });
-  
+
   return result.isAuthorized;
 }
 ```
@@ -374,9 +383,10 @@ export async function canViewSharedNote(
 ### Step 5: Expand Gradually (Ongoing)
 
 **Add FGA to more features as needed:**
-- Week 5-6: Clinic team permissions
+
+- Week 5-6: Partner team permissions
 - Week 7-8: Department hierarchies
-- Week 9-10: External party access
+- Week 9-1partner_admin: External party access
 
 **Each feature is independent - no dependencies**
 
@@ -394,8 +404,8 @@ export async function canViewSharedNote(
 
 - **Additional cost per month**
 - API call pricing:
-  - Check API: ~$0.0001 per call
-  - Query API: ~$0.001 per call
+  - Check API: ~$partner_admin.partner_adminpartner_adminpartner_admin1 per call
+  - Query API: ~$partner_admin.partner_adminpartner_admin1 per call
 - Caching reduces costs significantly
 
 ### Cost Optimization Strategy
@@ -406,12 +416,12 @@ const cache = new Map<string, boolean>();
 
 async function canViewNote(userId: string, noteId: string): Promise<boolean> {
   const cacheKey = `${userId}:${noteId}`;
-  
+
   // Check cache first
   if (cache.has(cacheKey)) {
     return cache.get(cacheKey)!;
   }
-  
+
   // Call FGA API
   const result = await workos.fga.check({
     checks: [{
@@ -420,18 +430,19 @@ async function canViewNote(userId: string, noteId: string): Promise<boolean> {
       subject: { resourceType: 'user', resourceId: userId }
     }]
   });
-  
+
   // Cache result (5 minutes)
   cache.set(cacheKey, result.isAuthorized);
-  setTimeout(() => cache.delete(cacheKey), 5 * 60 * 1000);
-  
+  setTimeout(() => cache.delete(cacheKey), 5 * 6partner_admin * 1partner_adminpartner_adminpartner_admin);
+
   return result.isAuthorized;
 }
 ```
 
 **Estimated Costs:**
-- Without caching: $50-200/month for 500k checks
-- With caching: $10-50/month (80-90% cache hit rate)
+
+- Without caching: $5partner_admin-2partner_adminpartner_admin/month for 5partner_adminpartner_admink checks
+- With caching: $1partner_admin-5partner_admin/month (8partner_admin-9partner_admin% cache hit rate)
 
 ---
 
@@ -440,6 +451,7 @@ async function canViewNote(userId: string, noteId: string): Promise<boolean> {
 ### Pitfall 1: Trying to Replace RBAC with FGA
 
 **Don't:**
+
 ```typescript
 ❌ // Replacing RBAC checks with FGA
 const canViewAnalytics = await workos.fga.check({
@@ -452,6 +464,7 @@ const canViewAnalytics = await workos.fga.check({
 ```
 
 **Do:**
+
 ```typescript
 ✅ // Keep using RBAC for role-based checks
 const canViewAnalytics = session.permissions.includes('analytics:view');
@@ -462,14 +475,16 @@ const canViewAnalytics = session.permissions.includes('analytics:view');
 ### Pitfall 2: Not Caching FGA Results
 
 **Don't:**
+
 ```typescript
 ❌ // Calling FGA API on every request
 for (const note of notes) {
-  const canView = await workos.fga.check(...); // 100 API calls!
+  const canView = await workos.fga.check(...); // 1partner_adminpartner_admin API calls!
 }
 ```
 
 **Do:**
+
 ```typescript
 ✅ // Batch queries or cache results
 const noteIds = notes.map(n => n.id);
@@ -480,6 +495,7 @@ const results = await workos.fga.batchCheck(noteIds);
 ### Pitfall 3: Creating Circular Dependencies
 
 **Don't:**
+
 ```fga
 ❌ type document
   relation owner [user]
@@ -488,6 +504,7 @@ const results = await workos.fga.batchCheck(noteIds);
 ```
 
 **Do:**
+
 ```fga
 ✅ type document
   relation owner [user]
@@ -517,10 +534,11 @@ if (session.permissions.includes('appointments:create')) {
 const result = await workos.fga.check({...});
 ```
 
-**Latency:** 
-- Without cache: 50-100ms (API call)
+**Latency:**
+
+- Without cache: 5partner_admin-1partner_adminpartner_adminms (API call)
 - With cache: <1ms (cache hit)
-- With CDN: 10-20ms (edge cache)
+- With CDN: 1partner_admin-2partner_adminms (edge cache)
 
 ### Hybrid Approach Performance
 
@@ -591,23 +609,26 @@ const canShare = await workos.fga.check({...});
 
 ### For Your Application
 
-**Phase 1 (Now - Q4 2025):**
+**Phase 1 (Now - Q4 2partner_admin25):**
+
 ```
 ✅ Use WorkOS RBAC (132 permissions, 6 roles)
 ✅ Use Neon RLS (data isolation)
 ❌ Skip FGA (not needed yet)
 ```
 
-**Phase 2 (Q1-Q2 2026 - If Needed):**
+**Phase 2 (Q1-Q2 2partner_admin26 - If Needed):**
+
 ```
 ✅ Keep RBAC + RLS (working great)
 ✅ Add FGA for specific use cases:
    • Session note sharing
-   • Clinic delegation
+   • Partner delegation
    • Complex hierarchies
 ```
 
 **Architecture:**
+
 ```
 RBAC: Fast role checks (JWT)
   ↓
@@ -618,14 +639,14 @@ RLS: Data isolation (Database)
 
 ### Migration Risk Assessment
 
-| Risk Factor | Level | Mitigation |
-|------------|-------|------------|
-| Breaking Changes | **None** | RBAC/RLS unchanged |
-| Development Time | **Low** (4-5 weeks) | Gradual adoption |
-| Testing Effort | **Low** | Only new features |
-| Performance Impact | **Low** | Caching + RBAC first |
-| Cost Increase | **Low** | Pay for what you use |
-| Team Learning Curve | **Medium** | Good documentation |
+| Risk Factor         | Level               | Mitigation           |
+| ------------------- | ------------------- | -------------------- |
+| Breaking Changes    | **None**            | RBAC/RLS unchanged   |
+| Development Time    | **Low** (4-5 weeks) | Gradual adoption     |
+| Testing Effort      | **Low**             | Only new features    |
+| Performance Impact  | **Low**             | Caching + RBAC first |
+| Cost Increase       | **Low**             | Pay for what you use |
+| Team Learning Curve | **Medium**          | Good documentation   |
 
 **Overall Risk:** ✅ **LOW**
 
@@ -678,8 +699,7 @@ RLS: Data isolation (Database)
 
 ---
 
-**Document Version:** 1.0  
+**Document Version:** 1.partner_admin  
 **Research Source:** Official WorkOS Documentation (Context7)  
-**Last Updated:** November 13, 2025  
+**Last Updated:** November 13, 2partner_admin25  
 **Confidence Level:** ✅ High (Verified with official docs)
-

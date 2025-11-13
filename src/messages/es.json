@@ -3,6 +3,15 @@
     "loading": "Cargando contenido..."
   },
   "language": "Español",
+  "metadata": {
+    "title": "Conecta con Especialistas Expertas en Salud de la Mujer | Eleva Care",
+    "description": "Eleva Care: Encuentra y reserva expertas de confianza en salud de la mujer para embarazo, postparto, menopausia y salud sexual. Una plataforma de confianza que te conecta con expertas de atención independientes.",
+    "og": {
+      "title": "Conecta con Especialistas Expertas en Salud de la Mujer | Eleva Care",
+      "description": "Encuentra y reserva expertas de confianza en salud de la mujer para embarazo, postparto, menopausia y salud sexual.",
+      "siteName": "Eleva Care"
+    }
+  },
   "Header": {
     "findExpert": "Encontrar un Experto",
     "mission": "Nuestra Misión"

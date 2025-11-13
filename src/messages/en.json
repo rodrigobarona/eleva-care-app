@@ -3,6 +3,15 @@
     "loading": "Loading content..."
   },
   "language": "English",
+  "metadata": {
+    "title": "Connect with Expert Women's Health Specialists | Eleva Care",
+    "description": "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
+    "og": {
+      "title": "Connect with Expert Women's Health Specialists | Eleva Care",
+      "description": "Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health.",
+      "siteName": "Eleva Care"
+    }
+  },
   "Header": {
     "findExpert": "Find an Expert",
     "mission": "Our Mission"

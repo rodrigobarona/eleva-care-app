@@ -94,10 +94,10 @@ This folder contains multiple formats of the same RBAC configuration to suit dif
 
 ```
 Priority 10:  patient
-Priority 60:  clinic_member (Phase 2)
+Priority 60:  partner_member (Phase 2)
 Priority 70:  expert_community
 Priority 80:  expert_top
-Priority 90:  clinic_admin (Phase 2)
+Priority 90:  partner_admin (Phase 2)
 Priority 100: superadmin
 ```
 
@@ -132,8 +132,8 @@ Priority 100: superadmin
   - Patient: 16 permissions
   - Expert Community: 52 permissions
   - Expert Top: 60 permissions
-  - Clinic Member: 56 permissions (Phase 2)
-  - Clinic Admin: 77 permissions (Phase 2)
+  - Partner Member: 56 permissions (Phase 2)
+  - Partner Admin: 77 permissions (Phase 2)
   - Platform Admin: 137 permissions
 
 **Test Configuration:**
@@ -299,16 +299,16 @@ pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
 
 ### Phase 2: Implement Later (2 roles)
 
-🔮 **Clinic Member** - Priority 60  
-🔮 **Clinic Admin** - Priority 90
+🔮 **Partner Member** - Priority 60  
+🔮 **Partner Admin** - Priority 90
 
-**Why:** These roles are for future clinic features.
+**Why:** These roles are for future partner features.
 
 **For Phase 1 Only:**
 
 - Create only the 4 Phase 1 roles
-- Skip clinic-related permissions (saves time)
-- Add them later when implementing clinic features
+- Skip partner-related permissions (saves time)
+- Add them later when implementing partner features
 
 ---
 

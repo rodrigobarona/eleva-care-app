@@ -38,7 +38,7 @@
 ### Patients (6 permissions)
 
 - [ ] `patients:view_own` - View own patients
-- [ ] `patients:view_all` - View all clinic patients
+- [ ] `patients:view_all` - View all partner patients
 - [ ] `patients:view_history` - View patient appointment history
 - [ ] `patients:send_notes` - Share session notes with patients
 - [ ] `patients:manage_records` - Manage patient records
@@ -122,8 +122,8 @@
 - [ ] `billing:view_subscription` - View subscription
 - [ ] `billing:manage_subscription` - Manage subscription
 - [ ] `billing:methods_manage` - Manage payment methods
-- [ ] `billing:manage_clinic_sub` - Manage clinic subscription
-- [ ] `billing:view_clinic_billing` - View clinic billing
+- [ ] `billing:manage_clinic_sub` - Manage partner subscription
+- [ ] `billing:view_clinic_billing` - View partner billing
 
 ### Settings (7 permissions)
 
@@ -193,15 +193,15 @@
 - [ ] `support:escalate` - Escalate tickets
 - [ ] `support:close_tickets` - Close tickets
 
-### Clinic (7 permissions) - Phase 2 🔮
+### Partner (7 permissions) - Phase 2 🔮
 
-- [ ] `clinic:view_dashboard` - View clinic overview
-- [ ] `clinic:view_patients` - View shared clinic patients
-- [ ] `clinic:view_schedule` - View clinic schedule
-- [ ] `clinic:manage_settings` - Manage clinic settings
-- [ ] `clinic:manage_branding` - Manage clinic branding
-- [ ] `clinic:view_analytics` - View clinic analytics
-- [ ] `clinic:export_data` - Export clinic data
+- [ ] `partner:view_dashboard` - View partner overview
+- [ ] `partner:view_patients` - View shared partner patients
+- [ ] `partner:view_schedule` - View partner schedule
+- [ ] `partner:manage_settings` - Manage partner settings
+- [ ] `partner:manage_branding` - Manage partner branding
+- [ ] `partner:view_analytics` - View partner analytics
+- [ ] `partner:export_data` - Export partner data
 
 ### Team (5 permissions) - Phase 2 🔮
 
@@ -213,7 +213,7 @@
 
 ### Schedule (3 permissions) - Phase 2 🔮
 
-- [ ] `schedule:manage_clinic` - Manage clinic schedule
+- [ ] `schedule:manage_clinic` - Manage partner schedule
 - [ ] `schedule:manage_rooms` - Manage rooms
 - [ ] `schedule:view_capacity` - View capacity planning
 
@@ -297,34 +297,34 @@
 
 ---
 
-### Phase 2 Roles (Optional - For Clinic Features) 🔮
+### Phase 2 Roles (Optional - For Partner Features) 🔮
 
-#### Role 5: Clinic Member (Priority 60)
+#### Role 5: Partner Member (Priority 60)
 
-- [ ] Created role with slug: `clinic_member`
+- [ ] Created role with slug: `partner_member`
 - [ ] Set priority: `60`
-- [ ] Added description: "Expert who is a member of a clinic organization"
-- [ ] Assigned 56 permissions (expert_community + clinic read-only)
+- [ ] Added description: "Expert who is a member of a partner organization"
+- [ ] Assigned 56 permissions (expert_community + partner read-only)
 - [ ] Verified permission count: **56**
 
 **Additional Permissions (beyond Expert Community):**
 
-- `clinic:view_dashboard`
-- `clinic:view_patients`
-- `clinic:view_schedule`
+- `partner:view_dashboard`
+- `partner:view_patients`
+- `partner:view_schedule`
 - `team:view_members`
 
-#### Role 6: Clinic Admin (Priority 90)
+#### Role 6: Partner Admin (Priority 90)
 
-- [ ] Created role with slug: `clinic_admin`
+- [ ] Created role with slug: `partner_admin`
 - [ ] Set priority: `90`
-- [ ] Added description: "Administrator of a clinic organization"
-- [ ] Assigned 77 permissions (clinic_member + clinic management)
+- [ ] Added description: "Administrator of a partner organization"
+- [ ] Assigned 77 permissions (partner_member + partner management)
 - [ ] Verified permission count: **77**
 
-**Additional Permissions (beyond Clinic Member):**
+**Additional Permissions (beyond Partner Member):**
 
-- All `clinic:*` (management)
+- All `partner:*` (management)
 - All `team:*` (full management)
 - All `schedule:*`
 - `patients:view_all`, `patients:manage_records`, `patients:view_insights`
@@ -351,8 +351,8 @@
   - [ ] Patient: 16
   - [ ] Expert Community: 52
   - [ ] Expert Top: 60
-  - [ ] Clinic Member: 56 (Phase 2)
-  - [ ] Clinic Admin: 77 (Phase 2)
+  - [ ] Partner Member: 56 (Phase 2)
+  - [ ] Partner Admin: 77 (Phase 2)
   - [ ] Platform Admin: 137
 
 ### Test Configuration

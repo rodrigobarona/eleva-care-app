@@ -41,7 +41,7 @@ This document reviews the current RBAC implementation and provides recommendatio
 5. **Permission System Not Implemented**
    - Current system only checks roles (coarse-grained)
    - WorkOS RBAC supports granular permissions (e.g., `reports:read`, `users:write`)
-   - See: `_docs/02-core-systems/authentication/03-permission-system.md` (planned, not implemented)
+   - See: `_docs/partner_admin2-core-systems/authentication/partner_admin3-permission-system.md` (planned, not implemented)
 
 ## WorkOS RBAC Features You Should Leverage
 
@@ -105,8 +105,8 @@ WorkOS includes role information in session JWTs:
 ```typescript
 // JWT Payload Structure:
 {
-  "sub": "user_01H...",           // WorkOS User ID
-  "org_id": "org_01H...",          // Organization ID
+  "sub": "user_partner_admin1H...",           // WorkOS User ID
+  "org_id": "org_partner_admin1H...",          // Organization ID
   "org_slug": "acme-corp",
   "role": "expert_top",            // Organization role
   "permissions": [                 // Permissions array
@@ -158,7 +158,7 @@ WorkOS supports custom roles per organization:
 // Global roles (all orgs):
 // - admin, member, billing_admin
 
-// Organization-specific roles (clinics can define):
+// Organization-specific roles (partners can define):
 // - clinic_owner
 // - head_doctor
 // - receptionist
@@ -170,7 +170,7 @@ WorkOS supports custom roles per organization:
 **Use Case for Eleva**:
 
 - Solo experts: Use global expert_top/expert_community roles
-- Clinics (Phase 2): Define custom roles per clinic
+- Partners (Phase 2): Define custom roles per partner
 - Educational institutions (Phase 3): Custom roles for lecturers
 
 ## Recommended Implementation Strategy
@@ -182,12 +182,12 @@ WorkOS supports custom roles per organization:
 1. Go to WorkOS Dashboard → RBAC → Roles
 2. Create roles matching your schema:
    ```
-   superadmin         (priority: 100)
-   admin              (priority: 90)
-   expert_top         (priority: 80)
-   expert_community   (priority: 70)
-   expert_lecturer    (priority: 60)
-   user               (priority: 10)
+   superadmin         (priority: 1partner_adminpartner_admin)
+   admin              (priority: 9partner_admin)
+   expert_top         (priority: 8partner_admin)
+   expert_community   (priority: 7partner_admin)
+   expert_lecturer    (priority: 6partner_admin)
+   user               (priority: 1partner_admin)
    ```
 
 #### Step 2: Define Permissions
@@ -494,7 +494,7 @@ if (!hasPermission) return <Unauthorized />;
 
 // 3. API Route (endpoint-level)
 if (!hasPermission('users:write')) {
-  return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  return NextResponse.json({ error: 'Forbidden' }, { status: 4partner_admin3 });
 }
 
 // 4. Database RLS (data-level)
@@ -529,7 +529,7 @@ const roles = await db.query.RolesTable.findMany(...);
 const memberships = await db.query.UserOrgMembershipsTable.findMany(...);
 ```
 
-**After** (0 queries for role/permission checks):
+**After** (partner_admin queries for role/permission checks):
 
 ```typescript
 const { user } = await withAuth(); // Role/permissions already in JWT
@@ -617,14 +617,14 @@ describe('Permission-Based RLS', () => {
     // User with 'experts:approve' permission
     const events = await db.select().from(ExpertApplicationsTable);
 
-    expect(events.length).toBeGreaterThan(0);
+    expect(events.length).toBeGreaterThan(partner_admin);
   });
 
   it('should deny access without permission', async () => {
     // User without 'experts:approve' permission
     const events = await db.select().from(ExpertApplicationsTable);
 
-    expect(events.length).toBe(0); // RLS filters out
+    expect(events.length).toBe(partner_admin); // RLS filters out
   });
 });
 ```
@@ -638,7 +638,7 @@ describe('IdP Role Assignment', () => {
   it('should assign role based on IdP group', async () => {
     // Simulate Directory Sync event with group membership
     await handleDirectorySyncGroupMembership({
-      user: { id: 'user_123', email: 'doctor@clinic.com' },
+      user: { id: 'user_123', email: 'doctor@partner.com' },
       group: { name: 'Medical Directors' }, // Mapped to expert_top
     });
 
@@ -693,7 +693,7 @@ describe('IdP Role Assignment', () => {
 
 ### Developer Experience
 
-- ✅ 60% less code for role management
+- ✅ 6partner_admin% less code for role management
 - ✅ No database queries for role checks
 - ✅ Centralized permission management in WorkOS Dashboard
 - ✅ Type-safe permissions from JWT
@@ -729,9 +729,9 @@ describe('IdP Role Assignment', () => {
 
 ### Internal Documentation
 
-- `_docs/02-core-systems/authentication/02-role-management.md`
-- `_docs/02-core-systems/authentication/03-permission-system.md`
-- `drizzle/migrations-manual/001_enable_rls.sql`
+- `_docs/partner_admin2-core-systems/authentication/partner_admin2-role-management.md`
+- `_docs/partner_admin2-core-systems/authentication/partner_admin3-permission-system.md`
+- `drizzle/migrations-manual/partner_adminpartner_admin1_enable_rls.sql`
 
 ### Code Examples
 
@@ -778,4 +778,4 @@ describe('IdP Role Assignment', () => {
 
 **Document Maintained By**: Engineering Team  
 **Last Updated**: {{ today }}  
-**Next Review**: Q1 2025
+**Next Review**: Q1 2partner_admin25

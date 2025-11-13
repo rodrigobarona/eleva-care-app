@@ -10,7 +10,8 @@
 ## Executive Summary
 
 This document defines a **multi-schedule availability system** that allows experts to:
-- ✅ Create multiple schedules for different contexts (remote, in-person, clinic)
+
+- ✅ Create multiple schedules for different contexts (remote, in-person, partner)
 - ✅ Assign different schedules to different event types
 - ✅ Work with or without calendar integrations (optional, not mandatory)
 - ✅ Use built-in calendar view for booking management
@@ -22,16 +23,18 @@ This document defines a **multi-schedule availability system** that allows exper
 ## Use Cases
 
 ### Use Case 1: Remote + In-Person Expert
-**Scenario:** Dr. João works remotely most days but offers in-person sessions at a clinic on Tuesday and Thursday afternoons.
+
+**Scenario:** Dr. João works remotely most days but offers in-person sessions at a partner on Tuesday and Thursday afternoons.
 
 **Solution:**
+
 ```
 Schedule 1: "Remote Work" (Default)
 ├─ Monday-Friday: 9:00 AM - 5:00 PM
 ├─ Location: Remote (Video call)
 └─ Timezone: America/Sao_Paulo
 
-Schedule 2: "Clinic - In-Person"
+Schedule 2: "Partner - In-Person"
 ├─ Tuesday: 2:00 PM - 6:00 PM
 ├─ Thursday: 2:00 PM - 6:00 PM
 ├─ Location: Clínica São Paulo (Address)
@@ -39,24 +42,26 @@ Schedule 2: "Clinic - In-Person"
 
 Event Types:
 ├─ "Online Consultation" → Uses Schedule 1 (Remote)
-└─ "In-Person Consultation" → Uses Schedule 2 (Clinic)
+└─ "In-Person Consultation" → Uses Schedule 2 (Partner)
 ```
 
 ---
 
-### Use Case 2: Expert Working at Multiple Clinics
-**Scenario:** Dr. Maria works part-time at two different clinics with different schedules.
+### Use Case 2: Expert Working at Multiple Partners
+
+**Scenario:** Dr. Maria works part-time at two different partners with different schedules.
 
 **Solution:**
+
 ```
-Schedule 1: "Clinic A - Morning"
+Schedule 1: "Partner A - Morning"
 ├─ Monday, Wednesday, Friday: 8:00 AM - 12:00 PM
-├─ Location: Clinic A (Address)
+├─ Location: Partner A (Address)
 └─ Timezone: America/Sao_Paulo
 
-Schedule 2: "Clinic B - Afternoon"
+Schedule 2: "Partner B - Afternoon"
 ├─ Tuesday, Thursday: 2:00 PM - 6:00 PM
-├─ Location: Clinic B (Address)
+├─ Location: Partner B (Address)
 └─ Timezone: America/Sao_Paulo
 
 Schedule 3: "Remote Evenings"
@@ -65,17 +70,19 @@ Schedule 3: "Remote Evenings"
 └─ Timezone: America/Sao_Paulo
 
 Event Types:
-├─ "Clinic A Session" → Uses Schedule 1
-├─ "Clinic B Session" → Uses Schedule 2
+├─ "Partner A Session" → Uses Schedule 1
+├─ "Partner B Session" → Uses Schedule 2
 └─ "Evening Online Session" → Uses Schedule 3
 ```
 
 ---
 
-### Use Case 3: Expert in Personal Practice + Clinic Organization
-**Scenario:** Dr. Ana has her own solo practice but also works part-time for a clinic organization.
+### Use Case 3: Expert in Personal Practice + Partner Organization
+
+**Scenario:** Dr. Ana has her own solo practice but also works part-time for a partner organization.
 
 **Solution:**
+
 ```
 Personal Organization:
 ├─ Schedule 1: "My Practice"
@@ -83,11 +90,11 @@ Personal Organization:
 │   └─ Location: My Office (Address)
 └─ Event Types: Personal consultation events
 
-Clinic Organization (Member):
-├─ Schedule 2: "Clinic Schedule"
+Partner Organization (Member):
+├─ Schedule 2: "Partner Schedule"
 │   ├─ Tuesday, Thursday: 10:00 AM - 4:00 PM
-│   └─ Location: Partner Clinic (Address)
-└─ Event Types: Clinic-assigned events
+│   └─ Location: Partner Partner (Address)
+└─ Event Types: Partner-assigned events
 ```
 
 ---
@@ -100,23 +107,23 @@ Clinic Organization (Member):
 interface Schedule {
   id: string;
   userId: string; // Owner of the schedule
-  organizationId?: string; // If schedule belongs to clinic
-  
+  organizationId?: string; // If schedule belongs to partner
+
   // Identity
-  name: string; // "Remote Work", "Clinic Tuesdays", "Evening Sessions"
+  name: string; // "Remote Work", "Partner Tuesdays", "Evening Sessions"
   isDefault: boolean; // One schedule marked as default
-  
+
   // Availability Rules
   timezone: string; // IANA timezone
   availability: WeeklyHours[]; // Weekly recurring availability
   dateOverrides: DateOverride[]; // Specific date changes
-  
+
   // Location (where bookings happen)
   location: Location;
-  
+
   // Status
   isActive: boolean;
-  
+
   // Metadata
   createdAt: Date;
   updatedAt: Date;
@@ -141,11 +148,11 @@ interface DateOverride {
 
 interface Location {
   type: 'remote' | 'inPerson' | 'phone' | 'hybrid';
-  
+
   // For remote
   videoProvider?: 'zoom' | 'googleMeet' | 'teams' | 'custom';
   videoLink?: string; // Custom link if provider is 'custom'
-  
+
   // For in-person
   address?: {
     street: string;
@@ -155,7 +162,7 @@ interface Location {
     country: string;
     additionalInfo?: string; // Suite number, building, etc.
   };
-  
+
   // For phone
   phoneNumber?: string;
   phoneInstructions?: string;
@@ -170,28 +177,28 @@ interface Location {
 interface EventType {
   id: string;
   userId: string;
-  
+
   // Basic info
   title: string;
   slug: string;
   description: string;
   duration: number; // minutes
-  
+
   // Schedule Assignment
   scheduleId: string; // Which schedule to use for availability
-  
+
   // Location (inherits from schedule but can override)
   locationOverride?: Location; // Override schedule's location if needed
-  
+
   // Calendar Integration (where to save bookings)
   calendarDestination: CalendarDestination;
-  
+
   // ... other fields
 }
 
 interface CalendarDestination {
   type: 'app-only' | 'external'; // Save only in app or also sync to external
-  
+
   // If external
   provider?: 'google' | 'outlook' | 'office365' | 'apple';
   calendarId?: string; // Specific calendar within provider
@@ -212,7 +219,7 @@ interface CalendarDestination {
 │  ├─ + Create New Schedule
 │  └─ List of schedules:
 │     ├─ Remote Work (Default) ⭐
-│     ├─ Clinic Tuesdays
+│     ├─ Partner Tuesdays
 │     └─ Evening Sessions
 │
 ├─ ⚙️ Limits
@@ -231,6 +238,7 @@ interface CalendarDestination {
 ### Schedule Creation/Edit Flow
 
 **Step 1: Basic Info**
+
 ```
 ┌─────────────────────────────────────────┐
 │ Create Schedule                          │
@@ -254,6 +262,7 @@ interface CalendarDestination {
 ```
 
 **Step 2: Weekly Hours**
+
 ```
 ┌─────────────────────────────────────────┐
 │ Set Your Availability                    │
@@ -281,6 +290,7 @@ interface CalendarDestination {
 ```
 
 **Step 3: Location Details** (if in-person selected)
+
 ```
 ┌─────────────────────────────────────────┐
 │ Location Details                         │
@@ -324,7 +334,7 @@ interface CalendarDestination {
 │ [Remote Work Hours (Default) ▼]         │
 │   Options:                               │
 │   • Remote Work Hours (Default) ⭐      │
-│   • Clinic Tuesdays                      │
+│   • Partner Tuesdays                      │
 │   • Evening Sessions                     │
 │                                          │
 │ Location will inherit from schedule:     │
@@ -354,6 +364,7 @@ interface CalendarDestination {
 ### Phase 1: Optional Integration (Current)
 
 **Remove Mandatory Google Calendar:**
+
 ```typescript
 // OLD (Mandatory)
 interface UserOnboarding {
@@ -361,7 +372,7 @@ interface UserOnboarding {
     'create-account',
     'connect-google-calendar', // ❌ MANDATORY
     'setup-availability',
-    'create-event'
+    'create-event',
   ];
 }
 
@@ -369,16 +380,17 @@ interface UserOnboarding {
 interface UserOnboarding {
   steps: [
     'create-account',
-    'setup-availability',  // Can do this without calendar
-    'create-event'
+    'setup-availability', // Can do this without calendar
+    'create-event',
   ];
   optional: [
-    'connect-calendar' // Optional enhancement
+    'connect-calendar', // Optional enhancement
   ];
 }
 ```
 
 **App-Only Bookings:**
+
 - Store all bookings in Neon database
 - Built-in calendar view in `/appointments/calendar`
 - No external dependency
@@ -389,34 +401,35 @@ interface UserOnboarding {
 ### Phase 2: Multi-Provider Support (Future)
 
 **Supported Providers:**
+
 ```typescript
-type CalendarProvider = 
-  | 'google'      // Google Calendar
-  | 'outlook'     // Outlook.com
-  | 'office365'   // Microsoft 365
-  | 'apple'       // iCloud Calendar
-  | 'caldav';     // Generic CalDAV
+type CalendarProvider =
+  | 'google' // Google Calendar
+  | 'outlook' // Outlook.com
+  | 'office365' // Microsoft 365
+  | 'apple' // iCloud Calendar
+  | 'caldav'; // Generic CalDAV
 
 interface CalendarConnection {
   id: string;
   userId: string;
   provider: CalendarProvider;
-  
+
   // OAuth tokens (encrypted)
   accessToken: string;
   refreshToken: string;
   expiresAt: Date;
-  
+
   // Provider details
   email: string; // Account email
-  
+
   // Available calendars from this connection
   calendars: ConnectedCalendar[];
-  
+
   // Status
   isActive: boolean;
   lastSyncAt: Date;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -431,6 +444,7 @@ interface ConnectedCalendar {
 ```
 
 **Per-Event Calendar Selection:**
+
 ```typescript
 // Example: Event uses Google Calendar, but expert has multiple calendars
 {
@@ -464,6 +478,7 @@ interface ConnectedCalendar {
 ### Requirements
 
 **Must Have:**
+
 - ✅ Day, Week, Month views
 - ✅ Show all bookings from app database
 - ✅ Color-code by event type
@@ -473,12 +488,14 @@ interface ConnectedCalendar {
 - ✅ Today indicator
 
 **Should Have:**
+
 - ✅ Drag-and-drop to reschedule (admin only)
 - ✅ Time zone display
 - ✅ Export to ICS file
 - ✅ Print view
 
 **Could Have:**
+
 - 🔮 Show external calendar events (read-only)
 - 🔮 Conflict detection with external calendars
 - 🔮 Multiple calendars overlay
@@ -503,14 +520,14 @@ interface ConnectedCalendar {
 │  │ 12:00   ─────────────────────────────────────────────────  │ │
 │  │ 13:00                                                       │ │
 │  │ 14:00   [In-Person] 🏥          [In-Person] 🏥           │ │
-│  │ 15:00   (Clinic)                (Clinic)                   │ │
+│  │ 15:00   (Partner)                (Partner)                   │ │
 │  │ 16:00                                                       │ │
 │  │ 17:00                                                       │ │
 │  │ 18:00                                                       │ │
 │  └────────────────────────────────────────────────────────────┘ │
 │                                                                   │
 │  Legend: 🏥 In-Person  💻 Remote  📞 Phone                       │
-│          Clinic Tuesdays  Remote Work  Evening Sessions          │
+│          Partner Tuesdays  Remote Work  Evening Sessions          │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -521,6 +538,7 @@ interface ConnectedCalendar {
 ### Phase 1: Multiple Schedules (Priority)
 
 **Week 1-2: Backend**
+
 - [ ] Create `schedules` table in database
 - [ ] Add `scheduleId` to `event_types` table
 - [ ] Add `location` JSONB field to schedules
@@ -528,12 +546,14 @@ interface ConnectedCalendar {
 - [ ] API endpoints for schedule CRUD
 
 **Week 3-4: Frontend**
+
 - [ ] Schedules list page (`/availability/schedules`)
 - [ ] Create/Edit schedule flow
 - [ ] Schedule assignment in event type form
 - [ ] Location configuration UI
 
 **Week 5: Integration**
+
 - [ ] Update booking availability calculation
 - [ ] Test with multiple schedules
 - [ ] Migration guide for existing users
@@ -543,12 +563,14 @@ interface ConnectedCalendar {
 ### Phase 2: Optional Calendar Integration (Priority)
 
 **Week 1-2:**
+
 - [ ] Make Google Calendar optional in onboarding
 - [ ] Add "App calendar only" option to event types
 - [ ] Built-in calendar view (basic)
 - [ ] Test booking flow without external calendar
 
 **Week 3-4:**
+
 - [ ] Enhanced calendar view (week/month)
 - [ ] Filter by schedule
 - [ ] Export to ICS
@@ -559,6 +581,7 @@ interface ConnectedCalendar {
 ### Phase 3: Multi-Provider Calendar (Future)
 
 **TBD:**
+
 - [ ] OAuth flows for Outlook, Office 365
 - [ ] Calendar connection management UI
 - [ ] Per-event calendar destination
@@ -575,28 +598,28 @@ CREATE TABLE schedules (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
-  
+
   -- Identity
   name VARCHAR(255) NOT NULL,
   is_default BOOLEAN DEFAULT false,
-  
+
   -- Availability
   timezone VARCHAR(100) NOT NULL DEFAULT 'UTC',
   availability JSONB NOT NULL, -- WeeklyHours[]
   date_overrides JSONB DEFAULT '[]'::jsonb, -- DateOverride[]
-  
+
   -- Location
   location JSONB NOT NULL, -- Location object
-  
+
   -- Status
   is_active BOOLEAN DEFAULT true,
-  
+
   -- Metadata
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Constraints
-  CONSTRAINT unique_default_schedule_per_user 
+  CONSTRAINT unique_default_schedule_per_user
     EXCLUDE (user_id WITH =) WHERE (is_default = true)
 );
 
@@ -604,31 +627,31 @@ CREATE TABLE schedules (
 CREATE TABLE calendar_connections (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  
+
   provider VARCHAR(50) NOT NULL, -- 'google', 'outlook', etc.
   email VARCHAR(255) NOT NULL,
-  
+
   -- OAuth (encrypted)
   access_token TEXT NOT NULL,
   refresh_token TEXT NOT NULL,
   expires_at TIMESTAMPTZ NOT NULL,
-  
+
   -- Connected calendars
   calendars JSONB DEFAULT '[]'::jsonb, -- ConnectedCalendar[]
-  
+
   -- Status
   is_active BOOLEAN DEFAULT true,
   last_sync_at TIMESTAMPTZ,
-  
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  
+
   -- Unique constraint
   UNIQUE(user_id, provider, email)
 );
 
 -- Update event_types table
-ALTER TABLE event_types 
+ALTER TABLE event_types
   ADD COLUMN schedule_id UUID REFERENCES schedules(id) ON DELETE SET NULL,
   ADD COLUMN location_override JSONB,
   ADD COLUMN calendar_destination JSONB NOT NULL DEFAULT '{"type": "app-only"}'::jsonb;
@@ -739,16 +762,19 @@ Response: { success: boolean }
 ## Success Metrics
 
 ### User Adoption
+
 - % of users who create multiple schedules
 - % of users who use app-only vs calendar integration
 - Average number of schedules per user
 
 ### Technical
+
 - Booking calculation performance with multiple schedules
 - Calendar sync success rate
 - API response times
 
 ### Business
+
 - Reduction in support tickets about calendar issues
 - User satisfaction with scheduling flexibility
 - Feature adoption rate
@@ -756,9 +782,9 @@ Response: { success: boolean }
 ---
 
 **Next Steps:**
+
 1. Review and approve this specification
 2. Prioritize Phase 1 (Multiple Schedules)
 3. Design database migrations
 4. Create UI mockups
 5. Begin implementation
-

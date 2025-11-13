@@ -11,6 +11,7 @@
 A **comprehensive dashboard architecture redesign** with:
 
 ### 📚 8 Complete Documents (70+ pages)
+
 1. `README-DASHBOARD-REDESIGN.md` - Main index & overview
 2. `DASHBOARD-REDESIGN-SUMMARY.md` - Executive summary
 3. `DASHBOARD-MENU-QUICK-REFERENCE.md` - Cheat sheets & FAQ
@@ -27,28 +28,31 @@ A **comprehensive dashboard architecture redesign** with:
 ### 1. **Multiple Schedules** (Like Cal.com) ✨
 
 **Problem Solved:**
+
 - ❌ Old: Single schedule, no flexibility
 - ❌ Can't have different hours for remote vs in-person
 - ❌ Can't work at multiple locations
 
 **Solution:**
+
 ```
 Create Multiple Schedules:
 ├─ "Remote Work" (Mon-Fri, 9am-5pm, Video)
-├─ "Clinic Tuesdays" (Tue/Thu, 2pm-6pm, In-person)
+├─ "Partner Tuesdays" (Tue/Thu, 2pm-6pm, In-person)
 └─ "Evening Sessions" (Mon-Thu, 7pm-9pm, Remote)
 
 Assign to Event Types:
 ├─ "Online Consultation" → Uses "Remote Work"
-└─ "In-Person Session" → Uses "Clinic Tuesdays"
+└─ "In-Person Session" → Uses "Partner Tuesdays"
 ```
 
 **Features:**
+
 - ✅ Unlimited schedules
 - ✅ Each with own hours, location, timezone
 - ✅ Assign different schedule to each event type
 - ✅ Perfect for hybrid work (remote + in-person)
-- ✅ Perfect for multi-clinic experts
+- ✅ Perfect for multi-partner experts
 
 **Implementation:** 3 weeks (Phase 1B)
 
@@ -57,11 +61,13 @@ Assign to Event Types:
 ### 2. **Optional Calendar Integration** ✨
 
 **Problem Solved:**
+
 - ❌ Old: Google Calendar mandatory (barrier to entry)
 - ❌ Users forced to connect external calendar
 - ❌ No way to work without third-party integration
 
 **Solution:**
+
 ```
 Option A: App Calendar Only (No Integration)
 ├─ Store bookings in Neon database
@@ -77,6 +83,7 @@ Option B: External Calendar (Optional Enhancement)
 ```
 
 **Features:**
+
 - ✅ Works perfectly WITHOUT external calendar
 - ✅ Built-in calendar view with Day/Week/Month views
 - ✅ Calendar integration is OPTIONAL
@@ -90,12 +97,14 @@ Option B: External Calendar (Optional Enhancement)
 ### 3. **Patient Portal & Review System** (Like Airbnb) ✨
 
 **Problem Solved:**
+
 - ❌ Old: No patient dashboard
 - ❌ Patients can't view their history
 - ❌ No way to leave feedback/reviews
 - ❌ Experts have no social proof
 
 **Solution:**
+
 ```
 Patient Portal:
 ├─ 📊 Dashboard (overview, upcoming appointments)
@@ -118,6 +127,7 @@ Review System (Like Airbnb):
 ```
 
 **Why Not Yotpo?**
+
 - ❌ Expensive ($299-$999/month)
 - ❌ Not healthcare-specific
 - ❌ Privacy concerns (third-party data)
@@ -125,6 +135,7 @@ Review System (Like Airbnb):
 - ❌ Generic e-commerce features
 
 **Why Self-Hosted?**
+
 - ✅ Full control over data
 - ✅ $0 monthly cost
 - ✅ HIPAA/LGPD compliant
@@ -168,7 +179,7 @@ Review System (Like Airbnb):
 
 ---
 
-### 🏥 Clinic Dashboard (Future Phase 2)
+### 🏥 Partner Dashboard (Future Phase 2)
 
 ```
 PERSONAL
@@ -178,7 +189,7 @@ PERSONAL
   🔗 My Event Types
 
 CLINIC
-  🏥 Clinic Overview
+  🏥 Partner Overview
   👥 Team → Members | Invite | Roles
   📅 Schedule → Multi-calendar | Rooms
   👨‍👩‍👧‍👦 Patients → All | Records | Insights
@@ -194,7 +205,7 @@ CLINIC
 ```
 🏢 Platform Overview
 👥 Users → All | Experts | Patients
-🏥 Organizations → All | Clinics | Details
+🏥 Organizations → All | Partners | Details
 📊 Platform Analytics → Growth | Revenue | Engagement
 💳 Payments → Transactions | Transfers | Disputes
 🏷️ Categories → Specialties | Services | Tags
@@ -224,11 +235,11 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 
 ### Avoided Third-Party Costs
 
-| Service | Monthly | Annual | Saved By |
-|---------|---------|--------|----------|
-| Yotpo Reviews | $299-999 | $3,588-11,988 | Self-hosted reviews |
-| Cal.com Pro | $25/expert | $300/expert/year | Built own scheduling |
-| Calendly | $12-16/expert | $144-192/expert | Built own calendar |
+| Service       | Monthly       | Annual           | Saved By             |
+| ------------- | ------------- | ---------------- | -------------------- |
+| Yotpo Reviews | $299-999      | $3,588-11,988    | Self-hosted reviews  |
+| Cal.com Pro   | $25/expert    | $300/expert/year | Built own scheduling |
+| Calendly      | $12-16/expert | $144-192/expert  | Built own calendar   |
 
 **Total Savings:** $4,032+ per year per expert  
 **For 100 experts:** $403,200/year saved!
@@ -238,21 +249,25 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 ## 📈 Expected Business Impact
 
 ### User Acquisition
+
 - **Remove Barrier:** Google Calendar no longer mandatory
 - **Faster Onboarding:** Can start booking immediately
 - **Lower Friction:** No third-party account required
 
 ### User Engagement
+
 - **Patient Portal:** Patients return to view history & reviews
 - **Reviews:** Social proof drives more bookings
 - **Schedule Flexibility:** Experts can offer more availability
 
 ### Revenue
+
 - **More Bookings:** Better availability = more slots
 - **Tier Upgrades:** Analytics visibility drives conversions
 - **Positive Reviews:** Higher conversion rate on expert profiles
 
 ### Retention
+
 - **Patient Portal:** Patients feel invested in platform
 - **Session Notes:** Valuable content brings patients back
 - **Reviews:** Two-way engagement (expert + patient)
@@ -282,23 +297,27 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 ## ✅ Technical Highlights
 
 ### Next.js 16 Best Practices
+
 - Async params (required)
 - Server Components by default
 - Client Components only when needed
 - `'use cache'` for cacheable data
 
 ### WorkOS RBAC Integration
+
 - Permission-based navigation
 - Role checks in middleware
 - JWT-based auth (no database queries)
 
 ### Database (Neon + Drizzle)
+
 - Multiple schedules table
 - Reviews table
 - Calendar connections table
 - Optimized indexes
 
 ### UI/UX (shadcn/ui)
+
 - Consistent design system
 - Accessible components
 - Custom star rating
@@ -309,6 +328,7 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 ## 🔐 Privacy & Compliance
 
 ### HIPAA/LGPD Ready
+
 - ✅ Self-hosted reviews (full control)
 - ✅ No PHI in reviews (guidelines + auto-flag)
 - ✅ Right to delete reviews
@@ -317,6 +337,7 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 - ✅ Audit logs
 
 ### Review Guidelines
+
 ```
 ✅ DO share:
 - Overall experience
@@ -336,6 +357,7 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 ## 📦 What You Get
 
 ### Documentation
+
 - ✅ 8 comprehensive documents (70+ pages)
 - ✅ Complete architecture specification
 - ✅ Step-by-step implementation guide
@@ -346,15 +368,17 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 - ✅ UI component code
 
 ### Features
+
 - ✅ Multiple schedules system
 - ✅ Optional calendar integration
 - ✅ Built-in calendar view
 - ✅ Complete patient portal
 - ✅ Airbnb-style review system
 - ✅ Role-based navigation
-- ✅ Scalable for clinics & LMS
+- ✅ Scalable for partners & LMS
 
 ### Ready to Build
+
 - ✅ All routes defined
 - ✅ Database schemas ready
 - ✅ API endpoints specified
@@ -367,6 +391,7 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 ## 🎯 Success Criteria
 
 ### Phase 1 Complete When:
+
 - [ ] All navigation routes working
 - [ ] Multiple schedules functional
 - [ ] Calendar works without external integration
@@ -377,6 +402,7 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 - [ ] < 1s page load (p95)
 
 ### Business Metrics:
+
 - [ ] 80%+ feature discovery rate
 - [ ] 50%+ review completion rate (within 7 days)
 - [ ] 20%+ tier upgrade rate (from Analytics exposure)
@@ -398,6 +424,7 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 ## 📞 Support & Questions
 
 ### Documentation
+
 - 📖 Start with: `README-DASHBOARD-REDESIGN.md`
 - 🚀 Quick start: `DASHBOARD-REDESIGN-SUMMARY.md`
 - 💻 For devs: `DASHBOARD-MENU-IMPLEMENTATION.md`
@@ -406,6 +433,7 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 - 👥 Patient portal: `PATIENT-PORTAL-SPECIFICATION.md`
 
 ### Contact
+
 - 💬 Slack: #dev-platform
 - 📧 Email: dev-team@eleva.care
 - 🐛 GitHub: Issues with `[navigation]` tag
@@ -415,14 +443,16 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 ## 🏆 What Makes This Special
 
 ### Most Redesigns
+
 - Focus only on current features
 - Copy existing patterns
 - Lack implementation details
 - No consideration for growth
 
 ### This Redesign
+
 - ✅ Researched 5 industry leaders
-- ✅ Designed for current + future (clinics, LMS)
+- ✅ Designed for current + future (partners, LMS)
 - ✅ Multiple schedules like Cal.com
 - ✅ Optional calendar (removes barrier)
 - ✅ Built-in calendar view
@@ -439,9 +469,10 @@ Week 9-12:  Patient Portal & Reviews (Phase 1D)
 ## 🎉 Bottom Line
 
 This is a **production-ready, enterprise-grade dashboard architecture** that:
+
 - Solves immediate problems (single schedule, mandatory calendar)
 - Adds missing features (patient portal, reviews)
-- Scales for future growth (clinics, LMS)
+- Scales for future growth (partners, LMS)
 - Saves $400K+/year (self-hosted vs third-party)
 - Follows industry best practices
 - Includes complete implementation roadmap
@@ -458,4 +489,3 @@ This is a **production-ready, enterprise-grade dashboard architecture** that:
 
 **Built with ❤️ for Eleva Care**  
 **November 12, 2025**
-

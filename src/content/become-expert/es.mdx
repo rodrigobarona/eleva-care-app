@@ -8,3 +8,268 @@ export const metadata = {
   }
 };
 
+import HeroSection from '@/components/sections/become-expert/HeroSection';
+import BenefitsSection from '@/components/sections/become-expert/BenefitsSection';
+import ExpertPricingSection from '@/components/sections/become-expert/ExpertPricingSection';
+import HowItWorksSection from '@/components/sections/become-expert/HowItWorksSection';
+import RequirementsSection from '@/components/sections/become-expert/RequirementsSection';
+import FinalCTASection from '@/components/sections/become-expert/FinalCTASection';
+import { Sparkles, TrendingUp } from 'lucide-react';
+
+<HeroSection
+  badge="Únete a Nuestra Red de Expertos"
+  title="Comparte tu Experiencia,"
+  subtitle="Gana en tus Propios Términos"
+  description="Ayuda a las personas a alcanzar sus objetivos de salud y bienestar mientras construyes una práctica flexible. Establece tu propio horario, tarifas y trabaja desde cualquier lugar."
+  ctaButton="Comenzar"
+  signInButton="Iniciar Sesión"
+  features="✓ Sin costos iniciales  ✓ Conserva el 80% de ganancias  ✓ Soporte profesional"
+/>
+
+<BenefitsSection
+  title="¿Por Qué Unirte a Eleva Care?"
+  benefits={[
+    {
+      icon: 'dollar',
+      title: 'Establece tus Propias Tarifas',
+      description: 'Tú decides cuánto vale tu tiempo. Conserva el 80% de tus ganancias y recibe pagos semanales.',
+    },
+    {
+      icon: 'calendar',
+      title: 'Horario Flexible',
+      description: 'Controla completamente tu calendario. Trabaja tanto o tan poco como quieras, cuando quieras.',
+    },
+    {
+      icon: 'users',
+      title: 'Clientes de Calidad',
+      description: 'Conecta con clientes motivados que se toman en serio su viaje de salud y bienestar.',
+    },
+    {
+      icon: 'video',
+      title: 'Sesiones Virtuales',
+      description: 'Realiza sesiones desde cualquier lugar. Solo necesitas una computadora y conexión a internet.',
+    },
+    {
+      icon: 'shield',
+      title: 'Pagos Seguros',
+      description: 'Facturación automática y procesamiento seguro de pagos. Sin perseguir pagos ni trámites.',
+    },
+    {
+      icon: 'trending',
+      title: 'Apoyo en Marketing',
+      description: 'Sé descubierto por nuevos clientes a través de nuestra plataforma. Enfócate en tu experiencia, no en marketing.',
+    },
+  ]}
+/>
+
+<HowItWorksSection
+  title="Cómo Funciona"
+  steps={[
+    {
+      title: 'Crea tu Perfil',
+      description: 'Comparte tu experiencia, credenciales y disponibilidad. Dile a los clientes qué te hace único.',
+    },
+    {
+      title: 'Establece tus Servicios y Tarifas',
+      description: 'Define tus ofertas y precios. Tienes control completo sobre tu negocio.',
+    },
+    {
+      title: 'Sé Descubierto',
+      description: 'Los clientes te encuentran a través de búsquedas y recomendaciones. Comienza a recibir solicitudes de reserva.',
+    },
+    {
+      title: 'Proporciona tu Servicio',
+      description: 'Realiza sesiones, ayuda a los clientes a alcanzar sus objetivos y construye tu reputación a través de reseñas.',
+    },
+  ]}
+  ctaButton="Comienza tu Viaje"
+/>
+
+
+<ExpertPricingSection
+  title="Precios Flexibles para Cada Experto"
+  subtitle="Elige el plan que se adapte a tu práctica. Todos los planes incluyen pagos seguros, gestión de calendario y herramientas de comunicación con clientes."
+  communityTier={{
+    tierName: 'Experto Comunitario',
+    tierIcon: <Sparkles className="h-6 w-6" />,
+    tierColor: 'primary',
+    description: 'Perfecto para profesionales que están comenzando o construyendo su práctica',
+    plans: [
+      {
+        name: 'Pago por uso',
+        price: '$0',
+        priceDetail: '/mes',
+        commission: '20%',
+        description: 'Comienza a ganar inmediatamente sin costos iniciales',
+        features: [
+          'Lista hasta 5 servicios',
+          'Integración básica de calendario',
+          'Analíticas estándar',
+          'Pagos semanales',
+          'Soporte por email',
+          'Sin tarifas de suscripción',
+          'Cancela en cualquier momento',
+        ],
+        cta: {
+          text: 'Comenzar Gratis',
+          href: '/register?expert=true&plan=community-paygo',
+        },
+      },
+      {
+        name: 'Plan Mensual',
+        price: '$49',
+        priceDetail: '/mes',
+        commission: '12%',
+        badge: 'Comisión Reducida',
+        recommended: true,
+        description: 'Comisión reducida con facturación mensual predecible',
+        features: [
+          'Todo en Pago por uso',
+          'Comisión reducida del 12% (ahorra 8%)',
+          'Incorporación prioritaria',
+          'Revisiones trimestrales del negocio',
+          'Cambia de plan en cualquier momento',
+        ],
+        cta: {
+          text: 'Elegir Mensual',
+          href: '/register?expert=true&plan=community-monthly',
+        },
+      },
+      {
+        name: 'Plan Anual',
+        price: '$490',
+        priceDetail: '/año',
+        commission: '12%',
+        badge: 'Mejor Valor',
+        savingsText: '💰 Ahorra $98 (¡2 meses gratis!)',
+        description: 'Máximo ahorro con compromiso anual',
+        features: [
+          'Todo en Plan Mensual',
+          'Comisión reducida del 12% (ahorra 8%)',
+          'Ahorra $98 vs facturación mensual',
+          'Descuento por compromiso anual',
+          'Soporte prioritario',
+        ],
+        cta: {
+          text: 'Ahorrar con Anual',
+          href: '/register?expert=true&plan=community-annual',
+        },
+      },
+    ],
+  }}
+  topTier={{
+    tierName: 'Experto Top',
+    tierBadge: 'Basado en Rendimiento',
+    tierIcon: <TrendingUp className="h-6 w-6" />,
+    tierColor: 'amber',
+    description: 'Nivel premium para expertos establecidos con historial comprobado',
+    requirements: [
+      '⭐ Calificación promedio de 4.8+',
+      '📅 25+ citas completadas en 90 días',
+      '💯 Menos del 5% de tasa de cancelación',
+      '📊 Tasa de respuesta del 90%+ en 24 horas',
+      '🎖️ 3+ meses como Experto Comunitario',
+      '✨ Perfil de experto completo con portafolio',
+    ],
+    plans: [
+      {
+        name: 'Pago por uso',
+        price: '$0',
+        priceDetail: '/mes',
+        commission: '15%',
+        description: 'Funciones premium con precios solo por comisión',
+        features: [
+          'Servicios ilimitados',
+          'Analíticas e insights avanzados',
+          'Pagos diarios',
+          'Soporte prioritario',
+          'Insignia de Experto Top',
+          'Ubicación destacada',
+          'Sin tarifas de suscripción',
+        ],
+        cta: {
+          text: 'Solicitar Experto Top',
+          href: '/register?expert=true&plan=top-paygo',
+        },
+      },
+      {
+        name: 'Plan Mensual',
+        price: '$177',
+        priceDetail: '/mes',
+        commission: '8%',
+        badge: 'Líder de la Industria',
+        recommended: true,
+        description: 'Tasa de comisión líder en la industria con facturación mensual',
+        features: [
+          'Todo en Pago por uso',
+          'Comisión líder del 8%',
+          'Opciones de marca personalizada',
+          'Capacidades de sesiones grupales',
+          'Mensajería directa',
+          'Soporte de cuenta dedicado',
+        ],
+        cta: {
+          text: 'Elegir Mensual',
+          href: '/register?expert=true&plan=top-monthly',
+        },
+      },
+      {
+        name: 'Plan Anual',
+        price: '$1,774',
+        priceDetail: '/año',
+        commission: '8%',
+        badge: 'Valor Máximo',
+        savingsText: '💰 Ahorra $350 (¡2 meses gratis!)',
+        description: 'Mejor valor para los mejores comprometidos',
+        features: [
+          'Todo en Plan Mensual',
+          'Comisión líder del 8%',
+          'Ahorra $350 vs facturación mensual',
+          'Beneficios anuales VIP',
+          'Analíticas premium',
+          'Gerente de cuenta dedicado',
+        ],
+        cta: {
+          text: 'Ahorrar con Anual',
+          href: '/register?expert=true&plan=top-annual',
+        },
+      },
+    ],
+  }}
+  note="Cambia de plan en cualquier momento. No se requieren contratos a largo plazo. Todos los planes incluyen soporte de plataforma, procesamiento seguro de pagos y herramientas de gestión de clientes."
+/>
+
+
+<RequirementsSection
+  title="Lo Que Necesitas"
+  requirements={[
+    {
+      icon: 'badge',
+      title: 'Credenciales Profesionales',
+      description: 'Licencia o certificación válida en tu campo (salud, coaching, consultoría, etc.)',
+    },
+    {
+      icon: 'globe',
+      title: 'Internet Confiable',
+      description: 'Conexión a internet estable para sesiones virtuales y comunicación en la plataforma',
+    },
+    {
+      icon: 'message',
+      title: 'Habilidades de Comunicación',
+      description: 'Capacidad para conectar con clientes de manera profesional y compasiva',
+    },
+    {
+      icon: 'heart',
+      title: 'Pasión por Ayudar',
+      description: 'Deseo genuino de ayudar a las personas a mejorar su salud y bienestar',
+    },
+  ]}
+/>
+
+<FinalCTASection
+  title="¿Listo para Marcar la Diferencia?"
+  description="Únete a cientos de expertos que ya están ayudando a clientes a alcanzar sus objetivos en Eleva Care. Comienza a construir tu práctica flexible hoy."
+  button="Crear Perfil de Experto"
+  questions="¿Tienes preguntas?"
+  contact="Contáctanos"
+/>
