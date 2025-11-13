@@ -240,11 +240,10 @@ export default async function proxy(request: NextRequest) {
     ? path.substring(path.indexOf('/', 1))
     : path;
 
-  const isPublicRoute =
-    isUsernameRoute(path) ||
+  // Determine if route is public (but may still need auth context)
+  const isPublicContentRoute =
     isLocalePublicRoute(path) ||
     isHomePage(path) ||
-    isAuthRoute(path) ||
     isPublicContentPath(path) ||
     isPublicContentPath(pathWithoutLocale) ||
     matchPatternsArray(path, PUBLIC_ROUTES);
@@ -255,8 +254,12 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For public routes, apply i18n first
-  if (isPublicRoute) {
+  // Username routes need AuthKit context (for unpublished profile checks)
+  // but should be accessible to everyone
+  const needsAuthContext = isUsernameRoute(path);
+
+  // For public content routes (no auth needed), apply i18n first and return
+  if (isPublicContentRoute && !needsAuthContext) {
     console.log(`🌐 Public route with i18n: ${path}`);
     return await handleI18nRouting(request);
   }
@@ -276,6 +279,27 @@ export default async function proxy(request: NextRequest) {
   // =============================================
   // PROTECTED ROUTES - Require Authentication
   // =============================================
+
+  // Username routes with auth context (accessible to everyone, auth used for owner checks)
+  if (needsAuthContext) {
+    console.log(
+      `👤 Username route with auth context: ${path}, user: ${session.user?.email || 'anonymous'}`,
+    );
+
+    // Apply i18n routing with auth headers preserved
+    const response = await handleI18nRouting(request);
+
+    // Preserve AuthKit headers (session cookies) so withAuth() can work in components
+    for (const [key, value] of authkitHeaders) {
+      if (key.toLowerCase() === 'set-cookie') {
+        response.headers.append(key, value);
+      } else {
+        response.headers.set(key, value);
+      }
+    }
+
+    return response;
+  }
 
   // If no user session on protected route, redirect to sign-in
   if (!session.user) {

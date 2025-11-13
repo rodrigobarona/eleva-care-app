@@ -9,6 +9,9 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import { notFound, redirect } from 'next/navigation';
 
+// Static params for all locales
+export const dynamicParams = false;
+
 // Static content - cache for 24 hours
 // TODO: Migrate to cacheLife('days') when next-intl supports cacheComponents
 // Tracking: https://github.com/amannn/next-intl/issues/1493
