@@ -189,7 +189,7 @@ function preserveAuthHeaders(response: NextResponse, authHeaders: Headers): Next
 /**
  * Main proxy function using AuthKit for authentication
  * Next.js 16 renamed middleware to proxy
- * 
+ *
  * Pattern: AuthKit first → i18n routing → preserve headers
  * This ensures all routes have auth context available via withAuth()
  */
@@ -346,7 +346,10 @@ export default async function proxy(request: NextRequest) {
   // For private routes without i18n (dashboard, etc.)
   if (isPrivateRoute(request)) {
     console.log(`🔒 Private route (no i18n): ${path}`);
-    const response = NextResponse.next();
+    // Use WorkOS recommended pattern for header forwarding (SSRF mitigation)
+    const response = NextResponse.next({
+      request: { headers: new Headers(request.headers) },
+    });
     return preserveAuthHeaders(response, authkitHeaders);
   }
 
@@ -357,11 +360,40 @@ export default async function proxy(request: NextRequest) {
 }
 
 /**
- * Configure which paths the middleware runs on
- * Note: api/webhooks includes the Novu bridge at /api/webhooks/novu
+ * Configure which paths the proxy middleware runs on
+ * 
+ * Pattern combines:
+ * - WorkOS AuthKit: Ensure middleware runs on all routes that use withAuth()
+ * - next-intl: Exclude static files, Next.js internals, and specific API routes
+ * 
+ * This matcher ensures AuthKit headers are available for ALL pages including:
+ * - Root route (/) 
+ * - All locale-prefixed routes (/en, /es, /pt, etc.)
+ * - All page routes (marketing, legal, dashboard, etc.)
+ * 
+ * Excluded:
+ * - Static files (images, css, js)
+ * - Next.js internals (_next, _vercel)
+ * - Public webhooks and cron jobs
+ * 
+ * @see https://github.com/workos/authkit-nextjs#composing-custom-nextjs-middleware-with-authkit
+ * @see https://next-intl.dev/docs/routing/middleware
  */
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|\\.well-known|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/health|api/create-payment-intent|_vercel|_botid).*)',
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization)
+     * - favicon.ico, robots.txt (metadata)
+     * - Files with extensions (.png, .jpg, .css, .js, etc.)
+     * - .well-known (security files)
+     * - api/webhooks (public webhooks)
+     * - api/cron, api/qstash (cron jobs)
+     * - api/internal (internal APIs)
+     * - api/healthcheck, api/health (health checks)
+     * - _vercel, _botid (Vercel internals)
+     */
+    '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|\\.well-known|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/health|_vercel|_botid).*)',
   ],
 };
