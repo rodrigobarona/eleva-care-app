@@ -5,6 +5,7 @@
  */
 'use server';
 
+import { STRIPE_CONFIG } from '@/config/stripe';
 import { isAdmin } from '@/lib/auth/roles.server';
 import type {
   CreatePriceInput,
@@ -25,9 +26,9 @@ import Stripe from 'stripe';
  * Admin-only actions for managing Stripe products and prices
  */
 
-// Initialize Stripe client
+// Initialize Stripe client with centralized API version
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
+  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
   typescript: true,
 });
 

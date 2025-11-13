@@ -2,7 +2,8 @@ import type Stripe from 'stripe';
 
 export const STRIPE_CONFIG = {
   // API Configuration
-  API_VERSION: process.env.STRIPE_API_VERSION || '2025-07-30.basil',
+  // Current version: 2025-09-30.clover (Latest available: 2025-10-29.clover - not yet implemented)
+  API_VERSION: process.env.STRIPE_API_VERSION || '2025-09-30.clover',
   CURRENCY: 'eur',
   PAYMENT_METHODS: ['card', 'multibanco'] as const,
 

@@ -27,8 +27,12 @@ if (!process.env.STRIPE_SECRET_KEY) {
   process.exit(1);
 }
 
+// Use API version from environment, with current default
+// Current: 2025-09-30.clover (Latest: 2025-10-29.clover - not yet implemented)
+const STRIPE_API_VERSION = (process.env.STRIPE_API_VERSION || '2025-09-30.clover') as Stripe.LatestApiVersion;
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: '2025-02-24.acacia',
+  apiVersion: STRIPE_API_VERSION,
   typescript: true,
 });
 
@@ -124,7 +128,7 @@ async function addLookupKeys() {
   console.log('🔍 Verification:');
   console.log('='.repeat(60));
 
-  for (const [priceId, lookupKey] of Object.entries(PRICE_LOOKUP_KEY_MAP)) {
+  for (const lookupKey of Object.values(PRICE_LOOKUP_KEY_MAP)) {
     try {
       const prices = await stripe.prices.list({
         lookup_keys: [lookupKey],

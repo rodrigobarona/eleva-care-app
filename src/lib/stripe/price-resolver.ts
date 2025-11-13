@@ -4,11 +4,12 @@
  * Dynamically resolves Stripe prices using lookup keys.
  * Caches results for performance.
  */
+import { STRIPE_CONFIG } from '@/config/stripe';
 import Stripe from 'stripe';
 
-// Initialize Stripe client
+// Initialize Stripe client with centralized API version
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY ?? '', {
-  apiVersion: '2025-02-24.acacia' as Stripe.LatestApiVersion,
+  apiVersion: STRIPE_CONFIG.API_VERSION as Stripe.LatestApiVersion,
   typescript: true,
 });
 

@@ -48,7 +48,8 @@ export const ENV_CONFIG = {
   // Stripe Configuration
   STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
   STRIPE_PUBLISHABLE_KEY: process.env.STRIPE_PUBLISHABLE_KEY || '',
-  STRIPE_API_VERSION: process.env.STRIPE_API_VERSION || '2025-07-30.basil',
+  // Current version: 2025-09-30.clover (Latest available: 2025-10-29.clover - not yet implemented)
+  STRIPE_API_VERSION: process.env.STRIPE_API_VERSION || '2025-09-30.clover',
   STRIPE_PLATFORM_FEE_PERCENTAGE: process.env.STRIPE_PLATFORM_FEE_PERCENTAGE || '0.15',
   STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
   STRIPE_CONNECT_WEBHOOK_SECRET: process.env.STRIPE_CONNECT_WEBHOOK_SECRET || '',

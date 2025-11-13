@@ -27,10 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  type CreatePriceInput,
-  createPriceSchema,
-} from '@/lib/validations/stripe-pricing';
+import { type CreatePriceInput, createPriceSchema } from '@/lib/validations/stripe-pricing';
 import { createStripePrice } from '@/server/actions/stripe-pricing';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
