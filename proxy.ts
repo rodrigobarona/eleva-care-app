@@ -9,6 +9,10 @@
  *
  * @see /docs/02-core-systems/role-based-authorization.md for complete documentation
  */
+
+// Debug: Verify file is loaded
+console.log('🚀 [PROXY.TS] File loaded and evaluated');
+
 import {
   ADMIN_ROLES,
   ADMIN_ROUTES,
@@ -344,23 +348,15 @@ export default async function proxy(request: NextRequest) {
  * @see https://github.com/workos/authkit-nextjs#composing-custom-nextjs-middleware-with-authkit
  * @see https://next-intl.dev/docs/routing/middleware
  */
+/**
+ * CRITICAL: Use the simplest possible matcher for Next.js 16 + Turbopack
+ * This is the recommended pattern from both WorkOS and next-intl docs
+ */
 export const config = {
   matcher: [
-    /*
-     * Match all paths that should go through middleware
-     * Following WorkOS AuthKit + next-intl recommended patterns
-     * 
-     * This matches:
-     * - / (root)
-     * - All page routes
-     * - All locale-prefixed routes
-     * 
-     * Excludes:
-     * - Static files and Next.js internals
-     * - Public webhooks and health checks
-     */
+    // Match all routes except Next.js internals and static files
+    '/((?!_next|_vercel|.*\\..*).*)',
+    // Explicitly match root
     '/',
-    '/(en|es|pt|pt-BR)/:path*',
-    '/((?!_next|_vercel|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/health).*)',
   ],
 };
