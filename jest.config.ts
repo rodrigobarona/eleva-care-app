@@ -10,8 +10,9 @@ const customJestConfig = {
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testEnvironment: 'jsdom',
   moduleNameMapper: {
-    '^@/(.*)$': '<rootDir>/src/$1',
+    // Specific paths first (order matters!)
     '^@/drizzle/(.*)$': '<rootDir>/drizzle/$1',
+    '^@/(.*)$': '<rootDir>/src/$1',
     // Mock svix to avoid binary parsing issues
     '^svix$': '<rootDir>/tests/__mocks__/svix.ts',
     // Mock next-intl modules to prevent ESM parsing issues
