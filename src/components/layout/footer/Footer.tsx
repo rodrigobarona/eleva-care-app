@@ -156,20 +156,20 @@ export default function Footer() {
                               </Link>
                             </li>
                             <li>
-                              <NextLink
+                              <Link
                                 href="/register"
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
                                 {t('nav.company.join')}
-                              </NextLink>
+                              </Link>
                             </li>
                             <li>
-                              <NextLink
+                              <Link
                                 href="/login"
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >
                                 {t('nav.company.dashboard')}
-                              </NextLink>
+                              </Link>
                             </li>
                           </ul>
                         </div>
