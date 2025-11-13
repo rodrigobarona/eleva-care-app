@@ -36,25 +36,16 @@ import type { NextRequest } from 'next/server';
 /**
  * Create internationalization middleware with custom configuration
  */
-function createCustomI18nMiddleware() {
-  const baseMiddleware = createMiddleware({
-    locales,
-    defaultLocale,
-    localePrefix: 'as-needed',
-    localeDetection: true, // Enable automatic locale detection
-    localeCookie: {
-      maxAge: 31536000, // 1 year
-      name: 'ELEVA_LOCALE',
-    },
-  });
-
-  return async (request: NextRequest) => {
-    // Let next-intl middleware handle all locale routing
-    return baseMiddleware(request);
-  };
-}
-
-const handleI18nRouting = createCustomI18nMiddleware();
+const handleI18nRouting = createMiddleware({
+  locales,
+  defaultLocale,
+  localePrefix: 'as-needed',
+  localeDetection: true, // Enable automatic locale detection
+  localeCookie: {
+    maxAge: 31536000, // 1 year
+    name: 'ELEVA_LOCALE',
+  },
+});
 
 /**
  * Path matching utilities
@@ -181,8 +172,26 @@ function isLocalePublicRoute(path: string): boolean {
 }
 
 /**
+ * Helper function to preserve AuthKit headers on any response
+ * This ensures withAuth() works in all components by maintaining session cookies
+ */
+function preserveAuthHeaders(response: NextResponse, authHeaders: Headers): NextResponse {
+  for (const [key, value] of authHeaders) {
+    if (key.toLowerCase() === 'set-cookie') {
+      response.headers.append(key, value);
+    } else {
+      response.headers.set(key, value);
+    }
+  }
+  return response;
+}
+
+/**
  * Main proxy function using AuthKit for authentication
  * Next.js 16 renamed middleware to proxy
+ * 
+ * Pattern: AuthKit first → i18n routing → preserve headers
+ * This ensures all routes have auth context available via withAuth()
  */
 export default async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -241,10 +250,11 @@ export default async function proxy(request: NextRequest) {
   }
 
   // =============================================
-  // RUN AUTHKIT FIRST (Always needed for auth context)
+  // STEP 1: RUN AUTHKIT (provides auth context for all routes)
   // =============================================
-  // AuthKit must run on all routes to provide auth context
-  // Even public routes may use withAuth() to check login state
+  // Run AuthKit first to set up authentication context
+  // This must happen BEFORE i18n routing to ensure withAuth() works
+  console.log(`🔐 Running AuthKit for: ${path}`);
   const {
     session,
     headers: authkitHeaders,
@@ -253,8 +263,10 @@ export default async function proxy(request: NextRequest) {
     debug: process.env.NODE_ENV === 'development',
   });
 
+  console.log(`👤 Auth status: ${session.user?.email || 'anonymous'}`);
+
   // =============================================
-  // DETERMINE ROUTE TYPE
+  // STEP 2: DETERMINE ROUTE TYPE
   // =============================================
   // Extract path without locale prefix for route matching
   const pathWithoutLocale = locales.some((locale) => path.startsWith(`/${locale}/`))
@@ -265,7 +277,7 @@ export default async function proxy(request: NextRequest) {
   const isPublicContentRoute =
     isLocalePublicRoute(path) ||
     isHomePage(path) ||
-    isAuthRoute(path) || // Auth routes (login, sign-up) are public
+    isAuthRoute(path) ||
     isPublicContentPath(path) ||
     isPublicContentPath(pathWithoutLocale) ||
     matchPatternsArray(path, PUBLIC_ROUTES) ||
@@ -274,113 +286,74 @@ export default async function proxy(request: NextRequest) {
   // Username routes need AuthKit context (for unpublished profile checks)
   const needsAuthContext = isUsernameRoute(path);
 
+  // For private routes that need i18n
+  const isPrivateWithI18n = !isPrivateRoute(request) && !isPublicContentRoute && !needsAuthContext;
+
   // =============================================
-  // PUBLIC ROUTES - Apply i18n with auth context
+  // STEP 3: APPLY I18N ROUTING + PRESERVE AUTH HEADERS
   // =============================================
-  // For public content routes (no auth required), apply i18n and return
+  // For public routes and username routes, run i18n middleware
   if (isPublicContentRoute || needsAuthContext) {
-    console.log(
-      `🌐 Public/username route with auth context: ${path}, user: ${session.user?.email || 'anonymous'}`,
-    );
-
-    // Apply i18n routing with auth headers preserved
-    const response = await handleI18nRouting(request);
-
-    // Preserve AuthKit headers so withAuth() works in components
-    for (const [key, value] of authkitHeaders) {
-      if (key.toLowerCase() === 'set-cookie') {
-        response.headers.append(key, value);
-      } else {
-        response.headers.set(key, value);
-      }
-    }
-
-    return response;
+    console.log(`🌐 Public/username route with i18n: ${path}`);
+    const response = handleI18nRouting(request);
+    return preserveAuthHeaders(response, authkitHeaders);
   }
 
   // =============================================
-  // PROTECTED ROUTES - Require Authentication
+  // STEP 4: PROTECTED ROUTES - Check Authentication
   // =============================================
   // If no user session on protected route, redirect to sign-in
-  if (!session.user) {
+  if (!session.user && (isPrivateWithI18n || isPrivateRoute(request))) {
     console.log('❌ No session on protected route - redirecting to sign-in');
     const response = NextResponse.redirect(authorizationUrl!);
+    return preserveAuthHeaders(response, authkitHeaders);
+  }
 
-    // Preserve AuthKit headers (session cookies)
-    for (const [key, value] of authkitHeaders) {
-      if (key.toLowerCase() === 'set-cookie') {
-        response.headers.append(key, value);
-      } else {
-        response.headers.set(key, value);
+  // User is authenticated for protected routes
+  if (session.user) {
+    console.log(`✅ Authenticated user: ${session.user.email}`);
+
+    // Get user's application role from database
+    const userRole = await getUserApplicationRole(session.user.id);
+
+    // Check admin routes
+    if (matchPatternsArray(path, ADMIN_ROUTES)) {
+      const isAdmin = ADMIN_ROLES.includes(userRole as (typeof ADMIN_ROLES)[number]);
+      console.log(`🔒 Admin route check: ${path}, isAdmin: ${isAdmin}`);
+
+      if (!isAdmin) {
+        const response = path.startsWith('/api/')
+          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          : NextResponse.redirect(new URL('/unauthorized', request.url));
+        return preserveAuthHeaders(response, authkitHeaders);
       }
     }
-    return response;
-  }
 
-  // User is authenticated
-  console.log(`👤 Authenticated user: ${session.user.email}`);
+    // Check expert routes
+    if (matchPatternsArray(path, EXPERT_ROUTES)) {
+      const isExpert = EXPERT_ROLES.includes(userRole as (typeof EXPERT_ROLES)[number]);
+      console.log(`🔒 Expert route check: ${path}, isExpert: ${isExpert}`);
 
-  // Get user's application role from database
-  const userRole = await getUserApplicationRole(session.user.id);
-
-  // Check admin routes
-  if (matchPatternsArray(path, ADMIN_ROUTES)) {
-    const isAdmin = ADMIN_ROLES.includes(userRole as (typeof ADMIN_ROLES)[number]);
-    console.log(`🔒 Admin route check: ${path}, isAdmin: ${isAdmin}`);
-
-    if (!isAdmin) {
-      return path.startsWith('/api/')
-        ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-        : NextResponse.redirect(new URL('/unauthorized', request.url));
+      if (!isExpert) {
+        const response = path.startsWith('/api/')
+          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+          : NextResponse.redirect(new URL('/unauthorized', request.url));
+        return preserveAuthHeaders(response, authkitHeaders);
+      }
     }
   }
 
-  // Check expert routes
-  if (matchPatternsArray(path, EXPERT_ROUTES)) {
-    const isExpert = EXPERT_ROLES.includes(userRole as (typeof EXPERT_ROLES)[number]);
-    console.log(`🔒 Expert route check: ${path}, isExpert: ${isExpert}`);
-
-    if (!isExpert) {
-      return path.startsWith('/api/')
-        ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-        : NextResponse.redirect(new URL('/unauthorized', request.url));
-    }
-  }
-
-  // For private routes, skip i18n
+  // For private routes without i18n (dashboard, etc.)
   if (isPrivateRoute(request)) {
-    console.log(`🔒 Private route, skipping i18n: ${path}`);
-
-    // Forward request with AuthKit headers
-    const response = NextResponse.next({
-      request: { headers: new Headers(request.headers) },
-    });
-
-    for (const [key, value] of authkitHeaders) {
-      if (key.toLowerCase() === 'set-cookie') {
-        response.headers.append(key, value);
-      } else {
-        response.headers.set(key, value);
-      }
-    }
-
-    return response;
+    console.log(`🔒 Private route (no i18n): ${path}`);
+    const response = NextResponse.next();
+    return preserveAuthHeaders(response, authkitHeaders);
   }
 
-  // Apply i18n to authenticated routes
-  console.log(`🌐 Applying i18n to authenticated route: ${path}`);
-  const response = await handleI18nRouting(request);
-
-  // Preserve AuthKit headers (session cookies)
-  for (const [key, value] of authkitHeaders) {
-    if (key.toLowerCase() === 'set-cookie') {
-      response.headers.append(key, value);
-    } else {
-      response.headers.set(key, value);
-    }
-  }
-
-  return response;
+  // For authenticated routes with i18n
+  console.log(`🌐 Authenticated route with i18n: ${path}`);
+  const response = handleI18nRouting(request);
+  return preserveAuthHeaders(response, authkitHeaders);
 }
 
 /**
