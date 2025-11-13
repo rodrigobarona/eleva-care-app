@@ -232,8 +232,10 @@ export default async function proxy(request: NextRequest) {
   // =============================================
   // RUN I18N MIDDLEWARE FIRST FOR LOCALE ROUTING
   // =============================================
-  // For marketing pages and public content, handle locale routing before auth
-  // This ensures the root path "/" is properly rewritten to "/en" internally
+  // For public routes, let next-intl handle locale routing first
+  // (next-intl automatically rewrites "/" to "/en" internally with localePrefix: 'as-needed')
+
+  // Extract path without locale prefix for route matching
   const pathWithoutLocale = locales.some((locale) => path.startsWith(`/${locale}/`))
     ? path.substring(path.indexOf('/', 1))
     : path;

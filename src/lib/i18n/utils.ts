@@ -2,17 +2,23 @@ import { type Locale, locales } from './routing';
 
 /**
  * Helper function to get the file locale from ISO locale codes
- * Transforms locale to file locale (e.g., pt-BR -> br, es-MX -> mx)
+ * Maps locale to message file name
  * @param locale The locale string to transform
  * @returns The file locale to use for imports
+ *
+ * Mapping:
+ * - 'pt-BR' → 'pt-BR' (Brazilian Portuguese - use full locale)
+ * - 'pt' → 'pt' (European Portuguese)
+ * - 'es' → 'es' (Spanish)
+ * - 'en' → 'en' (English)
  */
 export function getFileLocale(locale: string): string {
-  // If locale contains a hyphen (like pt-BR), extract the country code
-  if (locale.includes('-')) {
-    // Get the part after the hyphen (BR) and lowercase it (br)
-    return locale.split('-')[1].toLowerCase();
+  // Keep pt-BR as is (we use pt-BR.json, not br.json)
+  if (locale === 'pt-BR') {
+    return 'pt-BR';
   }
-  // Otherwise just return the original locale
+
+  // For all other locales, just return the original
   return locale;
 }
 
