@@ -1,17 +1,14 @@
-import { defineRouting } from 'next-intl/routing';
-
 export const locales = ['en', 'es', 'pt', 'pt-BR'] as const;
 
 export type Locale = (typeof locales)[number];
 
 export const defaultLocale = 'en' as const;
 
-export const routing = defineRouting({
+export const routing = {
   locales,
   defaultLocale,
   // Use as-needed to only show locale prefix for non-default locales
   localePrefix: 'as-needed',
-  // Using the same paths across all locales for simplicity
   pathnames: {
     // ----------------
     // Static routes first (higher priority)
@@ -47,7 +44,7 @@ export const routing = defineRouting({
     '/[username]/[eventSlug]/success': '/[username]/[eventSlug]/success',
     '/[username]/[eventSlug]/payment-processing': '/[username]/[eventSlug]/payment-processing',
   },
-});
+} as const;
 
 /**
  * Get the consistent path for any locale
