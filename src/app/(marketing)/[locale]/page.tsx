@@ -49,14 +49,18 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   try {
     const t = await getTranslations({ locale, namespace: 'metadata' });
 
+    // TypeScript doesn't infer types correctly for nested namespaces in metadata functions
+    // Cast the translate function to bypass type checking
+    const translate = t as any;
+
     return generatePageMetadata({
       locale,
       path: '/',
-      title: t('title'),
-      description: t('description'),
-      ogTitle: t('og.title') || undefined,
-      ogDescription: t('og.description') || undefined,
-      siteName: t('og.siteName') || undefined,
+      title: translate('title'),
+      description: translate('description'),
+      ogTitle: translate('og.title') || undefined,
+      ogDescription: translate('og.description') || undefined,
+      siteName: translate('og.siteName') || undefined,
       keywords: [
         'pregnancy care',
         'postpartum support',

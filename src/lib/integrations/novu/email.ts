@@ -173,10 +173,11 @@ export async function generateAppointmentEmail(params: {
   const locale = params.locale || 'en';
 
   // Get the translated subject
-  const t = await getTranslations({
+  // TypeScript doesn't infer types correctly for nested namespaces
+  const t = (await getTranslations({
     locale,
     namespace: 'notifications.appointmentConfirmation',
-  });
+  })) as any;
 
   // Render the React Email template with the provided parameters
   const renderedHtml = await render(
@@ -225,10 +226,11 @@ export async function generateWelcomeEmail(params: {
   const locale = params.locale || 'en';
 
   // Get the translated subject
-  const t = await getTranslations({
+  // TypeScript doesn't infer types correctly for nested namespaces
+  const t = (await getTranslations({
     locale,
     namespace: 'notifications.welcome',
-  });
+  })) as any;
 
   const renderedHtml = await render(
     WelcomeEmailTemplate({
@@ -274,10 +276,11 @@ export async function generateMultibancoBookingPendingEmail(params: {
   const locale = params.locale || 'en';
 
   // Get the translated subject
-  const t = await getTranslations({
+  // TypeScript doesn't infer types correctly for nested namespaces
+  const t = (await getTranslations({
     locale,
     namespace: 'notifications.multibancoBookingPending',
-  });
+  })) as any;
 
   const renderedHtml = await render(
     MultibancoBookingPendingTemplate({
@@ -337,10 +340,11 @@ export async function generateMultibancoPaymentReminderEmail(params: {
     params.reminderType === 'urgent' || (params.daysRemaining && params.daysRemaining <= 1);
 
   // Get the translated subject
-  const t = await getTranslations({
+  // TypeScript doesn't infer types correctly for nested namespaces
+  const t = (await getTranslations({
     locale,
     namespace: 'notifications.multibancoPaymentReminder',
-  });
+  })) as any;
 
   const renderedHtml = await render(
     MultibancoPaymentReminderTemplate({
@@ -390,10 +394,11 @@ export async function generateNotificationEmail(params: {
   const locale = params.locale || 'en';
 
   // Get the translated subject format
-  const t = await getTranslations({
+  // TypeScript doesn't infer types correctly for nested namespaces
+  const t = (await getTranslations({
     locale,
     namespace: 'notifications.general',
-  });
+  })) as any;
 
   const renderedHtml = await render(
     NotificationEmailTemplate({
@@ -433,10 +438,11 @@ export async function generateExpertNotificationEmail(params: {
   const locale = params.locale || 'en';
 
   // Get the translated subject
-  const t = await getTranslations({
+  // TypeScript doesn't infer types correctly for nested namespaces
+  const t = (await getTranslations({
     locale,
     namespace: 'notifications.expertNotification',
-  });
+  })) as any;
 
   const renderedHtml = await render(
     ExpertNotificationTemplate({

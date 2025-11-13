@@ -7,127 +7,6 @@
     "findExpert": "Find an Expert",
     "mission": "Our Mission"
   },
-  "metadata": {
-    "title": "Connect with Expert Women's Health Specialists | Eleva Care",
-    "description": "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
-    "og": {
-      "title": "Connect with Expert Women's Health Specialists | Eleva Care",
-      "description": "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
-      "siteName": "Eleva Care"
-    },
-    "about": {
-      "title": "About Eleva Care | Our Mission, Vision & Team",
-      "description": "Learn about Eleva Care's mission to transform women's healthcare through innovation and compassion. Meet our team of healthcare experts dedicated to empowering women.",
-      "og": {
-        "title": "About Eleva Care | Our Mission, Vision & Team",
-        "description": "Learn about Eleva Care's mission to transform women's healthcare through innovation and compassion. Meet our team of healthcare experts.",
-        "siteName": "Eleva Care"
-      }
-    },
-    "become-expert": {
-      "title": "Become an Expert | Share Your Knowledge | Eleva Care",
-      "description": "Join our community of healthcare professionals, coaches, and consultants. Set your own rates, manage your schedule, and help people achieve their goals.",
-      "og": {
-        "title": "Become an Expert | Share Your Knowledge | Eleva Care",
-        "description": "Join our community of healthcare professionals, coaches, and consultants. Set your own rates and earn on your schedule.",
-        "siteName": "Eleva Care"
-      }
-    },
-    "trust": {
-      "title": "Trust Center | Eleva Care",
-      "description": "Learn about Eleva Care's security practices, data protection measures, and compliance certifications.",
-      "og": {
-        "title": "Trust Center | Eleva Care",
-        "description": "Learn about Eleva Care's security practices, data protection measures, and compliance certifications.",
-        "siteName": "Eleva Care"
-      },
-      "documents": {
-        "security": {
-          "title": "Security & Compliance | Eleva Care",
-          "description": "Learn about Eleva Care's security measures, certifications, and commitment to protecting your healthcare data with GDPR, LGPD, and HIPAA compliance.",
-          "og": {
-            "title": "Security & Compliance | Eleva Care",
-            "description": "Learn about Eleva Care's security measures, certifications, and commitment to protecting your healthcare data with GDPR, LGPD, and HIPAA compliance.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "dpa": {
-          "title": "Data Processing Agreement | Eleva Care",
-          "description": "Review Eleva Care's data processing agreement outlining how we handle and protect your healthcare data.",
-          "og": {
-            "title": "Data Processing Agreement | Eleva Care",
-            "description": "Review Eleva Care's data processing agreement outlining how we handle and protect your healthcare data.",
-            "siteName": "Eleva Care"
-          }
-        }
-      }
-    },
-    "legal": {
-      "title": "Legal Documentation | Eleva Care",
-      "description": "Important information about Eleva Care's terms of service, privacy policies, and other legal documents.",
-      "og": {
-        "title": "Legal Documentation | Eleva Care",
-        "description": "Important information about Eleva Care's terms of service, privacy policies, and other legal documents.",
-        "siteName": "Eleva Care"
-      },
-      "documents": {
-        "terms": {
-          "title": "Terms of Service | Eleva Care",
-          "description": "Read Eleva Care's terms of service and understand your rights and obligations when using our healthcare platform.",
-          "og": {
-            "title": "Terms of Service | Eleva Care",
-            "description": "Read Eleva Care's terms of service and understand your rights and obligations when using our healthcare platform.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "privacy": {
-          "title": "Privacy Policy | Eleva Care",
-          "description": "Learn how Eleva Care protects your personal health information and privacy rights in accordance with healthcare regulations.",
-          "og": {
-            "title": "Privacy Policy | Eleva Care",
-            "description": "Learn how Eleva Care protects your personal health information and privacy rights in accordance with healthcare regulations.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "cookie": {
-          "title": "Cookie Policy | Eleva Care",
-          "description": "Understand how Eleva Care uses cookies to enhance your browsing experience and protect your privacy.",
-          "og": {
-            "title": "Cookie Policy | Eleva Care",
-            "description": "Understand how Eleva Care uses cookies to enhance your browsing experience and protect your privacy.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "payment-policies": {
-          "title": "Payment Policies | Eleva Care",
-          "description": "Understand Eleva Care's payment terms, refund policies, and billing procedures for healthcare services.",
-          "og": {
-            "title": "Payment Policies | Eleva Care",
-            "description": "Understand Eleva Care's payment terms, refund policies, and billing procedures for healthcare services.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "expert-agreement": {
-          "title": "Expert Agreement | Eleva Care",
-          "description": "Review Eleva Care's expert agreement outlining the terms and conditions for independent experts using our platform.",
-          "og": {
-            "title": "Expert Agreement | Eleva Care",
-            "description": "Review Eleva Care's expert agreement outlining the terms and conditions for independent experts using our platform.",
-            "siteName": "Eleva Care"
-          }
-        }
-      }
-    },
-    "history": {
-      "title": "Our Story | The Journey Behind Eleva Care",
-      "description": "Discover the passion and purpose that drives Eleva Care's mission to transform women's healthcare. A letter from our founder about why we started this journey.",
-      "og": {
-        "title": "Our Story | The Journey Behind Eleva Care",
-        "description": "Discover the passion and purpose that drives Eleva Care's mission to transform women's healthcare. A letter from our founder about why we started this journey.",
-        "siteName": "Eleva Care"
-      }
-    }
-  },
   "NotFound": {
     "title": "Page Not Found",
     "description": "The page you are looking for does not exist. Please check the URL or try a different page.",
@@ -246,10 +125,22 @@
     },
     "cta": "Join Us",
     "stats": [
-      { "value": "10K+", "label": "Women Helped" },
-      { "value": "50+", "label": "Experts" },
-      { "value": "95%", "label": "Client Satisfaction" },
-      { "value": "24/7", "label": "Support Available" }
+      {
+        "value": "10K+",
+        "label": "Women Helped"
+      },
+      {
+        "value": "50+",
+        "label": "Experts"
+      },
+      {
+        "value": "95%",
+        "label": "Client Satisfaction"
+      },
+      {
+        "value": "24/7",
+        "label": "Support Available"
+      }
     ],
     "beliefs": {
       "title": "At Eleva Care, we believe:",
@@ -987,6 +878,17 @@
       "button": "Get Started Now",
       "questions": "Questions?",
       "contact": "Contact our team"
+    }
+  },
+  "HomePage": {
+    "metadata": {
+      "title": "Connect with Expert Women's Health Specialists | Eleva Care",
+      "description": "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
+      "og": {
+        "title": "Connect with Expert Women's Health Specialists | Eleva Care",
+        "description": "Eleva Care: Find and book trusted women's health experts for pregnancy, postpartum, menopause, and sexual health. A trusted platform connecting you with independent care experts.",
+        "siteName": "Eleva Care"
+      }
     }
   }
 }

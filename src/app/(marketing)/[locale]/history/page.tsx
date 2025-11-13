@@ -4,11 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Link } from '@/lib/i18n/navigation';
 import { locales } from '@/lib/i18n/routing';
-import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
-import { mdxComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 import { notFound, redirect } from 'next/navigation';
 
@@ -29,16 +26,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const safeLocale = isValidLocale(locale) ? locale : 'en';
 
   try {
-    const t = await getTranslations({ locale: safeLocale, namespace: 'metadata.history' });
+    // Dynamically import metadata from MDX file using Next.js 16 native approach
+    const { metadata } = await import(`@/content/history/${safeLocale}.mdx`);
 
     return generatePageMetadata({
       locale: safeLocale,
       path: '/history',
-      title: t('title'),
-      description: t('description'),
-      ogTitle: t('og.title') || undefined,
-      ogDescription: t('og.description') || undefined,
-      siteName: t('og.siteName') || undefined,
+      title: metadata.title,
+      description: metadata.description,
+      ogTitle: metadata.og?.title || undefined,
+      ogDescription: metadata.og?.description || undefined,
+      siteName: metadata.og?.siteName || undefined,
       keywords: ['eleva care story', 'company history', 'mission', 'women healthcare journey'],
       image: {
         url: '/img/about/team-photo.png',
@@ -48,7 +46,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
     });
   } catch (error) {
-    console.error('Error generating metadata:', error);
+    console.error('Error loading metadata from MDX:', error);
 
     return generatePageMetadata({
       locale: safeLocale,
@@ -78,24 +76,13 @@ export default async function HistoryPage({ params }: PageProps) {
     redirect('/history'); // Default locale (en) has no prefix
   }
 
-  // Merge base MDX components with custom components
-  const components = {
-    ...mdxComponents,
-    Button,
-    Separator,
-    SmoothLink,
-    Link,
-    Image,
-  };
-
-  const content = await renderMDXContent({
-    namespace: 'history',
-    locale,
-    fallbackLocale: 'en',
-    components,
-  });
-
-  if (!content) {
+  // Native Next.js 16 MDX import - Turbopack optimized
+  let HistoryContent: React.ComponentType<any>;
+  try {
+    const mdxModule = await import(`@/content/history/${locale}.mdx`);
+    HistoryContent = mdxModule.default;
+  } catch (error) {
+    console.error(`Failed to load MDX content for locale ${locale}:`, error);
     return notFound();
   }
 
@@ -108,7 +95,17 @@ export default async function HistoryPage({ params }: PageProps) {
 
       <div className="px-6 lg:px-8">
         <div className="mx-auto max-w-2xl lg:max-w-3xl">
-          <div className="mt-16">{content}</div>
+          <div className="mt-16">
+            <HistoryContent
+              components={{
+                Button,
+                Separator,
+                SmoothLink,
+                Link,
+                Image,
+              }}
+            />
+          </div>
         </div>
       </div>
     </main>

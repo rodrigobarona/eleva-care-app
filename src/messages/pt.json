@@ -7,118 +7,6 @@
     "findExpert": "Encontrar um Especialista",
     "mission": "A nossa Missão"
   },
-  "metadata": {
-    "title": "Cuidados especializados para Gravidez, Pós-parto e Saúde Sexual | Eleva Care",
-    "description": "Eleva Care: Capacitando o crescimento, abraçando o cuidado. Cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual.",
-    "og": {
-      "title": "Cuidados especializados para Gravidez, Pós-parto e Saúde Sexual | Eleva Care",
-      "description": "Eleva Care: Capacitando o crescimento, abraçando o cuidado. Cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual.",
-      "siteName": "Eleva Care"
-    },
-    "about": {
-      "title": "Sobre a Eleva Care | A Nossa Missão, Visão e Equipa",
-      "description": "Conheça a missão da Eleva Care de transformar a saúde da mulher através da inovação e compaixão. Conheça a nossa equipa de especialistas em saúde dedicados a capacitar as mulheres.",
-      "og": {
-        "title": "Sobre a Eleva Care | A Nossa Missão, Visão e Equipa",
-        "description": "Conheça a missão da Eleva Care de transformar a saúde da mulher através da inovação e compaixão. Conheça a nossa equipa de especialistas.",
-        "siteName": "Eleva Care"
-      }
-    },
-    "trust": {
-      "title": "Centro de Confiança | Eleva Care",
-      "description": "Conheça as práticas de segurança, medidas de proteção de dados e certificações de conformidade da Eleva Care.",
-      "og": {
-        "title": "Centro de Confiança | Eleva Care",
-        "description": "Conheça as práticas de segurança, medidas de proteção de dados e certificações de conformidade da Eleva Care.",
-        "siteName": "Eleva Care"
-      },
-      "documents": {
-        "security": {
-          "title": "Segurança e Conformidade | Eleva Care",
-          "description": "Conheça as medidas de segurança, certificações e compromisso da Eleva Care em proteger os seus dados de saúde com conformidade RGPD, LGPD e HIPAA.",
-          "og": {
-            "title": "Segurança e Conformidade | Eleva Care",
-            "description": "Conheça as medidas de segurança, certificações e compromisso da Eleva Care em proteger os seus dados de saúde com conformidade RGPD, LGPD e HIPAA.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "dpa": {
-          "title": "Acordo de Processamento de Dados | Eleva Care",
-          "description": "Reveja o acordo de processamento de dados da Eleva Care que descreve como tratamos e protegemos os seus dados de saúde.",
-          "og": {
-            "title": "Acordo de Processamento de Dados | Eleva Care",
-            "description": "Reveja o acordo de processamento de dados da Eleva Care que descreve como tratamos e protegemos os seus dados de saúde.",
-            "siteName": "Eleva Care"
-          }
-        }
-      }
-    },
-    "legal": {
-      "title": "Documentação Legal | Eleva Care",
-      "description": "Informações importantes sobre os termos de serviço, políticas de privacidade e outros documentos legais da Eleva Care.",
-      "og": {
-        "title": "Documentação Legal | Eleva Care",
-        "description": "Informações importantes sobre os termos de serviço, políticas de privacidade e outros documentos legais da Eleva Care.",
-        "siteName": "Eleva Care"
-      },
-      "documents": {
-        "terms": {
-          "title": "Termos de Serviço | Eleva Care",
-          "description": "Leia os termos de serviço da Eleva Care e compreenda os seus direitos e obrigações ao utilizar a nossa plataforma de saúde.",
-          "og": {
-            "title": "Termos de Serviço | Eleva Care",
-            "description": "Leia os termos de serviço da Eleva Care e compreenda os seus direitos e obrigações ao utilizar a nossa plataforma de saúde.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "privacy": {
-          "title": "Política de Privacidade | Eleva Care",
-          "description": "Saiba como a Eleva Care protege as suas informações de saúde pessoais e direitos de privacidade de acordo com as regulamentações de saúde.",
-          "og": {
-            "title": "Política de Privacidade | Eleva Care",
-            "description": "Saiba como a Eleva Care protege as suas informações de saúde pessoais e direitos de privacidade de acordo com as regulamentações de saúde.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "cookie": {
-          "title": "Política de Cookies | Eleva Care",
-          "description": "Compreenda como a Eleva Care utiliza cookies para melhorar a sua experiência de navegação e proteger a sua privacidade.",
-          "og": {
-            "title": "Política de Cookies | Eleva Care",
-            "description": "Compreenda como a Eleva Care utiliza cookies para melhorar a sua experiência de navegação e proteger a sua privacidade.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "payment-policies": {
-          "title": "Políticas de Pagamento | Eleva Care",
-          "description": "Compreenda os termos de pagamento, políticas de reembolso e procedimentos de faturação da Eleva Care para serviços de saúde.",
-          "og": {
-            "title": "Políticas de Pagamento | Eleva Care",
-            "description": "Compreenda os termos de pagamento, políticas de reembolso e procedimentos de faturação da Eleva Care para serviços de saúde.",
-            "siteName": "Eleva Care"
-          }
-        },
-        "expert-agreement": {
-          "title": "Acordo de Especialistas | Eleva Care",
-          "description": "Reveja o acordo de especialistas da Eleva Care que descreve os termos e condições para especialistas independentes que utilizam a nossa plataforma.",
-          "og": {
-            "title": "Acordo de Especialistas | Eleva Care",
-            "description": "Reveja o acordo de especialistas da Eleva Care que descreve os termos e condições para especialistas independientes que utilizam a nossa plataforma.",
-            "siteName": "Eleva Care"
-          }
-        }
-      }
-    },
-    "history": {
-      "title": "A Nossa História | A Jornada por Trás da Eleva Care",
-      "description": "Descubra a paixão e o propósito que impulsionam a missão da Eleva Care de transformar os cuidados de saúde das mulheres. Uma carta do nosso fundador sobre por que começámos esta jornada.",
-      "og": {
-        "title": "A Nossa História | A Jornada por Trás da Eleva Care",
-        "description": "Descubra a paixão e o propósito que impulsionam a missão da Eleva Care de transformar os cuidados de saúde das mulheres. Uma carta do nosso fundador sobre por que começámos esta jornada.",
-        "siteName": "Eleva Care"
-      }
-    }
-  },
   "NotFound": {
     "title": "Página não encontrada",
     "description": "A página que estás a procura não existe. Por favor, verifica a URL ou tenta com uma página diferente.",
@@ -229,10 +117,22 @@
     },
     "cta": "Junte-se a nós",
     "stats": [
-      { "value": "10K+", "label": "Mulheres Ajudadas" },
-      { "value": "50+", "label": "Especialistas" },
-      { "value": "95%", "label": "Satisfação das Clientes" },
-      { "value": "24/7", "label": "Suporte Disponível" }
+      {
+        "value": "10K+",
+        "label": "Mulheres Ajudadas"
+      },
+      {
+        "value": "50+",
+        "label": "Especialistas"
+      },
+      {
+        "value": "95%",
+        "label": "Satisfação das Clientes"
+      },
+      {
+        "value": "24/7",
+        "label": "Suporte Disponível"
+      }
     ],
     "beliefs": {
       "title": "Na Eleva Care, acreditamos que:",
@@ -859,6 +759,17 @@
         "checking": "A verificar...",
         "resume": "Retomar Verificação",
         "tryAgain": "Tentar Novamente"
+      }
+    }
+  },
+  "HomePage": {
+    "metadata": {
+      "title": "Cuidados especializados para Gravidez, Pós-parto e Saúde Sexual | Eleva Care",
+      "description": "Eleva Care: Capacitando o crescimento, abraçando o cuidado. Cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual.",
+      "og": {
+        "title": "Cuidados especializados para Gravidez, Pós-parto e Saúde Sexual | Eleva Care",
+        "description": "Eleva Care: Capacitando o crescimento, abraçando o cuidado. Cuidados especializados para gravidez, pós-parto, menopausa e saúde sexual.",
+        "siteName": "Eleva Care"
       }
     }
   }

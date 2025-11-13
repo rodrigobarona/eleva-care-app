@@ -9,11 +9,8 @@ import TextBlock from '@/components/shared/text/TextBlock';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { locales } from '@/lib/i18n/routing';
-import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generateGenericPageMetadata } from '@/lib/seo/metadata-utils';
-import { mdxComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 import { notFound, redirect } from 'next/navigation';
 
@@ -34,18 +31,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const safeLocale = isValidLocale(locale) ? locale : 'en';
 
   try {
-    const t = await getTranslations({ locale: safeLocale, namespace: 'metadata.about' });
+    // Dynamically import metadata from MDX file using Next.js 16 native approach
+    const { metadata } = await import(`@/content/about/${safeLocale}.mdx`);
 
     return generateGenericPageMetadata(
       safeLocale,
       '/about',
-      t('title'),
-      t('description'),
+      metadata.title,
+      metadata.description,
       'secondary', // Use secondary variant for about page
       ['about eleva care', 'mission', 'vision', 'healthcare team', 'women health'],
     );
   } catch (error) {
-    console.error('Error generating metadata:', error);
+    console.error('Error loading metadata from MDX:', error);
 
     return generateGenericPageMetadata(
       safeLocale,
@@ -69,36 +67,36 @@ export default async function AboutPage({ params }: PageProps) {
     redirect('/about'); // Default locale (en) has no prefix
   }
 
-  // Merge base MDX components with custom components
-  const components = {
-    ...mdxComponents,
-    Button,
-    Separator,
-    Image,
-    TextBlock,
-    HeadlineSection,
-    AdvisorsSection,
-    BeliefsSection,
-    JoinNetworkSection,
-    MissionSection,
-    TeamSection,
-  };
-
-  const content = await renderMDXContent({
-    namespace: 'about',
-    locale,
-    fallbackLocale: 'en',
-    components,
-  });
-
-  if (!content) {
+  // Native Next.js 16 MDX import - Turbopack optimized
+  // Dynamic import with proper error handling
+  let AboutContent: React.ComponentType<any>;
+  try {
+    const mdxModule = await import(`@/content/about/${locale}.mdx`);
+    AboutContent = mdxModule.default;
+  } catch (error) {
+    console.error(`Failed to load MDX content for locale ${locale}:`, error);
     return notFound();
   }
 
   return (
     <main className="overflow-hidden">
       <div className="px-6 lg:px-8">
-        <div className="mx-auto max-w-2xl lg:max-w-7xl">{content}</div>
+        <div className="mx-auto max-w-2xl lg:max-w-7xl">
+          <AboutContent
+            components={{
+              Button,
+              Separator,
+              Image,
+              TextBlock,
+              HeadlineSection,
+              AdvisorsSection,
+              BeliefsSection,
+              JoinNetworkSection,
+              MissionSection,
+              TeamSection,
+            }}
+          />
+        </div>
       </div>
     </main>
   );

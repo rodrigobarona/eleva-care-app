@@ -51,13 +51,14 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const safeLocale = isValidLocale(locale) ? locale : 'en';
 
   try {
-    const t = await getTranslations({ locale: safeLocale, namespace: 'metadata.become-expert' });
+    // Dynamically import metadata from MDX file using Next.js 16 native approach
+    const { metadata } = await import(`@/content/become-expert/${safeLocale}.mdx`);
 
     return generateGenericPageMetadata(
       safeLocale,
       '/become-expert',
-      t('title'),
-      t('description'),
+      metadata.title,
+      metadata.description,
       'primary', // Use primary variant for CTA page
       [
         'become an expert',
@@ -69,7 +70,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       ],
     );
   } catch (error) {
-    console.error('Error generating metadata:', error);
+    console.error('Error loading metadata from MDX:', error);
 
     return generateGenericPageMetadata(
       safeLocale,
@@ -101,7 +102,8 @@ export default async function BecomeExpertPage({ params }: PageProps) {
   }
 
   // Get translations for this page
-  const t = await getTranslations({ locale, namespace: 'become-expert' });
+  // TypeScript has issues with next-intl type inference - using any to bypass
+  const t = (await getTranslations({ locale, namespace: 'become-expert' })) as any;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">

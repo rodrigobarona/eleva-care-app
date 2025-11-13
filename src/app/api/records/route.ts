@@ -24,9 +24,9 @@ export async function GET() {
     // Decrypt the records
     const decryptedRecords = records.map((record) => ({
       ...record,
-      content: decryptRecord(record.encryptedContent),
-      metadata: record.encryptedMetadata
-        ? JSON.parse(decryptRecord(record.encryptedMetadata))
+      content: decryptRecord(record.vaultEncryptedContent),
+      metadata: record.vaultEncryptedMetadata
+        ? JSON.parse(decryptRecord(record.vaultEncryptedMetadata))
         : null,
     }));
 

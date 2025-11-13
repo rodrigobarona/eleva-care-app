@@ -464,7 +464,8 @@ export async function POST(request: NextRequest) {
     const locale = meetingData.locale || 'en';
 
     // Get translations for the checkout messages
-    const t = await getTranslations({ locale, namespace: 'Payments.checkout' });
+    // TypeScript doesn't infer types correctly for nested namespaces in server routes
+    const t = (await getTranslations({ locale, namespace: 'Payments.checkout' })) as any;
 
     // Construct URLs for legal pages
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://eleva.care';

@@ -29,8 +29,8 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
     }
 
     // Encrypt the content and metadata
-    const encryptedContent = encryptRecord(content);
-    const encryptedMetadata = metadata ? encryptRecord(JSON.stringify(metadata)) : null;
+    const vaultEncryptedContent = encryptRecord(content);
+    const vaultEncryptedMetadata = metadata ? encryptRecord(JSON.stringify(metadata)) : null;
 
     // Create the record
     const [record] = await db
@@ -39,8 +39,8 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
         meetingId: params.meetingId,
         expertId: workosUserId,
         guestEmail: meeting.guestEmail,
-        encryptedContent,
-        encryptedMetadata: encryptedMetadata || undefined,
+        vaultEncryptedContent,
+        vaultEncryptedMetadata: vaultEncryptedMetadata || undefined,
       })
       .returning();
 
@@ -142,9 +142,9 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
     // Decrypt the records
     const decryptedRecords = records.map((record) => ({
       ...record,
-      content: decryptRecord(record.encryptedContent),
-      metadata: record.encryptedMetadata
-        ? JSON.parse(decryptRecord(record.encryptedMetadata))
+      content: decryptRecord(record.vaultEncryptedContent),
+      metadata: record.vaultEncryptedMetadata
+        ? JSON.parse(decryptRecord(record.vaultEncryptedMetadata))
         : null,
     }));
 
@@ -238,15 +238,15 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
     }
 
     // Encrypt the updated content and metadata
-    const newEncryptedContent = encryptRecord(content);
-    const newEncryptedMetadata = metadata ? encryptRecord(JSON.stringify(metadata)) : null;
+    const newVaultEncryptedContent = encryptRecord(content);
+    const newVaultEncryptedMetadata = metadata ? encryptRecord(JSON.stringify(metadata)) : null;
 
     // Update the record
     const [updatedRecord] = await db
       .update(RecordsTable)
       .set({
-        encryptedContent: newEncryptedContent,
-        encryptedMetadata: newEncryptedMetadata || undefined,
+        vaultEncryptedContent: newVaultEncryptedContent,
+        vaultEncryptedMetadata: newVaultEncryptedMetadata || undefined,
         lastModifiedAt: new Date(),
         version: oldRecord.version + 1,
       })
@@ -266,8 +266,8 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
           // To avoid logging actual old encrypted content in audit,
           // we indicate if it changed by comparing new encrypted values with old ones.
           // This assumes that if the encrypted string is the same, the content is the same.
-          contentChanged: oldRecord.encryptedContent !== newEncryptedContent,
-          metadataChanged: oldRecord.encryptedMetadata !== newEncryptedMetadata,
+          contentChanged: oldRecord.vaultEncryptedContent !== newVaultEncryptedContent,
+          metadataChanged: oldRecord.vaultEncryptedMetadata !== newVaultEncryptedMetadata,
         },
         {
           newVersion: updatedRecord.version,

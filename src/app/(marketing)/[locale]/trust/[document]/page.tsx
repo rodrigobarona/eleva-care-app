@@ -1,10 +1,7 @@
 import { isValidLocale } from '@/app/i18n';
 import { locales } from '@/lib/i18n/routing';
-import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
-import { mdxComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
 import { notFound, redirect } from 'next/navigation';
 
 // Static content - cache for 24 hours
@@ -37,42 +34,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   try {
-    const t = await getTranslations({ locale, namespace: 'metadata.trust.documents' });
-
-    // Get translations based on document type using explicit typing
-    let title, description, ogTitle, ogDescription, siteName;
-
-    switch (document) {
-      case 'security':
-        title = t('security.title');
-        description = t('security.description');
-        ogTitle = t('security.og.title');
-        ogDescription = t('security.og.description');
-        siteName = t('security.og.siteName');
-        break;
-      case 'dpa':
-        title = t('dpa.title');
-        description = t('dpa.description');
-        ogTitle = t('dpa.og.title');
-        ogDescription = t('dpa.og.description');
-        siteName = t('dpa.og.siteName');
-        break;
-      default:
-        throw new Error(`Unknown document type: ${document}`);
-    }
+    // Dynamically import metadata from MDX file using Next.js 16 native approach
+    const { metadata } = await import(`@/content/trust/${document}/${locale}.mdx`);
 
     return generatePageMetadata({
       locale,
       path: `/trust/${document}`,
-      title,
-      description,
-      ogTitle,
-      ogDescription,
-      siteName,
+      title: metadata.title,
+      description: metadata.description,
+      ogTitle: metadata.og?.title || undefined,
+      ogDescription: metadata.og?.description || undefined,
+      siteName: metadata.og?.siteName || undefined,
       type: 'article',
       keywords: ['trust', 'security', 'compliance', document, 'eleva care', 'healthcare'],
     });
-  } catch {
+  } catch (error) {
+    console.error(`Error loading metadata from MDX for trust/${document}:`, error);
     console.warn(
       `No translations found for trust document ${document} in locale ${locale}, using fallback`,
     );
@@ -111,23 +88,21 @@ export default async function TrustDocumentPage({ params }: PageProps) {
     return notFound();
   }
 
-  // Map trust document to content namespace
-  const contentNamespace = `trust/${document}`;
-
-  const content = await renderMDXContent({
-    namespace: contentNamespace,
-    locale,
-    fallbackLocale: 'en',
-    components: mdxComponents,
-  });
-
-  if (!content) {
+  // Native Next.js 16 MDX import - Turbopack optimized
+  let TrustContent: React.ComponentType<any>;
+  try {
+    const mdxModule = await import(`@/content/trust/${document}/${locale}.mdx`);
+    TrustContent = mdxModule.default;
+  } catch (error) {
+    console.error(`Failed to load MDX content for trust/${document}/${locale}:`, error);
     return notFound();
   }
 
   return (
     <div className="card mx-auto max-w-4xl">
-      <div className="p-6 sm:p-10">{content}</div>
+      <div className="p-6 sm:p-10">
+        <TrustContent />
+      </div>
     </div>
   );
 }

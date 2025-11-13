@@ -1,10 +1,7 @@
 import { isValidLocale } from '@/app/i18n';
 import { locales } from '@/lib/i18n/routing';
-import { renderMDXContent } from '@/lib/mdx/server-mdx';
 import { generatePageMetadata } from '@/lib/seo/metadata-utils';
-import { mdxComponents } from '@/mdx-components';
 import type { Metadata } from 'next';
-import { getTranslations } from 'next-intl/server';
 import { notFound, redirect } from 'next/navigation';
 
 // Static content - cache for 24 hours
@@ -40,63 +37,22 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   try {
-    const t = await getTranslations({ locale, namespace: 'metadata.legal.documents' });
-
-    // Get translations based on document type using explicit typing
-    let title, description, ogTitle, ogDescription, siteName;
-
-    switch (document) {
-      case 'terms':
-        title = t('terms.title');
-        description = t('terms.description');
-        ogTitle = t('terms.og.title');
-        ogDescription = t('terms.og.description');
-        siteName = t('terms.og.siteName');
-        break;
-      case 'privacy':
-        title = t('privacy.title');
-        description = t('privacy.description');
-        ogTitle = t('privacy.og.title');
-        ogDescription = t('privacy.og.description');
-        siteName = t('privacy.og.siteName');
-        break;
-      case 'cookie':
-        title = t('cookie.title');
-        description = t('cookie.description');
-        ogTitle = t('cookie.og.title');
-        ogDescription = t('cookie.og.description');
-        siteName = t('cookie.og.siteName');
-        break;
-      case 'payment-policies':
-        title = t('payment-policies.title');
-        description = t('payment-policies.description');
-        ogTitle = t('payment-policies.og.title');
-        ogDescription = t('payment-policies.og.description');
-        siteName = t('payment-policies.og.siteName');
-        break;
-      case 'expert-agreement':
-        title = t('expert-agreement.title');
-        description = t('expert-agreement.description');
-        ogTitle = t('expert-agreement.og.title');
-        ogDescription = t('expert-agreement.og.description');
-        siteName = t('expert-agreement.og.siteName');
-        break;
-      default:
-        throw new Error(`Unknown document type: ${document}`);
-    }
+    // Dynamically import metadata from MDX file using Next.js 16 native approach
+    const { metadata } = await import(`@/content/${document}/${locale}.mdx`);
 
     return generatePageMetadata({
       locale,
       path: `/legal/${document}`,
-      title,
-      description,
-      ogTitle,
-      ogDescription,
-      siteName,
+      title: metadata.title,
+      description: metadata.description,
+      ogTitle: metadata.og?.title || undefined,
+      ogDescription: metadata.og?.description || undefined,
+      siteName: metadata.og?.siteName || undefined,
       type: 'article',
       keywords: ['legal', document, 'eleva care', 'healthcare', 'policy'],
     });
-  } catch {
+  } catch (error) {
+    console.error(`Error loading metadata from MDX for legal/${document}:`, error);
     console.warn(
       `No translations found for legal document ${document} in locale ${locale}, using fallback`,
     );
@@ -135,20 +91,21 @@ export default async function LegalDocumentPage({ params }: PageProps) {
     return notFound();
   }
 
-  const content = await renderMDXContent({
-    namespace: document,
-    locale,
-    fallbackLocale: 'en',
-    components: mdxComponents,
-  });
-
-  if (!content) {
+  // Native Next.js 16 MDX import - Turbopack optimized
+  let LegalContent: React.ComponentType<any>;
+  try {
+    const mdxModule = await import(`@/content/${document}/${locale}.mdx`);
+    LegalContent = mdxModule.default;
+  } catch (error) {
+    console.error(`Failed to load MDX content for ${document}/${locale}:`, error);
     return notFound();
   }
 
   return (
     <div className="card mx-auto max-w-4xl">
-      <div className="p-6 sm:p-10">{content}</div>
+      <div className="p-6 sm:p-10">
+        <LegalContent />
+      </div>
     </div>
   );
 }

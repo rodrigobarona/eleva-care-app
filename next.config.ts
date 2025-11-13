@@ -80,8 +80,9 @@ const config: NextConfig = {
   },
 
   experimental: {
-    // On-demand cache invalidation for dynamic routes (staleTimes = 0)
-    // This helps ensure dynamic content is always fresh
+    // Client-side router cache control for dynamic routes
+    // Setting dynamic to 0 ensures dynamic content is always fresh (no stale cache)
+    // Still experimental in Next.js 16, useful for maintaining data freshness
     staleTimes: {
       dynamic: 0,
     },
@@ -93,37 +94,9 @@ const config: NextConfig = {
     // Enable webpack build worker to reduce memory usage
     webpackBuildWorker: true,
 
-    // Limits bundle imports to specified packages for smaller client bundles
-    // Only imports used components from these packages instead of the entire library
-    optimizePackageImports: [
-      'react-icons',
-      '@clerk/nextjs',
-      'next-intl',
-      'sonner',
-      'posthog-js',
-      '@radix-ui/react-accordion',
-      '@radix-ui/react-alert-dialog',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-checkbox',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-icons',
-      '@radix-ui/react-label',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-progress',
-      '@radix-ui/react-scroll-area',
-      '@radix-ui/react-select',
-      '@radix-ui/react-separator',
-      '@radix-ui/react-slot',
-      '@radix-ui/react-switch',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-toast',
-      '@radix-ui/react-toggle',
-      '@radix-ui/react-tooltip',
-      '@tiptap/react',
-      '@tiptap/starter-kit',
-      'lucide-react',
-    ],
+    // NOTE: optimizePackageImports removed - not needed with Turbopack (Next.js 16)
+    // Turbopack automatically handles package optimization without explicit configuration
+    // Reference: https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack
   },
 
   // Configure `pageExtensions` to include markdown and MDX files

@@ -1,4 +1,3 @@
-import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
@@ -23,6 +22,7 @@ import {
   PAYMENT_TRANSFER_STATUS_READY,
   PAYMENT_TRANSFER_STATUS_REFUNDED,
 } from '@/lib/constants/payment-transfers';
+import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
@@ -457,7 +457,8 @@ async function notifyAppointmentConflict(
     );
 
     // Load collision messages from internationalization files
-    const t = await getTranslations({ locale, namespace: 'Payments.collision' });
+    // TypeScript doesn't infer types correctly for nested namespaces in webhooks
+    const t = (await getTranslations({ locale, namespace: 'Payments.collision' })) as any;
 
     // Format amounts for display
     const refundAmountFormatted = (refundAmount / 100).toFixed(2);
