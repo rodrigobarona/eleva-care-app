@@ -32,7 +32,7 @@ const withMDX = createMDX({
  * Internationalization plugin
  * Enables i18n features through next-intl
  */
-const withNextIntl = createNextIntlPlugin('./lib/i18n/request.ts');
+const withNextIntl = createNextIntlPlugin('./src/lib/i18n/request.ts');
 
 const config: NextConfig = {
   // Environment variables to be injected at build time

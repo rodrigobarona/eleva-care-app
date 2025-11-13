@@ -79,6 +79,32 @@ bash scripts/utilities/test-betterstack-health.sh
 bash scripts/utilities/test-health-endpoints.sh
 ```
 
+### WorkOS RBAC Configuration
+
+**`utilities/workos-rbac-config.ts`** - Manage WorkOS roles and permissions configuration
+
+- Single source of truth for all roles and permissions
+- Generate multiple formats (JSON, CSV, Markdown, TypeScript)
+- Validate configuration integrity
+- Export copy-paste friendly formats for WorkOS Dashboard
+
+```bash
+# Show configuration summary
+pnpm tsx scripts/utilities/workos-rbac-config.ts summary
+
+# Validate configuration
+pnpm tsx scripts/utilities/workos-rbac-config.ts validate
+
+# Generate all formats (JSON, CSV, Markdown, TypeScript)
+pnpm tsx scripts/utilities/workos-rbac-config.ts generate-all
+
+# Generate specific format
+pnpm tsx scripts/utilities/workos-rbac-config.ts generate-json
+pnpm tsx scripts/utilities/workos-rbac-config.ts generate-csv
+pnpm tsx scripts/utilities/workos-rbac-config.ts generate-markdown
+pnpm tsx scripts/utilities/workos-rbac-config.ts generate-typescript
+```
+
 ## Best Practices
 
 ### Creating New Scripts

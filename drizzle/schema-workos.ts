@@ -237,11 +237,28 @@ export const UsersTable = pgTable(
     onboardingCompletedAt: timestamp('onboarding_completed_at'),
 
     // Google OAuth integration (via WorkOS OAuth provider)
-    // 🔐 Security: All tokens ENCRYPTED at rest using AES-256-GCM
-    // Uses same encryption as medical records (lib/utils/encryption.ts)
-    // Requires ENCRYPTION_KEY environment variable
+    // 🔐 Security: All tokens ENCRYPTED at rest
+    //
+    // Encryption Migration (Vault):
+    // - Legacy: googleAccessToken, googleRefreshToken (AES-256-GCM)
+    // - Vault: vaultGoogleAccessToken, vaultGoogleRefreshToken (WorkOS Vault)
+    // - googleTokenEncryptionMethod: Tracks which method was used
+    //
+    // During migration: dual-write to both, read from Vault with legacy fallback
+
+    // Legacy encryption (keep during migration, remove after)
     googleAccessToken: text('google_access_token'), // Encrypted access token (JSON: {encryptedContent, iv, tag})
     googleRefreshToken: text('google_refresh_token'), // Encrypted refresh token (long-lived, SENSITIVE)
+
+    // NEW: WorkOS Vault encryption columns
+    vaultGoogleAccessToken: text('vault_google_access_token'),
+    vaultGoogleRefreshToken: text('vault_google_refresh_token'),
+
+    // NEW: Track encryption method for tokens
+    googleTokenEncryptionMethod: text('google_token_encryption_method')
+      .default('aes-256-gcm')
+      .$type<'aes-256-gcm' | 'vault'>(),
+
     googleTokenExpiry: timestamp('google_token_expiry'), // When access token expires (NOT encrypted)
     googleCalendarConnected: boolean('google_calendar_connected').default(false), // Quick check
     googleCalendarConnectedAt: timestamp('google_calendar_connected_at'), // First connection timestamp
@@ -618,6 +635,17 @@ export const ProfilesTable = pgTable(
 
 /**
  * Records Table - Encrypted meeting notes (PHI)
+ *
+ * Encryption Migration (Vault):
+ * - Legacy: encryptedContent, encryptedMetadata (AES-256-GCM)
+ * - Vault: vaultEncryptedContent, vaultEncryptedMetadata (WorkOS Vault)
+ * - encryptionMethod: Tracks which method was used ('aes-256-gcm' | 'vault')
+ *
+ * During migration:
+ * 1. New records write to both (dual-write)
+ * 2. Reads try Vault first, fallback to legacy
+ * 3. Background job migrates old records
+ * 4. After migration, legacy columns can be dropped
  */
 export const RecordsTable = pgTable(
   'records',
@@ -630,8 +658,21 @@ export const RecordsTable = pgTable(
       .references(() => MeetingsTable.id, { onDelete: 'cascade' }),
     expertId: text('expert_id').notNull(), // workosUserId
     guestEmail: text('guest_email').notNull(),
+
+    // Legacy encryption (keep during migration, remove after)
     encryptedContent: text('encrypted_content').notNull(),
     encryptedMetadata: text('encrypted_metadata'),
+
+    // NEW: WorkOS Vault encryption columns
+    vaultEncryptedContent: text('vault_encrypted_content'),
+    vaultEncryptedMetadata: text('vault_encrypted_metadata'),
+
+    // NEW: Track which encryption method was used
+    encryptionMethod: text('encryption_method')
+      .notNull()
+      .default('aes-256-gcm')
+      .$type<'aes-256-gcm' | 'vault'>(),
+
     lastModifiedAt: timestamp('last_modified_at').notNull().defaultNow(),
     version: integer('version').default(1).notNull(),
     createdAt,
@@ -641,6 +682,7 @@ export const RecordsTable = pgTable(
     orgIdIndex: index('records_org_id_idx').on(table.orgId),
     meetingIdIndex: index('records_meeting_id_idx').on(table.meetingId),
     expertIdIndex: index('records_expert_id_idx').on(table.expertId),
+    encryptionMethodIndex: index('records_encryption_method_idx').on(table.encryptionMethod),
   }),
 );
 

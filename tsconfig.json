@@ -17,14 +17,16 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./*"],
+      "@/*": ["./src/*"],
+      "@/drizzle/*": ["./drizzle/*"],
       "content-collections": ["./.content-collections/generated"]
     },
     "target": "ES2017",
     "strictNullChecks": true,
     "noImplicitAny": true,
-    "typeRoots": ["./node_modules/@types", "./types"],
+    "typeRoots": ["./node_modules/@types", "./src/types"],
     "allowArbitraryExtensions": true
   },
   "include": [
@@ -33,12 +35,14 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "**/*.json",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    "src/**/*"
   ],
   "exclude": [
     "node_modules",
     "scripts/migrate-audit-logs-to-unified.ts",
-    "scripts/verify-payout-data.ts"
+    "scripts/verify-payout-data.ts",
+    "scripts/utilities/archive/**/*"
   ],
   "ts-node": {
     "compilerOptions": {
