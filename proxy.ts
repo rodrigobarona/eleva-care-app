@@ -14,15 +14,11 @@ import {
   ADMIN_ROUTES,
   EXPERT_ROLES,
   EXPERT_ROUTES,
-  PUBLIC_ROUTES,
   SPECIAL_AUTH_ROUTES,
 } from '@/lib/constants/roles';
 import {
   getSeoRedirect,
-  isAuthPath,
   isPrivateSegment,
-  isPublicContentPath,
-  isReservedRoute,
   isStaticFile,
   shouldSkipAuthForApi,
 } from '@/lib/constants/routes';
@@ -97,113 +93,36 @@ function isPrivateRoute(request: NextRequest): boolean {
 }
 
 /**
- * Check if path is an authentication route
- */
-function isAuthRoute(path: string): boolean {
-  const segments = path.split('/').filter(Boolean);
-
-  // Check first segment (no locale)
-  if (segments.length >= 1 && isAuthPath(segments[0])) {
-    return true;
-  }
-
-  // Check second segment (with locale prefix)
-  if (
-    segments.length >= 2 &&
-    locales.includes(segments[0] as (typeof locales)[number]) &&
-    isAuthPath(segments[1])
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
-function isHomePage(path: string): boolean {
-  if (path === '/') return true;
-  const segments = path.split('/').filter(Boolean);
-  if (segments.length === 1) {
-    return locales.includes(segments[0] as (typeof locales)[number]);
-  }
-  return false;
-}
-
-function isUsernameRoute(path: string): boolean {
-  const segments = path.split('/').filter(Boolean);
-
-  if (segments.length === 1) {
-    const segment = segments[0];
-    // Check against centralized RESERVED_ROUTES constant + locales
-    const isReserved =
-      isReservedRoute(segment) || locales.includes(segment as (typeof locales)[number]);
-    return !isReserved;
-  }
-
-  if (segments.length > 1) {
-    // Check if first segment is reserved or is a locale
-    const isReservedFirstSegment = isReservedRoute(segments[0]);
-    const isLocalePrefix = locales.includes(segments[0] as (typeof locales)[number]);
-
-    // If first segment is locale, check if second segment is reserved
-    const isReservedSecondSegment =
-      isLocalePrefix && segments.length > 1 && isReservedRoute(segments[1]);
-
-    return !isReservedFirstSegment && !isReservedSecondSegment;
-  }
-
-  return false;
-}
-
-/**
- * Check if path is a public route with locale prefix
- */
-function isLocalePublicRoute(path: string): boolean {
-  const segments = path.split('/').filter(Boolean);
-
-  if (segments.length >= 1) {
-    const isLocale = locales.includes(segments[0] as (typeof locales)[number]);
-    if (isLocale) {
-      // If only locale segment, or second segment is not private
-      return segments.length === 1 || (segments[1] ? !isPrivateSegment(segments[1]) : true);
-    }
-  }
-
-  return false;
-}
-
-/**
- * Helper function to preserve AuthKit headers on any response
- * This ensures withAuth() works in all components by maintaining session cookies
- */
-function preserveAuthHeaders(response: NextResponse, authHeaders: Headers): NextResponse {
-  for (const [key, value] of authHeaders) {
-    if (key.toLowerCase() === 'set-cookie') {
-      response.headers.append(key, value);
-    } else {
-      response.headers.set(key, value);
-    }
-  }
-  return response;
-}
-
-/**
- * Main proxy function using AuthKit for authentication
+ * Main proxy function using AuthKit for authentication with next-intl
  * Next.js 16 renamed middleware to proxy
- *
- * Pattern: AuthKit first → i18n routing → preserve headers
- * This ensures all routes have auth context available via withAuth()
+ * 
+ * Pattern (following next-intl docs):
+ * 1. Handle special routes (static, cron, SEO) that don't need auth or i18n
+ * 2. Run AuthKit to establish auth context
+ * 3. Run i18n middleware FIRST (handles locale routing, redirects, rewrites)
+ * 4. Preserve AuthKit headers on i18n response
+ * 5. Apply authorization checks AFTER routing is determined
+ * 
+ * This ensures:
+ * - All pages have auth context (fixes "withAuth not covered" error)
+ * - Locale routing works correctly (fixes "invalid locale" error)
+ * - Authorization checks happen after routing is complete
  */
 export default async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
   console.log(`🔍 Processing route: ${path}`);
 
-  // Skip proxy for static files and special API routes
+  // ==========================================
+  // STEP 1: HANDLE SPECIAL ROUTES (no auth/i18n needed)
+  // ==========================================
+  
+  // Skip for static files and internal APIs
   if (isStaticFile(path) || shouldSkipAuthForApi(path)) {
     console.log(`📁 Static/internal route, skipping: ${path}`);
     return NextResponse.next();
   }
 
-  // Handle special auth routes (cron jobs with QStash)
+  // Handle cron jobs with QStash authentication
   if (matchPatternsArray(path, SPECIAL_AUTH_ROUTES)) {
     console.log(`🔑 Special auth route detected: ${path}`);
     if (path.startsWith('/api/cron/')) {
@@ -227,33 +146,31 @@ export default async function proxy(request: NextRequest) {
         apiKey === process.env.CRON_API_KEY ||
         (process.env.NODE_ENV === 'production' && process.env.ENABLE_CRON_FALLBACK === 'true')
       ) {
-        console.log('✅ Authorized cron request - allowing access');
+        console.log('✅ Authorized cron request');
         return NextResponse.next();
       }
-      console.log('❌ Unauthorized cron request - denying access');
+      console.log('❌ Unauthorized cron request');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     return NextResponse.next();
   }
 
-  // Handle SEO redirects (centralized in routes.ts)
+  // Handle SEO redirects
   const seoRedirectPath = getSeoRedirect(path);
   if (seoRedirectPath) {
     console.log(`🔀 SEO redirect: ${path} → ${seoRedirectPath}`);
     return NextResponse.redirect(new URL(seoRedirectPath, request.url), 301);
   }
 
-  // WorkOS auth API routes are public (OAuth callback flow)
+  // WorkOS OAuth callback - public route
   if (path.startsWith('/api/auth/')) {
     console.log(`🔓 Auth API route: ${path}`);
     return NextResponse.next();
   }
 
-  // =============================================
-  // STEP 1: RUN AUTHKIT (provides auth context for all routes)
-  // =============================================
-  // Run AuthKit first to set up authentication context
-  // This must happen BEFORE i18n routing to ensure withAuth() works
+  // ==========================================
+  // STEP 2: RUN AUTHKIT (establish auth context)
+  // ==========================================
   console.log(`🔐 Running AuthKit for: ${path}`);
   const {
     session,
@@ -263,119 +180,112 @@ export default async function proxy(request: NextRequest) {
     debug: process.env.NODE_ENV === 'development',
   });
 
-  console.log(`👤 Auth status: ${session.user?.email || 'anonymous'}`);
+  console.log(`👤 Auth: ${session.user?.email || 'anonymous'}`);
 
-  // =============================================
-  // STEP 2: DETERMINE ROUTE TYPE
-  // =============================================
-  // Extract path without locale prefix for route matching
-  const pathWithoutLocale = locales.some((locale) => path.startsWith(`/${locale}/`))
-    ? path.substring(path.indexOf('/', 1))
-    : path;
+  // ==========================================
+  // STEP 3: RUN I18N MIDDLEWARE (handles locale routing)
+  // ==========================================
+  // Run i18n middleware to handle locale detection, redirects, and rewrites
+  // This MUST happen before authorization checks because we need the final routed path
+  console.log(`🌐 Applying i18n routing: ${path}`);
+  const i18nResponse = handleI18nRouting(request);
+  
+  // Get the rewritten pathname after i18n middleware
+  const rewrittenPath = i18nResponse.headers.get('x-middleware-rewrite');
+  const finalPath = rewrittenPath ? new URL(rewrittenPath).pathname : path;
+  console.log(`📍 Final path after i18n: ${finalPath}`);
 
-  // Determine if route is public (doesn't require authentication)
-  const isPublicContentRoute =
-    isLocalePublicRoute(path) ||
-    isHomePage(path) ||
-    isAuthRoute(path) ||
-    isPublicContentPath(path) ||
-    isPublicContentPath(pathWithoutLocale) ||
-    matchPatternsArray(path, PUBLIC_ROUTES) ||
-    matchPatternsArray(pathWithoutLocale, PUBLIC_ROUTES);
-
-  // Username routes need AuthKit context (for unpublished profile checks)
-  const needsAuthContext = isUsernameRoute(path);
-
-  // For private routes that need i18n
-  const isPrivateWithI18n = !isPrivateRoute(request) && !isPublicContentRoute && !needsAuthContext;
-
-  // =============================================
-  // STEP 3: APPLY I18N ROUTING + PRESERVE AUTH HEADERS
-  // =============================================
-  // For public routes and username routes, run i18n middleware
-  if (isPublicContentRoute || needsAuthContext) {
-    console.log(`🌐 Public/username route with i18n: ${path}`);
-    const response = handleI18nRouting(request);
-    return preserveAuthHeaders(response, authkitHeaders);
+  // ==========================================
+  // STEP 4: PRESERVE AUTH HEADERS ON I18N RESPONSE
+  // ==========================================
+  // Preserve AuthKit session cookies on the i18n response
+  // This ensures withAuth() works in all components
+  for (const [key, value] of authkitHeaders) {
+    if (key.toLowerCase() === 'set-cookie') {
+      i18nResponse.headers.append(key, value);
+    } else {
+      i18nResponse.headers.set(key, value);
+    }
   }
 
-  // =============================================
-  // STEP 4: PROTECTED ROUTES - Check Authentication
-  // =============================================
-  // If no user session on protected route, redirect to sign-in
-  if (!session.user && (isPrivateWithI18n || isPrivateRoute(request))) {
+  // ==========================================
+  // STEP 5: APPLY AUTHORIZATION CHECKS
+  // ==========================================
+  // Extract path without locale prefix for authorization checks
+  const pathWithoutLocale = locales.some((locale) => finalPath.startsWith(`/${locale}/`))
+    ? finalPath.substring(finalPath.indexOf('/', 1))
+    : finalPath;
+
+  // Check if this is a protected route
+  const isProtectedRoute = 
+    isPrivateRoute(request) ||
+    matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES) ||
+    matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES);
+
+  // If protected route and no session, redirect to sign-in
+  if (isProtectedRoute && !session.user) {
     console.log('❌ No session on protected route - redirecting to sign-in');
-    const response = NextResponse.redirect(authorizationUrl!);
-    return preserveAuthHeaders(response, authkitHeaders);
+    const redirectResponse = NextResponse.redirect(authorizationUrl!);
+    
+    // Preserve auth headers on redirect
+    for (const [key, value] of authkitHeaders) {
+      if (key.toLowerCase() === 'set-cookie') {
+        redirectResponse.headers.append(key, value);
+      } else {
+        redirectResponse.headers.set(key, value);
+      }
+    }
+    
+    return redirectResponse;
   }
 
-  // User is authenticated for protected routes
-  if (session.user) {
-    console.log(`✅ Authenticated user: ${session.user.email}`);
-
-    // Get user's application role from database
+  // For authenticated users on protected routes, check roles
+  if (session.user && isProtectedRoute) {
+    console.log(`✅ Authenticated: ${session.user.email}`);
+    
     const userRole = await getUserApplicationRole(session.user.id);
 
     // Check admin routes
-    if (matchPatternsArray(path, ADMIN_ROUTES)) {
+    if (matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES)) {
       const isAdmin = ADMIN_ROLES.includes(userRole as (typeof ADMIN_ROLES)[number]);
-      console.log(`🔒 Admin route check: ${path}, isAdmin: ${isAdmin}`);
-
       if (!isAdmin) {
-        const response = path.startsWith('/api/')
-          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-          : NextResponse.redirect(new URL('/unauthorized', request.url));
-        return preserveAuthHeaders(response, authkitHeaders);
+        console.log(`🚫 Access denied: ${path} requires admin role`);
+        return NextResponse.redirect(new URL('/unauthorized', request.url));
       }
     }
 
     // Check expert routes
-    if (matchPatternsArray(path, EXPERT_ROUTES)) {
+    if (matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES)) {
       const isExpert = EXPERT_ROLES.includes(userRole as (typeof EXPERT_ROLES)[number]);
-      console.log(`🔒 Expert route check: ${path}, isExpert: ${isExpert}`);
-
       if (!isExpert) {
-        const response = path.startsWith('/api/')
-          ? NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-          : NextResponse.redirect(new URL('/unauthorized', request.url));
-        return preserveAuthHeaders(response, authkitHeaders);
+        console.log(`🚫 Access denied: ${path} requires expert role`);
+        return NextResponse.redirect(new URL('/unauthorized', request.url));
       }
     }
   }
 
-  // For private routes without i18n (dashboard, etc.)
-  if (isPrivateRoute(request)) {
-    console.log(`🔒 Private route (no i18n): ${path}`);
-    // Use WorkOS recommended pattern for header forwarding (SSRF mitigation)
-    const response = NextResponse.next({
-      request: { headers: new Headers(request.headers) },
-    });
-    return preserveAuthHeaders(response, authkitHeaders);
-  }
-
-  // For authenticated routes with i18n
-  console.log(`🌐 Authenticated route with i18n: ${path}`);
-  const response = handleI18nRouting(request);
-  return preserveAuthHeaders(response, authkitHeaders);
+  // Return the i18n response with auth headers preserved
+  console.log(`✅ Request completed: ${path} -> ${finalPath}`);
+  return i18nResponse;
 }
 
 /**
  * Configure which paths the proxy middleware runs on
- * 
+ *
  * Pattern combines:
  * - WorkOS AuthKit: Ensure middleware runs on all routes that use withAuth()
  * - next-intl: Exclude static files, Next.js internals, and specific API routes
- * 
+ *
  * This matcher ensures AuthKit headers are available for ALL pages including:
- * - Root route (/) 
+ * - Root route (/)
  * - All locale-prefixed routes (/en, /es, /pt, etc.)
  * - All page routes (marketing, legal, dashboard, etc.)
- * 
+ *
  * Excluded:
  * - Static files (images, css, js)
  * - Next.js internals (_next, _vercel)
  * - Public webhooks and cron jobs
- * 
+ *
  * @see https://github.com/workos/authkit-nextjs#composing-custom-nextjs-middleware-with-authkit
  * @see https://next-intl.dev/docs/routing/middleware
  */
@@ -397,3 +307,5 @@ export const config = {
     '/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|.*\\..*|\\.well-known|api/webhooks|api/cron|api/qstash|api/internal|api/healthcheck|api/health|_vercel|_botid).*)',
   ],
 };
+
+
