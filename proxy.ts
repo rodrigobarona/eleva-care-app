@@ -230,20 +230,10 @@ export default async function proxy(request: NextRequest) {
   }
 
   // =============================================
-  // RUN AUTHKIT ON ALL ROUTES
+  // RUN I18N MIDDLEWARE FIRST FOR LOCALE ROUTING
   // =============================================
-  // AuthKit middleware must run on ALL routes (including public ones)
-  // so that withAuth() can be called anywhere in the application
-  const {
-    session,
-    headers: authkitHeaders,
-    authorizationUrl,
-  } = await authkit(request, {
-    debug: process.env.NODE_ENV === 'development',
-  });
-
-  // Check if this is a public route
-  // Also check for locale-prefixed public content routes (e.g., /es/become-expert)
+  // For marketing pages and public content, handle locale routing before auth
+  // This ensures the root path "/" is properly rewritten to "/en" internally
   const pathWithoutLocale = locales.some((locale) => path.startsWith(`/${locale}/`))
     ? path.substring(path.indexOf('/', 1))
     : path;
@@ -259,37 +249,27 @@ export default async function proxy(request: NextRequest) {
 
   // Auth routes: skip i18n routing (sign-in, sign-up are not localized)
   if (isAuthRoute(path)) {
-    console.log(
-      `🔓 Auth route (no i18n): ${path} (session: ${session.user ? 'authenticated' : 'guest'})`,
-    );
-    const response = NextResponse.next();
-
-    // Preserve AuthKit headers (session cookies)
-    for (const [key, value] of authkitHeaders) {
-      if (key.toLowerCase() === 'set-cookie') {
-        response.headers.append(key, value);
-      } else {
-        response.headers.set(key, value);
-      }
-    }
-    return response;
+    console.log(`🔓 Auth route (no i18n): ${path}`);
+    return NextResponse.next();
   }
 
-  // Other public routes: allow access with i18n routing
+  // For public routes, apply i18n first
   if (isPublicRoute) {
-    console.log(`🌐 Public route: ${path} (session: ${session.user ? 'authenticated' : 'guest'})`);
-    const response = await handleI18nRouting(request);
-
-    // Preserve AuthKit headers (session cookies) for public routes too
-    for (const [key, value] of authkitHeaders) {
-      if (key.toLowerCase() === 'set-cookie') {
-        response.headers.append(key, value);
-      } else {
-        response.headers.set(key, value);
-      }
-    }
-    return response;
+    console.log(`🌐 Public route with i18n: ${path}`);
+    return await handleI18nRouting(request);
   }
+
+  // =============================================
+  // RUN AUTHKIT FOR PROTECTED ROUTES
+  // =============================================
+  // AuthKit middleware runs for protected routes only
+  const {
+    session,
+    headers: authkitHeaders,
+    authorizationUrl,
+  } = await authkit(request, {
+    debug: process.env.NODE_ENV === 'development',
+  });
 
   // =============================================
   // PROTECTED ROUTES - Require Authentication
@@ -363,7 +343,18 @@ export default async function proxy(request: NextRequest) {
 
   // Apply i18n to authenticated routes
   console.log(`🌐 Applying i18n to authenticated route: ${path}`);
-  return handleI18nRouting(request);
+  const response = await handleI18nRouting(request);
+
+  // Preserve AuthKit headers (session cookies)
+  for (const [key, value] of authkitHeaders) {
+    if (key.toLowerCase() === 'set-cookie') {
+      response.headers.append(key, value);
+    } else {
+      response.headers.set(key, value);
+    }
+  }
+
+  return response;
 }
 
 /**
