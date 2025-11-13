@@ -1,18 +1,3 @@
-/**
- * Next.js Middleware with WorkOS AuthKit
- *
- * Integrates:
- * - WorkOS AuthKit authentication (replaces Clerk)
- * - Role-based access control (RBAC)
- * - Internationalization (i18n via next-intl)
- * - Expert setup flow management
- *
- * @see /docs/02-core-systems/role-based-authorization.md for complete documentation
- */
-
-// Debug: Verify file is loaded
-console.log('🚀 [PROXY.TS] File loaded and evaluated');
-
 import {
   ADMIN_ROLES,
   ADMIN_ROUTES,
@@ -32,6 +17,21 @@ import { authkit } from '@workos-inc/authkit-nextjs';
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+
+/**
+ * Next.js Middleware with WorkOS AuthKit
+ *
+ * Integrates:
+ * - WorkOS AuthKit authentication (replaces Clerk)
+ * - Role-based access control (RBAC)
+ * - Internationalization (i18n via next-intl)
+ * - Expert setup flow management
+ *
+ * @see /docs/02-core-systems/role-based-authorization.md for complete documentation
+ */
+
+// Debug: Verify file is loaded
+console.log('🚀 [PROXY.TS] File loaded and evaluated');
 
 /**
  * Create internationalization middleware using the routing configuration
