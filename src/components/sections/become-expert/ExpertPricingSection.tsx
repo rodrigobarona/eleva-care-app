@@ -5,19 +5,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Check, Info } from 'lucide-react';
 import Link from 'next/link';
-import React, { useState } from 'react';
+import React from 'react';
 
-type BillingInterval = 'monthly' | 'annual';
-
-interface PricingData {
-  monthly: {
-    price: string;
-    priceDetail: string;
-  };
-  annual: {
-    price: string;
-    priceDetail: string;
-    savings: string;
+interface PlanDetails {
+  name: string;
+  price: string;
+  priceDetail: string;
+  commission: string;
+  badge?: string;
+  recommended?: boolean;
+  savingsText?: string;
+  description: string;
+  features: string[];
+  cta: {
+    text: string;
+    href: string;
   };
 }
 
@@ -27,15 +29,8 @@ interface TierPricing {
   tierIcon: React.ReactNode;
   tierColor: 'primary' | 'amber';
   description: string;
-  pricing: PricingData;
-  commission: string;
-  features: string[];
-  recommended?: boolean;
+  plans: PlanDetails[];
   requirements?: string[];
-  cta: {
-    text: string;
-    href: string;
-  };
 }
 
 interface ExpertPricingSectionProps {
@@ -44,11 +39,6 @@ interface ExpertPricingSectionProps {
   communityTier: TierPricing;
   topTier: TierPricing;
   note?: string;
-  toggleLabels: {
-    monthly: string;
-    annual: string;
-    saveText: string; // e.g., "Save 20%"
-  };
 }
 
 export default function ExpertPricingSection({
@@ -57,55 +47,92 @@ export default function ExpertPricingSection({
   communityTier,
   topTier,
   note,
-  toggleLabels,
 }: ExpertPricingSectionProps) {
-  const [billingInterval, setBillingInterval] = useState<BillingInterval>('annual');
-
   return (
     <section className="bg-muted/30 py-16">
       <div className="container mx-auto px-4">
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto max-w-7xl">
           {/* Header */}
-          <div className="mb-8 text-center">
+          <div className="mb-12 text-center">
             <h2 className="mb-4 text-3xl font-bold md:text-4xl">{title}</h2>
             {subtitle && (
               <p className="mx-auto max-w-2xl text-lg text-muted-foreground">{subtitle}</p>
             )}
           </div>
 
-          {/* Billing Toggle */}
-          <div className="mb-12 flex justify-center">
-            <div className="inline-flex items-center gap-3 rounded-full border bg-background p-1 shadow-sm">
-              <button
-                onClick={() => setBillingInterval('monthly')}
-                className={`rounded-full px-6 py-2 text-sm font-medium transition-all ${
-                  billingInterval === 'monthly'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {toggleLabels.monthly}
-              </button>
-              <button
-                onClick={() => setBillingInterval('annual')}
-                className={`flex items-center gap-2 rounded-full px-6 py-2 text-sm font-medium transition-all ${
-                  billingInterval === 'annual'
-                    ? 'bg-primary text-primary-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {toggleLabels.annual}
-                <Badge variant="secondary" className="bg-green-500 text-white hover:bg-green-600">
-                  {toggleLabels.saveText}
-                </Badge>
-              </button>
+          {/* Community Expert Tier */}
+          <div className="mb-16">
+            <div className="mb-8 flex items-center gap-3">
+              <div className={`text-2xl text-primary`}>{communityTier.tierIcon}</div>
+              <div>
+                <h3 className="text-2xl font-bold">{communityTier.tierName}</h3>
+                <p className="text-muted-foreground">{communityTier.description}</p>
+              </div>
+            </div>
+
+            {/* Community Expert Plans */}
+            <div className="grid gap-6 md:grid-cols-3">
+              {communityTier.plans.map((plan, index) => (
+                <PlanCard
+                  key={index}
+                  plan={plan}
+                  tierColor="primary"
+                  isRecommended={plan.recommended}
+                />
+              ))}
             </div>
           </div>
 
-          {/* Pricing Cards - Side by Side */}
-          <div className="mb-12 grid gap-8 md:grid-cols-2">
-            <TierCard tier={communityTier} billingInterval={billingInterval} />
-            <TierCard tier={topTier} billingInterval={billingInterval} />
+          {/* Top Expert Tier */}
+          <div className="mb-16">
+            <div className="mb-8 flex items-center gap-3">
+              <div className={`text-2xl text-amber-500`}>{topTier.tierIcon}</div>
+              <div className="flex-1">
+                <div className="flex items-center gap-3">
+                  <h3 className="text-2xl font-bold">{topTier.tierName}</h3>
+                  {topTier.tierBadge && (
+                    <Badge variant="secondary" className="bg-amber-500/10 text-amber-500">
+                      {topTier.tierBadge}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-muted-foreground">{topTier.description}</p>
+              </div>
+            </div>
+
+            {/* Top Expert Requirements */}
+            {topTier.requirements && topTier.requirements.length > 0 && (
+              <Card className="mb-6 border-amber-500/20 bg-amber-500/5">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Info className="h-5 w-5 text-amber-500" />
+                    How to Qualify for Top Expert
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="grid gap-2 sm:grid-cols-2">
+                    {topTier.requirements.map((req, idx) => (
+                      <li key={idx} className="flex items-start gap-2 text-sm">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" />
+                        <span>{req}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Top Expert Plans */}
+            <div className="grid gap-6 md:grid-cols-3">
+              {topTier.plans.map((plan, index) => (
+                <PlanCard
+                  key={index}
+                  plan={plan}
+                  tierColor="amber"
+                  isRecommended={plan.recommended}
+                />
+              ))}
+            </div>
           </div>
 
           {/* Note */}
@@ -120,82 +147,67 @@ export default function ExpertPricingSection({
   );
 }
 
-function TierCard({
-  tier,
-  billingInterval,
+function PlanCard({
+  plan,
+  tierColor,
+  isRecommended,
 }: {
-  tier: TierPricing;
-  billingInterval: BillingInterval;
+  plan: PlanDetails;
+  tierColor: 'primary' | 'amber';
+  isRecommended?: boolean;
 }) {
   const colorClasses = {
     primary: {
-      icon: 'text-primary',
-      badge: 'border-primary/20 bg-primary/5',
-      card: 'border-primary shadow-xl ring-2 ring-primary/20',
       check: 'text-primary',
-      savings: 'bg-primary text-white',
+      badge: 'bg-primary text-white',
+      savingsBg: 'bg-primary',
+      border: isRecommended ? 'border-primary shadow-lg ring-2 ring-primary/20' : '',
     },
     amber: {
-      icon: 'text-amber-500',
-      badge: 'border-amber-500/20 bg-amber-500/5',
-      card: 'border-amber-500 shadow-xl ring-2 ring-amber-500/20',
       check: 'text-amber-500',
-      savings: 'bg-amber-500 text-white',
+      badge: 'bg-amber-500 text-white',
+      savingsBg: 'bg-amber-500',
+      border: isRecommended ? 'border-amber-500 shadow-lg ring-2 ring-amber-500/20' : '',
     },
   };
 
-  const colors = colorClasses[tier.tierColor];
-  const currentPricing = billingInterval === 'monthly' ? tier.pricing.monthly : tier.pricing.annual;
-  const showSavings = billingInterval === 'annual';
+  const colors = colorClasses[tierColor];
 
   return (
     <Card
-      className={`relative flex flex-col transition-all duration-300 ${tier.recommended ? colors.card : 'border-muted hover:border-primary/50'}`}
+      className={`relative flex flex-col transition-all duration-300 ${colors.border || 'hover:border-muted-foreground/50'}`}
     >
-      {/* Recommended Badge */}
-      {tier.recommended && (
+      {isRecommended && (
         <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-          <Badge
-            className="px-4 py-1 text-sm font-medium"
-            style={{
-              backgroundColor: tier.tierColor === 'amber' ? '#f59e0b' : undefined,
-            }}
-          >
-            ⭐ Recommended
+          <Badge className={`px-4 py-1 text-sm font-medium ${colors.badge}`}>⭐ Recommended</Badge>
+        </div>
+      )}
+
+      {plan.badge && !isRecommended && (
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+          <Badge variant="secondary" className="px-4 py-1 text-sm font-medium">
+            {plan.badge}
           </Badge>
         </div>
       )}
 
       <CardHeader className="pb-6">
-        {/* Tier Header */}
-        <div className="mb-4 flex items-center gap-3">
-          <div className={`${colors.icon} text-2xl`}>{tier.tierIcon}</div>
-          <div className="flex-1">
-            <CardTitle className="text-2xl">{tier.tierName}</CardTitle>
-            {tier.tierBadge && (
-              <Badge variant="secondary" className="mt-1">
-                {tier.tierBadge}
-              </Badge>
-            )}
-          </div>
-        </div>
+        <CardTitle className="text-xl">{plan.name}</CardTitle>
+        <CardDescription className="min-h-[2.5rem] text-sm">{plan.description}</CardDescription>
 
-        <CardDescription className="text-base">{tier.description}</CardDescription>
-
-        {/* Pricing Display */}
-        <div className="mt-6 space-y-3">
+        {/* Pricing */}
+        <div className="mt-4 space-y-3">
           <div className="flex items-baseline gap-2">
-            <span className="text-5xl font-bold tracking-tight">{currentPricing.price}</span>
-            <span className="text-lg text-muted-foreground">{currentPricing.priceDetail}</span>
+            <span className="text-4xl font-bold tracking-tight">{plan.price}</span>
+            <span className="text-muted-foreground">{plan.priceDetail}</span>
           </div>
 
           {/* Savings Badge */}
-          {showSavings && tier.pricing.annual.savings && (
+          {plan.savingsText && (
             <div
-              className={`inline-flex items-center gap-2 rounded-full ${colors.savings} px-4 py-1.5 text-sm font-semibold`}
+              className={`inline-flex items-center gap-2 rounded-full ${colors.savingsBg} px-4 py-1.5 text-sm font-semibold text-white`}
             >
-              <Check className="h-4 w-4" />
-              {tier.pricing.annual.savings}
+              {plan.savingsText}
             </div>
           )}
 
@@ -204,9 +216,9 @@ function TierCard({
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Commission per booking:</span>
               <span
-                className={`text-xl font-bold ${tier.tierColor === 'amber' ? 'text-amber-500' : 'text-primary'}`}
+                className={`text-xl font-bold ${tierColor === 'amber' ? 'text-amber-500' : 'text-primary'}`}
               >
-                {tier.commission}
+                {plan.commission}
               </span>
             </div>
           </div>
@@ -214,31 +226,11 @@ function TierCard({
       </CardHeader>
 
       <CardContent className="flex flex-1 flex-col space-y-6">
-        {/* Requirements (Top Expert Only) */}
-        {tier.requirements && tier.requirements.length > 0 && (
-          <Card className={colors.badge}>
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Info className={`h-4 w-4 ${colors.icon}`} />
-                How to Qualify
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {tier.requirements.map((req, idx) => (
-                <div key={idx} className="flex items-start gap-2 text-sm">
-                  <Check className={`mt-0.5 h-4 w-4 shrink-0 ${colors.check}`} />
-                  <span>{req}</span>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        )}
-
         {/* Features */}
         <div className="flex-1">
           <h4 className="mb-3 font-semibold">What&apos;s included:</h4>
           <ul className="space-y-3">
-            {tier.features.map((feature, idx) => (
+            {plan.features.map((feature, idx) => (
               <li key={idx} className="flex items-start gap-2">
                 <Check className={`mt-0.5 h-5 w-5 shrink-0 ${colors.check}`} />
                 <span className="text-sm">{feature}</span>
@@ -251,10 +243,10 @@ function TierCard({
         <Button
           asChild
           className="w-full"
-          variant={tier.recommended ? 'default' : 'outline'}
+          variant={isRecommended ? 'default' : 'outline'}
           size="lg"
         >
-          <Link href={tier.cta.href}>{tier.cta.text}</Link>
+          <Link href={plan.cta.href}>{plan.cta.text}</Link>
         </Button>
       </CardContent>
     </Card>
