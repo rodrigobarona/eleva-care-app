@@ -27,7 +27,6 @@ import {
   shouldSkipAuthForApi,
 } from '@/lib/constants/routes';
 import { defaultLocale, locales } from '@/lib/i18n';
-import { detectLocaleFromHeaders } from '@/lib/i18n/utils';
 import { getUserApplicationRole } from '@/lib/integrations/workos/roles';
 import { authkit } from '@workos-inc/authkit-nextjs';
 import createMiddleware from 'next-intl/middleware';
@@ -42,7 +41,7 @@ function createCustomI18nMiddleware() {
     locales,
     defaultLocale,
     localePrefix: 'as-needed',
-    localeDetection: false,
+    localeDetection: true, // Enable automatic locale detection
     localeCookie: {
       maxAge: 31536000, // 1 year
       name: 'ELEVA_LOCALE',
@@ -50,42 +49,7 @@ function createCustomI18nMiddleware() {
   });
 
   return async (request: NextRequest) => {
-    const pathname = request.nextUrl.pathname;
-    const hasLocalePrefix = locales.some(
-      (locale) => pathname.startsWith(`/${locale}/`) || pathname === `/${locale}`,
-    );
-
-    if (hasLocalePrefix) {
-      return baseMiddleware(request);
-    }
-
-    const cookieLocale = request.cookies.get('ELEVA_LOCALE')?.value;
-    if (cookieLocale && locales.includes(cookieLocale as (typeof locales)[number])) {
-      return baseMiddleware(request);
-    }
-
-    const detectedLocale = detectLocaleFromHeaders(request.headers);
-    if (detectedLocale && detectedLocale !== defaultLocale) {
-      if (
-        pathname === '/' ||
-        isPublicContentPath(pathname) ||
-        isUsernameRoute(pathname) ||
-        isLocalePublicRoute(pathname)
-      ) {
-        const url = request.nextUrl.clone();
-        url.pathname = `/${detectedLocale}${pathname === '/' ? '' : pathname}`;
-
-        const response = NextResponse.redirect(url);
-        response.cookies.set('ELEVA_LOCALE', detectedLocale, {
-          maxAge: 31536000,
-          httpOnly: false,
-          path: '/',
-          sameSite: 'lax',
-        });
-        return response;
-      }
-    }
-
+    // Let next-intl middleware handle all locale routing
     return baseMiddleware(request);
   };
 }
