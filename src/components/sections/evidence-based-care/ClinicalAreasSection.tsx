@@ -27,6 +27,7 @@ interface ClinicalAreasSectionProps {
 
 /**
  * Reference component with tooltip preview (Apple/Sword Health style)
+ * Links to the full reference at the bottom of the page
  * Uses Eleva brand colors
  */
 function ResearchReference({ paper, index }: { paper: Research; index: number }) {
@@ -34,9 +35,7 @@ function ResearchReference({ paper, index }: { paper: Research; index: number })
     <Tooltip delayDuration={200}>
       <TooltipTrigger asChild>
         <a
-          href={`https://doi.org/${paper.doi}`}
-          target="_blank"
-          rel="noopener noreferrer"
+          href={`#ref-${index}`}
           className="inline-flex items-baseline text-eleva-primary hover:underline hover:text-eleva-primary-light"
           aria-label={`Reference ${index}: ${paper.title}`}
         >
@@ -48,6 +47,9 @@ function ResearchReference({ paper, index }: { paper: Research; index: number })
           <p className="text-xs font-medium leading-snug text-white">{paper.title}</p>
           <p className="text-xs text-eleva-neutral-200">
             {paper.authors} ({paper.year})
+          </p>
+          <p className="mt-1 text-xs text-eleva-primary-light">
+            Click to see full reference ↓
           </p>
         </div>
       </TooltipContent>

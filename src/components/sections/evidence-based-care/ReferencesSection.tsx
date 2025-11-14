@@ -35,7 +35,11 @@ export default function ReferencesSection({ references }: ReferencesSectionProps
             <AccordionContent className="px-6 pb-6 pt-2">
               <ol className="space-y-3 text-sm">
                 {references.map((paper, idx) => (
-                  <li key={idx} className="flex gap-3 text-eleva-neutral-900/70">
+                  <li
+                    key={idx}
+                    id={`ref-${idx + 1}`}
+                    className="scroll-mt-24 flex gap-3 text-eleva-neutral-900/70"
+                  >
                     <span className="flex-shrink-0 font-medium text-eleva-neutral-900/50">
                       [{idx + 1}]
                     </span>
@@ -58,6 +62,13 @@ export default function ReferencesSection({ references }: ReferencesSectionProps
                   </li>
                 ))}
               </ol>
+
+              {/* Note about citations */}
+              <div className="mt-6 border-t border-eleva-neutral-200/50 pt-4">
+                <p className="text-xs italic text-eleva-neutral-900/60">
+                  💡 Click any reference number [1], [2], etc. in the text above to jump to its full citation here.
+                </p>
+              </div>
             </AccordionContent>
           </AccordionItem>
         </Accordion>
