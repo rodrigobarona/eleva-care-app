@@ -157,6 +157,14 @@ export default function Footer() {
                             </li>
                             <li>
                               <Link
+                                href="/evidence-based-care"
+                                className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
+                              >
+                                {t('nav.company.clinicalExcellence')}
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
                                 href="/register"
                                 className="font-medium text-eleva-neutral-900 hover:text-eleva-primary"
                               >

@@ -15,6 +15,7 @@ export const routing = {
     // ----------------
     '/': '/',
     '/about': '/about',
+    '/evidence-based-care': '/evidence-based-care',
     '/dashboard': '/dashboard',
     '/login': '/login',
     '/register': '/register',
