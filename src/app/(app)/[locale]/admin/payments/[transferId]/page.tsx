@@ -10,9 +10,9 @@ import { TransferDetailsClient } from './transfer-details-client';
 export default async function TransferDetailsPage({
   params,
 }: {
-  params: Promise<{ transferId: string }>;
+  params: Promise<{ locale: string; transferId: string }>;
 }) {
-  const resolvedParams = await params;
+  const resolvedParams = await params; // locale available for future i18n needs
   await withAuth({ ensureSignedIn: true });
 
   return (

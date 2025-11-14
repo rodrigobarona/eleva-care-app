@@ -391,7 +391,7 @@ export function IntlProvider({
       }
 
       // Set cookie to remember locale for future server-rendered pages
-      document.cookie = `ELEVA_LOCALE=${locale};max-age=31536000;path=/`;
+      document.cookie = `eleva-care-locale=${locale};max-age=31536000;path=/`;
     }
   }, [locale]);
 
