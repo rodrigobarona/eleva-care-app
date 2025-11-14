@@ -17,13 +17,7 @@ import {
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { redirect } from 'next/navigation';
 
-interface OnboardingPageProps {
-  params: Promise<{ locale: string }>;
-}
-
-export default async function OnboardingPage({ params }: OnboardingPageProps) {
-  await params; // Consume params promise (locale not needed for onboarding logic)
-  
+export default async function OnboardingPage() {
   // Ensure user is authenticated
   const { user } = await withAuth({ ensureSignedIn: true });
 

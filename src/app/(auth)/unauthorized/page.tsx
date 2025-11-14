@@ -8,13 +8,7 @@ import { Button } from '@/components/ui/button';
 import { ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 
-interface UnauthorizedPageProps {
-  params: Promise<{ locale: string }>;
-}
-
-export default async function UnauthorizedPage({ params }: UnauthorizedPageProps) {
-  await params; // Consume params promise (locale not needed for error page)
-  
+export default function UnauthorizedPage() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="mx-auto max-w-md text-center">

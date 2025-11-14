@@ -180,10 +180,99 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 3: RUN I18N MIDDLEWARE (handles locale routing)
+  // STEP 3: CHECK IF AUTH/APP ROUTE (no i18n needed)
   // ==========================================
-  // Run i18n middleware to handle locale detection, redirects, and rewrites
-  // This MUST happen before authorization checks because we need the final routed path
+  // Auth and app routes should NOT have locale in URL for stable links
+  // Language preference is stored in user settings (schema-workos.ts)
+  const pathSegments = path.split('/').filter(Boolean);
+  const firstSegment = pathSegments[0];
+  
+  const isAuthOrAppRoute = 
+    firstSegment === 'login' ||
+    firstSegment === 'register' ||
+    firstSegment === 'onboarding' ||
+    firstSegment === 'unauthorized' ||
+    firstSegment === 'dashboard' ||
+    firstSegment === 'setup' ||
+    firstSegment === 'account' ||
+    firstSegment === 'appointments' ||
+    firstSegment === 'booking' ||
+    firstSegment === 'admin';
+
+  // If auth/app route, skip i18n and use language from user settings
+  if (isAuthOrAppRoute) {
+    if (DEBUG) {
+      console.log(`🔒 Auth/App route (no locale): ${path}`);
+    }
+    
+    const response = NextResponse.next();
+    
+    // Preserve AuthKit headers
+    for (const [key, value] of authkitHeaders) {
+      if (key.toLowerCase() === 'set-cookie') {
+        response.headers.append(key, value);
+      } else {
+        response.headers.set(key, value);
+      }
+    }
+    
+    // Set path for authorization checks (no locale prefix)
+    const finalPath = path;
+    
+    // Apply authorization checks (same as below)
+    const pathWithoutLocale = finalPath;
+    const isProtectedRoute =
+      isPrivateRoute(request) ||
+      matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES) ||
+      matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES);
+
+    if (isProtectedRoute && !session.user) {
+      if (DEBUG) console.log(`🔒 Redirecting to sign-in: ${path}`);
+      const redirectResponse = NextResponse.redirect(authorizationUrl!);
+      
+      for (const [key, value] of authkitHeaders) {
+        if (key.toLowerCase() === 'set-cookie') {
+          redirectResponse.headers.append(key, value);
+        } else {
+          redirectResponse.headers.set(key, value);
+        }
+      }
+      
+      return redirectResponse;
+    }
+
+    if (session.user && isProtectedRoute) {
+      const userRole = await getUserApplicationRole(session.user.id);
+
+      if (matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES)) {
+        const isAdmin = ADMIN_ROLES.includes(userRole as (typeof ADMIN_ROLES)[number]);
+        if (!isAdmin) {
+          console.warn(`🚫 Access denied: ${path} requires admin role`);
+          return NextResponse.redirect(new URL('/unauthorized', request.url));
+        }
+      }
+
+      if (matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES)) {
+        const isExpert = EXPERT_ROLES.includes(userRole as (typeof EXPERT_ROLES)[number]);
+        if (!isExpert) {
+          console.warn(`🚫 Access denied: ${path} requires expert role`);
+          return NextResponse.redirect(new URL('/unauthorized', request.url));
+        }
+      }
+    }
+
+    if (DEBUG) {
+      console.log(`✅ Auth/App complete: ${path}`);
+    }
+    
+    return response;
+  }
+
+  // ==========================================
+  // STEP 4: RUN I18N MIDDLEWARE (for marketing routes only)
+  // ==========================================
+  // Run i18n middleware for public marketing routes
+  // These routes NEED locale for SEO (e.g., /en/about, /es/about)
   const i18nResponse = handleI18nRouting(request);
 
   // Get the rewritten pathname after i18n middleware
@@ -191,11 +280,11 @@ export default async function proxy(request: NextRequest) {
   const finalPath = rewrittenPath ? new URL(rewrittenPath).pathname : path;
 
   if (DEBUG) {
-    console.log(`🌐 i18n: ${path} → ${finalPath}`);
+    console.log(`🌐 i18n (marketing): ${path} → ${finalPath}`);
   }
 
   // ==========================================
-  // STEP 4: PRESERVE AUTH HEADERS ON I18N RESPONSE
+  // STEP 5: PRESERVE AUTH HEADERS ON I18N RESPONSE
   // ==========================================
   // Preserve AuthKit session cookies on the i18n response
   // This ensures withAuth() works in all components
@@ -208,7 +297,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 5: APPLY AUTHORIZATION CHECKS
+  // STEP 6: APPLY AUTHORIZATION CHECKS (for marketing routes)
   // ==========================================
   // Extract path without locale prefix for authorization checks
   const pathWithoutLocale = locales.some((locale) => finalPath.startsWith(`/${locale}/`))
