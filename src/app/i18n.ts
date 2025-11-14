@@ -11,7 +11,7 @@ import { notFound } from 'next/navigation';
  * - Dictionary loading for server components
  *
  * Locale Detection Strategy:
- * 1. Cookie - User's explicit selection is prioritized (stored in eleva-care-locale cookie)
+ * 1. Cookie - User's explicit selection is prioritized (stored in ELEVA_LOCALE cookie)
  * 2. Accept-Language Header - Browser's language preferences
  * 3. IP Geolocation - Using Vercel's geolocation headers
  * 4. Default Locale - If all else fails, fall back to default locale (en)

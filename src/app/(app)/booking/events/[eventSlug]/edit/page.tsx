@@ -16,9 +16,9 @@ const ClientEventFormWrapper = dynamic(() =>
  * Allows experts to edit their existing events.
  * Authentication handled by withAuth().
  */
-export default async function EditEventPage(props: { params: Promise<{ locale: string; eventSlug: string }> }) {
+export default async function EditEventPage(props: { params: Promise<{ eventSlug: string }> }) {
   const params = await props.params;
-  const { eventSlug } = params; // locale available but not needed for edit logic
+  const { eventSlug } = params;
 
   // Require authentication - auto-redirects if not logged in
   const { user } = await withAuth({ ensureSignedIn: true });

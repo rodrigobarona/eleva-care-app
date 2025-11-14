@@ -6,20 +6,16 @@ import { withAuth } from '@workos-inc/authkit-nextjs';
 import type { ReactNode } from 'react';
 
 interface PrivateLayoutProps {
-  params: Promise<{ locale: string }>;
   children: ReactNode;
 }
 
 /**
  * Private Layout - AuthKit Protected
  *
- * All routes in (app) require authentication.
+ * All routes in (private) require authentication.
  * Auth is verified via withAuth() which auto-redirects to WorkOS sign-in if not authenticated.
- * Layout accepts locale param to support i18n routing.
  */
-export default async function PrivateLayout({ params, children }: PrivateLayoutProps) {
-  await params; // Consume params promise (locale available for future i18n needs)
-  
+export default async function PrivateLayout({ children }: PrivateLayoutProps) {
   // Require authentication - auto-redirects if not logged in
   await withAuth({ ensureSignedIn: true });
 

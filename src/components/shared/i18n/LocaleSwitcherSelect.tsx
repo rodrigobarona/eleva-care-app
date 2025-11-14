@@ -21,7 +21,7 @@ export default function LocaleSwitcherSelect({ children, defaultValue, label }: 
 
     startTransition(() => {
       // Set cookie to remember this locale
-      document.cookie = `eleva-care-locale=${nextLocale};max-age=31536000;path=/`;
+      document.cookie = `ELEVA_LOCALE=${nextLocale};max-age=31536000;path=/`;
 
       // Use direct URL manipulation which handles dynamic routes better in this case
       // Get current URL and parse it
