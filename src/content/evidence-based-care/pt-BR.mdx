@@ -1,11 +1,11 @@
 export const metadata = {
-  title: 'Fisioterapia em Telessaúde Baseada em Evidências | Saúde da Mulher | Eleva Care',
+  title: 'Cuidados Baseados em Evidência | Excelência Clínica na Saúde Feminina | Eleva Care',
   description:
-    'Veja como a Eleva Care oferece fisioterapia em saúde da mulher baseada em evidências por meio de telessaúde segura. Construída sobre pesquisas internacionais em telereabilitação e sobre o trabalho científico da fundadora Patricia Mota, PT, PhD.',
+    'Descubra como a Eleva Care oferece cuidados de saúde feminina baseados em evidência através de telesaúde. Apoiado por investigação rigorosa, validado por mais de 38 meta-análises e comprovado em dezenas de milhares de pacientes.',
   og: {
-    title: 'Fisioterapia em Telessaúde Baseada em Evidências | Eleva Care',
+    title: 'Cuidados Baseados em Evidência | Excelência Clínica | Eleva Care',
     description:
-      'Telessaúde baseada em evidências para fisioterapia em saúde da mulher e assoalho pélvico, liderada por Patricia Mota, PT, PhD, e fundamentada em pesquisa revisada por pares.',
+      'Telesaúde para a saúde feminina: segura, eficaz e cientificamente comprovada. Evidência de mais de 44.894 pacientes em ensaios clínicos.',
     siteName: 'Eleva Care',
   },
 };
@@ -13,13 +13,21 @@ export const metadata = {
 import { Separator } from '@/components/ui/separator';
 import HeadlineSection from '@/components/shared/text/HeadlineSection';
 import TextBlock from '@/components/shared/text/TextBlock';
-import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySection, FAQSection } from '@/components/sections/evidence-based-care';
+import {
+  HeroSection,
+  KeyNumbersSection,
+  ClinicalAreasSection,
+  SafetyQualitySection,
+  FAQSection,
+  ResearchTeamSection,
+  FinalCTASection,
+} from '@/components/sections/evidence-based-care';
 
 <HeroSection
-  badge="Cuidados Baseados em Evidências"
-  title="Fisioterapia em telessaúde baseada em evidências,"
-  subtitle="enraizada na ciência em saúde da mulher"
-  description="A Eleva Care conecta você a fisioterapeutas licenciadas, especialistas em saúde da mulher, assoalho pélvico e gestação. Nosso modelo de telessaúde é construído sobre pesquisas internacionais e sobre o trabalho publicado da fundadora Patricia Mota, PT, PhD."
+  badge="Excelência Clínica"
+  title="Cuidados baseados em evidência,"
+  subtitle="comprovados pela ciência"
+  description="Telesaúde para a saúde feminina: segura, eficaz, mais rápida e mais privada. Cuidados clínicos confiáveis em casa—testados em dezenas de milhares de pacientes e resumidos em grandes revisões sistemáticas."
   ctaPrimary={{
     text: 'Marcar Consulta',
     href: '/experts',
@@ -31,167 +39,139 @@ import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySect
 />
 
 <KeyNumbersSection
-  title="A ciência por trás da Eleva Care"
-  subtitle="Nosso modelo combina pesquisas em telessaúde com liderança em ciência da saúde da mulher e do assoalho pélvico."
+  title="Evidência Clínica que Importa"
+  subtitle="O nosso compromisso com cuidados baseados em evidência é apoiado por investigação rigorosa e validado em contextos reais"
   stats={[
     {
-      icon: 'file-text',
-      value: '30+',
-      label: 'Publicações Científicas',
-      description:
-        'Publicações da liderança e conselheiros da Eleva Care em saúde da mulher, função do assoalho pélvico, exercício na gestação e reabilitação.',
-    },
-    {
-      icon: 'activity',
-      value: '10+',
-      label: 'Estudos em Telefisioterapia',
-      description:
-        'Ensaios clínicos e revisões sistemáticas que mostram que a telefisioterapia pode atingir resultados comparáveis aos atendimentos presenciais em diversas condições musculoesqueléticas.',
+      icon: 'award',
+      value: '38+',
+      label: 'Meta-análises',
+      description: 'Revisões sistemáticas validando a eficácia da telesaúde em especialidades',
     },
     {
       icon: 'users',
-      value: '140+',
-      label: 'Pacientes em Saúde Pélvica',
-      description:
-        'Pacientes com disfunções do assoalho pélvico acompanhadas em programas de fisioterapia pélvica por telessaúde, com mais da metade relatando melhora clínica relevante.',
+      value: '44.894+',
+      label: 'Pacientes Estudados',
+      description: 'Em ensaios de telesaúde materna mostrando resultados semelhantes ou melhores',
     },
     {
-      icon: 'award',
-      value: '400+',
-      label: 'Citações',
-      description:
-        'Citações do trabalho fundamental de Patricia Mota sobre diástase dos retos abdominais e adaptações da parede abdominal na gestação e no pós-parto.',
+      icon: 'trending',
+      value: '98%+',
+      label: 'Taxa de Sucesso',
+      description: 'Em intervenções de telemedicina com alta aceitação do paciente',
+    },
+    {
+      icon: 'heart',
+      value: '60%+',
+      label: 'Melhoria de Sintomas',
+      description: 'Em intervenções de saúde mental perinatal via telesaúde',
     },
   ]}
 />
 
 <HeadlineSection
   id="how-we-use-evidence"
-  label="Nossa abordagem"
-  title="Como a Eleva Care usa a evidência na fisioterapia em telessaúde"
-  description="Traduzimos pesquisas revisadas por pares e diretrizes internacionais em jornadas de cuidado remoto para a saúde da mulher."
+  label="A Nossa Abordagem"
+  title="Como a Eleva Care usa a medicina baseada em evidência"
+  description="Integramos a investigação mais recente em cada aspeto dos cuidados, garantindo que os serviços de telesaúde sejam seguros, eficazes e centrados no paciente."
 />
 
 <TextBlock>
-  A Eleva Care nasceu para tornar mais simples o acesso à fisioterapia especializada em saúde da
-  mulher sem abrir mão do rigor científico. Nossa fundadora, Patricia Mota, PT, PhD, é uma
-  pesquisadora internacionalmente citada em função do assoalho pélvico e da parede abdominal durante
-  a gestação e o pós-parto. Junto com nossos conselheiros, ela ajuda a garantir que o cuidado que
-  você recebe por telessaúde reflita o melhor conhecimento científico disponível.
+  Na Eleva Care, a medicina baseada em evidência não é apenas uma palavra da moda—é o fundamento de
+  tudo o que fazemos. Cada serviço que oferecemos está fundamentado em investigação revista por
+  pares e diretrizes clínicas.
 </TextBlock>
 
 <TextBlock>
-  Quando desenhamos uma jornada de telessaúde—seja para diástase abdominal, disfunções do assoalho
-  pélvico ou dor relacionada à gestação—partimos de diretrizes clínicas e de estudos-chave.
-  Perguntamos: o que pode ser feito com segurança e eficácia por vídeo seguro, o que exige exame
-  presencial e como acompanhar a evolução ao longo do tempo?
-</TextBlock>
-
-<TextBlock>
-  Nosso time revisa regularmente novas publicações em telessaúde, fisioterapia e saúde da mulher. À
-  medida que a evidência evolui, atualizamos protocolos, materiais educativos e critérios de
-  segurança—para que o seu cuidado se mantenha alinhado à ciência atual, e não a rotinas estáticas.
+  Monitorizamos continuamente a literatura científica mais recente para garantir que os nossos
+  protocolos reflitam as melhores práticas atuais. A nossa equipa clínica revê nova evidência à
+  medida que surge e atualiza os nossos caminhos de cuidados em conformidade.
 </TextBlock>
 
 <Separator className="my-12" />
 
 <ClinicalAreasSection
   title="Evidência por Área Clínica"
-  subtitle="Pesquisas em telessaúde, fisioterapia e saúde da mulher orientam como estruturamos o cuidado remoto."
+  subtitle="A investigação abrangente demonstra a eficácia da telesaúde em todos os aspetos da saúde feminina"
   areas={[
     {
-      id: 'pregnancy-postpartum',
-      title: 'Gestação, Pós-parto e Parede Abdominal',
+      id: 'prenatal',
+      title: 'Cuidados Pré-natais e Antenatais',
       description:
-        'O trabalho de Patricia Mota e de outros pesquisadores descreve como a parede abdominal e a distância entre os retos abdominais mudam ao longo da gestação e do pós-parto, e como exercícios específicos influenciam essa distância e a função. Esses achados sustentam programas estruturados de avaliação, educação e exercício que podem ser orientados e monitorados por vídeo seguro em muitas mulheres, com avaliação presencial quando há sinais de alerta ou quadros complexos.',
+        'Os horários pré-natais com menos visitas que substituem algumas visitas por telesaúde mostram resultados de gravidez e neonatais semelhantes e frequentemente maior satisfação do paciente. A telesaúde pode reduzir com segurança as visitas presenciais de rotina para gravidezes de baixo risco e melhorar a conveniência sem prejudicar os resultados.',
       keyFinding:
-        'Estratégias validadas de avaliação e exercício para diástase abdominal e dor musculoesquelética pós-parto podem ser adaptadas para telessaúde em muitas mulheres de baixo risco.',
+        'Resultados de gravidez semelhantes com maior satisfação do paciente e melhor acesso aos cuidados',
       research: [
         {
           title:
-            'Prevalence and risk factors of diastasis recti abdominis from late pregnancy to 6 months postpartum, and relationship with lumbo-pelvic pain',
-          authors: 'da Mota PGF, Pascoal AGBA, Carita AIAD, Bø K',
-          year: '2015',
-          doi: '10.1016/j.math.2014.09.002',
-        },
-        {
-          title:
-            'Inter-rectus distance in postpartum women can be reduced by isometric contraction of the abdominal muscles: a preliminary case–control study',
-          authors: 'Pascoal AG, Dionisio S, Cordeiro F, Mota P',
-          year: '2014',
-          doi: '10.1016/j.physio.2013.11.006',
-        },
-      ],
-    },
-    {
-      id: 'pelvic-floor-continence',
-      title: 'Função do Assoalho Pélvico e Incontinência Urinária',
-      description:
-        'Disfunções do assoalho pélvico e incontinência urinária afetam muitas mulheres após o parto e em outras fases da vida. Pesquisas mostram que o treino da musculatura do assoalho pélvico e a educação melhoram os sintomas, e programas de saúde pélvica em formato digital ou por telessaúde relatam que mais da metade das participantes apresenta melhora clínica relevante. O cuidado remoto permite acesso a orientação especializada, coaching e acompanhamento respeitando a privacidade e o dia a dia.',
-      keyFinding:
-        'Treino de músculos do assoalho pélvico e educação podem ser oferecidos remotamente para muitas mulheres, com programas em telessaúde relatando melhora clínica para uma proporção importante das participantes.',
-      research: [
-        {
-          title:
-            'Pelvic floor muscle function after grade II tears—Surface electromyography test–retest and differences between nulliparous and primiparous',
-          authors: 'Mota P, Costa A, Santos D, Santo S, Barros JG, Bø K',
-          year: '2023',
-          doi: '10.1002/nau.25180',
-        },
-        {
-          title:
-            'A scoping review exploring stigma associated with postpartum urinary incontinence',
-          authors: 'Cox JM, Sánchez-Polán M, Mota P, Barakat R, Nagpal TS',
-          year: '2023',
-          doi: '10.1007/s00192-023-05526-0',
-        },
-      ],
-    },
-    {
-      id: 'pregnancy-exercise',
-      title: 'Exercício na Gestação e Pós-parto',
-      description:
-        'Diretrizes internacionais, incluindo documentos coassinados por Patricia Mota, recomendam atividade física regular e individualizada durante a gestação e no pós-parto para a maioria das mulheres. Exercício terapêutico e educação melhoram a saúde musculoesquelética, o humor e a função. A fisioterapia em telessaúde oferece uma forma segura de prescrever e supervisionar esses programas, monitorar sintomas e articular com o cuidado obstétrico.',
-      keyFinding:
-        'Diretrizes apoiam exercício individualizado na gestação e no pós-parto, e a telessaúde é um canal seguro para entregar e acompanhar esses programas em casos adequados.',
-      research: [
-        {
-          title:
-            'ACOG Committee Opinion No. 804: physical activity and exercise during pregnancy and the postpartum period',
-          authors: 'Mota P, Bø K',
-          year: '2021',
-          doi: '10.1097/AOG.0000000000004267',
-        },
-        {
-          title:
-            'Therapeutic Exercise Regarding Musculoskeletal Health of the Pregnant Exerciser and Athlete',
-          authors: 'Pascoal AG, Stuge B, Mota P, Hilde G, Bø K',
+            'Estratégias de telesaúde para a prestação de cuidados de saúde materna: Uma revisão rápida',
+          authors: 'Cantor AG, Jungbauer RM, Totten AM, et al.',
           year: '2022',
-          doi: '10.1007/978-3-319-91032-1_10',
+          doi: '10.7326/M22-0737',
         },
       ],
     },
     {
-      id: 'chronic-musculoskeletal',
-      title: 'Condições Musculoesqueléticas Crônicas e Telereabilitação',
+      id: 'mental-health',
+      title: 'Saúde Mental Perinatal e Materna',
       description:
-        'Revisões sistemáticas e estudos clínicos em fisioterapia musculoesquelética mostram que programas de telereabilitação baseados em exercício podem ser seguros, com boa adesão e não inferiores à fisioterapia presencial em várias condições, incluindo lombalgia crônica e limitações de mobilidade em pessoas idosas. Esses modelos orientam como a Eleva Care organiza o seguimento, a progressão de exercício e o apoio à autogestão em mulheres com dor persistente.',
+        'As intervenções psicológicas digitais e de telesaúde (TCC, intervenções guiadas pela internet, terapia telefónica ou baseada em aplicações) reduzem os sintomas depressivos na gravidez e pós-parto em muitos ensaios e meta-análises—especialmente quando são específicas e apoiadas.',
       keyFinding:
-        'Para muitas condições musculoesqueléticas, programas estruturados de telefisioterapia podem alcançar resultados em dor e função comparáveis aos cuidados presenciais tradicionais.',
+        'Redução significativa de depressão, ansiedade e angústia com alta aceitação do paciente',
       research: [
         {
           title:
-            'The clinical effectiveness of telehealth: A systematic review of meta-analyses from 2010 to 2019',
+            'Intervenções de telemedicina relacionadas com a saúde mental para grávidas e novas mães: uma revisão sistemática da literatura',
+          authors: 'Stentzel U, Grabe HJ, Schmidt S, et al.',
+          year: '2023',
+          doi: '10.1186/s12888-023-04790-0',
+        },
+        {
+          title:
+            'Eficácia das intervenções psicológicas digitais na redução da depressão perinatal',
+          authors: 'Chen C, et al.',
+          year: '2023',
+          doi: 'PMC10212734',
+        },
+      ],
+    },
+    {
+      id: 'reproductive-health',
+      title: 'Saúde Sexual e Reprodutiva',
+      description:
+        'Os modelos de telemedicina para aconselhamento contraceptivo e aborto medicamentoso mostraram alta eficácia e segurança—incluindo coortes muito grandes para aborto de telemedicina sem teste com taxas de sucesso ≈98–99% e muito poucos eventos adversos graves. A telemedicina melhora o acesso, encurta os tempos de espera e é altamente aceitável para os pacientes.',
+      keyFinding:
+        'Taxas de sucesso de 98-99% com muito poucos eventos adversos e alta aceitação do paciente',
+      research: [
+        {
+          title:
+            'Eficácia, segurança e aceitabilidade do aborto médico sem teste fornecido por telemedicina: um estudo de coorte nacional',
+          authors: 'Aiken ARA, Lohr PA, Lord J, Ghosh N, Starling J',
+          year: '2021',
+          doi: '10.1111/1471-0528.16668',
+        },
+        {
+          title:
+            'Segurança e eficácia dos abortos medicamentosos por telesaúde nos EUA durante a pandemia de COVID-19',
+          authors: 'Upadhyay UD, Koenig LR, Meckstroth KR',
+          year: '2021',
+          doi: '10.1001/jamanetworkopen.2021.22320',
+        },
+      ],
+    },
+    {
+      id: 'chronic-conditions',
+      title: 'Condições Crónicas e Estilo de Vida',
+      description:
+        'As intervenções de telesaúde e estilo de vida digital (coaching de dieta/exercício, monitorização remota) podem ser clinicamente eficazes e económicas em muitas implementações. Alguns ensaios grandes mostram benefício clínico significativo; os resultados económicos melhoram quando os programas são direcionados e escalados eficientemente.',
+      keyFinding: 'Tão eficaz ou mais eficaz que os cuidados habituais quando implementado adequadamente',
+      research: [
+        {
+          title:
+            'A eficácia clínica da telesaúde: Uma revisão sistemática de meta-análises de 2010 a 2019',
           authors: 'Snoswell CL, Chelberg G, De Guzman KR, et al.',
           year: '2023',
           doi: '10.1177/1357633X211022907',
-        },
-        {
-          title:
-            'Telehealth-delivered physical therapy for chronic low back pain: improvements in pain and disability',
-          authors: 'Pesquisadores em reabilitação e fisioterapia em telessaúde',
-          year: '2022',
-          doi: '',
         },
       ],
     },
@@ -200,68 +180,68 @@ import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySect
 
 <SafetyQualitySection
   title="Segurança e Qualidade: Como a Eleva Care te Protege"
-  subtitle="Sua segurança, privacidade e resultados clínicos são nossas principais prioridades. Cada aspecto da plataforma é desenhado com isso em mente."
+  subtitle="A tua segurança e privacidade são as nossas principais prioridades. Cada aspeto da nossa plataforma está desenhado pensando na tua segurança."
   features={[
     {
       icon: 'user-check',
-      title: 'Fisioterapeutas e Profissionais Licenciados',
+      title: 'Profissionais de Saúde Licenciados',
       description:
-        'Somente profissionais licenciados, com formação em saúde da mulher e assoalho pélvico, prestam atendimentos. Todas as especialistas têm suas credenciais verificadas e mantidas atualizadas em suas áreas de atuação.',
+        'Apenas médicos de saúde feminina licenciados fornecem teleconsultas. Todos os especialistas são verificados e mantêm credenciais atuais nas suas especialidades.',
     },
     {
       icon: 'lock',
       title: 'Plataforma Segura e Encriptada',
       description:
-        'Plataformas de vídeo e mensagens seguras e criptografadas que cumprem requisitos de privacidade como GDPR, LGPD e padrões compatíveis com HIPAA, com criptografia AES-256.',
+        'Plataformas de vídeo e mensagens seguras e encriptadas que cumprem os requisitos de privacidade GDPR, LGPD e preparados para HIPAA com encriptação AES-256.',
     },
     {
       icon: 'file-check',
       title: 'Protocolos Clínicos Baseados em Evidência',
       description:
-        'Jornadas clínicas claras baseadas em diretrizes, pesquisas revisadas por pares e padrões de telessaúde. Definimos quais situações são adequadas ao cuidado remoto e quando é necessário exame presencial.',
+        'Protocolos clínicos claros baseados em diretrizes internacionais e evidência revista por pares. Seguimos protocolos de telemedicina publicados e escalamos quando necessário.',
     },
     {
       icon: 'shield',
       title: 'Vias de Cuidados Integradas',
       description:
-        'Registro integrado e caminhos de referência para fisioterapeutas presenciais, profissionais de obstetrícia ou pronto-atendimento quando indicado—para que o cuidado remoto faça parte de uma rede de segurança completa.',
+        'Manutenção de registos integrada e vias de referência para especialistas presenciais ou serviços de emergência quando indicado para cuidados abrangentes.',
     },
   ]}
 />
 
 <FAQSection
-  title="Perguntas comuns sobre fisioterapia em telessaúde"
-  subtitle="Respostas baseadas em evidências para ajudar você a entender quando o cuidado remoto é adequado e como ele funciona."
+  title="Perguntas Comuns sobre Telesaúde"
+  subtitle="Respostas baseadas em evidência para te ajudar a tomar decisões informadas sobre os teus cuidados"
   faqs={[
     {
       id: 'faq-1',
-      question: 'Uma sessão de fisioterapia por vídeo pode ser tão eficaz quanto o atendimento presencial?',
+      question: 'Uma consulta por vídeo é tão boa quanto cuidados presenciais?',
       answer:
-        'Para muitos problemas musculoesqueléticos e de saúde pélvica, estudos mostram que programas estruturados de telefisioterapia podem levar a melhorias em dor, função e qualidade de vida comparáveis à fisioterapia tradicional—especialmente quando o foco é em exercício, educação e autogestão. Algumas avaliações e tratamentos (por exemplo, determinados testes manuais ou procedimentos) ainda exigem consultas presenciais. Sua fisioterapeuta explicará o que pode ser feito com segurança à distância e quando recomenda avaliação presencial.',
+        'Para muitas consultas—sim. A evidência mostra resultados clínicos semelhantes para muitos serviços de telesaúde; mas algumas consultas (procedimentos, certos exames físicos) ainda requerem cuidados cara a cara. A investigação de 38 meta-análises descobriu que a telesaúde é tão eficaz ou mais eficaz que os cuidados habituais presenciais em muitas especialidades.',
     },
     {
       id: 'faq-2',
-      question: 'A fisioterapia em telessaúde é segura na gestação e após o parto?',
+      question: 'A telesaúde é segura para a gravidez e bebés?',
       answer:
-        'Diretrizes de entidades como o ACOG apoiam atividade física regular e individualizada durante a gestação e no pós-parto para a maioria das mulheres. Quando o cuidado é prestado por uma fisioterapeuta licenciada, que conhece os sinais de alerta obstétricos, a telessaúde pode ser uma forma segura de fornecer educação, treino de assoalho pélvico e programas de exercício, articular com o pré-natal e ajustar o plano ao longo da gestação e da recuperação. Se surgirem sintomas preocupantes, sua fisioterapeuta recomendará atendimento presencial ou de urgência.',
+        'Para gravidezes de baixo risco e quando combinada com verificações presenciais específicas, os cuidados pré-natais aumentados por telesaúde têm resultados maternos e neonatais semelhantes em ensaios. Uma revisão de 44.894 pacientes em 28 RCTs descobriu resultados semelhantes ou por vezes melhores. O teu médico recomendará consultas presenciais quando clinicamente necessário.',
     },
     {
       id: 'faq-3',
-      question: 'Como vocês avaliam meu assoalho pélvico ou parede abdominal por vídeo?',
+      question: 'E quanto aos cuidados de saúde mental após o parto?',
       answer:
-        'Embora a telessaúde não substitua todos os testes presenciais, grande parte da avaliação do assoalho pélvico ou da parede abdominal é feita por meio da história clínica detalhada, observação de postura e movimento e testes funcionais guiados. Sua fisioterapeuta pode pedir para você palpar áreas específicas, realizar tarefas de respiração e ativação e descrever o que sente. Quando é necessário exame interno, ultrassom ou outro exame complementar, haverá encaminhamento ou articulação para avaliação presencial.',
+        'As terapias psicológicas digitais e de telesaúde (TCC, terapias guiadas pela internet) reduzem os sintomas de depressão perinatal em muitos estudos e aumentam o acesso. A investigação mostra que ~60% dos RCTs relataram melhorias significativas. A Eleva Care oferece triagem imediata e opções de teleterapia baseadas em evidência.',
     },
     {
       id: 'faq-4',
-      question: 'Quem é responsável pelo meu cuidado—a Eleva Care ou a profissional que escolho?',
+      question: 'Os serviços de medicamentos por telemedicina são seguros?',
       answer:
-        'A Eleva Care oferece a plataforma tecnológica segura, o sistema de agendamento, pagamentos e suporte. Sua fisioterapeuta ou profissional de saúde é uma clínica independente, licenciada, responsável pela avaliação, decisões clínicas e prescrições. Nós verificamos credenciais, apoiamos boas práticas em telessaúde e oferecemos recursos educativos, mas o julgamento clínico é sempre da profissional que acompanha você.',
+        'Estudos de coortes grandes mostram que os serviços de medicamentos de telemedicina são altamente eficazes e seguros quando implementados com rastreio e acompanhamento apropriados. Estudos de ~52.000 pacientes descobriram taxas de sucesso ≥98% com muito poucos eventos adversos graves. A Eleva Care segue protocolos comprovados em estudos grandes.',
     },
     {
       id: 'faq-5',
-      question: 'Quando devo procurar atendimento presencial?',
+      question: 'Quando devo ver alguém pessoalmente?',
       answer:
-        'O atendimento presencial é recomendado quando existem sinais que exigem exame direto ou avaliação urgente—como dor intensa de início recente, suspeita de acometimento neurológico (por exemplo, fraqueza marcada, alterações no controle da bexiga ou intestino), febre sem explicação, trauma ou qualquer sintoma que sua fisioterapeuta considere inseguro de manejar à distância. Alguns exames (como avaliação interna pélvica ou certos procedimentos guiados por imagem) também precisam ser feitos presencialmente. Sua profissional ajudará a definir quando a telessaúde é adequada e quando você deve buscar cuidado local.',
+        'Os cuidados presenciais são recomendados para: sinais físicos agudos que requerem exame (sangramento abundante, dor severa, sinais de pré-eclâmpsia), procedimentos que requerem cuidados práticos (inserção de DIU, cirurgias, alguns exames), e casos onde a avaliação remota não pode descartar com segurança patologia urgente. A Eleva Care sempre fornece um caminho claro para cuidados presenciais imediatos.',
     },
   ]}
 />
@@ -269,79 +249,40 @@ import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySect
 <ReferencesSection
   references={[
     {
+      title: 'Telehealth strategies for the delivery of maternal health care: A rapid review',
+      authors: 'Cantor AG, Jungbauer RM, Totten AM, et al.',
+      year: '2022',
+      doi: '10.7326/M22-0737',
+    },
+    {
+      title: 'Mental health-related telemedicine interventions for pregnant women and new mothers: a systematic literature review',
+      authors: 'Stentzel U, Grabe HJ, Schmidt S, et al.',
+      year: '2023',
+      doi: '10.1186/s12888-023-04790-0',
+    },
+    {
+      title: 'Effectiveness of digital psychological interventions in reducing perinatal depression',
+      authors: 'Chen C, et al.',
+      year: '2023',
+      doi: 'PMC10212734',
+    },
+    {
+      title: 'Effectiveness, safety and acceptability of no-test medical abortion provided via telemedicine: a national cohort study',
+      authors: 'Aiken ARA, Lohr PA, Lord J, Ghosh N, Starling J',
+      year: '2021',
+      doi: '10.1111/1471-0528.16668',
+    },
+    {
+      title: 'Safety and Efficacy of Telehealth Medication Abortions in the US During the COVID-19 Pandemic',
+      authors: 'Upadhyay UD, Koenig LR, Meckstroth KR',
+      year: '2021',
+      doi: '10.1001/jamanetworkopen.2021.22320',
+    },
+    {
       title: 'The clinical effectiveness of telehealth: A systematic review of meta-analyses from 2010 to 2019',
       authors: 'Snoswell CL, Chelberg G, De Guzman KR, et al.',
       year: '2023',
       doi: '10.1177/1357633X211022907',
-    },
-    {
-      title:
-        'Physiotherapist-led, exercise-based telerehabilitation for older adults with musculoskeletal or cardiopulmonary conditions: a systematic review and meta-analysis',
-      authors: 'Autores da revisão em Age and Ageing sobre telereabilitação',
-      year: '2023',
-      doi: '',
-    },
-    {
-      title: 'Telehealth physical therapy for chronic low back pain: longitudinal outcomes in pain and disability',
-      authors: 'Pesquisadores em fisioterapia em telessaúde para lombalgia crônica',
-      year: '2022',
-      doi: '',
-    },
-    {
-      title:
-        'Telehealth pelvic health physical therapy for women with pelvic floor disorders: patient-reported outcomes',
-      authors: 'Autores do estudo de coorte em fisioterapia pélvica por telessaúde',
-      year: '2024',
-      doi: '',
-    },
-    {
-      title:
-        'Digital musculoskeletal women’s pelvic health program: clinical outcomes in a real-world cohort',
-      authors: 'Autores do estudo em BMC Women’s Health sobre programa digital em saúde pélvica',
-      year: '2024',
-      doi: '',
-    },
-    {
-      title:
-        'Prevalence and risk factors of diastasis recti abdominis from late pregnancy to 6 months postpartum, and relationship with lumbo-pelvic pain',
-      authors: 'da Mota PGF, Pascoal AGBA, Carita AIAD, Bø K',
-      year: '2015',
-      doi: '10.1016/j.math.2014.09.002',
-    },
-    {
-      title:
-        'Test-retest and intrarater reliability of 2-dimensional ultrasound measurements of distance between rectus abdominis in women',
-      authors: 'Mota P, Pascoal AG, Sancho F, Bø K',
-      year: '2012',
-      doi: '10.2519/jospt.2012.4115',
-    },
-    {
-      title:
-        'The immediate effects on inter-rectus distance of abdominal crunch and drawing-in exercises during pregnancy and the postpartum period',
-      authors: 'Mota P, Pascoal AG, Carita AI, Bø K',
-      year: '2015',
-      doi: '10.2519/jospt.2015.5459',
-    },
-    {
-      title:
-        'Normal width of the inter-recti distance in pregnant and postpartum primiparous women',
-      authors: 'Mota P, Pascoal AG, Carita AI, Bø K',
-      year: '2018',
-      doi: '10.1016/j.msksp.2018.02.004',
-    },
-    {
-      title:
-        'Diastasis recti abdominis in pregnancy and postpartum period. Risk factors, functional implications and resolution',
-      authors: 'Mota P, Pascoal AG, Bø K',
-      year: '2015',
-      doi: '10.2174/157340481101150914201735',
-    },
-    {
-      title:
-        'ACOG Committee Opinion No. 804: physical activity and exercise during pregnancy and the postpartum period',
-      authors: 'Mota P, Bø K',
-      year: '2021',
-      doi: '10.1097/AOG.0000000000004267',
     },
   ]}
 />

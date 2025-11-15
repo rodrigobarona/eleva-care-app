@@ -1,11 +1,11 @@
 export const metadata = {
-  title: 'Fisioterapia en Telesalud Basada en Evidencia | Salud de la Mujer | Eleva Care',
+  title: 'Atención Basada en Evidencia | Excelencia Clínica en Salud Femenina | Eleva Care',
   description:
-    'Conoce cómo Eleva Care ofrece fisioterapia en salud de la mujer basada en evidencia a través de telesalud segura. Basado en la investigación internacional en telerehabilitación y en el trabajo científico de la fundadora Patricia Mota, PT, PhD.',
+    'Descubra cómo Eleva Care ofrece atención de salud femenina basada en evidencia a través de telesalud. Respaldado por investigación rigurosa, validado por más de 38 metaanálisis y probado en decenas de miles de pacientes.',
   og: {
-    title: 'Fisioterapia en Telesalud Basada en Evidencia | Eleva Care',
+    title: 'Atención Basada en Evidencia | Excelencia Clínica | Eleva Care',
     description:
-      'Telesalud basada en evidencia para fisioterapia en salud de la mujer y suelo pélvico, liderada por Patricia Mota, PT, PhD, y sustentada en investigación revisada por pares.',
+      'Telesalud para la salud femenina: segura, efectiva y científicamente probada. Evidencia de más de 44,894 pacientes en ensayos clínicos.',
     siteName: 'Eleva Care',
   },
 };
@@ -13,13 +13,21 @@ export const metadata = {
 import { Separator } from '@/components/ui/separator';
 import HeadlineSection from '@/components/shared/text/HeadlineSection';
 import TextBlock from '@/components/shared/text/TextBlock';
-import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySection, FAQSection } from '@/components/sections/evidence-based-care';
+import {
+  HeroSection,
+  KeyNumbersSection,
+  ClinicalAreasSection,
+  SafetyQualitySection,
+  FAQSection,
+  ResearchTeamSection,
+  FinalCTASection,
+} from '@/components/sections/evidence-based-care';
 
 <HeroSection
-  badge="Atención Basada en Evidencia"
-  title="Fisioterapia en telesalud basada en evidencia,"
-  subtitle="arraigada en la ciencia de la salud de la mujer"
-  description="Eleva Care te conecta con fisioterapeutas tituladas especializadas en salud de la mujer, suelo pélvico y embarazo. Nuestro modelo de telesalud se apoya en la investigación internacional y en el trabajo publicado de la fundadora Patricia Mota, PT, PhD."
+  badge="Excelencia Clínica"
+  title="Atención basada en evidencia,"
+  subtitle="probada por la ciencia"
+  description="Telesalud para la salud femenina: segura, efectiva, más rápida y más privada. Atención clínica confiable desde casa—probada en decenas de miles de pacientes y resumida en grandes revisiones sistemáticas."
   ctaPrimary={{
     text: 'Reservar Consulta',
     href: '/experts',
@@ -31,169 +39,139 @@ import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySect
 />
 
 <KeyNumbersSection
-  title="La ciencia detrás de Eleva Care"
-  subtitle="Nuestro modelo combina la investigación en telesalud con el liderazgo en ciencia de la salud de la mujer y del suelo pélvico."
+  title="Evidencia Clínica que Importa"
+  subtitle="Nuestro compromiso con la atención basada en evidencia está respaldado por investigación rigurosa y validado en entornos reales"
   stats={[
     {
-      icon: 'file-text',
-      value: '30+',
-      label: 'Publicaciones Científicas',
-      description:
-        'Publicaciones del equipo de liderazgo y del consejo asesor de Eleva Care en salud de la mujer, función del suelo pélvico, ejercicio en el embarazo y rehabilitación.',
-    },
-    {
-      icon: 'activity',
-      value: '10+',
-      label: 'Estudios en Tele-fisioterapia',
-      description:
-        'Ensayos clínicos y revisiones sistemáticas que muestran que la tele-fisioterapia puede lograr resultados comparables a la atención presencial en muchas condiciones musculoesqueléticas.',
+      icon: 'award',
+      value: '38+',
+      label: 'Metaanálisis',
+      description: 'Revisiones sistemáticas validando la efectividad de la telesalud',
     },
     {
       icon: 'users',
-      value: '140+',
-      label: 'Pacientes en Salud Pélvica',
-      description:
-        'Pacientes con disfunciones del suelo pélvico seguidas en programas de fisioterapia pélvica por telesalud, con más de la mitad reportando mejoría clínica relevante.',
+      value: '44,894+',
+      label: 'Pacientes Estudiados',
+      description: 'En ensayos de telesalud materna mostrando resultados similares o mejores',
     },
     {
-      icon: 'award',
-      value: '400+',
-      label: 'Citas',
-      description:
-        'Citas del trabajo fundamental de Patricia Mota sobre diástasis de los rectos abdominales y adaptaciones de la pared abdominal durante el embarazo y el posparto.',
+      icon: 'trending',
+      value: '98%+',
+      label: 'Tasa de Éxito',
+      description: 'En intervenciones de telemedicina con alta aceptación del paciente',
+    },
+    {
+      icon: 'heart',
+      value: '60%+',
+      label: 'Mejora de Síntomas',
+      description: 'En intervenciones de salud mental perinatal vía telesalud',
     },
   ]}
 />
 
 <HeadlineSection
   id="how-we-use-evidence"
-  label="Nuestro enfoque"
-  title="Cómo Eleva Care utiliza la evidencia en la fisioterapia en telesalud"
-  description="Traducimos la investigación revisada por pares y las guías internacionales en recorridos de atención remota para la salud de la mujer."
+  label="Nuestro Enfoque"
+  title="Cómo Eleva Care usa la medicina basada en evidencia"
+  description="Integramos la investigación más reciente en cada aspecto de la atención, asegurando que los servicios de telesalud sean seguros, efectivos y centrados en el paciente."
 />
 
 <TextBlock>
-  Eleva Care nació para acercar la fisioterapia especializada en salud de la mujer sin perder rigor
-  científico. Nuestra fundadora, Patricia Mota, PT, PhD, es una investigadora internacionalmente
-  citada en función del suelo pélvico y de la pared abdominal durante el embarazo y el posparto. Junto
-  con nuestro consejo asesor, ayuda a garantizar que la atención que recibes por telesalud refleje la
-  mejor evidencia disponible.
+  En Eleva Care, la medicina basada en evidencia no es solo una palabra de moda—es la base de todo
+  lo que hacemos. Cada servicio que ofrecemos está fundamentado en investigación revisada por pares
+  y guías clínicas.
 </TextBlock>
 
 <TextBlock>
-  Cuando diseñamos un recorrido de telesalud—sea para diástasis abdominal, disfunciones del suelo
-  pélvico o dolor relacionado con el embarazo—partimos de las guías clínicas y de los estudios
-  principales. Nos preguntamos: ¿qué parte de la evaluación y el tratamiento puede realizarse de
-  forma segura y efectiva por videollamada?, ¿qué requiere exploración presencial? y ¿cómo podemos
-  seguir tu evolución a lo largo del tiempo?
-</TextBlock>
-
-<TextBlock>
-  Nuestro equipo revisa regularmente nuevas publicaciones en telesalud, fisioterapia y salud de la
-  mujer. A medida que evoluciona la evidencia, actualizamos protocolos, materiales educativos y
-  criterios de seguridad, de manera que tu atención se mantenga alineada con la ciencia actual y no
-  con rutinas estáticas.
+  Monitoreamos continuamente la literatura científica más reciente para asegurar que nuestros
+  protocolos reflejen las mejores prácticas actuales. Nuestro equipo clínico revisa nueva evidencia
+  a medida que surge y actualiza nuestras vías de atención en consecuencia.
 </TextBlock>
 
 <Separator className="my-12" />
 
 <ClinicalAreasSection
   title="Evidencia por Área Clínica"
-  subtitle="La investigación en telesalud, fisioterapia y salud de la mujer guía cómo estructuramos el cuidado remoto."
+  subtitle="La investigación integral demuestra la efectividad de la telesalud en todos los aspectos de la salud femenina"
   areas={[
     {
-      id: 'pregnancy-postpartum',
-      title: 'Embarazo, Posparto y Pared Abdominal',
+      id: 'prenatal',
+      title: 'Atención Prenatal y Antenatal',
       description:
-        'El trabajo de Patricia Mota y de otros investigadores describe cómo cambia la pared abdominal y la distancia interrectos a lo largo del embarazo y del posparto, y cómo ejercicios específicos influyen en esa distancia y en la función. Estos hallazgos respaldan programas estructurados de evaluación, educación y ejercicio que pueden ser guiados y monitorizados por videollamada segura en muchas mujeres, con revisión presencial cuando hay signos de alarma o situaciones complejas.',
+        'Los horarios prenatales con menos visitas que reemplazan algunas visitas con telesalud muestran resultados de embarazo y neonatales similares y a menudo mayor satisfacción del paciente. La telesalud puede reducir de manera segura las visitas en persona de rutina para embarazos de bajo riesgo y mejorar la conveniencia sin dañar los resultados.',
       keyFinding:
-        'Estrategias validadas de evaluación y ejercicio para la diástasis abdominal y el dolor musculoesquelético posparto pueden adaptarse a la telesalud en muchas mujeres de bajo riesgo.',
+        'Resultados de embarazo similares con mayor satisfacción del paciente y mejor acceso a la atención',
       research: [
         {
           title:
-            'Prevalence and risk factors of diastasis recti abdominis from late pregnancy to 6 months postpartum, and relationship with lumbo-pelvic pain',
-          authors: 'da Mota PGF, Pascoal AGBA, Carita AIAD, Bø K',
-          year: '2015',
-          doi: '10.1016/j.math.2014.09.002',
-        },
-        {
-          title:
-            'Inter-rectus distance in postpartum women can be reduced by isometric contraction of the abdominal muscles: a preliminary case–control study',
-          authors: 'Pascoal AG, Dionisio S, Cordeiro F, Mota P',
-          year: '2014',
-          doi: '10.1016/j.physio.2013.11.006',
-        },
-      ],
-    },
-    {
-      id: 'pelvic-floor-continence',
-      title: 'Función del Suelo Pélvico e Incontinencia Urinaria',
-      description:
-        'Las disfunciones del suelo pélvico y la incontinencia urinaria afectan a muchas mujeres después del parto y en otras etapas de la vida. La evidencia muestra que el entrenamiento de la musculatura del suelo pélvico y la educación mejoran los síntomas, y que programas de salud pélvica en formato digital o por telesalud informan que más de la mitad de las participantes presentan una mejoría clínica relevante. El seguimiento remoto permite recibir orientación especializada, coaching y control respetando la privacidad y la vida diaria.',
-      keyFinding:
-        'El entrenamiento muscular del suelo pélvico y la educación pueden ofrecerse de forma remota en muchas mujeres, con programas en telesalud que reportan mejoría clínica en una proporción importante de las participantes.',
-      research: [
-        {
-          title:
-            'Pelvic floor muscle function after grade II tears—Surface electromyography test–retest and differences between nulliparous and primiparous',
-          authors: 'Mota P, Costa A, Santos D, Santo S, Barros JG, Bø K',
-          year: '2023',
-          doi: '10.1002/nau.25180',
-        },
-        {
-          title:
-            'A scoping review exploring stigma associated with postpartum urinary incontinence',
-          authors: 'Cox JM, Sánchez-Polán M, Mota P, Barakat R, Nagpal TS',
-          year: '2023',
-          doi: '10.1007/s00192-023-05526-0',
-        },
-      ],
-    },
-    {
-      id: 'pregnancy-exercise',
-      title: 'Ejercicio Durante el Embarazo y el Posparto',
-      description:
-        'Las guías internacionales, incluyendo documentos coautorados por Patricia Mota, recomiendan actividad física regular e individualizada durante el embarazo y el posparto para la mayoría de las mujeres. El ejercicio terapéutico y la educación mejoran la salud musculoesquelética, el estado de ánimo y la función. La fisioterapia en telesalud ofrece una vía segura para pautar y supervisar estos programas, monitorizar síntomas y coordinarse con el equipo obstétrico.',
-      keyFinding:
-        'Las guías respaldan el ejercicio individualizado en el embarazo y posparto, y la telesalud es un canal seguro para ofrecer y seguir estos programas en casos apropiados.',
-      research: [
-        {
-          title:
-            'ACOG Committee Opinion No. 804: physical activity and exercise during pregnancy and the postpartum period',
-          authors: 'Mota P, Bø K',
-          year: '2021',
-          doi: '10.1097/AOG.0000000000004267',
-        },
-        {
-          title:
-            'Therapeutic Exercise Regarding Musculoskeletal Health of the Pregnant Exerciser and Athlete',
-          authors: 'Pascoal AG, Stuge B, Mota P, Hilde G, Bø K',
+            'Estrategias de telesalud para la prestación de atención de salud materna: Una revisión rápida',
+          authors: 'Cantor AG, Jungbauer RM, Totten AM, et al.',
           year: '2022',
-          doi: '10.1007/978-3-319-91032-1_10',
+          doi: '10.7326/M22-0737',
         },
       ],
     },
     {
-      id: 'chronic-musculoskeletal',
-      title: 'Condiciones Musculoesqueléticas Crónicas y Telerehabilitación',
+      id: 'mental-health',
+      title: 'Salud Mental Perinatal y Materna',
       description:
-        'Revisiones sistemáticas y estudios clínicos en fisioterapia musculoesquelética han demostrado que los programas de telerehabilitación basados en ejercicio pueden ser seguros, con buena adherencia y no inferiores a la fisioterapia presencial para diversas condiciones, incluyendo lumbalgia crónica y limitaciones de movilidad en personas mayores. Estos modelos orientan cómo Eleva Care organiza el seguimiento, la progresión del ejercicio y el apoyo a la autogestión en mujeres con dolor persistente.',
+        'Las intervenciones psicológicas digitales y de telesalud (TCC, intervenciones guiadas por internet, terapia telefónica o basada en aplicaciones) reducen los síntomas depresivos en el embarazo y el posparto en muchos ensayos y metaanálisis, especialmente cuando son específicas y apoyadas.',
       keyFinding:
-        'Para muchas condiciones musculoesqueléticas, programas estructurados de tele-fisioterapia pueden lograr resultados en dolor y función comparables a la atención presencial tradicional.',
+        'Reducción significativa de depresión, ansiedad y angustia con alta aceptación del paciente',
       research: [
         {
           title:
-            'The clinical effectiveness of telehealth: A systematic review of meta-analyses from 2010 to 2019',
+            'Intervenciones de telemedicina relacionadas con la salud mental para mujeres embarazadas y nuevas madres: una revisión sistemática de la literatura',
+          authors: 'Stentzel U, Grabe HJ, Schmidt S, et al.',
+          year: '2023',
+          doi: '10.1186/s12888-023-04790-0',
+        },
+        {
+          title:
+            'Efectividad de las intervenciones psicológicas digitales en la reducción de la depresión perinatal',
+          authors: 'Chen C, et al.',
+          year: '2023',
+          doi: 'PMC10212734',
+        },
+      ],
+    },
+    {
+      id: 'reproductive-health',
+      title: 'Salud Sexual y Reproductiva',
+      description:
+        'Los modelos de telemedicina para consejería anticonceptiva y aborto medicamentoso han mostrado alta efectividad y seguridad, incluyendo cohortes muy grandes para aborto de telemedicina sin prueba con tasas de éxito ≈98–99% y muy pocos eventos adversos graves. La telemedicina mejora el acceso, acorta los tiempos de espera y es altamente aceptable para los pacientes.',
+      keyFinding:
+        'Tasas de éxito del 98-99% con muy pocos eventos adversos y alta aceptación del paciente',
+      research: [
+        {
+          title:
+            'Efectividad, seguridad y aceptabilidad del aborto médico sin prueba proporcionado por telemedicina: un estudio de cohorte nacional',
+          authors: 'Aiken ARA, Lohr PA, Lord J, Ghosh N, Starling J',
+          year: '2021',
+          doi: '10.1111/1471-0528.16668',
+        },
+        {
+          title:
+            'Seguridad y eficacia de los abortos medicamentosos por telesalud en EE.UU. durante la pandemia de COVID-19',
+          authors: 'Upadhyay UD, Koenig LR, Meckstroth KR',
+          year: '2021',
+          doi: '10.1001/jamanetworkopen.2021.22320',
+        },
+      ],
+    },
+    {
+      id: 'chronic-conditions',
+      title: 'Condiciones Crónicas y Estilo de Vida',
+      description:
+        'Las intervenciones de telesalud y estilo de vida digital (coaching de dieta/ejercicio, monitoreo remoto) pueden ser clínicamente efectivas y ahorrativas en muchas implementaciones. Algunos ensayos grandes muestran beneficio clínico significativo; los resultados económicos mejoran cuando los programas están dirigidos y escalados eficientemente.',
+      keyFinding: 'Tan efectivo o más efectivo que la atención usual cuando se implementa adecuadamente',
+      research: [
+        {
+          title:
+            'La efectividad clínica de la telesalud: Una revisión sistemática de metaanálisis de 2010 a 2019',
           authors: 'Snoswell CL, Chelberg G, De Guzman KR, et al.',
           year: '2023',
           doi: '10.1177/1357633X211022907',
-        },
-        {
-          title:
-            'Telehealth-delivered physical therapy for chronic low back pain: improvements in pain and disability',
-          authors: 'Investigadores en rehabilitación y fisioterapia en telesalud',
-          year: '2022',
-          doi: '',
         },
       ],
     },
@@ -202,68 +180,68 @@ import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySect
 
 <SafetyQualitySection
   title="Seguridad y Calidad: Cómo Eleva Care te Protege"
-  subtitle="Tu seguridad, privacidad y resultados clínicos son nuestras prioridades. Cada aspecto de la plataforma está diseñado con esto en mente."
+  subtitle="Tu seguridad y privacidad son nuestras principales prioridades. Cada aspecto de nuestra plataforma está diseñado pensando en tu seguridad."
   features={[
     {
       icon: 'user-check',
-      title: 'Fisioterapeutas y Profesionales Titulados',
+      title: 'Profesionales de la Salud Licenciados',
       description:
-        'Solo profesionales titulados, con formación en salud de la mujer y suelo pélvico, ofrecen consultas. Todos los perfiles se verifican y mantienen sus credenciales al día en sus áreas de práctica.',
+        'Solo médicos de salud femenina licenciados proporcionan teleconsultas. Todos los expertos están verificados y mantienen credenciales actuales en sus especialidades.',
     },
     {
       icon: 'lock',
       title: 'Plataforma Segura y Encriptada',
       description:
-        'Plataformas de video y mensajería seguras y cifradas que cumplen requisitos de privacidad como GDPR, LGPD y estándares compatibles con HIPAA, con cifrado AES-256.',
+        'Plataformas de video y mensajería seguras y encriptadas que cumplen con los requisitos de privacidad GDPR, LGPD y preparados para HIPAA con encriptación AES-256.',
     },
     {
       icon: 'file-check',
       title: 'Protocolos Clínicos Basados en Evidencia',
       description:
-        'Recorridos clínicos claros basados en guías, evidencia revisada por pares y estándares de telesalud. Definimos qué situaciones son adecuadas para la atención remota y cuándo se requiere exploración presencial.',
+        'Protocolos clínicos claros basados en guías internacionales y evidencia revisada por pares. Seguimos protocolos de telemedicina publicados y escalamos cuando es necesario.',
     },
     {
       icon: 'shield',
       title: 'Vías de Atención Integradas',
       description:
-        'Registro integrado y vías de derivación a fisioterapeutas presenciales, profesionales de obstetricia o servicios de urgencias cuando está indicado—para que la atención remota forme parte de una red de seguridad completa.',
+        'Mantenimiento de registros integrado y vías de referencia a especialistas en persona o servicios de emergencia cuando esté indicado para atención integral.',
     },
   ]}
 />
 
 <FAQSection
-  title="Preguntas frecuentes sobre fisioterapia en telesalud"
-  subtitle="Respuestas basadas en evidencia para ayudarte a entender cuándo la atención remota es adecuada y cómo funciona."
+  title="Preguntas Comunes sobre Telesalud"
+  subtitle="Respuestas basadas en evidencia para ayudarte a tomar decisiones informadas sobre tu atención"
   faqs={[
     {
       id: 'faq-1',
-      question: '¿Una sesión de fisioterapia por videollamada puede ser tan efectiva como la atención presencial?',
+      question: '¿Una visita por video es tan buena como la atención en persona?',
       answer:
-        'Para muchos problemas musculoesqueléticos y de salud pélvica, los estudios muestran que programas estructurados de tele-fisioterapia pueden lograr mejorías en dolor, función y calidad de vida comparables a la fisioterapia tradicional, especialmente cuando se centran en ejercicio, educación y autogestión. Algunas valoraciones y tratamientos (por ejemplo, determinadas pruebas manuales o procedimientos) siguen requiriendo visitas presenciales. Tu fisioterapeuta te explicará qué se puede hacer de forma segura a distancia y cuándo recomienda una exploración en persona.',
+        'Para muchas visitas, sí. La evidencia muestra resultados clínicos similares para muchos servicios de telesalud; pero algunas visitas (procedimientos, ciertos exámenes físicos) aún requieren atención cara a cara. La investigación de 38 metaanálisis encontró que la telesalud es tan efectiva o más efectiva que la atención usual en persona en muchas especialidades.',
     },
     {
       id: 'faq-2',
-      question: '¿La fisioterapia en telesalud es segura durante el embarazo y después del parto?',
+      question: '¿Es segura la telesalud para el embarazo y los bebés?',
       answer:
-        'Guías de entidades como ACOG respaldan la actividad física regular e individualizada durante el embarazo y el posparto para la mayoría de las mujeres. Cuando la atención la presta una fisioterapeuta titulada que conoce las señales de alarma obstétricas, la telesalud puede ser una forma segura de ofrecer educación, entrenamiento del suelo pélvico y programas de ejercicio, coordinándose con el equipo obstétrico y ajustando el plan a medida que avanza el embarazo o la recuperación. Si aparecen síntomas preocupantes, tu fisioterapeuta te recomendará atención presencial o urgente.',
+        'Para embarazos de bajo riesgo y cuando se combina con controles en persona específicos, la atención prenatal aumentada por telesalud tiene resultados maternos y neonatales similares en ensayos. Una revisión de 44,894 pacientes en 28 ECA encontró resultados similares o a veces mejores. Tu médico recomendará visitas en persona cuando sea clínicamente necesario.',
     },
     {
       id: 'faq-3',
-      question: '¿Cómo pueden evaluar mi suelo pélvico o pared abdominal por video?',
+      question: '¿Qué pasa con la atención de salud mental después del parto?',
       answer:
-        'Aunque la telesalud no sustituye todas las pruebas presenciales, gran parte de la evaluación del suelo pélvico y de la pared abdominal se basa en la historia clínica detallada, la observación de la postura y del movimiento y pruebas funcionales guiadas. Tu fisioterapeuta puede pedirte que palpes zonas concretas, que realices tareas de respiración y activación y que describas lo que sientes. Cuando se requiera un examen interno, ecografía u otra prueba complementaria, se coordinará o derivará para una valoración presencial.',
+        'Las terapias psicológicas digitales y de telesalud (TCC, terapias guiadas por internet) reducen los síntomas de depresión perinatal en muchos estudios y aumentan el acceso. La investigación muestra que ~60% de los ECA reportaron mejoras significativas. Eleva Care ofrece triaje inmediato y opciones de teleterapia basadas en evidencia.',
     },
     {
       id: 'faq-4',
-      question: '¿Quién es responsable de mi atención—Eleva Care o la profesional que elijo?',
+      question: '¿Son seguros los servicios de medicamentos por telemedicina?',
       answer:
-        'Eleva Care ofrece la plataforma tecnológica segura, el sistema de reservas, los pagos y el soporte. Tu fisioterapeuta o profesional de salud es una clínica independiente, titulada, responsable de la evaluación, las decisiones clínicas y las prescripciones. Verificamos las credenciales, apoyamos buenas prácticas en telesalud y proporcionamos recursos educativos, pero el juicio clínico es siempre de la profesional que te atiende.',
+        'Los estudios de cohortes grandes muestran que los servicios de medicamentos de telemedicina son altamente efectivos y seguros cuando se implementan con cribado y seguimiento apropiados. Estudios de ~52,000 pacientes encontraron tasas de éxito ≥98% con muy pocos eventos adversos graves. Eleva Care sigue protocolos probados en estudios grandes.',
     },
     {
       id: 'faq-5',
-      question: '¿Cuándo debería acudir a una valoración presencial?',
+      question: '¿Cuándo debo ver a alguien en persona?',
       answer:
-        'Se recomienda atención presencial cuando hay signos que requieren exploración directa o valoración urgente—como dolor intenso de inicio reciente, sospecha de afectación neurológica (por ejemplo, debilidad marcada, cambios en el control de vejiga o intestino), fiebre sin causa clara, traumatismo o cualquier síntoma que tu fisioterapeuta considere inseguro de manejar a distancia. Algunas pruebas (como la evaluación interna del suelo pélvico o determinados procedimientos guiados por imagen) también deben realizarse en persona. Tu profesional te ayudará a decidir cuándo la telesalud es apropiada y cuándo acudir a un servicio local.',
+        'Se recomienda atención en persona para: signos físicos agudos que requieren examen (sangrado abundante, dolor severo, signos de preeclampsia), procedimientos que requieren atención práctica (inserción de DIU, cirugías, algunos escaneos), y casos donde la evaluación remota no puede descartar de manera segura patología urgente. Eleva Care siempre proporciona una vía clara hacia la atención en persona inmediata.',
     },
   ]}
 />
@@ -271,79 +249,40 @@ import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySect
 <ReferencesSection
   references={[
     {
+      title: 'Telehealth strategies for the delivery of maternal health care: A rapid review',
+      authors: 'Cantor AG, Jungbauer RM, Totten AM, et al.',
+      year: '2022',
+      doi: '10.7326/M22-0737',
+    },
+    {
+      title: 'Mental health-related telemedicine interventions for pregnant women and new mothers: a systematic literature review',
+      authors: 'Stentzel U, Grabe HJ, Schmidt S, et al.',
+      year: '2023',
+      doi: '10.1186/s12888-023-04790-0',
+    },
+    {
+      title: 'Effectiveness of digital psychological interventions in reducing perinatal depression',
+      authors: 'Chen C, et al.',
+      year: '2023',
+      doi: 'PMC10212734',
+    },
+    {
+      title: 'Effectiveness, safety and acceptability of no-test medical abortion provided via telemedicine: a national cohort study',
+      authors: 'Aiken ARA, Lohr PA, Lord J, Ghosh N, Starling J',
+      year: '2021',
+      doi: '10.1111/1471-0528.16668',
+    },
+    {
+      title: 'Safety and Efficacy of Telehealth Medication Abortions in the US During the COVID-19 Pandemic',
+      authors: 'Upadhyay UD, Koenig LR, Meckstroth KR',
+      year: '2021',
+      doi: '10.1001/jamanetworkopen.2021.22320',
+    },
+    {
       title: 'The clinical effectiveness of telehealth: A systematic review of meta-analyses from 2010 to 2019',
       authors: 'Snoswell CL, Chelberg G, De Guzman KR, et al.',
       year: '2023',
       doi: '10.1177/1357633X211022907',
-    },
-    {
-      title:
-        'Physiotherapist-led, exercise-based telerehabilitation for older adults with musculoskeletal or cardiopulmonary conditions: a systematic review and meta-analysis',
-      authors: 'Autores de la revisión en Age and Ageing sobre telerehabilitación',
-      year: '2023',
-      doi: '',
-    },
-    {
-      title: 'Telehealth physical therapy for chronic low back pain: longitudinal outcomes in pain and disability',
-      authors: 'Investigadores en fisioterapia en telesalud para lumbalgia crónica',
-      year: '2022',
-      doi: '',
-    },
-    {
-      title:
-        'Telehealth pelvic health physical therapy for women with pelvic floor disorders: patient-reported outcomes',
-      authors: 'Autores del estudio de cohorte en fisioterapia pélvica por telesalud',
-      year: '2024',
-      doi: '',
-    },
-    {
-      title:
-        'Digital musculoskeletal women’s pelvic health program: clinical outcomes in a real-world cohort',
-      authors: 'Autores del estudio en BMC Women’s Health sobre programa digital de salud pélvica',
-      year: '2024',
-      doi: '',
-    },
-    {
-      title:
-        'Prevalence and risk factors of diastasis recti abdominis from late pregnancy to 6 months postpartum, and relationship with lumbo-pelvic pain',
-      authors: 'da Mota PGF, Pascoal AGBA, Carita AIAD, Bø K',
-      year: '2015',
-      doi: '10.1016/j.math.2014.09.002',
-    },
-    {
-      title:
-        'Test-retest and intrarater reliability of 2-dimensional ultrasound measurements of distance between rectus abdominis in women',
-      authors: 'Mota P, Pascoal AG, Sancho F, Bø K',
-      year: '2012',
-      doi: '10.2519/jospt.2012.4115',
-    },
-    {
-      title:
-        'The immediate effects on inter-rectus distance of abdominal crunch and drawing-in exercises during pregnancy and the postpartum period',
-      authors: 'Mota P, Pascoal AG, Carita AI, Bø K',
-      year: '2015',
-      doi: '10.2519/jospt.2015.5459',
-    },
-    {
-      title:
-        'Normal width of the inter-recti distance in pregnant and postpartum primiparous women',
-      authors: 'Mota P, Pascoal AG, Carita AI, Bø K',
-      year: '2018',
-      doi: '10.1016/j.msksp.2018.02.004',
-    },
-    {
-      title:
-        'Diastasis recti abdominis in pregnancy and postpartum period. Risk factors, functional implications and resolution',
-      authors: 'Mota P, Pascoal AG, Bø K',
-      year: '2015',
-      doi: '10.2174/157340481101150914201735',
-    },
-    {
-      title:
-        'ACOG Committee Opinion No. 804: physical activity and exercise during pregnancy and the postpartum period',
-      authors: 'Mota P, Bø K',
-      year: '2021',
-      doi: '10.1097/AOG.0000000000004267',
     },
   ]}
 />

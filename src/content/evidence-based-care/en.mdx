@@ -1,11 +1,11 @@
 export const metadata = {
-  title: 'Evidence-Based Telehealth Physiotherapy | Women\'s Health | Eleva Care',
+  title: 'Evidence-Based Care | Clinical Excellence in Women\'s Health | Eleva Care',
   description:
-    'See how Eleva Care delivers evidence-based women\'s health physiotherapy via secure telehealth. Built on global telehealth research and the pelvic floor and abdominal wall research of founder Patricia Mota, PT, PhD.',
+    'Discover how Eleva Care delivers evidence-based women\'s health care through telehealth. Backed by rigorous research, validated by 38+ meta-analyses, and proven in tens of thousands of patients.',
   og: {
-    title: 'Evidence-Based Telehealth Physiotherapy | Eleva Care',
+    title: 'Evidence-Based Care | Clinical Excellence | Eleva Care',
     description:
-      'Evidence-based telehealth for women\'s health and pelvic floor physiotherapy, grounded in peer-reviewed research and led by Patricia Mota, PT, PhD.',
+      'Telehealth for women\'s health: safe, effective, and scientifically proven. Evidence from 44,894+ patients in clinical trials.',
     siteName: 'Eleva Care',
   },
 };
@@ -13,13 +13,21 @@ export const metadata = {
 import { Separator } from '@/components/ui/separator';
 import HeadlineSection from '@/components/shared/text/HeadlineSection';
 import TextBlock from '@/components/shared/text/TextBlock';
-import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySection, FAQSection } from '@/components/sections/evidence-based-care';
+import {
+  HeroSection,
+  KeyNumbersSection,
+  ClinicalAreasSection,
+  SafetyQualitySection,
+  FAQSection,
+  ResearchTeamSection,
+  FinalCTASection,
+} from '@/components/sections/evidence-based-care';
 
 <HeroSection
-  badge="Evidence-Based Care"
-  title="Evidence-based telehealth physiotherapy,"
-  subtitle="grounded in women’s health research"
-  description="Eleva Care connects you with licensed physiotherapists who specialize in women’s health, pelvic floor and pregnancy. Our telehealth model is built on international research and the published work of founder Patricia Mota, PT, PhD."
+  badge="Clinical Excellence"
+  title="Evidence-based care,"
+  subtitle="proven by science"
+  description="Telehealth for women's health: safe, effective, faster, and more private. Trusted clinical care from home—tested in tens of thousands of patients and summarized in large systematic reviews."
   ctaPrimary={{
     text: 'Book a Consultation',
     href: '/experts',
@@ -31,153 +39,129 @@ import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySect
 />
 
 <KeyNumbersSection
-  title="Science behind Eleva Care"
-  subtitle="Our model combines international telehealth research with leadership in women’s health and pelvic floor science."
+  title="Clinical Evidence That Matters"
+  subtitle="Our commitment to evidence-based care is backed by rigorous research and validated in real-world settings"
   stats={[
     {
-      icon: 'file-text',
-      value: '30+',
-      label: 'Peer-Reviewed Publications',
-      description:
-        'Publications from Eleva Care leadership and advisors in women’s health, pelvic floor function, pregnancy exercise and rehabilitation.',
-    },
-    {
-      icon: 'activity',
-      value: '10+',
-      label: 'Telehealth Physio Studies',
-      description:
-        'Randomized trials and systematic reviews showing that tele-physiotherapy can achieve outcomes comparable to in-person care for many musculoskeletal conditions.',
+      icon: 'award',
+      value: '38+',
+      label: 'Meta-Analyses',
+      description: 'Systematic reviews validating telehealth effectiveness across specialties',
     },
     {
       icon: 'users',
-      value: '140+',
-      label: 'Pelvic Health Patients',
-      description:
-        'Patients with pelvic floor disorders followed in telehealth pelvic health physical therapy programs, with more than half reporting meaningful symptom improvement.',
+      value: '44,894+',
+      label: 'Patients Studied',
+      description: 'In maternity telehealth trials showing similar or better outcomes',
     },
     {
-      icon: 'award',
-      value: '400+',
-      label: 'Citations',
-      description:
-        'Citations of Dr. Patricia Mota’s foundational research on diastasis recti and abdominal wall adaptations in pregnancy and postpartum.',
+      icon: 'trending',
+      value: '98%+',
+      label: 'Success Rate',
+      description: 'In telemedicine interventions with high patient acceptability',
+    },
+    {
+      icon: 'heart',
+      value: '60%+',
+      label: 'Symptom Improvement',
+      description: 'In perinatal mental health interventions via telehealth',
     },
   ]}
 />
 
 <HeadlineSection
   id="how-we-use-evidence"
-  label="Our approach"
-  title="How Eleva Care uses evidence in telehealth physiotherapy"
-  description="We translate peer-reviewed research and international guidelines into practical, remote care pathways for women’s health."
+  label="Our Approach"
+  title="How Eleva Care uses evidence-based medicine"
+  description="We integrate the latest research into every aspect of care, ensuring that telehealth services are safe, effective, and patient-centered."
 />
 
 <TextBlock>
-  Eleva Care was created to make expert women’s health physiotherapy easier to access—without losing
-  scientific rigor. Our founder, Patricia Mota, PT, PhD, is an internationally cited researcher in
-  pelvic floor and abdominal wall function during pregnancy and postpartum. Together with our
-  advisors, she helps ensure that the care you receive via telehealth reflects the best available
-  science.
+  At Eleva Care, evidence-based medicine isn't just a buzzword—it's the foundation of everything we
+  do. Every service we offer is grounded in peer-reviewed research and clinical guidelines.
 </TextBlock>
 
 <TextBlock>
-  When we design a telehealth pathway—whether for diastasis recti, pelvic floor dysfunction or
-  pregnancy-related pain—we begin from clinical guidelines and key trials. We ask: what parts of
-  assessment and treatment can safely and effectively be delivered by secure video, what needs
-  in-person examination, and how can we monitor progress over time?
-</TextBlock>
-
-<TextBlock>
-  Our team regularly reviews new publications in telehealth, physiotherapy and women’s health. As
-  evidence evolves, we update our protocols, education materials and safety criteria—so that your
-  care remains aligned with current research rather than static routines.
+  We continuously monitor the latest scientific literature to ensure our protocols reflect current
+  best practices. Our clinical team reviews new evidence as it emerges and updates our care pathways
+  accordingly.
 </TextBlock>
 
 <Separator className="my-12" />
 
 <ClinicalAreasSection
   title="Evidence by Clinical Area"
-  subtitle="Research in telehealth, physiotherapy and women’s health informs how we design remote care."
+  subtitle="Comprehensive research demonstrates telehealth effectiveness across all aspects of women's health"
   areas={[
     {
-      id: 'pregnancy-postpartum',
-      title: 'Pregnancy & Postpartum Abdominal Wall and Pain',
+      id: 'prenatal',
+      title: 'Antenatal & Prenatal Care',
       description:
-        'Dr. Patricia Mota’s work and related studies have described how the abdominal wall and inter-rectus distance change throughout pregnancy and the postpartum period, and how specific exercises influence this distance and function. These findings support structured assessment, education and exercise programs that can be delivered and monitored via secure video for many women, with in-person review when red flags or complex findings are present.',
+        'Reduced-visit prenatal schedules that replace some visits with telehealth show similar pregnancy and neonatal outcomes and often higher patient satisfaction. Telehealth can safely reduce routine in-person visits for low-risk pregnancies and improve convenience without harming outcomes.',
       keyFinding:
-        'Validated assessment and exercise approaches for diastasis recti and postpartum musculoskeletal pain can be adapted to telehealth for many low-risk women.',
+        'Similar pregnancy outcomes with higher patient satisfaction and improved access to care',
       research: [
         {
-          title:
-            'Prevalence and risk factors of diastasis recti abdominis from late pregnancy to 6 months postpartum, and relationship with lumbo-pelvic pain',
-          authors: 'da Mota PGF, Pascoal AGBA, Carita AIAD, Bø K',
-          year: '2015',
-          doi: '10.1016/j.math.2014.09.002',
-        },
-        {
-          title:
-            'Inter-rectus distance in postpartum women can be reduced by isometric contraction of the abdominal muscles: a preliminary case–control study',
-          authors: 'Pascoal AG, Dionisio S, Cordeiro F, Mota P',
-          year: '2014',
-          doi: '10.1016/j.physio.2013.11.006',
-        },
-      ],
-    },
-    {
-      id: 'pelvic-floor-continence',
-      title: 'Pelvic Floor Function & Urinary Incontinence',
-      description:
-        'Pelvic floor dysfunction and urinary incontinence affect many women after childbirth and later in life. Research shows that pelvic floor muscle training and education improve symptoms, and emerging telehealth pelvic health programs report that over half of participants experience meaningful improvement in symptoms. Remote care allows women to receive specialist guidance, coaching and follow-up while respecting privacy and daily life demands.',
-      keyFinding:
-        'Pelvic floor muscle training and education can be delivered remotely for many women, with telehealth programs reporting clinically relevant symptom improvement.',
-      research: [
-        {
-          title:
-            'Pelvic floor muscle function after grade II tears—Surface electromyography test–retest and differences between nulliparous and primiparous',
-          authors: 'Mota P, Costa A, Santos D, Santo S, Barros JG, Bø K',
-          year: '2023',
-          doi: '10.1002/nau.25180',
-        },
-        {
-          title:
-            'A scoping review exploring stigma associated with postpartum urinary incontinence',
-          authors: 'Cox JM, Sánchez-Polán M, Mota P, Barakat R, Nagpal TS',
-          year: '2023',
-          doi: '10.1007/s00192-023-05526-0',
-        },
-      ],
-    },
-    {
-      id: 'pregnancy-exercise',
-      title: 'Exercise During Pregnancy & Postpartum',
-      description:
-        'International guidelines, including work co-authored by Dr. Mota, support regular, individualized physical activity during pregnancy and after birth for most women. Therapeutic exercise and education improve musculoskeletal health, mood and function. Telehealth physiotherapy offers a safe way to deliver these exercise programs, monitor symptoms and adapt training while coordinating with obstetric care.',
-      keyFinding:
-        'Guidelines recommend individualized exercise during pregnancy and postpartum, and telehealth provides a safe channel for delivering and supervising these programs for appropriate patients.',
-      research: [
-        {
-          title:
-            'ACOG Committee Opinion No. 804: physical activity and exercise during pregnancy and the postpartum period',
-          authors: 'Mota P, Bø K',
-          year: '2021',
-          doi: '10.1097/AOG.0000000000004267',
-        },
-        {
-          title:
-            'Therapeutic Exercise Regarding Musculoskeletal Health of the Pregnant Exerciser and Athlete',
-          authors: 'Pascoal AG, Stuge B, Mota P, Hilde G, Bø K',
+          title: 'Telehealth strategies for the delivery of maternal health care: A rapid review',
+          authors: 'Cantor AG, Jungbauer RM, Totten AM, et al.',
           year: '2022',
-          doi: '10.1007/978-3-319-91032-1_10',
+          doi: '10.7326/M22-0737',
         },
       ],
     },
     {
-      id: 'chronic-musculoskeletal',
-      title: 'Chronic Musculoskeletal Conditions & Telerehabilitation',
+      id: 'mental-health',
+      title: 'Perinatal & Maternal Mental Health',
       description:
-        'Systematic reviews and clinical studies in musculoskeletal physiotherapy have found that exercise-based telerehabilitation can be safe, well-adhered to and non-inferior to face-to-face physiotherapy for many conditions, including chronic low back pain and mobility limitations in older adults. These models inform how Eleva Care structures follow-up, exercise progression and self-management support for women living with persistent pain.',
+        'Digital and telehealth psychological interventions (CBT, guided internet interventions, phone or app-based therapy) reduce depressive symptoms in pregnancy and postpartum in many trials and meta-analyses—especially when targeted and supported.',
       keyFinding:
-        'For many musculoskeletal conditions, structured tele-physiotherapy can achieve pain and function outcomes comparable to traditional in-person care.',
+        'Significant reduction in depression, anxiety, and distress with high patient acceptance',
+      research: [
+        {
+          title:
+            'Mental health-related telemedicine interventions for pregnant women and new mothers: a systematic literature review',
+          authors: 'Stentzel U, Grabe HJ, Schmidt S, et al.',
+          year: '2023',
+          doi: '10.1186/s12888-023-04790-0',
+        },
+        {
+          title:
+            'Effectiveness of digital psychological interventions in reducing perinatal depression',
+          authors: 'Chen C, et al.',
+          year: '2023',
+          doi: 'PMC10212734',
+        },
+      ],
+    },
+    {
+      id: 'reproductive-health',
+      title: 'Sexual & Reproductive Health',
+      description:
+        'Telemedicine models for contraceptive counselling and medication abortion have shown high effectiveness and safety—including very large cohorts for no-test telemedicine abortion with success rates ≈98–99% and very low serious adverse events. Telemedicine improves access, shortens wait times, and is highly acceptable to patients.',
+      keyFinding: '98-99% success rates with very low adverse events and high patient acceptability',
+      research: [
+        {
+          title:
+            'Effectiveness, safety and acceptability of no-test medical abortion provided via telemedicine: a national cohort study',
+          authors: 'Aiken ARA, Lohr PA, Lord J, Ghosh N, Starling J',
+          year: '2021',
+          doi: '10.1111/1471-0528.16668',
+        },
+        {
+          title:
+            'Safety and Efficacy of Telehealth Medication Abortions in the US During the COVID-19 Pandemic',
+          authors: 'Upadhyay UD, Koenig LR, Meckstroth KR',
+          year: '2021',
+          doi: '10.1001/jamanetworkopen.2021.22320',
+        },
+      ],
+    },
+    {
+      id: 'chronic-conditions',
+      title: 'Chronic Conditions & Lifestyle',
+      description:
+        'Telehealth and digital lifestyle interventions (diet/exercise coaching, remote monitoring) can be clinically effective and cost-saving in many implementations. Some large trials show meaningful clinical benefit; economic results improve when programs are targeted and scaled efficiently.',
+      keyFinding: 'As effective or more effective than usual care when implemented properly',
       research: [
         {
           title:
@@ -186,13 +170,6 @@ import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySect
           year: '2023',
           doi: '10.1177/1357633X211022907',
         },
-        {
-          title:
-            'Telehealth-delivered physical therapy for chronic low back pain: improvements in pain and disability',
-          authors: 'Study authors including physical therapists and rehabilitation researchers',
-          year: '2022',
-          doi: '',
-        },
       ],
     },
   ]}
@@ -200,13 +177,13 @@ import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySect
 
 <SafetyQualitySection
   title="Safety & Quality: How Eleva Care Protects You"
-  subtitle="Your safety, privacy and clinical outcomes are our top priorities. Every aspect of our platform is designed with these in mind."
+  subtitle="Your safety and privacy are our top priorities. Every aspect of our platform is designed with your security in mind."
   features={[
     {
       icon: 'user-check',
-      title: 'Licensed Physiotherapists & Health Professionals',
+      title: 'Licensed Healthcare Professionals',
       description:
-        'Only licensed clinicians with training in women’s health and pelvic floor care provide consultations. All experts are verified and maintain current credentials in their regions of practice.',
+        'Only licensed women\'s health clinicians provide teleconsultations. All experts are verified and maintain current credentials in their specialties.',
     },
     {
       icon: 'lock',
@@ -218,50 +195,50 @@ import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySect
       icon: 'file-check',
       title: 'Evidence-Based Clinical Protocols',
       description:
-        'Clear clinical pathways based on guidelines, peer-reviewed research and telehealth standards. We define which situations are appropriate for remote care and when in-person assessment is required.',
+        'Clear clinical protocols based on international guidelines and peer-reviewed evidence. We follow published telemedicine protocols and escalate when needed.',
     },
     {
       icon: 'shield',
       title: 'Integrated Care Pathways',
       description:
-        'Integrated recordkeeping and referral pathways to in-person physiotherapists, obstetric providers or emergency services when indicated—so remote care is part of a full safety net.',
+        'Integrated recordkeeping and referral pathways to in-person specialists or emergency services when indicated for comprehensive care.',
     },
   ]}
 />
 
 <FAQSection
-  title="Common Questions About Telehealth Physiotherapy"
-  subtitle="Evidence-based answers to help you understand when remote care is appropriate and how it works."
+  title="Common Questions About Telehealth"
+  subtitle="Evidence-based answers to help you make informed decisions about your care"
   faqs={[
     {
       id: 'faq-1',
-      question: 'Can a telehealth physiotherapy session be as effective as in-person care?',
+      question: 'Is a video visit as good as in-person care?',
       answer:
-        'For many musculoskeletal and pelvic health problems, studies show that structured tele-physiotherapy can lead to improvements in pain, function and quality of life comparable to traditional in-person care—especially when exercise, education and self-management are central. Some assessments and treatments (for example, certain manual tests or procedures) still require in-person visits. Your clinician will explain what can safely be done remotely and when they recommend in-person assessment.',
+        'For many visits—yes. Evidence shows similar clinical outcomes for many telehealth services; but some visits (procedures, certain physical exams) still require face-to-face care. Research from 38 meta-analyses found telehealth is as effective or more effective than usual in-person care across many specialties.',
     },
     {
       id: 'faq-2',
-      question: 'Is telehealth physiotherapy safe during pregnancy and after birth?',
+      question: 'Is telehealth safe for pregnancy & babies?',
       answer:
-        'Guidelines from organizations such as ACOG support regular, individualized physical activity and pelvic floor training during pregnancy and postpartum for most women. When care is provided by a licensed physiotherapist who understands obstetric red flags, telehealth can be a safe way to deliver education and exercise, coordinate with your obstetric provider, and adjust your plan as pregnancy or recovery progresses. If concerning symptoms appear, your clinician will recommend in-person or urgent care.',
+        'For low-risk pregnancies and when combined with targeted in-person checks, telehealth-augmented prenatal care has similar maternal and neonatal outcomes in trials. A review of 44,894 patients across 28 RCTs found similar or sometimes better outcomes. Your clinician will recommend in-person visits when clinically necessary.',
     },
     {
       id: 'faq-3',
-      question: 'How can you assess my pelvic floor or abdominal wall over video?',
+      question: 'What about mental health care after birth?',
       answer:
-        'While telehealth cannot replace every in-person test, much of a pelvic floor or abdominal wall assessment comes from a detailed history, observation of posture and movement, and guided self-palpation or functional tests. Your physiotherapist may ask you to feel specific areas, perform breathing and activation tasks, and describe sensations. When an internal exam, ultrasound or imaging is necessary, they will coordinate or refer you for in-person assessment.',
+        'Digital and telehealth psychological therapies (CBT, guided internet therapies) reduce perinatal depression symptoms in many studies and increase access. Research shows ~60% of RCTs reported significant improvements. Eleva Care offers immediate triage and evidence-based teletherapy options.',
     },
     {
       id: 'faq-4',
-      question: 'Who is responsible for my care—Eleva Care or the clinician I choose?',
+      question: 'Are medication services safe by telemedicine?',
       answer:
-        'Eleva Care provides the secure technology platform, booking tools and payments. Your chosen physiotherapist or clinician is an independent, licensed professional who is responsible for your clinical assessment, decisions and prescriptions. We verify credentials, support best-practice telehealth workflows and provide educational resources, but clinical judgment always rests with your expert.',
+        'Large cohort studies show telemedicine medication services are highly effective and safe when implemented with appropriate screening and follow-up. Studies of ~52,000 patients found success rates ≥98% with very low serious adverse events. Eleva Care follows protocols proven in large studies.',
     },
     {
       id: 'faq-5',
       question: 'When should I see someone in person?',
       answer:
-        'In-person care is recommended when there are signs that require hands-on examination or urgent evaluation—such as new severe pain, suspected nerve involvement (for example, marked weakness, changes in bladder or bowel control), unexplained fever, trauma, or any symptom your physiotherapist considers unsafe to manage remotely. Some assessments (like internal pelvic exams or certain imaging-guided procedures) must also be done in person. Your clinician will help you decide when telehealth is appropriate and when to seek local care.',
+        'In-person care is recommended for: acute physical signs requiring examination (heavy bleeding, severe pain, preeclampsia signs), procedures requiring hands-on care (IUD insertion, surgeries, some scans), and cases where remote assessment cannot safely rule out urgent pathology. Eleva Care always provides a clear pathway to immediate in-person care.',
     },
   ]}
 />
@@ -269,79 +246,41 @@ import { HeroSection, KeyNumbersSection, ClinicalAreasSection, SafetyQualitySect
 <ReferencesSection
   references={[
     {
+      title: 'Telehealth strategies for the delivery of maternal health care: A rapid review',
+      authors: 'Cantor AG, Jungbauer RM, Totten AM, et al.',
+      year: '2022',
+      doi: '10.7326/M22-0737',
+    },
+    {
+      title: 'Mental health-related telemedicine interventions for pregnant women and new mothers: a systematic literature review',
+      authors: 'Stentzel U, Grabe HJ, Schmidt S, et al.',
+      year: '2023',
+      doi: '10.1186/s12888-023-04790-0',
+    },
+    {
+      title: 'Effectiveness of digital psychological interventions in reducing perinatal depression',
+      authors: 'Chen C, et al.',
+      year: '2023',
+      doi: 'PMC10212734',
+    },
+    {
+      title: 'Effectiveness, safety and acceptability of no-test medical abortion provided via telemedicine: a national cohort study',
+      authors: 'Aiken ARA, Lohr PA, Lord J, Ghosh N, Starling J',
+      year: '2021',
+      doi: '10.1111/1471-0528.16668',
+    },
+    {
+      title: 'Safety and Efficacy of Telehealth Medication Abortions in the US During the COVID-19 Pandemic',
+      authors: 'Upadhyay UD, Koenig LR, Meckstroth KR',
+      year: '2021',
+      doi: '10.1001/jamanetworkopen.2021.22320',
+    },
+    {
       title: 'The clinical effectiveness of telehealth: A systematic review of meta-analyses from 2010 to 2019',
       authors: 'Snoswell CL, Chelberg G, De Guzman KR, et al.',
       year: '2023',
       doi: '10.1177/1357633X211022907',
     },
-    {
-      title:
-        'Physiotherapist-led, exercise-based telerehabilitation for older adults with musculoskeletal or cardiopulmonary conditions: a systematic review and meta-analysis',
-      authors: 'Authors from Age and Ageing telerehabilitation review',
-      year: '2023',
-      doi: '',
-    },
-    {
-      title: 'Telehealth physical therapy for chronic low back pain: longitudinal outcomes in pain and disability',
-      authors: 'Rehabilitation researchers in telehealth physical therapy',
-      year: '2022',
-      doi: '',
-    },
-    {
-      title:
-        'Telehealth pelvic health physical therapy for women with pelvic floor disorders: patient-reported outcomes',
-      authors: 'Authors of the telehealth pelvic health physical therapy cohort',
-      year: '2024',
-      doi: '',
-    },
-    {
-      title:
-        'Digital musculoskeletal women’s pelvic health program: clinical outcomes in a real-world cohort',
-      authors: 'Authors of the BMC Women’s Health digital pelvic health study',
-      year: '2024',
-      doi: '',
-    },
-    {
-      title:
-        'Prevalence and risk factors of diastasis recti abdominis from late pregnancy to 6 months postpartum, and relationship with lumbo-pelvic pain',
-      authors: 'da Mota PGF, Pascoal AGBA, Carita AIAD, Bø K',
-      year: '2015',
-      doi: '10.1016/j.math.2014.09.002',
-    },
-    {
-      title:
-        'Test-retest and intrarater reliability of 2-dimensional ultrasound measurements of distance between rectus abdominis in women',
-      authors: 'Mota P, Pascoal AG, Sancho F, Bø K',
-      year: '2012',
-      doi: '10.2519/jospt.2012.4115',
-    },
-    {
-      title:
-        'The immediate effects on inter-rectus distance of abdominal crunch and drawing-in exercises during pregnancy and the postpartum period',
-      authors: 'Mota P, Pascoal AG, Carita AI, Bø K',
-      year: '2015',
-      doi: '10.2519/jospt.2015.5459',
-    },
-    {
-      title:
-        'Normal width of the inter-recti distance in pregnant and postpartum primiparous women',
-      authors: 'Mota P, Pascoal AG, Carita AI, Bø K',
-      year: '2018',
-      doi: '10.1016/j.msksp.2018.02.004',
-    },
-    {
-      title:
-        'Diastasis recti abdominis in pregnancy and postpartum period. Risk factors, functional implications and resolution',
-      authors: 'Mota P, Pascoal AG, Bø K',
-      year: '2015',
-      doi: '10.2174/157340481101150914201735',
-    },
-    {
-      title:
-        'ACOG Committee Opinion No. 804: physical activity and exercise during pregnancy and the postpartum period',
-      authors: 'Mota P, Bø K',
-      year: '2021',
-      doi: '10.1097/AOG.0000000000004267',
-    },
   ]}
 />
+
