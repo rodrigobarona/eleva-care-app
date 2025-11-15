@@ -1,8 +1,8 @@
 import { Card, CardContent } from '@/components/ui/card';
-import { Award, Users, TrendingUp, Heart } from 'lucide-react';
+import { Award, Users, TrendingUp, Heart, FileText, Activity } from 'lucide-react';
 
 interface StatItem {
-  icon: 'award' | 'users' | 'trending' | 'heart';
+  icon: 'award' | 'users' | 'trending' | 'heart' | 'file-text' | 'activity';
   value: string;
   label: string;
   description: string;
@@ -19,6 +19,8 @@ const iconMap = {
   users: Users,
   trending: TrendingUp,
   heart: Heart,
+  'file-text': FileText,
+  activity: Activity,
 };
 
 export default function KeyNumbersSection({ title, subtitle, stats }: KeyNumbersSectionProps) {
@@ -39,6 +41,10 @@ export default function KeyNumbersSection({ title, subtitle, stats }: KeyNumbers
         <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat, index) => {
             const Icon = iconMap[stat.icon];
+            if (!Icon) {
+              console.warn(`Icon "${stat.icon}" not found in iconMap`);
+              return null;
+            }
             return (
               <Card
                 key={index}

@@ -7,8 +7,8 @@ type TextBlockProps = {
 
 export default function TextBlock({ children, className }: TextBlockProps) {
   return (
-    <p className={`mt-6 text-base/6 text-eleva-neutral-900/60 lg:text-lg/7 ${className}`}>
+    <div className={`mt-6 text-base/6 text-eleva-neutral-900/60 lg:text-lg/7 ${className}`}>
       {children}
-    </p>
+    </div>
   );
 }
