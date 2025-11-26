@@ -1,5 +1,6 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
@@ -14,8 +15,20 @@ export default function ErrorBoundary({
   const t = useTranslations('Error');
 
   useEffect(() => {
-    // Optionally log the error to an error reporting service
-    console.error(error);
+    // Send error to BetterStack via Sentry
+    Sentry.captureException(error, {
+      tags: {
+        error_boundary: 'app_error_boundary',
+        digest: error.digest,
+      },
+      extra: {
+        digest: error.digest,
+        errorMessage: error.message,
+      },
+    });
+
+    // Also log to console for development
+    console.error('App Error Boundary caught error:', error);
   }, [error]);
 
   return (

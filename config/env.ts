@@ -101,7 +101,10 @@ export const ENV_CONFIG = {
     process.env.NEXT_PUBLIC_SENTRY_DSN ||
     'https://f5pge1tAEU6Zkr9Yd8HeBRYs@eu-nbg-2.betterstackdata.com/1606629',
   SENTRY_ENVIRONMENT: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
-  SENTRY_RELEASE: process.env.SENTRY_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || undefined,
+  SENTRY_RELEASE:
+    process.env.SENTRY_RELEASE ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    `dev-${new Date().toISOString().split('T')[0]}`, // Fallback for development
 } as const;
 
 /**
