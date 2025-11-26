@@ -1,10 +1,12 @@
 /**
  * BetterStack Configuration
  *
- * This configuration file contains settings for BetterStack Uptime monitoring integration.
- * BetterStack provides uptime monitoring and status page functionality for the application.
+ * This configuration file contains settings for BetterStack integrations:
+ * - Uptime monitoring and status page functionality
+ * - Error tracking via Sentry SDK integration
  *
  * @see https://betterstack.com/docs/uptime/api
+ * @see https://betterstack.com/docs/errors/collecting-errors/sentry-sdk/
  */
 import { ENV_CONFIG } from './env';
 
@@ -80,3 +82,79 @@ export const statusLabelMap = {
   majorOutage: 'Degraded performance',
   unknown: 'Unable to fetch status',
 } as const;
+
+/**
+ * BetterStack Error Tracking Configuration
+ *
+ * This configuration enables error tracking using the Sentry SDK.
+ * Errors are sent to Better Stack's ingestion endpoint for centralized management.
+ *
+ * Required Environment Variables:
+ * - NEXT_PUBLIC_SENTRY_DSN: Your BetterStack Sentry-compatible DSN
+ * - SENTRY_ENVIRONMENT: Current environment (development/staging/production)
+ * - SENTRY_RELEASE: Release version for tracking (automatically set from Git SHA)
+ *
+ * To get your DSN:
+ * 1. Log in to your BetterStack account
+ * 2. Navigate to Errors > Applications
+ * 3. Select your application
+ * 4. Go to the Data ingestion tab
+ * 5. Copy the Application token and Ingesting host
+ * 6. Format as: https://{TOKEN}@{HOST}/1
+ *
+ * @see https://betterstack.com/docs/errors/collecting-errors/sentry-sdk/
+ */
+export const errorTrackingConfig = {
+  /**
+   * Sentry DSN for Better Stack error tracking
+   */
+  dsn: ENV_CONFIG.NEXT_PUBLIC_SENTRY_DSN,
+
+  /**
+   * Current environment
+   */
+  environment: ENV_CONFIG.SENTRY_ENVIRONMENT,
+
+  /**
+   * Release version (from Git commit SHA)
+   */
+  release: ENV_CONFIG.SENTRY_RELEASE,
+
+  /**
+   * Whether error tracking is enabled
+   */
+  enabled: Boolean(ENV_CONFIG.NEXT_PUBLIC_SENTRY_DSN) && ENV_CONFIG.NODE_ENV !== 'test',
+
+  /**
+   * Debug mode (enabled in development)
+   */
+  debug: ENV_CONFIG.NODE_ENV === 'development',
+} as const satisfies {
+  dsn: string | undefined;
+  environment: string;
+  release: string | undefined;
+  enabled: boolean;
+  debug: boolean;
+};
+
+/**
+ * Validates that error tracking configuration is present
+ */
+export function validateErrorTrackingConfig(): boolean {
+  return Boolean(errorTrackingConfig.dsn);
+}
+
+/**
+ * Get error tracking status for display
+ */
+export function getErrorTrackingStatus(): {
+  enabled: boolean;
+  environment: string;
+  hasRelease: boolean;
+} {
+  return {
+    enabled: errorTrackingConfig.enabled,
+    environment: errorTrackingConfig.environment,
+    hasRelease: Boolean(errorTrackingConfig.release),
+  };
+}

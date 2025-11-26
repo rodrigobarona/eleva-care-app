@@ -1,4 +1,15 @@
+import * as Sentry from '@sentry/nextjs';
 import { initBotId } from 'botid/client/core';
+
+/**
+ * Sentry Router Transition Tracking
+ *
+ * This hook enables Sentry to track navigation transitions for better error context.
+ * It captures route changes to provide more detailed error reports.
+ *
+ * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/
+ */
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
 
 /**
  * BotID Client Configuration for Eleva Care

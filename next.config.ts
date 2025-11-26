@@ -1,4 +1,5 @@
 import createMDX from '@next/mdx';
+import { withSentryConfig } from '@sentry/nextjs';
 import { withBotId } from 'botid/next/config';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
@@ -133,6 +134,49 @@ const config: NextConfig = {
   bundlePagesRouterDependencies: true,
 };
 
-// Apply plugins in order: Bundle Analyzer -> MDX -> Next-Intl -> BotID
+// Apply plugins in order: Bundle Analyzer -> MDX -> Next-Intl -> BotID -> Sentry
 const nextConfig = withMDX(config);
-export default withBotId(withBundleAnalyzer(withNextIntl(nextConfig)));
+const configWithPlugins = withBotId(withBundleAnalyzer(withNextIntl(nextConfig)));
+
+/**
+ * Sentry configuration options
+ * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+ */
+const sentryWebpackPluginOptions = {
+  // For all available options, see:
+  // https://github.com/getsentry/sentry-webpack-plugin#options
+
+  // Suppress source map uploading logs during build
+  silent: true,
+
+  // Organization and project for Sentry (not required for Better Stack)
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+
+  // Auth token for uploading source maps (optional for Better Stack)
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  // Disable source map upload if no auth token is provided
+  // Better Stack doesn't require source maps, but they're useful for debugging
+  disableSourceMapUpload: !process.env.SENTRY_AUTH_TOKEN,
+
+  // Hide source maps from generated client bundles
+  hideSourceMaps: true,
+
+  // Automatically tree-shake Sentry logger statements to reduce bundle size
+  disableLogger: true,
+
+  // Automatically annotate React components for better stack traces
+  reactComponentAnnotation: {
+    enabled: true,
+  },
+
+  // Enable Sentry's webpack plugin only in production
+  enabled: process.env.NODE_ENV === 'production',
+};
+
+/**
+ * Export configuration with Sentry integration
+ * Sentry should be the last plugin in the chain to ensure it can instrument everything
+ */
+export default withSentryConfig(configWithPlugins, sentryWebpackPluginOptions);

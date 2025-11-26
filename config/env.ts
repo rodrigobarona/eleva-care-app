@@ -95,6 +95,13 @@ export const ENV_CONFIG = {
   // BetterStack Status Page Configuration (for ServerStatus component)
   BETTERSTACK_API_KEY: process.env.BETTERSTACK_API_KEY || '',
   BETTERSTACK_URL: process.env.BETTERSTACK_URL || '',
+
+  // BetterStack Error Tracking Configuration (Sentry SDK)
+  NEXT_PUBLIC_SENTRY_DSN:
+    process.env.NEXT_PUBLIC_SENTRY_DSN ||
+    'https://f5pge1tAEU6Zkr9Yd8HeBRYs@eu-nbg-2.betterstackdata.com/1606629',
+  SENTRY_ENVIRONMENT: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
+  SENTRY_RELEASE: process.env.SENTRY_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || undefined,
 } as const;
 
 /**
@@ -277,6 +284,24 @@ export const ENV_VALIDATORS = {
         missingVars.length > 0
           ? `Missing BetterStack Status Page environment variables: ${missingVars.join(', ')}. Status indicator will not be displayed.`
           : 'BetterStack Status Page configuration is valid',
+      missingVars,
+    };
+  },
+
+  /**
+   * Validate BetterStack Error Tracking environment variables
+   */
+  betterstackErrorTracking(): EnvValidationResult {
+    const missingVars: string[] = [];
+
+    if (!ENV_CONFIG.NEXT_PUBLIC_SENTRY_DSN) missingVars.push('NEXT_PUBLIC_SENTRY_DSN');
+
+    return {
+      isValid: missingVars.length === 0,
+      message:
+        missingVars.length > 0
+          ? `Missing BetterStack Error Tracking environment variables: ${missingVars.join(', ')}. Error tracking will not be active.`
+          : 'BetterStack Error Tracking configuration is valid',
       missingVars,
     };
   },
