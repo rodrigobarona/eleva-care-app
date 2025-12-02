@@ -51,23 +51,17 @@ export const WORKOS_ROLE_HIERARCHY: Record<WorkOSRole, number> = {
 /**
  * Expert roles for quick checking
  */
-export const EXPERT_ROLES: WorkOSRole[] = [
-  WORKOS_ROLES.EXPERT_COMMUNITY,
-  WORKOS_ROLES.EXPERT_TOP,
-];
+export const EXPERT_ROLES = [WORKOS_ROLES.EXPERT_COMMUNITY, WORKOS_ROLES.EXPERT_TOP] as const;
 
 /**
  * Admin roles for quick checking
  */
-export const ADMIN_ROLES: WorkOSRole[] = [WORKOS_ROLES.SUPERADMIN];
+export const ADMIN_ROLES = [WORKOS_ROLES.SUPERADMIN] as const;
 
 /**
  * Partner roles for quick checking
  */
-export const PARTNER_ROLES: WorkOSRole[] = [
-  WORKOS_ROLES.PARTNER_MEMBER,
-  WORKOS_ROLES.PARTNER_ADMIN,
-];
+export const PARTNER_ROLES = [WORKOS_ROLES.PARTNER_MEMBER, WORKOS_ROLES.PARTNER_ADMIN] as const;
 
 // ============================================================================
 // PERMISSIONS (89 total)
@@ -377,4 +371,3 @@ export function getRoleDisplayName(role: string): string {
 export function getRoleDescription(role: string): string {
   return WORKOS_ROLE_DESCRIPTIONS[role as WorkOSRole] ?? '';
 }
-

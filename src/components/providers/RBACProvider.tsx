@@ -20,14 +20,8 @@
  * }
  * ```
  */
-
 import type { WorkOSPermission, WorkOSRole, WorkOSUserWithRBAC } from '@/types/workos-rbac';
-import {
-  ADMIN_ROLES,
-  EXPERT_ROLES,
-  PARTNER_ROLES,
-  WORKOS_ROLES,
-} from '@/types/workos-rbac';
+import { WORKOS_ROLES } from '@/types/workos-rbac';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 // ============================================================================
@@ -125,21 +119,12 @@ export function RBACProvider({ children, initialUser = null }: RBACProviderProps
 
   // Derived values with proper memoization
   const role = user?.role || WORKOS_ROLES.PATIENT;
-  const permissions = useMemo(
-    () => user?.permissions || [],
-    [user?.permissions],
-  );
+  const permissions = useMemo(() => user?.permissions || [], [user?.permissions]);
 
   // Role checking functions
-  const hasRole = useCallback(
-    (checkRole: WorkOSRole) => role === checkRole,
-    [role],
-  );
+  const hasRole = useCallback((checkRole: WorkOSRole) => role === checkRole, [role]);
 
-  const hasAnyRole = useCallback(
-    (roles: WorkOSRole[]) => roles.includes(role),
-    [role],
-  );
+  const hasAnyRole = useCallback((roles: WorkOSRole[]) => roles.includes(role), [role]);
 
   // Permission checking functions
   const hasPermission = useCallback(
@@ -158,35 +143,12 @@ export function RBACProvider({ children, initialUser = null }: RBACProviderProps
   );
 
   // Convenience checks
-  const isAdmin = useMemo(
-    () => ADMIN_ROLES.includes(role as (typeof ADMIN_ROLES)[number]),
-    [role],
-  );
-
-  const isExpert = useMemo(
-    () => EXPERT_ROLES.includes(role as (typeof EXPERT_ROLES)[number]),
-    [role],
-  );
-
-  const isTopExpert = useMemo(
-    () => role === WORKOS_ROLES.EXPERT_TOP,
-    [role],
-  );
-
-  const isPartner = useMemo(
-    () => PARTNER_ROLES.includes(role as (typeof PARTNER_ROLES)[number]),
-    [role],
-  );
-
-  const isPartnerAdmin = useMemo(
-    () => role === WORKOS_ROLES.PARTNER_ADMIN,
-    [role],
-  );
-
-  const isPatient = useMemo(
-    () => role === WORKOS_ROLES.PATIENT,
-    [role],
-  );
+  const isAdmin = role === WORKOS_ROLES.SUPERADMIN;
+  const isExpert = role === WORKOS_ROLES.EXPERT_COMMUNITY || role === WORKOS_ROLES.EXPERT_TOP;
+  const isTopExpert = role === WORKOS_ROLES.EXPERT_TOP;
+  const isPartner = role === WORKOS_ROLES.PARTNER_MEMBER || role === WORKOS_ROLES.PARTNER_ADMIN;
+  const isPartnerAdmin = role === WORKOS_ROLES.PARTNER_ADMIN;
+  const isPatient = role === WORKOS_ROLES.PATIENT;
 
   // Context value
   const value = useMemo<RBACContextValue>(
@@ -363,4 +325,3 @@ export function useRBACLoading(): boolean {
   const { isLoading } = useRBAC();
   return isLoading;
 }
-

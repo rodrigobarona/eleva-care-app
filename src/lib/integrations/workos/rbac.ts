@@ -12,16 +12,8 @@
  *
  * @see _docs/_WorkOS RABAC implemenation/WORKOS-RBAC-IMPLEMENTATION-GUIDE.md
  */
-
 import type { WorkOSPermission, WorkOSRole, WorkOSUserWithRBAC } from '@/types/workos-rbac';
-import {
-  ADMIN_ROLES,
-  EXPERT_ROLES,
-  PARTNER_ROLES,
-  WORKOS_PERMISSIONS,
-  WORKOS_ROLES,
-  WORKOS_ROLE_HIERARCHY,
-} from '@/types/workos-rbac';
+import { WORKOS_PERMISSIONS, WORKOS_ROLE_HIERARCHY, WORKOS_ROLES } from '@/types/workos-rbac';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { cache } from 'react';
 
@@ -291,7 +283,7 @@ export async function requireAllPermissions(permissions: WorkOSPermission[]): Pr
  * Check if current user is an admin (superadmin)
  */
 export async function isAdmin(): Promise<boolean> {
-  return hasAnyRole(ADMIN_ROLES as unknown as WorkOSRole[]);
+  return hasRole(WORKOS_ROLES.SUPERADMIN);
 }
 
 /**
@@ -305,7 +297,8 @@ export async function isSuperAdmin(): Promise<boolean> {
  * Check if current user is any type of expert
  */
 export async function isExpert(): Promise<boolean> {
-  return hasAnyRole(EXPERT_ROLES as unknown as WorkOSRole[]);
+  const role = await getCurrentUserRole();
+  return role === WORKOS_ROLES.EXPERT_COMMUNITY || role === WORKOS_ROLES.EXPERT_TOP;
 }
 
 /**
@@ -326,7 +319,8 @@ export async function isCommunityExpert(): Promise<boolean> {
  * Check if current user is a partner member or admin
  */
 export async function isPartner(): Promise<boolean> {
-  return hasAnyRole(PARTNER_ROLES as unknown as WorkOSRole[]);
+  const role = await getCurrentUserRole();
+  return role === WORKOS_ROLES.PARTNER_MEMBER || role === WORKOS_ROLES.PARTNER_ADMIN;
 }
 
 /**
@@ -481,4 +475,3 @@ export function checkAnyRole(user: WorkOSUserWithRBAC | null, roles: WorkOSRole[
   if (!user?.role) return false;
   return roles.includes(user.role);
 }
-

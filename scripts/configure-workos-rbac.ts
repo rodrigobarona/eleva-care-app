@@ -13,7 +13,6 @@
  *
  * @see _docs/_WorkOS RABAC implemenation/WORKOS-DASHBOARD-QUICK-SETUP.md
  */
-
 import { WorkOS } from '@workos-inc/node';
 
 // Initialize WorkOS client
@@ -832,13 +831,15 @@ const ROLES: RoleDefinition[] = [
   {
     slug: 'expert_community',
     name: 'Expert Community',
-    description: 'Standard expert tier with core expert features (20% monthly or 12% annual commission)',
+    description:
+      'Standard expert tier with core expert features (20% monthly or 12% annual commission)',
     permissions: EXPERT_COMMUNITY_PERMISSIONS,
   },
   {
     slug: 'expert_top',
     name: 'Expert Top',
-    description: 'Premium expert tier with advanced analytics and branding (18% monthly or 8% annual commission)',
+    description:
+      'Premium expert tier with advanced analytics and branding (18% monthly or 8% annual commission)',
     permissions: EXPERT_TOP_PERMISSIONS,
   },
   {
@@ -985,4 +986,3 @@ async function main(): Promise<void> {
 
 // Run the script
 main().catch(console.error);
-

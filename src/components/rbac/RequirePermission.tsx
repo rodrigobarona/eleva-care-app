@@ -22,7 +22,6 @@
  * </RequirePermission>
  * ```
  */
-
 import { useRBAC } from '@/components/providers/RBACProvider';
 import type { WorkOSPermission } from '@/types/workos-rbac';
 import type { ReactNode } from 'react';
@@ -107,11 +106,7 @@ export function RequireAnyPermission({
   loading = null,
 }: RequireAnyPermissionProps) {
   return (
-    <RequirePermission
-      anyPermissions={permissions}
-      fallback={fallback}
-      loading={loading}
-    >
+    <RequirePermission anyPermissions={permissions} fallback={fallback} loading={loading}>
       {children}
     </RequirePermission>
   );
@@ -134,11 +129,7 @@ export function RequireAllPermissions({
   loading = null,
 }: RequireAllPermissionsProps) {
   return (
-    <RequirePermission
-      allPermissions={permissions}
-      fallback={fallback}
-      loading={loading}
-    >
+    <RequirePermission allPermissions={permissions} fallback={fallback} loading={loading}>
       {children}
     </RequirePermission>
   );
@@ -163,11 +154,7 @@ export function RequireAnalytics({
   loading = null,
 }: PermissionChildrenProps) {
   return (
-    <RequirePermission
-      permission="analytics:view"
-      fallback={fallback}
-      loading={loading}
-    >
+    <RequirePermission permission="analytics:view" fallback={fallback} loading={loading}>
       {children}
     </RequirePermission>
   );
@@ -182,11 +169,7 @@ export function RequireBranding({
   loading = null,
 }: PermissionChildrenProps) {
   return (
-    <RequirePermission
-      permission="branding:customize"
-      fallback={fallback}
-      loading={loading}
-    >
+    <RequirePermission permission="branding:customize" fallback={fallback} loading={loading}>
       {children}
     </RequirePermission>
   );
@@ -201,11 +184,7 @@ export function RequireExpertApproval({
   loading = null,
 }: PermissionChildrenProps) {
   return (
-    <RequirePermission
-      permission="experts:approve"
-      fallback={fallback}
-      loading={loading}
-    >
+    <RequirePermission permission="experts:approve" fallback={fallback} loading={loading}>
       {children}
     </RequirePermission>
   );
@@ -220,11 +199,7 @@ export function RequirePartnerDashboard({
   loading = null,
 }: PermissionChildrenProps) {
   return (
-    <RequirePermission
-      permission="partner:view_dashboard"
-      fallback={fallback}
-      loading={loading}
-    >
+    <RequirePermission permission="partner:view_dashboard" fallback={fallback} loading={loading}>
       {children}
     </RequirePermission>
   );
@@ -239,11 +214,7 @@ export function RequirePartnerAdmin({
   loading = null,
 }: PermissionChildrenProps) {
   return (
-    <RequirePermission
-      permission="partner:manage_settings"
-      fallback={fallback}
-      loading={loading}
-    >
+    <RequirePermission permission="partner:manage_settings" fallback={fallback} loading={loading}>
       {children}
     </RequirePermission>
   );
@@ -258,13 +229,8 @@ export function RequireUserManagement({
   loading = null,
 }: PermissionChildrenProps) {
   return (
-    <RequirePermission
-      permission="users:view_all"
-      fallback={fallback}
-      loading={loading}
-    >
+    <RequirePermission permission="users:view_all" fallback={fallback} loading={loading}>
       {children}
     </RequirePermission>
   );
 }
-

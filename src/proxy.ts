@@ -1,8 +1,4 @@
-import {
-  ADMIN_ROUTES,
-  EXPERT_ROUTES,
-  SPECIAL_AUTH_ROUTES,
-} from '@/lib/constants/roles';
+import { ADMIN_ROUTES, EXPERT_ROUTES, SPECIAL_AUTH_ROUTES } from '@/lib/constants/roles';
 import {
   getSeoRedirect,
   isPrivateSegment,
@@ -11,12 +7,7 @@ import {
 } from '@/lib/constants/routes';
 import { locales, routing } from '@/lib/i18n';
 import type { WorkOSPermission, WorkOSRole } from '@/types/workos-rbac';
-import {
-  ADMIN_ROLES,
-  EXPERT_ROLES,
-  WORKOS_PERMISSIONS,
-  WORKOS_ROLES,
-} from '@/types/workos-rbac';
+import { ADMIN_ROLES, EXPERT_ROLES, WORKOS_PERMISSIONS, WORKOS_ROLES } from '@/types/workos-rbac';
 import { authkit } from '@workos-inc/authkit-nextjs';
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
@@ -143,7 +134,7 @@ function extractRBACFromSession(user: any): {
 /**
  * Check if user has required role
  */
-function hasRequiredRole(userRole: WorkOSRole, requiredRoles: readonly WorkOSRole[]): boolean {
+function hasRequiredRole(userRole: WorkOSRole, requiredRoles: readonly string[]): boolean {
   return requiredRoles.includes(userRole);
 }
 
@@ -326,7 +317,7 @@ export default async function proxy(request: NextRequest) {
     if (session.user && isProtectedRoute) {
       // Check admin routes using JWT role
       if (matchPatternsArray(path, ADMIN_ROUTES)) {
-        const isAdmin = hasRequiredRole(userRole, ADMIN_ROLES as unknown as WorkOSRole[]);
+        const isAdmin = hasRequiredRole(userRole, ADMIN_ROLES);
         if (!isAdmin) {
           console.warn(`🚫 Access denied: ${path} requires admin role (user has ${userRole})`);
           return NextResponse.redirect(new URL('/unauthorized', request.url));
@@ -335,7 +326,7 @@ export default async function proxy(request: NextRequest) {
 
       // Check expert routes using JWT role
       if (matchPatternsArray(path, EXPERT_ROUTES)) {
-        const isExpert = hasRequiredRole(userRole, EXPERT_ROLES as unknown as WorkOSRole[]);
+        const isExpert = hasRequiredRole(userRole, EXPERT_ROLES);
         if (!isExpert) {
           console.warn(`🚫 Access denied: ${path} requires expert role (user has ${userRole})`);
           return NextResponse.redirect(new URL('/unauthorized', request.url));
@@ -413,7 +404,7 @@ export default async function proxy(request: NextRequest) {
   if (session.user && isProtectedRoute) {
     // Check admin routes
     if (matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES)) {
-      const isAdmin = hasRequiredRole(userRole, ADMIN_ROLES as unknown as WorkOSRole[]);
+      const isAdmin = hasRequiredRole(userRole, ADMIN_ROLES);
       if (!isAdmin) {
         console.warn(`🚫 Access denied: ${path} requires admin role`);
         return NextResponse.redirect(new URL('/unauthorized', request.url));
@@ -422,7 +413,7 @@ export default async function proxy(request: NextRequest) {
 
     // Check expert routes
     if (matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES)) {
-      const isExpert = hasRequiredRole(userRole, EXPERT_ROLES as unknown as WorkOSRole[]);
+      const isExpert = hasRequiredRole(userRole, EXPERT_ROLES);
       if (!isExpert) {
         console.warn(`🚫 Access denied: ${path} requires expert role`);
         return NextResponse.redirect(new URL('/unauthorized', request.url));
