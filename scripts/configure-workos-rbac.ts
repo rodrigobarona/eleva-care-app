@@ -1,22 +1,14 @@
 /**
  * WorkOS RBAC Configuration Script
  *
- * This script creates all 89 permissions and 6 roles in WorkOS Dashboard
- * via the WorkOS Management API.
+ * This script prints the configuration guide for setting up RBAC in WorkOS Dashboard.
+ * WorkOS RBAC must be configured manually via the Dashboard UI.
  *
  * Usage:
- *   pnpm tsx scripts/configure-workos-rbac.ts
- *
- * Prerequisites:
- *   - WORKOS_API_KEY environment variable set
- *   - WORKOS_CLIENT_ID environment variable set
+ *   pnpm tsx scripts/configure-workos-rbac.ts --guide
  *
  * @see _docs/_WorkOS RABAC implemenation/WORKOS-DASHBOARD-QUICK-SETUP.md
  */
-import { WorkOS } from '@workos-inc/node';
-
-// Initialize WorkOS client
-const workos = new WorkOS(process.env.WORKOS_API_KEY);
 
 // ============================================================================
 // PERMISSIONS DEFINITION (89 total)
