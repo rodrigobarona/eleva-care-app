@@ -1,7 +1,5 @@
 import {
-  ADMIN_ROLES,
   ADMIN_ROUTES,
-  EXPERT_ROLES,
   EXPERT_ROUTES,
   SPECIAL_AUTH_ROUTES,
 } from '@/lib/constants/roles';
@@ -12,22 +10,32 @@ import {
   shouldSkipAuthForApi,
 } from '@/lib/constants/routes';
 import { locales, routing } from '@/lib/i18n';
-import { getUserApplicationRole } from '@/lib/integrations/workos/roles';
+import type { WorkOSPermission, WorkOSRole } from '@/types/workos-rbac';
+import {
+  ADMIN_ROLES,
+  EXPERT_ROLES,
+  WORKOS_PERMISSIONS,
+  WORKOS_ROLES,
+} from '@/types/workos-rbac';
 import { authkit } from '@workos-inc/authkit-nextjs';
 import createMiddleware from 'next-intl/middleware';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 /**
- * Next.js Middleware with WorkOS AuthKit
+ * Next.js Middleware with WorkOS AuthKit + JWT-based RBAC
  *
  * Integrates:
- * - WorkOS AuthKit authentication (replaces Clerk)
- * - Role-based access control (RBAC)
+ * - WorkOS AuthKit authentication
+ * - JWT-based role and permission checking (zero database queries)
  * - Internationalization (i18n via next-intl)
  * - Expert setup flow management
  *
- * @see /docs/02-core-systems/role-based-authorization.md for complete documentation
+ * This middleware uses JWT claims for RBAC instead of database queries,
+ * resulting in faster authorization checks.
+ *
+ * @see /docs/02-core-systems/role-based-authorization.md
+ * @see _docs/_WorkOS RABAC implemenation/WORKOS-RBAC-IMPLEMENTATION-GUIDE.md
  */
 
 // Enable debug logging with DEBUG_MIDDLEWARE=true
@@ -35,9 +43,35 @@ const DEBUG = process.env.DEBUG_MIDDLEWARE === 'true';
 
 /**
  * Create internationalization middleware using the routing configuration
- * This ensures pathnames and locale settings are consistent
  */
 const handleI18nRouting = createMiddleware(routing);
+
+/**
+ * Protected routes with required permissions
+ *
+ * Define routes that require specific permissions from JWT.
+ * This is checked AFTER authentication is confirmed.
+ */
+const PERMISSION_PROTECTED_ROUTES: Record<string, WorkOSPermission[]> = {
+  // Analytics requires analytics:view permission (Top Expert only)
+  '/dashboard/analytics': [WORKOS_PERMISSIONS.ANALYTICS_VIEW],
+  '/api/analytics': [WORKOS_PERMISSIONS.ANALYTICS_VIEW],
+
+  // Expert approval requires experts:approve permission (Admin only)
+  '/admin/experts/approve': [WORKOS_PERMISSIONS.EXPERTS_APPROVE],
+  '/api/admin/experts/approve': [WORKOS_PERMISSIONS.EXPERTS_APPROVE],
+
+  // Platform settings require settings:edit_platform permission
+  '/admin/settings': [WORKOS_PERMISSIONS.SETTINGS_EDIT_PLATFORM],
+
+  // User management requires users:view_all permission
+  '/admin/users': [WORKOS_PERMISSIONS.USERS_VIEW_ALL],
+
+  // Partner routes require partner permissions
+  '/partner': [WORKOS_PERMISSIONS.PARTNER_VIEW_DASHBOARD],
+  '/partner/settings': [WORKOS_PERMISSIONS.PARTNER_MANAGE_SETTINGS],
+  '/partner/team': [WORKOS_PERMISSIONS.TEAM_VIEW_MEMBERS],
+};
 
 /**
  * Path matching utilities
@@ -89,20 +123,65 @@ function isPrivateRoute(request: NextRequest): boolean {
 }
 
 /**
- * Main proxy function using AuthKit for authentication with next-intl
- * Next.js 16 renamed middleware to proxy
+ * Extract role and permissions from JWT claims
  *
- * Pattern (following next-intl docs):
- * 1. Handle special routes (static, cron, SEO) that don't need auth or i18n
- * 2. Run AuthKit to establish auth context
- * 3. Run i18n middleware FIRST (handles locale routing, redirects, rewrites)
- * 4. Preserve AuthKit headers on i18n response
- * 5. Apply authorization checks AFTER routing is determined
+ * WorkOS AuthKit includes role and permissions in the JWT when RBAC is enabled.
+ */
+function extractRBACFromSession(user: any): {
+  role: WorkOSRole;
+  permissions: WorkOSPermission[];
+} {
+  // Extract role from JWT claims (defaults to 'patient')
+  const role = (user?.role as WorkOSRole) || WORKOS_ROLES.PATIENT;
+
+  // Extract permissions from JWT claims (defaults to empty array)
+  const permissions = (user?.permissions as WorkOSPermission[]) || [];
+
+  return { role, permissions };
+}
+
+/**
+ * Check if user has required role
+ */
+function hasRequiredRole(userRole: WorkOSRole, requiredRoles: readonly WorkOSRole[]): boolean {
+  return requiredRoles.includes(userRole);
+}
+
+/**
+ * Check if user has any of the required permissions
+ */
+function hasRequiredPermission(
+  userPermissions: WorkOSPermission[],
+  requiredPermissions: WorkOSPermission[],
+): boolean {
+  return requiredPermissions.some((perm) => userPermissions.includes(perm));
+}
+
+/**
+ * Check permission-protected routes
+ */
+function checkPermissionProtectedRoute(
+  path: string,
+  permissions: WorkOSPermission[],
+): { allowed: boolean; requiredPermissions?: WorkOSPermission[] } {
+  for (const [routePattern, requiredPerms] of Object.entries(PERMISSION_PROTECTED_ROUTES)) {
+    if (path.startsWith(routePattern)) {
+      const allowed = hasRequiredPermission(permissions, requiredPerms);
+      return { allowed, requiredPermissions: requiredPerms };
+    }
+  }
+  return { allowed: true };
+}
+
+/**
+ * Main proxy function using AuthKit for authentication with JWT-based RBAC
  *
- * This ensures:
- * - All pages have auth context (fixes "withAuth not covered" error)
- * - Locale routing works correctly (fixes "invalid locale" error)
- * - Authorization checks happen after routing is complete
+ * Pattern:
+ * 1. Handle special routes (static, cron, SEO) that don't need auth
+ * 2. Run AuthKit to establish auth context and get JWT claims
+ * 3. Extract role and permissions from JWT (zero database queries)
+ * 4. Run i18n middleware for marketing routes
+ * 5. Apply authorization checks using JWT claims
  */
 export default async function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
@@ -165,7 +244,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   // ==========================================
-  // STEP 2: RUN AUTHKIT (establish auth context)
+  // STEP 2: RUN AUTHKIT (establish auth context + get JWT claims)
   // ==========================================
   const {
     session,
@@ -175,19 +254,24 @@ export default async function proxy(request: NextRequest) {
     debug: DEBUG,
   });
 
+  // Extract role and permissions from JWT (zero database queries!)
+  const { role: userRole, permissions: userPermissions } = session.user
+    ? extractRBACFromSession(session.user)
+    : { role: WORKOS_ROLES.PATIENT, permissions: [] as WorkOSPermission[] };
+
   if (DEBUG) {
     console.log(`👤 Auth: ${session.user?.email || 'anonymous'}`);
+    console.log(`🎭 Role: ${userRole}`);
+    console.log(`🔑 Permissions: ${userPermissions.length} total`);
   }
 
   // ==========================================
   // STEP 3: CHECK IF AUTH/APP ROUTE (no i18n needed)
   // ==========================================
-  // Auth and app routes should NOT have locale in URL for stable links
-  // Language preference is stored in user settings (schema-workos.ts)
   const pathSegments = path.split('/').filter(Boolean);
   const firstSegment = pathSegments[0];
-  
-  const isAuthOrAppRoute = 
+
+  const isAuthOrAppRoute =
     firstSegment === 'login' ||
     firstSegment === 'register' ||
     firstSegment === 'onboarding' ||
@@ -197,16 +281,17 @@ export default async function proxy(request: NextRequest) {
     firstSegment === 'account' ||
     firstSegment === 'appointments' ||
     firstSegment === 'booking' ||
-    firstSegment === 'admin';
+    firstSegment === 'admin' ||
+    firstSegment === 'partner';
 
-  // If auth/app route, skip i18n and use language from user settings
+  // If auth/app route, skip i18n and use JWT-based RBAC
   if (isAuthOrAppRoute) {
     if (DEBUG) {
       console.log(`🔒 Auth/App route (no locale): ${path}`);
     }
-    
+
     const response = NextResponse.next();
-    
+
     // Preserve AuthKit headers
     for (const [key, value] of authkitHeaders) {
       if (key.toLowerCase() === 'set-cookie') {
@@ -215,21 +300,17 @@ export default async function proxy(request: NextRequest) {
         response.headers.set(key, value);
       }
     }
-    
-    // Set path for authorization checks (no locale prefix)
-    const finalPath = path;
-    
-    // Apply authorization checks (same as below)
-    const pathWithoutLocale = finalPath;
+
+    // Check if route requires authentication
     const isProtectedRoute =
       isPrivateRoute(request) ||
-      matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES) ||
-      matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES);
+      matchPatternsArray(path, ADMIN_ROUTES) ||
+      matchPatternsArray(path, EXPERT_ROUTES);
 
     if (isProtectedRoute && !session.user) {
       if (DEBUG) console.log(`🔒 Redirecting to sign-in: ${path}`);
       const redirectResponse = NextResponse.redirect(authorizationUrl!);
-      
+
       for (const [key, value] of authkitHeaders) {
         if (key.toLowerCase() === 'set-cookie') {
           redirectResponse.headers.append(key, value);
@@ -237,45 +318,52 @@ export default async function proxy(request: NextRequest) {
           redirectResponse.headers.set(key, value);
         }
       }
-      
+
       return redirectResponse;
     }
 
+    // JWT-based authorization checks (no database queries!)
     if (session.user && isProtectedRoute) {
-      const userRole = await getUserApplicationRole(session.user.id);
-
-      if (matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES)) {
-        const isAdmin = ADMIN_ROLES.includes(userRole as (typeof ADMIN_ROLES)[number]);
+      // Check admin routes using JWT role
+      if (matchPatternsArray(path, ADMIN_ROUTES)) {
+        const isAdmin = hasRequiredRole(userRole, ADMIN_ROLES as unknown as WorkOSRole[]);
         if (!isAdmin) {
-          console.warn(`🚫 Access denied: ${path} requires admin role`);
+          console.warn(`🚫 Access denied: ${path} requires admin role (user has ${userRole})`);
           return NextResponse.redirect(new URL('/unauthorized', request.url));
         }
       }
 
-      if (matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES)) {
-        const isExpert = EXPERT_ROLES.includes(userRole as (typeof EXPERT_ROLES)[number]);
+      // Check expert routes using JWT role
+      if (matchPatternsArray(path, EXPERT_ROUTES)) {
+        const isExpert = hasRequiredRole(userRole, EXPERT_ROLES as unknown as WorkOSRole[]);
         if (!isExpert) {
-          console.warn(`🚫 Access denied: ${path} requires expert role`);
+          console.warn(`🚫 Access denied: ${path} requires expert role (user has ${userRole})`);
           return NextResponse.redirect(new URL('/unauthorized', request.url));
         }
+      }
+
+      // Check permission-protected routes using JWT permissions
+      const permissionCheck = checkPermissionProtectedRoute(path, userPermissions);
+      if (!permissionCheck.allowed) {
+        console.warn(
+          `🚫 Access denied: ${path} requires permissions: ${permissionCheck.requiredPermissions?.join(', ')}`,
+        );
+        return NextResponse.redirect(new URL('/unauthorized', request.url));
       }
     }
 
     if (DEBUG) {
       console.log(`✅ Auth/App complete: ${path}`);
     }
-    
+
     return response;
   }
 
   // ==========================================
   // STEP 4: RUN I18N MIDDLEWARE (for marketing routes only)
   // ==========================================
-  // Run i18n middleware for public marketing routes
-  // These routes NEED locale for SEO (e.g., /en/about, /es/about)
   const i18nResponse = handleI18nRouting(request);
 
-  // Get the rewritten pathname after i18n middleware
   const rewrittenPath = i18nResponse.headers.get('x-middleware-rewrite');
   const finalPath = rewrittenPath ? new URL(rewrittenPath).pathname : path;
 
@@ -286,8 +374,6 @@ export default async function proxy(request: NextRequest) {
   // ==========================================
   // STEP 5: PRESERVE AUTH HEADERS ON I18N RESPONSE
   // ==========================================
-  // Preserve AuthKit session cookies on the i18n response
-  // This ensures withAuth() works in all components
   for (const [key, value] of authkitHeaders) {
     if (key.toLowerCase() === 'set-cookie') {
       i18nResponse.headers.append(key, value);
@@ -299,23 +385,19 @@ export default async function proxy(request: NextRequest) {
   // ==========================================
   // STEP 6: APPLY AUTHORIZATION CHECKS (for marketing routes)
   // ==========================================
-  // Extract path without locale prefix for authorization checks
   const pathWithoutLocale = locales.some((locale) => finalPath.startsWith(`/${locale}/`))
     ? finalPath.substring(finalPath.indexOf('/', 1))
     : finalPath;
 
-  // Check if this is a protected route
   const isProtectedRoute =
     isPrivateRoute(request) ||
     matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES) ||
     matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES);
 
-  // If protected route and no session, redirect to sign-in
   if (isProtectedRoute && !session.user) {
     if (DEBUG) console.log(`🔒 Redirecting to sign-in: ${path}`);
     const redirectResponse = NextResponse.redirect(authorizationUrl!);
 
-    // Preserve auth headers on redirect
     for (const [key, value] of authkitHeaders) {
       if (key.toLowerCase() === 'set-cookie') {
         redirectResponse.headers.append(key, value);
@@ -327,13 +409,11 @@ export default async function proxy(request: NextRequest) {
     return redirectResponse;
   }
 
-  // For authenticated users on protected routes, check roles
+  // JWT-based authorization checks for protected marketing routes
   if (session.user && isProtectedRoute) {
-    const userRole = await getUserApplicationRole(session.user.id);
-
     // Check admin routes
     if (matchPatternsArray(pathWithoutLocale, ADMIN_ROUTES)) {
-      const isAdmin = ADMIN_ROLES.includes(userRole as (typeof ADMIN_ROLES)[number]);
+      const isAdmin = hasRequiredRole(userRole, ADMIN_ROLES as unknown as WorkOSRole[]);
       if (!isAdmin) {
         console.warn(`🚫 Access denied: ${path} requires admin role`);
         return NextResponse.redirect(new URL('/unauthorized', request.url));
@@ -342,11 +422,20 @@ export default async function proxy(request: NextRequest) {
 
     // Check expert routes
     if (matchPatternsArray(pathWithoutLocale, EXPERT_ROUTES)) {
-      const isExpert = EXPERT_ROLES.includes(userRole as (typeof EXPERT_ROLES)[number]);
+      const isExpert = hasRequiredRole(userRole, EXPERT_ROLES as unknown as WorkOSRole[]);
       if (!isExpert) {
         console.warn(`🚫 Access denied: ${path} requires expert role`);
         return NextResponse.redirect(new URL('/unauthorized', request.url));
       }
+    }
+
+    // Check permission-protected routes
+    const permissionCheck = checkPermissionProtectedRoute(pathWithoutLocale, userPermissions);
+    if (!permissionCheck.allowed) {
+      console.warn(
+        `🚫 Access denied: ${path} requires permissions: ${permissionCheck.requiredPermissions?.join(', ')}`,
+      );
+      return NextResponse.redirect(new URL('/unauthorized', request.url));
     }
   }
 
@@ -359,27 +448,6 @@ export default async function proxy(request: NextRequest) {
 
 /**
  * Configure which paths the proxy middleware runs on
- *
- * Pattern combines:
- * - WorkOS AuthKit: Ensure middleware runs on all routes that use withAuth()
- * - next-intl: Exclude static files, Next.js internals, and specific API routes
- *
- * This matcher ensures AuthKit headers are available for ALL pages including:
- * - Root route (/)
- * - All locale-prefixed routes (/en, /es, /pt, etc.)
- * - All page routes (marketing, legal, dashboard, etc.)
- *
- * Excluded:
- * - Static files (images, css, js)
- * - Next.js internals (_next, _vercel)
- * - Public webhooks and cron jobs
- *
- * @see https://github.com/workos/authkit-nextjs#composing-custom-nextjs-middleware-with-authkit
- * @see https://next-intl.dev/docs/routing/middleware
- */
-/**
- * CRITICAL: Use the simplest possible matcher for Next.js 16 + Turbopack
- * This is the recommended pattern from both WorkOS and next-intl docs
  */
 export const config = {
   matcher: [
