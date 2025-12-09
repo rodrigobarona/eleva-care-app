@@ -7,7 +7,7 @@
  * Backend caching via Redis is handled in /api/user/profile route.
  */
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
-import { useEffect, useState } from 'react';
+import { startTransition, useEffect, useState } from 'react';
 
 export interface UserProfile {
   id: string;
@@ -38,7 +38,7 @@ export function useUsername() {
 
   useEffect(() => {
     if (!user) {
-      setIsLoading(false);
+      startTransition(() => setIsLoading(false));
       return;
     }
 
@@ -47,8 +47,10 @@ export function useUsername() {
 
     // Use cache if valid
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      setUsername(cached.data.username);
-      setIsLoading(false);
+      startTransition(() => {
+        setUsername(cached.data.username);
+        setIsLoading(false);
+      });
       return;
     }
 
@@ -86,7 +88,7 @@ export function useUserProfile() {
 
   const fetchProfile = () => {
     if (!user) {
-      setIsLoading(false);
+      startTransition(() => setIsLoading(false));
       return;
     }
 
@@ -95,8 +97,10 @@ export function useUserProfile() {
 
     // Use cache if valid
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      setProfile(cached.data);
-      setIsLoading(false);
+      startTransition(() => {
+        setProfile(cached.data);
+        setIsLoading(false);
+      });
       return;
     }
 

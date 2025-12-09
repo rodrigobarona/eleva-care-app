@@ -23,8 +23,42 @@ import {
   disconnectGoogleCalendarAction,
 } from '@/server/actions/google-calendar';
 import { CalendarIcon, CheckCircle2, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { startTransition, useEffect, useState } from 'react';
 import { toast } from 'sonner';
+
+/**
+ * Google Calendar Connection Component
+ *
+ * Provides UI for connecting/disconnecting Google Calendar integration.
+ * Shows connection status, handles OAuth flow initiation, and displays errors.
+ *
+ * Features:
+ * - Connect/Disconnect buttons
+ * - Connection status indicator
+ * - Error handling and display
+ * - Loading states
+ * - Success confirmations
+ *
+ * @see server/actions/google-calendar.ts - Server actions
+ * @see docs/09-integrations/WORKOS-GOOGLE-OAUTH-SETUP.md - Setup guide
+ */
+
+/**
+ * Google Calendar Connection Component
+ *
+ * Provides UI for connecting/disconnecting Google Calendar integration.
+ * Shows connection status, handles OAuth flow initiation, and displays errors.
+ *
+ * Features:
+ * - Connect/Disconnect buttons
+ * - Connection status indicator
+ * - Error handling and display
+ * - Loading states
+ * - Success confirmations
+ *
+ * @see server/actions/google-calendar.ts - Server actions
+ * @see docs/09-integrations/WORKOS-GOOGLE-OAUTH-SETUP.md - Setup guide
+ */
 
 /**
  * Google Calendar Connection Component
@@ -112,7 +146,37 @@ export function ConnectGoogleCalendar() {
 
   // Check connection status on mount
   useEffect(() => {
-    checkConnection();
+    let cancelled = false;
+    checkGoogleCalendarConnection()
+      .then((result) => {
+        if (cancelled) return;
+        if (result.success) {
+          setStatus({
+            isConnected: result.isConnected,
+            isLoading: false,
+            error: null,
+            connectedAt: result.connectedAt,
+          });
+        } else {
+          setStatus({
+            isConnected: false,
+            isLoading: false,
+            error: result.error,
+          });
+        }
+      })
+      .catch((error) => {
+        if (cancelled) return;
+        console.error('[Connect Calendar] Error checking status:', error);
+        setStatus({
+          isConnected: false,
+          isLoading: false,
+          error: error instanceof Error ? error.message : 'Failed to check connection status',
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleConnect() {
@@ -272,19 +336,20 @@ export function ConnectGoogleCalendarButton({ onSuccess: _onSuccess }: { onSucce
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
-  async function checkStatus() {
-    try {
-      const result = await checkGoogleCalendarConnection();
-      if (result.success) {
-        setIsConnected(result.isConnected);
-      }
-    } catch (error) {
-      console.error('Error checking connection:', error);
-    }
-  }
-
   useEffect(() => {
-    checkStatus();
+    let cancelled = false;
+    checkGoogleCalendarConnection()
+      .then((result) => {
+        if (!cancelled && result.success) {
+          setIsConnected(result.isConnected);
+        }
+      })
+      .catch((error) => {
+        console.error('Error checking connection:', error);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleConnect() {
@@ -337,19 +402,20 @@ export function ConnectGoogleCalendarButton({ onSuccess: _onSuccess }: { onSucce
 export function GoogleCalendarStatus() {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
-  async function checkStatus() {
-    try {
-      const result = await checkGoogleCalendarConnection();
-      if (result.success) {
-        setIsConnected(result.isConnected);
-      }
-    } catch (error) {
-      console.error('Error checking status:', error);
-    }
-  }
-
   useEffect(() => {
-    checkStatus();
+    let cancelled = false;
+    checkGoogleCalendarConnection()
+      .then((result) => {
+        if (!cancelled && result.success) {
+          startTransition(() => setIsConnected(result.isConnected));
+        }
+      })
+      .catch((error) => {
+        console.error('Error checking status:', error);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   if (isConnected === null) {
