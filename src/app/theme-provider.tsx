@@ -8,6 +8,7 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   const [mounted, setMounted] = useState(false);
 
   // Avoid hydration mismatch by only rendering once mounted on client
+  // This is a valid pattern for hydration safety - setting mounted state on first render
   useEffect(() => {
     setMounted(true);
   }, []);

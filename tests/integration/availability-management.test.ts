@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
-import { mockUser } from './expert-setup-mocks';
+// mockUser is available from expert-setup-mocks for future use
+// import { mockUser } from './expert-setup-mocks';
 
 // Mock the database
 jest.mock('@/drizzle/db', () => ({

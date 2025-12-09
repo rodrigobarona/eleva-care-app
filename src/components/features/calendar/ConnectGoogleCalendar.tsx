@@ -43,6 +43,23 @@ import { toast } from 'sonner';
  * @see docs/09-integrations/WORKOS-GOOGLE-OAUTH-SETUP.md - Setup guide
  */
 
+/**
+ * Google Calendar Connection Component
+ *
+ * Provides UI for connecting/disconnecting Google Calendar integration.
+ * Shows connection status, handles OAuth flow initiation, and displays errors.
+ *
+ * Features:
+ * - Connect/Disconnect buttons
+ * - Connection status indicator
+ * - Error handling and display
+ * - Loading states
+ * - Success confirmations
+ *
+ * @see server/actions/google-calendar.ts - Server actions
+ * @see docs/09-integrations/WORKOS-GOOGLE-OAUTH-SETUP.md - Setup guide
+ */
+
 interface ConnectionStatus {
   isConnected: boolean;
   isLoading: boolean;
@@ -62,11 +79,6 @@ export function ConnectGoogleCalendar() {
     isLoading: true,
     error: null,
   });
-
-  // Check connection status on mount
-  useEffect(() => {
-    checkConnection();
-  }, []);
 
   async function checkConnection() {
     try {
@@ -97,6 +109,11 @@ export function ConnectGoogleCalendar() {
       });
     }
   }
+
+  // Check connection status on mount
+  useEffect(() => {
+    checkConnection();
+  }, []);
 
   async function handleConnect() {
     try {
@@ -251,13 +268,9 @@ export function ConnectGoogleCalendar() {
 /**
  * Compact Connect Button (for use in settings or other pages)
  */
-export function ConnectGoogleCalendarButton({ onSuccess }: { onSuccess?: () => void }) {
+export function ConnectGoogleCalendarButton({ onSuccess: _onSuccess }: { onSuccess?: () => void }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    checkStatus();
-  }, []);
 
   async function checkStatus() {
     try {
@@ -269,6 +282,10 @@ export function ConnectGoogleCalendarButton({ onSuccess }: { onSuccess?: () => v
       console.error('Error checking connection:', error);
     }
   }
+
+  useEffect(() => {
+    checkStatus();
+  }, []);
 
   async function handleConnect() {
     try {
@@ -320,10 +337,6 @@ export function ConnectGoogleCalendarButton({ onSuccess }: { onSuccess?: () => v
 export function GoogleCalendarStatus() {
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    checkStatus();
-  }, []);
-
   async function checkStatus() {
     try {
       const result = await checkGoogleCalendarConnection();
@@ -334,6 +347,10 @@ export function GoogleCalendarStatus() {
       console.error('Error checking status:', error);
     }
   }
+
+  useEffect(() => {
+    checkStatus();
+  }, []);
 
   if (isConnected === null) {
     return null;

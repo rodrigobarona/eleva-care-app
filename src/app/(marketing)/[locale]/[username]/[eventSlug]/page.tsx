@@ -140,7 +140,7 @@ async function CalendarWithAvailability({
   eventSlug,
   price,
   event,
-  calendarUser,
+  calendarUser: _calendarUser,
   locale,
 }: {
   userId: string;

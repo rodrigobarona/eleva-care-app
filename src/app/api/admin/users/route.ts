@@ -4,7 +4,7 @@ import type { UserRoles } from '@/lib/auth/roles';
 import { hasRole, updateUserRole } from '@/lib/auth/roles.server';
 import type { ApiResponse, ApiUser, UpdateRoleRequest } from '@/types/api';
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import { desc, ilike, or, sql } from 'drizzle-orm';
+import { desc, ilike, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 const ITEMS_PER_PAGE = 10;

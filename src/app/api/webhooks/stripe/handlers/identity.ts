@@ -6,7 +6,8 @@ import {
 } from '@/lib/constants/notifications';
 import { withRetry } from '@/lib/integrations/stripe';
 import { createUserNotification } from '@/lib/notifications/core';
-import { markStepComplete } from '@/server/actions/expert-setup';
+// markStepComplete is available for future use when expert setup steps need to be tracked
+// import { markStepComplete } from '@/server/actions/expert-setup';
 import { eq } from 'drizzle-orm';
 import type { Stripe } from 'stripe';
 

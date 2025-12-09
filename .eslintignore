@@ -1,6 +1,0 @@
-migrate-to-workos.js
-migrate-clerk-to-workos.sh
-scripts/utilities/find-unused-components.js
-scripts/utilities/fix-shared-exports.js
-scripts/apply-rls-final.ts
-app/theme-provider.tsx

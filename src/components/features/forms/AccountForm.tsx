@@ -35,7 +35,7 @@ type AccountFormValues = z.infer<typeof profileFormSchema>;
 export function AccountForm() {
   const router = useRouter();
   const { user } = useAuth();
-  const { profile: dbUser, isLoading: isLoadingProfile, refresh } = useUserProfile(); // Centralized hook with caching
+  const { profile: dbUser, isLoading: _isLoadingProfile, refresh } = useUserProfile(); // Centralized hook with caching
   const [isLoading, setIsLoading] = React.useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = React.useState(false);
 
