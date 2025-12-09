@@ -1,7 +1,6 @@
 import type { DAYS_OF_WEEK_IN_ORDER } from '@/lib/constants/days-of-week';
 import { db } from '@/drizzle/db';
 import type { ScheduleAvailabilitiesTable } from '@/drizzle/schema-workos';
-import 'core-js/actual/object/group-by';
 import {
   addMinutes,
   isFriday,

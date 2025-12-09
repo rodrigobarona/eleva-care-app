@@ -247,9 +247,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      core-js:
-        specifier: ^3.46.0
-        version: 3.46.0
       cron-validator:
         specifier: ^1.4.0
         version: 1.4.0
