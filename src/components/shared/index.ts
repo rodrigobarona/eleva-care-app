@@ -3,9 +3,6 @@
 // Providers
 export * from './providers';
 
-// Error Handling
-export * from './error';
-
 // UI Utilities
 export * from './ui-utilities';
 

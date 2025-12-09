@@ -1,9 +1,14 @@
 'use client';
 
+/**
+ * Marketing Route Error Boundary
+ *
+ * Catches errors in the marketing routes and sends them to Sentry (Better Stack).
+ */
+import * as Sentry from '@sentry/nextjs';
 import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
-// Rename Error to avoid shadowing the global Error object
 export default function ErrorBoundary({
   error,
   reset,
@@ -14,14 +19,17 @@ export default function ErrorBoundary({
   const t = useTranslations('Error');
 
   useEffect(() => {
-    // Optionally log the error to an error reporting service
-    console.error(error);
+    // Capture the error and send it to Sentry (Better Stack)
+    Sentry.captureException(error);
   }, [error]);
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background text-center">
       <h1 className="mb-4 text-4xl font-bold">{t('title')}</h1>
       <p className="mb-8 text-lg text-muted-foreground">{t('description')}</p>
+      {error.digest && (
+        <p className="mb-4 text-xs text-muted-foreground">Error ID: {error.digest}</p>
+      )}
       <button
         type="button"
         onClick={() => reset()}

@@ -3,7 +3,6 @@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatInTimeZone } from 'date-fns-tz';
 import React, { Suspense } from 'react';
-import { ErrorBoundary } from 'react-error-boundary';
 
 interface NextAvailableTimeClientProps {
   date: Date | string | null;
@@ -145,37 +144,30 @@ function NextAvailableTimeContent({
     }
   };
 
-  function ErrorFallback({ error }: { error: Error }) {
-    console.error('[NextAvailableTimeClient] Error boundary caught error:', error);
-    return <div className="text-sm text-muted-foreground">No times available</div>;
-  }
-
   return (
-    <ErrorBoundary FallbackComponent={ErrorFallback}>
-      <div className="mb-6 text-sm text-muted-foreground">
-        {parsedDate ? (
-          <TooltipProvider>
-            <span>Next available — </span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <a href={getBookingLink(parsedDate)} className="cursor-pointer hover:underline">
-                  {formatNextAvailable(parsedDate)}
-                </a>
-              </TooltipTrigger>
-              <TooltipContent>
-                {formatInTimeZone(
-                  parsedDate,
-                  userTimeZone,
-                  "'Book on' EEEE, MMM d 'at' h:mm a '('z')'",
-                )}
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : (
-          'No times available'
-        )}
-      </div>
-    </ErrorBoundary>
+    <div className="mb-6 text-sm text-muted-foreground">
+      {parsedDate ? (
+        <TooltipProvider>
+          <span>Next available — </span>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a href={getBookingLink(parsedDate)} className="cursor-pointer hover:underline">
+                {formatNextAvailable(parsedDate)}
+              </a>
+            </TooltipTrigger>
+            <TooltipContent>
+              {formatInTimeZone(
+                parsedDate,
+                userTimeZone,
+                "'Book on' EEEE, MMM d 'at' h:mm a '('z')'",
+              )}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ) : (
+        'No times available'
+      )}
+    </div>
   );
 }
 

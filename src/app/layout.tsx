@@ -1,5 +1,4 @@
 import { ClientProviders } from '@/app/providers';
-import { ErrorBoundaryWrapper } from '@/components/shared/error/ErrorBoundaryWrapper';
 import { defaultLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 import { Analytics } from '@vercel/analytics/next';
@@ -110,17 +109,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
-        <ErrorBoundaryWrapper>
-          <NuqsAdapter>
-            <AuthKitProvider>
-              <ClientProviders messages={defaultMessages}>
-                {children}
-                <Analytics />
-                <SpeedInsights />
-              </ClientProviders>
-            </AuthKitProvider>
-          </NuqsAdapter>
-        </ErrorBoundaryWrapper>
+        <NuqsAdapter>
+          <AuthKitProvider>
+            <ClientProviders messages={defaultMessages}>
+              {children}
+              <Analytics />
+              <SpeedInsights />
+            </ClientProviders>
+          </AuthKitProvider>
+        </NuqsAdapter>
       </body>
     </html>
   );

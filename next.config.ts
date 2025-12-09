@@ -1,4 +1,5 @@
 import createMDX from '@next/mdx';
+import { withSentryConfig } from '@sentry/nextjs';
 import { withBotId } from 'botid/next/config';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
@@ -106,6 +107,22 @@ const config: NextConfig = {
   bundlePagesRouterDependencies: true,
 };
 
-// Apply plugins in order: Bundle Analyzer -> MDX -> Next-Intl -> BotID
+// Apply plugins in order: Bundle Analyzer -> MDX -> Next-Intl -> BotID -> Sentry
 const nextConfig = withMDX(config);
-export default withBotId(withBundleAnalyzer(withNextIntl(nextConfig)));
+const configWithPlugins = withBotId(withBundleAnalyzer(withNextIntl(nextConfig)));
+
+// Wrap with Sentry for error monitoring (using Better Stack as destination)
+// Note: When using Better Stack, source map uploads are disabled since
+// Better Stack uses its own ingestion endpoint, not Sentry's.
+export default withSentryConfig(configWithPlugins, {
+  // Disable telemetry to Sentry (we're using Better Stack)
+  telemetry: false,
+
+  // Disable source map uploads (not needed for Better Stack)
+  sourcemaps: {
+    disable: true,
+  },
+
+  // Automatically tree-shake Sentry logger statements to reduce bundle size
+  disableLogger: true,
+});
