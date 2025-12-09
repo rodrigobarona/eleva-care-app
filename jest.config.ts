@@ -13,8 +13,6 @@ const customJestConfig = {
     // Specific paths first (order matters!)
     '^@/drizzle/(.*)$': '<rootDir>/drizzle/$1',
     '^@/(.*)$': '<rootDir>/src/$1',
-    // Mock svix to avoid binary parsing issues
-    '^svix$': '<rootDir>/tests/__mocks__/svix.ts',
     // Mock next-intl modules to prevent ESM parsing issues
     '^next-intl/server$': '<rootDir>/tests/__mocks__/next-intl-server.ts',
     '^next-intl/navigation$': '<rootDir>/tests/__mocks__/next-intl-navigation.ts',

@@ -39,7 +39,6 @@ import { addMinutes, endOfDay, startOfDay } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { eq } from 'drizzle-orm';
 import { google } from 'googleapis';
-import 'use-server';
 
 /**
  * Validates if a timezone string is valid by attempting to use it with Intl.DateTimeFormat

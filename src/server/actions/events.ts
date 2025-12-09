@@ -13,7 +13,6 @@ import { and, count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import 'use-server';
 import type { z } from 'zod';
 
 /**

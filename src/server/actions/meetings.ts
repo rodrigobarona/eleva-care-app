@@ -1,8 +1,8 @@
 'use server';
 
-import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import { db } from '@/drizzle/db';
 import { MeetingsTable } from '@/drizzle/schema-workos';
+import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import { createOrGetGuestUser } from '@/lib/integrations/workos/guest-users';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
@@ -11,7 +11,6 @@ import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalen
 import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { headers } from 'next/headers';
-import 'use-server';
 import type { z } from 'zod';
 
 /**

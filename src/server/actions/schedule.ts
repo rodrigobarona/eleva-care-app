@@ -9,7 +9,6 @@ import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
 import { headers } from 'next/headers';
-import 'use-server';
 import type { z } from 'zod';
 
 /**

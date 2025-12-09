@@ -305,21 +305,21 @@ export interface WorkOSUserWithRBAC {
  * Check if a role is an expert role
  */
 export function isExpertRole(role: string): boolean {
-  return EXPERT_ROLES.includes(role as WorkOSRole);
+  return (EXPERT_ROLES as readonly string[]).includes(role);
 }
 
 /**
  * Check if a role is an admin role
  */
 export function isAdminRole(role: string): boolean {
-  return ADMIN_ROLES.includes(role as WorkOSRole);
+  return (ADMIN_ROLES as readonly string[]).includes(role);
 }
 
 /**
  * Check if a role is a partner role
  */
 export function isPartnerRole(role: string): boolean {
-  return PARTNER_ROLES.includes(role as WorkOSRole);
+  return (PARTNER_ROLES as readonly string[]).includes(role);
 }
 
 /**
