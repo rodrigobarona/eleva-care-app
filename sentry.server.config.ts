@@ -12,14 +12,17 @@ Sentry.init({
   // Better Stack DSN format: https://$APPLICATION_TOKEN@$INGESTING_HOST/1
   dsn: process.env.SENTRY_DSN,
 
-  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
-  // Adjust this value in production to balance performance vs. cost.
-  tracesSampleRate: 1.0,
+  // Sample rate for performance monitoring:
+  // - Production: 10% of transactions (balance cost vs. observability)
+  // - Development: 100% for debugging
+  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+
+  // Only enable in production
+  enabled: process.env.NODE_ENV === 'production',
 
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
 
-  // Only enable in production
-  enabled: process.env.NODE_ENV === 'production',
+  // Environment tag for filtering in Better Stack
+  environment: process.env.NODE_ENV,
 });
-
