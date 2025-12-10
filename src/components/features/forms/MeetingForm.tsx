@@ -888,39 +888,29 @@ export function MeetingFormContent({
       }
       lastRequestTimestamp.current = now;
 
-      // **FIX: Validate form before processing payment**
-      const isValid = await form.trigger(); // Validate all fields
+      // Validate form before processing
+      const isValid = await form.trigger();
       if (!isValid) {
-        console.log('❌ Form validation failed for paid session');
+        console.log('❌ Form validation failed:', form.formState.errors);
+        // Form field errors are now set and will display via FormMessage components
+        // Set a root error to provide additional user feedback
+        form.setError('root', {
+          message: 'Please fill in all required fields correctly.',
+        });
         return;
       }
 
-      // For free sessions, handle differently
+      // For free sessions, call submitMeeting directly
+      // Note: submitMeeting handles its own processing state management
       if (price === 0) {
-        // **IMMEDIATE STATE UPDATE: Set processing flag for free sessions too**
-        isProcessingRef.current = true;
-        setIsProcessing(true);
-
-        // **CRITICAL: Force immediate synchronous state update for free sessions**
-        flushSync(() => {
-          setIsSubmitting(true);
-        });
-
         try {
-          // Get current form values and submit directly (bypasses handleSubmit race condition)
-          // Form validation already done above
           const formValues = form.getValues();
           await submitMeeting(formValues);
         } catch (error) {
-          console.error('Error submitting form:', error);
+          console.error('Error submitting free meeting:', error);
           form.setError('root', {
-            message: 'Failed to process request',
+            message: 'Failed to schedule meeting. Please try again.',
           });
-        } finally {
-          // **CLEANUP: Always reset processing state for free sessions**
-          isProcessingRef.current = false;
-          setIsProcessing(false);
-          setIsSubmitting(false);
         }
         return;
       }
