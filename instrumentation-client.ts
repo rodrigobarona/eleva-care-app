@@ -4,7 +4,13 @@
  * This file configures the Sentry SDK for the browser (client-side).
  * It enables error monitoring, session replay, user feedback, and logging.
  *
+ * Integration with PostHog:
+ * - User context is linked in src/app/providers.tsx (PostHogUserTracker)
+ * - When a user is identified in PostHog, the same user ID is set in Sentry
+ * - PostHog session info is added to Sentry context for cross-platform debugging
+ *
  * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+ * @see src/app/providers.tsx for PostHog-Sentry user linking
  */
 import * as Sentry from '@sentry/nextjs';
 

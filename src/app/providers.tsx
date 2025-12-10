@@ -6,13 +6,15 @@
  * Provides client-side functionality for:
  * - WorkOS authentication (via built-in useAuth hook)
  * - Theme management
- * - PostHog analytics
+ * - PostHog analytics (product analytics, feature flags)
+ * - Sentry user context linking
  * - Novu notifications
  * - Cookie consent
  * - Authorization context
  */
 import { AuthorizationProvider } from '@/components/shared/providers/AuthorizationProvider';
 import { ENV_CONFIG } from '@/config/env';
+import * as Sentry from '@sentry/nextjs';
 import { NovuProvider } from '@novu/nextjs';
 import { NovuProvider as ReactNovuProvider } from '@novu/react';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
@@ -48,9 +50,10 @@ const getPostHogConfig = (): Partial<PostHogConfig> => {
     capture_pageview: false, // We handle this manually for enhanced tracking
     capture_pageleave: true,
     capture_performance: true,
-    session_recording: {
-      recordCrossOriginIframes: true,
-    },
+    // NOTE: Session recording disabled - using Sentry Replay instead
+    // Sentry Replay links directly to errors for better debugging
+    // and is included in the Sentry Developer plan (50 replays)
+    disable_session_recording: true,
     autocapture: {
       capture_copied_text: true,
       css_selector_allowlist: ['[data-ph-capture]'],
@@ -83,11 +86,66 @@ const getPostHogConfig = (): Partial<PostHogConfig> => {
   };
 };
 
-// PostHog user identification and tracking (WorkOS version)
+/**
+ * PostHog User Tracker with WorkOS Integration
+ *
+ * This component handles:
+ * 1. User identification in PostHog (using WorkOS user ID)
+ * 2. Sentry user context linking (same user ID for cross-platform debugging)
+ * 3. Role-based group tracking (for segmenting analytics by user type)
+ * 4. PostHog session info in Sentry context
+ *
+ * The WorkOS user ID is the single source of truth across:
+ * - WorkOS Authentication
+ * - PostHog Product Analytics
+ * - Sentry Error Monitoring
+ */
 function PostHogUserTracker() {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const params = useParams();
+  const [userRole, setUserRole] = useState<string | null>(null);
+
+  // Fetch user role for group tracking
+  // Using user?.id as dependency to only refetch when user changes
+  useEffect(() => {
+    // Skip if no user - role will be handled in the tracking effect
+    if (!user?.id) return;
+
+    let isMounted = true;
+
+    // Fetch roles from API for group tracking
+    fetch('/api/user/roles')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!isMounted) return;
+        if (data?.roles?.length > 0) {
+          // Use the highest privilege role for grouping
+          const role = data.roles.includes('admin') || data.roles.includes('superadmin')
+            ? 'admin'
+            : data.roles.includes('expert_top')
+              ? 'expert_top'
+              : data.roles.includes('expert_community')
+                ? 'expert_community'
+                : 'user';
+          setUserRole(role);
+        } else {
+          setUserRole('user');
+        }
+      })
+      .catch((err) => {
+        if (isMounted) {
+          console.warn('[PostHog] Failed to fetch user roles:', err);
+          setUserRole('user'); // Default to user on error
+        }
+      });
+
+    // Cleanup function to reset role when user changes/logs out
+    return () => {
+      isMounted = false;
+      setUserRole(null);
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     if (loading || typeof window === 'undefined') return;
@@ -106,36 +164,82 @@ function PostHogUserTracker() {
     });
 
     if (user) {
+      const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim();
+      const userTimezone = (() => {
+        try {
+          return Intl.DateTimeFormat().resolvedOptions().timeZone;
+        } catch (error) {
+          console.warn('Failed to get timezone, using UTC:', error);
+          return 'UTC';
+        }
+      })();
+
+      // Identify user in PostHog with WorkOS user ID
       posthog.identify(user.id, {
         email: user.email,
-        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        name: userName,
         first_name: user.firstName,
         last_name: user.lastName,
         avatar: user.profilePictureUrl,
         email_verified: user.emailVerified,
         preferred_locale: locale,
-        timezone: (() => {
-          try {
-            return Intl.DateTimeFormat().resolvedOptions().timeZone;
-          } catch (error) {
-            console.warn('Failed to get timezone, using UTC:', error);
-            return 'UTC';
-          }
-        })(),
+        timezone: userTimezone,
       });
 
       posthog.people.set({
         email: user.email,
-        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        name: userName,
         avatar: user.profilePictureUrl,
         locale: locale,
         last_seen: new Date().toISOString(),
+      });
+
+      // Set role-based group for analytics segmentation
+      // This allows comparing behavior between user types (admins, experts, patients)
+      if (userRole) {
+        posthog.group('user_role', userRole, {
+          role: userRole,
+          is_expert: userRole.startsWith('expert'),
+          is_admin: userRole === 'admin',
+        });
+
+        // Also add role to Sentry for filtering errors by user type
+        Sentry.setTag('user_role', userRole);
+      }
+
+      // Set Sentry user context for error correlation
+      // This links Sentry errors to the same user in PostHog
+      Sentry.setUser({
+        id: user.id,
+        email: user.email || undefined,
+        username: userName || undefined,
+      });
+
+      // Add PostHog session info to Sentry for cross-platform debugging
+      const sessionId = posthog.get_session_id?.();
+      if (sessionId) {
+        Sentry.setContext('posthog', {
+          session_id: sessionId,
+          distinct_id: posthog.get_distinct_id?.(),
+          session_replay_url: posthog.get_session_replay_url?.({ withTimestamp: true }),
+        });
+      }
+
+      // Add WorkOS context to Sentry
+      Sentry.setContext('workos', {
+        user_id: user.id,
+        email_verified: user.emailVerified,
+        has_profile_picture: !!user.profilePictureUrl,
       });
     } else {
       posthog.register({
         user_type: 'anonymous',
         locale: locale,
       });
+
+      // Clear Sentry user context for anonymous users
+      Sentry.setUser(null);
+      Sentry.setTag('user_role', 'anonymous');
     }
 
     posthog.register({
@@ -144,7 +248,7 @@ function PostHogUserTracker() {
         ? pathname?.split('/')[2] || 'dashboard'
         : pathname?.split('/')[2] || 'home',
     });
-  }, [user, loading, pathname, params]);
+  }, [user, loading, pathname, params, userRole]);
 
   return null;
 }
@@ -296,34 +400,17 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
         },
       });
 
-      // Enhanced error tracking
-      window.addEventListener('error', (event) => {
-        posthog.capture('javascript_error', {
-          error_message: event.error?.message || event.message,
-          error_stack: event.error?.stack,
-          filename: event.filename,
-          line_number: event.lineno,
-          column_number: event.colno,
-          user_agent: navigator.userAgent,
-        });
-      });
+      // NOTE: Error tracking removed - Sentry handles all errors automatically
+      // via GlobalHandlers integration (javascript_error, unhandled_promise_rejection)
 
-      // Track unhandled promise rejections
-      window.addEventListener('unhandledrejection', (event) => {
-        posthog.capture('unhandled_promise_rejection', {
-          reason: event.reason?.toString() || 'Unknown reason',
-          stack: event.reason?.stack,
-        });
-      });
-
-      // Track page visibility changes
+      // Track page visibility changes (useful for engagement analytics)
       document.addEventListener('visibilitychange', () => {
         posthog.capture('page_visibility_changed', {
           visibility_state: document.visibilityState,
         });
       });
 
-      // Track network status
+      // Track network status (useful for understanding user connectivity)
       window.addEventListener('online', () => {
         posthog.capture('network_status_changed', { status: 'online' });
       });

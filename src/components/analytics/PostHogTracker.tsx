@@ -327,34 +327,20 @@ export class ErrorTracker extends React.Component<ErrorTrackerProps, ErrorTracke
 
 /**
  * Global Error Tracking Setup
- * Call this function in your app initialization to track global errors
+ *
+ * NOTE: This function has been deprecated. Error tracking is now handled
+ * exclusively by Sentry, which provides:
+ * - Automatic capture via GlobalHandlers integration
+ * - Source maps for readable stack traces
+ * - Session replay linked to errors
+ * - Better error grouping and analysis
+ *
+ * @deprecated Use Sentry for error tracking instead
  */
 export function setupGlobalErrorTracking() {
-  if (typeof window === 'undefined') return;
-
-  // Track unhandled JavaScript errors
-  window.addEventListener('error', (event) => {
-    if ((window as unknown as WindowWithPostHog).posthog) {
-      (window as unknown as WindowWithPostHog).posthog.capture('javascript_error', {
-        error_message: event.error?.message || event.message,
-        error_stack: event.error?.stack,
-        filename: event.filename,
-        line_number: event.lineno,
-        column_number: event.colno,
-        user_agent: navigator.userAgent,
-      });
-    }
-  });
-
-  // Track unhandled promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
-    if ((window as unknown as WindowWithPostHog).posthog) {
-      (window as unknown as WindowWithPostHog).posthog.capture('unhandled_promise_rejection', {
-        reason: event.reason?.toString() || 'Unknown reason',
-        stack: event.reason?.stack,
-      });
-    }
-  });
+  // No-op: Error tracking is handled by Sentry
+  // See: instrumentation-client.ts for Sentry configuration
+  console.info('[PostHog] Error tracking disabled - Sentry handles all errors');
 }
 
 // Type definitions for global PostHog access

@@ -21,11 +21,16 @@ interface WindowWithPageStartTime extends Window {
   pageStartTime?: number;
 }
 
-interface LayoutShiftEntry extends PerformanceEntry {
-  value: number;
-  hadRecentInput: boolean;
-}
-
+/**
+ * PostHog Page View Tracker
+ *
+ * Tracks pageviews with enhanced metadata for product analytics.
+ *
+ * NOTE: Web Vitals (LCP, CLS, FCP, INP) are NOT tracked here.
+ * They are handled by:
+ * - Vercel Speed Insights (authoritative for Vercel deployments)
+ * - Sentry BrowserTracing (automatic Web Vitals capture)
+ */
 function PostHogPageView(): null {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -87,30 +92,9 @@ function PostHogPageView(): null {
     (window as WindowWithPageStartTime).pageStartTime = Date.now();
     previousPath.current = pathname;
 
-    // Track performance metrics
-    if (typeof window !== 'undefined' && window.performance) {
-      // Wait for page to be fully loaded
-      setTimeout(async () => {
-        const navigation = performance.getEntriesByType(
-          'navigation',
-        )[0] as PerformanceNavigationTiming;
-        if (navigation) {
-          // Await async performance metrics to get actual values
-          const largestContentfulPaint = await getLargestContentfulPaint();
-          const cumulativeLayoutShift = await getCumulativeLayoutShift();
-
-          posthog.capture('page_performance', {
-            pathname: pathname,
-            load_time: navigation.loadEventEnd - navigation.loadEventStart,
-            dom_content_loaded:
-              navigation.domContentLoadedEventEnd - navigation.domContentLoadedEventStart,
-            first_paint: getFirstPaint(),
-            largest_contentful_paint: largestContentfulPaint,
-            cumulative_layout_shift: cumulativeLayoutShift,
-          });
-        }
-      }, 1000);
-    }
+    // NOTE: Web Vitals tracking removed - handled by Vercel Speed Insights and Sentry
+    // See: Vercel Analytics <SpeedInsights /> component in layout.tsx
+    // See: Sentry BrowserTracing in instrumentation-client.ts
   }, [pathname, searchParams, posthog]);
 
   return null;
@@ -142,58 +126,10 @@ function getLocaleFromPath(pathname: string): string {
   return supportedLocales.includes(possibleLocale) ? possibleLocale : 'en';
 }
 
-function getFirstPaint(): number | null {
-  const paintEntries = performance.getEntriesByType('paint');
-  const firstPaint = paintEntries.find((entry) => entry.name === 'first-paint');
-  return firstPaint ? firstPaint.startTime : null;
-}
-
-function getLargestContentfulPaint(): Promise<number | null> {
-  return new Promise<number | null>((resolve) => {
-    if ('PerformanceObserver' in window) {
-      const observer = new PerformanceObserver((list) => {
-        const entries = list.getEntries();
-        const lastEntry = entries[entries.length - 1];
-        resolve(lastEntry ? lastEntry.startTime : null);
-        observer.disconnect();
-      });
-      observer.observe({ entryTypes: ['largest-contentful-paint'] });
-
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        observer.disconnect();
-        resolve(null);
-      }, 10000);
-    } else {
-      resolve(null);
-    }
-  });
-}
-
-function getCumulativeLayoutShift(): Promise<number | null> {
-  return new Promise<number | null>((resolve) => {
-    if ('PerformanceObserver' in window) {
-      let cumulativeScore = 0;
-      const observer = new PerformanceObserver((list) => {
-        for (const entry of list.getEntries()) {
-          const layoutShiftEntry = entry as LayoutShiftEntry;
-          if (!layoutShiftEntry.hadRecentInput) {
-            cumulativeScore += layoutShiftEntry.value;
-          }
-        }
-      });
-      observer.observe({ entryTypes: ['layout-shift'] });
-
-      // Return score after 5 seconds
-      setTimeout(() => {
-        observer.disconnect();
-        resolve(cumulativeScore);
-      }, 5000);
-    } else {
-      resolve(null);
-    }
-  });
-}
+// NOTE: Web Vitals helper functions removed (getFirstPaint, getLargestContentfulPaint, getCumulativeLayoutShift)
+// Web Vitals are now tracked by:
+// - Vercel Speed Insights: Authoritative Web Vitals for Vercel deployments
+// - Sentry BrowserTracing: Automatic Web Vitals capture with error correlation
 
 // Wrap in Suspense to avoid useSearchParams deopt
 export default function SuspendedPostHogPageView() {

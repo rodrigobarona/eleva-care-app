@@ -2,7 +2,22 @@
 
 ## Overview
 
-This document outlines the comprehensive PostHog analytics implementation for the Eleva Care application, including dashboard configurations, custom events, and monitoring best practices.
+This document outlines the PostHog product analytics implementation for the Eleva Care application, including dashboard configurations, custom events, and monitoring best practices.
+
+> **Important: Observability Architecture**
+>
+> PostHog is focused on **product analytics** only. Other observability concerns are handled by dedicated tools:
+>
+> | Concern | Tool | Notes |
+> |---------|------|-------|
+> | **Product Analytics** | PostHog | Funnels, retention, user journeys, feature flags |
+> | **Error Tracking** | Sentry | Automatic capture, source maps, stack traces |
+> | **Session Replay** | Sentry | Linked to errors for debugging |
+> | **Web Vitals** | Vercel Speed Insights | Authoritative for Vercel deployments |
+> | **APM/Tracing** | Sentry | Distributed tracing, spans |
+> | **Uptime Monitoring** | Better Stack | Multi-region checks, status page |
+>
+> This separation ensures each tool does what it does best without duplicate tracking.
 
 ## Configuration
 
@@ -46,13 +61,18 @@ POSTHOG_PROJECT_ID=your_project_id_here
 
 ### Features Enabled
 
-- **User Identification**: Comprehensive user profiling with Clerk integration
+- **User Identification**: Comprehensive user profiling with WorkOS integration
 - **Feature Flags**: A/B testing and feature rollout management
-- **Session Recording**: Masked recordings for production (disabled in development)
-- **Performance Monitoring**: Core Web Vitals and custom metrics
-- **Error Tracking**: JavaScript errors and unhandled promise rejections
 - **Conversion Tracking**: Business events and funnel analysis
+- **User Journey Analysis**: Path analysis, retention, and cohorts
 - **Cross-Subdomain Tracking**: Unified user experience across domains
+- **Sentry Integration**: User context linked for cross-platform debugging
+
+### Features Disabled (Handled Elsewhere)
+
+- ~~**Session Recording**~~: Handled by **Sentry Replay** (linked to errors)
+- ~~**Error Tracking**~~: Handled by **Sentry** (automatic capture, source maps)
+- ~~**Web Vitals/Performance**~~: Handled by **Vercel Speed Insights** + **Sentry**
 
 ## Custom Events
 
@@ -60,9 +80,11 @@ POSTHOG_PROJECT_ID=your_project_id_here
 
 #### Page Tracking
 
-- `$pageview` - Enhanced with route categorization and performance data
+- `$pageview` - Enhanced with route categorization and user context
 - `page_leave` - Time spent on page tracking
-- `page_performance` - Core Web Vitals and load times
+
+> **Note**: `page_performance` (Web Vitals) has been removed.
+> Web Vitals are now tracked by **Vercel Speed Insights** and **Sentry BrowserTracing**.
 
 #### User Authentication
 
@@ -84,10 +106,12 @@ POSTHOG_PROJECT_ID=your_project_id_here
 
 #### System Events
 
-- `javascript_error` - Frontend error tracking
-- `unhandled_promise_rejection` - Promise rejection tracking
 - `page_visibility_changed` - Tab focus/blur events
 - `network_status_changed` - Online/offline status
+- `app_loaded` - Application initialization
+
+> **Note**: Error tracking (`javascript_error`, `unhandled_promise_rejection`) has been removed.
+> All errors are now captured by **Sentry** with automatic source map support.
 
 #### Health Monitoring
 
@@ -554,23 +578,66 @@ When updating PostHog:
 
 ### Sentry Integration
 
+PostHog and Sentry are integrated to provide cross-platform user context:
+
+**How it works:**
+1. When a user is identified in PostHog (via `posthog.identify()`), the same user ID is set in Sentry
+2. PostHog session info (session ID, distinct ID, replay URL) is added to Sentry context
+3. This allows you to correlate Sentry errors with PostHog user profiles and sessions
+
+**Implementation** (in `src/app/providers.tsx`):
+
 ```typescript
-posthog.capture('sentry_error', {
-  sentry_id: sentryEvent.id,
-  error_type: error.name,
-  user_id: user?.id,
+// When user is identified in PostHog, also set Sentry user context
+Sentry.setUser({
+  id: user.id,
+  email: user.email,
+  username: userName,
+});
+
+// Add PostHog session info to Sentry for cross-platform debugging
+Sentry.setContext('posthog', {
+  session_id: posthog.get_session_id(),
+  distinct_id: posthog.get_distinct_id(),
+  session_replay_url: posthog.get_session_replay_url({ withTimestamp: true }),
 });
 ```
 
 ### Stripe Integration
 
 ```typescript
-// Track payment events
-posthog.capture('payment_intent_created', {
+// Track payment events as business events
+posthog.capture('business_payment_completed', {
   amount: paymentIntent.amount,
   currency: paymentIntent.currency,
   payment_method: paymentIntent.payment_method,
 });
 ```
 
-This comprehensive PostHog setup provides robust analytics, monitoring, and insights for the Eleva Care application while maintaining user privacy and optimal performance.
+---
+
+## Architecture Summary
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     Eleva Care Observability                    │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐│
+│  │   PostHog   │  │   Sentry    │  │   Vercel    │  │ Better  ││
+│  │             │  │             │  │             │  │  Stack  ││
+│  ├─────────────┤  ├─────────────┤  ├─────────────┤  ├─────────┤│
+│  │ • Funnels   │  │ • Errors    │  │ • Traffic   │  │ • Uptime││
+│  │ • Retention │  │ • Tracing   │  │ • Web Vitals│  │ • Status││
+│  │ • Journeys  │  │ • Replay    │  │             │  │ • Cron  ││
+│  │ • Flags     │  │ • Feedback  │  │             │  │         ││
+│  │ • A/B Tests │  │ • Logs      │  │             │  │         ││
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────┘│
+│                                                                 │
+│  User context is linked between PostHog and Sentry via         │
+│  Sentry.setUser() and Sentry.setContext('posthog', {...})      │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+This setup provides comprehensive observability with each tool focused on its strengths, avoiding duplicate tracking and reducing costs.
