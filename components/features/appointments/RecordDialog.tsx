@@ -8,10 +8,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { type AutoSaveStatus, useAutoSave } from '@/hooks/use-auto-save';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { Clock, FileEdit, Save } from 'lucide-react';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { toast } from 'sonner';
 
 interface PatientRecord {
@@ -39,9 +40,7 @@ export function RecordDialog({
   const [isOpen, setIsOpen] = React.useState(false);
   const [records, setRecords] = React.useState<PatientRecord[]>([]);
   const [currentContent, setCurrentContent] = React.useState('');
-  const [isLoading, setIsLoading] = React.useState(false);
   const [lastSavedContent, setLastSavedContent] = React.useState('');
-  const saveTimeoutRef = React.useRef<NodeJS.Timeout>(undefined);
 
   const fetchRecords = React.useCallback(async () => {
     try {
@@ -70,15 +69,13 @@ export function RecordDialog({
     }
   }, [isOpen, fetchRecords]);
 
-  const handleSave = React.useCallback(async () => {
-    if (currentContent === lastSavedContent) return;
-
-    try {
-      setIsLoading(true);
+  // Save function for the auto-save hook
+  const handleSave = useCallback(
+    async (contentToSave: string) => {
       const endpoint = `/api/appointments/${meetingId}/records`;
       const method = records.length > 0 ? 'PUT' : 'POST';
       const body = {
-        content: currentContent,
+        content: contentToSave,
         metadata: {
           lastEditedAt: new Date().toISOString(),
         },
@@ -93,37 +90,33 @@ export function RecordDialog({
 
       if (!response.ok) throw new Error('Failed to save record');
 
-      setLastSavedContent(currentContent);
-      toast.success('Record saved');
+      setLastSavedContent(contentToSave);
       void fetchRecords();
-    } catch (error) {
-      console.error('Error saving record:', error);
-      toast.error('Failed to save record');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [currentContent, lastSavedContent, meetingId, records, fetchRecords]);
+    },
+    [meetingId, records, fetchRecords],
+  );
 
-  // Auto-save when content changes
+  // Auto-save hook with debouncing and save-on-unmount
+  const { status, hasUnsavedChanges, saveNow } = useAutoSave({
+    content: currentContent,
+    lastSavedContent,
+    onSave: handleSave,
+    delay: 2000,
+    enabled: isOpen,
+  });
+
+  // Show toast only on successful saves (not on every status change)
+  const prevStatusRef = React.useRef<AutoSaveStatus>(status);
   React.useEffect(() => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+    if (prevStatusRef.current === 'saving' && status === 'saved') {
+      toast.success('Record saved');
+    } else if (prevStatusRef.current === 'saving' && status === 'error') {
+      toast.error('Failed to save record');
     }
+    prevStatusRef.current = status;
+  }, [status]);
 
-    if (currentContent !== lastSavedContent) {
-      saveTimeoutRef.current = setTimeout(() => {
-        void handleSave();
-      }, 2000); // Auto-save after 2 seconds of no typing
-    }
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [currentContent, lastSavedContent, handleSave]);
-
-  const hasUnsavedChanges = currentContent !== lastSavedContent;
+  const isLoading = status === 'saving';
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -172,10 +165,20 @@ export function RecordDialog({
             <div className="flex flex-none items-center gap-4">
               {/* Save Status */}
               <div className="flex items-center gap-2">
-                {isLoading ? (
+                {status === 'saving' ? (
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <div className="h-2 w-2 animate-spin rounded-full border border-primary border-t-transparent" />
                     <span>Saving...</span>
+                  </div>
+                ) : status === 'pending' ? (
+                  <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                    <div className="h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+                    <span>Auto-saving...</span>
+                  </div>
+                ) : status === 'error' ? (
+                  <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                    <div className="h-2 w-2 rounded-full bg-red-500" />
+                    <span>Save failed</span>
                   </div>
                 ) : hasUnsavedChanges ? (
                   <div className="flex items-center gap-2 text-sm text-orange-600 dark:text-orange-400">
@@ -195,7 +198,7 @@ export function RecordDialog({
                 variant="outline"
                 size="sm"
                 className="h-8 px-4 text-sm"
-                onClick={handleSave}
+                onClick={saveNow}
                 disabled={!hasUnsavedChanges || isLoading}
               >
                 <Save className="mr-2 h-4 w-4" />
