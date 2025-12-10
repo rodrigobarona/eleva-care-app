@@ -10,7 +10,10 @@
  */
 import { Highlight } from '@tiptap/extension-highlight';
 import type MarkdownIt from 'markdown-it';
-import markdownitMark from 'markdown-it-mark';
+
+// Type declaration for markdown-it-mark (no @types package available)
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const markdownitMark = require('markdown-it-mark') as MarkdownIt.PluginSimple;
 
 /**
  * Highlight extension configured for markdown serialization with tiptap-markdown.
