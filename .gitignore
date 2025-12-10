@@ -8,6 +8,10 @@
 
 # testing
 /coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
 
 # next.js
 /.next/
@@ -38,3 +42,6 @@ next-env.d.ts
 /cal.com
 _backup_.env
 _backup_env
+
+# clerk configuration (can include secrets)
+/.clerk/

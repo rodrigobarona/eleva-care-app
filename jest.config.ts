@@ -36,6 +36,7 @@ const customJestConfig = {
   testPathIgnorePatterns: [
     '/node_modules/',
     '/tests/deprecated/', // Ignore deprecated tests by default
+    '/tests/e2e/', // E2E tests use Playwright, not Jest
     // Temporarily skip tests with logic issues (not ESM issues - those are fixed!)
     '/tests/integration/services/locale-detection.test.ts', // Test logic issues - need to fix test expectations
     '/tests/integration/services/keep-alive.test.ts', // Test logic issues - 1 test failing
