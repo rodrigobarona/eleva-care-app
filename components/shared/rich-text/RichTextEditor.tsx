@@ -117,6 +117,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   const onChangeRef = useRef(onChange);
   const isUpdatingFromProp = useRef(false);
 
+  // Track initialization and external value for proper sync
+  const hasInitializedContent = useRef(false);
+  const lastExternalValue = useRef(value);
+  const initialValueRef = useRef(value);
+
   // Image upload state
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -237,7 +242,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const editor = useEditor({
     extensions,
-    content: value, // Directly use Markdown content
+    content: '', // Start empty - content will be set in onCreate after editor is fully ready
     editorProps: {
       attributes: {
         class:
@@ -245,6 +250,17 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       },
     },
     immediatelyRender: false,
+    // Set content after editor is fully initialized with all extensions
+    onCreate: ({ editor }) => {
+      // Use the initial value ref to ensure we use the value from mount time
+      const initialContent = initialValueRef.current;
+      if (initialContent) {
+        editor.commands.setContent(initialContent, { emitUpdate: false });
+      }
+      // Mark initialization complete and sync the external value tracker
+      hasInitializedContent.current = true;
+      lastExternalValue.current = initialContent;
+    },
     // Convert editor content to Markdown before calling onChange
     onUpdate: ({ editor }) => {
       // Don't emit changes if we're currently updating from external prop
@@ -255,6 +271,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       // ✅ MARKDOWN EXTENSION: Use the tiptap-markdown extension's built-in method
       try {
         const markdownContent = editor.storage.markdown.getMarkdown();
+        // Track our own output to avoid comparison issues
+        lastExternalValue.current = markdownContent;
         onChangeRef.current(markdownContent);
       } catch (error) {
         console.warn('Failed to convert to Markdown:', error);
@@ -335,7 +353,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   // Handle external content updates (from autosave) while preserving cursor position
   React.useEffect(() => {
-    if (!editor || value === undefined) return;
+    // Skip if editor not ready or initialization hasn't completed (onCreate handles initial content)
+    if (!editor || !hasInitializedContent.current) return;
+
+    // Only update if external value actually changed (not from our own edits)
+    // This comparison uses the tracked value, avoiding getMarkdown() normalization issues
+    if (value === lastExternalValue.current) return;
 
     // Store current selection/cursor position and focus state
     const { from, to } = editor.state.selection;
@@ -344,49 +367,43 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     // Flag that we're updating from external source
     isUpdatingFromProp.current = true;
 
+    // Update our tracker to the new external value
+    lastExternalValue.current = value;
+
     try {
-      // ✅ MARKDOWN EXTENSION: Get current content as markdown for comparison
-      const currentContent = editor.storage.markdown.getMarkdown();
+      // ✅ MARKDOWN EXTENSION: setContent properly parses markdown!
+      editor.commands.setContent(value || '', { emitUpdate: false });
 
-      // Only update if content is actually different
-      if (currentContent !== value) {
-        // ✅ MARKDOWN EXTENSION: setContent properly parses markdown!
-        editor.commands.setContent(value || '', { emitUpdate: false });
+      // Restore cursor position after content update if editor was focused
+      if (wasFocused) {
+        // Use nextTick for reliable timing after content update
+        Promise.resolve().then(() => {
+          if (editor && !editor.isDestroyed) {
+            const newDocSize = editor.state.doc.content.size;
 
-        // Restore cursor position after content update if editor was focused
-        if (wasFocused) {
-          // Use nextTick for reliable timing after content update
-          Promise.resolve().then(() => {
-            if (editor && !editor.isDestroyed) {
-              const newDocSize = editor.state.doc.content.size;
+            // Calculate safe cursor positions
+            const safeFrom = Math.min(from, Math.max(0, newDocSize - 1));
+            const safeTo = Math.min(to, Math.max(0, newDocSize - 1));
 
-              // Calculate safe cursor positions
-              const safeFrom = Math.min(from, Math.max(0, newDocSize - 1));
-              const safeTo = Math.min(to, Math.max(0, newDocSize - 1));
-
-              try {
-                // Restore selection using setTextSelection command
-                if (safeFrom === safeTo) {
-                  // Simple cursor position
-                  editor.commands.setTextSelection(safeFrom);
-                } else {
-                  // Text selection range
-                  editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
-                }
-
-                // Restore focus
-                editor.commands.focus();
-              } catch (selectionError) {
-                // Fallback: focus at end if position restoration fails
-                console.warn(
-                  'Cursor position restoration failed, focusing at end:',
-                  selectionError,
-                );
-                editor.commands.focus('end');
+            try {
+              // Restore selection using setTextSelection command
+              if (safeFrom === safeTo) {
+                // Simple cursor position
+                editor.commands.setTextSelection(safeFrom);
+              } else {
+                // Text selection range
+                editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
               }
+
+              // Restore focus
+              editor.commands.focus();
+            } catch (selectionError) {
+              // Fallback: focus at end if position restoration fails
+              console.warn('Cursor position restoration failed, focusing at end:', selectionError);
+              editor.commands.focus('end');
             }
-          });
-        }
+          }
+        });
       }
     } catch (error) {
       // Fallback: simple content update without cursor preservation
