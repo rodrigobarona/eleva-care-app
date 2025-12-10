@@ -1,9 +1,11 @@
 import { ClientProviders } from '@/app/providers';
 import { defaultLocale } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+import * as Sentry from '@sentry/nextjs';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { AuthKitProvider } from '@workos-inc/authkit-nextjs/components';
+import type { Metadata } from 'next';
 import { DM_Sans, IBM_Plex_Mono, Lora } from 'next/font/google';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 
@@ -11,7 +13,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import './globals.css';
 
 // ## Font definitions
-// Here’s a system that balances warmth, trust, and clarity across digital and print:
+// Here's a system that balances warmth, trust, and clarity across digital and print:
 
 // ### Lora (Serif)
 // For: Article body, quotes, hero headlines
@@ -55,6 +57,22 @@ const ibmPlexMono = IBM_Plex_Mono({
   preload: true,
   adjustFontFallback: true,
 });
+
+/**
+ * Generate metadata with Sentry trace data for distributed tracing
+ *
+ * This enables connecting frontend errors with backend traces for
+ * comprehensive debugging across the full stack.
+ *
+ * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#apply-instrumentation-to-your-app
+ */
+export function generateMetadata(): Metadata {
+  return {
+    other: {
+      ...Sentry.getTraceData(),
+    },
+  };
+}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   // Default messages for routes outside the locale group

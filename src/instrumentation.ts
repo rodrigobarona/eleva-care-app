@@ -5,7 +5,7 @@
  * It runs once when a new Next.js server instance is bootstrapped.
  *
  * @see https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation
- * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/
+ * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
  */
 import * as Sentry from '@sentry/nextjs';
 

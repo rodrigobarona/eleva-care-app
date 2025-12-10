@@ -1,6 +1,6 @@
 ---
 description: UI and Component Patterns
-globs: ['components/**/*.tsx', 'app/**/*.tsx']
+globs: ['src/components/**/*.tsx', 'src/app/**/*.tsx']
 ---
 
 # UI and Component Patterns

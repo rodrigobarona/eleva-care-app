@@ -111,18 +111,44 @@ const config: NextConfig = {
 const nextConfig = withMDX(config);
 const configWithPlugins = withBotId(withBundleAnalyzer(withNextIntl(nextConfig)));
 
-// Wrap with Sentry for error monitoring (using Better Stack as destination)
-// Note: When using Better Stack, source map uploads are disabled since
-// Better Stack uses its own ingestion endpoint, not Sentry's.
+/**
+ * Sentry Configuration
+ *
+ * Wraps the Next.js config with Sentry for comprehensive error monitoring,
+ * performance tracing, and source map uploads.
+ *
+ * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+ */
 export default withSentryConfig(configWithPlugins, {
-  // Disable telemetry to Sentry (we're using Better Stack)
-  telemetry: false,
+  // Sentry organization and project slugs
+  org: 'elevacare',
+  project: 'eleva-care',
 
-  // Disable source map uploads (not needed for Better Stack)
-  sourcemaps: {
-    disable: true,
-  },
+  // Auth token for source map uploads (set in environment variables)
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+
+  // Only print logs for uploading source maps in CI
+  // Set to `true` to suppress logs
+  silent: !process.env.CI,
+
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
 
   // Automatically tree-shake Sentry logger statements to reduce bundle size
   disableLogger: true,
+
+  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+  // This can increase your server load as well as your hosting bill.
+  // Note: Check that the configured route will not match with your Next.js middleware,
+  // otherwise reporting of client-side errors will fail.
+  tunnelRoute: '/monitoring',
+
+  // Capture React component names for better debugging in Session Replay
+  reactComponentAnnotation: {
+    enabled: true,
+  },
+
+  // Automatically create Cron Monitors in Sentry for Vercel cron jobs
+  // Note: Currently only supports Pages Router
+  automaticVercelMonitors: true,
 });

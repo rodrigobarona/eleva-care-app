@@ -1,6 +1,6 @@
 ---
 description: Next.js 16 Core Development Rules
-globs: ['app/**/*.{ts,tsx}', 'components/**/*.{ts,tsx}', 'lib/**/*.ts']
+globs: ['src/app/**/*.{ts,tsx}', 'src/components/**/*.{ts,tsx}', 'src/lib/**/*.ts']
 alwaysApply: true
 ---
 
