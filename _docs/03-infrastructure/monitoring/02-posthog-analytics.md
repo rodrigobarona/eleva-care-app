@@ -2,22 +2,34 @@
 
 ## Overview
 
-This document outlines the PostHog product analytics implementation for the Eleva Care application, including dashboard configurations, custom events, and monitoring best practices.
+This document outlines the PostHog analytics implementation for the Eleva Care application. PostHog serves as the **PRIMARY** analytics platform for both **web analytics** and **product analytics**, providing a unified view from traffic acquisition to conversion.
 
 > **Important: Observability Architecture**
 >
-> PostHog is focused on **product analytics** only. Other observability concerns are handled by dedicated tools:
+> PostHog handles both web and product analytics. Other observability concerns are handled by dedicated tools:
 >
-> | Concern               | Tool                  | Notes                                            |
-> | --------------------- | --------------------- | ------------------------------------------------ |
-> | **Product Analytics** | PostHog               | Funnels, retention, user journeys, feature flags |
-> | **Error Tracking**    | Sentry                | Automatic capture, source maps, stack traces     |
-> | **Session Replay**    | Sentry                | Linked to errors for debugging                   |
-> | **Web Vitals**        | Vercel Speed Insights | Authoritative for Vercel deployments             |
-> | **APM/Tracing**       | Sentry                | Distributed tracing, spans                       |
-> | **Uptime Monitoring** | Better Stack          | Multi-region checks, status page                 |
+> | Concern               | Tool                  | Notes                                                       |
+> | --------------------- | --------------------- | ----------------------------------------------------------- |
+> | **Web Analytics**     | PostHog (PRIMARY)     | Traffic, visitors, bounce rate, referrers, sources          |
+> | **Product Analytics** | PostHog (PRIMARY)     | Funnels, retention, user journeys, feature flags, A/B tests |
+> | **Traffic Overview**  | Vercel Analytics      | BACKUP - Quick dashboard access in Vercel                   |
+> | **Web Vitals**        | Vercel Speed Insights | Authoritative for Vercel deployments (LCP, CLS, INP)        |
+> | **Error Tracking**    | Sentry                | Automatic capture, source maps, stack traces                |
+> | **Session Replay**    | Sentry                | Linked to errors for debugging                              |
+> | **APM/Tracing**       | Sentry                | Distributed tracing, spans                                  |
+> | **Uptime Monitoring** | Better Stack          | Multi-region checks, status page                            |
 >
-> This separation ensures each tool does what it does best without duplicate tracking.
+> This architecture provides unified analytics in PostHog while keeping specialized tools for their strengths.
+
+## Why PostHog for Both Web + Product Analytics?
+
+The key advantage of using PostHog for both is the ability to connect the dots:
+
+- **Traffic Source → Conversion**: "Which referrer brings users who actually book appointments?"
+- **Channel → Retention**: "Do users from organic search have better retention than paid?"
+- **Cohort Analysis**: Create cohorts based on acquisition source + product behavior
+
+Vercel Analytics remains as a **backup** for quick traffic checks directly in the Vercel dashboard.
 
 ## Configuration
 
@@ -61,11 +73,21 @@ POSTHOG_PROJECT_ID=your_project_id_here
 
 ### Features Enabled
 
+**Web Analytics:**
+
+- **Traffic Metrics**: Visitors, pageviews, sessions, bounce rate
+- **Traffic Sources**: Referrers, channels, UTM tracking
+- **Entry/Exit Paths**: Where users land and leave
+- **Geographic Data**: Visitor locations
+
+**Product Analytics:**
+
 - **User Identification**: Comprehensive user profiling with WorkOS integration
 - **Feature Flags**: A/B testing and feature rollout management
 - **Conversion Tracking**: Business events and funnel analysis
 - **User Journey Analysis**: Path analysis, retention, and cohorts
 - **Cross-Subdomain Tracking**: Unified user experience across domains
+- **Role-Based Groups**: Segmentation by user type (admin, expert, user)
 - **Sentry Integration**: User context linked for cross-platform debugging
 
 ### Features Disabled (Handled Elsewhere)
@@ -73,6 +95,42 @@ POSTHOG_PROJECT_ID=your_project_id_here
 - ~~**Session Recording**~~: Handled by **Sentry Replay** (linked to errors)
 - ~~**Error Tracking**~~: Handled by **Sentry** (automatic capture, source maps)
 - ~~**Web Vitals/Performance**~~: Handled by **Vercel Speed Insights** + **Sentry**
+
+## Web Analytics Dashboard
+
+PostHog provides a dedicated Web Analytics dashboard for high-level traffic insights.
+
+### Accessing the Dashboard
+
+- **EU Region**: `https://eu.posthog.com/web`
+- **US Region**: `https://app.posthog.com/web`
+- **Via Sidebar**: Click "Web Analytics" in the PostHog navigation
+
+### Dashboard Metrics
+
+| Metric               | Description                                     |
+| -------------------- | ----------------------------------------------- |
+| **Unique Visitors**  | Distinct users visiting your site               |
+| **Pageviews**        | Total page loads                                |
+| **Sessions**         | User visit sessions                             |
+| **Bounce Rate**      | Sessions with single pageview and <10s duration |
+| **Session Duration** | Average time per session                        |
+| **Top Sources**      | Traffic referrers and channels                  |
+| **Top Pages**        | Most visited pages                              |
+| **Entry Pages**      | Where users first land                          |
+| **Exit Pages**       | Where users leave                               |
+| **Countries**        | Visitor geography                               |
+| **Devices**          | Desktop, mobile, tablet breakdown               |
+
+### Web Analytics vs Product Analytics
+
+| Use Case                           | Dashboard         | Why                            |
+| ---------------------------------- | ----------------- | ------------------------------ |
+| "How much traffic today?"          | Web Analytics     | Quick overview                 |
+| "What's the bounce rate?"          | Web Analytics     | Pre-built metric               |
+| "Which source converts best?"      | Product Analytics | Requires funnel correlation    |
+| "What do experts do after signup?" | Product Analytics | Requires user journey analysis |
+| "A/B test pricing page"            | Product Analytics | Experiment tracking            |
 
 ## Custom Events
 

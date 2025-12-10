@@ -24,12 +24,19 @@ interface WindowWithPageStartTime extends Window {
 /**
  * PostHog Page View Tracker
  *
- * Tracks pageviews with enhanced metadata for product analytics.
+ * Tracks pageviews with enhanced metadata for both:
+ * - **Web Analytics**: Traffic, visitors, bounce rate, referrers
+ * - **Product Analytics**: User journeys, funnels, retention
+ *
+ * PostHog is the PRIMARY analytics platform for unified insights.
+ * Vercel Analytics serves as a BACKUP for quick dashboard access.
  *
  * NOTE: Web Vitals (LCP, CLS, FCP, INP) are NOT tracked here.
  * They are handled by:
  * - Vercel Speed Insights (authoritative for Vercel deployments)
  * - Sentry BrowserTracing (automatic Web Vitals capture)
+ *
+ * @see https://posthog.com/docs/web-analytics
  */
 function PostHogPageView(): null {
   const pathname = usePathname();
@@ -46,18 +53,37 @@ function PostHogPageView(): null {
       url = `${url}?${searchParams.toString()}`;
     }
 
-    // Track page view with enhanced metadata
+    // Extract referring domain for web analytics
+    const getReferringDomain = (): string | undefined => {
+      if (!document.referrer) return undefined;
+      try {
+        return new URL(document.referrer).hostname;
+      } catch {
+        return undefined;
+      }
+    };
+
+    // Track page view with enhanced metadata for both web and product analytics
     const pageViewProperties: PostHogProperties = {
+      // Standard PostHog web analytics properties
       $current_url: url,
+      $referrer: document.referrer || undefined,
+      $referring_domain: getReferringDomain(),
+
+      // Enhanced tracking properties
       pathname: pathname,
       search_params: searchParams.toString(),
-      referrer: document.referrer,
+      referrer: document.referrer, // Keep for backward compatibility
       previous_path: previousPath.current,
       page_title: document.title,
+
+      // Device and viewport
       viewport_width: window.innerWidth,
       viewport_height: window.innerHeight,
       screen_width: window.screen.width,
       screen_height: window.screen.height,
+
+      // Browser info
       user_agent: navigator.userAgent,
       language: navigator.language,
       timezone: (() => {
@@ -69,7 +95,8 @@ function PostHogPageView(): null {
         }
       })(),
       connection_type: (navigator as ExtendedNavigator)?.connection?.effectiveType || 'unknown',
-      // Route categorization
+
+      // Route categorization for filtering/segmentation
       route_category: getRouteCategory(pathname),
       is_authenticated_route: isAuthenticatedRoute(pathname),
       locale: getLocaleFromPath(pathname),

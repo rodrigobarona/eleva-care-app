@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the consolidated observability architecture for Eleva Care, where each tool has a clear, non-overlapping responsibility.
+This document describes the consolidated observability architecture for Eleva Care. PostHog serves as the **PRIMARY** unified analytics platform for both web and product analytics, while each other tool handles its specialized responsibility.
 
 ## Architecture Diagram
 
@@ -16,14 +16,17 @@ This document describes the consolidated observability architecture for Eleva Ca
         ▼                           ▼                           ▼
 ┌───────────────┐          ┌───────────────┐          ┌───────────────┐
 │    SENTRY     │          │   POSTHOG     │          │    VERCEL     │
-│               │          │               │          │               │
-│ ✓ Errors      │          │ ✓ Product     │          │ ✓ Web Vitals  │
-│ ✓ Traces/APM  │          │   Analytics   │          │ ✓ Traffic     │
-│ ✓ Session     │          │ ✓ Feature     │          │   Analytics   │
-│   Replay      │          │   Flags       │          │               │
-│ ✓ User        │          │ ✓ A/B Testing │          │               │
-│   Feedback    │          │ ✓ User        │          │               │
-│ ✓ Logs        │          │   Journeys    │          │               │
+│               │          │   (PRIMARY)   │          │   (BACKUP)    │
+│ ✓ Errors      │          │               │          │               │
+│ ✓ Traces/APM  │          │ ✓ Web         │          │ ✓ Web Vitals  │
+│ ✓ Session     │          │   Analytics   │          │   (LCP, CLS)  │
+│   Replay      │          │ ✓ Product     │          │ ✓ Traffic     │
+│ ✓ User        │          │   Analytics   │          │   (Quick View)│
+│   Feedback    │          │ ✓ Feature     │          │               │
+│ ✓ Logs        │          │   Flags       │          │               │
+│               │          │ ✓ A/B Testing │          │               │
+│               │          │ ✓ Funnels     │          │               │
+│               │          │ ✓ Retention   │          │               │
 └───────────────┘          └───────────────┘          └───────────────┘
         │                           │                           │
         │                           │                           │
@@ -41,59 +44,85 @@ This document describes the consolidated observability architecture for Eleva Ca
                           └───────────────┘
 ```
 
+## Why PostHog for Web + Product Analytics?
+
+Having unified analytics enables powerful insights:
+
+| Question                                          | Requires                            |
+| ------------------------------------------------- | ----------------------------------- |
+| "Which traffic source brings the best customers?" | Web analytics + Conversion tracking |
+| "Do organic users have better retention?"         | Traffic source + Retention analysis |
+| "What's the ROI of our paid campaigns?"           | Channel tracking + Revenue events   |
+
+Vercel Analytics remains as a **BACKUP** for quick traffic checks in the Vercel dashboard.
+
 ## Tool Responsibilities
 
 ### Sentry - Technical Observability
 
 **Primary Focus**: Error tracking, application performance monitoring, debugging
 
-| Feature | Description | Docs |
-|---------|-------------|------|
-| Error Monitoring | Automatic JS error capture with source maps | [Sentry Docs](./06-sentry-error-monitoring.md) |
-| Session Replay | Video-like recordings linked to errors | Included |
-| Tracing/APM | Distributed tracing, spans, pageload metrics | Included |
-| User Feedback | Bug report widget in footer | Included |
-| Logs | Console error/warn capture | Included |
+| Feature          | Description                                  | Docs                                           |
+| ---------------- | -------------------------------------------- | ---------------------------------------------- |
+| Error Monitoring | Automatic JS error capture with source maps  | [Sentry Docs](./06-sentry-error-monitoring.md) |
+| Session Replay   | Video-like recordings linked to errors       | Included                                       |
+| Tracing/APM      | Distributed tracing, spans, pageload metrics | Included                                       |
+| User Feedback    | Bug report widget in footer                  | Included                                       |
+| Logs             | Console error/warn capture                   | Included                                       |
 
 **User Context**: WorkOS user ID, email, role tag
 
-### PostHog - Product Analytics
+### PostHog - Unified Analytics (PRIMARY)
 
-**Primary Focus**: User behavior, product decisions, experimentation
+**Primary Focus**: Web analytics + Product analytics in one platform
 
-| Feature | Description | Docs |
-|---------|-------------|------|
-| User Identification | WorkOS user ID tracking | [PostHog Docs](./02-posthog-analytics.md) |
-| Group Analytics | Role-based segmentation | Included |
-| Feature Flags | Gradual rollouts, kill switches | Included |
-| A/B Testing | Experiment variants | Included |
-| Funnels | Conversion analysis | Included |
-| Retention | Cohort analysis | Included |
+**Web Analytics Features:**
+
+| Feature          | Description                                | Docs                                      |
+| ---------------- | ------------------------------------------ | ----------------------------------------- |
+| Traffic Metrics  | Visitors, pageviews, sessions, bounce rate | [PostHog Docs](./02-posthog-analytics.md) |
+| Traffic Sources  | Referrers, channels, UTM tracking          | Included                                  |
+| Entry/Exit Paths | Where users land and leave                 | Included                                  |
+| Geographic Data  | Visitor locations                          | Included                                  |
+
+**Product Analytics Features:**
+
+| Feature             | Description                                | Docs                                      |
+| ------------------- | ------------------------------------------ | ----------------------------------------- |
+| User Identification | WorkOS user ID tracking                    | [PostHog Docs](./02-posthog-analytics.md) |
+| Group Analytics     | Role-based segmentation                    | Included                                  |
+| Feature Flags       | Gradual rollouts, kill switches            | Included                                  |
+| A/B Testing         | Experiment variants                        | Included                                  |
+| Funnels             | Conversion analysis (with traffic source!) | Included                                  |
+| Retention           | Cohort analysis (by acquisition channel!)  | Included                                  |
 
 **Group Tracking**: Users grouped by role (`admin`, `expert_top`, `expert_community`, `user`)
 
-### Vercel Analytics & Speed Insights
+**Web Analytics Dashboard**: `https://eu.posthog.com/web`
 
-**Primary Focus**: Traffic analytics and Web Vitals performance
+### Vercel Analytics & Speed Insights (BACKUP)
 
-| Feature | Description |
-|---------|-------------|
-| Pageviews | Basic traffic analytics |
-| Web Vitals | LCP, FCP, CLS, TTFB, INP |
-| Audience | Geo, device, referrer data |
+**Primary Focus**: Quick traffic overview and authoritative Web Vitals
 
-**Why Vercel for Web Vitals**: Authoritative source for Vercel deployments, optimized data collection
+| Feature    | Description                | Role                               |
+| ---------- | -------------------------- | ---------------------------------- |
+| Pageviews  | Basic traffic analytics    | BACKUP (PostHog is primary)        |
+| Web Vitals | LCP, FCP, CLS, TTFB, INP   | PRIMARY (authoritative for Vercel) |
+| Audience   | Geo, device, referrer data | BACKUP (PostHog is primary)        |
+
+**Why keep Vercel Analytics**: Quick access in Vercel dashboard for at-a-glance traffic checks.
+**Why Vercel for Web Vitals**: Authoritative source for Vercel deployments, optimized data collection.
 
 ### Better Stack
 
 **Primary Focus**: External monitoring and status communication
 
-| Feature | Description | Docs |
-|---------|-------------|------|
-| Uptime Monitoring | Multi-region health checks | [Better Stack Docs](./01-betterstack-monitoring.md) |
-| Status Page | Public status communication | Included |
-| Heartbeats | QStash cron job monitoring | Included |
-| Incident Management | Alerting and escalation | Included |
+| Feature             | Description                 | Docs                                                |
+| ------------------- | --------------------------- | --------------------------------------------------- |
+| Uptime Monitoring   | Multi-region health checks  | [Better Stack Docs](./01-betterstack-monitoring.md) |
+| Status Page         | Public status communication | Included                                            |
+| Heartbeats          | QStash cron job monitoring  | Included                                            |
+| Incident Management | Alerting and escalation     | Included                                            |
 
 ## Cross-Platform Integration
 
@@ -140,11 +169,11 @@ User roles are tracked in both platforms:
 
 The following duplicate tracking has been eliminated:
 
-| Previously Tracked | Now Single Source |
-|-------------------|-------------------|
-| PostHog error events | Sentry only |
-| PostHog session recording | Sentry Replay only |
-| PostHog manual Web Vitals | Vercel Speed Insights + Sentry |
+| Previously Tracked         | Now Single Source                   |
+| -------------------------- | ----------------------------------- |
+| PostHog error events       | Sentry only                         |
+| PostHog session recording  | Sentry Replay only                  |
+| PostHog manual Web Vitals  | Vercel Speed Insights + Sentry      |
 | Multiple pageview trackers | PostHog (enhanced) + Vercel (basic) |
 
 ## File Structure
@@ -166,6 +195,7 @@ pnpm test -- --testPathPattern="analytics-integration"
 ```
 
 Tests cover:
+
 - User ID consistency across platforms
 - Role-based group priority logic
 - PostHog group properties
@@ -176,47 +206,54 @@ Tests cover:
 ## Monitoring Checklist
 
 ### Daily
+
 - [ ] Check Sentry for new unhandled errors
 - [ ] Review Better Stack uptime status
 
 ### Weekly
+
 - [ ] Analyze PostHog user journeys
 - [ ] Review Vercel Web Vitals trends
 - [ ] Check Sentry performance metrics
 
 ### Monthly
+
 - [ ] Audit feature flag usage in PostHog
 - [ ] Review error trends and prioritize fixes
 - [ ] Update status page if needed
 
 ## Environment Variables
 
-| Variable | Platform | Required |
-|----------|----------|----------|
-| `NEXT_PUBLIC_SENTRY_DSN` | Sentry | Yes |
-| `SENTRY_AUTH_TOKEN` | Sentry (build) | Yes |
-| `NEXT_PUBLIC_POSTHOG_KEY` | PostHog | Yes |
-| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog | Yes |
-| `BETTERSTACK_*` | Better Stack | Yes |
+| Variable                   | Platform       | Required |
+| -------------------------- | -------------- | -------- |
+| `NEXT_PUBLIC_SENTRY_DSN`   | Sentry         | Yes      |
+| `SENTRY_AUTH_TOKEN`        | Sentry (build) | Yes      |
+| `NEXT_PUBLIC_POSTHOG_KEY`  | PostHog        | Yes      |
+| `NEXT_PUBLIC_POSTHOG_HOST` | PostHog        | Yes      |
+| `BETTERSTACK_*`            | Better Stack   | Yes      |
 
 ## Troubleshooting
 
 ### Sentry not receiving events
+
 1. Check DSN is correct in environment
 2. Verify tunnel route `/monitoring` is accessible
 3. Check browser console for Sentry Logger output
 
 ### PostHog user not identified
+
 1. Verify user is authenticated (WorkOS)
 2. Check browser console for PostHog initialization
 3. Ensure API key is correct
 
 ### Missing role-based grouping
+
 1. Role fetch requires authenticated user
 2. Check `/api/user/roles` endpoint
 3. Verify AuthorizationProvider is in component tree
 
 ### Web Vitals not appearing
+
 1. Vercel Speed Insights needs production deployment
 2. Sentry also tracks Web Vitals in BrowserTracing
 3. Check Vercel Analytics dashboard
@@ -227,4 +264,3 @@ Tests cover:
 - [PostHog Analytics](./02-posthog-analytics.md)
 - [Better Stack Monitoring](./01-betterstack-monitoring.md)
 - [Cursor Rules - Sentry](/.cursor/rules/sentry.mdc)
-
