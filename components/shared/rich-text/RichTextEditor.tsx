@@ -1,5 +1,7 @@
 'use client';
 
+// Import shared type declaration for markdown storage
+import '@/components/shared/rich-text/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 // Using official TipTap extensions instead of custom sanitizer
@@ -58,15 +60,6 @@ interface RichTextEditorProps {
     typography?: boolean;
     links?: boolean;
   };
-}
-
-// Type declaration for the markdown storage extension
-declare module '@tiptap/core' {
-  interface Storage {
-    markdown: {
-      getMarkdown: () => string;
-    };
-  }
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({

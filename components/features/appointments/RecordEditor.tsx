@@ -1,3 +1,5 @@
+// Import shared type declaration for markdown storage
+import '@/components/shared/rich-text/types';
 import { Button } from '@/components/ui/button';
 import { BulletList } from '@tiptap/extension-bullet-list';
 import { Highlight } from '@tiptap/extension-highlight';
@@ -11,7 +13,6 @@ import { TaskItem } from '@tiptap/extension-task-item';
 import { TaskList } from '@tiptap/extension-task-list';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
-import { renderToMarkdown } from '@tiptap/static-renderer/pm/markdown';
 import {
   Bold,
   CheckSquare,
@@ -24,7 +25,8 @@ import {
   List,
   Table as TableIcon,
 } from 'lucide-react';
-import React from 'react';
+import React, { useRef } from 'react';
+import { Markdown } from 'tiptap-markdown';
 
 interface RecordEditorProps {
   value: string; // Markdown content
@@ -39,6 +41,20 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
   readOnly = false,
   autoFocus = false,
 }) => {
+  // Use refs to avoid stale closures and unnecessary re-renders
+  const onChangeRef = useRef(onChange);
+  const isUpdatingFromProp = useRef(false);
+
+  // Track initialization and external value for proper sync
+  const hasInitializedContent = useRef(false);
+  const lastExternalValue = useRef(value);
+  const initialValueRef = useRef(value);
+
+  // Update the onChange ref when it changes
+  React.useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
   // All extensions used by the editor - memoized to prevent unnecessary re-renders
   const extensions = React.useMemo(
     () => [
@@ -46,6 +62,16 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
         heading: {
           levels: [1, 2, 3],
         },
+      }),
+      // ✅ MARKDOWN SUPPORT: Enable proper markdown parsing and rendering
+      Markdown.configure({
+        html: false, // Disable HTML for security
+        transformPastedText: true, // Allow pasting markdown text
+        transformCopiedText: true, // Copied text is transformed to markdown
+        breaks: false, // Don't convert \n to <br>
+        linkify: false, // Don't auto-create links from URLs
+        tightLists: true, // No <p> inside <li> for cleaner output
+        bulletListMarker: '-', // Consistent list markers
       }),
       BulletList,
       ListItem,
@@ -92,7 +118,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
 
   const editor = useEditor({
     extensions,
-    content: value, // Directly use Markdown content
+    content: '', // Start empty - content will be set in onCreate after editor is fully ready
     editable: !readOnly,
     autofocus: autoFocus ? 'end' : false,
     editorProps: {
@@ -100,39 +126,101 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
         class: 'prose prose-sm max-w-none focus:outline-none min-h-[200px] h-full px-3 py-2',
       },
     },
+    immediatelyRender: false,
+    // Set content after editor is fully initialized with all extensions
+    onCreate: ({ editor }) => {
+      // Use the initial value ref to ensure we use the value from mount time
+      const initialContent = initialValueRef.current;
+      if (initialContent) {
+        editor.commands.setContent(initialContent, { emitUpdate: false });
+      }
+      // Mark initialization complete and sync the external value tracker
+      hasInitializedContent.current = true;
+      lastExternalValue.current = initialContent;
+    },
     // Convert editor content to Markdown before calling onChange
     onUpdate: ({ editor }) => {
-      // ✅ CLEAN CODE: Direct Markdown storage - no unnecessary conversion
+      // Don't emit changes if we're currently updating from external prop
+      if (isUpdatingFromProp.current) {
+        return;
+      }
+
+      // ✅ MARKDOWN EXTENSION: Use the tiptap-markdown extension's built-in method
       try {
-        const markdownContent = renderToMarkdown({
-          extensions,
-          content: editor.getJSON(),
-        });
-        onChange(markdownContent);
+        const markdownContent = editor.storage.markdown.getMarkdown();
+        // Track our own output to avoid comparison issues
+        lastExternalValue.current = markdownContent;
+        onChangeRef.current(markdownContent);
       } catch (error) {
-        console.warn('Failed to convert to Markdown, falling back to HTML:', error);
-        // Fallback to HTML if Markdown conversion fails
-        const htmlContent = editor.getHTML();
-        onChange(htmlContent);
+        console.warn('Failed to convert to Markdown:', error);
+        // Fallback to empty content to prevent corruption
+        onChangeRef.current('');
       }
     },
   });
 
-  // Handle external content updates
+  // Handle external content updates while preserving cursor position
   React.useEffect(() => {
-    if (!editor || !value) return;
+    // Skip if editor not ready or initialization hasn't completed (onCreate handles initial content)
+    if (!editor || !hasInitializedContent.current) return;
 
-    // ✅ CLEAN CODE: Simplified - content is already Markdown
-    const currentContent = renderToMarkdown({
-      extensions,
-      content: editor.getJSON(),
-    });
+    // Only update if external value actually changed (not from our own edits)
+    // This comparison uses the tracked value, avoiding getMarkdown() normalization issues
+    if (value === lastExternalValue.current) return;
 
-    // Only update if content is actually different
-    if (currentContent !== value) {
-      editor.commands.setContent(value, { emitUpdate: false });
+    // Store current selection/cursor position and focus state
+    const { from, to } = editor.state.selection;
+    const wasFocused = editor.isFocused;
+
+    // Flag that we're updating from external source
+    isUpdatingFromProp.current = true;
+
+    // Update our tracker to the new external value
+    lastExternalValue.current = value;
+
+    try {
+      // ✅ MARKDOWN EXTENSION: setContent properly parses markdown!
+      editor.commands.setContent(value || '', { emitUpdate: false });
+
+      // Restore cursor position after content update if editor was focused
+      if (wasFocused) {
+        // Use nextTick for reliable timing after content update
+        Promise.resolve().then(() => {
+          if (editor && !editor.isDestroyed) {
+            const newDocSize = editor.state.doc.content.size;
+
+            // Calculate safe cursor positions
+            const safeFrom = Math.min(from, Math.max(0, newDocSize - 1));
+            const safeTo = Math.min(to, Math.max(0, newDocSize - 1));
+
+            try {
+              // Restore selection using setTextSelection command
+              if (safeFrom === safeTo) {
+                editor.commands.setTextSelection(safeFrom);
+              } else {
+                editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
+              }
+              editor.commands.focus();
+            } catch (selectionError) {
+              console.warn('Cursor position restoration failed, focusing at end:', selectionError);
+              editor.commands.focus('end');
+            }
+          }
+        });
+      }
+    } catch (error) {
+      console.warn('Advanced cursor preservation failed, using fallback:', error);
+      editor.commands.setContent(value || '', { emitUpdate: false });
+      if (wasFocused) {
+        editor.commands.focus('end');
+      }
+    } finally {
+      // Reset the flag after the microtask queue completes
+      queueMicrotask(() => {
+        isUpdatingFromProp.current = false;
+      });
     }
-  }, [value, editor, extensions]);
+  }, [value, editor]);
 
   if (!editor) {
     return null;
@@ -310,9 +398,15 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
       </div>
 
       {/* 
-        ✅ CLEAN CODE: Simplified Markdown-only architecture
+        ✅ MARKDOWN-POWERED RECORD EDITOR
         
-        All styling converted to TailwindCSS utility classes:
+        Features:
+        ✅ Native Markdown Support: Uses tiptap-markdown extension for proper parsing
+        ✅ Bidirectional Conversion: Seamlessly converts between Markdown and HTML
+        ✅ Database-Ready: Content stored as markdown, displayed as rich HTML
+        ✅ Reliable Initialization: Uses onCreate callback for proper extension setup
+        
+        Styling Classes (TailwindCSS):
         - Medical Tables: border-collapse border-2 border-gray-300 w-full
         - Table Headers: bg-gray-100 font-bold border-2 border-gray-300 p-1
         - Table Cells: border-2 border-gray-300 p-1 align-top
@@ -320,13 +414,10 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
         - Highlighted Text: bg-yellow-200 px-1 py-0.5 rounded
         
         Benefits:
-        ✅ Utility-first approach follows Tailwind best practices
-        ✅ Responsive design ready with Tailwind variants
-        ✅ Consistent spacing and colors from design system
-        ✅ Better performance (no custom CSS)
-        ✅ Easier maintenance and customization
-        ✅ Mobile-first responsive design principles
-        ✅ Direct Markdown storage - no unnecessary conversions
+        ✅ Proper markdown parsing from database content
+        ✅ Rich text editing with markdown storage
+        ✅ Consistent rendering between edit and view modes
+        ✅ Cursor position preserved during external updates
       */}
     </div>
   );
