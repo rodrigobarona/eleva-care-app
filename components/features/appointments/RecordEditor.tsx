@@ -1,8 +1,8 @@
 // Import shared type declaration for markdown storage
+import { HighlightMarkdown } from '@/components/shared/rich-text/extensions/highlight-markdown';
 import '@/components/shared/rich-text/types';
 import { Button } from '@/components/ui/button';
 import { BulletList } from '@tiptap/extension-bullet-list';
-import { Highlight } from '@tiptap/extension-highlight';
 import { Link } from '@tiptap/extension-link';
 import { ListItem } from '@tiptap/extension-list-item';
 import { Table } from '@tiptap/extension-table';
@@ -81,7 +81,7 @@ const RecordEditor: React.FC<RecordEditorProps> = ({
           class: 'text-primary underline hover:text-primary/80',
         },
       }),
-      Highlight.configure({
+      HighlightMarkdown.configure({
         multicolor: true,
         HTMLAttributes: {
           class: 'bg-yellow-200 px-1 py-0.5 rounded',
