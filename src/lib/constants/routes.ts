@@ -153,6 +153,7 @@ export const SKIP_AUTH_API_PATTERNS = [
   '/api/health/',
   '/api/create-payment-intent',
   '/api/og/',
+  '/monitoring', // Sentry tunnel route - must skip auth and i18n
 ] as const;
 
 // ============================================

@@ -43,9 +43,10 @@ Sentry.init({
     }),
 
     // User Feedback: Allows users to submit feedback on errors
+    // Triggered manually via footer link (SentryFeedbackButton component)
     Sentry.feedbackIntegration({
-      // Automatically inject the feedback button
-      autoInject: true,
+      // Disabled floating button - triggered via footer link instead
+      autoInject: false,
       // Color scheme follows system preference
       colorScheme: 'system',
       // Show branding

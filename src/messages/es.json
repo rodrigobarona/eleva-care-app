@@ -273,7 +273,8 @@
         "title": "Soporte",
         "help": "Centro de Ayuda",
         "community": "Comunidad",
-        "contact": "Contacto"
+        "contact": "Contacto",
+        "reportBug": "Reportar un Error"
       },
       "trust": {
         "title": "Confianza y Seguridad",

@@ -266,7 +266,8 @@
         "title": "Suporte",
         "help": "Central de Ajuda",
         "community": "Comunidade",
-        "contact": "Contato"
+        "contact": "Contato",
+        "reportBug": "Reportar um Bug"
       },
       "trust": {
         "title": "Confiança e Segurança",

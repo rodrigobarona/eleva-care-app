@@ -274,7 +274,8 @@
         "title": "Support",
         "help": "Help Center",
         "community": "Community",
-        "contact": "Contact"
+        "contact": "Contact",
+        "reportBug": "Report a Bug"
       },
       "trust": {
         "title": "Trust & Security",

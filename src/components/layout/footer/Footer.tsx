@@ -1,5 +1,6 @@
 import { LanguageSwitcher } from '@/components/shared/i18n/LocaleSwitcher';
 import { CookiePreferencesButton } from '@/components/shared/ui-utilities/CookiePreferencesButton';
+import { SentryFeedbackButton } from '@/components/shared/ui-utilities/SentryFeedbackButton';
 import { ServerStatus } from '@/components/shared/ui-utilities/ServerStatus';
 import { Button } from '@/components/ui/button';
 import { Link } from '@/lib/i18n/navigation';
@@ -210,6 +211,9 @@ export default function Footer() {
                               >
                                 {t('nav.support.contact')}
                               </Link>
+                            </li>
+                            <li>
+                              <SentryFeedbackButton label={t('nav.support.reportBug')} />
                             </li>
                           </ul>
                         </div>
