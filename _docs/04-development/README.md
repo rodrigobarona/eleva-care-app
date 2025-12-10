@@ -72,13 +72,16 @@ User interface and user experience patterns.
 
 - **Dashboard Forms**: Form design and validation
 - **React Hook Form**: Form state management
-- **TipTap Editor**: Rich text editor implementation
+- **TipTap Editor**: Rich text editor implementation with Markdown support
+- **OG Image System**: Open Graph image generation
 
 📄 **Key Files:**
 
 - [Dashboard Forms Design](./ui-ux/01-dashboard-forms-design.md)
 - [React Hook Form Fixes](./ui-ux/02-react-hook-form-fixes.md)
 - [TipTap Editor Fixes](./ui-ux/03-tiptap-editor-fixes.md)
+- [OG Image System](./ui-ux/04-og-image-system.md)
+- [TipTap Markdown Implementation](./ui-ux/05-tiptap-markdown-implementation.md)
 
 ---
 

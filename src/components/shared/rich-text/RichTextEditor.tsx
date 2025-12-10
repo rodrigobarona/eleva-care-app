@@ -20,6 +20,7 @@ import { TextAlign } from '@tiptap/extension-text-align';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Typography } from '@tiptap/extension-typography';
 import { Underline } from '@tiptap/extension-underline';
+import { Markdown } from '@tiptap/markdown';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import {
@@ -42,7 +43,6 @@ import {
 } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Markdown } from 'tiptap-markdown';
 
 interface RichTextEditorProps {
   value: string; // Markdown content
@@ -58,15 +58,6 @@ interface RichTextEditorProps {
     typography?: boolean;
     links?: boolean;
   };
-}
-
-// Type declaration for the markdown storage extension
-declare module '@tiptap/core' {
-  interface Storage {
-    markdown: {
-      getMarkdown: () => string;
-    };
-  }
 }
 
 const RichTextEditor: React.FC<RichTextEditorProps> = ({
@@ -113,9 +104,15 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         };
     }
   }, [variant, features]);
+
   // Use refs to avoid stale closures and unnecessary re-renders
   const onChangeRef = useRef(onChange);
   const isUpdatingFromProp = useRef(false);
+
+  // Track initialization and external value for proper sync
+  const hasInitializedContent = useRef(false);
+  const lastExternalValue = useRef(value);
+  const initialValueRef = useRef(value);
 
   // Image upload state
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -134,15 +131,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           levels: [1, 2, 3],
         },
       }),
-      // ✅ MARKDOWN SUPPORT: Enable proper markdown parsing and rendering
+      // ✅ MARKDOWN SUPPORT: Using official @tiptap/markdown extension
       Markdown.configure({
-        html: false, // Disable HTML for security and iPhone Safari compatibility
-        transformPastedText: true, // Allow pasting markdown text
-        transformCopiedText: true, // Copied text is transformed to markdown
-        breaks: false, // Don't convert \n to <br>
-        linkify: false, // Don't auto-create links from URLs
-        tightLists: true, // No <p> inside <li> for cleaner output
-        bulletListMarker: '-', // Consistent list markers
+        markedOptions: {
+          gfm: true,
+          breaks: false,
+        },
       }),
       // Professional Typography
       Typography,
@@ -237,7 +231,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
   const editor = useEditor({
     extensions,
-    content: value, // Directly use Markdown content
+    content: '', // Start empty - content will be set in onCreate after editor is fully ready
     editorProps: {
       attributes: {
         class:
@@ -245,6 +239,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
       },
     },
     immediatelyRender: false,
+    // Set content after editor is fully initialized with all extensions
+    onCreate: ({ editor }) => {
+      // Use the initial value ref to ensure we use the value from mount time
+      const initialContent = initialValueRef.current;
+      if (initialContent) {
+        editor.commands.setContent(initialContent, {
+          emitUpdate: false,
+          parseOptions: { preserveWhitespace: 'full' },
+        });
+      }
+      // Mark initialization complete and sync the external value tracker
+      hasInitializedContent.current = true;
+      lastExternalValue.current = initialContent;
+    },
     // Convert editor content to Markdown before calling onChange
     onUpdate: ({ editor }) => {
       // Don't emit changes if we're currently updating from external prop
@@ -252,9 +260,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         return;
       }
 
-      // ✅ MARKDOWN EXTENSION: Use the tiptap-markdown extension's built-in method
+      // ✅ OFFICIAL @tiptap/markdown: Use the getMarkdown() method
       try {
-        const markdownContent = editor.storage.markdown.getMarkdown();
+        const markdownContent = editor.getMarkdown();
+        // Track our own output to avoid comparison issues
+        lastExternalValue.current = markdownContent;
         onChangeRef.current(markdownContent);
       } catch (error) {
         console.warn('Failed to convert to Markdown:', error);
@@ -333,9 +343,14 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     handleImageUpload(file);
   };
 
-  // Handle external content updates (from autosave) while preserving cursor position
+  // Handle external content updates while preserving cursor position
   React.useEffect(() => {
-    if (!editor || value === undefined) return;
+    // Skip if editor not ready or initialization hasn't completed (onCreate handles initial content)
+    if (!editor || !hasInitializedContent.current) return;
+
+    // Only update if external value actually changed (not from our own edits)
+    // This comparison uses the tracked value, avoiding getMarkdown() normalization issues
+    if (value === lastExternalValue.current) return;
 
     // Store current selection/cursor position and focus state
     const { from, to } = editor.state.selection;
@@ -344,49 +359,46 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     // Flag that we're updating from external source
     isUpdatingFromProp.current = true;
 
+    // Update our tracker to the new external value
+    lastExternalValue.current = value;
+
     try {
-      // ✅ MARKDOWN EXTENSION: Get current content as markdown for comparison
-      const currentContent = editor.storage.markdown.getMarkdown();
+      // ✅ OFFICIAL @tiptap/markdown: setContent with contentType option
+      editor.commands.setContent(value || '', {
+        emitUpdate: false,
+        parseOptions: { preserveWhitespace: 'full' },
+      });
 
-      // Only update if content is actually different
-      if (currentContent !== value) {
-        // ✅ MARKDOWN EXTENSION: setContent properly parses markdown!
-        editor.commands.setContent(value || '', { emitUpdate: false });
+      // Restore cursor position after content update if editor was focused
+      if (wasFocused) {
+        // Use nextTick for reliable timing after content update
+        Promise.resolve().then(() => {
+          if (editor && !editor.isDestroyed) {
+            const newDocSize = editor.state.doc.content.size;
 
-        // Restore cursor position after content update if editor was focused
-        if (wasFocused) {
-          // Use nextTick for reliable timing after content update
-          Promise.resolve().then(() => {
-            if (editor && !editor.isDestroyed) {
-              const newDocSize = editor.state.doc.content.size;
+            // Calculate safe cursor positions
+            const safeFrom = Math.min(from, Math.max(0, newDocSize - 1));
+            const safeTo = Math.min(to, Math.max(0, newDocSize - 1));
 
-              // Calculate safe cursor positions
-              const safeFrom = Math.min(from, Math.max(0, newDocSize - 1));
-              const safeTo = Math.min(to, Math.max(0, newDocSize - 1));
-
-              try {
-                // Restore selection using setTextSelection command
-                if (safeFrom === safeTo) {
-                  // Simple cursor position
-                  editor.commands.setTextSelection(safeFrom);
-                } else {
-                  // Text selection range
-                  editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
-                }
-
-                // Restore focus
-                editor.commands.focus();
-              } catch (selectionError) {
-                // Fallback: focus at end if position restoration fails
-                console.warn(
-                  'Cursor position restoration failed, focusing at end:',
-                  selectionError,
-                );
-                editor.commands.focus('end');
+            try {
+              // Restore selection using setTextSelection command
+              if (safeFrom === safeTo) {
+                // Simple cursor position
+                editor.commands.setTextSelection(safeFrom);
+              } else {
+                // Text selection range
+                editor.commands.setTextSelection({ from: safeFrom, to: safeTo });
               }
+
+              // Restore focus
+              editor.commands.focus();
+            } catch (selectionError) {
+              // Fallback: focus at end if position restoration fails
+              console.warn('Cursor position restoration failed, focusing at end:', selectionError);
+              editor.commands.focus('end');
             }
-          });
-        }
+          }
+        });
       }
     } catch (error) {
       // Fallback: simple content update without cursor preservation
@@ -720,13 +732,12 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         ✅ MARKDOWN-POWERED RICH TEXT EDITOR
         
         Features:
-        ✅ Native Markdown Support: Uses tiptap-markdown extension for proper parsing
+        ✅ Native Markdown Support: Uses official @tiptap/markdown extension
         ✅ Bidirectional Conversion: Seamlessly converts between Markdown and HTML
         ✅ Database-Ready: Content stored as markdown, displayed as rich HTML
-        ✅ Copy/Paste Support: Handles markdown text pasting and copying
-        ✅ Professional Styling: TailwindCSS utility classes for consistent design
+        ✅ Reliable Initialization: Uses onCreate callback for proper extension setup
         
-        Styling Classes:
+        Styling Classes (TailwindCSS):
         - Medical Tables: border-collapse border-2 border-gray-300 w-full
         - Table Headers: bg-gray-100 font-bold border-2 border-gray-300 p-1
         - Table Cells: border-2 border-gray-300 p-1 align-top
@@ -738,8 +749,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         ✅ Proper markdown parsing from database content
         ✅ Rich text editing with markdown storage
         ✅ Consistent rendering between edit and view modes
-        ✅ Professional medical documentation features
-        ✅ Responsive design with Tailwind utilities
+        ✅ Cursor position preserved during external updates
       */}
     </div>
   );

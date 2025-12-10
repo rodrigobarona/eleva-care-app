@@ -114,7 +114,7 @@
     "@sentry/nextjs": "^10.29.0",
     "@tanstack/react-query": "^5.90.7",
     "@tanstack/react-table": "^8.21.3",
-    "@tiptap/core": "^3.8.0",
+    "@tiptap/core": "^3.13.0",
     "@tiptap/extension-bullet-list": "^3.8.0",
     "@tiptap/extension-color": "^3.8.0",
     "@tiptap/extension-highlight": "^3.8.0",
@@ -133,7 +133,8 @@
     "@tiptap/extension-typography": "^3.8.0",
     "@tiptap/extension-underline": "^3.8.0",
     "@tiptap/extensions": "^3.8.0",
-    "@tiptap/pm": "^3.8.0",
+    "@tiptap/markdown": "^3.13.0",
+    "@tiptap/pm": "^3.13.0",
     "@tiptap/react": "^3.8.0",
     "@tiptap/starter-kit": "^3.8.0",
     "@tiptap/static-renderer": "^3.8.0",
@@ -181,7 +182,6 @@
     "sonner": "^2.0.7",
     "stripe": "^17.7.0",
     "tailwind-merge": "^2.6.0",
-    "tiptap-markdown": "^0.9.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
