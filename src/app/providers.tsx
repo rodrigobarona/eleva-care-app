@@ -12,9 +12,9 @@
  * - Cookie consent
  * - Authorization context
  */
+import * as Sentry from '@sentry/nextjs';
 import { AuthorizationProvider } from '@/components/shared/providers/AuthorizationProvider';
 import { ENV_CONFIG } from '@/config/env';
-import * as Sentry from '@sentry/nextjs';
 import { NovuProvider } from '@novu/nextjs';
 import { NovuProvider as ReactNovuProvider } from '@novu/react';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
@@ -121,13 +121,14 @@ function PostHogUserTracker() {
         if (!isMounted) return;
         if (data?.roles?.length > 0) {
           // Use the highest privilege role for grouping
-          const role = data.roles.includes('admin') || data.roles.includes('superadmin')
-            ? 'admin'
-            : data.roles.includes('expert_top')
-              ? 'expert_top'
-              : data.roles.includes('expert_community')
-                ? 'expert_community'
-                : 'user';
+          const role =
+            data.roles.includes('admin') || data.roles.includes('superadmin')
+              ? 'admin'
+              : data.roles.includes('expert_top')
+                ? 'expert_top'
+                : data.roles.includes('expert_community')
+                  ? 'expert_community'
+                  : 'user';
           setUserRole(role);
         } else {
           setUserRole('user');

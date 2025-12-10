@@ -98,52 +98,56 @@ describe('Analytics Integration', () => {
   describe('Role-based Group Tracking', () => {
     it('should determine correct role priority for admin users', () => {
       const roles = ['admin', 'user'];
-      const role = roles.includes('admin') || roles.includes('superadmin')
-        ? 'admin'
-        : roles.includes('expert_top')
-          ? 'expert_top'
-          : roles.includes('expert_community')
-            ? 'expert_community'
-            : 'user';
+      const role =
+        roles.includes('admin') || roles.includes('superadmin')
+          ? 'admin'
+          : roles.includes('expert_top')
+            ? 'expert_top'
+            : roles.includes('expert_community')
+              ? 'expert_community'
+              : 'user';
 
       expect(role).toBe('admin');
     });
 
     it('should determine correct role priority for expert_top users', () => {
       const roles = ['expert_top', 'user'];
-      const role = roles.includes('admin') || roles.includes('superadmin')
-        ? 'admin'
-        : roles.includes('expert_top')
-          ? 'expert_top'
-          : roles.includes('expert_community')
-            ? 'expert_community'
-            : 'user';
+      const role =
+        roles.includes('admin') || roles.includes('superadmin')
+          ? 'admin'
+          : roles.includes('expert_top')
+            ? 'expert_top'
+            : roles.includes('expert_community')
+              ? 'expert_community'
+              : 'user';
 
       expect(role).toBe('expert_top');
     });
 
     it('should determine correct role priority for expert_community users', () => {
       const roles = ['expert_community', 'user'];
-      const role = roles.includes('admin') || roles.includes('superadmin')
-        ? 'admin'
-        : roles.includes('expert_top')
-          ? 'expert_top'
-          : roles.includes('expert_community')
-            ? 'expert_community'
-            : 'user';
+      const role =
+        roles.includes('admin') || roles.includes('superadmin')
+          ? 'admin'
+          : roles.includes('expert_top')
+            ? 'expert_top'
+            : roles.includes('expert_community')
+              ? 'expert_community'
+              : 'user';
 
       expect(role).toBe('expert_community');
     });
 
     it('should default to user role when no special roles present', () => {
       const roles = ['user'];
-      const role = roles.includes('admin') || roles.includes('superadmin')
-        ? 'admin'
-        : roles.includes('expert_top')
-          ? 'expert_top'
-          : roles.includes('expert_community')
-            ? 'expert_community'
-            : 'user';
+      const role =
+        roles.includes('admin') || roles.includes('superadmin')
+          ? 'admin'
+          : roles.includes('expert_top')
+            ? 'expert_top'
+            : roles.includes('expert_community')
+              ? 'expert_community'
+              : 'user';
 
       expect(role).toBe('user');
     });
@@ -316,4 +320,3 @@ describe('Cross-Platform User Correlation', () => {
     expect(sentryContext.contexts.posthog.session_replay_url).toContain('posthog.com/replay');
   });
 });
-

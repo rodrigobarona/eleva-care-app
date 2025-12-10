@@ -348,6 +348,53 @@ export function GET() {
 
 ---
 
+## PostHog Integration
+
+Sentry is integrated with PostHog for cross-platform debugging:
+
+### User Context Sharing
+
+When a user is identified in PostHog, the same user context is set in Sentry:
+
+```typescript
+// Set in src/app/providers.tsx
+Sentry.setUser({
+  id: user.id,       // WorkOS user ID
+  email: user.email,
+  username: userName,
+});
+```
+
+### Role Tagging
+
+User roles are tagged for filtering errors by user type:
+
+```typescript
+Sentry.setTag('user_role', userRole);
+// Values: 'admin', 'expert_top', 'expert_community', 'user', 'anonymous'
+```
+
+### PostHog Session Context
+
+PostHog session info is added to Sentry for debugging:
+
+```typescript
+Sentry.setContext('posthog', {
+  session_id: posthog.get_session_id(),
+  distinct_id: posthog.get_distinct_id(),
+  session_replay_url: posthog.get_session_replay_url({ withTimestamp: true }),
+});
+```
+
+### Debugging Workflow
+
+1. **View error in Sentry** → See user ID and role tag
+2. **Check PostHog context** → Get session replay URL
+3. **Click replay URL** → Watch user journey before error
+4. **Filter by role** → Analyze if error affects specific user types
+
+---
+
 ## Troubleshooting
 
 ### Errors Not Appearing

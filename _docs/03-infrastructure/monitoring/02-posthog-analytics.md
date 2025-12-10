@@ -8,14 +8,14 @@ This document outlines the PostHog product analytics implementation for the Elev
 >
 > PostHog is focused on **product analytics** only. Other observability concerns are handled by dedicated tools:
 >
-> | Concern | Tool | Notes |
-> |---------|------|-------|
-> | **Product Analytics** | PostHog | Funnels, retention, user journeys, feature flags |
-> | **Error Tracking** | Sentry | Automatic capture, source maps, stack traces |
-> | **Session Replay** | Sentry | Linked to errors for debugging |
-> | **Web Vitals** | Vercel Speed Insights | Authoritative for Vercel deployments |
-> | **APM/Tracing** | Sentry | Distributed tracing, spans |
-> | **Uptime Monitoring** | Better Stack | Multi-region checks, status page |
+> | Concern               | Tool                  | Notes                                            |
+> | --------------------- | --------------------- | ------------------------------------------------ |
+> | **Product Analytics** | PostHog               | Funnels, retention, user journeys, feature flags |
+> | **Error Tracking**    | Sentry                | Automatic capture, source maps, stack traces     |
+> | **Session Replay**    | Sentry                | Linked to errors for debugging                   |
+> | **Web Vitals**        | Vercel Speed Insights | Authoritative for Vercel deployments             |
+> | **APM/Tracing**       | Sentry                | Distributed tracing, spans                       |
+> | **Uptime Monitoring** | Better Stack          | Multi-region checks, status page                 |
 >
 > This separation ensures each tool does what it does best without duplicate tracking.
 
@@ -136,6 +136,90 @@ All events include standard properties:
   environment: 'development' | 'production' | 'test';
 }
 ```
+
+## Role-Based Group Tracking
+
+Users are automatically segmented into **groups by role** for analytics comparison:
+
+### Group Types
+
+| Group Key          | Description                | Use Case                   |
+| ------------------ | -------------------------- | -------------------------- |
+| `admin`            | Admin and superadmin users | Internal tool usage        |
+| `expert_top`       | Top-tier experts           | Expert engagement patterns |
+| `expert_community` | Community experts          | Expert onboarding analysis |
+| `user`             | Regular users/patients     | Patient journey analysis   |
+
+### Group Properties
+
+Each group automatically receives these properties:
+
+```typescript
+{
+  role: string; // 'admin' | 'expert_top' | 'expert_community' | 'user'
+  is_expert: boolean; // true for expert_* roles
+  is_admin: boolean; // true for admin role
+}
+```
+
+### Usage in PostHog
+
+You can segment any chart by user role:
+
+1. **Funnels**: Compare conversion rates between experts and patients
+2. **Retention**: Analyze retention by user type
+3. **Insights**: Filter any metric by `user_role` group
+4. **Cohorts**: Create cohorts based on role + other criteria
+
+### Implementation
+
+Group tracking is set automatically when a user is identified:
+
+```typescript
+// Set in src/app/providers.tsx - PostHogUserTracker component
+posthog.group('user_role', userRole, {
+  role: userRole,
+  is_expert: userRole.startsWith('expert'),
+  is_admin: userRole === 'admin',
+});
+```
+
+## Sentry Integration
+
+PostHog and Sentry share user context for cross-platform debugging:
+
+### User ID Consistency
+
+The **WorkOS user ID** is used consistently across:
+
+- WorkOS Authentication (`user.id`)
+- PostHog identify (`posthog.identify(user.id, ...)`)
+- Sentry user context (`Sentry.setUser({ id: user.id, ... })`)
+
+This enables:
+
+- Clicking from Sentry errors to PostHog user profiles
+- Filtering Sentry errors by user role
+- Cross-referencing session replays
+
+### Context Sharing
+
+PostHog session info is added to Sentry context:
+
+```typescript
+Sentry.setContext('posthog', {
+  session_id: posthog.get_session_id(),
+  distinct_id: posthog.get_distinct_id(),
+  session_replay_url: posthog.get_session_replay_url({ withTimestamp: true }),
+});
+```
+
+### Debugging Workflow
+
+1. **Error occurs** → Sentry captures it with user ID
+2. **View in Sentry** → See user role tag and PostHog context
+3. **Click session replay URL** → Opens PostHog to see user journey before error
+4. **Correlate** → Same user ID in both platforms
 
 ## PostHog Dashboards
 
@@ -581,6 +665,7 @@ When updating PostHog:
 PostHog and Sentry are integrated to provide cross-platform user context:
 
 **How it works:**
+
 1. When a user is identified in PostHog (via `posthog.identify()`), the same user ID is set in Sentry
 2. PostHog session info (session ID, distinct ID, replay URL) is added to Sentry context
 3. This allows you to correlate Sentry errors with PostHog user profiles and sessions
