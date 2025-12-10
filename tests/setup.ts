@@ -256,39 +256,8 @@ jest.mock('@clerk/nextjs/server', () => ({
   } as never),
 }));
 
-// Add comprehensive Clerk auth mock
-jest.mock('@clerk/nextjs', () => ({
-  auth: jest.fn().mockResolvedValue({
-    userId: 'user_123',
-    sessionId: 'sess_123',
-    sessionClaims: {
-      sub: 'user_123',
-      sid: 'sess_123',
-      role: ['community_expert'],
-    },
-    getToken: jest.fn().mockResolvedValue('mock-token' as never),
-  } as never),
-  ClerkProvider: ({ children }: { children: React.ReactNode }) => children,
-  useAuth: jest.fn().mockReturnValue({
-    isLoaded: true,
-    isSignedIn: true,
-    userId: 'user_123',
-    sessionId: 'sess_123',
-  }),
-  useUser: jest.fn().mockReturnValue({
-    isLoaded: true,
-    isSignedIn: true,
-    user: mockClerkUser,
-  }),
-  useOrganization: jest.fn().mockReturnValue({
-    isLoaded: true,
-    organization: null,
-  }),
-  SignIn: () => 'SignIn',
-  SignUp: () => 'SignUp',
-  SignedIn: ({ children }: { children: React.ReactNode }) => children,
-  SignedOut: () => null,
-}));
+// Note: @clerk/nextjs is mocked via moduleNameMapper in jest.config.ts
+// The mock is located at tests/__mocks__/@clerk__nextjs.ts
 
 jest.mock('next/cache', () => ({
   revalidatePath: jest.fn(),

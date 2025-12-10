@@ -11,6 +11,9 @@ const customJestConfig = {
   testEnvironment: 'jsdom',
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
+    // Mock @clerk/nextjs to avoid module resolution issues in tests
+    '^@clerk/nextjs$': '<rootDir>/tests/__mocks__/@clerk__nextjs.ts',
+    '^@clerk/nextjs/server$': '<rootDir>/tests/__mocks__/@clerk__nextjs.ts',
     // Mock svix to avoid binary parsing issues
     '^svix$': '<rootDir>/tests/__mocks__/svix.ts',
     // Mock next-intl modules to prevent ESM parsing issues
@@ -27,6 +30,8 @@ const customJestConfig = {
     '^remark-gfm$': '<rootDir>/tests/__mocks__/remark-gfm.ts',
     // Mock fs/promises to prevent file system access during tests
     '^fs/promises$': '<rootDir>/tests/__mocks__/fs-promises.ts',
+    // Mock use-server (no-op, directive is handled at build time)
+    '^use-server$': '<rootDir>/tests/__mocks__/use-server.ts',
   },
   testPathIgnorePatterns: [
     '/node_modules/',
