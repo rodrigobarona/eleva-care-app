@@ -30,4 +30,3 @@ export async function register() {
  * This is the recommended way to capture request errors in Next.js 16+.
  */
 export const onRequestError = Sentry.captureRequestError;
-

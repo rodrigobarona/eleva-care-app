@@ -55,9 +55,6 @@ importers:
       '@novu/react':
         specifier: ^3.11.0
         version: 3.11.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@paralleldrive/cuid2':
-        specifier: ^2.3.1
-        version: 2.3.1
       '@radix-ui/react-accordion':
         specifier: ^1.2.12
         version: 1.2.12(@types/react-dom@19.0.4(@types/react@19.0.10))(@types/react@19.0.10)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -88,9 +85,6 @@ importers:
       '@radix-ui/react-progress':
         specifier: ^1.1.7
         version: 1.1.7(@types/react-dom@19.0.4(@types/react@19.0.10))(@types/react@19.0.10)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-scroll-area':
-        specifier: ^1.2.10
-        version: 1.2.10(@types/react-dom@19.0.4(@types/react@19.0.10))(@types/react@19.0.10)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@radix-ui/react-select':
         specifier: ^2.2.6
         version: 2.2.6(@types/react-dom@19.0.4(@types/react@19.0.10))(@types/react@19.0.10)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -109,9 +103,6 @@ importers:
       '@radix-ui/react-toast':
         specifier: ^1.2.15
         version: 1.2.15(@types/react-dom@19.0.4(@types/react@19.0.10))(@types/react@19.0.10)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@radix-ui/react-toggle':
-        specifier: ^1.1.10
-        version: 1.1.10(@types/react-dom@19.0.4(@types/react@19.0.10))(@types/react@19.0.10)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       '@radix-ui/react-tooltip':
         specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.0.4(@types/react@19.0.10))(@types/react@19.0.10)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -127,12 +118,6 @@ importers:
       '@sentry/nextjs':
         specifier: ^10.29.0
         version: 10.29.0(@opentelemetry/context-async-hooks@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/core@2.2.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@2.2.0(@opentelemetry/api@1.9.0))(next@16.0.1(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(babel-plugin-react-compiler@1.0.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)(webpack@5.103.0(@swc/core@1.15.1(@swc/helpers@0.5.17))(esbuild@0.19.12))
-      '@stripe/react-stripe-js':
-        specifier: ^3.10.0
-        version: 3.10.0(@stripe/stripe-js@6.1.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@stripe/stripe-js':
-        specifier: ^6.1.0
-        version: 6.1.0
       '@tanstack/react-query':
         specifier: ^5.90.7
         version: 5.90.7(react@19.2.0)
@@ -208,9 +193,6 @@ importers:
       '@tiptap/static-renderer':
         specifier: ^3.8.0
         version: 3.9.1(@tiptap/core@3.9.1(@tiptap/pm@3.9.1))(@tiptap/pm@3.9.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      '@types/lodash':
-        specifier: ^4.17.20
-        version: 4.17.20
       '@types/mdx':
         specifier: ^2.0.13
         version: 2.0.13
@@ -277,9 +259,6 @@ importers:
       lenis:
         specifier: ^1.3.13
         version: 1.3.13(react@19.2.0)
-      lodash:
-        specifier: ^4.17.21
-        version: 4.17.21
       lucide-react:
         specifier: ^0.453.0
         version: 0.453.0(react@19.2.0)
@@ -346,9 +325,6 @@ importers:
       tailwind-merge:
         specifier: ^2.6.0
         version: 2.6.0
-      tailwindcss-animate:
-        specifier: ^1.0.7
-        version: 1.0.7(tailwindcss@3.4.18(tsx@4.20.6)(yaml@2.8.1))
       tiptap-markdown:
         specifier: ^0.9.0
         version: 0.9.0(@tiptap/core@3.9.1(@tiptap/pm@3.9.1))
@@ -404,6 +380,9 @@ importers:
       babel-plugin-react-compiler:
         specifier: ^1.0.0
         version: 1.0.0
+      baseline-browser-mapping:
+        specifier: ^2.9.5
+        version: 2.9.5
       concurrently:
         specifier: ^9.2.1
         version: 9.2.1
@@ -2034,9 +2013,6 @@ packages:
     peerDependencies:
       '@opentelemetry/api': ^1.1.0
 
-  '@paralleldrive/cuid2@2.3.1':
-    resolution: {integrity: sha512-XO7cAxhnTZl0Yggq6jOgjiOHhbgcO4NqFqwSmQpjK3b6TEE6Uj/jfSk6wzYyemh3+I0sHirKSetjQwn5cZktFw==}
-
   '@peculiar/asn1-schema@2.5.0':
     resolution: {integrity: sha512-YM/nFfskFJSlHqv59ed6dZlLZqtZQwjRVJ4bBAiWV08Oc+1rSd5lDZcBEx0lGDHfSoH3UziI2pXt2UM33KerPQ==}
 
@@ -3290,17 +3266,6 @@ packages:
   '@standard-schema/spec@1.0.0':
     resolution: {integrity: sha512-m2bOd0f2RT9k8QJx1JN85cZYyH1RqFBdlwtkSlf4tBDYLCiiZnv1fIIwacK6cqwXavOydf0NPToMQgpKq+dVlA==}
 
-  '@stripe/react-stripe-js@3.10.0':
-    resolution: {integrity: sha512-UPqHZwMwDzGSax0ZI7XlxR3tZSpgIiZdk3CiwjbTK978phwR/fFXeAXQcN/h8wTAjR4ZIAzdlI9DbOqJhuJdeg==}
-    peerDependencies:
-      '@stripe/stripe-js': '>=1.44.1 <8.0.0'
-      react: 19.2.0
-      react-dom: 19.2.0
-
-  '@stripe/stripe-js@6.1.0':
-    resolution: {integrity: sha512-/5zxRol+MU4I7fjZXPxP2M6E1nuHOxAzoc0tOEC/TLnC31Gzc+5EE93mIjoAnu28O1Sqpl7/BkceDHwnGmn75A==}
-    engines: {node: '>=12.16'}
-
   '@swc/core-darwin-arm64@1.15.1':
     resolution: {integrity: sha512-vEPrVxegWIjKEz+1VCVuKRY89jhokhSmQ/YXBWLnmLj9cI08G61RTZJvdsIcjYUjjTu7NgZlYVK+b2y0fbh11g==}
     engines: {node: '>=10'}
@@ -3811,9 +3776,6 @@ packages:
 
   '@types/linkify-it@5.0.0':
     resolution: {integrity: sha512-sVDA58zAw4eWAffKOaQH5/5j3XeayukzDk+ewSsnv3p4yJEZHCCzMDiZM8e0OUrRvmpGZ85jf4yDHkHsgBNr9Q==}
-
-  '@types/lodash@4.17.20':
-    resolution: {integrity: sha512-H3MHACvFUEiujabxhaI/ImO6gUrd8oOurg7LQtS7mbwIXA/cUqWrvBsaeJ23aZEPk1TAYkurjfMbSELfoCXlGA==}
 
   '@types/markdown-it@13.0.9':
     resolution: {integrity: sha512-1XPwR0+MgXLWfTn9gCsZ55AHOKW1WN+P9vr0PaQh5aerR9LLQXUbjfEAFhjmEmyoYFWAyuN2Mqkn40MZ4ukjBw==}
@@ -4457,8 +4419,8 @@ packages:
     resolution: {integrity: sha512-lGe34o6EHj9y3Kts9R4ZYs/Gr+6N7MCaMlIFA3F1R2O5/m7K06AxfSeO5530PEERE6/WyEg3lsuyw4GHlPZHog==}
     engines: {node: ^4.5.0 || >= 5.9}
 
-  baseline-browser-mapping@2.8.21:
-    resolution: {integrity: sha512-JU0h5APyQNsHOlAM7HnQnPToSDQoEBZqzu/YBlqDnEeymPnZDREeXJA3KBMQee+dKteAxZ2AtvQEvVYdZf241Q==}
+  baseline-browser-mapping@2.9.5:
+    resolution: {integrity: sha512-D5vIoztZOq1XM54LUdttJVc96ggEsIfju2JBvht06pSzpckp3C7HReun67Bghzrtdsq9XdMGbSSB3v3GhMNmAA==}
     hasBin: true
 
   basic-ftp@5.0.5:
@@ -8513,11 +8475,6 @@ packages:
   tailwind-merge@2.6.0:
     resolution: {integrity: sha512-P+Vu1qXfzediirmHOC3xKGAYeZtPcV9g76X+xg2FD4tYgR71ewMA35Y3sCz3zhiN/dwefRpJX0yBcgwi1fXNQA==}
 
-  tailwindcss-animate@1.0.7:
-    resolution: {integrity: sha512-bl6mpH3T7I3UFxuvDEXLxy/VuFxBk5bbzplh7tXI68mwMokNYd1t9qPBHlnyTwfa4JGC4zP516I1hYYtQ/vspA==}
-    peerDependencies:
-      tailwindcss: '>=3.0.0 || insiders'
-
   tailwindcss@3.4.18:
     resolution: {integrity: sha512-6A2rnmW5xZMdw11LYjhcI5846rt9pbLSabY5XPxo+XWdxwZaFEn47Go4NzFiHu9sNNmr/kXivP1vStfvMaK1GQ==}
     engines: {node: '>=14.0.0'}
@@ -10761,10 +10718,6 @@ snapshots:
       '@opentelemetry/api': 1.9.0
       '@opentelemetry/core': 2.2.0(@opentelemetry/api@1.9.0)
 
-  '@paralleldrive/cuid2@2.3.1':
-    dependencies:
-      '@noble/hashes': 1.8.0
-
   '@peculiar/asn1-schema@2.5.0':
     dependencies:
       asn1js: 3.0.6
@@ -12101,15 +12054,6 @@ snapshots:
 
   '@standard-schema/spec@1.0.0': {}
 
-  '@stripe/react-stripe-js@3.10.0(@stripe/stripe-js@6.1.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)':
-    dependencies:
-      '@stripe/stripe-js': 6.1.0
-      prop-types: 15.8.1
-      react: 19.2.0
-      react-dom: 19.2.0(react@19.2.0)
-
-  '@stripe/stripe-js@6.1.0': {}
-
   '@swc/core-darwin-arm64@1.15.1':
     optional: true
 
@@ -12648,8 +12592,6 @@ snapshots:
   '@types/linkify-it@3.0.5': {}
 
   '@types/linkify-it@5.0.0': {}
-
-  '@types/lodash@4.17.20': {}
 
   '@types/markdown-it@13.0.9':
     dependencies:
@@ -13359,7 +13301,7 @@ snapshots:
 
   base64id@2.0.0: {}
 
-  baseline-browser-mapping@2.8.21: {}
+  baseline-browser-mapping@2.9.5: {}
 
   basic-ftp@5.0.5: {}
 
@@ -13418,7 +13360,7 @@ snapshots:
 
   browserslist@4.27.0:
     dependencies:
-      baseline-browser-mapping: 2.8.21
+      baseline-browser-mapping: 2.9.5
       caniuse-lite: 1.0.30001751
       electron-to-chromium: 1.5.243
       node-releases: 2.0.27
@@ -18365,10 +18307,6 @@ snapshots:
       '@pkgr/core': 0.2.9
 
   tailwind-merge@2.6.0: {}
-
-  tailwindcss-animate@1.0.7(tailwindcss@3.4.18(tsx@4.20.6)(yaml@2.8.1)):
-    dependencies:
-      tailwindcss: 3.4.18(tsx@4.20.6)(yaml@2.8.1)
 
   tailwindcss@3.4.18(tsx@4.20.6)(yaml@2.8.1):
     dependencies:
