@@ -1,3 +1,4 @@
+import { withNextVideo } from "next-video/process";
 import createMDX from '@next/mdx';
 import { withSentryConfig } from '@sentry/nextjs';
 import { withBotId } from 'botid/next/config';
@@ -119,7 +120,7 @@ const configWithPlugins = withBotId(withBundleAnalyzer(withNextIntl(nextConfig))
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
  */
-export default withSentryConfig(configWithPlugins, {
+export default withNextVideo(withSentryConfig(configWithPlugins, {
   // Sentry organization and project slugs
   org: 'elevacare',
   project: 'eleva-care',
@@ -151,4 +152,4 @@ export default withSentryConfig(configWithPlugins, {
   // Automatically create Cron Monitors in Sentry for Vercel cron jobs
   // Note: Currently only supports Pages Router
   automaticVercelMonitors: true,
-});
+}));

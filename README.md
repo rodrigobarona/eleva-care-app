@@ -290,6 +290,10 @@ Feel free to enhance or update the Mermaid diagram section as your architecture 
    # General Config
    NEXT_PUBLIC_APP_URL=https://eleva.care
 
+   # Mux Video (configured via Vercel Marketplace)
+   MUX_TOKEN_ID=
+   MUX_TOKEN_SECRET=
+
    # Production Security (Required for production deployments)
    DIAGNOSTICS_TOKEN=your-secure-random-token-here
    ```

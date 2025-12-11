@@ -8,7 +8,7 @@
   },
   "scripts": {
     "// ========== DEVELOPMENT ==========": "",
-    "dev": "concurrently --kill-others --names \"NEXT,QSTASH\" --prefix-colors \"cyan,magenta\" \"pnpm dev:next\" \"pnpm qstash:dev\"",
+    "dev": "concurrently --kill-others --names \"NEXT,QSTASH,VIDEO\" --prefix-colors \"cyan,magenta,yellow\" \"pnpm dev:next\" \"pnpm qstash:dev\" \"npx next-video sync -w\"",
     "dev:next": "NODE_NO_WARNINGS=1 next dev --port 3000",
     "dev:only": "NODE_NO_WARNINGS=1 next dev --port 3000",
     "// ========== BUILD & PRODUCTION ==========": "",
@@ -172,6 +172,7 @@
     "next": "16.0.8",
     "next-intl": "^4.5.2",
     "next-themes": "^0.4.6",
+    "next-video": "^2.6.0",
     "nuqs": "^2.7.2",
     "postgres": "^3.4.7",
     "posthog-js": "^1.281.0",

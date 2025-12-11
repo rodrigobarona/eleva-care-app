@@ -42,3 +42,10 @@ next-env.d.ts
 /cal.com
 _backup_.env
 _backup_env
+
+# next-video
+videos/*
+!videos/*.json
+!videos/*.js
+!videos/*.ts
+public/_next-video

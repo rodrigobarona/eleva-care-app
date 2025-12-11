@@ -4,57 +4,27 @@ import { PlatformDisclaimer } from '@/components/shared/ui-utilities/PlatformDis
 import { Button } from '@/components/ui/button';
 import { ClipboardList } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import dynamic from 'next/dynamic';
-import Image from 'next/image';
+import BackgroundVideo from 'next-video/background-video';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 
-// Dynamically import VideoPlayer to reduce initial bundle size
-const VideoPlayer = dynamic(
-  () =>
-    import('@/components/shared/media/VideoPlayer').then((mod) => ({ default: mod.VideoPlayer })),
-  {
-    ssr: false,
-    loading: () => null,
-  },
-);
+// Import video from the /videos folder - next-video handles Mux integration
+import heroVideo from '/videos/Eleva Care Intro.mp4';
 
 const Hero = () => {
   const t = useTranslations('hero');
 
   return (
-    <section
+    <BackgroundVideo
+      src={heroVideo}
       className="lg:rounded-5xl relative m-2 overflow-hidden rounded-2xl bg-eleva-neutral-900"
       data-component-name="hero"
     >
-      {/* Priority load poster image for instant FCP */}
-      <Image
-        src="/img/videos/eleva-care-intro-banner-poster.webp"
-        alt="Eleva Care Hero"
-        width={1920}
-        height={1080}
-        priority
-        quality={90}
-        className="lg:rounded-5xl absolute rounded-2xl object-cover"
-        sizes="100vw"
-      />
-      {/* Load video after initial render */}
-      <VideoPlayer
-        src="img/videos/eleva-care-intro-banner.webm"
-        width={1920}
-        height={1080}
-        playsInline
-        autoPlay
-        muted
-        loop
-        controls={false}
-        preload="none"
-        poster="img/videos/eleva-care-intro-banner-poster.webp"
-        className="lg:rounded-5xl absolute rounded-2xl object-cover"
-      />
-      <div className="absolute z-0 h-full w-full bg-eleva-neutral-900/40" />
-      <div className="relative px-4 lg:px-6">
-        <div className="z-20 mx-auto flex max-w-2xl flex-col justify-end pt-44 lg:max-w-7xl lg:justify-between lg:pt-72">
+      {/* Dark overlay for better text readability */}
+      <div className="absolute inset-0 z-10 bg-eleva-neutral-900/40" />
+      {/* Hero content */}
+      <div className="relative z-20 px-4 lg:px-6">
+        <div className="mx-auto flex max-w-2xl flex-col justify-end pt-44 lg:max-w-7xl lg:justify-between lg:pt-72">
           <div>
             <h1 className="max-w-5xl text-balance font-serif text-5xl/[0.9] font-light tracking-tight text-eleva-neutral-100 lg:text-8xl/[.9]">
               <ReactMarkdown>{t('title')}</ReactMarkdown>
@@ -95,7 +65,7 @@ const Hero = () => {
           </div>
         </div>
       </div>
-    </section>
+    </BackgroundVideo>
   );
 };
 
