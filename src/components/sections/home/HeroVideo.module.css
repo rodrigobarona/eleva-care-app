@@ -3,9 +3,10 @@
  * 
  * These styles CANNOT be converted to Tailwind because:
  * - ::part() selectors target Shadow DOM parts
- * - Descendant selectors (video) target elements inside Shadow DOM
+ * - Mux player CSS custom properties control internal styling
  * 
- * Tailwind only generates class-based utilities, it cannot pierce Shadow DOM.
+ * We use :global() for Shadow DOM selectors since CSS modules
+ * would hash the class names and break the selectors.
  */
 
 /* Override Mux player's default aspect ratio to prevent CLS */
@@ -15,15 +16,21 @@
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  /* Mux player CSS custom properties - these pierce the Shadow DOM */
+  --controls: none;
+  --media-object-fit: cover;
+  --media-object-position: center;
 }
 
 /* Target the internal media container (Shadow DOM part) */
-.heroMuxPlayer::part(container) {
+.heroMuxPlayer:global(::part(container)) {
   aspect-ratio: unset !important;
+  width: 100% !important;
+  height: 100% !important;
 }
 
-/* Target the video element inside Shadow DOM */
-.heroMuxPlayer video {
+/* Target the media element via Mux's exposed part */
+.heroMuxPlayer:global(::part(video)) {
   object-fit: cover !important;
   width: 100% !important;
   height: 100% !important;
