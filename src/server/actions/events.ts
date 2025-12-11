@@ -251,7 +251,7 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
       'event',
       deletedEvent.id,
       oldEvent,
-      'User requested deletion',
+      { reason: 'User requested deletion' },
       ipAddress,
       userAgent,
     );

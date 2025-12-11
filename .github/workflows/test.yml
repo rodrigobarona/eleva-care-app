@@ -38,7 +38,7 @@ jobs:
         id: setup
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           # No cache in setup job - it's only used for version detection
 
       - name: 📦 Get PNPM version

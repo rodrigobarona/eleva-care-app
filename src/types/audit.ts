@@ -118,7 +118,7 @@ export type AuditResourceType =
 /**
  * Type for audit event metadata
  */
-export type AuditEventMetadata = Record<string, unknown> | string;
+export type AuditEventMetadata = Record<string, unknown> | null;
 
 /**
  * Interface for audit log entry

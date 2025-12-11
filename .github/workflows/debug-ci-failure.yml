@@ -40,7 +40,7 @@ jobs:
       - name: 🔧 Test Node.js Setup
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           # No cache - this is a debug job without dependency installation
 
       - name: 📦 Test PNPM Installation
@@ -121,7 +121,7 @@ jobs:
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'pnpm'
 
       - name: 📦 Verify PNPM Installation

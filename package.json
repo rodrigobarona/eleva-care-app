@@ -3,6 +3,9 @@
   "version": "0.3.1",
   "private": true,
   "packageManager": "pnpm@9.2.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
     "// ========== DEVELOPMENT ==========": "",
     "dev": "concurrently --kill-others --names \"NEXT,QSTASH\" --prefix-colors \"cyan,magenta\" \"pnpm dev:next\" \"pnpm qstash:dev\"",

@@ -37,10 +37,9 @@
  * // User context (workosUserId, ipAddress, userAgent) is extracted automatically!
  * ```
  */
-
 import { db } from '@/drizzle/db';
 import { AuditLogsTable } from '@/drizzle/schema-workos';
-import type { AuditEventMetadata, AuditEventType, AuditResourceType } from '@/types/audit';
+import type { AuditEventType, AuditResourceType } from '@/types/audit';
 
 /**
  * Logs an audit event to the unified audit database.
@@ -58,7 +57,7 @@ export async function logAuditEvent(
   resourceType: AuditResourceType,
   resourceId: string,
   oldValues: Record<string, unknown> | null,
-  newValues: AuditEventMetadata,
+  newValues: Record<string, unknown> | null,
   ipAddress: string,
   userAgent: string,
 ): Promise<void> {
