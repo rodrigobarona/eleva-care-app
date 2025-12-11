@@ -48,7 +48,7 @@ const Hero = async () => {
 
   return (
     <section
-      className="lg:rounded-5xl relative m-2 overflow-hidden rounded-2xl bg-eleva-neutral-900"
+      className="lg:rounded-5xl relative m-2 min-h-[600px] overflow-hidden rounded-2xl bg-eleva-neutral-900 lg:min-h-[720px]"
       data-component-name="hero"
     >
       {/* Priority load poster image for instant FCP - always visible as fallback */}
@@ -61,6 +61,8 @@ const Hero = async () => {
         quality={75}
         className="lg:rounded-5xl rounded-2xl object-cover"
         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px"
+        placeholder="blur"
+        blurDataURL="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9IiMxYTI2MmQiLz48L3N2Zz4="
       />
 
       {/* Mux Video Player - Client component, only loads after cookie consent */}

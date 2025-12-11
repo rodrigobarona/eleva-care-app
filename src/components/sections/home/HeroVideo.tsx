@@ -54,13 +54,21 @@ export function HeroVideo() {
       disableCookies
       noVolumePref
       nohotkeys
-      className="lg:rounded-5xl absolute inset-0 z-[1] h-full w-full rounded-2xl object-cover"
-      style={{
-        '--controls': 'none',
-        '--media-object-fit': 'cover',
-        '--media-object-position': 'center',
-        aspectRatio: 'unset',
-      }}
+      className="lg:rounded-5xl !absolute !inset-0 z-[1] !h-full !w-full rounded-2xl object-cover"
+      style={
+        {
+          '--controls': 'none',
+          '--media-object-fit': 'cover',
+          '--media-object-position': 'center',
+          // Critical: Override default aspect ratio to prevent CLS
+          '--aspect-ratio': 'unset',
+          aspectRatio: 'unset',
+          position: 'absolute',
+          inset: '0',
+          width: '100%',
+          height: '100%',
+        } as React.CSSProperties
+      }
       onError={handleVideoError}
     />
   );

@@ -3,10 +3,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 /**
  * Hero section skeleton - matches the Hero component layout
  * Shows a large hero banner with content overlay
+ * IMPORTANT: min-height must match Hero.tsx to prevent CLS
  */
 export function HeroSkeleton() {
   return (
-    <section className="lg:rounded-5xl relative m-2 h-[600px] overflow-hidden rounded-2xl bg-eleva-neutral-200 lg:h-[800px]">
+    <section className="lg:rounded-5xl relative m-2 min-h-[600px] overflow-hidden rounded-2xl bg-eleva-neutral-200 lg:min-h-[720px]">
       <div className="absolute inset-0 bg-gradient-to-t from-eleva-neutral-900/60 to-transparent" />
       <div className="relative px-4 lg:px-6">
         <div className="mx-auto flex max-w-2xl flex-col justify-end pt-44 lg:max-w-7xl lg:justify-between lg:pt-72">
@@ -65,8 +66,8 @@ export function ServicesSkeleton() {
               key={`service-${i}`}
               className="overflow-hidden rounded-xl border border-eleva-neutral-200 bg-white"
             >
-              {/* Image skeleton */}
-              <Skeleton className="aspect-[300:450] h-72 w-full rounded-none" />
+              {/* Image skeleton - matches aspect-[2/3] max-h-72 from Services.tsx */}
+              <Skeleton className="aspect-[2/3] max-h-72 w-full rounded-none" />
 
               {/* Content skeleton */}
               <div className="p-6">
@@ -93,24 +94,40 @@ export function ServicesSkeleton() {
 
 /**
  * Approach section skeleton - matches ApproachSection component
+ * CRITICAL: Must match the actual ApproachSection structure including:
+ * - Gradient background
+ * - Negative margin overlap with Services section above
+ * - Two-column grid with image placeholder on left
  */
 export function ApproachSkeleton() {
   return (
-    <section className="w-full bg-white px-6 py-12 md:py-24 lg:px-8 lg:py-32">
+    <section className="lg:rounded-5xl mx-2 mt-24 rounded-2xl bg-[linear-gradient(145deg,var(--tw-gradient-stops))] from-eleva-highlight-yellow from-[28%] via-eleva-highlight-red via-[70%] to-eleva-highlight-purple py-10 lg:mt-32 lg:bg-[linear-gradient(115deg,var(--tw-gradient-stops))] lg:pb-32 lg:pt-20">
       <div className="mx-auto max-w-2xl lg:max-w-7xl">
-        <SectionHeaderSkeleton />
-
-        {/* Approach steps grid */}
-        <div className="mt-12 grid gap-8 md:grid-cols-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={`approach-${i}`} className="space-y-4">
-              <Skeleton className="h-12 w-12 rounded-full" />
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-full" />
-              <Skeleton className="h-4 w-5/6" />
-              <Skeleton className="h-4 w-4/6" />
+        <div className="grid grid-flow-row-dense grid-cols-1 gap-8 lg:grid-cols-12">
+          {/* Image placeholder - matches the actual component's image container */}
+          <div className="col-span-12 -mt-24 lg:col-span-5 lg:-mt-52">
+            <div className="lg:rounded-4xl -m-4 aspect-[3/4] rounded-xl bg-eleva-neutral-100/15 shadow-[inset_0_0_2px_1px_#ffffff4d] ring-1 ring-eleva-neutral-900/5 max-lg:mx-auto max-lg:max-w-xs lg:-m-10">
+              <div className="lg:rounded-4xl rounded-xl p-2 shadow-md shadow-eleva-neutral-900/5">
+                <Skeleton className="aspect-[3/4] w-full rounded-xl bg-eleva-neutral-100/30 lg:rounded-3xl" />
+              </div>
             </div>
-          ))}
+          </div>
+
+          {/* Content placeholder */}
+          <div className="col-span-12 pl-6 lg:col-span-7 lg:pl-16">
+            {/* Title skeleton */}
+            <Skeleton className="h-10 w-3/4 bg-eleva-neutral-100/30 lg:h-16" />
+
+            {/* List items skeleton */}
+            <div className="mx-auto mt-6 space-y-4 lg:mt-8">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={`approach-item-${i}`} className="flex items-center gap-2">
+                  <Skeleton className="h-6 w-6 bg-eleva-neutral-100/30 lg:h-12 lg:w-8" />
+                  <Skeleton className="h-6 flex-1 bg-eleva-neutral-100/30 lg:h-8" />
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </section>

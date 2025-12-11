@@ -114,23 +114,25 @@ export function HeaderContent() {
     };
   }, []);
 
+  // Fixed header height prevents CLS - use consistent padding with visual changes only
+  // Header always reserves the same space (80px on mobile, 96px on desktop)
   return (
     <header
-      className={`fixed z-50 w-full justify-between px-6 transition-all lg:px-8 ${
+      className={`fixed z-50 flex h-20 w-full items-center justify-between px-6 transition-colors duration-200 lg:h-24 lg:px-8 ${
         isRootPath && !isScrolled
-          ? 'bg-transparent pb-4 pt-6'
-          : 'bg-white/20 pb-2 pt-2 backdrop-blur-md'
+          ? 'bg-transparent'
+          : 'bg-white/20 backdrop-blur-md'
       }`}
     >
-      <div className="mx-auto flex max-w-2xl lg:max-w-7xl">
+      <div className="mx-auto flex w-full max-w-2xl items-center lg:max-w-7xl">
         <Link
           href="/"
-          className={`h-8 w-auto lg:h-12 ${
+          className={`flex h-8 w-[160px] items-center lg:h-12 lg:w-[240px] ${
             isRootPath && !isScrolled ? 'text-white' : 'text-foreground'
           }`}
         >
           <ElevaCareLogo
-            className="h-8 w-auto lg:h-12"
+            className="h-8 w-[160px] lg:h-12 lg:w-[240px]"
             variant={isRootPath && !isScrolled ? 'white' : 'default'}
           />
         </Link>
