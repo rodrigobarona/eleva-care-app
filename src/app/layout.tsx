@@ -49,12 +49,13 @@ const dmSans = DM_Sans({
 // - Modern and clean
 // - Has a humanist touch (not too tech-heavy)
 // - Good for confidence in secure processes, logs, etc.
+// Performance: preload: false - only used in code/data displays, not critical for initial render
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ['latin'],
   display: 'swap',
   weight: ['400', '500'], // 400: regular, 500: medium
   variable: '--font-ibm-plex-mono',
-  preload: true,
+  preload: false, // Not preloaded - rarely used on homepage, loads on-demand
   adjustFontFallback: true,
 });
 
@@ -121,14 +122,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Mux Video CDN (for hero background video) */}
         <link rel="preconnect" href="https://stream.mux.com" />
         <link rel="preconnect" href="https://image.mux.com" />
-
-        {/* Preload critical assets - Mux hero poster */}
-        <link
-          rel="preload"
-          href="https://image.mux.com/Ol6kzy3beOk2U4RHBssK2n7wtDlqHLWvmOPWH01VOVwA/thumbnail.webp?time=0"
-          as="image"
-          type="image/webp"
-        />
+        {/* Note: Hero poster preload is handled by Next.js Image with priority prop */}
       </head>
       <body className="min-h-screen bg-background font-sans antialiased">
         <NuqsAdapter>

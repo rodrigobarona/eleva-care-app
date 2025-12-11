@@ -3,19 +3,23 @@
 import { useSmoothScroll } from '@/components/providers/SmoothScrollProvider';
 import { usePathname, useRouter } from 'next/navigation';
 
+/**
+ * Hook for smooth navigation with hash support
+ *
+ * Uses native browser scrolling:
+ * - Same-page: scrollIntoView with CSS scroll-margin-top for offset
+ * - Cross-page: Navigate then scroll after content loads
+ */
 export function useSmoothNavigation() {
   const router = useRouter();
   const pathname = usePathname();
   const { scrollTo } = useSmoothScroll();
 
   const navigateWithHash = (href: string) => {
-    console.log('🔗 SmoothNavigation:', { href, currentPath: pathname });
-
     const [path, hash] = href.split('#');
 
     if (!hash) {
       // No hash, just navigate normally
-      console.log('📍 No hash - normal navigation');
       router.push(href);
       return;
     }
@@ -29,61 +33,34 @@ export function useSmoothNavigation() {
     const currentNormalizedPath = normalizeRoute(pathname);
     const targetNormalizedPath = normalizeRoute(path);
 
-    console.log('🔍 Path comparison:', {
-      current: currentNormalizedPath,
-      target: targetNormalizedPath,
-      hash,
-    });
-
     // Check if we're staying on the same page
     if (currentNormalizedPath === targetNormalizedPath) {
-      // Same page navigation - just scroll with appropriate offset
-      console.log('✅ Same page - scrolling to hash');
-      setTimeout(() => {
-        // Use larger offset for same-page navigation to account for header
-        scrollTo(`#${hash}`, { offset: -120 });
-      }, 100);
+      // Same page navigation - scroll using native scrollIntoView
+      // CSS scroll-margin-top handles the offset
+      scrollTo(`#${hash}`);
       return;
     }
 
     // Cross-page navigation with hash
-    console.log('🚀 Cross-page navigation');
-
     // Navigate to the new page first
     router.push(path);
 
-    // Use a single, sequential approach for cross-page navigation
-    let scrollSuccess = false;
+    // Wait for navigation and content to load, then scroll
+    const attemptScroll = (attempt: number = 1) => {
+      if (attempt > 4) return; // Max 4 attempts
 
-    const attemptSequentialScroll = async (maxAttempts: number = 4) => {
-      for (let attempt = 1; attempt <= maxAttempts && !scrollSuccess; attempt++) {
-        await new Promise((resolve) => setTimeout(resolve, attempt * 300)); // 300ms, 600ms, 900ms, 1200ms
-
-        console.log(`🔄 Sequential scroll attempt ${attempt} for hash: ${hash}`);
-
+      setTimeout(() => {
         const element = document.querySelector(`#${hash}`);
-        if (element && !scrollSuccess) {
-          console.log(`🎯 Found element on attempt ${attempt}, scrolling:`, element);
-          scrollSuccess = true;
-
-          // Wait a bit more for any dynamic content to load
-          setTimeout(() => {
-            scrollTo(`#${hash}`, { offset: -115, duration: 1.5 });
-            console.log('✅ Cross-page scroll completed');
-          }, 150);
-          break;
-        } else if (!scrollSuccess) {
-          console.warn(`⚠️ Element not found on attempt ${attempt}:`, hash);
+        if (element) {
+          scrollTo(`#${hash}`);
+        } else {
+          // Element not found yet, try again
+          attemptScroll(attempt + 1);
         }
-      }
-
-      if (!scrollSuccess) {
-        console.error('❌ Element not found after all attempts:', hash);
-      }
+      }, attempt * 300); // 300ms, 600ms, 900ms, 1200ms
     };
 
-    // Start sequential scroll attempts
-    attemptSequentialScroll();
+    attemptScroll();
   };
 
   return { navigateWithHash };

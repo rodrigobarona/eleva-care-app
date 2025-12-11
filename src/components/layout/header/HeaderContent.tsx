@@ -31,20 +31,13 @@ const NavLink = ({ href, isScrolled, isRootPath, children }: NavLinkProps) => {
       const currentNormalizedPath = normalizeRoute(pathname);
       const targetNormalizedPath = normalizeRoute(path);
 
-      console.log('🔗 Header NavLink:', {
-        href,
-        currentPath: currentNormalizedPath,
-        targetPath: targetNormalizedPath,
-      });
-
       if (currentNormalizedPath === targetNormalizedPath) {
-        // Same page - scroll with header-aware offset
-        console.log('✅ Header same-page scroll');
-        scrollTo(`#${hash}`, { offset: -80 }); // Fine-tuned offset for header navigation
+        // Same page - scroll using native scrollIntoView
+        // CSS scroll-margin-top (120px) handles the header offset
+        scrollTo(`#${hash}`);
       } else {
-        // Cross-page navigation - use router
-        console.log('🚀 Header cross-page navigation');
-        window.location.href = href; // Use native navigation for more reliable cross-page
+        // Cross-page navigation - use native navigation
+        window.location.href = href;
       }
     }
     // For other links, let Next.js handle them normally

@@ -12,7 +12,6 @@ import { ChevronRight } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import type React from 'react';
-import ReactMarkdown from 'react-markdown';
 
 type ServiceItem = {
   icon: string;
@@ -22,6 +21,25 @@ type ServiceItem = {
   image: string;
   cta: string;
 };
+
+/**
+ * Parse simple markdown bold syntax (**text**) to JSX
+ * Lightweight alternative to ReactMarkdown (~50KB bundle reduction)
+ *
+ * Handles patterns like: "**Physical Therapy:** Description text"
+ *
+ * @param text - Text with optional **bold** markers
+ * @returns JSX with <strong> tags for bold text
+ */
+function parseBold(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
 
 const ServiceSection: React.FC = () => {
   const t = useTranslations('services');
@@ -79,9 +97,7 @@ const ServiceSection: React.FC = () => {
                             {service.items.map((item: string) => (
                               <li key={item} className="flex items-start pb-2 text-base">
                                 <ChevronRight className="mr-2 mt-1 h-4 w-4 shrink-0" />
-                                <div className="flex-1">
-                                  <ReactMarkdown>{item}</ReactMarkdown>
-                                </div>
+                                <span className="flex-1">{parseBold(item)}</span>
                               </li>
                             ))}
                           </ul>

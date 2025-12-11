@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { ViewVerticalIcon } from '@radix-ui/react-icons';
+import { PanelLeft } from 'lucide-react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
 
@@ -267,7 +267,7 @@ const SidebarTrigger = React.forwardRef<
       }}
       {...props}
     >
-      <ViewVerticalIcon />
+      <PanelLeft className="h-4 w-4" />
       <span className="sr-only">Toggle Sidebar</span>
     </Button>
   );

@@ -2,18 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Lenis Smooth Scroll Styles */
-html.lenis,
-html.lenis body {
-  height: auto;
+/* Smooth scroll offset for fixed header */
+[id] {
+  scroll-margin-top: 120px;
 }
 
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
+/* Respect user preference for reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }
 
 @layer utilities {

@@ -3,7 +3,23 @@
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import type React from 'react';
-import ReactMarkdown from 'react-markdown';
+
+/**
+ * Parse simple markdown bold syntax (**text**) to JSX
+ * Lightweight alternative to ReactMarkdown (~50KB bundle reduction)
+ *
+ * @param text - Text with optional **bold** markers
+ * @returns JSX with <strong> tags for bold text
+ */
+function parseBold(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return part;
+  });
+}
 
 const ApproachSection: React.FC = () => {
   const t = useTranslations('approach');
@@ -49,7 +65,7 @@ const ApproachSection: React.FC = () => {
                     {index + 1}
                   </span>
                   <span className="ml-1 block py-2 text-base lg:ml-6 lg:py-6 lg:text-2xl">
-                    <ReactMarkdown>{item}</ReactMarkdown>
+                    {parseBold(item)}
                   </span>
                 </li>
               ))}

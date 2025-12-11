@@ -24,13 +24,14 @@ import dynamic from 'next/dynamic';
 import { useParams, usePathname } from 'next/navigation';
 import { posthog, PostHog, PostHogConfig } from 'posthog-js';
 import { PostHogProvider as PHProvider } from 'posthog-js/react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Toaster } from 'sonner';
 
 import { createCookieTranslations } from '../lib/i18n/cookie-translations';
 import PostHogPageView from './PostHogPageView';
 
 // Dynamically import CookieManager to prevent SSR issues
+// This defers loading until the client-side, reducing initial bundle size
 const CookieManager = dynamic(
   () => import('react-cookie-manager').then((mod) => mod.CookieManager),
   { ssr: false, loading: () => null },
@@ -341,17 +342,25 @@ interface ClientProvidersProps {
  * Enhanced with comprehensive PostHog analytics.
  * Tracks user behavior across public and private sections.
  * Includes feature flags, session recording, and performance monitoring.
+ *
+ * Performance optimization: PostHog initialization is deferred until first user interaction
+ * to reduce main thread blocking during initial page load.
  */
 export function ClientProviders({ children, messages }: ClientProvidersProps) {
   const [posthogLoaded, setPosthogLoaded] = useState(false);
   const params = useParams();
+  const posthogInitialized = useRef(false);
+  const interactionHandlersAttached = useRef(false);
 
   // Get the current locale from the URL params
   const currentLocale = (params?.locale as string) || 'en';
 
-  useEffect(() => {
-    // Enhanced PostHog setup
-    if (typeof window === 'undefined') return;
+  /**
+   * Initialize PostHog - extracted for deferred execution
+   * This function is called either after first interaction or after a delay
+   */
+  const initializePostHog = useCallback(() => {
+    if (typeof window === 'undefined' || posthogInitialized.current) return;
 
     const apiKey = ENV_CONFIG.NEXT_PUBLIC_POSTHOG_KEY;
 
@@ -370,6 +379,8 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
     }
 
     try {
+      posthogInitialized.current = true;
+
       // Initialize PostHog with enhanced configuration
       const config = getPostHogConfig();
 
@@ -401,9 +412,6 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
         },
       });
 
-      // NOTE: Error tracking removed - Sentry handles all errors automatically
-      // via GlobalHandlers integration (javascript_error, unhandled_promise_rejection)
-
       // Track page visibility changes (useful for engagement analytics)
       document.addEventListener('visibilitychange', () => {
         posthog.capture('page_visibility_changed', {
@@ -423,6 +431,47 @@ export function ClientProviders({ children, messages }: ClientProvidersProps) {
       console.error('[PostHog] Failed to initialize:', error);
     }
   }, [currentLocale]);
+
+  useEffect(() => {
+    // Performance optimization: Defer PostHog initialization
+    // Initialize on first user interaction OR after 3 seconds, whichever comes first
+    // This reduces main thread blocking during initial page load
+    if (typeof window === 'undefined' || interactionHandlersAttached.current) return;
+    interactionHandlersAttached.current = true;
+
+    // Interaction events that indicate user engagement
+    const interactionEvents = ['click', 'scroll', 'keydown', 'touchstart'];
+
+    const handleFirstInteraction = () => {
+      initializePostHog();
+      // Clean up listeners after first interaction
+      interactionEvents.forEach((event) => {
+        window.removeEventListener(event, handleFirstInteraction, { capture: true });
+      });
+    };
+
+    // Add listeners for first interaction
+    interactionEvents.forEach((event) => {
+      window.addEventListener(event, handleFirstInteraction, { capture: true, passive: true });
+    });
+
+    // Fallback: Initialize after 3 seconds if no interaction
+    // This ensures analytics still work for users who don't interact
+    const fallbackTimeout = setTimeout(() => {
+      initializePostHog();
+      // Clean up interaction listeners
+      interactionEvents.forEach((event) => {
+        window.removeEventListener(event, handleFirstInteraction, { capture: true });
+      });
+    }, 3000);
+
+    return () => {
+      clearTimeout(fallbackTimeout);
+      interactionEvents.forEach((event) => {
+        window.removeEventListener(event, handleFirstInteraction, { capture: true });
+      });
+    };
+  }, [initializePostHog]);
 
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>

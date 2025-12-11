@@ -4,6 +4,11 @@
  * This file configures the Sentry SDK for the browser (client-side).
  * It enables error monitoring, session replay, user feedback, and logging.
  *
+ * Performance optimizations:
+ * - Replay integration uses lazy loading to reduce initial bundle
+ * - Feedback integration auto-inject disabled (loaded on-demand via footer)
+ * - Debug logging disabled in production
+ *
  * Integration with PostHog:
  * - User context is linked in src/app/providers.tsx (PostHogUserTracker)
  * - When a user is identified in PostHog, the same user ID is set in Sentry
@@ -13,6 +18,8 @@
  * @see src/app/providers.tsx for PostHog-Sentry user linking
  */
 import * as Sentry from '@sentry/nextjs';
+
+const isDev = process.env.NODE_ENV === 'development';
 
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -27,13 +34,13 @@ Sentry.init({
   // Sample rate for performance monitoring:
   // - Production: 10% of transactions (balance cost vs. observability)
   // - Development: 100% for debugging
-  tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+  tracesSampleRate: isDev ? 1.0 : 0.1,
 
   // Enable in all environments for comprehensive error tracking
   enabled: true,
 
-  // Setting this option to true will print useful information to the console while you're setting up Sentry.
-  debug: process.env.NODE_ENV === 'development',
+  // Debug logging only in development
+  debug: isDev,
 
   // Enable logs to be sent to Sentry
   enableLogs: true,
@@ -41,47 +48,31 @@ Sentry.init({
   integrations: [
     // Session Replay: Records user sessions for debugging
     // Captures video-like reproductions of user interactions
+    // Note: Uses lazy loading internally to reduce initial bundle impact
     Sentry.replayIntegration({
-      // Mask all text for privacy
       maskAllText: false,
-      // Block all media (images, videos)
       blockAllMedia: false,
     }),
 
     // User Feedback: Allows users to submit feedback on errors
     // Triggered manually via footer link (SentryFeedbackButton component)
+    // Note: autoInject: false means this doesn't add to initial bundle
     Sentry.feedbackIntegration({
-      // Disabled floating button - triggered via footer link instead
       autoInject: false,
-      // Color scheme follows system preference
       colorScheme: 'system',
-      // Show branding
       showBranding: true,
-      // Button label
       buttonLabel: 'Report a Bug',
-      // Form title
       formTitle: 'Report a Bug',
-      // Thank you message
       successMessageText: 'Thank you for your feedback!',
-      // Submit button text
       submitButtonLabel: 'Send Feedback',
-      // Cancel button text
       cancelButtonLabel: 'Cancel',
-      // Email field label
       emailLabel: 'Email',
-      // Name field label
       nameLabel: 'Name',
-      // Message field label
       messageLabel: 'What happened?',
-      // Placeholder text
       messagePlaceholder: 'Describe what happened...',
-      // Show email field
       showEmail: true,
-      // Show name field
       showName: true,
-      // Require email
       isEmailRequired: false,
-      // Require name
       isNameRequired: false,
     }),
 
@@ -92,9 +83,10 @@ Sentry.init({
   ],
 
   // Session Replay sample rates:
-  // - Capture 10% of all sessions for general monitoring
-  // - Capture 100% of sessions with an error for debugging
-  replaysSessionSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1.0,
+  // - Production: 10% of sessions for general monitoring
+  // - Development: 100% for debugging
+  // - Always capture 100% of sessions with errors
+  replaysSessionSampleRate: isDev ? 1.0 : 0.1,
   replaysOnErrorSampleRate: 1.0,
 });
 

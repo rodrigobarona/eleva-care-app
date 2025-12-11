@@ -1,9 +1,9 @@
-import { withNextVideo } from "next-video/process";
 import createMDX from '@next/mdx';
 import { withSentryConfig } from '@sentry/nextjs';
 import { withBotId } from 'botid/next/config';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { withNextVideo } from 'next-video/process';
 
 /**
  * Bundle analyzer configuration
@@ -67,7 +67,17 @@ const config: NextConfig = {
         hostname: '*.public.blob.vercel-storage.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'image.mux.com',
+      },
     ],
+    // Optimize image quality settings for performance
+    // 75: Default quality for most images
+    // 90: High quality for hero/featured images
+    qualities: [75, 90],
+    // Prefer modern image formats for better compression
+    formats: ['image/avif', 'image/webp'],
   },
 
   // External packages that should not be bundled by webpack
@@ -120,36 +130,38 @@ const configWithPlugins = withBotId(withBundleAnalyzer(withNextIntl(nextConfig))
  *
  * @see https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
  */
-export default withNextVideo(withSentryConfig(configWithPlugins, {
-  // Sentry organization and project slugs
-  org: 'elevacare',
-  project: 'eleva-care',
+export default withNextVideo(
+  withSentryConfig(configWithPlugins, {
+    // Sentry organization and project slugs
+    org: 'elevacare',
+    project: 'eleva-care',
 
-  // Auth token for source map uploads (set in environment variables)
-  authToken: process.env.SENTRY_AUTH_TOKEN,
+    // Auth token for source map uploads (set in environment variables)
+    authToken: process.env.SENTRY_AUTH_TOKEN,
 
-  // Only print logs for uploading source maps in CI
-  // Set to `true` to suppress logs
-  silent: !process.env.CI,
+    // Only print logs for uploading source maps in CI
+    // Set to `true` to suppress logs
+    silent: !process.env.CI,
 
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
-  widenClientFileUpload: true,
+    // Upload a larger set of source maps for prettier stack traces (increases build time)
+    widenClientFileUpload: true,
 
-  // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
+    // Automatically tree-shake Sentry logger statements to reduce bundle size
+    disableLogger: true,
 
-  // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-  // This can increase your server load as well as your hosting bill.
-  // Note: Check that the configured route will not match with your Next.js middleware,
-  // otherwise reporting of client-side errors will fail.
-  tunnelRoute: '/monitoring',
+    // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+    // This can increase your server load as well as your hosting bill.
+    // Note: Check that the configured route will not match with your Next.js middleware,
+    // otherwise reporting of client-side errors will fail.
+    tunnelRoute: '/monitoring',
 
-  // Capture React component names for better debugging in Session Replay
-  reactComponentAnnotation: {
-    enabled: true,
-  },
+    // Capture React component names for better debugging in Session Replay
+    reactComponentAnnotation: {
+      enabled: true,
+    },
 
-  // Automatically create Cron Monitors in Sentry for Vercel cron jobs
-  // Note: Currently only supports Pages Router
-  automaticVercelMonitors: true,
-}));
+    // Automatically create Cron Monitors in Sentry for Vercel cron jobs
+    // Note: Currently only supports Pages Router
+    automaticVercelMonitors: true,
+  }),
+);

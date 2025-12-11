@@ -28,7 +28,7 @@ import { cn } from '@/lib/utils';
 import { profileFormSchema } from '@/schema/profile';
 import { useAuth } from '@workos-inc/authkit-nextjs/components';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { Info } from 'lucide-react';
 import Image from 'next/image';
 import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -420,7 +420,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               </Badge>
               <Popover>
                 <PopoverTrigger>
-                  <InfoCircledIcon className="h-4 w-4 text-muted-foreground transition-colors hover:text-foreground" />
+                  <Info className="h-4 w-4 text-muted-foreground transition-colors hover:text-foreground" />
                 </PopoverTrigger>
                 <PopoverContent className="w-80">
                   <div className="space-y-2">
@@ -443,7 +443,7 @@ export function ExpertForm({ initialData }: ExpertFormProps) {
               </Badge>
               <Popover>
                 <PopoverTrigger>
-                  <InfoCircledIcon className="h-4 w-4 text-muted-foreground transition-colors hover:text-foreground" />
+                  <Info className="h-4 w-4 text-muted-foreground transition-colors hover:text-foreground" />
                 </PopoverTrigger>
                 <PopoverContent className="w-80">
                   <div className="space-y-2">

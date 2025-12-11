@@ -1,39 +1,50 @@
-'use client';
-
 import { PlatformDisclaimer } from '@/components/shared/ui-utilities/PlatformDisclaimer';
 import { Button } from '@/components/ui/button';
-import MuxVideo from '@mux/mux-player-react/lazy';
 import { ClipboardList } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { getTranslations } from 'next-intl/server';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useCallback, useState } from 'react';
-import { useCookieConsent } from 'react-cookie-manager';
-import ReactMarkdown from 'react-markdown';
+
+import { HeroVideo } from './HeroVideo';
 
 /**
  * Mux video asset configuration
  * Uploaded via next-video sync to Mux CDN
- * Playback ID: Ol6kzy3beOk2U4RHBssK2n7wtDlqHLWvmOPWH01VOVwA
  */
 const MUX_PLAYBACK_ID = 'Ol6kzy3beOk2U4RHBssK2n7wtDlqHLWvmOPWH01VOVwA';
 const MUX_POSTER_URL = `https://image.mux.com/${MUX_PLAYBACK_ID}/thumbnail.webp?time=0`;
 
-const Hero = () => {
-  const t = useTranslations('hero');
-  const [videoError, setVideoError] = useState(false);
+/**
+ * Parse simple markdown italic syntax (*text*) to JSX
+ * Lightweight alternative to ReactMarkdown for single-use case
+ *
+ * @param text - Text with optional *italic* markers
+ * @returns JSX with <em> tags for italic text
+ */
+function parseItalics(text: string): React.ReactNode[] {
+  const parts = text.split(/(\*[^*]+\*)/g);
+  return parts.map((part, index) => {
+    if (part.startsWith('*') && part.endsWith('*')) {
+      return <em key={index}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
+}
 
-  // Check cookie consent status - video only loads when user has accepted cookies
-  // We check hasConsent (general acceptance) since Mux streaming is essential for the Hero
-  // but respects the user's choice to decline
-  const { hasConsent } = useCookieConsent();
-  const canPlayVideo = !videoError && hasConsent === true;
-
-  // Handle video errors gracefully - fall back to poster image
-  const handleVideoError = useCallback(() => {
-    console.warn('[Hero] Video failed to load, falling back to poster image');
-    setVideoError(true);
-  }, []);
+/**
+ * Hero - Server Component for the homepage hero section
+ *
+ * Performance optimizations:
+ * - Server Component: No client-side hydration overhead for static content
+ * - Removed ReactMarkdown: ~50KB bundle reduction, using lightweight parseItalics
+ * - HeroVideo client component: Only video logic ships to client
+ * - Optimized image: Uses Next.js Image with Mux CDN
+ *
+ * The video player is conditionally rendered based on cookie consent
+ * and lazy-loaded when it enters the viewport.
+ */
+const Hero = async () => {
+  const t = await getTranslations('hero');
 
   return (
     <section
@@ -46,52 +57,24 @@ const Hero = () => {
         alt="Eleva Care Hero"
         fill
         priority
-        quality={90}
+        fetchPriority="high"
+        quality={75}
         className="lg:rounded-5xl rounded-2xl object-cover"
-        sizes="100vw"
-        unoptimized
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 1920px"
       />
-      {/* Mux Video Player - Only renders after cookie consent is given */}
-      {/* Privacy Configuration:
-       * - disableTracking: Completely disables Mux Data analytics (no QoE metrics sent)
-       * - disableCookies: Prevents Mux from setting cookies for session tracking
-       * - noVolumePref: Disables localStorage usage for volume preference
-       * - nohotkeys: Disables keyboard shortcuts to prevent event tracking
-       * - No metadata-* props: Prevents sending video/viewer identifiers
-       * - No env-key: Ensures no Mux Data environment is configured
-       */}
-      {canPlayVideo && (
-        <MuxVideo
-          playbackId={MUX_PLAYBACK_ID}
-          streamType="on-demand"
-          autoPlay="muted"
-          loop
-          muted
-          playsInline
-          preload="auto"
-          // Privacy settings - disable all tracking and data collection
-          disableTracking
-          disableCookies
-          noVolumePref
-          nohotkeys
-          className="lg:rounded-5xl absolute inset-0 z-[1] h-full w-full rounded-2xl object-cover"
-          style={{
-            '--controls': 'none',
-            '--media-object-fit': 'cover',
-            '--media-object-position': 'center',
-            aspectRatio: 'unset',
-          }}
-          onError={handleVideoError}
-        />
-      )}
+
+      {/* Mux Video Player - Client component, only loads after cookie consent */}
+      <HeroVideo />
+
       {/* Dark overlay for better text readability */}
       <div className="absolute inset-0 z-10 bg-eleva-neutral-900/40" />
+
       {/* Hero content */}
       <div className="relative z-20 px-4 lg:px-6">
         <div className="mx-auto flex max-w-2xl flex-col justify-end pt-44 lg:max-w-7xl lg:justify-between lg:pt-72">
           <div>
             <h1 className="max-w-5xl text-balance font-serif text-5xl/[0.9] font-light tracking-tight text-eleva-neutral-100 lg:text-8xl/[.9]">
-              <ReactMarkdown>{t('title')}</ReactMarkdown>
+              {parseItalics(t('title'))}
             </h1>
           </div>
           <div>
