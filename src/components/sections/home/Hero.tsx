@@ -7,6 +7,8 @@ import { ClipboardList } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useCallback, useState } from 'react';
+import { useCookieConsent } from 'react-cookie-manager';
 import ReactMarkdown from 'react-markdown';
 
 /**
@@ -19,13 +21,26 @@ const MUX_POSTER_URL = `https://image.mux.com/${MUX_PLAYBACK_ID}/thumbnail.webp?
 
 const Hero = () => {
   const t = useTranslations('hero');
+  const [videoError, setVideoError] = useState(false);
+
+  // Check cookie consent status - video only loads when user has accepted cookies
+  // We check hasConsent (general acceptance) since Mux streaming is essential for the Hero
+  // but respects the user's choice to decline
+  const { hasConsent } = useCookieConsent();
+  const canPlayVideo = !videoError && hasConsent === true;
+
+  // Handle video errors gracefully - fall back to poster image
+  const handleVideoError = useCallback(() => {
+    console.warn('[Hero] Video failed to load, falling back to poster image');
+    setVideoError(true);
+  }, []);
 
   return (
     <section
       className="lg:rounded-5xl relative m-2 overflow-hidden rounded-2xl bg-eleva-neutral-900"
       data-component-name="hero"
     >
-      {/* Priority load poster image for instant FCP */}
+      {/* Priority load poster image for instant FCP - always visible as fallback */}
       <Image
         src={MUX_POSTER_URL}
         alt="Eleva Care Hero"
@@ -36,26 +51,39 @@ const Hero = () => {
         sizes="100vw"
         unoptimized
       />
-      {/* Mux Video Player - HLS streaming with adaptive bitrate */}
-      {/* disableTracking and disableCookies ensure video plays without cookie consent */}
-      <MuxVideo
-        playbackId={MUX_PLAYBACK_ID}
-        streamType="on-demand"
-        autoPlay="muted"
-        loop
-        muted
-        playsInline
-        preload="auto"
-        disableTracking
-        disableCookies
-        className="lg:rounded-5xl absolute inset-0 z-[1] h-full w-full rounded-2xl object-cover"
-        style={{
-          '--controls': 'none',
-          '--media-object-fit': 'cover',
-          '--media-object-position': 'center',
-          aspectRatio: 'unset',
-        }}
-      />
+      {/* Mux Video Player - Only renders after cookie consent is given */}
+      {/* Privacy Configuration:
+       * - disableTracking: Completely disables Mux Data analytics (no QoE metrics sent)
+       * - disableCookies: Prevents Mux from setting cookies for session tracking
+       * - noVolumePref: Disables localStorage usage for volume preference
+       * - nohotkeys: Disables keyboard shortcuts to prevent event tracking
+       * - No metadata-* props: Prevents sending video/viewer identifiers
+       * - No env-key: Ensures no Mux Data environment is configured
+       */}
+      {canPlayVideo && (
+        <MuxVideo
+          playbackId={MUX_PLAYBACK_ID}
+          streamType="on-demand"
+          autoPlay="muted"
+          loop
+          muted
+          playsInline
+          preload="auto"
+          // Privacy settings - disable all tracking and data collection
+          disableTracking
+          disableCookies
+          noVolumePref
+          nohotkeys
+          className="lg:rounded-5xl absolute inset-0 z-[1] h-full w-full rounded-2xl object-cover"
+          style={{
+            '--controls': 'none',
+            '--media-object-fit': 'cover',
+            '--media-object-position': 'center',
+            aspectRatio: 'unset',
+          }}
+          onError={handleVideoError}
+        />
+      )}
       {/* Dark overlay for better text readability */}
       <div className="absolute inset-0 z-10 bg-eleva-neutral-900/40" />
       {/* Hero content */}
