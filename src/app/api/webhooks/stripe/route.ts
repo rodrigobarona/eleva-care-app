@@ -362,8 +362,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
   Sentry.logger.info('Starting checkout session processing', {
     sessionId: session.id,
     paymentStatus: session.payment_status,
-    paymentIntent:
-      typeof session.payment_intent === 'string' ? session.payment_intent : undefined,
+    paymentIntent: typeof session.payment_intent === 'string' ? session.payment_intent : undefined,
   });
 
   try {
@@ -499,16 +498,19 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       return { success: false, error: result.error };
     }
 
+    // At this point we know result.error is false and meeting should exist
+    const meeting = 'meeting' in result ? result.meeting : undefined;
+
     Sentry.logger.info('Meeting created successfully from checkout session', {
       sessionId: session.id,
-      meetingId: result.meeting?.id,
-      hasUrl: !!result.meeting?.meetingUrl,
-      paymentStatus: result.meeting?.stripePaymentStatus,
+      meetingId: meeting?.id,
+      hasUrl: !!meeting?.meetingUrl,
+      paymentStatus: meeting?.stripePaymentStatus,
     });
 
     // Clean up any existing slot reservation since meeting is now confirmed
     // This handles Multibanco payments where a reservation was created during pending state
-    if (result.meeting && session.payment_intent) {
+    if (meeting && session.payment_intent) {
       try {
         const deletedReservations = await db
           .delete(SlotReservationsTable)
@@ -518,7 +520,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
         if (deletedReservations.length > 0) {
           Sentry.logger.info('Cleaned up slot reservations after meeting confirmation', {
             sessionId: session.id,
-            meetingId: result.meeting.id,
+            meetingId: meeting.id,
             deletedCount: deletedReservations.length,
           });
         }
@@ -546,7 +548,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       });
     }
 
-    return { success: true, meetingId: result.meeting?.id };
+    return { success: true, meetingId: meeting?.id };
   } catch (error) {
     Sentry.logger.error('Error processing checkout session', {
       sessionId: session.id,

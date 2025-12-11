@@ -816,10 +816,13 @@ export function MeetingFormContent({
                   message: 'There was an error saving your event',
                 });
               } else {
+                // Extract meeting with type guard for proper TypeScript narrowing
+                const meeting = 'meeting' in data ? data.meeting : undefined;
+
                 span.setAttribute('meeting.success', true);
                 Sentry.logger.info('Free meeting created successfully', {
                   eventId,
-                  meetingId: data.meeting?.id,
+                  meetingId: meeting?.id,
                 });
 
                 // Add breadcrumb for successful booking
@@ -827,7 +830,7 @@ export function MeetingFormContent({
                   category: 'booking.complete',
                   message: 'Free meeting booked successfully',
                   level: 'info',
-                  data: { eventId, meetingId: data.meeting?.id },
+                  data: { eventId, meetingId: meeting?.id },
                 });
 
                 // Redirect to success page with locale path
