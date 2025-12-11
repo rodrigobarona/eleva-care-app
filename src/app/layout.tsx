@@ -118,10 +118,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
 
-        {/* Preload critical assets */}
+        {/* Mux Video CDN (for hero background video) */}
+        <link rel="preconnect" href="https://stream.mux.com" />
+        <link rel="preconnect" href="https://image.mux.com" />
+
+        {/* Preload critical assets - Mux hero poster */}
         <link
           rel="preload"
-          href="/img/videos/eleva-care-intro-banner-poster.webp"
+          href="https://image.mux.com/Ol6kzy3beOk2U4RHBssK2n7wtDlqHLWvmOPWH01VOVwA/thumbnail.webp?time=0"
           as="image"
           type="image/webp"
         />

@@ -2,24 +2,60 @@
 
 import { PlatformDisclaimer } from '@/components/shared/ui-utilities/PlatformDisclaimer';
 import { Button } from '@/components/ui/button';
+import MuxVideo from '@mux/mux-player-react/lazy';
 import { ClipboardList } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import BackgroundVideo from 'next-video/background-video';
+import Image from 'next/image';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 
-// Import video from the /videos folder - next-video handles Mux integration
-import heroVideo from '/videos/Eleva Care Intro.mp4';
+/**
+ * Mux video asset configuration
+ * Uploaded via next-video sync to Mux CDN
+ * Playback ID: Ol6kzy3beOk2U4RHBssK2n7wtDlqHLWvmOPWH01VOVwA
+ */
+const MUX_PLAYBACK_ID = 'Ol6kzy3beOk2U4RHBssK2n7wtDlqHLWvmOPWH01VOVwA';
+const MUX_POSTER_URL = `https://image.mux.com/${MUX_PLAYBACK_ID}/thumbnail.webp?time=0`;
 
 const Hero = () => {
   const t = useTranslations('hero');
 
   return (
-    <BackgroundVideo
-      src={heroVideo}
+    <section
       className="lg:rounded-5xl relative m-2 overflow-hidden rounded-2xl bg-eleva-neutral-900"
       data-component-name="hero"
     >
+      {/* Priority load poster image for instant FCP */}
+      <Image
+        src={MUX_POSTER_URL}
+        alt="Eleva Care Hero"
+        fill
+        priority
+        quality={90}
+        className="lg:rounded-5xl rounded-2xl object-cover"
+        sizes="100vw"
+        unoptimized
+      />
+      {/* Mux Video Player - HLS streaming with adaptive bitrate */}
+      {/* disableTracking and disableCookies ensure video plays without cookie consent */}
+      <MuxVideo
+        playbackId={MUX_PLAYBACK_ID}
+        streamType="on-demand"
+        autoPlay="muted"
+        loop
+        muted
+        playsInline
+        preload="auto"
+        disableTracking
+        disableCookies
+        className="lg:rounded-5xl absolute inset-0 z-[1] h-full w-full rounded-2xl object-cover"
+        style={{
+          '--controls': 'none',
+          '--media-object-fit': 'cover',
+          '--media-object-position': 'center',
+          aspectRatio: 'unset',
+        }}
+      />
       {/* Dark overlay for better text readability */}
       <div className="absolute inset-0 z-10 bg-eleva-neutral-900/40" />
       {/* Hero content */}
@@ -65,7 +101,7 @@ const Hero = () => {
           </div>
         </div>
       </div>
-    </BackgroundVideo>
+    </section>
   );
 };
 
