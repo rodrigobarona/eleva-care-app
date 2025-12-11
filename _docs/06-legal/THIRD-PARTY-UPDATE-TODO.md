@@ -15,6 +15,7 @@ This document tracks required updates to legal documents following:
 2. **New Service Addition**: MUX (video streaming)
 3. **New Service Addition**: Sentry (error monitoring)
 4. **New Service Addition**: BetterStack (uptime monitoring, logging, heartbeats)
+5. **Explicit Documentation**: Google (Calendar API for scheduling integration)
 
 All legal documents referencing third-party data processors must be updated to maintain GDPR/LGPD compliance accuracy.
 
@@ -73,6 +74,21 @@ All legal documents referencing third-party data processors must be updated to m
 | **Safeguards**     | DPA, SCCs (if applicable), sensitive data filtering           |
 | **Privacy Notes**  | Configurable log filtering, sensitive information redaction   |
 
+### Google (Calendar API - Explicit Documentation)
+
+| Field              | Details                                                                     |
+| ------------------ | --------------------------------------------------------------------------- |
+| **Service**        | Google Calendar API (scheduling/booking integration)                        |
+| **Purpose**        | Calendar synchronization for expert availability and booking management     |
+| **Data Processed** | Calendar events, availability data, booking metadata                        |
+| **Compliance**     | GDPR compliant, ISO 27001, SOC 2/3                                          |
+| **DPA**            | Available at https://cloud.google.com/terms/data-processing-addendum        |
+| **Data Region**    | EU data residency available via Google Cloud regions                        |
+| **Safeguards**     | DPA, SCCs, OAuth 2.0 consent, minimal scope access                          |
+| **Privacy Notes**  | User-initiated OAuth consent required, limited to calendar read/write scope |
+
+> **Note**: Google SSO is already mentioned in the existing DPA. This addition explicitly documents the Google Calendar API integration used for scheduling features, which accesses user calendar data beyond authentication.
+
 ---
 
 ## Files Requiring Updates
@@ -108,6 +124,7 @@ Update the subprocessor table and identity/SSO section in each file:
 | MUX | Video streaming | Video metadata, viewer analytics | EU (Germany) / US | DPA, DPF certification |
 | Sentry | Error monitoring | Error logs, performance data | EU option available | DPA, SCCs (if applicable) |
 | BetterStack | Uptime/logging | Server logs, uptime metrics, heartbeats | Data region selectable | SOC 2 Type 2, DPA, ISO 27001 |
+| Google | Calendar API | Calendar events, availability, bookings | EU regions available | DPA, SCCs, OAuth consent |
 ```
 
 ### 2. Privacy Policy - 4 Languages
@@ -125,7 +142,7 @@ Update the processor list in Section 4 (Sharing):
 
 ```diff
 - With processors who help us run the service (e.g., Stripe, Clerk, Vercel, Neon, Novu, PostHog, Resend, Upstash).
-+ With processors who help us run the service (e.g., Stripe, WorkOS, Vercel, Neon, Novu, PostHog, Resend, Upstash, MUX, Sentry, BetterStack).
++ With processors who help us run the service (e.g., Stripe, WorkOS, Google, Vercel, Neon, Novu, PostHog, Resend, Upstash, MUX, Sentry, BetterStack).
 ```
 
 ### 3. Legal Compliance Summary
@@ -139,6 +156,7 @@ Update the processor list in Section 4 (Sharing):
 ```diff
 - | **Clerk Inc.**   | Authentication        | ✅ Executed                 | ✅ EU Option      | ✅ Yes | ✅ YES         |
 + | **WorkOS Inc.**  | Authentication        | ⚠️ Required                 | ✅ EU Option      | ✅ Yes | ✅ YES         |
++ | **Google**       | Calendar API          | ⚠️ Required                 | ✅ EU Regions     | ✅ Yes | ✅ YES         |
 + | **MUX Inc.**     | Video Streaming       | ⚠️ Required                 | ✅ EU Option      | ✅ Yes | ✅ YES         |
 + | **Sentry Inc.**  | Error Monitoring      | ⚠️ Required                 | ✅ EU Option      | ✅ Yes | ✅ YES         |
 + | **BetterStack**  | Uptime/Logging        | ⚠️ Required                 | ✅ Selectable     | ✅ Yes | ✅ YES         |
@@ -155,6 +173,7 @@ Update the processor list in Section 4 (Sharing):
 ```diff
 - - **Clerk.com** (Auth): ✅ DPA Available
 + - **WorkOS** (Auth): ✅ DPA Available
++ - **Google** (Calendar API): ✅ DPA Available
 + - **MUX** (Video): ✅ DPA Available
 + - **Sentry** (Error Monitoring): ✅ DPA Available
 + - **BetterStack** (Uptime/Logging): ✅ DPA Available
@@ -167,6 +186,7 @@ Update the processor list in Section 4 (Sharing):
 Before updating legal documents, ensure DPAs are executed with each vendor:
 
 - [ ] **WorkOS DPA**: Review and execute at https://workos.com/legal/dpa
+- [ ] **Google DPA**: Review and execute at https://cloud.google.com/terms/data-processing-addendum
 - [ ] **MUX DPA**: Review and execute at https://mux.com/dpa/
 - [ ] **Sentry DPA**: Review and execute at https://sentry.io/legal/dpa/
 - [ ] **BetterStack DPA**: Review and execute at https://betterstack.com/dpa
@@ -180,6 +200,7 @@ Before updating legal documents, ensure DPAs are executed with each vendor:
 | Vendor      | EU Hosting   | Configuration Required                     |
 | ----------- | ------------ | ------------------------------------------ |
 | WorkOS      | ✅ Available | Verify EU region selected in dashboard     |
+| Google      | ✅ Available | Use EU Cloud regions for Calendar API      |
 | MUX         | ✅ Available | Configure EU ingest endpoint (Germany)     |
 | Sentry      | ✅ Available | Select EU data storage in project settings |
 | BetterStack | ✅ Available | Select data region in source/team settings |
@@ -201,7 +222,7 @@ All processors must have:
 ### Pre-Update Steps
 
 1. [ ] Confirm Clerk → WorkOS migration is complete
-2. [ ] Execute DPAs with WorkOS, MUX, Sentry, and BetterStack
+2. [ ] Execute DPAs with WorkOS, Google, MUX, Sentry, and BetterStack
 3. [ ] Verify EU data residency configuration for each service
 4. [ ] Get legal review approval for document changes
 
@@ -229,6 +250,7 @@ All processors must have:
 | -------- | ------------------------------------------------------ | ------ |
 | Dec 2025 | Initial creation - tracking document                   | System |
 | Dec 2025 | Added BetterStack (uptime/logging) to tracked services | System |
+| Dec 2025 | Added Google Calendar API to tracked services          | System |
 
 ---
 
@@ -248,6 +270,9 @@ All processors must have:
 - **BetterStack**: https://betterstack.com/docs
 - **BetterStack DPA**: https://betterstack.com/dpa
 - **BetterStack Security**: https://betterstack.com/security (SOC 2 Type 2, ISO 27001)
+- **Google Cloud**: https://cloud.google.com/apis
+- **Google DPA**: https://cloud.google.com/terms/data-processing-addendum
+- **Google Security**: https://cloud.google.com/security (ISO 27001, SOC 2/3)
 
 ### Internal Documentation
 
@@ -260,6 +285,6 @@ All processors must have:
 **⚠️ IMPORTANT**: Do not update live legal documents until:
 
 1. Migration is complete (Clerk → WorkOS)
-2. DPAs are executed with all new vendors (WorkOS, MUX, Sentry, BetterStack)
+2. DPAs are executed with all new vendors (WorkOS, Google, MUX, Sentry, BetterStack)
 3. Legal review is obtained
 4. 30-day notice period observed (if material changes)
