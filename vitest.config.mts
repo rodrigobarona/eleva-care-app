@@ -1,9 +1,12 @@
+import path from 'path';
+import { fileURLToPath } from 'url';
 import react from '@vitejs/plugin-react';
-import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 export default defineConfig({
-  plugins: [tsconfigPaths(), react()],
+  plugins: [react()],
   test: {
     // Environment
     environment: 'jsdom',
@@ -60,16 +63,25 @@ export default defineConfig({
 
     // Type checking for tests
     typecheck: {
-      enabled: false, // Enable if you want type checking during tests
+      enabled: false,
+    },
+
+    // Alias configuration for tests (must be inside test block)
+    alias: {
+      '@/drizzle/': path.resolve(__dirname, './drizzle') + '/',
+      '@/drizzle': path.resolve(__dirname, './drizzle'),
+      '@/': path.resolve(__dirname, './src') + '/',
+      '@': path.resolve(__dirname, './src'),
     },
   },
 
-  // Resolve configuration for path aliases
+  // Resolve configuration for path aliases (for non-test files)
   resolve: {
     alias: {
-      '@': '/src',
-      '@/drizzle': '/drizzle',
+      '@/drizzle/': path.resolve(__dirname, './drizzle') + '/',
+      '@/drizzle': path.resolve(__dirname, './drizzle'),
+      '@/': path.resolve(__dirname, './src') + '/',
+      '@': path.resolve(__dirname, './src'),
     },
   },
 });
-

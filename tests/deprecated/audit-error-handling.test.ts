@@ -1,34 +1,47 @@
-import { vi } from 'vitest';
-// Import after mock
-import { auditDb } from '@/drizzle/auditDb';
-import { logAuditEvent } from '@/lib/utils/server/audit';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 
 /**
- * @jest-environment node
+ * Audit Error Handling Tests
+ *
+ * Tests for the unified audit logging system (now in main database).
+ * The separate auditDb has been removed - audit logs are now stored
+ * in the main database via AuditLogsTable.
  */
-// Unmock logAuditEvent to test the real implementation
-vi.unmock('@/lib/utils/server/audit');
 
-// Mock the audit schema module
-vi.mock('@/drizzle/auditSchema', () => ({
-  auditLogs: 'audit_logs_table_mock',
+// Use vi.hoisted for mocks that need to be available in vi.mock factories
+const mocks = vi.hoisted(() => ({
+  dbInsert: vi.fn(),
+  dbInsertValues: vi.fn(),
 }));
 
-// Mock the entire audit database module
-vi.mock('@/drizzle/auditDb', () => ({
-  auditDb: {
-    insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockResolvedValue(undefined),
+// Mock the main database (audit logs are now in the main db)
+vi.mock('@/drizzle/db', () => ({
+  db: {
+    insert: mocks.dbInsert.mockReturnValue({
+      values: mocks.dbInsertValues,
     }),
   },
 }));
 
+// Mock the schema
+vi.mock('@/drizzle/schema-workos', () => ({
+  AuditLogsTable: { _: 'audit_logs_table_mock' },
+}));
+
+// Import after mocks are set up
+import { logAuditEvent } from '@/lib/utils/server/audit';
+import { db } from '@/drizzle/db';
+
 describe('Audit Error Handling', () => {
-  let consoleErrorSpy: vi.SpyInstance;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    // Reset default mock behavior
+    mocks.dbInsertValues.mockResolvedValue(undefined);
+    mocks.dbInsert.mockReturnValue({ values: mocks.dbInsertValues });
   });
 
   afterEach(() => {
@@ -38,8 +51,8 @@ describe('Audit Error Handling', () => {
   describe('logAuditEvent', () => {
     const mockAuditData = {
       workosUserId: 'user_123',
-      action: 'MEETING_CREATED' as const,
-      resourceType: 'meeting' as const,
+      action: 'APPOINTMENT_CREATED' as const,
+      resourceType: 'appointment' as const,
       resourceId: 'mtg_456',
       oldValues: null,
       newValues: {
@@ -52,8 +65,7 @@ describe('Audit Error Handling', () => {
     };
 
     it('should log audit event successfully', async () => {
-      const mockValues = vi.fn().mockResolvedValue(undefined);
-      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
+      mocks.dbInsertValues.mockResolvedValue(undefined);
 
       const result = logAuditEvent(
         mockAuditData.workosUserId,
@@ -67,14 +79,13 @@ describe('Audit Error Handling', () => {
       );
 
       await expect(result).resolves.not.toThrow();
-      expect(auditDb.insert).toHaveBeenCalled();
+      expect(db.insert).toHaveBeenCalled();
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
 
     it('should handle database errors gracefully without throwing', async () => {
       const mockError = new Error('Database connection failed');
-      const mockValues = vi.fn().mockRejectedValue(mockError);
-      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
+      mocks.dbInsertValues.mockRejectedValue(mockError);
 
       // Should NOT throw despite database error
       const result = logAuditEvent(
@@ -97,8 +108,7 @@ describe('Audit Error Handling', () => {
 
     it('should log error with [AUDIT FAILURE] prefix when insert fails', async () => {
       const mockError = new Error('Database connection timeout');
-      const mockValues = vi.fn().mockRejectedValue(mockError);
-      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
+      mocks.dbInsertValues.mockRejectedValue(mockError);
 
       await logAuditEvent(
         mockAuditData.workosUserId,
@@ -119,8 +129,7 @@ describe('Audit Error Handling', () => {
 
     it('should include audit context in error logs', async () => {
       const mockError = new Error('Connection timeout');
-      const mockValues = vi.fn().mockRejectedValue(mockError);
-      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
+      mocks.dbInsertValues.mockRejectedValue(mockError);
 
       await logAuditEvent(
         mockAuditData.workosUserId,
@@ -155,8 +164,7 @@ describe('Audit Error Handling', () => {
     });
 
     it('should handle non-Error objects gracefully', async () => {
-      const mockValues = vi.fn().mockRejectedValue('String error');
-      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
+      mocks.dbInsertValues.mockRejectedValue('String error');
 
       const result = logAuditEvent(
         mockAuditData.workosUserId,
@@ -178,8 +186,7 @@ describe('Audit Error Handling', () => {
 
     it('should preserve timestamp in ISO format', async () => {
       const mockError = new Error('Test error');
-      const mockValues = vi.fn().mockRejectedValue(mockError);
-      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
+      mocks.dbInsertValues.mockRejectedValue(mockError);
 
       await logAuditEvent(
         mockAuditData.workosUserId,
@@ -206,80 +213,53 @@ describe('Audit Error Handling', () => {
     });
   });
 
-  describe('Database Connection Validation', () => {
-    // Note: These tests verify the validation logic conceptually
-    // Actual module-level validation is tested during CI/CD and deployment
+  describe('Unified Audit Database Architecture', () => {
+    // Note: With the unified schema, audit logs are now in the main database
+    // using the AuditLogsTable from schema-workos.ts
+    // There is no separate AUDITLOG_DATABASE_URL anymore
 
-    const validateAuditDatabaseUrl = (url: string | undefined, nodeEnv: string): string => {
-      // Duplicate the validation logic for testing
-      if (nodeEnv === 'production') {
-        if (!url) {
-          throw new Error(
-            'FATAL: AUDITLOG_DATABASE_URL is required in production environment. ' +
-              'Audit logging is critical for compliance and security. ' +
-              'Please configure AUDITLOG_DATABASE_URL in your environment variables.',
-          );
-        }
-        if (url.includes('placeholder') || url.includes('localhost')) {
-          throw new Error(
-            'FATAL: AUDITLOG_DATABASE_URL contains a placeholder or localhost value in production. ' +
-              'This is not allowed. Please configure a valid Neon database URL.',
-          );
-        }
+    it('should use the main database for audit logging', async () => {
+      mocks.dbInsertValues.mockResolvedValue(undefined);
+
+      await logAuditEvent(
+        'user_123',
+        'PROFILE_UPDATED',
+        'profile',
+        'profile_456',
+        { name: 'Old Name' },
+        { name: 'New Name' },
+        '127.0.0.1',
+        'Test Agent',
+      );
+
+      // Verify db.insert was called (main database)
+      expect(db.insert).toHaveBeenCalled();
+    });
+
+    it('should handle audit logging for various action types', async () => {
+      mocks.dbInsertValues.mockResolvedValue(undefined);
+
+      const auditActions = [
+        { action: 'APPOINTMENT_CREATED', resourceType: 'appointment' },
+        { action: 'PAYMENT_COMPLETED', resourceType: 'payment' },
+        { action: 'PROFILE_UPDATED', resourceType: 'profile' },
+        { action: 'MEDICAL_RECORD_VIEWED', resourceType: 'medical_record' },
+      ] as const;
+
+      for (const { action, resourceType } of auditActions) {
+        await logAuditEvent(
+          'user_123',
+          action,
+          resourceType,
+          'resource_id_123',
+          null,
+          { data: 'test' },
+          '127.0.0.1',
+          'Test Agent',
+        );
       }
-      return url || 'postgresql://placeholder:placeholder@localhost:5432/placeholder_audit';
-    };
 
-    it('should throw error in production when AUDITLOG_DATABASE_URL is missing', () => {
-      expect(() => {
-        validateAuditDatabaseUrl(undefined, 'production');
-      }).toThrow('FATAL: AUDITLOG_DATABASE_URL is required in production environment');
-    });
-
-    it('should throw error in production when URL contains placeholder', () => {
-      expect(() => {
-        validateAuditDatabaseUrl('postgresql://placeholder:placeholder@localhost/db', 'production');
-      }).toThrow('FATAL: AUDITLOG_DATABASE_URL contains a placeholder');
-    });
-
-    it('should throw error in production when URL contains localhost', () => {
-      expect(() => {
-        validateAuditDatabaseUrl('postgresql://user:pass@localhost:5432/auditdb', 'production');
-      }).toThrow('FATAL: AUDITLOG_DATABASE_URL contains a placeholder or localhost value');
-    });
-
-    it('should accept valid URL in production', () => {
-      expect(() => {
-        const result = validateAuditDatabaseUrl(
-          'postgresql://user:pass@neon-host.neon.tech:5432/auditdb',
-          'production',
-        );
-        expect(result).toBe('postgresql://user:pass@neon-host.neon.tech:5432/auditdb');
-      }).not.toThrow();
-    });
-
-    it('should allow placeholder in development', () => {
-      expect(() => {
-        const result = validateAuditDatabaseUrl(undefined, 'development');
-        expect(result).toBe(
-          'postgresql://placeholder:placeholder@localhost:5432/placeholder_audit',
-        );
-      }).not.toThrow();
-    });
-
-    it('should allow placeholder in test environment', () => {
-      expect(() => {
-        const result = validateAuditDatabaseUrl(undefined, 'test');
-        expect(result).toBe(
-          'postgresql://placeholder:placeholder@localhost:5432/placeholder_audit',
-        );
-      }).not.toThrow();
-    });
-
-    it('should use provided URL in non-production when available', () => {
-      const customUrl = 'postgresql://dev:dev@localhost:5432/dev_audit';
-      const result = validateAuditDatabaseUrl(customUrl, 'development');
-      expect(result).toBe(customUrl);
+      expect(db.insert).toHaveBeenCalledTimes(auditActions.length);
     });
   });
 });

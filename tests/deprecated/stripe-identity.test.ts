@@ -41,11 +41,12 @@ vi.mock('@/lib/integrations/stripe', () => ({
 }));
 
 vi.mock('stripe', () => {
-  return vi.fn().mockImplementation(() => ({
+  const StripeMock = vi.fn().mockImplementation(() => ({
     webhooks: {
       constructEvent: vi.fn(),
     },
   }));
+  return { default: StripeMock };
 });
 
 describe('Stripe Identity Webhook Handler', () => {

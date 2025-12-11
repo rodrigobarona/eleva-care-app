@@ -1,14 +1,56 @@
-import { auditDb } from '@/drizzle/auditDb';
-import { auditLogs } from '@/drizzle/auditSchema';
+/**
+ * Audit Logging Compatibility Layer
+ *
+ * This file provides backward compatibility for the old audit logging API.
+ * It wraps the new unified audit-workos.ts implementation.
+ *
+ * DEPRECATED: Use `logAuditEvent` from '@/lib/utils/server/audit-workos' instead.
+ * This wrapper is provided for backward compatibility during migration.
+ *
+ * Migration Guide:
+ * ================
+ *
+ * Old way (this file):
+ * ```typescript
+ * import { logAuditEvent } from '@/lib/utils/server/audit';
+ * await logAuditEvent(
+ *   workosUserId,
+ *   'PROFILE_UPDATED',
+ *   'profile',
+ *   profileId,
+ *   oldValues,
+ *   newValues,
+ *   ipAddress,
+ *   userAgent
+ * );
+ * ```
+ *
+ * New way (audit-workos.ts):
+ * ```typescript
+ * import { logAuditEvent } from '@/lib/utils/server/audit-workos';
+ * await logAuditEvent(
+ *   'PROFILE_UPDATED',
+ *   'profile',
+ *   profileId,
+ *   { oldValues, newValues }
+ * );
+ * // User context (workosUserId, ipAddress, userAgent) is extracted automatically!
+ * ```
+ */
+
+import { db } from '@/drizzle/db';
+import { AuditLogsTable } from '@/drizzle/schema-workos';
 import type { AuditEventMetadata, AuditEventType, AuditResourceType } from '@/types/audit';
 
 /**
- * Logs an audit event to the audit database.
- * This function handles errors gracefully and logs them for monitoring.
- * Audit failures will NOT prevent the main operation from succeeding,
- * but they will be logged for alerting and investigation.
+ * Logs an audit event to the unified audit database.
  *
- * @throws {AuditLoggingError} Only in critical scenarios where audit logging must succeed
+ * @deprecated Use `logAuditEvent` from '@/lib/utils/server/audit-workos' instead.
+ * This function is provided for backward compatibility.
+ *
+ * Note: This function uses the main database connection directly
+ * (not the RLS-enabled connection) for compatibility with existing code
+ * that doesn't have org context.
  */
 export async function logAuditEvent(
   workosUserId: string,
@@ -21,17 +63,20 @@ export async function logAuditEvent(
   userAgent: string,
 ): Promise<void> {
   try {
-    await auditDb.insert(auditLogs).values({
-      // TODO: Migrate schema field from clerkUserId to workosUserId after WorkOS migration
-      clerkUserId: workosUserId, // Using workosUserId parameter but inserting as clerkUserId
-      action,
-      resourceType,
+    // Use the unified schema in the main database
+    // Note: orgId is null for backward compatibility
+    // (old audit calls don't have org context)
+    await db.insert(AuditLogsTable).values({
+      workosUserId,
+      orgId: null, // Legacy calls don't have org context
+      action: action as typeof AuditLogsTable.$inferInsert.action,
+      resourceType: resourceType as typeof AuditLogsTable.$inferInsert.resourceType,
       resourceId,
       oldValues,
       newValues,
       ipAddress,
       userAgent,
-      createdAt: new Date(),
+      metadata: null,
     });
   } catch (error) {
     // Log the audit failure for monitoring and alerting
@@ -48,39 +93,9 @@ export async function logAuditEvent(
     };
 
     // Log to console for immediate visibility
-    // Note: Two separate arguments for easier parsing in monitoring tools
     console.error('[AUDIT FAILURE]', JSON.stringify(auditError, null, 2));
 
-    // In production, this should be sent to a monitoring service (e.g., Sentry, BetterStack)
-    // Example: Sentry.captureException(error, { extra: auditError });
-
-    // For critical audit events that must succeed, uncomment to re-throw:
-    // if (isCriticalAuditEvent(action)) {
-    //   throw new AuditLoggingError('Critical audit event failed', { cause: error });
-    // }
-
     // Do not re-throw - let the operation continue
+    // Audit failures should never block user operations
   }
 }
-
-/**
- * Determines if an audit event is critical and must succeed.
- * Critical events should fail the entire operation if audit logging fails.
- */
-// function isCriticalAuditEvent(action: AuditEventType): boolean {
-//   const criticalActions: AuditEventType[] = [
-//     'PRACTITIONER_AGREEMENT_ACCEPTED',
-//     'SECURITY_ALERT_NOTIFIED',
-//   ];
-//   return criticalActions.includes(action);
-// }
-
-/**
- * Custom error for audit logging failures
- */
-// export class AuditLoggingError extends Error {
-//   constructor(message: string, options?: ErrorOptions) {
-//     super(message, options);
-//     this.name = 'AuditLoggingError';
-//   }
-// }

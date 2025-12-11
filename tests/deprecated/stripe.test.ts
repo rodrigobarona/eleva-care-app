@@ -46,7 +46,7 @@ vi.mock('@/lib/integrations/novu/utils');
 vi.mock('@/lib/integrations/novu/email-service');
 
 vi.mock('stripe', () => {
-  return vi.fn().mockImplementation(() => ({
+  const StripeMock = vi.fn().mockImplementation(() => ({
     webhooks: {
       constructEvent: vi.fn(),
     },
@@ -55,6 +55,7 @@ vi.mock('stripe', () => {
       create: vi.fn(),
     },
   }));
+  return { default: StripeMock };
 });
 
 // Mock webhook handlers

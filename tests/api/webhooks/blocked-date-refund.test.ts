@@ -10,26 +10,23 @@ import { vi } from 'vitest';
  */
 import type Stripe from 'stripe';
 
-// Mock dependencies
-const mockDb = {
-  query: {
-    EventTable: {
-      findFirst: vi.fn(),
-    },
-    BlockedDatesTable: {
-      findFirst: vi.fn(),
-    },
-    MeetingTable: {
-      findMany: vi.fn(),
-    },
-    schedulingSettings: {
-      findFirst: vi.fn(),
-    },
-    UserTable: {
-      findFirst: vi.fn(),
-    },
+// Use vi.hoisted to define mocks that work with vi.mock hoisting
+const mocks = vi.hoisted(() => ({
+  dbQuery: {
+    EventTable: { findFirst: vi.fn() },
+    BlockedDatesTable: { findFirst: vi.fn() },
+    MeetingTable: { findMany: vi.fn() },
+    schedulingSettings: { findFirst: vi.fn() },
+    UserTable: { findFirst: vi.fn() },
   },
-  update: vi.fn().mockReturnValue({
+  dbUpdate: vi.fn(),
+  stripeRefundsCreate: vi.fn(),
+}));
+
+// Mock dependencies (for use in tests)
+const mockDb = {
+  query: mocks.dbQuery,
+  update: mocks.dbUpdate.mockReturnValue({
     set: vi.fn().mockReturnValue({
       where: vi.fn().mockResolvedValue([{ id: 'meeting_123' }]),
     }),
@@ -38,17 +35,27 @@ const mockDb = {
 
 const mockStripe = {
   refunds: {
-    create: vi.fn(),
+    create: mocks.stripeRefundsCreate,
   },
 };
 
 // Mock modules
 vi.mock('@/drizzle/db', () => ({
-  db: mockDb,
+  db: {
+    query: mocks.dbQuery,
+    update: mocks.dbUpdate.mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ id: 'meeting_123' }]),
+      }),
+    }),
+  },
 }));
 
 vi.mock('stripe', () => {
-  return vi.fn().mockImplementation(() => mockStripe);
+  const StripeMock = vi.fn().mockImplementation(() => ({
+    refunds: { create: mocks.stripeRefundsCreate },
+  }));
+  return { default: StripeMock };
 });
 
 vi.mock('date-fns-tz', () => ({

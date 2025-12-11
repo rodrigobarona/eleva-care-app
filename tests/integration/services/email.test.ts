@@ -1,16 +1,22 @@
-import { vi } from 'vitest';
-// Import after mocking (this will be the real module in integration mode, mocked in unit mode)
-import { sendEmail } from '@/lib/integrations/novu/email';
+import { vi, describe, it, expect, beforeEach, beforeAll, test } from 'vitest';
 
-// Mock the entire email module for unit tests
-const mockSendEmail = vi.fn() as Mock<any>;
+// Use vi.hoisted for mocks that need to be available in vi.mock factories
+const mocks = vi.hoisted(() => ({
+  sendEmail: vi.fn(),
+}));
 
 // Only mock in unit test mode
 if (process.env.EMAIL_INTEGRATION_TEST !== 'true') {
   vi.mock('@/lib/integrations/novu/email', () => ({
-    sendEmail: mockSendEmail,
+    sendEmail: mocks.sendEmail,
   }));
 }
+
+// Import after mocking
+import { sendEmail } from '@/lib/integrations/novu/email';
+
+// Re-export for use in tests
+const mockSendEmail = mocks.sendEmail;
 
 describe('Email Service Integration Tests', () => {
   const INTEGRATION_MODE = process.env.EMAIL_INTEGRATION_TEST === 'true';

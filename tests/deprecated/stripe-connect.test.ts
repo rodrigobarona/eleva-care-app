@@ -1,11 +1,19 @@
-import { vi } from 'vitest';
-import { POST } from '@/app/api/webhooks/stripe-connect/route';
-// Import mocked modules using ES6 syntax
-import { db } from '@/drizzle/db';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { NextRequest } from 'next/server';
-import Stripe from 'stripe';
 
-// Mock Novu integration using manual mocks
+/**
+ * Stripe Connect Webhook Handler Tests
+ */
+
+// Use vi.hoisted for mocks that need to be available in vi.mock factories
+const mocks = vi.hoisted(() => ({
+  stripeConstructEvent: vi.fn(),
+  dbUpdate: vi.fn(),
+  dbQueryUserTableFindFirst: vi.fn(),
+  markStepCompleteForUser: vi.fn(),
+}));
+
+// Mock Novu integration
 vi.mock('@/app/utils/novu');
 vi.mock('@/lib/integrations/novu/utils');
 
@@ -14,10 +22,10 @@ vi.mock('@/drizzle/db', () => ({
   db: {
     query: {
       UserTable: {
-        findFirst: vi.fn(),
+        findFirst: mocks.dbQueryUserTableFindFirst,
       },
     },
-    update: vi.fn().mockReturnValue({
+    update: mocks.dbUpdate.mockReturnValue({
       set: vi.fn().mockReturnValue({
         where: vi.fn().mockResolvedValue({}),
       }),
@@ -26,20 +34,24 @@ vi.mock('@/drizzle/db', () => ({
 }));
 
 vi.mock('@/server/actions/expert-setup', () => ({
-  markStepCompleteForUser: vi.fn().mockResolvedValue({ success: true }),
+  markStepCompleteForUser: mocks.markStepCompleteForUser.mockResolvedValue({ success: true }),
 }));
 
 vi.mock('stripe', () => {
-  return vi.fn().mockImplementation(() => ({
+  const StripeMock = vi.fn().mockImplementation(() => ({
     webhooks: {
-      constructEvent: vi.fn(),
+      constructEvent: mocks.stripeConstructEvent,
     },
   }));
+  return { default: StripeMock };
 });
+
+// Import after mocks
+import { POST } from '@/app/api/webhooks/stripe-connect/route';
+import { db } from '@/drizzle/db';
 
 describe('Stripe Connect Webhook Handler', () => {
   let mockRequest: NextRequest;
-  let mockStripeConstructEvent: vi.Mock;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -54,15 +66,14 @@ describe('Stripe Connect Webhook Handler', () => {
       headers: {
         get: vi.fn().mockReturnValue('test-stripe-signature'),
       },
-    } as any;
+    } as unknown as NextRequest;
 
-    // Setup Stripe webhook constructor mock
-    mockStripeConstructEvent = vi.fn();
-    (Stripe as any).mockImplementation(() => ({
-      webhooks: {
-        constructEvent: mockStripeConstructEvent,
-      },
-    }));
+    // Reset db.update mock
+    mocks.dbUpdate.mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue({}),
+      }),
+    });
   });
 
   afterEach(() => {
@@ -82,7 +93,12 @@ describe('Stripe Connect Webhook Handler', () => {
     });
 
     it('should return 400 when Stripe signature header is missing', async () => {
-      mockRequest.headers.get = vi.fn().mockReturnValue(null);
+      mockRequest = {
+        text: vi.fn().mockResolvedValue('{}'),
+        headers: {
+          get: vi.fn().mockReturnValue(null),
+        },
+      } as unknown as NextRequest;
 
       const response = await POST(mockRequest);
       const data = await response.json();
@@ -92,7 +108,7 @@ describe('Stripe Connect Webhook Handler', () => {
     });
 
     it('should return 400 when webhook signature verification fails', async () => {
-      mockStripeConstructEvent.mockImplementation(() => {
+      mocks.stripeConstructEvent.mockImplementation(() => {
         throw new Error('Invalid signature');
       });
 
@@ -106,8 +122,7 @@ describe('Stripe Connect Webhook Handler', () => {
 
   describe('POST - Account Events', () => {
     beforeEach(() => {
-      // Setup successful webhook verification for account events
-      mockStripeConstructEvent.mockReturnValue({
+      mocks.stripeConstructEvent.mockReturnValue({
         type: 'account.updated',
         id: 'evt_test_123',
         data: {
@@ -141,7 +156,7 @@ describe('Stripe Connect Webhook Handler', () => {
     });
 
     it('should handle account.application.deauthorized event', async () => {
-      mockStripeConstructEvent.mockReturnValue({
+      mocks.stripeConstructEvent.mockReturnValue({
         type: 'account.application.deauthorized',
         id: 'evt_test_123',
         data: {
@@ -160,7 +175,7 @@ describe('Stripe Connect Webhook Handler', () => {
 
   describe('POST - External Account Events', () => {
     it('should process account.external_account.created event successfully', async () => {
-      mockStripeConstructEvent.mockReturnValue({
+      mocks.stripeConstructEvent.mockReturnValue({
         type: 'account.external_account.created',
         id: 'evt_test_123',
         data: {
@@ -183,7 +198,7 @@ describe('Stripe Connect Webhook Handler', () => {
     });
 
     it('should process account.external_account.deleted event successfully', async () => {
-      mockStripeConstructEvent.mockReturnValue({
+      mocks.stripeConstructEvent.mockReturnValue({
         type: 'account.external_account.deleted',
         id: 'evt_test_123',
         data: {
@@ -204,7 +219,7 @@ describe('Stripe Connect Webhook Handler', () => {
 
   describe('POST - Payout Events', () => {
     it('should handle payout.paid event', async () => {
-      mockStripeConstructEvent.mockReturnValue({
+      mocks.stripeConstructEvent.mockReturnValue({
         type: 'payout.paid',
         id: 'evt_test_123',
         data: {
@@ -224,7 +239,7 @@ describe('Stripe Connect Webhook Handler', () => {
     });
 
     it('should handle payout.failed event and disable payouts', async () => {
-      mockStripeConstructEvent.mockReturnValue({
+      mocks.stripeConstructEvent.mockReturnValue({
         type: 'payout.failed',
         id: 'evt_test_123',
         data: {
@@ -248,7 +263,7 @@ describe('Stripe Connect Webhook Handler', () => {
 
   describe('POST - Unsupported Events', () => {
     it('should skip unsupported event types', async () => {
-      mockStripeConstructEvent.mockReturnValue({
+      mocks.stripeConstructEvent.mockReturnValue({
         type: 'payment_intent.succeeded',
         id: 'evt_test_123',
         data: {
@@ -266,7 +281,7 @@ describe('Stripe Connect Webhook Handler', () => {
 
   describe('POST - Error Handling', () => {
     beforeEach(() => {
-      mockStripeConstructEvent.mockReturnValue({
+      mocks.stripeConstructEvent.mockReturnValue({
         type: 'account.updated',
         id: 'evt_test_123',
         data: {
@@ -281,7 +296,7 @@ describe('Stripe Connect Webhook Handler', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (db.update as vi.Mock).mockImplementation(() => {
+      mocks.dbUpdate.mockImplementation(() => {
         throw new Error('Database connection failed');
       });
 
@@ -293,15 +308,15 @@ describe('Stripe Connect Webhook Handler', () => {
 
   describe('Edge Cases', () => {
     it('should handle partial account verification states', async () => {
-      mockStripeConstructEvent.mockReturnValue({
+      mocks.stripeConstructEvent.mockReturnValue({
         type: 'account.updated',
         id: 'evt_test_123',
         data: {
           object: {
             id: 'acct_test_123',
             details_submitted: true,
-            charges_enabled: false, // Not fully enabled
-            payouts_enabled: false, // Not fully enabled
+            charges_enabled: false,
+            payouts_enabled: false,
             metadata: {
               clerkUserId: 'user_123',
             },
@@ -309,8 +324,7 @@ describe('Stripe Connect Webhook Handler', () => {
         },
       });
 
-      // Reset the db.update mock to not throw an error for this test
-      (db.update as vi.Mock).mockReturnValue({
+      mocks.dbUpdate.mockReturnValue({
         set: vi.fn().mockReturnValue({
           where: vi.fn().mockResolvedValue({}),
         }),
@@ -323,7 +337,7 @@ describe('Stripe Connect Webhook Handler', () => {
     });
 
     it('should handle card external accounts', async () => {
-      mockStripeConstructEvent.mockReturnValue({
+      mocks.stripeConstructEvent.mockReturnValue({
         type: 'account.external_account.created',
         id: 'evt_test_123',
         data: {

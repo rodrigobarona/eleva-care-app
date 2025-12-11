@@ -145,17 +145,81 @@ test.describe('User Flow', () => {
 });
 ```
 
+## Critical: Use vi.hoisted() for Mocks
+
+When using `vi.mock()` with factory functions, mocks are hoisted to the top of the file.
+To reference variables in the factory, use `vi.hoisted()`:
+
+```typescript
+// ✅ CORRECT - mocks are hoisted before vi.mock()
+const mocks = vi.hoisted(() => ({
+  myFunction: vi.fn(),
+  dbQuery: vi.fn(),
+}));
+
+vi.mock('@/lib/myModule', () => ({
+  myFunction: mocks.myFunction,
+}));
+
+vi.mock('@/drizzle/db', () => ({
+  db: { query: mocks.dbQuery },
+}));
+
+// Now import the module under test
+import { myFunction } from '@/lib/myModule';
+
+describe('myFunction', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.myFunction.mockResolvedValue({ success: true });
+  });
+});
+```
+
+```typescript
+// ❌ WRONG - will cause "Cannot access before initialization"
+const myFunction = vi.fn();
+vi.mock('@/lib/myModule', () => ({
+  myFunction, // Error: myFunction is undefined when vi.mock runs
+}));
+```
+
+## Mock Stripe (Default Export)
+
+Stripe uses a default export constructor, so mock it correctly:
+
+```typescript
+vi.mock('stripe', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    customers: {
+      create: vi.fn().mockResolvedValue({ id: 'cus_mock' }),
+      retrieve: vi.fn().mockResolvedValue({ id: 'cus_mock' }),
+    },
+    paymentIntents: {
+      create: vi.fn().mockResolvedValue({ id: 'pi_mock' }),
+    },
+    checkout: {
+      sessions: {
+        create: vi.fn().mockResolvedValue({ url: 'https://checkout...' }),
+      },
+    },
+  })),
+}));
+```
+
 ## Best Practices
 
 1. **Import from vitest** - Use `import { vi, describe, it, expect } from 'vitest'`
-2. **Clear mocks** - Use `beforeEach(() => vi.clearAllMocks())`
-3. **Test behavior** - Test what users see, not implementation
-4. **Use queries wisely:**
+2. **Use vi.hoisted()** - For mocks referenced in vi.mock() factories
+3. **Clear mocks** - Use `beforeEach(() => vi.clearAllMocks())`
+4. **Test behavior** - Test what users see, not implementation
+5. **Use queries wisely:**
    - `getBy` - Element must exist
    - `queryBy` - Element might not exist
    - `findBy` - Wait for async element
-5. **User interactions** - Use `@testing-library/user-event` not `fireEvent`
-6. **Accessibility** - Query by role, label, placeholder, text
+6. **User interactions** - Use `@testing-library/user-event` not `fireEvent`
+7. **Accessibility** - Query by role, label, placeholder, text
+8. **Async handling** - Use `await act(async () => {})` for state updates
 
 ## Running Tests
 

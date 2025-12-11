@@ -1,4 +1,14 @@
+import { vi, describe, it, expect, test } from 'vitest';
 import { detectLocaleFromHeaders } from '@/lib/i18n/utils';
+
+/**
+ * Locale Detection Integration Tests
+ *
+ * Tests the detectLocaleFromHeaders function which:
+ * 1. First tries Accept-Language header (priority)
+ * 2. Falls back to x-vercel-ip-country geolocation
+ * 3. Returns null if no match found
+ */
 
 class MockHeaders {
   private headers: Map<string, string[]>;
@@ -22,7 +32,6 @@ class MockHeaders {
 
   forEach(callbackfn: (value: string, key: string, parent: Headers) => void): void {
     this.headers.forEach((values, key) => {
-      // For forEach, we return the concatenated values (standard Headers behavior)
       callbackfn(values.join(', '), key, this as unknown as Headers);
     });
   }
@@ -46,7 +55,6 @@ class MockHeaders {
   }
 
   entries(): IterableIterator<[string, string]> {
-    // Convert Map<string, string[]> to IterableIterator<[string, string]>
     const entriesArray: [string, string][] = [];
     this.headers.forEach((values, key) => {
       entriesArray.push([key, values.join(', ')]);
@@ -76,17 +84,30 @@ class MockHeaders {
 }
 
 describe('Locale Detection Integration Tests', () => {
-  const testCases = [
+  // Suppress console.log during tests
+  beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  /**
+   * Accept-Language tests
+   * The function FIRST checks Accept-Language, so these should match
+   */
+  const acceptLanguageTestCases = [
     {
-      name: 'Portuguese visitor from Portugal (geolocation)',
+      name: 'Portuguese visitor from Portugal (Accept-Language pt-PT)',
       headers: {
         'x-vercel-ip-country': 'PT',
         'accept-language': 'pt-PT,pt;q=0.9,en;q=0.8',
       },
-      expected: 'pt',
+      expected: 'pt', // pt-PT maps to 'pt'
     },
     {
-      name: 'Brazilian visitor (geolocation)',
+      name: 'Brazilian visitor (Accept-Language pt-BR)',
       headers: {
         'x-vercel-ip-country': 'BR',
         'accept-language': 'pt-BR,pt;q=0.9,en;q=0.8',
@@ -120,57 +141,106 @@ describe('Locale Detection Integration Tests', () => {
         'x-vercel-ip-country': 'US',
         'accept-language': 'en-US,en;q=0.9',
       },
-      expected: null, // Should use default (en)
+      // Accept-Language matches 'en' which is a supported locale
+      expected: 'en',
+    },
+    {
+      name: 'Spanish visitor',
+      headers: {
+        'x-vercel-ip-country': 'ES',
+        'accept-language': 'es-ES,es;q=0.9,en;q=0.8',
+      },
+      expected: 'es',
     },
   ];
 
-  test.each(testCases)('$name', ({ headers, expected }) => {
+  test.each(acceptLanguageTestCases)('$name', ({ headers, expected }) => {
     const mockHeaders = new MockHeaders(headers);
     const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
     expect(result).toBe(expected);
   });
 
-  describe('Edge Cases', () => {
-    test('should handle missing accept-language header', () => {
+  describe('Geolocation Fallback', () => {
+    // These tests verify that when Accept-Language doesn't match,
+    // the function falls back to country geolocation
+
+    it('should fall back to country header when Accept-Language has no match', () => {
       const mockHeaders = new MockHeaders({
         'x-vercel-ip-country': 'PT',
-      });
-      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
-      expect(result).toBe('pt'); // Should still detect PT based on country
-    });
-
-    test('should handle invalid accept-language format', () => {
-      const mockHeaders = new MockHeaders({
-        'accept-language': 'invalid-format',
-      });
-      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
-      expect(result).toBeNull(); // Should fallback to default
-    });
-
-    test('should handle empty headers', () => {
-      const mockHeaders = new MockHeaders({});
-      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
-      expect(result).toBeNull(); // Should fallback to default
-    });
-  });
-
-  describe('Country-Language Mapping', () => {
-    test('should prioritize country header for Portuguese', () => {
-      const mockHeaders = new MockHeaders({
-        'x-vercel-ip-country': 'PT',
-        'accept-language': 'en-US,en;q=0.9', // User prefers English but is in Portugal
+        // Japanese is not supported, so fallback to country
+        'accept-language': 'ja-JP,ja;q=0.9',
       });
       const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
       expect(result).toBe('pt');
     });
 
-    test('should prioritize country header for Brazilian Portuguese', () => {
+    it('should fall back to Brazil locale when from BR with unsupported language', () => {
       const mockHeaders = new MockHeaders({
         'x-vercel-ip-country': 'BR',
-        'accept-language': 'en-US,en;q=0.9', // User prefers English but is in Brazil
+        // Korean is not supported, so fallback to country
+        'accept-language': 'ko-KR,ko;q=0.9',
       });
       const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
       expect(result).toBe('pt-BR');
+    });
+
+    it('should use country header when accept-language is missing', () => {
+      const mockHeaders = new MockHeaders({
+        'x-vercel-ip-country': 'PT',
+      });
+      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
+      expect(result).toBe('pt');
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle invalid accept-language format', () => {
+      const mockHeaders = new MockHeaders({
+        'accept-language': 'invalid-format',
+      });
+      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
+      expect(result).toBeNull();
+    });
+
+    it('should handle empty headers', () => {
+      const mockHeaders = new MockHeaders({});
+      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
+      expect(result).toBeNull();
+    });
+
+    it('should return null for unsupported country without accept-language', () => {
+      const mockHeaders = new MockHeaders({
+        'x-vercel-ip-country': 'JP', // Japan is not in the country mapping
+      });
+      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
+      expect(result).toBeNull();
+    });
+  });
+
+  describe('Priority Order', () => {
+    // The function prioritizes Accept-Language over country geolocation
+    // This is by design: user's explicit preference > automatic detection
+
+    it('should prefer Accept-Language over country header (user choice matters)', () => {
+      // User in Portugal explicitly prefers English
+      const mockHeaders = new MockHeaders({
+        'x-vercel-ip-country': 'PT',
+        'accept-language': 'en-US,en;q=0.9',
+      });
+      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
+      // Accept-Language wins - respects user's explicit preference
+      expect(result).toBe('en');
+    });
+
+    it('should prefer Accept-Language over country for Brazilian users preferring English', () => {
+      // User in Brazil explicitly prefers English
+      const mockHeaders = new MockHeaders({
+        'x-vercel-ip-country': 'BR',
+        'accept-language': 'en-US,en;q=0.9',
+      });
+      const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
+      // Accept-Language wins - respects user's explicit preference
+      expect(result).toBe('en');
     });
   });
 });

@@ -1,20 +1,28 @@
 import { vi } from 'vitest';
 
-// Create mock functions with explicit typing
-const mockStripeSessionCreate = vi.fn<(...args: any[]) => Promise<{ id: string; url: string }>>();
-const mockGetOrCreateStripeCustomer = vi.fn<(...args: any[]) => Promise<string>>();
-const mockDbEventFind = vi.fn<(...args: any[]) => Promise<any>>();
-const mockDbSlotReservationFind = vi.fn<(...args: any[]) => Promise<any>>();
+// Use vi.hoisted to define mocks that work with vi.mock hoisting
+const mocks = vi.hoisted(() => ({
+  stripeSessionCreate: vi.fn<(...args: any[]) => Promise<{ id: string; url: string }>>(),
+  getOrCreateStripeCustomer: vi.fn<(...args: any[]) => Promise<string>>(),
+  dbEventFind: vi.fn<(...args: any[]) => Promise<any>>(),
+  dbSlotReservationFind: vi.fn<(...args: any[]) => Promise<any>>(),
+}));
+
+// Re-export for use in tests
+const mockStripeSessionCreate = mocks.stripeSessionCreate;
+const mockGetOrCreateStripeCustomer = mocks.getOrCreateStripeCustomer;
+const mockDbEventFind = mocks.dbEventFind;
+const mockDbSlotReservationFind = mocks.dbSlotReservationFind;
 
 // Mock dependencies
 vi.mock('@/drizzle/db', () => ({
   db: {
     query: {
       EventTable: {
-        findFirst: () => mockDbEventFind(),
+        findFirst: () => mocks.dbEventFind(),
       },
       SlotReservationTable: {
-        findFirst: () => mockDbSlotReservationFind(),
+        findFirst: () => mocks.dbSlotReservationFind(),
       },
     },
   },
@@ -22,19 +30,20 @@ vi.mock('@/drizzle/db', () => ({
 
 vi.mock('@/lib/integrations/stripe', () => ({
   getBaseUrl: vi.fn(() => 'https://example.com'),
-  getOrCreateStripeCustomer: () => mockGetOrCreateStripeCustomer(),
+  getOrCreateStripeCustomer: () => mocks.getOrCreateStripeCustomer(),
   withRetry: vi.fn((fn: () => void) => fn()),
   calculateApplicationFee: vi.fn((price: number) => Math.round(price * 0.15)),
 }));
 
 vi.mock('stripe', () => {
-  return vi.fn(() => ({
+  const StripeMock = vi.fn(() => ({
     checkout: {
       sessions: {
-        create: (...args: any[]) => mockStripeSessionCreate(...args),
+        create: (...args: any[]) => mocks.stripeSessionCreate(...args),
       },
     },
   }));
+  return { default: StripeMock };
 });
 
 vi.mock('next/server', () => ({

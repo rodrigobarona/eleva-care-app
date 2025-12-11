@@ -1,32 +1,49 @@
-import { vi } from 'vitest';
-// Import Jest globals first
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 
-// Import dependencies for assertions
+/**
+ * Expert Onboarding Flow Tests
+ * Tests for the expert setup and onboarding process
+ */
 
-// Import our mocks
-import {
-  mockCheckExpertSetupStatus,
-  mockMarkStepComplete,
-  mockToggleProfilePublication,
-  mockUpdateProfile,
-} from './expert-setup-mocks';
+// Default setup status to use in mocks
+const defaultSetupStatus = {
+  profile: true,
+  events: true,
+  availability: false,
+  identity: false,
+  payment: false,
+  google_account: false,
+};
 
-vi.mock('next/cache', () => ({
+// Use vi.hoisted for mocks that need to be available in vi.mock factories
+const mocks = vi.hoisted(() => ({
+  markStepComplete: vi.fn(),
+  checkExpertSetupStatus: vi.fn(),
+  updateProfile: vi.fn(),
+  toggleProfilePublication: vi.fn(),
   revalidatePath: vi.fn(),
 }));
 
-// Mock our server actions
+vi.mock('next/cache', () => ({
+  revalidatePath: mocks.revalidatePath,
+}));
+
 vi.mock('@/server/actions/expert-setup', () => ({
-  markStepComplete: mockMarkStepComplete,
-  checkExpertSetupStatus: mockCheckExpertSetupStatus,
+  markStepComplete: mocks.markStepComplete,
+  checkExpertSetupStatus: mocks.checkExpertSetupStatus,
 }));
 
 vi.mock('@/server/actions/profile', () => ({
-  updateProfile: mockUpdateProfile,
-  toggleProfilePublication: mockToggleProfilePublication,
+  updateProfile: mocks.updateProfile,
+  toggleProfilePublication: mocks.toggleProfilePublication,
 }));
 
-// Define type for profile data
+// Re-export for test usage
+const mockMarkStepComplete = mocks.markStepComplete;
+const mockCheckExpertSetupStatus = mocks.checkExpertSetupStatus;
+const mockUpdateProfile = mocks.updateProfile;
+const mockToggleProfilePublication = mocks.toggleProfilePublication;
+
 interface ProfileData {
   firstName?: string;
   lastName?: string;
@@ -37,10 +54,64 @@ interface ProfileData {
 describe('Expert Onboarding Flow', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+
+    // Set up default mock implementations
+    mockMarkStepComplete.mockImplementation((step: string) => {
+      return Promise.resolve({
+        success: true,
+        setupStatus: {
+          profile: step === 'profile' || defaultSetupStatus.profile,
+          events: step === 'events' || defaultSetupStatus.events,
+          availability: step === 'availability',
+          identity: step === 'identity',
+          payment: step === 'payment',
+          google_account: step === 'google_account',
+        },
+      });
+    });
+
+    mockCheckExpertSetupStatus.mockResolvedValue({
+      success: true,
+      setupStatus: defaultSetupStatus,
+      isPublished: false,
+    });
+
+    mockUpdateProfile.mockResolvedValue({
+      success: true,
+      profile: {
+        id: 'profile_123',
+        firstName: 'John',
+        lastName: 'Doe',
+        shortBio: 'Expert in testing',
+        longBio: 'Extensive experience in software testing.',
+        published: false,
+      },
+    });
+
+    mockToggleProfilePublication.mockImplementation(() => {
+      const setupStatus = defaultSetupStatus;
+      const allStepsComplete = Object.values(setupStatus).every(Boolean);
+
+      if (allStepsComplete) {
+        return Promise.resolve({
+          success: true,
+          message: 'Profile published successfully',
+          isPublished: true,
+        });
+      }
+
+      return Promise.resolve({
+        success: false,
+        message: 'Cannot publish profile until all setup steps are complete',
+        isPublished: false,
+        incompleteSteps: Object.keys(setupStatus).filter(
+          (step) => !setupStatus[step as keyof typeof setupStatus],
+        ),
+      });
+    });
   });
 
   it('should allow completing profile step of expert onboarding', async () => {
-    // Arrange - Set up the initial state
     const profileData = {
       firstName: 'John',
       lastName: 'Doe',
@@ -48,23 +119,19 @@ describe('Expert Onboarding Flow', () => {
       longBio: 'I have over 10 years of experience in software testing.',
     };
 
-    // Act - Update the profile and mark step complete
     const profileResult = await mockUpdateProfile(profileData);
     const stepResult = await mockMarkStepComplete('profile');
 
-    // Assert - Verify that the step was marked complete
-    expect((profileResult as any).success).toBe(true);
-    expect((stepResult as any).success).toBe(true);
-    expect((stepResult as any).setupStatus.profile).toBe(true);
+    expect(profileResult.success).toBe(true);
+    expect(stepResult.success).toBe(true);
+    expect(stepResult.setupStatus.profile).toBe(true);
 
-    // Verify functions were called with correct parameters
     expect(mockUpdateProfile).toHaveBeenCalledWith(profileData);
     expect(mockMarkStepComplete).toHaveBeenCalledWith('profile');
   });
 
   it('should prevent publishing a profile until all required steps are complete', async () => {
-    // Arrange - Make sure some steps are incomplete
-    (mockCheckExpertSetupStatus as any).mockResolvedValueOnce({
+    mockCheckExpertSetupStatus.mockResolvedValueOnce({
       success: true,
       setupStatus: {
         profile: true,
@@ -77,26 +144,21 @@ describe('Expert Onboarding Flow', () => {
       isPublished: false,
     });
 
-    // Act - Try to publish the profile
     const result = await mockToggleProfilePublication();
 
-    // Assert - Verify that publishing was prevented
-    expect((result as any).success).toBe(false);
-    expect((result as any).message).toContain('Cannot publish profile');
-    // Based on our defaultSetupStatus in the mock implementation, availability is in incompleteSteps
-    expect((result as any).incompleteSteps).toContain('availability');
-    expect((result as any).incompleteSteps).toContain('identity');
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('Cannot publish profile');
+    expect(result.incompleteSteps).toContain('availability');
+    expect(result.incompleteSteps).toContain('identity');
   });
 
   it('should validate required information for each onboarding step', async () => {
-    // Arrange - Set up invalid profile data
     const invalidProfileData: ProfileData = {
-      firstName: '', // First name is required
+      firstName: '',
       lastName: 'Doe',
-      shortBio: '', // Short bio is required
+      shortBio: '',
     };
 
-    // Mock the profile validation function
     const validateProfile = (data: ProfileData) => {
       const errors: Record<string, string> = {};
       if (!data.firstName) errors.firstName = 'First name is required';
@@ -105,10 +167,8 @@ describe('Expert Onboarding Flow', () => {
       return Object.keys(errors).length > 0 ? { success: false, errors } : { success: true };
     };
 
-    // Act - Validate the invalid profile data
     const validationResult = validateProfile(invalidProfileData);
 
-    // Assert - Verify that validation failed with appropriate errors
     expect(validationResult.success).toBe(false);
     expect(validationResult.errors).toHaveProperty('firstName');
     expect(validationResult.errors).toHaveProperty('shortBio');
@@ -116,7 +176,6 @@ describe('Expert Onboarding Flow', () => {
   });
 
   it('should show onboarding progress accurately', async () => {
-    // Arrange - Set initial setup status
     const initialSetupStatus = {
       profile: true,
       events: true,
@@ -126,47 +185,36 @@ describe('Expert Onboarding Flow', () => {
       google_account: false,
     };
 
-    (mockCheckExpertSetupStatus as any).mockResolvedValueOnce({
+    mockCheckExpertSetupStatus.mockResolvedValueOnce({
       success: true,
       setupStatus: initialSetupStatus,
       isPublished: false,
     });
 
-    // Mock a progress calculation function
     const calculateProgress = (setupStatus: Record<string, boolean>) => {
       const total = Object.keys(setupStatus).length;
       const completed = Object.values(setupStatus).filter(Boolean).length;
       return Math.round((completed / total) * 100);
     };
 
-    // Act - Get current setup status and calculate progress
     const result = await mockCheckExpertSetupStatus();
-    const progress = calculateProgress((result as any).setupStatus);
+    const progress = calculateProgress(result.setupStatus);
 
-    // Assert - Verify progress calculation is correct (2/6 steps = 33%)
-    expect((result as any).success).toBe(true);
+    expect(result.success).toBe(true);
     expect(progress).toBe(33);
   });
 
   it('should allow publishing profile when all steps are complete', async () => {
-    // Arrange - Override the default mock to make all steps complete
-    // All steps will be complete based on mock implementation
-
-    // Override the mock implementation for this test only
-    mockToggleProfilePublication.mockImplementationOnce(() => {
-      return Promise.resolve({
-        success: true,
-        message: 'Profile published successfully',
-        isPublished: true,
-      });
+    mockToggleProfilePublication.mockResolvedValueOnce({
+      success: true,
+      message: 'Profile published successfully',
+      isPublished: true,
     });
 
-    // Act - Try to publish the profile
     const result = await mockToggleProfilePublication();
 
-    // Assert - Verify that publishing succeeded
-    expect((result as any).success).toBe(true);
-    expect((result as any).message).toContain('Profile published successfully');
-    expect((result as any).isPublished).toBe(true);
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('Profile published successfully');
+    expect(result.isPublished).toBe(true);
   });
 });
