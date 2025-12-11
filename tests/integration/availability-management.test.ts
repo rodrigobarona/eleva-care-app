@@ -58,8 +58,8 @@ vi.mock('@/drizzle/db', () => ({
       returning: vi.fn(),
     }),
     transaction: vi.fn().mockImplementation(async (callback) => {
-      return await callback(vi.fn());
-    }),
+        return await callback(vi.fn());
+      }),
   },
 }));
 

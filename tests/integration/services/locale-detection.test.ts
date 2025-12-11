@@ -191,7 +191,7 @@ describe('Locale Detection Integration Tests', () => {
       const result = detectLocaleFromHeaders(mockHeaders as unknown as Headers);
       expect(result).toBe('pt');
     });
-  });
+    });
 
   describe('Edge Cases', () => {
     it('should handle invalid accept-language format', () => {

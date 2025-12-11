@@ -64,21 +64,21 @@ describe('Novu Workflow Execution Integration Tests', () => {
 
     // Set up default mock responses
     mocks.trigger.mockResolvedValue({
-      data: {
+        data: {
         transactionId: `mock_txn_${Date.now()}`,
-        acknowledged: true,
-        status: 'processed',
-      },
-    });
+          acknowledged: true,
+          status: 'processed',
+        },
+      });
 
     mocks.subscribersList.mockResolvedValue({
-      data: [],
-      totalCount: 0,
-    });
+        data: [],
+        totalCount: 0,
+      });
 
     mocks.subscribersIdentify.mockResolvedValue({
-      data: { _id: 'mock_subscriber_id' },
-    });
+        data: { _id: 'mock_subscriber_id' },
+      });
   });
 
   describe('user-lifecycle workflow', () => {
@@ -109,10 +109,10 @@ describe('Novu Workflow Execution Integration Tests', () => {
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
       expect(mocks.trigger).toHaveBeenCalledWith({
-        workflowId: 'user-lifecycle',
+          workflowId: 'user-lifecycle',
         to: testSubscriberId,
-        payload: testPayload,
-      });
+          payload: testPayload,
+        });
       expect(result.data.acknowledged).toBe(true);
     });
 
@@ -143,10 +143,10 @@ describe('Novu Workflow Execution Integration Tests', () => {
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
       expect(mocks.trigger).toHaveBeenCalledWith({
-        workflowId: 'user-lifecycle',
+          workflowId: 'user-lifecycle',
         to: `expert_${testSubscriberId}`,
-        payload: expertPayload,
-      });
+          payload: expertPayload,
+        });
     });
 
     it('should handle minimal payload gracefully', async () => {
@@ -166,9 +166,9 @@ describe('Novu Workflow Execution Integration Tests', () => {
       };
 
       const result = await novu.trigger({
-        workflowId: 'user-lifecycle',
+          workflowId: 'user-lifecycle',
         to: `minimal_${testSubscriberId}`,
-        payload: minimalPayload,
+          payload: minimalPayload,
       });
 
       expect(result).toBeDefined();
@@ -202,10 +202,10 @@ describe('Novu Workflow Execution Integration Tests', () => {
       expect(result).toBeDefined();
       expect(result.data).toBeDefined();
       expect(mocks.trigger).toHaveBeenCalledWith({
-        workflowId: 'security-auth',
+          workflowId: 'security-auth',
         to: testSubscriberId,
-        payload: securityPayload,
-      });
+          payload: securityPayload,
+        });
     });
   });
 
@@ -245,12 +245,12 @@ describe('Novu Workflow Execution Integration Tests', () => {
         userId: testSubscriberId,
       };
 
-      await expect(
-        novu.trigger({
+        await expect(
+          novu.trigger({
           workflowId: 'test-workflow',
           to: testSubscriberId,
-          payload,
-        }),
+            payload,
+          }),
       ).rejects.toThrow('API rate limit exceeded');
     });
   });

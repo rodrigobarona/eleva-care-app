@@ -206,9 +206,9 @@ describe('Expert Onboarding Flow', () => {
 
   it('should allow publishing profile when all steps are complete', async () => {
     mockToggleProfilePublication.mockResolvedValueOnce({
-      success: true,
-      message: 'Profile published successfully',
-      isPublished: true,
+        success: true,
+        message: 'Profile published successfully',
+        isPublished: true,
     });
 
     const result = await mockToggleProfilePublication();
