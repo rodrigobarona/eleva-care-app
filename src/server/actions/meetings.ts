@@ -96,10 +96,10 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         hasPayment: !!data.stripePaymentIntentId,
       });
 
-      try {
-        // Step 1.5: Auto-create WorkOS user for guest (transparently during booking)
-        let guestWorkosUserId: string;
-        let guestOrgId: string;
+  try {
+    // Step 1.5: Auto-create WorkOS user for guest (transparently during booking)
+    let guestWorkosUserId: string;
+    let guestOrgId: string;
 
         const guestUserResult = await Sentry.startSpan(
           {
@@ -116,37 +116,37 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
 
             try {
               const result = await createOrGetGuestUser({
-                email: data.guestEmail,
-                name: data.guestName,
-                metadata: {
-                  bookingEventId: data.eventId,
-                  bookingStartTime: data.startTime.toISOString(),
-                  registrationSource: 'meeting_booking',
-                },
-              });
+        email: data.guestEmail,
+        name: data.guestName,
+        metadata: {
+          bookingEventId: data.eventId,
+          bookingStartTime: data.startTime.toISOString(),
+          registrationSource: 'meeting_booking',
+        },
+      });
 
               span.setAttribute('guest.is_new_user', result.isNewUser);
 
               if (result.isNewUser) {
                 Sentry.logger.info('New guest user created', {
-                  email: data.guestEmail,
+          email: data.guestEmail,
                   workosUserId: result.userId,
                   organizationId: result.organizationId,
-                });
-              } else {
+        });
+      } else {
                 Sentry.logger.debug('Existing guest user found', {
-                  email: data.guestEmail,
+          email: data.guestEmail,
                   workosUserId: result.userId,
-                });
-              }
+        });
+      }
 
               return result;
-            } catch (guestUserError) {
+    } catch (guestUserError) {
               span.setAttribute('guest.error', true);
               Sentry.logger.error('Failed to create/get guest user', {
-                error: guestUserError instanceof Error ? guestUserError.message : 'Unknown error',
-                email: data.guestEmail,
-              });
+        error: guestUserError instanceof Error ? guestUserError.message : 'Unknown error',
+        email: data.guestEmail,
+      });
               throw guestUserError;
             }
           },
@@ -155,17 +155,17 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
         if (!guestUserResult) {
           parentSpan.setAttribute('meeting.success', false);
           parentSpan.setAttribute('meeting.error_code', 'GUEST_USER_CREATION_ERROR');
-          return {
-            error: true,
-            code: 'GUEST_USER_CREATION_ERROR',
-            message: 'Failed to register guest user',
-          };
-        }
+      return {
+        error: true,
+        code: 'GUEST_USER_CREATION_ERROR',
+        message: 'Failed to register guest user',
+      };
+    }
 
         guestWorkosUserId = guestUserResult.userId;
         guestOrgId = guestUserResult.organizationId;
 
-        // Step 2: Check for duplicate booking from the same user first
+    // Step 2: Check for duplicate booking from the same user first
         const existingUserMeeting = await Sentry.startSpan(
           {
             name: 'meeting.create.check_duplicate',
@@ -173,35 +173,35 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
           },
           async () => {
             return db.query.MeetingsTable.findFirst({
-              where: (fields, operators) =>
-                operators.or(
-                  data.stripePaymentIntentId
-                    ? operators.eq(fields.stripePaymentIntentId, data.stripePaymentIntentId)
-                    : undefined,
-                  data.stripeSessionId
-                    ? operators.eq(fields.stripeSessionId, data.stripeSessionId)
-                    : undefined,
-                  operators.and(
-                    operators.eq(fields.eventId, data.eventId),
-                    operators.eq(fields.startTime, data.startTime),
-                    operators.eq(fields.guestEmail, data.guestEmail),
-                  ),
-                ),
-            });
+      where: (fields, operators) =>
+        operators.or(
+          data.stripePaymentIntentId
+            ? operators.eq(fields.stripePaymentIntentId, data.stripePaymentIntentId)
+            : undefined,
+          data.stripeSessionId
+            ? operators.eq(fields.stripeSessionId, data.stripeSessionId)
+            : undefined,
+          operators.and(
+            operators.eq(fields.eventId, data.eventId),
+            operators.eq(fields.startTime, data.startTime),
+            operators.eq(fields.guestEmail, data.guestEmail),
+          ),
+        ),
+    });
           },
         );
 
-        if (existingUserMeeting) {
+    if (existingUserMeeting) {
           parentSpan.setAttribute('meeting.is_duplicate', true);
           Sentry.logger.info('Duplicate booking from same user - returning existing meeting', {
-            meetingId: existingUserMeeting.id,
-            eventId: data.eventId,
-            guestEmail: data.guestEmail,
-          });
-          return { error: false, meeting: existingUserMeeting };
-        }
+        meetingId: existingUserMeeting.id,
+        eventId: data.eventId,
+        guestEmail: data.guestEmail,
+      });
+      return { error: false, meeting: existingUserMeeting };
+    }
 
-        // Step 3: Check if time slot is already taken by a different user
+    // Step 3: Check if time slot is already taken by a different user
         const conflictingMeeting = await Sentry.startSpan(
           {
             name: 'meeting.create.check_conflict',
@@ -209,34 +209,34 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
           },
           async () => {
             return db.query.MeetingsTable.findFirst({
-              where: (fields, operators) =>
-                operators.and(
-                  operators.eq(fields.eventId, data.eventId),
-                  operators.eq(fields.startTime, data.startTime),
-                  operators.ne(fields.guestEmail, data.guestEmail),
-                ),
-            });
+      where: (fields, operators) =>
+        operators.and(
+          operators.eq(fields.eventId, data.eventId),
+          operators.eq(fields.startTime, data.startTime),
+          operators.ne(fields.guestEmail, data.guestEmail),
+        ),
+    });
           },
         );
 
-        if (conflictingMeeting) {
+    if (conflictingMeeting) {
           parentSpan.setAttribute('meeting.success', false);
           parentSpan.setAttribute('meeting.error_code', 'SLOT_ALREADY_BOOKED');
           Sentry.logger.warn('Time slot already taken by another user', {
-            eventId: data.eventId,
+        eventId: data.eventId,
             startTime: data.startTime.toISOString(),
-            requestingUser: data.guestEmail,
+        requestingUser: data.guestEmail,
             existingMeetingId: conflictingMeeting.id,
-          });
-          return {
-            error: true,
-            code: 'SLOT_ALREADY_BOOKED',
-            message:
-              'This time slot has just been booked by another user. Please choose a different time.',
-          };
-        }
+      });
+      return {
+        error: true,
+        code: 'SLOT_ALREADY_BOOKED',
+        message:
+          'This time slot has just been booked by another user. Please choose a different time.',
+      };
+    }
 
-        // Step 3.5: Check for active slot reservations by other users
+    // Step 3.5: Check for active slot reservations by other users
         const conflictingReservation = await Sentry.startSpan(
           {
             name: 'meeting.create.check_reservation',
@@ -244,47 +244,47 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
           },
           async () => {
             return db.query.SlotReservationsTable.findFirst({
-              where: (fields, operators) =>
-                operators.and(
-                  operators.eq(fields.eventId, data.eventId),
-                  operators.eq(fields.startTime, data.startTime),
-                  operators.ne(fields.guestEmail, data.guestEmail),
-                  operators.gt(fields.expiresAt, new Date()), // Only active reservations
-                ),
-            });
+      where: (fields, operators) =>
+        operators.and(
+          operators.eq(fields.eventId, data.eventId),
+          operators.eq(fields.startTime, data.startTime),
+          operators.ne(fields.guestEmail, data.guestEmail),
+          operators.gt(fields.expiresAt, new Date()), // Only active reservations
+        ),
+    });
           },
         );
 
-        if (conflictingReservation) {
+    if (conflictingReservation) {
           parentSpan.setAttribute('meeting.success', false);
           parentSpan.setAttribute('meeting.error_code', 'SLOT_TEMPORARILY_RESERVED');
           Sentry.logger.warn('Time slot is currently reserved by another user', {
-            eventId: data.eventId,
+        eventId: data.eventId,
             startTime: data.startTime.toISOString(),
-            requestingUser: data.guestEmail,
+        requestingUser: data.guestEmail,
             reservationId: conflictingReservation.id,
             expiresAt: conflictingReservation.expiresAt.toISOString(),
-          });
-          return {
-            error: true,
-            code: 'SLOT_TEMPORARILY_RESERVED',
-            message:
-              'This time slot is temporarily reserved by another user. Please choose a different time or try again later.',
-          };
-        }
+      });
+      return {
+        error: true,
+        code: 'SLOT_TEMPORARILY_RESERVED',
+        message:
+          'This time slot is temporarily reserved by another user. Please choose a different time or try again later.',
+      };
+    }
 
-        // Step 4: Find the associated event and verify it exists and is active
-        const event = await db.query.EventsTable.findFirst({
-          where: ({ workosUserId, isActive, id }, { eq, and }) =>
-            and(eq(isActive, true), eq(workosUserId, data.workosUserId), eq(id, data.eventId)),
+    // Step 4: Find the associated event and verify it exists and is active
+    const event = await db.query.EventsTable.findFirst({
+      where: ({ workosUserId, isActive, id }, { eq, and }) =>
+        and(eq(isActive, true), eq(workosUserId, data.workosUserId), eq(id, data.eventId)),
+      with: {
+        user: {
           with: {
-            user: {
-              with: {
-                profile: true, // Include profile for name data in Novu notifications
-              },
-            },
+            profile: true, // Include profile for name data in Novu notifications
           },
-        });
+        },
+      },
+    });
 
         if (event == null) {
           parentSpan.setAttribute('meeting.success', false);
@@ -296,17 +296,17 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
           return { error: true, code: 'EVENT_NOT_FOUND' };
         }
 
-        // Step 5: Verify the requested time slot is valid according to the schedule
-        const startTimeUTC = data.startTime;
+    // Step 5: Verify the requested time slot is valid according to the schedule
+    const startTimeUTC = data.startTime;
 
-        // 🔐 IMPORTANT: Skip time slot validation for already-paid bookings
-        // When a webhook arrives with payment_status='succeeded', the customer has already paid
-        // and we MUST honor the booking even if the schedule has changed since payment.
-        // This prevents issues when webhooks are resent or delayed.
-        const isAlreadyPaid = data.stripePaymentStatus === 'succeeded';
-        const shouldSkipTimeValidation = isAlreadyPaid && data.stripeSessionId;
+    // 🔐 IMPORTANT: Skip time slot validation for already-paid bookings
+    // When a webhook arrives with payment_status='succeeded', the customer has already paid
+    // and we MUST honor the booking even if the schedule has changed since payment.
+    // This prevents issues when webhooks are resent or delayed.
+    const isAlreadyPaid = data.stripePaymentStatus === 'succeeded';
+    const shouldSkipTimeValidation = isAlreadyPaid && data.stripeSessionId;
 
-        if (!shouldSkipTimeValidation) {
+    if (!shouldSkipTimeValidation) {
           const isTimeSlotValid = await Sentry.startSpan(
             {
               name: 'meeting.create.validate_time_slot',
@@ -318,13 +318,13 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
                 startTime: startTimeUTC.toISOString(),
               });
 
-              // Get calendar events for the time slot
-              const calendarService = GoogleCalendarService.getInstance();
+      // Get calendar events for the time slot
+      const calendarService = GoogleCalendarService.getInstance();
               const calendarEvents = await calendarService.getCalendarEventTimes(
                 event.workosUserId,
                 {
-                  start: startTimeUTC,
-                  end: addMinutes(startTimeUTC, event.durationInMinutes),
+        start: startTimeUTC,
+        end: addMinutes(startTimeUTC, event.durationInMinutes),
                 },
               );
 
@@ -344,42 +344,42 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
             parentSpan.setAttribute('meeting.error_code', 'INVALID_TIME_SLOT');
             Sentry.logger.warn('Time slot validation failed', {
               requestedTime: startTimeUTC.toISOString(),
-              eventId: data.eventId,
-              guestEmail: data.guestEmail,
-            });
-            return { error: true, code: 'INVALID_TIME_SLOT' };
-          }
+          eventId: data.eventId,
+          guestEmail: data.guestEmail,
+        });
+        return { error: true, code: 'INVALID_TIME_SLOT' };
+      }
 
           Sentry.logger.debug('Time slot is valid', { eventId: data.eventId });
-        } else {
+    } else {
           Sentry.logger.info('Skipping time slot validation (payment already succeeded)', {
-            paymentStatus: data.stripePaymentStatus,
-            sessionId: data.stripeSessionId,
+        paymentStatus: data.stripePaymentStatus,
+        sessionId: data.stripeSessionId,
             bookingTime: startTimeUTC.toISOString(),
-          });
-        }
+      });
+    }
 
-        // Step 6: Calculate the end time based on event duration
-        const endTimeUTC = new Date(startTimeUTC.getTime() + event.durationInMinutes * 60000);
+    // Step 6: Calculate the end time based on event duration
+    const endTimeUTC = new Date(startTimeUTC.getTime() + event.durationInMinutes * 60000);
 
-        try {
-          let calendarEvent: Awaited<ReturnType<typeof createCalendarEvent>> | null = null;
-          let meetingUrl: string | null = null;
+    try {
+      let calendarEvent: Awaited<ReturnType<typeof createCalendarEvent>> | null = null;
+      let meetingUrl: string | null = null;
 
-          // Only create calendar events for succeeded payments or free events
-          const shouldCreateCalendarEvent =
-            !data.stripePaymentStatus ||
-            data.stripePaymentStatus === 'succeeded' ||
-            data.stripePaymentStatus === 'processing';
+      // Only create calendar events for succeeded payments or free events
+      const shouldCreateCalendarEvent =
+        !data.stripePaymentStatus ||
+        data.stripePaymentStatus === 'succeeded' ||
+        data.stripePaymentStatus === 'processing';
 
           Sentry.logger.debug('Calendar event creation decision', {
-            shouldCreate: shouldCreateCalendarEvent,
+        shouldCreate: shouldCreateCalendarEvent,
             paymentStatus: data.stripePaymentStatus || 'free',
-            eventId: data.eventId,
-          });
+        eventId: data.eventId,
+      });
 
-          if (shouldCreateCalendarEvent) {
-            // Step 7: Create calendar event in Google Calendar
+      if (shouldCreateCalendarEvent) {
+        // Step 7: Create calendar event in Google Calendar
             calendarEvent = await Sentry.startSpan(
               {
                 name: 'meeting.create.calendar_event',
@@ -389,23 +389,23 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
                 },
               },
               async (span) => {
-                try {
+        try {
                   Sentry.logger.debug('Creating Google Calendar event', {
                     eventId: data.eventId,
                     guestEmail: data.guestEmail,
                   });
 
                   const result = await createCalendarEvent({
-                    workosUserId: data.workosUserId,
-                    guestName: data.guestName,
-                    guestEmail: data.guestEmail,
-                    startTime: startTimeUTC,
-                    guestNotes: data.guestNotes,
-                    durationInMinutes: event.durationInMinutes,
-                    eventName: event.name,
-                    timezone: data.timezone,
-                    locale: data.locale || 'en',
-                  });
+            workosUserId: data.workosUserId,
+            guestName: data.guestName,
+            guestEmail: data.guestEmail,
+            startTime: startTimeUTC,
+            guestNotes: data.guestNotes,
+            durationInMinutes: event.durationInMinutes,
+            eventName: event.name,
+            timezone: data.timezone,
+            locale: data.locale || 'en',
+          });
 
                   const url = result.conferenceData?.entryPoints?.[0]?.uri ?? null;
                   span.setAttribute('calendar.has_meet_url', !!url);
@@ -413,20 +413,20 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
 
                   Sentry.logger.info('Calendar event created successfully', {
                     eventId: data.eventId,
-                    paymentStatus: data.stripePaymentStatus || 'free',
+            paymentStatus: data.stripePaymentStatus || 'free',
                     hasMeetUrl: !!url,
-                  });
+          });
 
                   return result;
-                } catch (calendarError) {
+        } catch (calendarError) {
                   span.setAttribute('calendar.error', true);
                   Sentry.logger.error('Failed to create calendar event', {
                     error: calendarError instanceof Error ? calendarError.message : 'Unknown error',
-                    eventId: data.eventId,
-                    workosUserId: data.workosUserId,
-                    guestEmail: data.guestEmail,
-                  });
-                  // Don't fail the meeting creation - calendar can be created later
+            eventId: data.eventId,
+            workosUserId: data.workosUserId,
+            guestEmail: data.guestEmail,
+          });
+          // Don't fail the meeting creation - calendar can be created later
                   return null;
                 }
               },
@@ -434,15 +434,15 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
 
             if (calendarEvent) {
               meetingUrl = calendarEvent.conferenceData?.entryPoints?.[0]?.uri ?? null;
-            }
-          } else {
+        }
+      } else {
             Sentry.logger.info('Calendar event deferred', {
               paymentStatus: data.stripePaymentStatus,
               eventId: data.eventId,
             });
-          }
+      }
 
-          // Step 8: Create the meeting record in the database
+      // Step 8: Create the meeting record in the database
           const [meeting] = await Sentry.startSpan(
             {
               name: 'meeting.create.db_insert',
@@ -450,31 +450,31 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
             },
             async () => {
               return db
-                .insert(MeetingsTable)
-                .values({
-                  eventId: data.eventId,
-                  workosUserId: data.workosUserId, // Expert's WorkOS ID
-                  guestWorkosUserId, // Guest's WorkOS ID (auto-created)
-                  guestOrgId, // Guest's organization ID (auto-created)
-                  guestEmail: data.guestEmail, // Keep for backward compatibility
-                  guestName: data.guestName, // Keep for backward compatibility
-                  guestNotes: data.guestNotes,
-                  startTime: startTimeUTC,
-                  endTime: endTimeUTC,
-                  timezone: data.timezone,
-                  meetingUrl: meetingUrl,
-                  stripePaymentIntentId: data.stripePaymentIntentId,
-                  stripeSessionId: data.stripeSessionId,
-                  stripePaymentStatus: data.stripePaymentStatus as
-                    | 'pending'
-                    | 'processing'
-                    | 'succeeded'
-                    | 'failed'
-                    | 'refunded',
-                  stripeAmount: data.stripeAmount,
-                  stripeApplicationFeeAmount: data.stripeApplicationFeeAmount,
-                })
-                .returning();
+        .insert(MeetingsTable)
+        .values({
+          eventId: data.eventId,
+          workosUserId: data.workosUserId, // Expert's WorkOS ID
+          guestWorkosUserId, // Guest's WorkOS ID (auto-created)
+          guestOrgId, // Guest's organization ID (auto-created)
+          guestEmail: data.guestEmail, // Keep for backward compatibility
+          guestName: data.guestName, // Keep for backward compatibility
+          guestNotes: data.guestNotes,
+          startTime: startTimeUTC,
+          endTime: endTimeUTC,
+          timezone: data.timezone,
+          meetingUrl: meetingUrl,
+          stripePaymentIntentId: data.stripePaymentIntentId,
+          stripeSessionId: data.stripeSessionId,
+          stripePaymentStatus: data.stripePaymentStatus as
+            | 'pending'
+            | 'processing'
+            | 'succeeded'
+            | 'failed'
+            | 'refunded',
+          stripeAmount: data.stripeAmount,
+          stripeApplicationFeeAmount: data.stripeApplicationFeeAmount,
+        })
+        .returning();
             },
           );
 
@@ -488,127 +488,127 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
             hasMeetUrl: !!meetingUrl,
           });
 
-          // Step 9: Log audit event
-          await logAuditEvent(
-            data.workosUserId,
-            'MEETING_CREATED',
-            'meeting',
-            data.eventId,
-            null,
-            {
-              ...data,
-              endTime: endTimeUTC,
-              meetingUrl: meetingUrl,
-              calendarEventCreated: shouldCreateCalendarEvent,
-            },
-            (await headers()).get('x-forwarded-for') ?? 'Unknown',
-            (await headers()).get('user-agent') ?? 'Unknown',
-          );
+      // Step 9: Log audit event
+      await logAuditEvent(
+        data.workosUserId,
+        'MEETING_CREATED',
+        'meeting',
+        data.eventId,
+        null,
+        {
+          ...data,
+          endTime: endTimeUTC,
+          meetingUrl: meetingUrl,
+          calendarEventCreated: shouldCreateCalendarEvent,
+        },
+        (await headers()).get('x-forwarded-for') ?? 'Unknown',
+        (await headers()).get('user-agent') ?? 'Unknown',
+      );
 
-          // Step 10: Fetch expert's timezone and trigger Novu workflow for expert notification
+      // Step 10: Fetch expert's timezone and trigger Novu workflow for expert notification
           await Sentry.startSpan(
             {
               name: 'meeting.create.send_notification',
               op: 'notification',
             },
             async (span) => {
-              try {
-                // CRITICAL: Fetch expert's timezone from their schedule settings
-                const expertSchedule = await db.query.SchedulesTable.findFirst({
-                  where: (fields, { eq: eqOp }) => eqOp(fields.workosUserId, data.workosUserId),
-                });
+      try {
+        // CRITICAL: Fetch expert's timezone from their schedule settings
+        const expertSchedule = await db.query.SchedulesTable.findFirst({
+          where: (fields, { eq: eqOp }) => eqOp(fields.workosUserId, data.workosUserId),
+        });
 
-                const expertTimezone = expertSchedule?.timezone || 'UTC';
-                const guestTimezone = data.timezone || 'UTC';
+        const expertTimezone = expertSchedule?.timezone || 'UTC';
+        const guestTimezone = data.timezone || 'UTC';
 
-                // Format date and time for the EXPERT in THEIR timezone
-                const appointmentDateForExpert = formatInTimeZone(
-                  startTimeUTC,
-                  expertTimezone,
-                  'EEEE, MMMM d, yyyy',
-                );
+        // Format date and time for the EXPERT in THEIR timezone
+        const appointmentDateForExpert = formatInTimeZone(
+          startTimeUTC,
+          expertTimezone,
+          'EEEE, MMMM d, yyyy',
+        );
                 const appointmentTimeForExpert = formatInTimeZone(
                   startTimeUTC,
                   expertTimezone,
                   'h:mm a',
                 );
-                const appointmentDuration = `${event.durationInMinutes} minutes`;
+        const appointmentDuration = `${event.durationInMinutes} minutes`;
 
-                // Trigger Novu workflow to notify the expert (with EXPERT's timezone)
-                const novuResult = await triggerWorkflow({
-                  workflowId: 'appointment-confirmation',
-                  to: {
-                    subscriberId: data.workosUserId, // Expert's WorkOS ID
-                    email: event.user?.email || undefined,
-                    firstName: event.user?.profile?.firstName || undefined,
-                    lastName: event.user?.profile?.lastName || undefined,
-                  },
-                  payload: {
-                    expertName:
-                      `${event.user?.profile?.firstName || ''} ${event.user?.profile?.lastName || ''}`.trim() ||
-                      'Expert',
-                    clientName: data.guestName,
-                    appointmentDate: appointmentDateForExpert, // ✅ Expert's timezone
-                    appointmentTime: appointmentTimeForExpert, // ✅ Expert's timezone
-                    timezone: expertTimezone, // ✅ Expert's timezone for display
-                    guestTimezone: guestTimezone, // Store guest's timezone for reference
-                    appointmentDuration,
-                    eventTitle: event.name,
-                    meetLink: meetingUrl || undefined,
-                    notes: data.guestNotes || undefined,
-                    locale: data.locale || 'en',
-                  },
-                });
+        // Trigger Novu workflow to notify the expert (with EXPERT's timezone)
+        const novuResult = await triggerWorkflow({
+          workflowId: 'appointment-confirmation',
+          to: {
+            subscriberId: data.workosUserId, // Expert's WorkOS ID
+            email: event.user?.email || undefined,
+            firstName: event.user?.profile?.firstName || undefined,
+            lastName: event.user?.profile?.lastName || undefined,
+          },
+          payload: {
+            expertName:
+              `${event.user?.profile?.firstName || ''} ${event.user?.profile?.lastName || ''}`.trim() ||
+              'Expert',
+            clientName: data.guestName,
+            appointmentDate: appointmentDateForExpert, // ✅ Expert's timezone
+            appointmentTime: appointmentTimeForExpert, // ✅ Expert's timezone
+            timezone: expertTimezone, // ✅ Expert's timezone for display
+            guestTimezone: guestTimezone, // Store guest's timezone for reference
+            appointmentDuration,
+            eventTitle: event.name,
+            meetLink: meetingUrl || undefined,
+            notes: data.guestNotes || undefined,
+            locale: data.locale || 'en',
+          },
+        });
 
                 span.setAttribute('notification.sent', !!novuResult);
 
-                if (novuResult) {
+        if (novuResult) {
                   Sentry.logger.info('Novu appointment confirmation sent to expert', {
                     workosUserId: data.workosUserId,
                     meetingId: meeting.id,
                   });
-                } else {
+        } else {
                   Sentry.logger.warn('Failed to send Novu notification to expert', {
                     workosUserId: data.workosUserId,
                     meetingId: meeting.id,
                   });
-                }
-              } catch (novuError) {
+        }
+      } catch (novuError) {
                 span.setAttribute('notification.error', true);
-                // Don't fail the whole meeting creation if Novu fails
+        // Don't fail the whole meeting creation if Novu fails
                 Sentry.logger.error('Error sending Novu notification', {
                   error: novuError instanceof Error ? novuError.message : 'Unknown error',
                   workosUserId: data.workosUserId,
                   meetingId: meeting.id,
                 });
-              }
+      }
             },
           );
 
-          return { error: false, meeting };
-        } catch (error) {
+      return { error: false, meeting };
+    } catch (error) {
           parentSpan.setAttribute('meeting.success', false);
           parentSpan.setAttribute('meeting.error_code', 'CREATION_ERROR');
           Sentry.logger.error('Error creating meeting', {
-            error: error instanceof Error ? error.message : 'Unknown error',
-            eventId: data.eventId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        eventId: data.eventId,
             startTime: data.startTime.toISOString(),
-            guestEmail: data.guestEmail,
-            workosUserId: data.workosUserId,
-          });
-          return { error: true, code: 'CREATION_ERROR' };
-        }
-      } catch (error) {
+        guestEmail: data.guestEmail,
+        workosUserId: data.workosUserId,
+      });
+      return { error: true, code: 'CREATION_ERROR' };
+    }
+  } catch (error) {
         parentSpan.setAttribute('meeting.success', false);
         parentSpan.setAttribute('meeting.error_code', 'UNEXPECTED_ERROR');
         Sentry.logger.error('Unexpected error in createMeeting', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-          eventId: unsafeData.eventId,
-          workosUserId: unsafeData.workosUserId,
-          guestEmail: unsafeData.guestEmail,
-        });
-        return { error: true, code: 'UNEXPECTED_ERROR' };
-      }
+      error: error instanceof Error ? error.message : 'Unknown error',
+      eventId: unsafeData.eventId,
+      workosUserId: unsafeData.workosUserId,
+      guestEmail: unsafeData.guestEmail,
+    });
+    return { error: true, code: 'UNEXPECTED_ERROR' };
+  }
     },
   );
 }

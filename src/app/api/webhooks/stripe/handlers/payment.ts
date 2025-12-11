@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
 import {
@@ -201,8 +202,23 @@ async function checkAppointmentConflict(
   minimumNoticeHours?: number;
   blockedDateReason?: string;
 }> {
-  try {
-    console.log(`🔍 Enhanced collision check for expert ${expertId} at ${startTime.toISOString()}`);
+  return Sentry.startSpan(
+    {
+      name: 'stripe.conflict.check',
+      op: 'db.query',
+      attributes: {
+        'conflict.expert_id': expertId,
+        'conflict.event_id': eventId,
+        'conflict.start_time': startTime.toISOString(),
+      },
+    },
+    async (span) => {
+      try {
+        Sentry.logger.debug('Enhanced collision check', {
+          expertId,
+          startTime: startTime.toISOString(),
+          eventId,
+        });
 
     // Get the event details to calculate the appointment end time
     const event = await db.query.EventsTable.findFirst({
@@ -339,34 +355,26 @@ async function checkAppointmentConflict(
       };
     }
 
-    console.log(`✅ No conflicts found for ${startTime.toISOString()}`);
-    return { hasConflict: false };
-  } catch (error) {
-    // Enhanced error monitoring with structured context for operational visibility
-    console.error(
-      `❌ CRITICAL: Conflict check failed for expert ${expertId} at ${startTime.toISOString()}. ` +
-        `Event ID: ${eventId}. ` +
-        `Defaulting to no conflict to avoid blocking legitimate payment.`,
-      {
-        error,
-        context: {
+        span.setAttribute('conflict.has_conflict', false);
+        Sentry.logger.debug('No conflicts found', { expertId, startTime: startTime.toISOString() });
+        return { hasConflict: false };
+      } catch (error) {
+        // Enhanced error monitoring with structured context for operational visibility
+        span.setAttribute('conflict.error', true);
+        Sentry.logger.error('CRITICAL: Conflict check failed', {
           expertId,
           appointmentTime: startTime.toISOString(),
           eventId,
-          errorType: error instanceof Error ? error.constructor.name : typeof error,
-          errorMessage: error instanceof Error ? error.message : String(error),
-        },
-      },
-    );
+          error: error instanceof Error ? error.message : String(error),
+          note: 'Defaulting to no conflict to avoid blocking legitimate payment.',
+        });
 
-    // TODO: Emit metric/alert for monitoring (e.g., to BetterStack, PostHog, or Sentry)
-    // This helps operations teams detect systematic failures that might allow conflicting appointments
-    // Example: await trackMetric('conflict_check_error', { expertId, eventId });
-
-    // In case of error, assume no conflict to avoid blocking legitimate payments
-    // Business decision: Prefer false negatives over false positives to maintain user experience
-    return { hasConflict: false };
-  }
+        // In case of error, assume no conflict to avoid blocking legitimate payments
+        // Business decision: Prefer false negatives over false positives to maintain user experience
+        return { hasConflict: false };
+      }
+    },
+  );
 }
 
 /**
@@ -391,50 +399,70 @@ async function processPartialRefund(
     | 'minimum_notice_violation'
     | 'unknown_conflict',
 ): Promise<Stripe.Refund | null> {
-  try {
-    const originalAmount = paymentIntent.amount;
-
-    // 🆕 CUSTOMER-FIRST POLICY (v3.0): Always 100% refund for any conflict
-    // No processing fees charged - Eleva Care absorbs the cost
-    const refundAmount = originalAmount; // Always 100% refund
-    const processingFee = 0; // No fee charged
-    const refundPercentage = '100';
-
-    console.log(
-      `💰 Processing 🎁 FULL (100%) refund:`,
-      `\n  - Conflict Type: ${conflictType}`,
-      `\n  - Original: €${(originalAmount / 100).toFixed(2)}`,
-      `\n  - Refund: €${(refundAmount / 100).toFixed(2)} (${refundPercentage}%)`,
-      `\n  - Fee Retained: €${(processingFee / 100).toFixed(2)}`,
-      `\n  - Reason: ${reason}`,
-    );
-
-    const refund = await stripe.refunds.create({
-      payment_intent: paymentIntent.id,
-      amount: refundAmount,
-      reason: 'requested_by_customer',
-      metadata: {
-        reason: reason,
-        conflict_type: conflictType,
-        original_amount: originalAmount.toString(),
-        processing_fee: processingFee.toString(),
-        refund_percentage: refundPercentage,
-        policy_version: '3.0', // Customer-first: Always 100% refund
+  return Sentry.startSpan(
+    {
+      name: 'stripe.refund.conflict',
+      op: 'stripe.api',
+      attributes: {
+        'stripe.payment_intent_id': paymentIntent.id,
+        'stripe.refund.conflict_type': conflictType,
+        'stripe.refund.original_amount': paymentIntent.amount,
       },
-    });
+    },
+    async (span) => {
+      try {
+        const originalAmount = paymentIntent.amount;
 
-    console.log(
-      `✅ 🎁 Full refund (100%) processed:`,
-      `\n  - Refund ID: ${refund.id}`,
-      `\n  - Amount: €${(refund.amount / 100).toFixed(2)}`,
-      `\n  - Status: ${refund.status}`,
-    );
+        // 🆕 CUSTOMER-FIRST POLICY (v3.0): Always 100% refund for any conflict
+        // No processing fees charged - Eleva Care absorbs the cost
+        const refundAmount = originalAmount; // Always 100% refund
+        const processingFee = 0; // No fee charged
+        const refundPercentage = '100';
 
-    return refund;
-  } catch (error) {
-    console.error('❌ Error processing refund:', error);
-    return null;
-  }
+        Sentry.logger.info('Processing full refund for conflict', {
+          paymentIntentId: paymentIntent.id,
+          conflictType,
+          originalAmount: (originalAmount / 100).toFixed(2),
+          refundAmount: (refundAmount / 100).toFixed(2),
+          reason,
+        });
+
+        const refund = await stripe.refunds.create({
+          payment_intent: paymentIntent.id,
+          amount: refundAmount,
+          reason: 'requested_by_customer',
+          metadata: {
+            reason: reason,
+            conflict_type: conflictType,
+            original_amount: originalAmount.toString(),
+            processing_fee: processingFee.toString(),
+            refund_percentage: refundPercentage,
+            policy_version: '3.0', // Customer-first: Always 100% refund
+          },
+        });
+
+        span.setAttribute('stripe.refund_id', refund.id);
+        span.setAttribute('stripe.refund.amount', refund.amount);
+        span.setAttribute('stripe.refund.status', refund.status || 'unknown');
+
+        Sentry.logger.info('Full refund processed successfully', {
+          refundId: refund.id,
+          amount: (refund.amount / 100).toFixed(2),
+          status: refund.status,
+          paymentIntentId: paymentIntent.id,
+        });
+
+        return refund;
+      } catch (error) {
+        Sentry.logger.error('Error processing refund', {
+          paymentIntentId: paymentIntent.id,
+          conflictType,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+        return null;
+      }
+    },
+  );
 }
 
 /**
@@ -525,9 +553,26 @@ async function notifyAppointmentConflict(
 }
 
 export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent) {
-  console.log('Payment succeeded:', paymentIntent.id);
+  return Sentry.startSpan(
+    {
+      name: 'stripe.payment.succeeded',
+      op: 'webhook.handler',
+      attributes: {
+        'stripe.payment_intent_id': paymentIntent.id,
+        'stripe.amount': paymentIntent.amount,
+        'stripe.currency': paymentIntent.currency,
+        'stripe.status': paymentIntent.status,
+        'stripe.payment_method_types': paymentIntent.payment_method_types?.join(',') || 'unknown',
+      },
+    },
+    async (span) => {
+      Sentry.logger.info('Payment succeeded', {
+        paymentIntentId: paymentIntent.id,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+      });
 
-  try {
+      try {
     // Parse meeting metadata to check if this might be a late Multibanco payment
     const meetingData = parseMetadata(paymentIntent.metadata?.meeting, {
       id: '',
@@ -1055,15 +1100,41 @@ export async function handlePaymentSucceeded(paymentIntent: Stripe.PaymentIntent
         }
       }
     }
+
+    span.setAttribute('stripe.payment.success', true);
   } catch (error) {
-    console.error(`Error in handlePaymentSucceeded for paymentIntent ${paymentIntent.id}:`, error);
+    span.setAttribute('stripe.payment.success', false);
+    Sentry.logger.error('Error in handlePaymentSucceeded', {
+      paymentIntentId: paymentIntent.id,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     // Consider re-throwing if this error should halt further webhook processing or be retried by Stripe
   }
+    },
+  );
 }
 
 export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
-  console.log('Payment failed:', paymentIntent.id);
-  const lastPaymentError = paymentIntent.last_payment_error?.message || 'Unknown reason';
+  return Sentry.startSpan(
+    {
+      name: 'stripe.payment.failed',
+      op: 'webhook.handler',
+      attributes: {
+        'stripe.payment_intent_id': paymentIntent.id,
+        'stripe.amount': paymentIntent.amount,
+        'stripe.currency': paymentIntent.currency,
+        'stripe.status': paymentIntent.status,
+        'stripe.error_code': paymentIntent.last_payment_error?.code || 'unknown',
+      },
+    },
+    async (span) => {
+      Sentry.logger.warn('Payment failed', {
+        paymentIntentId: paymentIntent.id,
+        amount: paymentIntent.amount,
+        errorCode: paymentIntent.last_payment_error?.code,
+        errorMessage: paymentIntent.last_payment_error?.message,
+      });
+      const lastPaymentError = paymentIntent.last_payment_error?.message || 'Unknown reason';
 
   try {
     // Update Meeting status
@@ -1239,143 +1310,227 @@ export async function handlePaymentFailed(paymentIntent: Stripe.PaymentIntent) {
         );
       }
     }
+
+    span.setAttribute('stripe.payment_failed.handled', true);
   } catch (error) {
-    console.error(`Error in handlePaymentFailed for paymentIntent ${paymentIntent.id}:`, error);
+    Sentry.logger.error('Error in handlePaymentFailed', {
+      paymentIntentId: paymentIntent.id,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
   }
+    },
+  );
 }
 
 export async function handleChargeRefunded(charge: Stripe.Charge) {
-  console.log('Payment refunded:', charge.id);
+  return Sentry.startSpan(
+    {
+      name: 'stripe.charge.refunded',
+      op: 'webhook.handler',
+      attributes: {
+        'stripe.charge_id': charge.id,
+        'stripe.amount': charge.amount,
+        'stripe.amount_refunded': charge.amount_refunded,
+        'stripe.currency': charge.currency,
+      },
+    },
+    async (span) => {
+      Sentry.logger.info('Charge refunded', {
+        chargeId: charge.id,
+        amount: charge.amount,
+        amountRefunded: charge.amount_refunded,
+      });
 
-  // Find the payment transfer record using the payment intent ID
-  const paymentIntentId = charge.payment_intent;
-  if (!paymentIntentId || typeof paymentIntentId !== 'string') {
-    console.error('No payment_intent ID found on charge object:', charge.id);
-    return;
-  }
+      // Find the payment transfer record using the payment intent ID
+      const paymentIntentId = charge.payment_intent;
+      if (!paymentIntentId || typeof paymentIntentId !== 'string') {
+        Sentry.logger.error('No payment_intent ID found on charge object', { chargeId: charge.id });
+        return;
+      }
 
-  try {
-    // Update Meeting status
-    const updatedMeeting = await db
-      .update(MeetingsTable)
-      .set({
-        stripePaymentStatus: 'refunded', // Ensure this matches the enum in MeetingsTable schema
-        updatedAt: new Date(),
-      })
-      .where(eq(MeetingsTable.stripePaymentIntentId, paymentIntentId))
-      .returning();
+      span.setAttribute('stripe.payment_intent_id', paymentIntentId);
 
-    if (updatedMeeting.length === 0) {
-      console.warn(
-        `No meeting found with paymentIntentId ${paymentIntentId} to update status to refunded.`,
-      );
-    } else {
-      console.log(
-        `Meeting ${updatedMeeting[0].id} status updated to refunded for paymentIntentId ${paymentIntentId}`,
-      );
-    }
+      try {
+        // Update Meeting status
+        const updatedMeeting = await db
+          .update(MeetingsTable)
+          .set({
+            stripePaymentStatus: 'refunded', // Ensure this matches the enum in MeetingsTable schema
+            updatedAt: new Date(),
+          })
+          .where(eq(MeetingsTable.stripePaymentIntentId, paymentIntentId))
+          .returning();
 
-    // Find and update the payment transfer record
-    const transfer = await db.query.PaymentTransfersTable.findFirst({
-      where: eq(PaymentTransfersTable.paymentIntentId, paymentIntentId),
-    });
+        if (updatedMeeting.length === 0) {
+          Sentry.logger.warn('No meeting found to update status to refunded', { paymentIntentId });
+        } else {
+          span.setAttribute('stripe.meeting_id', updatedMeeting[0].id);
+          Sentry.logger.info('Meeting status updated to refunded', {
+            meetingId: updatedMeeting[0].id,
+            paymentIntentId,
+          });
+        }
 
-    if (!transfer) {
-      console.error(
-        'No transfer record found for refunded payment:',
-        paymentIntentId,
-        'This might be normal if the meeting was free or if transfer record creation failed earlier.',
-      );
-      return; // No transfer to update, but meeting status (if found) is updated.
-    }
+        // Find and update the payment transfer record
+        const transfer = await db.query.PaymentTransfersTable.findFirst({
+          where: eq(PaymentTransfersTable.paymentIntentId, paymentIntentId),
+        });
 
-    // Update transfer status
-    // No need for withRetry here usually as charge.refunded is a final state from Stripe's perspective.
-    await db
-      .update(PaymentTransfersTable)
-      .set({
-        status: PAYMENT_TRANSFER_STATUS_REFUNDED, // Ensure this matches PaymentTransfersTable schema/enum if any
-        updated: new Date(),
-      })
-      .where(eq(PaymentTransfersTable.id, transfer.id));
-    console.log(`Transfer record ${transfer.id} status updated to REFUNDED.`);
+        if (!transfer) {
+          Sentry.logger.warn('No transfer record found for refunded payment', {
+            paymentIntentId,
+            note: 'This might be normal if the meeting was free or if transfer record creation failed earlier.',
+          });
+          return; // No transfer to update, but meeting status (if found) is updated.
+        }
 
-    // Notify the expert about the refund
-    await notifyExpertOfPaymentRefund(transfer);
-  } catch (error) {
-    console.error(
-      `Error in handleChargeRefunded for charge ${charge.id} (PI: ${paymentIntentId}):`,
-      error,
-    );
-  }
+        // Update transfer status
+        // No need for withRetry here usually as charge.refunded is a final state from Stripe's perspective.
+        await db
+          .update(PaymentTransfersTable)
+          .set({
+            status: PAYMENT_TRANSFER_STATUS_REFUNDED, // Ensure this matches PaymentTransfersTable schema/enum if any
+            updated: new Date(),
+          })
+          .where(eq(PaymentTransfersTable.id, transfer.id));
+
+        span.setAttribute('stripe.transfer_id', transfer.id);
+        Sentry.logger.info('Transfer record status updated to REFUNDED', {
+          transferId: transfer.id,
+          paymentIntentId,
+        });
+
+        // Notify the expert about the refund
+        await notifyExpertOfPaymentRefund(transfer);
+
+        span.setAttribute('stripe.refund.handled', true);
+      } catch (error) {
+        Sentry.logger.error('Error in handleChargeRefunded', {
+          chargeId: charge.id,
+          paymentIntentId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    },
+  );
 }
 
 export async function handleDisputeCreated(dispute: Stripe.Dispute) {
-  console.log('Dispute created:', dispute.id);
-  const paymentIntentId = dispute.payment_intent;
+  return Sentry.startSpan(
+    {
+      name: 'stripe.dispute.created',
+      op: 'webhook.handler',
+      attributes: {
+        'stripe.dispute_id': dispute.id,
+        'stripe.dispute_amount': dispute.amount,
+        'stripe.dispute_reason': dispute.reason,
+        'stripe.dispute_status': dispute.status,
+      },
+    },
+    async (span) => {
+      Sentry.logger.warn('Dispute created', {
+        disputeId: dispute.id,
+        amount: dispute.amount,
+        reason: dispute.reason,
+        status: dispute.status,
+      });
 
-  if (!paymentIntentId || typeof paymentIntentId !== 'string') {
-    console.error('No payment_intent ID found on dispute object:', dispute.id);
-    return;
-  }
+      const paymentIntentId = dispute.payment_intent;
 
-  try {
-    // Note: Meeting status is typically not directly changed to 'disputed'.
-    // The existing payment status ('succeeded', 'refunded') often remains.
-    // A dispute is a separate process on top of the payment.
-    // So, we primarily update the transfer record.
+      if (!paymentIntentId || typeof paymentIntentId !== 'string') {
+        Sentry.logger.error('No payment_intent ID found on dispute object', {
+          disputeId: dispute.id,
+        });
+        return;
+      }
 
-    // Find and update the payment transfer record
-    const transfer = await db.query.PaymentTransfersTable.findFirst({
-      where: eq(PaymentTransfersTable.paymentIntentId, paymentIntentId),
-    });
+      span.setAttribute('stripe.payment_intent_id', paymentIntentId);
 
-    if (!transfer) {
-      console.error('No transfer record found for disputed payment:', paymentIntentId);
-      return;
-    }
+      try {
+        // Note: Meeting status is typically not directly changed to 'disputed'.
+        // The existing payment status ('succeeded', 'refunded') often remains.
+        // A dispute is a separate process on top of the payment.
+        // So, we primarily update the transfer record.
 
-    // Update transfer status
-    await db
-      .update(PaymentTransfersTable)
-      .set({
-        status: PAYMENT_TRANSFER_STATUS_DISPUTED, // Ensure this matches PaymentTransfersTable schema/enum
-        updated: new Date(),
-      })
-      .where(eq(PaymentTransfersTable.id, transfer.id));
-    console.log(`Transfer record ${transfer.id} status updated to DISPUTED.`);
+        // Find and update the payment transfer record
+        const transfer = await db.query.PaymentTransfersTable.findFirst({
+          where: eq(PaymentTransfersTable.paymentIntentId, paymentIntentId),
+        });
 
-    // Create notification for the expert
-    await notifyExpertOfPaymentDispute(transfer);
-  } catch (error) {
-    console.error(
-      `Error in handleDisputeCreated for dispute ${dispute.id} (PI: ${paymentIntentId}):`,
-      error,
-    );
-  }
+        if (!transfer) {
+          Sentry.logger.error('No transfer record found for disputed payment', { paymentIntentId });
+          return;
+        }
+
+        // Update transfer status
+        await db
+          .update(PaymentTransfersTable)
+          .set({
+            status: PAYMENT_TRANSFER_STATUS_DISPUTED, // Ensure this matches PaymentTransfersTable schema/enum
+            updated: new Date(),
+          })
+          .where(eq(PaymentTransfersTable.id, transfer.id));
+
+        span.setAttribute('stripe.transfer_id', transfer.id);
+        Sentry.logger.info('Transfer record status updated to DISPUTED', {
+          transferId: transfer.id,
+          paymentIntentId,
+        });
+
+        // Create notification for the expert
+        await notifyExpertOfPaymentDispute(transfer);
+
+        span.setAttribute('stripe.dispute.handled', true);
+      } catch (error) {
+        Sentry.logger.error('Error in handleDisputeCreated', {
+          disputeId: dispute.id,
+          paymentIntentId,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    },
+  );
 }
 
 export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.PaymentIntent) {
-  console.log(
-    `Payment intent ${paymentIntent.id} requires action. Status: ${paymentIntent.status}`,
-  );
+  return Sentry.startSpan(
+    {
+      name: 'stripe.payment_intent.requires_action',
+      op: 'webhook.handler',
+      attributes: {
+        'stripe.payment_intent_id': paymentIntent.id,
+        'stripe.amount': paymentIntent.amount,
+        'stripe.currency': paymentIntent.currency,
+        'stripe.status': paymentIntent.status,
+        'stripe.next_action_type': paymentIntent.next_action?.type || 'unknown',
+      },
+    },
+    async (span) => {
+      Sentry.logger.info('Payment intent requires action', {
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status,
+        nextActionType: paymentIntent.next_action?.type,
+      });
 
-  if (
-    paymentIntent.next_action?.type === 'multibanco_display_details' &&
-    ((typeof paymentIntent.payment_method === 'object' &&
-      paymentIntent.payment_method?.type === 'multibanco') ||
-      typeof paymentIntent.payment_method === 'string')
-  ) {
-    const multibancoDetails = paymentIntent.next_action.multibanco_display_details;
-    const voucherExpiresAtTimestamp = multibancoDetails?.expires_at;
+      if (
+        paymentIntent.next_action?.type === 'multibanco_display_details' &&
+        ((typeof paymentIntent.payment_method === 'object' &&
+          paymentIntent.payment_method?.type === 'multibanco') ||
+          typeof paymentIntent.payment_method === 'string')
+      ) {
+        span.setAttribute('stripe.payment_method', 'multibanco');
 
-    if (voucherExpiresAtTimestamp && paymentIntent.metadata) {
-      // Calculate expiration date from timestamp
-      const voucherExpiresAt = new Date(voucherExpiresAtTimestamp * 1000);
+        const multibancoDetails = paymentIntent.next_action.multibanco_display_details;
+        const voucherExpiresAtTimestamp = multibancoDetails?.expires_at;
 
-      console.log(
-        `Multibanco voucher created for ${paymentIntent.id}, expires at: ${voucherExpiresAt.toISOString()}`,
-      );
+        if (voucherExpiresAtTimestamp && paymentIntent.metadata) {
+          // Calculate expiration date from timestamp
+          const voucherExpiresAt = new Date(voucherExpiresAtTimestamp * 1000);
+
+          Sentry.logger.info('Multibanco voucher created', {
+            paymentIntentId: paymentIntent.id,
+            expiresAt: voucherExpiresAt.toISOString(),
+          });
 
       // Create slot reservation for Multibanco payments
       try {
@@ -1479,17 +1634,28 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
             });
 
             if (emailResult.success) {
-              console.log(`✅ Multibanco booking confirmation email sent to ${customerEmail}`);
+              Sentry.logger.info('Multibanco booking confirmation email sent', {
+                customerEmail,
+                paymentIntentId: paymentIntent.id,
+              });
             } else {
-              console.error(`❌ Failed to send Multibanco booking email: ${emailResult.error}`);
+              Sentry.logger.error('Failed to send Multibanco booking email', {
+                customerEmail,
+                paymentIntentId: paymentIntent.id,
+                error: emailResult.error,
+              });
             }
           } catch (emailError) {
-            console.error('Error sending Multibanco booking confirmation email:', emailError);
+            Sentry.logger.error('Error sending Multibanco booking confirmation email', {
+              customerEmail,
+              paymentIntentId: paymentIntent.id,
+              error: emailError instanceof Error ? emailError.message : 'Unknown error',
+            });
           }
         }
 
-        // Log audit event (simplified call)
-        console.log('Audit event logged: slot reservation created', {
+        span.setAttribute('stripe.slot_reservation.created', true);
+        Sentry.logger.info('Slot reservation created for Multibanco payment', {
           paymentIntentId: paymentIntent.id,
           eventId,
           startTime: startDateTime.toISOString(),
@@ -1497,8 +1663,13 @@ export async function handlePaymentIntentRequiresAction(paymentIntent: Stripe.Pa
           expiresAt: voucherExpiresAt.toISOString(),
         });
       } catch (error) {
-        console.error('Error creating slot reservation:', error);
+        Sentry.logger.error('Error creating slot reservation', {
+          paymentIntentId: paymentIntent.id,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     }
   }
+    },
+  );
 }

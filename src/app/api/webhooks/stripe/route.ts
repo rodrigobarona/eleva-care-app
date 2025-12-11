@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable, SlotReservationsTable } from '@/drizzle/schema-workos';
@@ -358,11 +359,11 @@ function validateAndParseMetadata<T>(
 }
 
 async function handleCheckoutSession(session: StripeCheckoutSession) {
-  console.log('🎯 Starting checkout session processing:', {
+  Sentry.logger.info('Starting checkout session processing', {
     sessionId: session.id,
     paymentStatus: session.payment_status,
-    paymentIntent: session.payment_intent,
-    metadata: session.metadata,
+    paymentIntent:
+      typeof session.payment_intent === 'string' ? session.payment_intent : undefined,
   });
 
   try {
@@ -372,7 +373,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     });
 
     if (existingMeeting) {
-      console.log('✅ Meeting already exists for session:', {
+      Sentry.logger.info('Meeting already exists for session', {
         sessionId: session.id,
         meetingId: existingMeeting.id,
         hasUrl: !!existingMeeting.meetingUrl,
@@ -440,21 +441,26 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
     // If we have a Clerk user ID, ensure synchronization
     if (meetingData.expert) {
       try {
-        console.log('Ensuring user synchronization for Clerk user:', meetingData.expert);
+        Sentry.logger.debug('Ensuring user synchronization', { expertId: meetingData.expert });
         await ensureFullUserSynchronization(meetingData.expert);
       } catch (error) {
-        console.error('Failed to synchronize user data:', error);
+        Sentry.logger.error('Failed to synchronize user data', {
+          expertId: meetingData.expert,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
         // Continue processing even if synchronization fails
       }
     }
 
-    console.log('📅 Creating meeting with payment status:', {
+    const mappedStatus = mapPaymentStatus(session.payment_status, session.id);
+    Sentry.logger.info('Creating meeting with payment status', {
+      sessionId: session.id,
       status: session.payment_status,
-      mappedStatus: mapPaymentStatus(session.payment_status, session.id),
+      mappedStatus,
       willCreateCalendar:
         !session.payment_status ||
         session.payment_status === 'paid' ||
-        mapPaymentStatus(session.payment_status, session.id) === 'succeeded',
+        mappedStatus === 'succeeded',
     });
 
     const result = await createMeeting({
@@ -466,7 +472,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       guestNotes: meetingData.notes,
       timezone: meetingData.timezone || 'UTC', // Use provided timezone or fallback to UTC
       stripeSessionId: session.id,
-      stripePaymentStatus: mapPaymentStatus(session.payment_status, session.id),
+      stripePaymentStatus: mappedStatus,
       stripeAmount: session.amount_total ?? undefined,
       stripeApplicationFeeAmount: session.application_fee_amount ?? undefined,
       locale: meetingData.locale || 'en',
@@ -474,10 +480,11 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
     // Handle possible errors
     if (result.error) {
-      console.error('❌ Failed to create meeting:', {
+      Sentry.logger.error('Failed to create meeting from checkout session', {
+        sessionId: session.id,
         error: result.error,
         code: result.code,
-        message: result.message,
+        message: 'message' in result ? result.message : undefined,
       });
 
       // Handle refund for double booking
@@ -492,7 +499,7 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
       return { success: false, error: result.error };
     }
 
-    console.log('✅ Meeting created successfully:', {
+    Sentry.logger.info('Meeting created successfully from checkout session', {
       sessionId: session.id,
       meetingId: result.meeting?.id,
       hasUrl: !!result.meeting?.meetingUrl,
@@ -509,12 +516,17 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
           .returning({ id: SlotReservationsTable.id });
 
         if (deletedReservations.length > 0) {
-          console.log(
-            `🧹 Cleaned up ${deletedReservations.length} slot reservation(s) after meeting confirmation`,
-          );
+          Sentry.logger.info('Cleaned up slot reservations after meeting confirmation', {
+            sessionId: session.id,
+            meetingId: result.meeting.id,
+            deletedCount: deletedReservations.length,
+          });
         }
       } catch (cleanupError) {
-        console.error('Failed to clean up slot reservation after meeting creation:', cleanupError);
+        Sentry.logger.error('Failed to clean up slot reservation after meeting creation', {
+          sessionId: session.id,
+          error: cleanupError instanceof Error ? cleanupError.message : 'Unknown error',
+        });
         // Don't fail the process - reservation will expire naturally
       }
     }
@@ -536,27 +548,53 @@ async function handleCheckoutSession(session: StripeCheckoutSession) {
 
     return { success: true, meetingId: result.meeting?.id };
   } catch (error) {
-    console.error('Error processing checkout session:', error);
+    Sentry.logger.error('Error processing checkout session', {
+      sessionId: session.id,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
     throw error;
   }
 }
 
 async function handleDoubleBookingRefund(paymentIntentId: string) {
-  // Check if a refund already exists
-  const existing = await stripe.refunds.list({
-    payment_intent: paymentIntentId,
-    limit: 1,
-  });
+  return Sentry.startSpan(
+    {
+      name: 'stripe.refund.double_booking',
+      op: 'stripe.api',
+      attributes: {
+        'stripe.payment_intent_id': paymentIntentId,
+        'stripe.refund_reason': 'duplicate',
+      },
+    },
+    async (span) => {
+      // Check if a refund already exists
+      const existing = await stripe.refunds.list({
+        payment_intent: paymentIntentId,
+        limit: 1,
+      });
 
-  if (existing.data.length === 0) {
-    console.log('Initiating refund for double booking:', paymentIntentId);
-    await stripe.refunds.create({
-      payment_intent: paymentIntentId,
-      reason: 'duplicate',
-    });
-  } else {
-    console.log('Refund already exists for payment intent:', paymentIntentId);
-  }
+      if (existing.data.length === 0) {
+        Sentry.logger.info('Initiating refund for double booking', { paymentIntentId });
+        const refund = await stripe.refunds.create({
+          payment_intent: paymentIntentId,
+          reason: 'duplicate',
+        });
+        span.setAttribute('stripe.refund_id', refund.id);
+        span.setAttribute('stripe.refund_created', true);
+        Sentry.logger.info('Double booking refund created', {
+          paymentIntentId,
+          refundId: refund.id,
+        });
+      } else {
+        span.setAttribute('stripe.refund_created', false);
+        span.setAttribute('stripe.refund_id', existing.data[0].id);
+        Sentry.logger.info('Refund already exists for payment intent', {
+          paymentIntentId,
+          refundId: existing.data[0].id,
+        });
+      }
+    },
+  );
 }
 
 async function createPaymentTransferIfNotExists({
@@ -570,75 +608,96 @@ async function createPaymentTransferIfNotExists({
   paymentData?: ParsedPaymentMetadata;
   transferData?: ParsedTransferMetadata;
 }) {
-  // Check for existing transfer
-  const existingTransfer = await db.query.PaymentTransfersTable.findFirst({
-    where: eq(PaymentTransfersTable.checkoutSessionId, session.id),
-  });
+  return Sentry.startSpan(
+    {
+      name: 'stripe.transfer.create_if_not_exists',
+      op: 'db.write',
+      attributes: {
+        'stripe.session_id': session.id,
+        'stripe.event_id': meetingData.id,
+      },
+    },
+    async (span) => {
+      // Check for existing transfer
+      const existingTransfer = await db.query.PaymentTransfersTable.findFirst({
+        where: eq(PaymentTransfersTable.checkoutSessionId, session.id),
+      });
 
-  if (existingTransfer) {
-    console.log(`Transfer record already exists for session ${session.id}`);
-    return;
-  }
+      if (existingTransfer) {
+        span.setAttribute('stripe.transfer.already_exists', true);
+        Sentry.logger.debug('Transfer record already exists for session', {
+          sessionId: session.id,
+        });
+        return;
+      }
 
-  // Validate required fields and data
-  if (!session.payment_intent) {
-    throw new Error('Payment intent ID is required for transfer record creation');
-  }
+      // Validate required fields and data
+      if (!session.payment_intent) {
+        throw new Error('Payment intent ID is required for transfer record creation');
+      }
 
-  if (!paymentData || !transferData) {
-    throw new Error('Payment and transfer data are required for transfer record creation');
-  }
+      if (!paymentData || !transferData) {
+        throw new Error('Payment and transfer data are required for transfer record creation');
+      }
 
-  if (!transferData.account) {
-    throw new Error('Expert Connect account ID is required for transfer record creation');
-  }
+      if (!transferData.account) {
+        throw new Error('Expert Connect account ID is required for transfer record creation');
+      }
 
-  // Parse and validate payment amounts
-  const amount = Number.parseInt(paymentData.expert, 10);
-  const platformFee = Number.parseInt(paymentData.fee, 10);
+      // Parse and validate payment amounts
+      const amount = Number.parseInt(paymentData.expert, 10);
+      const platformFee = Number.parseInt(paymentData.fee, 10);
 
-  // Validate parsed amounts
-  if (Number.isNaN(amount) || amount <= 0) {
-    console.error('Invalid expert payment amount:', {
-      sessionId: session.id,
-      rawAmount: paymentData.expert,
-      parsedAmount: amount,
-    });
-    throw new Error(`Invalid expert payment amount: ${paymentData.expert}`);
-  }
+      // Validate parsed amounts
+      if (Number.isNaN(amount) || amount <= 0) {
+        Sentry.logger.error('Invalid expert payment amount', {
+          sessionId: session.id,
+          rawAmount: paymentData.expert,
+          parsedAmount: amount,
+        });
+        throw new Error(`Invalid expert payment amount: ${paymentData.expert}`);
+      }
 
-  if (Number.isNaN(platformFee) || platformFee < 0) {
-    console.error('Invalid platform fee:', {
-      sessionId: session.id,
-      rawFee: paymentData.fee,
-      parsedFee: platformFee,
-    });
-    throw new Error(`Invalid platform fee: ${paymentData.fee}`);
-  }
+      if (Number.isNaN(platformFee) || platformFee < 0) {
+        Sentry.logger.error('Invalid platform fee', {
+          sessionId: session.id,
+          rawFee: paymentData.fee,
+          parsedFee: platformFee,
+        });
+        throw new Error(`Invalid platform fee: ${paymentData.fee}`);
+      }
 
-  // Create new transfer record with validated data
-  await db.insert(PaymentTransfersTable).values({
-    paymentIntentId: session.payment_intent,
-    checkoutSessionId: session.id,
-    eventId: meetingData.id,
-    expertConnectAccountId: transferData.account,
-    expertClerkUserId: meetingData.expert,
-    amount,
-    platformFee,
-    currency: session.currency || 'eur',
-    sessionStartTime: new Date(meetingData.start),
-    scheduledTransferTime: new Date(transferData.scheduled),
-    status: PAYMENT_TRANSFER_STATUS_PENDING,
-    requiresApproval: session.metadata?.approval === 'true',
-    created: new Date(),
-    updated: new Date(),
-  });
+      span.setAttribute('stripe.transfer.amount', amount);
+      span.setAttribute('stripe.transfer.platform_fee', platformFee);
+      span.setAttribute('stripe.transfer.currency', session.currency || 'eur');
 
-  console.log(`Created payment transfer record for session ${session.id}`, {
-    amount,
-    platformFee,
-    currency: session.currency || 'eur',
-  });
+      // Create new transfer record with validated data
+      await db.insert(PaymentTransfersTable).values({
+        paymentIntentId: session.payment_intent,
+        checkoutSessionId: session.id,
+        eventId: meetingData.id,
+        expertConnectAccountId: transferData.account,
+        expertClerkUserId: meetingData.expert,
+        amount,
+        platformFee,
+        currency: session.currency || 'eur',
+        sessionStartTime: new Date(meetingData.start),
+        scheduledTransferTime: new Date(transferData.scheduled),
+        status: PAYMENT_TRANSFER_STATUS_PENDING,
+        requiresApproval: session.metadata?.approval === 'true',
+        created: new Date(),
+        updated: new Date(),
+      });
+
+      span.setAttribute('stripe.transfer.created', true);
+      Sentry.logger.info('Created payment transfer record', {
+        sessionId: session.id,
+        amount,
+        platformFee,
+        currency: session.currency || 'eur',
+      });
+    },
+  );
 }
 
 // Map Stripe payment status to database enum with proper validation
@@ -657,26 +716,21 @@ const mapPaymentStatus = (stripeStatus: string, sessionId?: string): PaymentStat
       }
 
       // Log warning for unknown statuses and return safe default
-      console.warn(
-        `Unknown Stripe payment status encountered: "${stripeStatus}"${
-          sessionId ? ` for session ${sessionId}` : ''
-        }. ` +
-          `Defaulting to "${PAYMENT_STATUS_PENDING}". Please investigate if this is a new Stripe status.`,
-        {
-          sessionId,
-          unknownStatus: stripeStatus,
-          validStatuses: [
-            'paid',
-            'unpaid',
-            'no_payment_required',
-            'pending',
-            'processing',
-            'succeeded',
-            'failed',
-            'refunded',
-          ],
-        },
-      );
+      Sentry.logger.warn('Unknown Stripe payment status encountered', {
+        sessionId,
+        unknownStatus: stripeStatus,
+        defaultingTo: PAYMENT_STATUS_PENDING,
+        validStatuses: [
+          'paid',
+          'unpaid',
+          'no_payment_required',
+          'pending',
+          'processing',
+          'succeeded',
+          'failed',
+          'refunded',
+        ],
+      });
       return PAYMENT_STATUS_PENDING;
   }
 };
@@ -773,12 +827,12 @@ export async function POST(request: NextRequest) {
   const signature = request.headers.get('stripe-signature');
 
   if (!signature) {
-    console.error('❌ Missing Stripe signature');
+    Sentry.logger.error('Stripe webhook missing signature');
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 });
   }
 
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error('❌ Missing STRIPE_WEBHOOK_SECRET');
+    Sentry.logger.error('Stripe webhook secret not configured');
     return NextResponse.json({ error: 'Webhook secret not configured' }, { status: 500 });
   }
 
@@ -787,132 +841,181 @@ export async function POST(request: NextRequest) {
   try {
     event = stripe.webhooks.constructEvent(body, signature, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    console.error(
-      '❌ Webhook signature verification failed:',
-      err instanceof Error ? err.message : err,
-    );
+    Sentry.logger.error('Stripe webhook signature verification failed', {
+      error: err instanceof Error ? err.message : 'Unknown error',
+    });
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
   // Process the event based on type
-  try {
-    switch (event.type) {
-      case 'account.updated':
-        await handleAccountUpdated(event.data.object as Stripe.Account);
-        break;
-      case 'identity.verification_session.verified':
-      case 'identity.verification_session.requires_input': {
-        // Validate that the object has the expected properties of a verification session
-        const obj = event.data.object;
-        if (!obj || typeof obj !== 'object' || !('status' in obj) || !('id' in obj)) {
-          console.error('Invalid verification session object:', obj);
-          break;
-        }
-        const verificationSession = obj as Stripe.Identity.VerificationSession;
+  return Sentry.startSpan(
+    {
+      name: `stripe.webhook.${event.type}`,
+      op: 'webhook.handler',
+      attributes: {
+        'stripe.event_id': event.id,
+        'stripe.event_type': event.type,
+        'stripe.api_version': event.api_version || 'unknown',
+        'stripe.livemode': event.livemode,
+      },
+    },
+    async (span) => {
+      try {
+        Sentry.logger.info('Processing Stripe webhook event', {
+          eventId: event.id,
+          eventType: event.type,
+          livemode: event.livemode,
+        });
 
-        // For identity verification, we need to find the user by the verification status
-        // and extract any related account ID from the metadata
-        await handleIdentityVerificationUpdated(verificationSession);
-        break;
-      }
-      case 'checkout.session.completed':
+        switch (event.type) {
+          case 'account.updated':
+            await handleAccountUpdated(event.data.object as Stripe.Account);
+            break;
+          case 'identity.verification_session.verified':
+          case 'identity.verification_session.requires_input': {
+            // Validate that the object has the expected properties of a verification session
+            const obj = event.data.object;
+            if (!obj || typeof obj !== 'object' || !('status' in obj) || !('id' in obj)) {
+              Sentry.logger.error('Invalid verification session object', { obj });
+              break;
+            }
+            const verificationSession = obj as Stripe.Identity.VerificationSession;
+
+            // For identity verification, we need to find the user by the verification status
+            // and extract any related account ID from the metadata
+            await handleIdentityVerificationUpdated(verificationSession);
+            break;
+          }
+          case 'checkout.session.completed':
+            try {
+              const session = event.data.object as StripeCheckoutSession;
+              Sentry.logger.info('Processing checkout.session.completed', {
+                sessionId: session.id,
+                paymentStatus: session.payment_status,
+                paymentIntent:
+                  typeof session.payment_intent === 'string' ? session.payment_intent : undefined,
+              });
+
+              const sessionResult = await Sentry.startSpan(
+                {
+                  name: 'stripe.checkout.session.handle',
+                  op: 'stripe.api',
+                  attributes: {
+                    'stripe.session_id': session.id,
+                    'stripe.payment_status': session.payment_status,
+                  },
+                },
+                async (checkoutSpan) => {
+                  const result = await handleCheckoutSession(session);
+                  checkoutSpan.setAttribute('stripe.checkout.success', result.success);
+                  return result;
+                },
+              );
+
+              Sentry.logger.info('Checkout session processing completed', {
+                sessionId: session.id,
+                success: sessionResult.success,
+              });
+            } catch (error) {
+              Sentry.logger.error('Error in checkout.session.completed handler', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                sessionId: event.data.object.id,
+              });
+              throw error; // Rethrow to be caught by the outer try-catch
+            }
+            break;
+          case 'payment_intent.succeeded':
+            await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
+            break;
+          case 'payment_intent.payment_failed':
+            await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
+            break;
+          case 'payment_intent.requires_action':
+            await handlePaymentIntentRequiresAction(event.data.object as Stripe.PaymentIntent);
+            break;
+          case 'charge.refunded':
+            await handleChargeRefunded(event.data.object as Stripe.Charge);
+            break;
+          case 'charge.dispute.created':
+            await handleDisputeCreated(event.data.object as Stripe.Dispute);
+            break;
+          case 'account.external_account.created':
+            if ('account' in event.data.object && typeof event.data.object.account === 'string') {
+              await handleExternalAccountCreated(
+                event.data.object as Stripe.BankAccount | Stripe.Card,
+                event.data.object.account,
+              );
+            }
+            break;
+          case 'account.external_account.deleted':
+            if ('account' in event.data.object && typeof event.data.object.account === 'string') {
+              await handleExternalAccountDeleted(
+                event.data.object as Stripe.BankAccount | Stripe.Card,
+                event.data.object.account,
+              );
+            }
+            break;
+          case 'payment_intent.created': {
+            const paymentIntent = event.data.object as Stripe.PaymentIntent;
+            Sentry.logger.info('Payment intent created', {
+              paymentIntentId: paymentIntent.id,
+              amount: paymentIntent.amount,
+              currency: paymentIntent.currency,
+            });
+
+            // No immediate slot reservation needed - this will be handled by webhooks based on payment method
+            // For credit cards: payment_intent.succeeded → create meeting directly
+            // For Multibanco: payment_intent.requires_action → create slot reservation → payment_intent.succeeded → convert to meeting
+            Sentry.logger.debug(
+              'Payment intent created - slot management delegated to payment method specific webhooks',
+              { paymentIntentId: paymentIntent.id },
+            );
+            break;
+          }
+          case 'payout.paid':
+            await handlePayoutPaid(event.data.object as Stripe.Payout);
+            break;
+          case 'payout.failed':
+            await handlePayoutFailed(event.data.object as Stripe.Payout);
+            break;
+          default:
+            Sentry.logger.debug(`Unhandled Stripe event type: ${event.type}`, {
+              eventId: event.id,
+            });
+        }
+
+        // 🔔 NEW: Trigger Novu notification workflows after processing the event
+        // This is a non-blocking operation - if it fails, we still want to acknowledge the webhook
         try {
-          console.log('🎉 Processing checkout.session.completed event:', {
-            sessionId: event.data.object.id,
-            paymentStatus: (event.data.object as StripeCheckoutSession).payment_status,
-            paymentIntent: (event.data.object as StripeCheckoutSession).payment_intent,
+          await triggerNovuNotificationFromStripeEvent(event);
+          Sentry.logger.info('Novu notification workflow triggered successfully', {
+            eventType: event.type,
+            eventId: event.id,
           });
-          const sessionResult = await handleCheckoutSession(
-            event.data.object as StripeCheckoutSession,
-          );
-          console.log('✅ Checkout session processing completed:', sessionResult);
-        } catch (error) {
-          console.error('❌ Error in checkout.session.completed handler:', {
-            error: error instanceof Error ? error.message : error,
-            stack: error instanceof Error ? error.stack : undefined,
-            sessionId: event.data.object.id,
+        } catch (novuError) {
+          Sentry.logger.warn('Novu notification failed (non-blocking)', {
+            error: novuError instanceof Error ? novuError.message : 'Unknown error',
+            eventType: event.type,
+            eventId: event.id,
           });
-          throw error; // Rethrow to be caught by the outer try-catch
+          // Don't throw - Novu failures shouldn't block webhook processing
         }
-        break;
-      case 'payment_intent.succeeded':
-        await handlePaymentSucceeded(event.data.object as Stripe.PaymentIntent);
-        break;
-      case 'payment_intent.payment_failed':
-        await handlePaymentFailed(event.data.object as Stripe.PaymentIntent);
-        break;
-      case 'payment_intent.requires_action':
-        await handlePaymentIntentRequiresAction(event.data.object as Stripe.PaymentIntent);
-        break;
-      case 'charge.refunded':
-        await handleChargeRefunded(event.data.object as Stripe.Charge);
-        break;
-      case 'charge.dispute.created':
-        await handleDisputeCreated(event.data.object as Stripe.Dispute);
-        break;
-      case 'account.external_account.created':
-        if ('account' in event.data.object && typeof event.data.object.account === 'string') {
-          await handleExternalAccountCreated(
-            event.data.object as Stripe.BankAccount | Stripe.Card,
-            event.data.object.account,
-          );
-        }
-        break;
-      case 'account.external_account.deleted':
-        if ('account' in event.data.object && typeof event.data.object.account === 'string') {
-          await handleExternalAccountDeleted(
-            event.data.object as Stripe.BankAccount | Stripe.Card,
-            event.data.object.account,
-          );
-        }
-        break;
-      case 'payment_intent.created': {
-        console.log('Payment intent created:', event.data.object.id);
 
-        // No immediate slot reservation needed - this will be handled by webhooks based on payment method
-        // For credit cards: payment_intent.succeeded → create meeting directly
-        // For Multibanco: payment_intent.requires_action → create slot reservation → payment_intent.succeeded → convert to meeting
-        console.log(
-          '✅ Payment intent created - slot management delegated to payment method specific webhooks',
+        span.setAttribute('stripe.webhook.success', true);
+        return NextResponse.json({ received: true });
+      } catch (error) {
+        span.setAttribute('stripe.webhook.success', false);
+        Sentry.logger.error('Error processing Stripe webhook event', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          stack: error instanceof Error ? error.stack : undefined,
+          eventType: event?.type || 'unknown',
+          eventId: event?.id || 'unknown',
+        });
+        return NextResponse.json(
+          { error: 'Internal server error processing webhook' },
+          { status: 500 },
         );
-        break;
       }
-      case 'payout.paid':
-        await handlePayoutPaid(event.data.object as Stripe.Payout);
-        break;
-      case 'payout.failed':
-        await handlePayoutFailed(event.data.object as Stripe.Payout);
-        break;
-      default:
-        console.log(`Unhandled event type: ${event.type}`);
-    }
-
-    // 🔔 NEW: Trigger Novu notification workflows after processing the event
-    // This is a non-blocking operation - if it fails, we still want to acknowledge the webhook
-    try {
-      await triggerNovuNotificationFromStripeEvent(event);
-      console.log('✅ Novu notification workflow triggered successfully');
-    } catch (novuError) {
-      console.error('⚠️ Novu notification failed (non-blocking):', {
-        error: novuError instanceof Error ? novuError.message : novuError,
-        eventType: event.type,
-        eventId: event.id,
-      });
-      // Don't throw - Novu failures shouldn't block webhook processing
-    }
-
-    return NextResponse.json({ received: true });
-  } catch (error) {
-    console.error('❌ Error processing webhook event:', {
-      error: error instanceof Error ? error.message : error,
-      stack: error instanceof Error ? error.stack : undefined,
-      eventType: event?.type || 'unknown',
-      eventId: event?.id || 'unknown',
-      timestamp: new Date().toISOString(),
-    });
-    return NextResponse.json(
-      { error: 'Internal server error processing webhook' },
-      { status: 500 },
-    );
-  }
+    },
+  );
 }
