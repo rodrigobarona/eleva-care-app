@@ -27,6 +27,7 @@ Code standards, conventions, and best practices.
 - [Server Actions](./standards/03-server-actions.md)
 - [Bundle Optimization](./standards/04-bundle-optimization-report.md)
 - [Build Optimization](./standards/05-build-optimization-guide.md)
+- [Core Web Vitals Optimization](./standards/06-core-web-vitals-optimization.md) ⭐ **NEW**
 
 ---
 

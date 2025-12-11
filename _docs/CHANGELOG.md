@@ -5,6 +5,81 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2025-12-11 - Core Web Vitals Optimization
+
+### 🎯 PERFORMANCE OPTIMIZATION
+
+**Core Web Vitals Improvements (Homepage)**
+
+- ✅ **LCP**: 3680ms → 1312ms (↓ 64% improvement)
+- ✅ **FCP**: 2660ms → 1044ms (↓ 61% improvement)
+- ✅ **TTFB**: 570ms → 415ms (↓ 27% improvement)
+- ✅ **CLS**: 0.96 → Not detected (✅ Fixed)
+
+**Hero Section Optimizations**
+
+- ✅ **ADDED**: Minimum height (`min-h-[600px] lg:min-h-[720px]`) to prevent CLS
+- ✅ **OPTIMIZED**: Hero image with `priority`, `fetchPriority="high"`, quality 75
+- ✅ **IMPROVED**: Mux video player with `loading="lazy"` for deferred initialization
+- ✅ **FIXED**: Video aspect ratio enforcement with CSS overrides
+
+**Header Optimizations**
+
+- ✅ **REFACTORED**: Fixed header height (`h-20 lg:h-24`) instead of padding changes
+- ✅ **ADDED**: Explicit logo dimensions (`w-[160px] lg:w-[240px]`) to prevent shifts
+- ✅ **CHANGED**: Only visual properties (colors, opacity) change on scroll
+
+**Skeleton Component Updates**
+
+- ✅ **UPDATED**: `HeroSkeleton` to match actual Hero dimensions
+- ✅ **REFACTORED**: `ApproachSkeleton` with correct negative margins and gradient
+- ✅ **FIXED**: `ServicesSkeleton` image aspect ratio (`aspect-[2/3]`)
+
+**Third-Party Optimizations**
+
+- ✅ **REPLACED**: `lenis` smooth scroll with native CSS `scroll-behavior: smooth`
+- ✅ **REMOVED**: `@radix-ui/react-icons` in favor of `lucide-react`
+- ✅ **OPTIMIZED**: Font loading with `preload: false` for secondary fonts
+
+### Added
+
+- **CSS**: Mux player CLS fix overrides in `globals.css`
+- **Documentation**: `_docs/04-development/standards/06-core-web-vitals-optimization.md`
+- **Component**: Simplified `HeroVideo` client component for video-only logic
+
+### Changed
+
+- **Hero**: Refactored from client to server component with video split out
+- **Header**: Fixed height approach instead of padding changes
+- **Skeletons**: All homepage skeletons updated to match actual components
+
+### Removed
+
+- **Dependencies**: `lenis` smooth scroll library (~20KB)
+- **Dependencies**: `@radix-ui/react-icons` (replaced with `lucide-react`)
+- **CSS**: Lenis-specific CSS overrides in `globals.css`
+
+### Technical Details
+
+**CLS Prevention Pattern**:
+```typescript
+// Reserve vertical space to prevent layout shifts
+<section className="min-h-[600px] lg:min-h-[720px]">
+  <Image priority fetchPriority="high" />
+  <VideoPlayer loading="lazy" />
+</section>
+```
+
+**Header Fixed Height Pattern**:
+```typescript
+// Fixed height prevents CLS - only visual changes on scroll
+<header className="h-20 lg:h-24 transition-colors">
+  <Logo className="h-8 w-[160px] lg:h-12 lg:w-[240px]" />
+</header>
+```
+
+---
+
 ## [0.5.1] - 2025-12-10 - Codebase Optimization & Error Monitoring
 
 ### 🔧 CODEBASE CLEANUP & OPTIMIZATION

@@ -93,6 +93,7 @@ This documentation follows the **[Diátaxis Framework](https://diataxis.fr/)** -
 | **[Deploy to Production](./08-deployment/README.md)**                      | Deploy application safely            | 🔴 Advanced  |
 | **[Troubleshoot Auth](./WorkOS-migration/setup/TROUBLESHOOT-NEON-JWKS.md)** | Fix authentication issues            | 🟡 Medium    |
 | **[Cache Optimization](./02-core-systems/caching/01-redis-caching.md)**    | Improve performance with Redis       | 🟡 Medium    |
+| **[Core Web Vitals Optimization](./04-development/standards/06-core-web-vitals-optimization.md)** | Fix CLS, LCP, FCP issues | 🟡 Medium    |
 
 ---
 
