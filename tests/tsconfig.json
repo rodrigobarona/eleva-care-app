@@ -3,7 +3,7 @@
   "compilerOptions": {
     "noImplicitAny": false,
     "strictNullChecks": false,
-    "types": ["jest", "node"]
+    "types": ["vitest/globals", "node", "@testing-library/jest-dom"]
   },
-  "include": ["./**/*.ts", "./**/*.tsx"]
+  "include": ["./**/*.ts", "./**/*.tsx", "../vitest.config.mts"]
 }

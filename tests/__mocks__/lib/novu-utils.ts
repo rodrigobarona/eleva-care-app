@@ -1,11 +1,12 @@
-// Manual mock for lib/novu-utils.ts
+// Manual mock for lib/novu-utils.ts - Vitest compatible
 // Mirror: lib/novu-utils.ts exports triggerNovuWorkflow, not a `novuUtils` object
+import { vi } from 'vitest';
 
 export async function triggerNovuWorkflow(): Promise<{ success: true }> {
   return { success: true };
 }
 
-export const buildNovuSubscriberFromClerk = jest.fn().mockReturnValue({
+export const buildNovuSubscriberFromClerk = vi.fn().mockReturnValue({
   subscriberId: 'test-user-id',
   firstName: 'Test',
   lastName: 'User',
@@ -19,7 +20,7 @@ export const buildNovuSubscriberFromClerk = jest.fn().mockReturnValue({
   },
 });
 
-export const buildNovuSubscriberFromStripe = jest.fn().mockReturnValue({
+export const buildNovuSubscriberFromStripe = vi.fn().mockReturnValue({
   subscriberId: 'cus_test123',
   email: 'customer@example.com',
   firstName: 'Test',
@@ -59,6 +60,6 @@ export const STRIPE_EVENT_TO_WORKFLOW_MAPPINGS = {
   'capability.updated': 'expert-management',
 } as const;
 
-export const getWorkflowFromClerkEvent = jest.fn().mockReturnValue('user-lifecycle');
+export const getWorkflowFromClerkEvent = vi.fn().mockReturnValue('user-lifecycle');
 
-export const getWorkflowFromStripeEvent = jest.fn().mockReturnValue('payment-universal');
+export const getWorkflowFromStripeEvent = vi.fn().mockReturnValue('payment-universal');

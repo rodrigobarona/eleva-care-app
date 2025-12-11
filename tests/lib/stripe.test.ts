@@ -1,5 +1,4 @@
 import { calculateApplicationFee } from '@/config/stripe';
-import { describe, expect, it } from '@jest/globals';
 
 describe('Stripe Utilities', () => {
   describe('calculateApplicationFee', () => {

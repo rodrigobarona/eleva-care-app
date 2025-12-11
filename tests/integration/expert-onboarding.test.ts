@@ -1,5 +1,5 @@
+import { vi } from 'vitest';
 // Import Jest globals first
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 // Import dependencies for assertions
 
@@ -11,17 +11,17 @@ import {
   mockUpdateProfile,
 } from './expert-setup-mocks';
 
-jest.mock('next/cache', () => ({
-  revalidatePath: jest.fn(),
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
 }));
 
 // Mock our server actions
-jest.mock('@/server/actions/expert-setup', () => ({
+vi.mock('@/server/actions/expert-setup', () => ({
   markStepComplete: mockMarkStepComplete,
   checkExpertSetupStatus: mockCheckExpertSetupStatus,
 }));
 
-jest.mock('@/server/actions/profile', () => ({
+vi.mock('@/server/actions/profile', () => ({
   updateProfile: mockUpdateProfile,
   toggleProfilePublication: mockToggleProfilePublication,
 }));
@@ -36,7 +36,7 @@ interface ProfileData {
 
 describe('Expert Onboarding Flow', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should allow completing profile step of expert onboarding', async () => {

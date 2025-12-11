@@ -1,26 +1,26 @@
+import { vi } from 'vitest';
 import { ProfilePublishToggle } from '@/components/features/profile/ProfilePublishToggle';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 
 // Create a properly configured jest mock function before mocking the module
-const mockToggleProfilePublication = jest.fn<(...args: any[]) => Promise<any>>();
-const mockCheckExpertSetupStatus = jest.fn<(...args: any[]) => Promise<any>>();
+const mockToggleProfilePublication = vi.fn<(...args: any[]) => Promise<any>>();
+const mockCheckExpertSetupStatus = vi.fn<(...args: any[]) => Promise<any>>();
 
 // Mock the server actions
-jest.mock('@/server/actions/expert-profile', () => ({
+vi.mock('@/server/actions/expert-profile', () => ({
   toggleProfilePublication: mockToggleProfilePublication,
 }));
 
-jest.mock('@/server/actions/expert-setup', () => ({
+vi.mock('@/server/actions/expert-setup', () => ({
   checkExpertSetupStatus: mockCheckExpertSetupStatus,
 }));
 
 // Mock toast notification
-jest.mock('sonner', () => ({
+vi.mock('sonner', () => ({
   toast: {
-    success: jest.fn(),
-    error: jest.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
   },
 }));
 
@@ -30,7 +30,7 @@ describe('ProfilePublishToggle', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Set up default mock implementations
     (mockToggleProfilePublication as any).mockResolvedValue({

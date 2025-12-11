@@ -38,7 +38,7 @@ jobs:
         id: setup
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
           # No cache in setup job - it's only used for version detection
 
       - name: 📦 Get PNPM version
@@ -95,7 +95,7 @@ jobs:
         run: npx tsc --noEmit
 
   unit-tests:
-    name: 🧪 Unit Tests
+    name: 🧪 Unit Tests (Vitest)
     runs-on: ubuntu-latest
     needs: setup
     strategy:
@@ -133,7 +133,7 @@ jobs:
     needs: setup
     strategy:
       matrix:
-        webhook: [stripe, clerk, stripe-identity, stripe-connect]
+        webhook: [stripe, stripe-identity, stripe-connect]
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
@@ -151,14 +151,14 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🪝 Run webhook tests - ${{ matrix.webhook }}
-        run: pnpm test -- tests/api/webhooks/${{ matrix.webhook }}.test.ts --coverage --verbose
+        run: pnpm test -- tests/api/webhooks/${{ matrix.webhook }}.test.ts --coverage
         env:
           # Test environment variables
           STRIPE_SECRET_KEY: sk_test_fake_key_for_testing
           STRIPE_WEBHOOK_SECRET: whsec_test_fake_secret
           STRIPE_IDENTITY_WEBHOOK_SECRET: whsec_test_fake_identity_secret
           STRIPE_CONNECT_WEBHOOK_SECRET: whsec_test_fake_connect_secret
-          CLERK_SECRET_KEY: sk_test_fake_clerk_secret
+          WORKOS_API_KEY: sk_test_fake_workos_key
           NODE_ENV: test
 
       - name: 📊 Upload webhook coverage
@@ -221,6 +221,53 @@ jobs:
           flags: integration-tests
           name: Integration Tests
 
+  e2e-tests:
+    name: 🎭 E2E Tests (Playwright)
+    runs-on: ubuntu-latest
+    needs: [setup, build-test]
+    steps:
+      - name: 📥 Checkout
+        uses: actions/checkout@v4
+
+      - name: 📦 Setup PNPM
+        uses: pnpm/action-setup@v4
+
+      - name: 🔧 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.setup.outputs.node-version }}
+          cache: 'pnpm'
+
+      - name: 📦 Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: 🎭 Install Playwright Browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: 🎭 Run Playwright tests
+        run: pnpm test:e2e --project=chromium
+        env:
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          CI: true
+          # Build environment variables
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
+          AUDIT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/audit_db
+          WORKOS_API_KEY: sk_test_fake_workos_key
+          WORKOS_CLIENT_ID: client_fake_id
+          STRIPE_SECRET_KEY: sk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+          UPSTASH_REDIS_REST_URL: https://fake-redis.upstash.io
+          UPSTASH_REDIS_REST_TOKEN: fake_token_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+        continue-on-error: true
+
+      - name: 📊 Upload Playwright Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
   build-test:
     name: 🏗️ Build Test
     runs-on: ubuntu-latest
@@ -251,9 +298,9 @@ jobs:
           # Database connection (required for build-time route evaluation)
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           AUDIT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/audit_db
-          # Clerk keys (required for middleware and auth checks)
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmstZmFrZS1rZXktZm9yLWJ1aWxkLXRlc3RpbmctMTIzNDU2Nzg5MA==
-          CLERK_SECRET_KEY: sk_test_abcdefghijklmnopqrstuvwxyz1234567890ABCD
+          # WorkOS keys (required for auth)
+          WORKOS_API_KEY: sk_test_fake_workos_key
+          WORKOS_CLIENT_ID: client_fake_id
           # Stripe keys (required for payment routes) - TEST PLACEHOLDER KEYS FOR CI ONLY
           STRIPE_SECRET_KEY: sk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -275,8 +322,8 @@ jobs:
           # Runtime environment variables
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           AUDIT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/audit_db
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_Y2xlcmstZmFrZS1rZXktZm9yLWJ1aWxkLXRlc3RpbmctMTIzNDU2Nzg5MA==
-          CLERK_SECRET_KEY: sk_test_abcdefghijklmnopqrstuvwxyz1234567890ABCD
+          WORKOS_API_KEY: sk_test_fake_workos_key
+          WORKOS_CLIENT_ID: client_fake_id
           STRIPE_SECRET_KEY: sk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
           NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
           UPSTASH_REDIS_REST_URL: https://fake-redis.upstash.io
@@ -323,7 +370,16 @@ jobs:
     name: 📋 Test Summary
     runs-on: ubuntu-latest
     needs:
-      [lint, type-check, unit-tests, webhook-tests, integration-tests, build-test, security-scan]
+      [
+        lint,
+        type-check,
+        unit-tests,
+        webhook-tests,
+        integration-tests,
+        e2e-tests,
+        build-test,
+        security-scan,
+      ]
     if: always()
     steps:
       - name: 📊 Generate test summary
@@ -334,15 +390,20 @@ jobs:
           echo "|-----------|--------|" >> $GITHUB_STEP_SUMMARY
           echo "| Lint & Format | ${{ needs.lint.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Type Check | ${{ needs.type-check.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests (Vitest) | ${{ needs.unit-tests.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Webhook Tests | ${{ needs.webhook-tests.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| E2E Tests (Playwright) | ${{ needs.e2e-tests.result == 'success' && '✅ Pass' || '⚠️ Check' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Build Test | ${{ needs.build-test.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Security Scan | ${{ needs.security-scan.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## 🔧 Testing Stack" >> $GITHUB_STEP_SUMMARY
+          echo "- **Unit/Integration Tests**: Vitest (migrated from Jest)" >> $GITHUB_STEP_SUMMARY
+          echo "- **E2E Tests**: Playwright (cross-browser testing)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage**: V8 via @vitest/coverage-v8" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 🪝 Webhook Test Coverage" >> $GITHUB_STEP_SUMMARY
           echo "- Stripe Main Webhook: Payment processing, meeting creation, refunds" >> $GITHUB_STEP_SUMMARY
-          echo "- Clerk Webhook: User management, authentication, email workflows" >> $GITHUB_STEP_SUMMARY
           echo "- Stripe Identity: Expert verification, onboarding progression" >> $GITHUB_STEP_SUMMARY
           echo "- Stripe Connect: Payment account setup, verification status" >> $GITHUB_STEP_SUMMARY
 

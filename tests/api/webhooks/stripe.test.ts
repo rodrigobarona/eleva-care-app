@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { db } from '@/drizzle/db';
 import { createMeeting } from '@/server/actions/meetings';
 import { ensureFullUserSynchronization } from '@/server/actions/user-sync';
@@ -5,82 +6,82 @@ import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 
 // Mock external dependencies first before any imports
-jest.mock('@/drizzle/db', () => ({
+vi.mock('@/drizzle/db', () => ({
   db: {
     query: {
       MeetingTable: {
-        findFirst: jest.fn(),
+        findFirst: vi.fn(),
       },
       PaymentTransferTable: {
-        findFirst: jest.fn(),
+        findFirst: vi.fn(),
       },
     },
-    insert: jest.fn().mockReturnValue({
-      values: jest.fn().mockReturnValue({
-        onConflictDoNothing: jest.fn().mockResolvedValue({}),
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        onConflictDoNothing: vi.fn().mockResolvedValue({}),
       }),
     }),
-    update: jest.fn().mockReturnValue({
-      set: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue({}),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue({}),
       }),
     }),
-    delete: jest.fn().mockReturnValue({
-      where: jest.fn().mockResolvedValue([{ id: 1 }]),
+    delete: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue([{ id: 1 }]),
     }),
   },
 }));
 
-jest.mock('@/server/actions/meetings', () => ({
-  createMeeting: jest.fn(),
+vi.mock('@/server/actions/meetings', () => ({
+  createMeeting: vi.fn(),
 }));
 
-jest.mock('@/server/actions/user-sync', () => ({
-  ensureFullUserSynchronization: jest.fn().mockResolvedValue({ success: true }),
+vi.mock('@/server/actions/user-sync', () => ({
+  ensureFullUserSynchronization: vi.fn().mockResolvedValue({ success: true }),
 }));
 
 // Mock Novu integration using manual mocks
-jest.mock('@/app/utils/novu');
-jest.mock('@/lib/integrations/novu/utils');
-jest.mock('@/lib/integrations/novu/email-service');
+vi.mock('@/app/utils/novu');
+vi.mock('@/lib/integrations/novu/utils');
+vi.mock('@/lib/integrations/novu/email-service');
 
-jest.mock('stripe', () => {
-  return jest.fn().mockImplementation(() => ({
+vi.mock('stripe', () => {
+  return vi.fn().mockImplementation(() => ({
     webhooks: {
-      constructEvent: jest.fn(),
+      constructEvent: vi.fn(),
     },
     refunds: {
-      list: jest.fn(),
-      create: jest.fn(),
+      list: vi.fn(),
+      create: vi.fn(),
     },
   }));
 });
 
 // Mock webhook handlers
-jest.mock('@/app/api/webhooks/stripe/handlers/account', () => ({
-  handleAccountUpdated: jest.fn().mockResolvedValue({}),
+vi.mock('@/app/api/webhooks/stripe/handlers/account', () => ({
+  handleAccountUpdated: vi.fn().mockResolvedValue({}),
 }));
 
-jest.mock('@/app/api/webhooks/stripe/handlers/identity', () => ({
-  handleIdentityVerificationUpdated: jest.fn().mockResolvedValue({}),
+vi.mock('@/app/api/webhooks/stripe/handlers/identity', () => ({
+  handleIdentityVerificationUpdated: vi.fn().mockResolvedValue({}),
 }));
 
-jest.mock('@/app/api/webhooks/stripe/handlers/payment', () => ({
-  handlePaymentSucceeded: jest.fn().mockResolvedValue({}),
-  handlePaymentFailed: jest.fn().mockResolvedValue({}),
-  handlePaymentIntentRequiresAction: jest.fn().mockResolvedValue({}),
-  handleChargeRefunded: jest.fn().mockResolvedValue({}),
-  handleDisputeCreated: jest.fn().mockResolvedValue({}),
+vi.mock('@/app/api/webhooks/stripe/handlers/payment', () => ({
+  handlePaymentSucceeded: vi.fn().mockResolvedValue({}),
+  handlePaymentFailed: vi.fn().mockResolvedValue({}),
+  handlePaymentIntentRequiresAction: vi.fn().mockResolvedValue({}),
+  handleChargeRefunded: vi.fn().mockResolvedValue({}),
+  handleDisputeCreated: vi.fn().mockResolvedValue({}),
 }));
 
-jest.mock('@/app/api/webhooks/stripe/handlers/payout', () => ({
-  handlePayoutPaid: jest.fn().mockResolvedValue({}),
-  handlePayoutFailed: jest.fn().mockResolvedValue({}),
+vi.mock('@/app/api/webhooks/stripe/handlers/payout', () => ({
+  handlePayoutPaid: vi.fn().mockResolvedValue({}),
+  handlePayoutFailed: vi.fn().mockResolvedValue({}),
 }));
 
-jest.mock('@/app/api/webhooks/stripe/handlers/external-account', () => ({
-  handleExternalAccountCreated: jest.fn().mockResolvedValue({}),
-  handleExternalAccountDeleted: jest.fn().mockResolvedValue({}),
+vi.mock('@/app/api/webhooks/stripe/handlers/external-account', () => ({
+  handleExternalAccountCreated: vi.fn().mockResolvedValue({}),
+  handleExternalAccountDeleted: vi.fn().mockResolvedValue({}),
 }));
 
 // Mock Request and Response globals for Node environment
@@ -108,13 +109,13 @@ global.Response = class Response {
 
 describe('Stripe Main Webhook Handler', () => {
   let mockRequest: NextRequest;
-  let mockStripeConstructEvent: jest.Mock;
+  let mockStripeConstructEvent: vi.Mock;
   let mockStripe: any;
   let GET: any;
   let POST: any;
 
   beforeEach(async () => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Dynamically import the webhook handlers to avoid Request issues
     try {
@@ -123,11 +124,11 @@ describe('Stripe Main Webhook Handler', () => {
       POST = routeModule.POST;
     } catch {
       // If route import fails, create simple mocks for basic testing
-      GET = jest.fn().mockResolvedValue({
+      GET = vi.fn().mockResolvedValue({
         json: () => Promise.resolve({ message: 'This endpoint is for Stripe webhooks only.' }),
         status: 200,
       });
-      POST = jest.fn().mockResolvedValue({
+      POST = vi.fn().mockResolvedValue({
         json: () => Promise.resolve({ received: true }),
         status: 200,
       });
@@ -139,20 +140,20 @@ describe('Stripe Main Webhook Handler', () => {
 
     // Setup mock request
     mockRequest = {
-      text: jest.fn().mockResolvedValue('{"type":"checkout.session.completed"}'),
+      text: vi.fn().mockResolvedValue('{"type":"checkout.session.completed"}'),
       headers: {
-        get: jest.fn().mockReturnValue('test-stripe-signature'),
+        get: vi.fn().mockReturnValue('test-stripe-signature'),
       },
     } as any;
 
     // Setup Stripe mock
     mockStripe = {
       webhooks: {
-        constructEvent: jest.fn(),
+        constructEvent: vi.fn(),
       },
       refunds: {
-        list: jest.fn(),
-        create: jest.fn(),
+        list: vi.fn(),
+        create: vi.fn(),
       },
     };
 
@@ -177,7 +178,7 @@ describe('Stripe Main Webhook Handler', () => {
 
   describe('POST - Request Validation', () => {
     it('should return 400 when Stripe signature header is missing', async () => {
-      mockRequest.headers.get = jest.fn().mockReturnValue(null);
+      mockRequest.headers.get = vi.fn().mockReturnValue(null);
 
       try {
         const response = await POST(mockRequest);
@@ -252,7 +253,7 @@ describe('Stripe Main Webhook Handler', () => {
       });
 
       // Setup successful meeting creation
-      (createMeeting as jest.Mock).mockResolvedValue({
+      (createMeeting as vi.Mock).mockResolvedValue({
         success: true,
         meeting: {
           id: 1,
@@ -264,7 +265,7 @@ describe('Stripe Main Webhook Handler', () => {
 
     it('should process checkout.session.completed event successfully', async () => {
       // Setup no existing meeting
-      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
+      ((db as any).query.MeetingTable.findFirst as vi.Mock).mockResolvedValue(null);
 
       try {
         const response = await POST(mockRequest);
@@ -279,7 +280,7 @@ describe('Stripe Main Webhook Handler', () => {
 
     it('should skip processing when meeting already exists', async () => {
       // Setup existing meeting
-      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue({
+      ((db as any).query.MeetingTable.findFirst as vi.Mock).mockResolvedValue({
         id: 1,
         stripeSessionId: 'cs_test_123',
       });
@@ -293,9 +294,9 @@ describe('Stripe Main Webhook Handler', () => {
     });
 
     it('should handle double booking with refund', async () => {
-      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
+      ((db as any).query.MeetingTable.findFirst as vi.Mock).mockResolvedValue(null);
 
-      (createMeeting as jest.Mock).mockResolvedValue({
+      (createMeeting as vi.Mock).mockResolvedValue({
         error: 'Slot already booked',
         code: 'SLOT_ALREADY_BOOKED',
       });
@@ -312,9 +313,9 @@ describe('Stripe Main Webhook Handler', () => {
     });
 
     it('should skip refund if already exists', async () => {
-      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
+      ((db as any).query.MeetingTable.findFirst as vi.Mock).mockResolvedValue(null);
 
-      (createMeeting as jest.Mock).mockResolvedValue({
+      (createMeeting as vi.Mock).mockResolvedValue({
         error: 'Slot already booked',
         code: 'SLOT_ALREADY_BOOKED',
       });
@@ -447,8 +448,8 @@ describe('Stripe Main Webhook Handler', () => {
         },
       });
 
-      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
-      (createMeeting as jest.Mock).mockRejectedValue(new Error('Meeting creation failed'));
+      ((db as any).query.MeetingTable.findFirst as vi.Mock).mockResolvedValue(null);
+      (createMeeting as vi.Mock).mockRejectedValue(new Error('Meeting creation failed'));
 
       try {
         const response = await POST(mockRequest);
@@ -478,7 +479,7 @@ describe('Stripe Main Webhook Handler', () => {
         },
       });
 
-      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockRejectedValue(
+      ((db as any).query.MeetingTable.findFirst as vi.Mock).mockRejectedValue(
         new Error('Database error'),
       );
 
@@ -510,8 +511,8 @@ describe('Stripe Main Webhook Handler', () => {
         },
       });
 
-      ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
-      (ensureFullUserSynchronization as jest.Mock).mockRejectedValue(new Error('Sync failed'));
+      ((db as any).query.MeetingTable.findFirst as vi.Mock).mockResolvedValue(null);
+      (ensureFullUserSynchronization as vi.Mock).mockRejectedValue(new Error('Sync failed'));
 
       try {
         const response = await POST(mockRequest);
@@ -553,8 +554,8 @@ describe('Stripe Main Webhook Handler', () => {
           },
         });
 
-        ((db as any).query.MeetingTable.findFirst as jest.Mock).mockResolvedValue(null);
-        (createMeeting as jest.Mock).mockClear();
+        ((db as any).query.MeetingTable.findFirst as vi.Mock).mockResolvedValue(null);
+        (createMeeting as vi.Mock).mockClear();
 
         try {
           const response = await POST(mockRequest);

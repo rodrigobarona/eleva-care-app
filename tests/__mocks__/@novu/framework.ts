@@ -1,48 +1,50 @@
-// Mock for @novu/framework
+// Mock for @novu/framework - Vitest compatible
+import { vi } from 'vitest';
+
 type WorkflowHandler = (...args: unknown[]) => unknown;
 
-export const workflow = jest.fn((workflowId: string, handler: WorkflowHandler) => ({
+export const workflow = vi.fn((workflowId: string, handler: WorkflowHandler) => ({
   workflowId,
   handler,
-  trigger: jest.fn().mockResolvedValue({ success: true }),
+  trigger: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-export const serve = jest.fn().mockReturnValue({
-  handler: jest.fn(),
-  GET: jest.fn(),
-  POST: jest.fn(),
-  OPTIONS: jest.fn(),
+export const serve = vi.fn().mockReturnValue({
+  handler: vi.fn(),
+  GET: vi.fn(),
+  POST: vi.fn(),
+  OPTIONS: vi.fn(),
 });
 
 // Mock workflow step functions
 export const step = {
-  email: jest.fn().mockImplementation(() => ({
+  email: vi.fn().mockImplementation(() => ({
     stepId: 'email-step',
-    handler: jest.fn(),
+    handler: vi.fn(),
   })),
-  inApp: jest.fn().mockImplementation(() => ({
+  inApp: vi.fn().mockImplementation(() => ({
     stepId: 'inApp-step',
-    handler: jest.fn(),
+    handler: vi.fn(),
   })),
-  sms: jest.fn().mockImplementation(() => ({
+  sms: vi.fn().mockImplementation(() => ({
     stepId: 'sms-step',
-    handler: jest.fn(),
+    handler: vi.fn(),
   })),
-  push: jest.fn().mockImplementation(() => ({
+  push: vi.fn().mockImplementation(() => ({
     stepId: 'push-step',
-    handler: jest.fn(),
+    handler: vi.fn(),
   })),
-  digest: jest.fn().mockImplementation(() => ({
+  digest: vi.fn().mockImplementation(() => ({
     stepId: 'digest-step',
-    handler: jest.fn(),
+    handler: vi.fn(),
   })),
-  delay: jest.fn().mockImplementation(() => ({
+  delay: vi.fn().mockImplementation(() => ({
     stepId: 'delay-step',
-    handler: jest.fn(),
+    handler: vi.fn(),
   })),
-  custom: jest.fn().mockImplementation(() => ({
+  custom: vi.fn().mockImplementation(() => ({
     stepId: 'custom-step',
-    handler: jest.fn(),
+    handler: vi.fn(),
   })),
 };
 

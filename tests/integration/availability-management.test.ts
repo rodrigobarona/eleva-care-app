@@ -1,14 +1,14 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // mockUser is available from expert-setup-mocks for future use
 // import { mockUser } from './expert-setup-mocks';
 
 // Mock the database
-jest.mock('@/drizzle/db', () => ({
+vi.mock('@/drizzle/db', () => ({
   db: {
     query: {
       ScheduleTable: {
-        findFirst: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
+        findFirst: vi.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
           id: 'schedule_123',
           clerkUserId: 'user_123',
           timezone: 'America/New_York',
@@ -17,7 +17,7 @@ jest.mock('@/drizzle/db', () => ({
         }),
       },
       AvailabilityTable: {
-        findMany: jest.fn<(...args: any[]) => Promise<any[]>>().mockResolvedValue([
+        findMany: vi.fn<(...args: any[]) => Promise<any[]>>().mockResolvedValue([
           {
             id: 'availability_1',
             scheduleId: 'schedule_123',
@@ -39,47 +39,47 @@ jest.mock('@/drizzle/db', () => ({
         ]),
       },
       EventTable: {
-        findMany: jest.fn<(...args: any[]) => Promise<any[]>>().mockResolvedValue([]),
+        findMany: vi.fn<(...args: any[]) => Promise<any[]>>().mockResolvedValue([]),
       },
     },
-    insert: jest.fn().mockReturnValue({
-      values: jest.fn().mockReturnThis(),
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockReturnThis(),
       returning: jest
         .fn<(...args: any[]) => Promise<any[]>>()
         .mockResolvedValue([{ id: 'availability_3' }]),
     }),
-    update: jest.fn().mockReturnValue({
-      set: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      returning: jest.fn(),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn(),
     }),
-    delete: jest.fn().mockReturnValue({
-      where: jest.fn().mockReturnThis(),
-      returning: jest.fn(),
+    delete: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnThis(),
+      returning: vi.fn(),
     }),
     transaction: jest
       .fn<(...args: any[]) => Promise<any>>()
       .mockImplementation(async (callback) => {
-        return await callback(jest.fn());
+        return await callback(vi.fn());
       }),
   },
 }));
 
 // Mock next cache
-jest.mock('next/cache', () => ({
-  revalidatePath: jest.fn(),
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
 }));
 
 // Mock the date-fns functions
-jest.mock('date-fns', () => ({
-  parse: jest.fn().mockImplementation((timeString) => new Date(`2023-01-01T${timeString}:00`)),
-  format: jest.fn().mockImplementation(() => '09:00'),
-  addMinutes: jest.fn().mockImplementation((date) => date),
-  isAfter: jest.fn().mockReturnValue(true),
+vi.mock('date-fns', () => ({
+  parse: vi.fn().mockImplementation((timeString) => new Date(`2023-01-01T${timeString}:00`)),
+  format: vi.fn().mockImplementation(() => '09:00'),
+  addMinutes: vi.fn().mockImplementation((date) => date),
+  isAfter: vi.fn().mockReturnValue(true),
 }));
 
 // Create mock functions for our server actions
-const mockGetAvailabilities = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
+const mockGetAvailabilities = vi.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   availabilities: [
     {
@@ -97,7 +97,7 @@ const mockGetAvailabilities = jest.fn<(...args: any[]) => Promise<any>>().mockRe
   ],
 });
 
-const mockUpdateAvailability = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
+const mockUpdateAvailability = vi.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   availability: {
     id: 'availability_1',
@@ -107,7 +107,7 @@ const mockUpdateAvailability = jest.fn<(...args: any[]) => Promise<any>>().mockR
   },
 });
 
-const mockCreateAvailability = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
+const mockCreateAvailability = vi.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   availability: {
     id: 'availability_3',
@@ -117,13 +117,13 @@ const mockCreateAvailability = jest.fn<(...args: any[]) => Promise<any>>().mockR
   },
 });
 
-const mockDeleteAvailability = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
+const mockDeleteAvailability = vi.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   deletedId: 'availability_2',
 });
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
-const mockGetScheduleByUserId = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
+const mockGetScheduleByUserId = vi.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   schedule: {
     id: 'schedule_123',
@@ -131,7 +131,7 @@ const mockGetScheduleByUserId = jest.fn<(...args: any[]) => Promise<any>>().mock
   },
 });
 
-const mockUpdateSchedule = jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
+const mockUpdateSchedule = vi.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
   success: true,
   schedule: {
     id: 'schedule_123',
@@ -141,7 +141,7 @@ const mockUpdateSchedule = jest.fn<(...args: any[]) => Promise<any>>().mockResol
 
 describe('Availability Management', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should retrieve all availabilities for a user', async () => {

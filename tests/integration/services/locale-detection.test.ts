@@ -1,5 +1,4 @@
 import { detectLocaleFromHeaders } from '@/lib/i18n/utils';
-import { describe, expect, test } from '@jest/globals';
 
 class MockHeaders {
   private headers: Map<string, string[]>;

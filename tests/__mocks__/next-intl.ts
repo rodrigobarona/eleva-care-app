@@ -1,4 +1,5 @@
-// Mock for next-intl to prevent ESM parsing issues in Jest
+// Mock for next-intl - Vitest compatible
+import { vi } from 'vitest';
 
 interface TranslationValue {
   [key: string]: string | TranslationValue;
@@ -57,11 +58,11 @@ const createMockTranslation =
     return typeof value === 'string' ? value : key;
   };
 
-export const useTranslations = jest.fn((namespace?: string) => createMockTranslation(namespace));
-export const useLocale = jest.fn(() => 'en');
-export const useMessages = jest.fn(() => ({}));
-export const useNow = jest.fn(() => new Date());
-export const useTimeZone = jest.fn(() => 'UTC');
+export const useTranslations = vi.fn((namespace?: string) => createMockTranslation(namespace));
+export const useLocale = vi.fn(() => 'en');
+export const useMessages = vi.fn(() => ({}));
+export const useNow = vi.fn(() => new Date());
+export const useTimeZone = vi.fn(() => 'UTC');
 
 // Default export for compatibility
 const mockNextIntl = {

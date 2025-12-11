@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { POST } from '@/app/api/webhooks/stripe-connect/route';
 // Import mocked modules using ES6 syntax
 import { db } from '@/drizzle/db';
@@ -5,43 +6,43 @@ import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 
 // Mock Novu integration using manual mocks
-jest.mock('@/app/utils/novu');
-jest.mock('@/lib/integrations/novu/utils');
+vi.mock('@/app/utils/novu');
+vi.mock('@/lib/integrations/novu/utils');
 
 // Mock external dependencies
-jest.mock('@/drizzle/db', () => ({
+vi.mock('@/drizzle/db', () => ({
   db: {
     query: {
       UserTable: {
-        findFirst: jest.fn(),
+        findFirst: vi.fn(),
       },
     },
-    update: jest.fn().mockReturnValue({
-      set: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue({}),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue({}),
       }),
     }),
   },
 }));
 
-jest.mock('@/server/actions/expert-setup', () => ({
-  markStepCompleteForUser: jest.fn().mockResolvedValue({ success: true }),
+vi.mock('@/server/actions/expert-setup', () => ({
+  markStepCompleteForUser: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-jest.mock('stripe', () => {
-  return jest.fn().mockImplementation(() => ({
+vi.mock('stripe', () => {
+  return vi.fn().mockImplementation(() => ({
     webhooks: {
-      constructEvent: jest.fn(),
+      constructEvent: vi.fn(),
     },
   }));
 });
 
 describe('Stripe Connect Webhook Handler', () => {
   let mockRequest: NextRequest;
-  let mockStripeConstructEvent: jest.Mock;
+  let mockStripeConstructEvent: vi.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Set up environment variables
     process.env.STRIPE_CONNECT_WEBHOOK_SECRET = 'test-webhook-secret';
@@ -49,14 +50,14 @@ describe('Stripe Connect Webhook Handler', () => {
 
     // Setup mock request
     mockRequest = {
-      text: jest.fn().mockResolvedValue('{"type":"account.updated"}'),
+      text: vi.fn().mockResolvedValue('{"type":"account.updated"}'),
       headers: {
-        get: jest.fn().mockReturnValue('test-stripe-signature'),
+        get: vi.fn().mockReturnValue('test-stripe-signature'),
       },
     } as any;
 
     // Setup Stripe webhook constructor mock
-    mockStripeConstructEvent = jest.fn();
+    mockStripeConstructEvent = vi.fn();
     (Stripe as any).mockImplementation(() => ({
       webhooks: {
         constructEvent: mockStripeConstructEvent,
@@ -81,7 +82,7 @@ describe('Stripe Connect Webhook Handler', () => {
     });
 
     it('should return 400 when Stripe signature header is missing', async () => {
-      mockRequest.headers.get = jest.fn().mockReturnValue(null);
+      mockRequest.headers.get = vi.fn().mockReturnValue(null);
 
       const response = await POST(mockRequest);
       const data = await response.json();
@@ -280,7 +281,7 @@ describe('Stripe Connect Webhook Handler', () => {
     });
 
     it('should handle database errors gracefully', async () => {
-      (db.update as jest.Mock).mockImplementation(() => {
+      (db.update as vi.Mock).mockImplementation(() => {
         throw new Error('Database connection failed');
       });
 
@@ -309,9 +310,9 @@ describe('Stripe Connect Webhook Handler', () => {
       });
 
       // Reset the db.update mock to not throw an error for this test
-      (db.update as jest.Mock).mockReturnValue({
-        set: jest.fn().mockReturnValue({
-          where: jest.fn().mockResolvedValue({}),
+      (db.update as vi.Mock).mockReturnValue({
+        set: vi.fn().mockReturnValue({
+          where: vi.fn().mockResolvedValue({}),
         }),
       });
 

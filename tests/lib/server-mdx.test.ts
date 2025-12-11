@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import {
   getAvailableLocalesForNamespace,
   getMDXFileContent,
@@ -6,9 +7,9 @@ import {
 import fs from 'fs/promises';
 
 // Create spies on fs/promises methods with precise types
-const mockReadFile = jest.spyOn(fs, 'readFile') as jest.SpyInstance;
-const mockAccess = jest.spyOn(fs, 'access') as jest.SpyInstance;
-const mockReaddir = jest.spyOn(fs, 'readdir') as jest.SpyInstance;
+const mockReadFile = vi.spyOn(fs, 'readFile') as vi.SpyInstance;
+const mockAccess = vi.spyOn(fs, 'access') as vi.SpyInstance;
+const mockReaddir = vi.spyOn(fs, 'readdir') as vi.SpyInstance;
 
 describe('MDX Server - Path Traversal Protection', () => {
   const mockFileContent = '# Test Content\n\nThis is a test.';

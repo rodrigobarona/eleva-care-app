@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // Import after mock
 import { auditDb } from '@/drizzle/auditDb';
 import { logAuditEvent } from '@/lib/utils/server/audit';
@@ -8,28 +9,28 @@ import { logAuditEvent } from '@/lib/utils/server/audit';
  * Integration tests to verify that audit logging failures don't break operations
  */
 // Unmock logAuditEvent to test the real implementation
-jest.unmock('@/lib/utils/server/audit');
+vi.unmock('@/lib/utils/server/audit');
 
 // Mock the audit schema module
-jest.mock('@/drizzle/auditSchema', () => ({
+vi.mock('@/drizzle/auditSchema', () => ({
   auditLogs: 'audit_logs_table_mock',
 }));
 
 // Mock the entire audit database module
-jest.mock('@/drizzle/auditDb', () => ({
+vi.mock('@/drizzle/auditDb', () => ({
   auditDb: {
-    insert: jest.fn().mockReturnValue({
-      values: jest.fn().mockResolvedValue(undefined),
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockResolvedValue(undefined),
     }),
   },
 }));
 
 describe('Audit Logging - Non-Blocking Behavior', () => {
-  let consoleErrorSpy: jest.SpyInstance;
+  let consoleErrorSpy: vi.SpyInstance;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    vi.clearAllMocks();
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
   });
 
   afterEach(() => {
@@ -39,8 +40,8 @@ describe('Audit Logging - Non-Blocking Behavior', () => {
   describe('Critical Operations Should Complete Despite Audit Failures', () => {
     it('should complete meeting creation even if audit logging fails', async () => {
       // Simulate audit DB failure
-      const mockValues = jest.fn().mockRejectedValue(new Error('Audit DB Unavailable'));
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockRejectedValue(new Error('Audit DB Unavailable'));
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       // Simulate meeting creation with audit logging
       const createMeetingWithAudit = async () => {
@@ -80,8 +81,8 @@ describe('Audit Logging - Non-Blocking Behavior', () => {
 
     it('should complete profile publication even if audit logging fails', async () => {
       // Simulate audit DB failure
-      const mockValues = jest.fn().mockRejectedValue(new Error('Connection timeout'));
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockRejectedValue(new Error('Connection timeout'));
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       // Simulate profile publication with audit logging
       const publishProfileWithAudit = async () => {
@@ -118,8 +119,8 @@ describe('Audit Logging - Non-Blocking Behavior', () => {
     });
 
     it('should complete event creation even if audit logging fails', async () => {
-      const mockValues = jest.fn().mockRejectedValue(new Error('Network error'));
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockRejectedValue(new Error('Network error'));
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       const createEventWithAudit = async () => {
         const event = {
@@ -154,8 +155,8 @@ describe('Audit Logging - Non-Blocking Behavior', () => {
     });
 
     it('should complete schedule update even if audit logging fails', async () => {
-      const mockValues = jest.fn().mockRejectedValue(new Error('Database locked'));
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockRejectedValue(new Error('Database locked'));
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       const updateScheduleWithAudit = async () => {
         const schedule = {
@@ -191,8 +192,8 @@ describe('Audit Logging - Non-Blocking Behavior', () => {
 
   describe('Multiple Audit Failures Should Not Block Operations', () => {
     it('should handle consecutive audit failures gracefully', async () => {
-      const mockValues = jest.fn().mockRejectedValue(new Error('Persistent DB issue'));
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockRejectedValue(new Error('Persistent DB issue'));
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       const operations = [
         {
@@ -237,8 +238,8 @@ describe('Audit Logging - Non-Blocking Behavior', () => {
 
   describe('Error Context Preservation', () => {
     it('should preserve all audit context even when logging fails', async () => {
-      const mockValues = jest.fn().mockRejectedValue(new Error('DB Error'));
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockRejectedValue(new Error('DB Error'));
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       const testData = {
         workosUserId: 'user_abc123',

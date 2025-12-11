@@ -16,6 +16,7 @@
  * });
  * ```
  */
+import { vi } from 'vitest';
 
 /**
  * Default mock WorkOS user
@@ -55,22 +56,22 @@ export const mockUserInfo = {
 /**
  * Mock withAuth function
  */
-export const mockWithAuth = jest.fn(() => Promise.resolve(mockUserInfo));
+export const mockWithAuth = vi.fn(() => Promise.resolve(mockUserInfo));
 
 /**
  * Mock getSignInUrl function
  */
-export const mockGetSignInUrl = jest.fn(() => '/login');
+export const mockGetSignInUrl = vi.fn(() => '/login');
 
 /**
  * Mock getSignUpUrl function
  */
-export const mockGetSignUpUrl = jest.fn(() => '/register');
+export const mockGetSignUpUrl = vi.fn(() => '/register');
 
 /**
  * Mock getSignOutUrl function
  */
-export const mockGetSignOutUrl = jest.fn(() => '/sign-out');
+export const mockGetSignOutUrl = vi.fn(() => '/sign-out');
 
 /**
  * Helper to create a custom mock user

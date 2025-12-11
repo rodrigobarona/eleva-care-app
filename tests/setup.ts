@@ -1,14 +1,16 @@
-// No need to import jest here as it's already globally available in the test environment
-// Add jest-dom matchers
-// Jest setup file
-import { jest } from '@jest/globals';
-import '@testing-library/jest-dom';
+/**
+ * Vitest Setup File
+ * Global test configuration and mocks for Next.js 16 application
+ */
+import '@testing-library/jest-dom/vitest';
+import { afterAll, beforeAll, vi } from 'vitest';
 
 // Declare types for global mocks
 declare global {
+  // eslint-disable-next-line no-var
   var __mocks: {
-    db: never;
-    workosUser: never;
+    db: unknown;
+    workosUser: unknown;
   };
 }
 
@@ -69,8 +71,8 @@ Object.defineProperty(global, 'Response', {
 });
 
 // Mock NextResponse specifically for Next.js
-jest.mock('next/server', () => ({
-  NextRequest: jest.fn().mockImplementation((...args: unknown[]) => {
+vi.mock('next/server', () => ({
+  NextRequest: vi.fn().mockImplementation((...args: unknown[]) => {
     const [url, init] = args;
     return new (
       global as unknown as { Request: new (url: string, init?: unknown) => unknown }
@@ -94,110 +96,108 @@ jest.mock('next/server', () => ({
 }));
 
 // Mock Next.js headers
-jest.mock('next/headers', () => ({
-  headers: jest.fn(() => new Map()),
-  cookies: jest.fn(() => ({
-    get: jest.fn().mockReturnValue({ value: 'mock-cookie' }),
+vi.mock('next/headers', () => ({
+  headers: vi.fn(() => new Map()),
+  cookies: vi.fn(() => ({
+    get: vi.fn().mockReturnValue({ value: 'mock-cookie' }),
   })),
 }));
 
 // Mock Stripe
-jest.mock('stripe', () => {
+vi.mock('stripe', () => {
   const mockStripeInstance = {
     customers: {
-      create: jest.fn().mockResolvedValue({ id: 'cus_mock' } as never),
-      retrieve: jest.fn().mockResolvedValue({ id: 'cus_mock' } as never),
+      create: vi.fn().mockResolvedValue({ id: 'cus_mock' } as never),
+      retrieve: vi.fn().mockResolvedValue({ id: 'cus_mock' } as never),
     },
     paymentIntents: {
-      create: jest
+      create: vi
         .fn()
         .mockResolvedValue({ id: 'pi_mock', client_secret: 'pi_mock_secret' } as never),
-      retrieve: jest.fn().mockResolvedValue({ id: 'pi_mock', status: 'succeeded' } as never),
+      retrieve: vi.fn().mockResolvedValue({ id: 'pi_mock', status: 'succeeded' } as never),
     },
     charges: {
-      retrieve: jest.fn().mockResolvedValue({ id: 'ch_mock' } as never),
+      retrieve: vi.fn().mockResolvedValue({ id: 'ch_mock' } as never),
     },
     checkout: {
       sessions: {
-        create: jest
+        create: vi
           .fn()
           .mockResolvedValue({ id: 'cs_mock', url: 'https://checkout.stripe.com/mock' } as never),
       },
     },
     accounts: {
-      create: jest.fn().mockResolvedValue({ id: 'acct_mock' } as never),
-      retrieve: jest.fn().mockResolvedValue({ id: 'acct_mock', charges_enabled: true } as never),
+      create: vi.fn().mockResolvedValue({ id: 'acct_mock' } as never),
+      retrieve: vi.fn().mockResolvedValue({ id: 'acct_mock', charges_enabled: true } as never),
     },
     accountLinks: {
-      create: jest.fn().mockResolvedValue({ url: 'https://connect.stripe.com/mock' } as never),
+      create: vi.fn().mockResolvedValue({ url: 'https://connect.stripe.com/mock' } as never),
     },
     identity: {
       verificationSessions: {
-        create: jest
+        create: vi
           .fn()
           .mockResolvedValue({ id: 'vs_mock', url: 'https://verify.stripe.com/mock' } as never),
-        retrieve: jest.fn().mockResolvedValue({ id: 'vs_mock', status: 'verified' } as never),
+        retrieve: vi.fn().mockResolvedValue({ id: 'vs_mock', status: 'verified' } as never),
       },
     },
     events: {
-      retrieve: jest
+      retrieve: vi
         .fn()
         .mockResolvedValue({ id: 'evt_mock', type: 'payment_intent.succeeded' } as never),
     },
     products: {
-      create: jest.fn().mockResolvedValue({ id: 'prod_mock' } as never),
-      update: jest.fn().mockResolvedValue({ id: 'prod_mock', active: false } as never),
-      retrieve: jest.fn().mockResolvedValue({ id: 'prod_mock' } as never),
+      create: vi.fn().mockResolvedValue({ id: 'prod_mock' } as never),
+      update: vi.fn().mockResolvedValue({ id: 'prod_mock', active: false } as never),
+      retrieve: vi.fn().mockResolvedValue({ id: 'prod_mock' } as never),
     },
     prices: {
-      create: jest.fn().mockResolvedValue({ id: 'price_mock' } as never),
-      retrieve: jest.fn().mockResolvedValue({ id: 'price_mock' } as never),
+      create: vi.fn().mockResolvedValue({ id: 'price_mock' } as never),
+      retrieve: vi.fn().mockResolvedValue({ id: 'price_mock' } as never),
     },
   };
 
   // Return a constructor function that returns the mock
-  return jest.fn().mockImplementation(() => mockStripeInstance);
+  return { default: vi.fn().mockImplementation(() => mockStripeInstance) };
 });
 
 // Mock drizzle to prevent database connections during tests
 const mockDb = {
   query: {
     ProfileTable: {
-      findFirst: jest.fn(),
+      findFirst: vi.fn(),
     },
     UserTable: {
-      findFirst: jest.fn(),
+      findFirst: vi.fn(),
     },
     ScheduleTable: {
-      findFirst: jest.fn(),
+      findFirst: vi.fn(),
     },
     EventTable: {
-      findFirst: jest.fn(),
-      findMany: jest.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
     },
   },
-  select: jest.fn().mockReturnValue({
-    from: jest.fn().mockReturnValue({
-      where: jest.fn().mockResolvedValue([{ count: 2 }] as never),
+  select: vi.fn().mockReturnValue({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue([{ count: 2 }] as never),
     }),
   }),
-  insert: jest.fn().mockReturnValue({
-    values: jest.fn().mockReturnValue({
-      returning: jest.fn().mockImplementation(() => Promise.resolve([{ id: 'mock-id' }] as never)),
+  insert: vi.fn().mockReturnValue({
+    values: vi.fn().mockReturnValue({
+      returning: vi.fn().mockImplementation(() => Promise.resolve([{ id: 'mock-id' }] as never)),
     }),
   }),
-  update: jest.fn().mockReturnValue({
-    set: jest.fn().mockReturnValue({
-      where: jest.fn().mockReturnValue({
-        returning: jest
-          .fn()
-          .mockImplementation(() => Promise.resolve([{ id: 'mock-id' }] as never)),
+  update: vi.fn().mockReturnValue({
+    set: vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockImplementation(() => Promise.resolve([{ id: 'mock-id' }] as never)),
       }),
     }),
   }),
-  delete: jest.fn().mockReturnValue({
-    where: jest.fn().mockReturnValue({
-      returning: jest.fn().mockImplementation(() => Promise.resolve([{ id: 'mock-id' }] as never)),
+  delete: vi.fn().mockReturnValue({
+    where: vi.fn().mockReturnValue({
+      returning: vi.fn().mockImplementation(() => Promise.resolve([{ id: 'mock-id' }] as never)),
     }),
   }),
 };
@@ -221,33 +221,31 @@ const mockWorkosUser = {
   },
 };
 
-// Setup Jest mocks
-jest.mock('@/drizzle/db', () => ({
+// Setup Vitest mocks
+vi.mock('@/drizzle/db', () => ({
   db: mockDb,
 }));
 
-jest.mock('drizzle-orm', () => ({
-  eq: jest.fn((field, value) => ({ field, value })),
-  and: jest.fn((...conditions) => ({ and: conditions })),
-  or: jest.fn((...conditions) => ({ or: conditions })),
-  desc: jest.fn((field) => ({ desc: field })),
-  count: jest.fn(() => ({ count: true })),
-  sql: jest.fn((query) => ({ sql: query })),
-  isNull: jest.fn((field) => ({ isNull: field })),
-  gt: jest.fn((field, value) => ({ field, value, operator: 'gt' })),
-  gte: jest.fn((field, value) => ({ field, value, operator: 'gte' })),
-  lt: jest.fn((field, value) => ({ field, value, operator: 'lt' })),
-  lte: jest.fn((field, value) => ({ field, value, operator: 'lte' })),
-  inArray: jest.fn((field, values) => ({ field, values, operator: 'inArray' })),
-  relations: jest.fn(() => ({})),
+vi.mock('drizzle-orm', () => ({
+  eq: vi.fn((field, value) => ({ field, value })),
+  and: vi.fn((...conditions) => ({ and: conditions })),
+  or: vi.fn((...conditions) => ({ or: conditions })),
+  desc: vi.fn((field) => ({ desc: field })),
+  count: vi.fn(() => ({ count: true })),
+  sql: vi.fn((query) => ({ sql: query })),
+  isNull: vi.fn((field) => ({ isNull: field })),
+  gt: vi.fn((field, value) => ({ field, value, operator: 'gt' })),
+  gte: vi.fn((field, value) => ({ field, value, operator: 'gte' })),
+  lt: vi.fn((field, value) => ({ field, value, operator: 'lt' })),
+  lte: vi.fn((field, value) => ({ field, value, operator: 'lte' })),
+  inArray: vi.fn((field, values) => ({ field, values, operator: 'inArray' })),
+  relations: vi.fn(() => ({})),
 }));
 
-// Old Clerk mock removed - now using WorkOS mock defined above
-
-// Add WorkOS auth mock (replacing Clerk)
+// Add WorkOS auth mock
 // Mock structure matches @workos-inc/authkit-nextjs UserInfo interface
-jest.mock('@workos-inc/authkit-nextjs', () => ({
-  withAuth: jest.fn(() =>
+vi.mock('@workos-inc/authkit-nextjs', () => ({
+  withAuth: vi.fn(() =>
     Promise.resolve({
       user: {
         object: 'user' as const,
@@ -275,14 +273,14 @@ jest.mock('@workos-inc/authkit-nextjs', () => ({
       impersonator: undefined,
     } as never),
   ),
-  getSignInUrl: jest.fn(() => '/sign-in'),
-  getSignUpUrl: jest.fn(() => '/sign-up'),
-  getSignOutUrl: jest.fn(() => '/sign-out'),
+  getSignInUrl: vi.fn(() => '/sign-in'),
+  getSignUpUrl: vi.fn(() => '/sign-up'),
+  getSignOutUrl: vi.fn(() => '/sign-out'),
 }));
 
 // Mock WorkOS client-side components
-jest.mock('@workos-inc/authkit-nextjs/components', () => ({
-  useAuth: jest.fn(() => ({
+vi.mock('@workos-inc/authkit-nextjs/components', () => ({
+  useAuth: vi.fn(() => ({
     user: {
       object: 'user' as const,
       id: 'user_test123',
@@ -304,12 +302,12 @@ jest.mock('@workos-inc/authkit-nextjs/components', () => ({
   AuthKitProvider: ({ children }: { children: React.ReactNode }) => children,
 }));
 
-jest.mock('next/cache', () => ({
-  revalidatePath: jest.fn(),
-  revalidateTag: jest.fn(),
-  updateTag: jest.fn(),
-  cacheLife: jest.fn(),
-  cacheTag: jest.fn(),
+vi.mock('next/cache', () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  updateTag: vi.fn(),
+  cacheLife: vi.fn(),
+  cacheTag: vi.fn(),
 }));
 
 // Make common mocks available to tests
@@ -319,40 +317,35 @@ global.__mocks = {
 };
 
 // Mock Google Calendar
-jest.mock('@/server/googleCalendar', () => ({
-  createCalendarEvent: jest.fn(),
+vi.mock('@/server/googleCalendar', () => ({
+  createCalendarEvent: vi.fn(),
 }));
 
 // Mock schedule validation
-jest.mock('@/lib/utils/server/scheduling', () => ({
-  getValidTimesFromSchedule: jest.fn().mockResolvedValue([] as never),
+vi.mock('@/lib/utils/server/scheduling', () => ({
+  getValidTimesFromSchedule: vi.fn().mockResolvedValue([] as never),
 }));
 
 // Mock audit logging
-jest.mock('@/lib/utils/server/audit', () => ({
-  logAuditEvent: jest.fn().mockImplementation(() => Promise.resolve()),
+vi.mock('@/lib/utils/server/audit', () => ({
+  logAuditEvent: vi.fn().mockImplementation(() => Promise.resolve()),
 }));
 
 // Add global fetch mock for Stripe
-global.fetch = jest.fn().mockImplementation(() =>
+global.fetch = vi.fn().mockImplementation(() =>
   Promise.resolve({
     ok: true,
     json: () => Promise.resolve({}),
     text: () => Promise.resolve(''),
   } as Response),
-) as jest.MockedFunction<typeof fetch>;
+) as unknown as typeof fetch;
 
 // Suppress console.log statements during tests to keep output clean
 const originalConsoleLog = console.log;
 beforeAll(() => {
-  console.log = jest.fn();
+  console.log = vi.fn() as typeof console.log;
 });
 
 afterAll(() => {
   console.log = originalConsoleLog;
-});
-
-// Set up global beforeEach to clear mocks
-beforeEach(() => {
-  jest.clearAllMocks();
 });

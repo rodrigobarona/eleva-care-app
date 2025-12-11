@@ -1,6 +1,5 @@
 import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
 import { redisManager } from '@/lib/redis/manager';
-import { afterAll, beforeAll, describe, expect, test } from '@jest/globals';
 
 describe('Keep-Alive Service Integration Tests', () => {
   beforeAll(async () => {

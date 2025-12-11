@@ -5,19 +5,19 @@
  * Verifies that user identification, role-based grouping, and cross-platform
  * context linking work correctly.
  */
-import { jest } from '@jest/globals';
+import { vi, type Mock } from 'vitest';
 
 // Mock PostHog
-const mockPostHogIdentify = jest.fn();
-const mockPostHogGroup = jest.fn();
-const mockPostHogRegister = jest.fn();
-const mockPostHogPeopleSet = jest.fn();
-const mockPostHogCapture = jest.fn();
-const mockPostHogGetSessionId = jest.fn(() => 'test-session-id');
-const mockPostHogGetDistinctId = jest.fn(() => 'test-distinct-id');
-const mockPostHogGetSessionReplayUrl = jest.fn(() => 'https://posthog.com/replay/test');
+const mockPostHogIdentify = vi.fn();
+const mockPostHogGroup = vi.fn();
+const mockPostHogRegister = vi.fn();
+const mockPostHogPeopleSet = vi.fn();
+const mockPostHogCapture = vi.fn();
+const mockPostHogGetSessionId = vi.fn(() => 'test-session-id');
+const mockPostHogGetDistinctId = vi.fn(() => 'test-distinct-id');
+const mockPostHogGetSessionReplayUrl = vi.fn(() => 'https://posthog.com/replay/test');
 
-jest.mock('posthog-js', () => ({
+vi.mock('posthog-js', () => ({
   posthog: {
     identify: mockPostHogIdentify,
     group: mockPostHogGroup,
@@ -29,40 +29,40 @@ jest.mock('posthog-js', () => ({
     get_session_id: mockPostHogGetSessionId,
     get_distinct_id: mockPostHogGetDistinctId,
     get_session_replay_url: mockPostHogGetSessionReplayUrl,
-    init: jest.fn(),
+    init: vi.fn(),
   },
-  PostHog: jest.fn(),
+  PostHog: vi.fn(),
   PostHogConfig: {},
 }));
 
 // Mock Sentry
-const mockSentrySetUser = jest.fn();
-const mockSentrySetContext = jest.fn();
-const mockSentrySetTag = jest.fn();
+const mockSentrySetUser = vi.fn();
+const mockSentrySetContext = vi.fn();
+const mockSentrySetTag = vi.fn();
 
-jest.mock('@sentry/nextjs', () => ({
+vi.mock('@sentry/nextjs', () => ({
   setUser: mockSentrySetUser,
   setContext: mockSentrySetContext,
   setTag: mockSentrySetTag,
-  captureException: jest.fn(),
-  captureMessage: jest.fn(),
+  captureException: vi.fn(),
+  captureMessage: vi.fn(),
 }));
 
 // Mock WorkOS useAuth
-const mockUseAuth = jest.fn();
-jest.mock('@workos-inc/authkit-nextjs/components', () => ({
+const mockUseAuth = vi.fn();
+vi.mock('@workos-inc/authkit-nextjs/components', () => ({
   useAuth: () => mockUseAuth(),
 }));
 
 // Mock Next.js hooks
-jest.mock('next/navigation', () => ({
+vi.mock('next/navigation', () => ({
   usePathname: () => '/en/dashboard',
   useParams: () => ({ locale: 'en' }),
 }));
 
 describe('Analytics Integration', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('User Identification', () => {

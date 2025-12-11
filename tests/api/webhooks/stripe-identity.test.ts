@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 import { GET, POST } from '@/app/api/webhooks/stripe-identity/route';
 // Import mocked modules using ES6 syntax
 import { db } from '@/drizzle/db';
@@ -8,51 +9,51 @@ import { NextRequest } from 'next/server';
 import Stripe from 'stripe';
 
 // Mock Novu integration using manual mocks
-jest.mock('@/app/utils/novu');
-jest.mock('@/lib/integrations/novu/utils');
+vi.mock('@/app/utils/novu');
+vi.mock('@/lib/integrations/novu/utils');
 
 // Mock external dependencies
-jest.mock('@/drizzle/db', () => ({
+vi.mock('@/drizzle/db', () => ({
   db: {
     query: {
       UsersTable: {
-        findFirst: jest.fn(),
+        findFirst: vi.fn(),
       },
     },
-    update: jest.fn().mockReturnValue({
-      set: jest.fn().mockReturnValue({
-        where: jest.fn().mockResolvedValue({}),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue({}),
       }),
     }),
   },
 }));
 
-jest.mock('@/lib/integrations/stripe/identity', () => ({
-  getIdentityVerificationStatus: jest.fn(),
+vi.mock('@/lib/integrations/stripe/identity', () => ({
+  getIdentityVerificationStatus: vi.fn(),
 }));
 
-jest.mock('@/server/actions/expert-setup', () => ({
-  markStepComplete: jest.fn().mockResolvedValue({ success: true }),
+vi.mock('@/server/actions/expert-setup', () => ({
+  markStepComplete: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-jest.mock('@/lib/integrations/stripe', () => ({
-  syncIdentityVerificationToConnect: jest.fn().mockResolvedValue({ success: true }),
+vi.mock('@/lib/integrations/stripe', () => ({
+  syncIdentityVerificationToConnect: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-jest.mock('stripe', () => {
-  return jest.fn().mockImplementation(() => ({
+vi.mock('stripe', () => {
+  return vi.fn().mockImplementation(() => ({
     webhooks: {
-      constructEvent: jest.fn(),
+      constructEvent: vi.fn(),
     },
   }));
 });
 
 describe('Stripe Identity Webhook Handler', () => {
   let mockRequest: NextRequest;
-  let mockStripeConstructEvent: jest.Mock;
+  let mockStripeConstructEvent: vi.Mock;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Set up environment variables
     process.env.STRIPE_IDENTITY_WEBHOOK_SECRET = 'test-webhook-secret';
@@ -60,14 +61,14 @@ describe('Stripe Identity Webhook Handler', () => {
 
     // Setup mock request
     mockRequest = {
-      text: jest.fn().mockResolvedValue('{"type":"identity.verification_session.verified"}'),
+      text: vi.fn().mockResolvedValue('{"type":"identity.verification_session.verified"}'),
       headers: {
-        get: jest.fn().mockReturnValue('test-stripe-signature'),
+        get: vi.fn().mockReturnValue('test-stripe-signature'),
       },
     } as any;
 
     // Setup Stripe webhook constructor mock
-    mockStripeConstructEvent = jest.fn();
+    mockStripeConstructEvent = vi.fn();
     (Stripe as any).mockImplementation(() => ({
       webhooks: {
         constructEvent: mockStripeConstructEvent,
@@ -102,7 +103,7 @@ describe('Stripe Identity Webhook Handler', () => {
     });
 
     it('should return 400 when Stripe signature header is missing', async () => {
-      mockRequest.headers.get = jest.fn().mockReturnValue(null);
+      mockRequest.headers.get = vi.fn().mockReturnValue(null);
 
       const response = await POST(mockRequest);
       const data = await response.json();
@@ -143,7 +144,7 @@ describe('Stripe Identity Webhook Handler', () => {
       });
 
       // Setup successful identity status lookup
-      (getIdentityVerificationStatus as jest.Mock).mockResolvedValue({
+      (getIdentityVerificationStatus as vi.Mock).mockResolvedValue({
         status: 'verified',
         details: { verified: true },
       });
@@ -151,7 +152,7 @@ describe('Stripe Identity Webhook Handler', () => {
 
     it('should process identity.verification_session.verified event successfully', async () => {
       // Setup user found by verification ID
-      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as vi.Mock).mockResolvedValue({
         id: 1,
         workosUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
@@ -169,7 +170,7 @@ describe('Stripe Identity Webhook Handler', () => {
 
     it('should handle user lookup by Clerk ID when verification ID lookup fails', async () => {
       // First call (by verification ID) returns null, second call (by Clerk ID) returns user
-      (db.query.UsersTable.findFirst as jest.Mock)
+      (db.query.UsersTable.findFirst as vi.Mock)
         .mockResolvedValueOnce(null)
         .mockResolvedValueOnce({
           id: 1,
@@ -185,7 +186,7 @@ describe('Stripe Identity Webhook Handler', () => {
     });
 
     it('should skip processing when no user is found', async () => {
-      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue(null);
+      (db.query.UsersTable.findFirst as vi.Mock).mockResolvedValue(null);
 
       const response = await POST(mockRequest);
 
@@ -208,12 +209,12 @@ describe('Stripe Identity Webhook Handler', () => {
         },
       });
 
-      (getIdentityVerificationStatus as jest.Mock).mockResolvedValue({
+      (getIdentityVerificationStatus as vi.Mock).mockResolvedValue({
         status: 'requires_input',
         details: { verified: false },
       });
 
-      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as vi.Mock).mockResolvedValue({
         id: 1,
         workosUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
@@ -227,7 +228,7 @@ describe('Stripe Identity Webhook Handler', () => {
     });
 
     it('should skip Connect sync when user has no Connect account', async () => {
-      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as vi.Mock).mockResolvedValue({
         id: 1,
         workosUserId: 'user_123',
         stripeConnectAccountId: null, // No Connect account
@@ -240,14 +241,14 @@ describe('Stripe Identity Webhook Handler', () => {
     });
 
     it('should retry Connect sync on failure', async () => {
-      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as vi.Mock).mockResolvedValue({
         id: 1,
         workosUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
       });
 
       // First two attempts fail, third succeeds
-      (syncIdentityVerificationToConnect as jest.Mock)
+      (syncIdentityVerificationToConnect as vi.Mock)
         .mockResolvedValueOnce({ success: false, message: 'Retry later' })
         .mockResolvedValueOnce({ success: false, message: 'Still failing' })
         .mockResolvedValueOnce({ success: true, verificationStatus: 'verified' });
@@ -259,14 +260,14 @@ describe('Stripe Identity Webhook Handler', () => {
     });
 
     it('should handle Connect sync maximum retries exceeded', async () => {
-      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as vi.Mock).mockResolvedValue({
         id: 1,
         workosUserId: 'user_123',
         stripeConnectAccountId: 'acct_test_123',
       });
 
       // All attempts fail
-      (syncIdentityVerificationToConnect as jest.Mock).mockResolvedValue({
+      (syncIdentityVerificationToConnect as vi.Mock).mockResolvedValue({
         success: false,
         message: 'Persistent failure',
       });
@@ -311,7 +312,7 @@ describe('Stripe Identity Webhook Handler', () => {
         },
       });
 
-      (db.query.UsersTable.findFirst as jest.Mock).mockRejectedValue(
+      (db.query.UsersTable.findFirst as vi.Mock).mockRejectedValue(
         new Error('Database connection failed'),
       );
 
@@ -335,12 +336,12 @@ describe('Stripe Identity Webhook Handler', () => {
         },
       });
 
-      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as vi.Mock).mockResolvedValue({
         id: 1,
         workosUserId: 'user_123',
       });
 
-      (getIdentityVerificationStatus as jest.Mock).mockRejectedValue(new Error('Stripe API error'));
+      (getIdentityVerificationStatus as vi.Mock).mockRejectedValue(new Error('Stripe API error'));
 
       const response = await POST(mockRequest);
 
@@ -362,18 +363,18 @@ describe('Stripe Identity Webhook Handler', () => {
         },
       });
 
-      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue({
+      (db.query.UsersTable.findFirst as vi.Mock).mockResolvedValue({
         id: 1,
         workosUserId: 'user_123',
       });
 
-      (getIdentityVerificationStatus as jest.Mock).mockResolvedValue({
+      (getIdentityVerificationStatus as vi.Mock).mockResolvedValue({
         status: 'verified',
         details: { verified: true },
       });
 
       // Make markStepComplete throw an error - the webhook should continue and return 200
-      (markStepComplete as jest.Mock).mockImplementation(() => {
+      (markStepComplete as vi.Mock).mockImplementation(() => {
         throw new Error('Expert setup service error');
       });
 
@@ -400,7 +401,7 @@ describe('Stripe Identity Webhook Handler', () => {
         },
       });
 
-      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue(null);
+      (db.query.UsersTable.findFirst as vi.Mock).mockResolvedValue(null);
 
       const response = await POST(mockRequest);
 
@@ -427,7 +428,7 @@ describe('Stripe Identity Webhook Handler', () => {
         },
       });
 
-      (db.query.UsersTable.findFirst as jest.Mock).mockResolvedValue(null);
+      (db.query.UsersTable.findFirst as vi.Mock).mockResolvedValue(null);
 
       const response = await POST(mockRequest);
 
@@ -450,7 +451,7 @@ describe('Stripe Identity Webhook Handler', () => {
       });
 
       // User found by Clerk ID but needs verification ID update
-      (db.query.UsersTable.findFirst as jest.Mock)
+      (db.query.UsersTable.findFirst as vi.Mock)
         .mockResolvedValueOnce(null) // First lookup by verification ID fails
         .mockResolvedValueOnce({
           // Second lookup by Clerk ID succeeds
@@ -459,7 +460,7 @@ describe('Stripe Identity Webhook Handler', () => {
           stripeIdentityVerificationId: null,
         });
 
-      (getIdentityVerificationStatus as jest.Mock).mockResolvedValue({
+      (getIdentityVerificationStatus as vi.Mock).mockResolvedValue({
         status: 'verified',
         details: { verified: true },
       });

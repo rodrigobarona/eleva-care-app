@@ -1,12 +1,13 @@
-// Mock for next-intl/server to prevent ESM parsing issues in Jest
+// Mock for next-intl/server - Vitest compatible
+import { vi } from 'vitest';
 
-export const getTranslations = jest.fn(() => (key: string) => key);
-export const getLocale = jest.fn(() => 'en');
-export const getMessages = jest.fn(() => ({}));
-export const getNow = jest.fn(() => new Date());
-export const getRequestConfig = jest.fn(() => ({}));
-export const getTimeZone = jest.fn(() => 'UTC');
-export const setRequestLocale = jest.fn();
+export const getTranslations = vi.fn(() => (key: string) => key);
+export const getLocale = vi.fn(() => 'en');
+export const getMessages = vi.fn(() => ({}));
+export const getNow = vi.fn(() => new Date());
+export const getRequestConfig = vi.fn(() => ({}));
+export const getTimeZone = vi.fn(() => 'UTC');
+export const setRequestLocale = vi.fn();
 
 // Default export for compatibility
 const mockNextIntlServer = {

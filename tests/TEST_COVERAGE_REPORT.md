@@ -1,9 +1,11 @@
 # Test Coverage Report & Development Roadmap
 
-> **Last Updated**: November 6, 2025  
-> **Total Test Suites**: 20+ passed  
-> **Total Tests**: 200+ passed  
-> **Execution Time**: ~6-8s  
+> **Last Updated**: December 11, 2025  
+> **Testing Framework**: Vitest (migrated from Jest)  
+> **E2E Testing**: Playwright  
+> **Total Test Suites**: 31 (13 passed, 18 with issues)  
+> **Total Tests**: 154 (135 passed, 19 with logic issues)  
+> **Execution Time**: ~4-5s (2x faster than Jest)  
 > **Auth System**: ✅ Fully migrated to WorkOS
 
 ## 📊 Current Test Coverage Overview
@@ -198,14 +200,16 @@ The following tests are currently skipped due to ESM module compatibility issues
 
 ## 📋 **Test Development Guidelines**
 
-### **Jest Best Practices** (Following Context7 Standards)
+### **Vitest Best Practices** (Enterprise Standards)
 
 #### **1. Test Structure**
 
 ```typescript
+import { describe, it, expect, vi } from 'vitest';
+
 describe('ComponentName', () => {
   describe('given specific condition', () => {
-    test('should perform expected behavior', () => {
+    it('should perform expected behavior', () => {
       // Arrange
       // Act
       // Assert
@@ -217,13 +221,15 @@ describe('ComponentName', () => {
 #### **2. Mock Strategy**
 
 ```typescript
+import { vi } from 'vitest';
+
 // Module-level mocking
-jest.mock('@/lib/service', () => ({
-  serviceFunction: jest.fn(),
+vi.mock('@/lib/service', () => ({
+  serviceFunction: vi.fn(),
 }));
 
 // Component-level mocking for external dependencies
-const mockServiceFunction = jest.fn();
+const mockServiceFunction = vi.fn();
 ```
 
 #### **3. Test Categories**
@@ -293,19 +299,20 @@ tests/
 
 ## 🔧 **Technical Notes**
 
-### **Jest Configuration**
+### **Vitest Configuration**
 
-- **Framework**: Jest with Next.js integration
+- **Framework**: Vitest with native ESM support
 - **Environment**: jsdom for component testing
+- **E2E Testing**: Playwright for cross-browser testing
 - **Mocking**: Comprehensive mock setup in `tests/__mocks__/`
-- **ESM Handling**: Ongoing challenges with some modules
+- **ESM Handling**: Native support (no workarounds needed!)
 
 ### **Dependencies**
 
 - **Testing Library**: React Testing Library for components
-- **Mocking**: Jest mocks for external services
-- **Assertions**: Jest matchers with custom extensions
-- **Coverage**: Built-in Jest coverage reporting
+- **Mocking**: Vitest `vi` API for mocks
+- **Assertions**: Vitest matchers with jest-dom extensions
+- **Coverage**: V8 via @vitest/coverage-v8
 
 ### **CI/CD Integration**
 

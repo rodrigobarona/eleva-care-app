@@ -1,11 +1,12 @@
+import { vi } from 'vitest';
 import { createMeeting } from '@/server/actions/meetings';
 import '@testing-library/jest-dom';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 
 // Mock the createMeeting action
-jest.mock('@/server/actions/meetings', () => ({
-  createMeeting: jest.fn(),
+vi.mock('@/server/actions/meetings', () => ({
+  createMeeting: vi.fn(),
 }));
 
 // Define a type for our form data
@@ -294,13 +295,13 @@ const BookingFormSimple: React.FC<{
 
 describe('BookingForm', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    (createMeeting as jest.Mock).mockResolvedValue({ success: true, id: 'meeting-123' });
+    vi.clearAllMocks();
+    (createMeeting as vi.Mock).mockResolvedValue({ success: true, id: 'meeting-123' });
   });
 
   describe('Step Navigation', () => {
     it('renders all steps of the booking form', async () => {
-      render(<BookingFormSimple onSubmit={jest.fn()} />);
+      render(<BookingFormSimple onSubmit={vi.fn()} />);
 
       // Step 1 - Date and time selection should be visible
       expect(screen.getByTestId('step-1')).toBeInTheDocument();
@@ -337,7 +338,7 @@ describe('BookingForm', () => {
     });
 
     it('allows navigation between steps', async () => {
-      render(<BookingFormSimple onSubmit={jest.fn()} />);
+      render(<BookingFormSimple onSubmit={vi.fn()} />);
 
       // Go to step 2
       fireEvent.submit(screen.getByTestId('booking-form-step-1'));
@@ -365,7 +366,7 @@ describe('BookingForm', () => {
 
   describe('Free Event Submission', () => {
     it('submits free event directly without going to payment step', async () => {
-      const mockSubmit = jest.fn().mockResolvedValue({ success: true });
+      const mockSubmit = vi.fn().mockResolvedValue({ success: true });
       render(<BookingFormSimple onSubmit={mockSubmit} price={0} />);
 
       // Navigate to step 2
@@ -397,7 +398,7 @@ describe('BookingForm', () => {
     });
 
     it('shows "Schedule Meeting" button text for free events', () => {
-      render(<BookingFormSimple onSubmit={jest.fn()} price={0} />);
+      render(<BookingFormSimple onSubmit={vi.fn()} price={0} />);
 
       // Navigate to step 2
       fireEvent.submit(screen.getByTestId('booking-form-step-1'));
@@ -407,14 +408,14 @@ describe('BookingForm', () => {
     });
 
     it('displays "Free" price label for free events', () => {
-      render(<BookingFormSimple onSubmit={jest.fn()} price={0} />);
+      render(<BookingFormSimple onSubmit={vi.fn()} price={0} />);
       expect(screen.getByText('Price: Free')).toBeInTheDocument();
     });
   });
 
   describe('Paid Event Submission', () => {
     it('goes to payment step for paid events', async () => {
-      const mockSubmit = jest.fn().mockResolvedValue({ success: true });
+      const mockSubmit = vi.fn().mockResolvedValue({ success: true });
       render(<BookingFormSimple onSubmit={mockSubmit} price={100} />);
 
       // Navigate to step 2
@@ -452,7 +453,7 @@ describe('BookingForm', () => {
     });
 
     it('shows "Continue to Payment" button text for paid events', () => {
-      render(<BookingFormSimple onSubmit={jest.fn()} price={100} />);
+      render(<BookingFormSimple onSubmit={vi.fn()} price={100} />);
 
       // Navigate to step 2
       fireEvent.submit(screen.getByTestId('booking-form-step-1'));
@@ -464,10 +465,10 @@ describe('BookingForm', () => {
 
   describe('Form Validation', () => {
     it('shows validation error when submitting with empty name', async () => {
-      const mockValidationError = jest.fn();
+      const mockValidationError = vi.fn();
       render(
         <BookingFormSimple
-          onSubmit={jest.fn()}
+          onSubmit={vi.fn()}
           price={0}
           onValidationError={mockValidationError}
         />,
@@ -497,7 +498,7 @@ describe('BookingForm', () => {
     });
 
     it('shows validation error when submitting with empty email', async () => {
-      render(<BookingFormSimple onSubmit={jest.fn()} price={0} />);
+      render(<BookingFormSimple onSubmit={vi.fn()} price={0} />);
 
       // Navigate to step 2
       fireEvent.submit(screen.getByTestId('booking-form-step-1'));
@@ -517,7 +518,7 @@ describe('BookingForm', () => {
     });
 
     it('shows validation error for invalid email format', async () => {
-      render(<BookingFormSimple onSubmit={jest.fn()} price={0} />);
+      render(<BookingFormSimple onSubmit={vi.fn()} price={0} />);
 
       // Navigate to step 2
       fireEvent.submit(screen.getByTestId('booking-form-step-1'));
@@ -540,7 +541,7 @@ describe('BookingForm', () => {
     });
 
     it('clears field error when user starts typing', async () => {
-      render(<BookingFormSimple onSubmit={jest.fn()} price={0} />);
+      render(<BookingFormSimple onSubmit={vi.fn()} price={0} />);
 
       // Navigate to step 2
       fireEvent.submit(screen.getByTestId('booking-form-step-1'));
@@ -565,7 +566,7 @@ describe('BookingForm', () => {
 
   describe('Loading States', () => {
     it('displays loading state during submission', async () => {
-      const mockSubmit = jest.fn().mockImplementation(() => {
+      const mockSubmit = vi.fn().mockImplementation(() => {
         return new Promise((resolve) => {
           setTimeout(() => resolve({ success: true }), 100);
         });
@@ -581,7 +582,7 @@ describe('BookingForm', () => {
     });
 
     it('disables submit button when processing', () => {
-      render(<BookingFormSimple onSubmit={jest.fn()} isLoading={true} price={0} />);
+      render(<BookingFormSimple onSubmit={vi.fn()} isLoading={true} price={0} />);
 
       // Navigate to step 2
       fireEvent.submit(screen.getByTestId('booking-form-step-1'));
@@ -598,7 +599,7 @@ describe('BookingForm', () => {
         resolvePromise = resolve;
       });
 
-      const mockSubmit = jest.fn().mockReturnValue(slowPromise);
+      const mockSubmit = vi.fn().mockReturnValue(slowPromise);
       render(<BookingFormSimple onSubmit={mockSubmit} price={0} />);
 
       // Navigate to step 2
@@ -624,7 +625,7 @@ describe('BookingForm', () => {
   describe('Event Details Display', () => {
     it('shows event details in the form', () => {
       render(
-        <BookingFormSimple onSubmit={jest.fn()} price={250} eventTitle="Expert Consultation" />,
+        <BookingFormSimple onSubmit={vi.fn()} price={250} eventTitle="Expert Consultation" />,
       );
 
       expect(screen.getByText('Book Expert Consultation')).toBeInTheDocument();
@@ -634,7 +635,7 @@ describe('BookingForm', () => {
 
   describe('Error Handling', () => {
     it('displays error message when submission fails', async () => {
-      const mockSubmit = jest.fn().mockRejectedValue(new Error('Network error'));
+      const mockSubmit = vi.fn().mockRejectedValue(new Error('Network error'));
       render(<BookingFormSimple onSubmit={mockSubmit} price={0} />);
 
       // Navigate to step 2

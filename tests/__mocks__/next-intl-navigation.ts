@@ -1,30 +1,32 @@
-// Mock for next-intl/navigation to prevent ESM parsing issues in Jest
+// Mock for next-intl/navigation - Vitest compatible
+import type { Mock } from 'vitest';
+import { vi } from 'vitest';
 
 interface RouterMock {
-  push: jest.MockedFunction<() => void>;
-  replace: jest.MockedFunction<() => void>;
-  back: jest.MockedFunction<() => void>;
-  forward: jest.MockedFunction<() => void>;
-  refresh: jest.MockedFunction<() => void>;
-  prefetch: jest.MockedFunction<() => void>;
+  push: Mock<() => void>;
+  replace: Mock<() => void>;
+  back: Mock<() => void>;
+  forward: Mock<() => void>;
+  refresh: Mock<() => void>;
+  prefetch: Mock<() => void>;
 }
 
-export const createNavigation = jest.fn((_routing: unknown) => ({
-  Link: jest.fn(({ children }: { children: React.ReactNode }) => children),
-  redirect: jest.fn((_href: string) => undefined),
-  usePathname: jest.fn(() => '/'),
-  useRouter: jest.fn(
+export const createNavigation = vi.fn((_routing: unknown) => ({
+  Link: vi.fn(({ children }: { children: React.ReactNode }) => children),
+  redirect: vi.fn((_href: string) => undefined),
+  usePathname: vi.fn(() => '/'),
+  useRouter: vi.fn(
     (): RouterMock => ({
-      push: jest.fn(),
-      replace: jest.fn(),
-      back: jest.fn(),
-      forward: jest.fn(),
-      refresh: jest.fn(),
-      prefetch: jest.fn(),
+      push: vi.fn(),
+      replace: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+      refresh: vi.fn(),
+      prefetch: vi.fn(),
     }),
   ),
-  getPathname: jest.fn(() => '/'),
-  permanentRedirect: jest.fn((_href: string) => undefined),
+  getPathname: vi.fn(() => '/'),
+  permanentRedirect: vi.fn((_href: string) => undefined),
 }));
 
 // Export default createNavigation

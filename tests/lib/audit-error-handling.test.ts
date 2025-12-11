@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // Import after mock
 import { auditDb } from '@/drizzle/auditDb';
 import { logAuditEvent } from '@/lib/utils/server/audit';
@@ -6,28 +7,28 @@ import { logAuditEvent } from '@/lib/utils/server/audit';
  * @jest-environment node
  */
 // Unmock logAuditEvent to test the real implementation
-jest.unmock('@/lib/utils/server/audit');
+vi.unmock('@/lib/utils/server/audit');
 
 // Mock the audit schema module
-jest.mock('@/drizzle/auditSchema', () => ({
+vi.mock('@/drizzle/auditSchema', () => ({
   auditLogs: 'audit_logs_table_mock',
 }));
 
 // Mock the entire audit database module
-jest.mock('@/drizzle/auditDb', () => ({
+vi.mock('@/drizzle/auditDb', () => ({
   auditDb: {
-    insert: jest.fn().mockReturnValue({
-      values: jest.fn().mockResolvedValue(undefined),
+    insert: vi.fn().mockReturnValue({
+      values: vi.fn().mockResolvedValue(undefined),
     }),
   },
 }));
 
 describe('Audit Error Handling', () => {
-  let consoleErrorSpy: jest.SpyInstance;
+  let consoleErrorSpy: vi.SpyInstance;
 
   beforeEach(() => {
-    jest.clearAllMocks();
-    consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+    vi.clearAllMocks();
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation();
   });
 
   afterEach(() => {
@@ -51,8 +52,8 @@ describe('Audit Error Handling', () => {
     };
 
     it('should log audit event successfully', async () => {
-      const mockValues = jest.fn().mockResolvedValue(undefined);
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockResolvedValue(undefined);
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       const result = logAuditEvent(
         mockAuditData.workosUserId,
@@ -72,8 +73,8 @@ describe('Audit Error Handling', () => {
 
     it('should handle database errors gracefully without throwing', async () => {
       const mockError = new Error('Database connection failed');
-      const mockValues = jest.fn().mockRejectedValue(mockError);
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockRejectedValue(mockError);
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       // Should NOT throw despite database error
       const result = logAuditEvent(
@@ -96,8 +97,8 @@ describe('Audit Error Handling', () => {
 
     it('should log error with [AUDIT FAILURE] prefix when insert fails', async () => {
       const mockError = new Error('Database connection timeout');
-      const mockValues = jest.fn().mockRejectedValue(mockError);
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockRejectedValue(mockError);
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       await logAuditEvent(
         mockAuditData.workosUserId,
@@ -118,8 +119,8 @@ describe('Audit Error Handling', () => {
 
     it('should include audit context in error logs', async () => {
       const mockError = new Error('Connection timeout');
-      const mockValues = jest.fn().mockRejectedValue(mockError);
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockRejectedValue(mockError);
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       await logAuditEvent(
         mockAuditData.workosUserId,
@@ -154,8 +155,8 @@ describe('Audit Error Handling', () => {
     });
 
     it('should handle non-Error objects gracefully', async () => {
-      const mockValues = jest.fn().mockRejectedValue('String error');
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockRejectedValue('String error');
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       const result = logAuditEvent(
         mockAuditData.workosUserId,
@@ -177,8 +178,8 @@ describe('Audit Error Handling', () => {
 
     it('should preserve timestamp in ISO format', async () => {
       const mockError = new Error('Test error');
-      const mockValues = jest.fn().mockRejectedValue(mockError);
-      (auditDb.insert as jest.Mock).mockReturnValue({ values: mockValues });
+      const mockValues = vi.fn().mockRejectedValue(mockError);
+      (auditDb.insert as vi.Mock).mockReturnValue({ values: mockValues });
 
       await logAuditEvent(
         mockAuditData.workosUserId,

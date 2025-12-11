@@ -40,9 +40,10 @@
   ],
   "exclude": [
     "node_modules",
-    "scripts/migrate-audit-logs-to-unified.ts",
-    "scripts/verify-payout-data.ts",
-    "scripts/utilities/archive/**/*"
+    "tests/**/*",
+    "vitest.config.mts",
+    "playwright.config.ts",
+    "scripts/**/*"
   ],
   "ts-node": {
     "compilerOptions": {

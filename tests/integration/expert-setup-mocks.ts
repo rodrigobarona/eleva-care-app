@@ -1,4 +1,4 @@
-import { jest } from '@jest/globals';
+import { vi, type Mock } from 'vitest';
 
 // Mock user
 export const mockUser = {
@@ -26,7 +26,7 @@ type MarkStepCompleteFunction = (step: string) => Promise<{
 }>;
 
 // Mock the expert setup functions
-export const mockMarkStepComplete = jest.fn() as jest.MockedFunction<MarkStepCompleteFunction>;
+export const mockMarkStepComplete = vi.fn() as Mock<MarkStepCompleteFunction>;
 mockMarkStepComplete.mockImplementation((step: string) => {
   return Promise.resolve({
     success: true,
@@ -41,7 +41,7 @@ mockMarkStepComplete.mockImplementation((step: string) => {
   });
 });
 
-export const mockCheckExpertSetupStatus = jest.fn().mockImplementation(() => {
+export const mockCheckExpertSetupStatus = vi.fn().mockImplementation(() => {
   return Promise.resolve({
     success: true,
     setupStatus: defaultSetupStatus,
@@ -49,7 +49,7 @@ export const mockCheckExpertSetupStatus = jest.fn().mockImplementation(() => {
   });
 });
 
-export const mockUpdateProfile = jest.fn().mockImplementation(() => {
+export const mockUpdateProfile = vi.fn().mockImplementation(() => {
   return Promise.resolve({
     success: true,
     profile: {
@@ -66,7 +66,7 @@ export const mockUpdateProfile = jest.fn().mockImplementation(() => {
   });
 });
 
-export const mockToggleProfilePublication = jest.fn().mockImplementation(() => {
+export const mockToggleProfilePublication = vi.fn().mockImplementation(() => {
   // Use our default setup status instead of calling the function which might return undefined
   const setupStatus = defaultSetupStatus;
   const allStepsComplete = Object.values(setupStatus).every(Boolean);

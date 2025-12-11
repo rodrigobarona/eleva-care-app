@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // Import the function we're testing after all mocks are set up
 import { toggleProfilePublication } from '@/server/actions/expert-profile';
 
@@ -35,9 +36,9 @@ const mockUserInfo = {
 };
 
 // Create reusable mocks
-const withAuthMock = jest.fn(() => Promise.resolve(mockUserInfo));
-const hasRoleMock = jest.fn(() => Promise.resolve(true));
-const checkExpertSetupStatusMock = jest.fn(() =>
+const withAuthMock = vi.fn(() => Promise.resolve(mockUserInfo));
+const hasRoleMock = vi.fn(() => Promise.resolve(true));
+const checkExpertSetupStatusMock = vi.fn(() =>
   Promise.resolve({
     success: true,
     setupStatus: {
@@ -49,23 +50,23 @@ const checkExpertSetupStatusMock = jest.fn(() =>
     },
   }),
 );
-const findFirstMock = jest.fn();
-const revalidatePathMock = jest.fn();
+const findFirstMock = vi.fn();
+const revalidatePathMock = vi.fn();
 
 // Mock all dependencies before importing the function to test
-jest.mock('@workos-inc/authkit-nextjs', () => ({
+vi.mock('@workos-inc/authkit-nextjs', () => ({
   withAuth: jest
     .fn()
     .mockImplementation((...args: Parameters<typeof withAuthMock>) => withAuthMock(...args)),
 }));
 
-jest.mock('@/lib/auth/roles.server', () => ({
+vi.mock('@/lib/auth/roles.server', () => ({
   hasRole: jest
     .fn()
     .mockImplementation((...args: Parameters<typeof hasRoleMock>) => hasRoleMock(...args)),
 }));
 
-jest.mock('@/server/actions/expert-setup', () => ({
+vi.mock('@/server/actions/expert-setup', () => ({
   checkExpertSetupStatus: jest
     .fn()
     .mockImplementation((...args: Parameters<typeof checkExpertSetupStatusMock>) =>
@@ -74,20 +75,20 @@ jest.mock('@/server/actions/expert-setup', () => ({
 }));
 
 // DB operations with chainable update mocks
-const updateSetMock = jest.fn();
-const updateWhereMock = jest.fn();
-const updateChain: { set: jest.Mock; where: jest.Mock } = {
-  set: jest.fn().mockImplementation((...args: Parameters<typeof updateSetMock>) => {
+const updateSetMock = vi.fn();
+const updateWhereMock = vi.fn();
+const updateChain: { set: vi.Mock; where: vi.Mock } = {
+  set: vi.fn().mockImplementation((...args: Parameters<typeof updateSetMock>) => {
     updateSetMock(...args);
     return updateChain;
   }),
-  where: jest.fn().mockImplementation((...args: Parameters<typeof updateWhereMock>) => {
+  where: vi.fn().mockImplementation((...args: Parameters<typeof updateWhereMock>) => {
     updateWhereMock(...args);
     return updateChain;
   }),
 };
 
-jest.mock('@/drizzle/db', () => {
+vi.mock('@/drizzle/db', () => {
   return {
     db: {
       query: {
@@ -104,7 +105,7 @@ jest.mock('@/drizzle/db', () => {
   };
 });
 
-jest.mock('next/cache', () => ({
+vi.mock('next/cache', () => ({
   revalidatePath: jest
     .fn()
     .mockImplementation((...args: Parameters<typeof revalidatePathMock>) =>
@@ -113,34 +114,34 @@ jest.mock('next/cache', () => ({
 }));
 
 // Mock drizzle-orm
-jest.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', () => ({
   eq: (field: any, value: any) => value,
   relations: () => ({}),
 }));
 
 // Mock schema
-jest.mock('@/drizzle/schema-workos', () => ({
+vi.mock('@/drizzle/schema-workos', () => ({
   ProfilesTable: {
     workosUserId: 'workosUserId',
   },
 }));
 
 // Mock request metadata
-jest.mock('@/lib/utils/server', () => ({
-  getRequestMetadata: jest.fn().mockResolvedValue({
+vi.mock('@/lib/utils/server', () => ({
+  getRequestMetadata: vi.fn().mockResolvedValue({
     ipAddress: '127.0.0.1',
     userAgent: 'Test User Agent',
   }),
 }));
 
 // Mock audit logging
-jest.mock('@/lib/utils/server/audit', () => ({
-  logAuditEvent: jest.fn().mockResolvedValue(undefined),
+vi.mock('@/lib/utils/server/audit', () => ({
+  logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe('toggleProfilePublication', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Set default mock behavior
     withAuthMock.mockResolvedValue(mockUserInfo);
@@ -328,14 +329,14 @@ describe('toggleProfilePublication', () => {
 
   it('should handle database errors gracefully', async () => {
     // Arrange - mock DB error
-    const originalUpdate = jest.requireMock('@/drizzle/db').db.update;
-    jest.requireMock('@/drizzle/db').db.update = () => {
+    const originalUpdate = vi.requireMock('@/drizzle/db').db.update;
+    vi.requireMock('@/drizzle/db').db.update = () => {
       throw new Error('Database error');
     };
 
-    // Use jest.spyOn instead of replacing console.error
+    // Use vi.spyOn instead of replacing console.error
     // This allows viewing the log but prevents it from cluttering test output
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation();
 
     try {
       // Act
@@ -358,7 +359,7 @@ describe('toggleProfilePublication', () => {
       );
     } finally {
       // Restore original mock
-      jest.requireMock('@/drizzle/db').db.update = originalUpdate;
+      vi.requireMock('@/drizzle/db').db.update = originalUpdate;
       consoleSpy.mockRestore();
     }
   });

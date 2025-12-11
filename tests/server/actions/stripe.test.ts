@@ -1,22 +1,22 @@
+import { vi } from 'vitest';
 // Import Jest globals first
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 // Define mocks before importing modules that use them
 const mockStripe = {
   customers: {
-    create: jest.fn<(...args: any[]) => Promise<any>>(),
-    update: jest.fn<(...args: any[]) => Promise<any>>(),
-    search: jest.fn<(...args: any[]) => Promise<any>>(),
+    create: vi.fn<(...args: any[]) => Promise<any>>(),
+    update: vi.fn<(...args: any[]) => Promise<any>>(),
+    search: vi.fn<(...args: any[]) => Promise<any>>(),
   },
   paymentMethods: {
-    list: jest.fn<(...args: any[]) => Promise<any>>(),
+    list: vi.fn<(...args: any[]) => Promise<any>>(),
   },
 };
 
-const mockWithRetry = jest.fn<(fn: () => any) => any>((fn) => fn());
+const mockWithRetry = vi.fn<(fn: () => any) => any>((fn) => fn());
 
 // Mock the stripe module
-jest.mock('@/lib/integrations/stripe', () => ({
+vi.mock('@/lib/integrations/stripe', () => ({
   withRetry: mockWithRetry,
   stripe: mockStripe,
   getServerStripe: () => Promise.resolve(mockStripe),
@@ -80,7 +80,7 @@ async function getCustomerPaymentMethods(customerId: string) {
 
 describe('Stripe Actions', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('createOrUpdateStripeCustomer', () => {

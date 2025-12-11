@@ -1,12 +1,12 @@
+import { vi } from 'vitest';
 import { db } from '@/drizzle/db';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { setHours, setMinutes } from 'date-fns';
 
 // Mock the database and setup
-jest.mock('@/drizzle/db');
+vi.mock('@/drizzle/db');
 
-const mockDb = jest.mocked(db);
+const mockDb = vi.mocked(db);
 
 describe('getValidTimesFromSchedule - Critical Scheduling Logic', () => {
   const mockUserId = 'user_123';
@@ -16,15 +16,15 @@ describe('getValidTimesFromSchedule - Critical Scheduling Logic', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock console methods to avoid noise in tests
-    jest.spyOn(console, 'log').mockImplementation(() => {});
+    vi.spyOn(console, 'log').mockImplementation(() => {});
 
     // Setup comprehensive mock for database queries
     (mockDb.query as any) = {
       ScheduleTable: {
-        findFirst: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
+        findFirst: vi.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
           id: 'schedule_123',
           workosUserId: mockUserId,
           timezone: 'UTC',
@@ -40,10 +40,10 @@ describe('getValidTimesFromSchedule - Critical Scheduling Logic', () => {
         }),
       },
       SlotReservationTable: {
-        findMany: jest.fn<(...args: any[]) => Promise<any[]>>().mockResolvedValue([]),
+        findMany: vi.fn<(...args: any[]) => Promise<any[]>>().mockResolvedValue([]),
       },
       schedulingSettings: {
-        findFirst: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
+        findFirst: vi.fn<(...args: any[]) => Promise<any>>().mockResolvedValue({
           minimumNotice: 0, // No minimum notice for testing
           beforeEventBuffer: 15,
           afterEventBuffer: 15,

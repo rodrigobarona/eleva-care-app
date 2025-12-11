@@ -1,14 +1,14 @@
-import { describe, expect, jest, test } from '@jest/globals';
+import { vi } from 'vitest';
 
 // Mock the OG image route handler
-const mockGET = jest.fn<() => Promise<Response>>();
-jest.mock('@/app/api/og/image/route', () => ({
+const mockGET = vi.fn<() => Promise<Response>>();
+vi.mock('@/app/api/og/image/route', () => ({
   GET: mockGET,
 }));
 
 describe('OG Image Generation Integration Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const testCases = [

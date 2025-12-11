@@ -1,13 +1,13 @@
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { vi } from 'vitest';
 
 // Create mock functions with explicit typing
-const mockStripeSessionCreate = jest.fn<(...args: any[]) => Promise<{ id: string; url: string }>>();
-const mockGetOrCreateStripeCustomer = jest.fn<(...args: any[]) => Promise<string>>();
-const mockDbEventFind = jest.fn<(...args: any[]) => Promise<any>>();
-const mockDbSlotReservationFind = jest.fn<(...args: any[]) => Promise<any>>();
+const mockStripeSessionCreate = vi.fn<(...args: any[]) => Promise<{ id: string; url: string }>>();
+const mockGetOrCreateStripeCustomer = vi.fn<(...args: any[]) => Promise<string>>();
+const mockDbEventFind = vi.fn<(...args: any[]) => Promise<any>>();
+const mockDbSlotReservationFind = vi.fn<(...args: any[]) => Promise<any>>();
 
 // Mock dependencies
-jest.mock('@/drizzle/db', () => ({
+vi.mock('@/drizzle/db', () => ({
   db: {
     query: {
       EventTable: {
@@ -20,15 +20,15 @@ jest.mock('@/drizzle/db', () => ({
   },
 }));
 
-jest.mock('@/lib/integrations/stripe', () => ({
-  getBaseUrl: jest.fn(() => 'https://example.com'),
+vi.mock('@/lib/integrations/stripe', () => ({
+  getBaseUrl: vi.fn(() => 'https://example.com'),
   getOrCreateStripeCustomer: () => mockGetOrCreateStripeCustomer(),
-  withRetry: jest.fn((fn: () => void) => fn()),
-  calculateApplicationFee: jest.fn((price: number) => Math.round(price * 0.15)),
+  withRetry: vi.fn((fn: () => void) => fn()),
+  calculateApplicationFee: vi.fn((price: number) => Math.round(price * 0.15)),
 }));
 
-jest.mock('stripe', () => {
-  return jest.fn(() => ({
+vi.mock('stripe', () => {
+  return vi.fn(() => ({
     checkout: {
       sessions: {
         create: (...args: any[]) => mockStripeSessionCreate(...args),
@@ -37,9 +37,9 @@ jest.mock('stripe', () => {
   }));
 });
 
-jest.mock('next/server', () => ({
+vi.mock('next/server', () => ({
   NextResponse: {
-    json: jest.fn((data: any, options: any) => ({ data, options })),
+    json: vi.fn((data: any, options: any) => ({ data, options })),
   },
 }));
 
@@ -61,7 +61,7 @@ describe('Payment Intent API - Core Functionality', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Set up default mock responses
     mockDbEventFind.mockResolvedValue(mockEvent);

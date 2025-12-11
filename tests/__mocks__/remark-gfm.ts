@@ -1,7 +1,8 @@
 /**
- * Mock for remark-gfm to prevent ESM parsing issues in Jest
+ * Mock for remark-gfm - Vitest compatible
  */
+import { vi } from 'vitest';
 
-const remarkGfm = jest.fn(() => () => {});
+const remarkGfm = vi.fn(() => () => {});
 
 export default remarkGfm;

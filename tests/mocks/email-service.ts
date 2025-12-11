@@ -1,4 +1,5 @@
-import { jest } from '@jest/globals';
+// Mock email service - Vitest compatible
+import { vi } from 'vitest';
 
 interface EmailRenderOptions {
   type: string;
@@ -19,7 +20,7 @@ interface EmailRenderResult {
 type RenderEmailFn = (options: EmailRenderOptions) => Promise<EmailRenderResult>;
 
 export const mockElevaEmailService = {
-  renderEmail: jest.fn<RenderEmailFn>().mockImplementation((options) => {
+  renderEmail: vi.fn<RenderEmailFn>().mockImplementation((options) => {
     return Promise.resolve({
       subject: 'Test Email',
       body: `

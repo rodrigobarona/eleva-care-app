@@ -4,13 +4,14 @@
  * Provides mock implementations for WorkOS client-side components used in React tests.
  */
 import React from 'react';
+import { vi } from 'vitest';
 
 import { mockWorkosUser } from '../authkit-nextjs';
 
 /**
  * Mock useAuth hook
  */
-export const mockUseAuth = jest.fn(() => ({
+export const mockUseAuth = vi.fn(() => ({
   user: mockWorkosUser,
   loading: false,
   isSignedIn: true,

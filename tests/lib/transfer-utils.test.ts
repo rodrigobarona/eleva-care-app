@@ -1,17 +1,17 @@
+import { vi } from 'vitest';
 import { db } from '@/drizzle/db';
 import { PaymentTransfersTable } from '@/drizzle/schema-workos';
 import { PAYMENT_TRANSFER_STATUS_COMPLETED } from '@/lib/constants/payment-transfers';
 import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
-import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import Stripe from 'stripe';
 
 // Mock the dependencies
-jest.mock('@/drizzle/db', () => ({
+vi.mock('@/drizzle/db', () => ({
   db: {
-    update: jest.fn(),
+    update: vi.fn(),
   },
 }));
-jest.mock('@/drizzle/schema-workos', () => ({
+vi.mock('@/drizzle/schema-workos', () => ({
   PaymentTransfersTable: {
     id: 'id',
   },
@@ -19,31 +19,31 @@ jest.mock('@/drizzle/schema-workos', () => ({
 
 describe('Transfer Utils', () => {
   describe('checkExistingTransfer', () => {
-    let mockStripe: jest.Mocked<Stripe>;
-    let mockUpdate: jest.Mock;
-    let mockSet: jest.Mock;
-    let mockWhere: jest.Mock;
-    let retrieveMock: jest.Mock;
-    let listMock: jest.Mock;
+    let mockStripe: Mock<Stripe>;
+    let mockUpdate: vi.Mock;
+    let mockSet: vi.Mock;
+    let mockWhere: vi.Mock;
+    let retrieveMock: vi.Mock;
+    let listMock: vi.Mock;
 
     beforeEach(() => {
       // Reset all mocks
-      jest.clearAllMocks();
+      vi.clearAllMocks();
 
       // Mock the db update chain
       // @ts-ignore - TypeScript has trouble inferring mock types
-      mockWhere = jest.fn().mockResolvedValue(undefined);
-      mockSet = jest.fn().mockReturnValue({ where: mockWhere });
-      mockUpdate = jest.fn().mockReturnValue({ set: mockSet });
+      mockWhere = vi.fn().mockResolvedValue(undefined);
+      mockSet = vi.fn().mockReturnValue({ where: mockWhere });
+      mockUpdate = vi.fn().mockReturnValue({ set: mockSet });
 
       // Configure the existing db.update mock
-      (db.update as jest.Mock).mockImplementation(() => mockUpdate());
+      (db.update as vi.Mock).mockImplementation(() => mockUpdate());
 
       // Create mock functions for Stripe methods
       // @ts-ignore - TypeScript has trouble inferring mock types
-      retrieveMock = jest.fn();
+      retrieveMock = vi.fn();
       // @ts-ignore - TypeScript has trouble inferring mock types
-      listMock = jest.fn();
+      listMock = vi.fn();
 
       // Mock Stripe instance
       mockStripe = {
@@ -53,7 +53,7 @@ describe('Transfer Utils', () => {
         transfers: {
           list: listMock,
         },
-      } as unknown as jest.Mocked<Stripe>;
+      } as unknown as Mock<Stripe>;
     });
 
     it('should return shouldCreateTransfer: true when no transfer exists', async () => {

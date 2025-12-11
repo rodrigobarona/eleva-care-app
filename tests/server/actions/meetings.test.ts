@@ -1,8 +1,8 @@
+import { vi } from 'vitest';
 import { EventsTable, MeetingsTable } from '@/drizzle/schema-workos';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { getValidTimesFromSchedule } from '@/lib/utils/server/scheduling';
 import { createMeeting } from '@/server/actions/meetings';
-import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { addMinutes } from 'date-fns';
 import type { InferSelectModel } from 'drizzle-orm';
 
@@ -10,9 +10,9 @@ type DbMeeting = InferSelectModel<typeof MeetingsTable>;
 type DbEvent = InferSelectModel<typeof EventsTable>;
 
 // Mock modules
-jest.mock('@/schema/meetings', () => ({
+vi.mock('@/schema/meetings', () => ({
   meetingActionSchema: {
-    safeParse: jest.fn((data: Record<string, unknown>) => {
+    safeParse: vi.fn((data: Record<string, unknown>) => {
       // Validate required fields
       const requiredFields = [
         'eventId',
@@ -81,9 +81,9 @@ const mockGoogleCalendar = {
   createCalendarEvent: () => Promise.resolve(mockCalendarEvent),
 };
 
-jest.mock('@/server/googleCalendar', () => ({
+vi.mock('@/server/googleCalendar', () => ({
   ...mockGoogleCalendar,
-  createCalendarEvent: jest.fn().mockImplementation(() => {
+  createCalendarEvent: vi.fn().mockImplementation(() => {
     // Always fail with a common error message to match implementation
     return Promise.reject(new Error('Event not found'));
   }),
@@ -93,24 +93,24 @@ const mockDb = {
   db: {
     query: {
       MeetingsTable: {
-        findFirst: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
+        findFirst: vi.fn<(...args: any[]) => Promise<any>>() as vi.Mock,
       },
       EventsTable: {
-        findFirst: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
+        findFirst: vi.fn<(...args: any[]) => Promise<any>>() as vi.Mock,
       },
     },
-    insert: jest.fn() as jest.Mock,
+    insert: vi.fn() as vi.Mock,
   },
 };
 
-jest.mock('@/drizzle/db', () => mockDb);
-jest.mock('@/lib/utils/server/scheduling', () => ({
-  getValidTimesFromSchedule: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
+vi.mock('@/drizzle/db', () => mockDb);
+vi.mock('@/lib/utils/server/scheduling', () => ({
+  getValidTimesFromSchedule: vi.fn<(...args: any[]) => Promise<any>>() as vi.Mock,
 }));
-jest.mock('@/lib/utils/server/audit', () => ({
-  logAuditEvent: jest.fn<(...args: any[]) => Promise<any>>() as jest.Mock,
+vi.mock('@/lib/utils/server/audit', () => ({
+  logAuditEvent: vi.fn<(...args: any[]) => Promise<any>>() as vi.Mock,
 }));
-jest.mock('next/headers', () => ({
+vi.mock('next/headers', () => ({
   headers: () =>
     new Map([
       ['x-forwarded-for', '127.0.0.1'],
@@ -179,13 +179,13 @@ describe('Meeting Actions', () => {
   };
 
   // Add a consoleSpy variable to track mocking of console methods
-  let consoleSpy: ReturnType<typeof jest.spyOn>;
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Mock console.error to suppress error messages in test output
-    consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     // Mock database queries with default values
     (mockDb.db.query.MeetingsTable.findFirst as any).mockResolvedValue(null);
@@ -194,8 +194,8 @@ describe('Meeting Actions', () => {
 
     // Mock database insert
     const mockInsert = {
-      values: jest.fn().mockReturnThis(),
-      returning: jest.fn<(...args: any[]) => Promise<any>>().mockResolvedValue([mockMeeting]),
+      values: vi.fn().mockReturnThis(),
+      returning: vi.fn<(...args: any[]) => Promise<any>>().mockResolvedValue([mockMeeting]),
     };
     mockDb.db.insert.mockReturnValue(mockInsert);
   });
@@ -210,8 +210,8 @@ describe('Meeting Actions', () => {
       // Mock the EventsTable.findFirst to return the event
       (mockDb.db.query.EventsTable.findFirst as any).mockResolvedValueOnce(mockEvent);
 
-      // Use jest.spyOn to monitor console.log calls without hiding them (but keep errors hidden)
-      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      // Use vi.spyOn to monitor console.log calls without hiding them (but keep errors hidden)
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       try {
         const result = await createMeeting(validMeetingData);

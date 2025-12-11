@@ -1,10 +1,11 @@
 /**
- * Mock for fs/promises to prevent file system access during tests
+ * Mock for fs/promises - Vitest compatible
  */
+import { vi } from 'vitest';
 
-export const readFile = jest.fn();
-export const access = jest.fn();
-export const readdir = jest.fn();
+export const readFile = vi.fn();
+export const access = vi.fn();
+export const readdir = vi.fn();
 
 const fsMock = {
   readFile,

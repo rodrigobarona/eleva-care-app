@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, jest, test } from '@jest/globals';
+import { vi } from 'vitest';
 import { Novu } from '@novu/api';
 
 // This is an integration test that can optionally connect to real Novu API
@@ -7,7 +7,7 @@ const INTEGRATION_MODE = process.env.NOVU_INTEGRATION_TEST === 'true';
 
 // Mock Novu only if not in integration mode
 if (!INTEGRATION_MODE) {
-  jest.mock('@novu/api');
+  vi.mock('@novu/api');
 }
 
 interface TriggerResponse {
@@ -68,7 +68,7 @@ describe('Novu Workflow Execution Integration Tests', () => {
       }
     } else {
       // Mock Novu client with proper typing
-      const mockTrigger = jest.fn<() => Promise<TriggerResponse>>();
+      const mockTrigger = vi.fn<() => Promise<TriggerResponse>>();
       mockTrigger.mockResolvedValue({
         data: {
           transactionId: 'mock_txn_123',
@@ -77,13 +77,13 @@ describe('Novu Workflow Execution Integration Tests', () => {
         },
       });
 
-      const mockList = jest.fn<() => Promise<{ data: unknown[]; totalCount: number }>>();
+      const mockList = vi.fn<() => Promise<{ data: unknown[]; totalCount: number }>>();
       mockList.mockResolvedValue({
         data: [],
         totalCount: 0,
       });
 
-      const mockIdentify = jest.fn<() => Promise<{ data: { _id: string } }>>();
+      const mockIdentify = vi.fn<() => Promise<{ data: { _id: string } }>>();
       mockIdentify.mockResolvedValue({
         data: { _id: 'mock_subscriber_id' },
       });
@@ -115,7 +115,7 @@ describe('Novu Workflow Execution Integration Tests', () => {
 
   beforeEach(() => {
     if (!INTEGRATION_MODE) {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
     }
   });
 
@@ -348,7 +348,7 @@ describe('Novu Workflow Execution Integration Tests', () => {
         // Mock should handle this gracefully
         const mockError = new Error('Workflow not found');
         // @ts-expect-error - Mock setup for testing error handling
-        (novu.trigger as jest.Mock).mockRejectedValueOnce(mockError);
+        (novu.trigger as vi.Mock).mockRejectedValueOnce(mockError);
 
         await expect(
           novu.trigger({

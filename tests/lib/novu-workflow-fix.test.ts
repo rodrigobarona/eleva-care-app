@@ -1,18 +1,18 @@
-import { beforeEach, describe, expect, test } from '@jest/globals';
+import { vi } from 'vitest';
 
 // Mock the Novu utilities
-const mockTriggerWorkflow = jest.fn();
-const mockGetWorkflowFromClerkEvent = jest.fn();
+const mockTriggerWorkflow = vi.fn();
+const mockGetWorkflowFromClerkEvent = vi.fn();
 
-jest.mock('@/lib/integrations/novu/utils', () => ({
+vi.mock('@/lib/integrations/novu/utils', () => ({
   triggerNovuWorkflow: mockTriggerWorkflow,
   getWorkflowFromClerkEvent: mockGetWorkflowFromClerkEvent,
-  buildNovuSubscriberFromClerk: jest.fn(),
+  buildNovuSubscriberFromClerk: vi.fn(),
 }));
 
 describe('User Lifecycle Workflow Fix', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockTriggerWorkflow.mockResolvedValue({
       success: true,
       transactionId: 'txn_test_123',

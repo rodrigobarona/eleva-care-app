@@ -1,3 +1,4 @@
+import { vi } from 'vitest';
 // @ts-nocheck
 /**
  * Blocked Date Refund Logic Tests
@@ -7,58 +8,57 @@
  *
  * @see app/api/webhooks/stripe/handlers/payment.ts
  */
-import { beforeEach, describe, expect, jest, test } from '@jest/globals';
 import type Stripe from 'stripe';
 
 // Mock dependencies
 const mockDb = {
   query: {
     EventTable: {
-      findFirst: jest.fn(),
+      findFirst: vi.fn(),
     },
     BlockedDatesTable: {
-      findFirst: jest.fn(),
+      findFirst: vi.fn(),
     },
     MeetingTable: {
-      findMany: jest.fn(),
+      findMany: vi.fn(),
     },
     schedulingSettings: {
-      findFirst: jest.fn(),
+      findFirst: vi.fn(),
     },
     UserTable: {
-      findFirst: jest.fn(),
+      findFirst: vi.fn(),
     },
   },
-  update: jest.fn().mockReturnValue({
-    set: jest.fn().mockReturnValue({
-      where: jest.fn().mockResolvedValue([{ id: 'meeting_123' }]),
+  update: vi.fn().mockReturnValue({
+    set: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue([{ id: 'meeting_123' }]),
     }),
   }),
 };
 
 const mockStripe = {
   refunds: {
-    create: jest.fn(),
+    create: vi.fn(),
   },
 };
 
 // Mock modules
-jest.mock('@/drizzle/db', () => ({
+vi.mock('@/drizzle/db', () => ({
   db: mockDb,
 }));
 
-jest.mock('stripe', () => {
-  return jest.fn().mockImplementation(() => mockStripe);
+vi.mock('stripe', () => {
+  return vi.fn().mockImplementation(() => mockStripe);
 });
 
-jest.mock('date-fns-tz', () => ({
-  format: jest.fn((date, formatStr) => {
+vi.mock('date-fns-tz', () => ({
+  format: vi.fn((date, formatStr) => {
     if (formatStr === 'yyyy-MM-dd') {
       return '2025-02-15'; // Mock date string
     }
     return date.toISOString();
   }),
-  toZonedTime: jest.fn((date) => date),
+  toZonedTime: vi.fn((date) => date),
 }));
 
 // Import after mocks
@@ -67,7 +67,7 @@ jest.mock('date-fns-tz', () => ({
 
 describe('Blocked Date Refund Logic', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('checkAppointmentConflict', () => {

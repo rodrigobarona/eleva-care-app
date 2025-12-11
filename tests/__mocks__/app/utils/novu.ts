@@ -1,11 +1,12 @@
-// Manual mock for app/utils/novu.ts
+// Manual mock for app/utils/novu.ts - Vitest compatible
 // Mirror: app/utils/novu.ts exports
+import { vi } from 'vitest';
 
-export const triggerWorkflow = jest.fn().mockResolvedValue({ success: true });
+export const triggerWorkflow = vi.fn().mockResolvedValue({ success: true });
 
-export const updateSubscriber = jest.fn().mockResolvedValue({ success: true });
+export const updateSubscriber = vi.fn().mockResolvedValue({ success: true });
 
-export const getNovuStatus = jest.fn().mockReturnValue({
+export const getNovuStatus = vi.fn().mockReturnValue({
   initialized: true,
   initializationError: null,
   config: {
@@ -19,7 +20,7 @@ export const getNovuStatus = jest.fn().mockReturnValue({
   },
 });
 
-export const runNovuDiagnostics = jest.fn().mockResolvedValue({
+export const runNovuDiagnostics = vi.fn().mockResolvedValue({
   client: {
     initialized: true,
     initializationError: null,
@@ -35,8 +36,8 @@ export const runNovuDiagnostics = jest.fn().mockResolvedValue({
 });
 
 export const novu = {
-  trigger: jest.fn().mockResolvedValue({ success: true }),
+  trigger: vi.fn().mockResolvedValue({ success: true }),
   subscribers: {
-    create: jest.fn().mockResolvedValue({ success: true }),
+    create: vi.fn().mockResolvedValue({ success: true }),
   },
 };

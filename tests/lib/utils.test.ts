@@ -1,5 +1,4 @@
 import { cn } from '@/lib/utils';
-import { describe, expect, it } from '@jest/globals';
 
 describe('Utility Functions', () => {
   describe('cn', () => {
