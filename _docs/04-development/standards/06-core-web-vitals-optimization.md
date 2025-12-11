@@ -156,6 +156,9 @@ return (
 
 ```typescript
 // src/components/sections/home/HeroVideo.tsx
+// Import from /lazy for automatic code splitting
+import MuxVideo from '@mux/mux-player-react/lazy';
+
 <MuxVideo
   playbackId={MUX_PLAYBACK_ID}
   streamType="on-demand"
@@ -163,7 +166,7 @@ return (
   loop
   muted
   playsInline
-  loading="lazy"  // Defer loading until visible
+  // Note: @mux/mux-player-react/lazy handles lazy loading automatically
   disableTracking
   disableCookies
   className="absolute inset-0 z-[1] h-full w-full rounded-2xl object-cover"
@@ -459,7 +462,7 @@ Sentry.setMeasurement('hero-load-time', heroMeasure.duration, 'millisecond');
   - [ ] Skeleton layout structure matches actual component
 
 - [ ] **Video/Media:**
-  - [ ] Video players have `loading="lazy"` unless above-the-fold
+  - [ ] Video players use lazy imports (e.g., `@mux/mux-player-react/lazy`)
   - [ ] CSS overrides prevent aspect ratio enforcement
   - [ ] Poster image loads immediately
 

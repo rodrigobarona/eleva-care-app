@@ -19,8 +19,7 @@ const MUX_PLAYBACK_ID = 'Ol6kzy3beOk2U4RHBssK2n7wtDlqHLWvmOPWH01VOVwA';
  * - Error handling with graceful degradation
  *
  * Performance optimizations:
- * - Uses lazy loading from @mux/mux-player-react/lazy (code splitting)
- * - loading="lazy" defers player initialization to reduce LCP impact
+ * - Uses lazy loading from @mux/mux-player-react/lazy (automatic code splitting)
  * - Minimal client-side JavaScript (only video logic)
  */
 export function HeroVideo() {
@@ -48,7 +47,6 @@ export function HeroVideo() {
       loop
       muted
       playsInline
-      loading="lazy"
       // Privacy settings - disable all tracking and data collection
       disableTracking
       disableCookies

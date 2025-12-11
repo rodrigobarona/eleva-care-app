@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - ✅ **ADDED**: Minimum height (`min-h-[600px] lg:min-h-[720px]`) to prevent CLS
 - ✅ **OPTIMIZED**: Hero image with `priority`, `fetchPriority="high"`, quality 75
-- ✅ **IMPROVED**: Mux video player with `loading="lazy"` for deferred initialization
+- ✅ **IMPROVED**: Mux video player with `/lazy` import for automatic code splitting
 - ✅ **FIXED**: Video aspect ratio enforcement with CSS overrides
 
 **Header Optimizations**
