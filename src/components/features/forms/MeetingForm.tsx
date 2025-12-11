@@ -1,5 +1,6 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
 import * as React from 'react';
 import { BookingLayout } from '@/components/features/booking/BookingLayout';
 import { BookingLoadingSkeleton } from '@/components/features/booking/BookingLoadingSkeleton';
@@ -501,6 +502,19 @@ export function MeetingFormContent({
   // Enhanced step transition with validation
   const transitionToStep = React.useCallback(
     (nextStep: typeof currentStep) => {
+      // Track step navigation with breadcrumb
+      Sentry.addBreadcrumb({
+        category: 'booking.navigation',
+        message: `Step ${currentStep} -> ${nextStep}`,
+        level: 'info',
+        data: {
+          fromStep: currentStep,
+          toStep: nextStep,
+          eventId,
+          isPaid: price > 0,
+        },
+      });
+
       // Special handling for transition to step 2
       if (nextStep === '2') {
         // Check that we have the required date and time
@@ -508,7 +522,7 @@ export function MeetingFormContent({
         const hasTime = !!form.getValues('startTime');
 
         if (!hasDate || !hasTime) {
-          console.log('Cannot transition to step 2: missing date or time', {
+          Sentry.logger.debug('Cannot transition to step 2: missing date or time', {
             hasDate,
             hasTime,
             urlDate: !!queryStates.date,
@@ -535,14 +549,14 @@ export function MeetingFormContent({
       // Update the step in the URL
       setQueryStates({ step: nextStep });
     },
-    [setQueryStates, form, queryStates.date, queryStates.time],
+    [setQueryStates, form, queryStates.date, queryStates.time, currentStep, eventId, price],
   );
 
   // Function to create or get payment intent
   const createPaymentIntent = React.useCallback(async () => {
     // Don't recreate if already fetched
     if (checkoutUrl) {
-      console.log('✅ Using existing checkout URL');
+      Sentry.logger.debug('Using existing checkout URL', { eventId });
       return checkoutUrl;
     }
 
@@ -550,6 +564,11 @@ export function MeetingFormContent({
 
     // **VALIDATION: Ensure required data is present**
     if (!formValues.guestEmail || !formValues.startTime) {
+      Sentry.logger.warn('Missing required form data for payment intent', {
+        hasEmail: !!formValues.guestEmail,
+        hasStartTime: !!formValues.startTime,
+        eventId,
+      });
       throw new Error('Missing required form data');
     }
 
@@ -561,21 +580,23 @@ export function MeetingFormContent({
       formValues.startTime.toISOString(),
     );
 
-    // **NOTE: Redis operations are handled server-side in the API endpoint**
-    // Server-side duplicate prevention will be handled by the API endpoint
-    console.log('🔍 Generated cache key for server-side deduplication:', formCacheKey);
-
     // **UNIQUE REQUEST ID: Generate and track current request**
     const currentRequestId = generateRequestKey();
 
     // **CLIENT-SIDE REQUEST TRACKING: Prevent duplicate requests with same ID**
     if (activeRequestId.current === currentRequestId) {
-      console.log('🚫 Same request already in progress - blocking duplicate');
+      Sentry.logger.debug('Same request already in progress - blocking duplicate', {
+        eventId,
+        requestId: currentRequestId,
+      });
       return null;
     }
 
     if (activeRequestId.current !== null) {
-      console.log('🚫 Different request already active - blocking new request');
+      Sentry.logger.debug('Different request already active - blocking new request', {
+        eventId,
+        activeRequestId: activeRequestId.current,
+      });
       return null;
     }
 
@@ -585,7 +606,7 @@ export function MeetingFormContent({
 
     // **ADDITIONAL PROTECTION: Check if we're already in a pending state**
     if (isSubmitting) {
-      console.log('🚫 Form already in submitting state - blocking duplicate');
+      Sentry.logger.debug('Form already in submitting state - blocking duplicate', { eventId });
       activeRequestId.current = null;
       setIsCreatingCheckout(false);
       return null;
@@ -593,104 +614,141 @@ export function MeetingFormContent({
 
     // **SMART CACHING: If we already have a valid checkout URL, return it immediately**
     if (checkoutUrl) {
-      console.log('✅ Reusing existing valid checkout URL:', checkoutUrl);
+      Sentry.logger.debug('Reusing existing valid checkout URL', { eventId });
       return checkoutUrl;
     }
 
-    try {
-      // **NOTE: Redis operations moved to server-side API endpoint**
-      // The /api/create-payment-intent endpoint will handle FormCache operations
-
-      // **IDEMPOTENCY: Use the current request ID for API deduplication**
-      const requestKey = currentRequestId;
-
-      // Get the locale for multilingual emails
-      const userLocale = locale || 'en';
-
-      console.log('🚀 Creating payment intent with Redis cache key:', formCacheKey);
-
-      // Create payment intent using the new enhanced endpoint
-      const response = await fetch('/api/create-payment-intent', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          // **IDEMPOTENCY HEADER: Prevent server-side duplicates**
-          'Idempotency-Key': requestKey,
+    // Wrap the payment intent creation in a Sentry span for performance tracking
+    return Sentry.startSpan(
+      {
+        name: 'meeting.checkout.create',
+        op: 'http.client',
+        attributes: {
+          'meeting.event_id': eventId,
+          'meeting.price': price,
+          'meeting.guest_email': formValues.guestEmail,
+          'meeting.cache_key': formCacheKey,
         },
-        body: JSON.stringify({
-          eventId,
-          workosUserId,
-          price,
-          meetingData: {
-            guestName: formValues.guestName,
+      },
+      async (span) => {
+        try {
+          Sentry.logger.info('Creating payment intent', {
+            eventId,
+            price,
             guestEmail: formValues.guestEmail,
-            guestNotes: formValues.guestNotes,
-            startTime: formValues.startTime.toISOString(),
-            startTimeFormatted: formValues.startTime.toLocaleString(userLocale, {
-              dateStyle: 'full',
-              timeStyle: 'short',
+          });
+
+          // **IDEMPOTENCY: Use the current request ID for API deduplication**
+          const requestKey = currentRequestId;
+
+          // Get the locale for multilingual emails
+          const userLocale = locale || 'en';
+
+          // Create payment intent using the new enhanced endpoint
+          const response = await fetch('/api/create-payment-intent', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              // **IDEMPOTENCY HEADER: Prevent server-side duplicates**
+              'Idempotency-Key': requestKey,
+            },
+            body: JSON.stringify({
+              eventId,
+              workosUserId,
+              price,
+              meetingData: {
+                guestName: formValues.guestName,
+                guestEmail: formValues.guestEmail,
+                guestNotes: formValues.guestNotes,
+                startTime: formValues.startTime.toISOString(),
+                startTimeFormatted: formValues.startTime.toLocaleString(userLocale, {
+                  dateStyle: 'full',
+                  timeStyle: 'short',
+                }),
+                timezone: formValues.timezone || 'UTC',
+                locale: userLocale,
+                date: formValues.date?.toISOString() || '',
+              },
+              username,
+              eventSlug,
+              // **IDEMPOTENCY: Include request key in payload**
+              requestKey,
             }),
-            timezone: formValues.timezone || 'UTC',
-            locale: userLocale,
-            date: formValues.date?.toISOString() || '',
-          },
-          username,
-          eventSlug,
-          // **IDEMPOTENCY: Include request key in payload**
-          requestKey,
-        }),
-      });
+          });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
+          span.setAttribute('http.status_code', response.status);
 
-        // Handle BotID protection responses
-        if (response.status === 403 && errorData.error === 'Access denied') {
-          throw new Error(errorData.message || 'Request blocked for security reasons');
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+
+            // Handle BotID protection responses
+            if (response.status === 403 && errorData.error === 'Access denied') {
+              Sentry.logger.warn('Payment intent blocked by security', {
+                eventId,
+                status: response.status,
+              });
+              throw new Error(errorData.message || 'Request blocked for security reasons');
+            }
+
+            Sentry.logger.error('Payment intent creation failed', {
+              eventId,
+              status: response.status,
+              error: errorData.error,
+            });
+            throw new Error(errorData.error || 'Failed to create payment intent');
+          }
+
+          const { url } = await response.json();
+
+          if (!url) {
+            Sentry.logger.error('No checkout URL received from server', { eventId });
+            throw new Error('No checkout URL received from server');
+          }
+
+          // **SECURITY: Validate checkout URL before storing**
+          try {
+            validateCheckoutUrl(url);
+            span.setAttribute('meeting.checkout_url_created', true);
+          } catch (validationError) {
+            Sentry.logger.error('Invalid checkout URL received', {
+              eventId,
+              error: validationError instanceof Error ? validationError.message : 'Unknown',
+            });
+            throw new Error(
+              validationError instanceof Error
+                ? validationError.message
+                : 'Invalid checkout URL received from server',
+            );
+          }
+
+          Sentry.logger.info('Payment intent created successfully', {
+            eventId,
+            price,
+          });
+
+          // **NOTE: FormCache.markCompleted() will be handled server-side**
+          setCheckoutUrl(url);
+          return url;
+        } catch (error) {
+          span.setAttribute('meeting.checkout_url_created', false);
+          Sentry.logger.error('Payment creation error', {
+            eventId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+
+          // **ERROR HANDLING: Reset state (server handles FormCache.markFailed)**
+          form.setError('root', {
+            message:
+              error instanceof Error ? error.message : 'There was an error creating your payment.',
+          });
+          return null;
+        } finally {
+          // **CLEANUP: Reset creation state and clear active request ID**
+          setIsCreatingCheckout(false);
+          activeRequestId.current = null;
         }
-
-        throw new Error(errorData.error || 'Failed to create payment intent');
-      }
-
-      const { url } = await response.json();
-
-      if (!url) {
-        throw new Error('No checkout URL received from server');
-      }
-
-      // **SECURITY: Validate checkout URL before storing**
-      try {
-        validateCheckoutUrl(url);
-        console.log('✅ Checkout URL validated');
-      } catch (validationError) {
-        console.error('❌ Invalid checkout URL received:', url, validationError);
-        throw new Error(
-          validationError instanceof Error
-            ? validationError.message
-            : 'Invalid checkout URL received from server',
-        );
-      }
-
-      console.log('✅ Payment intent created successfully');
-
-      // **NOTE: FormCache.markCompleted() will be handled server-side**
-      setCheckoutUrl(url);
-      return url;
-    } catch (error) {
-      console.error('❌ Payment creation error:', error);
-
-      // **ERROR HANDLING: Reset state (server handles FormCache.markFailed)**
-
-      form.setError('root', {
-        message:
-          error instanceof Error ? error.message : 'There was an error creating your payment.',
-      });
-      return null;
-    } finally {
-      // **CLEANUP: Reset creation state and clear active request ID**
-      setIsCreatingCheckout(false);
-      activeRequestId.current = null;
-    }
+      },
+    );
   }, [
     checkoutUrl,
     workosUserId,
@@ -709,6 +767,7 @@ export function MeetingFormContent({
     async (values: z.infer<typeof meetingFormSchema>) => {
       // Prevent double submissions
       if (isSubmitting || isProcessingRef.current) {
+        Sentry.logger.debug('Duplicate submission blocked', { eventId });
         return;
       }
 
@@ -717,53 +776,107 @@ export function MeetingFormContent({
       setIsProcessing(true);
       setIsSubmitting(true);
 
-      try {
-        // For free meetings, create the meeting directly
-        if (price === 0) {
-          const data = await createMeeting({
-            ...values,
-            eventId,
-            workosUserId: workosUserId,
-            locale: locale || 'en',
-          });
+      // Track the submission with a Sentry span
+      return Sentry.startSpan(
+        {
+          name: 'meeting.form.submit',
+          op: 'ui.submit',
+          attributes: {
+            'meeting.event_id': eventId,
+            'meeting.price': price,
+            'meeting.is_paid': price > 0,
+            'meeting.guest_email': values.guestEmail,
+            'meeting.timezone': values.timezone,
+          },
+        },
+        async (span) => {
+          try {
+            // For free meetings, create the meeting directly
+            if (price === 0) {
+              Sentry.logger.info('Submitting free meeting', {
+                eventId,
+                guestEmail: values.guestEmail,
+              });
 
-          if (data?.error) {
+              const data = await createMeeting({
+                ...values,
+                eventId,
+                workosUserId: workosUserId,
+                locale: locale || 'en',
+              });
+
+              if (data?.error) {
+                span.setAttribute('meeting.success', false);
+                span.setAttribute('meeting.error_code', data.code || 'UNKNOWN');
+                Sentry.logger.error('Free meeting creation failed', {
+                  eventId,
+                  errorCode: data.code,
+                });
+                form.setError('root', {
+                  message: 'There was an error saving your event',
+                });
+              } else {
+                span.setAttribute('meeting.success', true);
+                Sentry.logger.info('Free meeting created successfully', {
+                  eventId,
+                  meetingId: data.meeting?.id,
+                });
+
+                // Add breadcrumb for successful booking
+                Sentry.addBreadcrumb({
+                  category: 'booking.complete',
+                  message: 'Free meeting booked successfully',
+                  level: 'info',
+                  data: { eventId, meetingId: data.meeting?.id },
+                });
+
+                // Redirect to success page with locale path
+                router.push(
+                  `/${locale || 'en'}/${username}/${eventSlug}/success?startTime=${encodeURIComponent(
+                    values.startTime.toISOString(),
+                  )}&timezone=${encodeURIComponent(values.timezone)}`,
+                );
+              }
+              return;
+            }
+
+            // For paid meetings, generate checkout URL first
+            Sentry.logger.info('Initiating paid meeting checkout', {
+              eventId,
+              price,
+              guestEmail: values.guestEmail,
+            });
+
+            const checkoutUrl = await createPaymentIntent();
+            if (checkoutUrl) {
+              span.setAttribute('meeting.checkout_url_created', true);
+              setCheckoutUrl(checkoutUrl);
+              transitionToStep('3');
+              return;
+            }
+
+            span.setAttribute('meeting.success', false);
+            Sentry.logger.error('Could not create payment checkout', { eventId });
+            form.setError('root', {
+              message: 'Could not create payment checkout',
+            });
+          } catch (error) {
+            span.setAttribute('meeting.success', false);
+            Sentry.logger.error('Error creating meeting', {
+              eventId,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
             form.setError('root', {
               message: 'There was an error saving your event',
             });
-          } else {
-            // Redirect to success page with locale path
-            router.push(
-              `/${locale || 'en'}/${username}/${eventSlug}/success?startTime=${encodeURIComponent(
-                values.startTime.toISOString(),
-              )}&timezone=${encodeURIComponent(values.timezone)}`,
-            );
+          } finally {
+            // **CLEANUP: Always reset processing state**
+            isProcessingRef.current = false;
+            setIsProcessing(false);
+            setIsSubmitting(false);
           }
-          return;
-        }
-
-        // For paid meetings, generate checkout URL first
-        const checkoutUrl = await createPaymentIntent();
-        if (checkoutUrl) {
-          setCheckoutUrl(checkoutUrl);
-          transitionToStep('3');
-          return;
-        }
-
-        form.setError('root', {
-          message: 'Could not create payment checkout',
-        });
-      } catch (error) {
-        console.error('Error creating meeting:', error);
-        form.setError('root', {
-          message: 'There was an error saving your event',
-        });
-      } finally {
-        // **CLEANUP: Always reset processing state**
-        isProcessingRef.current = false;
-        setIsProcessing(false);
-        setIsSubmitting(false);
-      }
+        },
+      );
     },
     [
       createPaymentIntent,
@@ -826,14 +939,19 @@ export function MeetingFormContent({
       const timer = setTimeout(() => {
         // Don't show UI indication during prefetch - do it silently
         setIsPrefetching(true);
+        Sentry.logger.debug('Starting checkout URL prefetch', { eventId });
+
         createPaymentIntent()
           .then(() => {
             // Successfully prefetched
-            console.log('Checkout URL prefetched successfully');
+            Sentry.logger.info('Checkout URL prefetched successfully', { eventId });
           })
           .catch((error) => {
             // Prefetch failed, but we don't need to show an error to the user
-            console.error('Prefetch failed:', error);
+            Sentry.logger.warn('Prefetch failed', {
+              eventId,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
           })
           .finally(() => {
             setIsPrefetching(false);
@@ -850,6 +968,7 @@ export function MeetingFormContent({
     checkoutUrl,
     isPrefetching,
     createPaymentIntent,
+    eventId,
   ]);
 
   // Handle next step with improved checkout flow
@@ -863,7 +982,7 @@ export function MeetingFormContent({
 
       // **CRITICAL: Prevent double submissions using multiple mechanisms**
       if (isProcessingRef.current) {
-        console.log('🚫 Payment flow already in progress - blocking duplicate');
+        Sentry.logger.debug('Payment flow already in progress - blocking duplicate', { eventId });
         return;
       }
 
@@ -872,7 +991,10 @@ export function MeetingFormContent({
       const timeSinceLastRequest = now - lastRequestTimestamp.current;
       if (timeSinceLastRequest < requestCooldownMs) {
         const remainingMs = requestCooldownMs - timeSinceLastRequest;
-        console.log(`🚫 Request cooldown active - ${remainingMs}ms remaining`);
+        Sentry.logger.debug('Request cooldown active', {
+          eventId,
+          remainingMs,
+        });
 
         // **USER FEEDBACK: Show brief message for too-fast clicks**
         form.setError('root', {
@@ -891,7 +1013,19 @@ export function MeetingFormContent({
       // Validate form before processing
       const isValid = await form.trigger();
       if (!isValid) {
-        console.log('❌ Form validation failed:', form.formState.errors);
+        Sentry.logger.warn('Form validation failed', {
+          eventId,
+          errors: Object.keys(form.formState.errors),
+        });
+
+        // Add breadcrumb for validation failure
+        Sentry.addBreadcrumb({
+          category: 'booking.validation',
+          message: 'Form validation failed',
+          level: 'warning',
+          data: { eventId, fields: Object.keys(form.formState.errors) },
+        });
+
         // Form field errors are now set and will display via FormMessage components
         // Set a root error to provide additional user feedback
         form.setError('root', {
@@ -907,7 +1041,10 @@ export function MeetingFormContent({
           const formValues = form.getValues();
           await submitMeeting(formValues);
         } catch (error) {
-          console.error('Error submitting free meeting:', error);
+          Sentry.logger.error('Error submitting free meeting', {
+            eventId,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
           form.setError('root', {
             message: 'Failed to schedule meeting. Please try again.',
           });
@@ -924,99 +1061,139 @@ export function MeetingFormContent({
         setIsSubmitting(true);
       });
 
-      console.log(
-        '🎯 UI state updated - isSubmitting:',
-        true,
-        'isProcessingRef:',
-        isProcessingRef.current,
-      );
+      Sentry.logger.debug('UI state updated for payment flow', {
+        eventId,
+        isSubmitting: true,
+      });
 
       // **FIX: Small delay to ensure UI updates are visible before async operations**
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // **FIX: Check if we already have a checkout URL and redirect immediately**
-      if (checkoutUrl) {
-        console.log('✅ Using existing checkout URL for immediate redirect:', checkoutUrl);
+      // Track the payment redirect flow with a Sentry span
+      return Sentry.startSpan(
+        {
+          name: 'meeting.checkout.redirect',
+          op: 'ui.action',
+          attributes: {
+            'meeting.event_id': eventId,
+            'meeting.price': price,
+            'meeting.has_existing_url': !!checkoutUrl,
+          },
+        },
+        async (span) => {
+          // **FIX: Check if we already have a checkout URL and redirect immediately**
+          if (checkoutUrl) {
+            Sentry.logger.info('Using existing checkout URL for redirect', { eventId });
 
-        // **SECURITY: Validate existing URL before redirect**
-        try {
-          validateCheckoutUrl(checkoutUrl);
-          console.log('🚀 Redirecting to existing checkout:', checkoutUrl);
+            // **SECURITY: Validate existing URL before redirect**
+            try {
+              validateCheckoutUrl(checkoutUrl);
+              span.setAttribute('meeting.redirect_type', 'existing_url');
 
-          // **FIX: Add timeout fallback to reset state if redirect fails**
-          setTimeout(() => {
-            if (!document.hidden) {
-              console.log('⚠️ Existing checkout redirect timeout - resetting state');
+              // Add breadcrumb for redirect
+              Sentry.addBreadcrumb({
+                category: 'booking.redirect',
+                message: 'Redirecting to existing checkout URL',
+                level: 'info',
+                data: { eventId },
+              });
+
+              // **FIX: Add timeout fallback to reset state if redirect fails**
+              setTimeout(() => {
+                if (!document.hidden) {
+                  Sentry.logger.warn('Existing checkout redirect timeout - resetting state', {
+                    eventId,
+                  });
+                  isProcessingRef.current = false;
+                  setIsProcessing(false);
+                  setIsSubmitting(false);
+                }
+              }, 3000);
+
+              window.location.href = checkoutUrl;
+              return;
+            } catch (validationError) {
+              span.setAttribute('meeting.redirect_error', 'invalid_existing_url');
+              Sentry.logger.error('Invalid existing checkout URL', {
+                eventId,
+                error: validationError instanceof Error ? validationError.message : 'Unknown',
+              });
+              // Clear the invalid URL and reset state, then continue to create a new one
+              setCheckoutUrl(null);
               isProcessingRef.current = false;
               setIsProcessing(false);
               setIsSubmitting(false);
+              return;
             }
-          }, 3000);
-
-          window.location.href = checkoutUrl;
-          return;
-        } catch (validationError) {
-          console.error('❌ Invalid existing checkout URL:', checkoutUrl, validationError);
-          // Clear the invalid URL and reset state, then continue to create a new one
-          setCheckoutUrl(null);
-          isProcessingRef.current = false;
-          setIsProcessing(false);
-          setIsSubmitting(false);
-          return;
-        }
-      }
-
-      try {
-        // Get or create checkout URL
-        const url = await createPaymentIntent();
-
-        if (url) {
-          console.log('🚀 Redirecting to checkout:', url);
-
-          // **SECURITY: Validate URL before redirect**
-          try {
-            validateCheckoutUrl(url);
-          } catch (validationError) {
-            console.error('❌ Refusing to redirect to invalid URL:', url, validationError);
-            throw new Error(
-              validationError instanceof Error
-                ? validationError.message
-                : 'Invalid checkout URL - redirect blocked for security',
-            );
           }
 
-          // **OPTIMIZED: Redirect immediately without transitioning to step 3**
-          // This reduces delay and provides a smoother user experience
-          console.log('Performing immediate redirect to Stripe checkout...');
+          try {
+            // Get or create checkout URL
+            const url = await createPaymentIntent();
 
-          // **FIX: Add timeout fallback to reset state if redirect fails**
-          setTimeout(() => {
-            if (!document.hidden) {
-              console.log('⚠️ Redirect timeout - resetting state');
-              isProcessingRef.current = false;
-              setIsProcessing(false);
-              setIsSubmitting(false);
+            if (url) {
+              span.setAttribute('meeting.redirect_type', 'new_url');
+
+              // **SECURITY: Validate URL before redirect**
+              try {
+                validateCheckoutUrl(url);
+              } catch (validationError) {
+                span.setAttribute('meeting.redirect_error', 'invalid_new_url');
+                Sentry.logger.error('Refusing to redirect to invalid URL', {
+                  eventId,
+                  error: validationError instanceof Error ? validationError.message : 'Unknown',
+                });
+                throw new Error(
+                  validationError instanceof Error
+                    ? validationError.message
+                    : 'Invalid checkout URL - redirect blocked for security',
+                );
+              }
+
+              Sentry.logger.info('Redirecting to Stripe checkout', { eventId, price });
+
+              // Add breadcrumb for redirect
+              Sentry.addBreadcrumb({
+                category: 'booking.redirect',
+                message: 'Redirecting to Stripe checkout',
+                level: 'info',
+                data: { eventId, price },
+              });
+
+              // **FIX: Add timeout fallback to reset state if redirect fails**
+              setTimeout(() => {
+                if (!document.hidden) {
+                  Sentry.logger.warn('Redirect timeout - resetting state', { eventId });
+                  isProcessingRef.current = false;
+                  setIsProcessing(false);
+                  setIsSubmitting(false);
+                }
+              }, 3000);
+
+              window.location.href = url;
+
+              // The redirect will happen immediately, so we don't need to update UI further
+              return;
+            } else {
+              throw new Error('Failed to get checkout URL');
             }
-          }, 3000);
+          } catch (error) {
+            span.setAttribute('meeting.checkout_error', true);
+            Sentry.logger.error('Checkout flow error', {
+              eventId,
+              error: error instanceof Error ? error.message : 'Unknown error',
+            });
+            form.setError('root', {
+              message: 'Failed to process request',
+            });
 
-          window.location.href = url;
-
-          // The redirect will happen immediately, so we don't need to update UI further
-          return;
-        } else {
-          throw new Error('Failed to get checkout URL');
-        }
-      } catch (error) {
-        console.error('❌ Checkout flow error:', error);
-        form.setError('root', {
-          message: 'Failed to process request',
-        });
-
-        // **ERROR RECOVERY: Reset both processing flags**
-        isProcessingRef.current = false;
-        setIsProcessing(false);
-        setIsSubmitting(false);
-      }
+            // **ERROR RECOVERY: Reset both processing flags**
+            isProcessingRef.current = false;
+            setIsProcessing(false);
+            setIsSubmitting(false);
+          }
+        },
+      );
     },
     [
       form,
@@ -1026,6 +1203,7 @@ export function MeetingFormContent({
       transitionToStep,
       checkoutUrl,
       setCheckoutUrl,
+      eventId,
     ],
   );
 
@@ -1104,7 +1282,10 @@ export function MeetingFormContent({
           );
         }
       } catch (error) {
-        console.error('Error checking calendar access:', error);
+        Sentry.logger.error('Error checking calendar access', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+          workosUserId,
+        });
         setIsCalendarSynced(false);
         router.push(`/settings/calendar?redirect=${encodeURIComponent(window.location.pathname)}`);
       }
@@ -1116,29 +1297,59 @@ export function MeetingFormContent({
   // Handle date selection
   const handleDateSelect = React.useCallback(
     (selectedDate: Date) => {
+      Sentry.addBreadcrumb({
+        category: 'booking.selection',
+        message: 'Date selected',
+        level: 'info',
+        data: {
+          eventId,
+          date: selectedDate.toISOString(),
+        },
+      });
+
       form.setValue('date', selectedDate, { shouldValidate: false });
       setQueryStates({ date: selectedDate });
     },
-    [form, setQueryStates],
+    [form, setQueryStates, eventId],
   );
 
   // Handle time selection
   const handleTimeSelect = React.useCallback(
     (selectedTime: Date) => {
+      Sentry.addBreadcrumb({
+        category: 'booking.selection',
+        message: 'Time slot selected',
+        level: 'info',
+        data: {
+          eventId,
+          time: selectedTime.toISOString(),
+        },
+      });
+
       form.setValue('startTime', selectedTime, { shouldValidate: false });
       setQueryStates({ time: selectedTime });
       transitionToStep('2'); // Automatically move to step 2 when time is selected
     },
-    [form, setQueryStates, transitionToStep],
+    [form, setQueryStates, transitionToStep, eventId],
   );
 
   // Handle timezone change
   const handleTimezoneChange = React.useCallback(
     (newTimezone: string) => {
+      Sentry.addBreadcrumb({
+        category: 'booking.selection',
+        message: 'Timezone changed',
+        level: 'info',
+        data: {
+          eventId,
+          timezone: newTimezone,
+        },
+      });
+
       form.setValue('timezone', newTimezone, { shouldValidate: false });
       setQueryStates({ timezone: newTimezone });
     },
-    [form, setQueryStates],
+    [form, setQueryStates, eventId],
   );
 
   // Validate required data for the current step
@@ -1149,7 +1360,11 @@ export function MeetingFormContent({
 
       // If we're on step 2 but missing date or time, go back to step 1
       if (!hasDate || !hasTime) {
-        console.log('Step 2 requires date and time selection:', { hasDate, hasTime });
+        Sentry.logger.debug('Step 2 requires date and time selection', {
+          hasDate,
+          hasTime,
+          eventId,
+        });
 
         // Check if we have these values in the URL params
         if (queryStates.date && queryStates.time) {
