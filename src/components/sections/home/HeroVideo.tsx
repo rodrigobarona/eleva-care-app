@@ -4,6 +4,8 @@ import MuxVideo from '@mux/mux-player-react/lazy';
 import { useCallback, useState } from 'react';
 import { useCookieConsent } from 'react-cookie-manager';
 
+import styles from './HeroVideo.module.css';
+
 /**
  * Mux video asset configuration
  * Uploaded via next-video sync to Mux CDN
@@ -21,6 +23,11 @@ const MUX_PLAYBACK_ID = 'Ol6kzy3beOk2U4RHBssK2n7wtDlqHLWvmOPWH01VOVwA';
  * Performance optimizations:
  * - Uses lazy loading from @mux/mux-player-react/lazy (automatic code splitting)
  * - Minimal client-side JavaScript (only video logic)
+ *
+ * Styling notes:
+ * - Tailwind classes handle positioning, z-index, and border-radius
+ * - CSS module (HeroVideo.module.css) handles Shadow DOM styles that
+ *   cannot be expressed in Tailwind (::part selectors, internal video element)
  */
 export function HeroVideo() {
   const [videoError, setVideoError] = useState(false);
@@ -52,23 +59,10 @@ export function HeroVideo() {
       disableCookies
       noVolumePref
       nohotkeys
-      className="lg:rounded-5xl !absolute !inset-0 z-[1] !h-full !w-full rounded-2xl object-cover"
-      style={
-        {
-          '--controls': 'none',
-          '--media-object-fit': 'cover',
-          '--media-object-position': 'center',
-          // Critical: Override default aspect ratio to prevent CLS
-          '--aspect-ratio': 'unset',
-          aspectRatio: 'unset',
-          position: 'absolute',
-          inset: '0',
-          width: '100%',
-          height: '100%',
-        } as React.CSSProperties
-      }
+      // Tailwind: positioning, z-index, border-radius
+      // CSS Module: Shadow DOM styles (aspect-ratio, ::part, internal video)
+      className={`${styles.heroMuxPlayer} lg:rounded-5xl z-[1] rounded-2xl object-cover`}
       onError={handleVideoError}
     />
   );
 }
-
