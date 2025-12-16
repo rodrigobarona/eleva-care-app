@@ -5,6 +5,80 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.7] - 2025-12-16 - Package Updates & Migration Planning
+
+### 📦 DEPENDENCY UPDATES (Safe Minor/Patch)
+
+**Production Dependencies Updated:**
+
+| Package                    | From     | To           |
+| -------------------------- | -------- | ------------ |
+| `@next/eslint-plugin-next` | 16.0.1   | 16.0.10      |
+| `@next/mdx`                | 16.0.1   | 16.0.10      |
+| `@novu/api`                | 1.7.1    | 1.8.0        |
+| `@novu/framework`          | 2.7.1    | 2.9.0        |
+| `@radix-ui/*` packages     | various  | latest minor |
+| `@sentry/nextjs`           | 10.29.0  | 10.30.0      |
+| `@tanstack/react-query`    | 5.90.7   | 5.90.12      |
+| `@tiptap/*` packages       | 3.8.0    | 3.13.0       |
+| `@upstash/redis`           | 1.35.6   | 1.35.8       |
+| `@vercel/analytics`        | 1.5.0    | 1.6.1        |
+| `@vercel/og`               | 0.8.5    | 0.8.6        |
+| `@vercel/speed-insights`   | 1.2.0    | 1.3.1        |
+| `@workos-inc/*` packages   | various  | latest       |
+| `lucide-react`             | 0.453.0  | 0.561.0      |
+| `motion`                   | 12.23.24 | 12.23.26     |
+| `next-intl`                | 4.5.2    | 4.6.0        |
+| `nuqs`                     | 2.7.2    | 2.8.5        |
+| `posthog-js`               | 1.281.0  | 1.306.2      |
+| `react-hook-form`          | 7.65.0   | 7.68.0       |
+| `sharp`                    | 0.34.4   | 0.34.5       |
+
+**Dev Dependencies Updated:**
+
+| Package                  | From     | To      |
+| ------------------------ | -------- | ------- |
+| `@eslint/js`             | 9.38.0   | 9.39.2  |
+| `@next/bundle-analyzer`  | 15.5.6   | 16.0.10 |
+| `@testing-library/react` | 16.3.0   | 16.3.1  |
+| `@types/node`            | 22.18.12 | 22.19.3 |
+| `@typescript-eslint/*`   | 8.46.2   | 8.50.0  |
+| `eslint`                 | 9.38.0   | 9.39.2  |
+| `shadcn`                 | 3.5.0    | 3.6.1   |
+| `tailwindcss`            | 3.4.18   | 3.4.19  |
+| `tsx`                    | 4.20.6   | 4.21.0  |
+
+### 🔧 BREAKING CHANGE FIX
+
+- **`@workos-inc/widgets`** 1.5.0 → 1.6.1: Fixed `authToken` prop signature change
+  - `WidgetShowcase.tsx`: Changed `authToken: async () => token` → `authToken: token`
+
+### 📋 MIGRATION PLANNING
+
+Created comprehensive migration plan for major version updates:
+
+- **Document:** `_docs/04-development/PACKAGE-MIGRATION-PLAN-2025.md`
+- **Timeline:** Q1-Q2 2025 (4 phases)
+- **Packages Covered:**
+  - TailwindCSS 3.x → 4.x (Phase 4 - March 2025)
+  - Zod 3.x → 4.x (Phase 1 - January 2025)
+  - Stripe 17.x → 20.x (Phase 3 - February 2025)
+  - Drizzle ORM 0.35.x → 0.45.x (Phase 2 - February 2025)
+  - date-fns 3.x → 4.x (Phase 1 - January 2025)
+  - @hookform/resolvers 3.x → 5.x (Phase 1 - January 2025)
+  - @novu/api 1.x → 3.x (Phase 2 - February 2025)
+  - @react-email/\* 0.x → 1.x/2.x (Phase 2 - February 2025)
+  - resend 4.x → 6.x (Phase 2 - February 2025)
+  - posthog-node 4.x → 5.x (Phase 1 - January 2025)
+
+### Changed
+
+- **`package.json`**: Updated 40+ dependencies to latest safe versions
+- **`WidgetShowcase.tsx`**: Fixed WorkOS widgets authToken prop type
+- **`_docs/04-development/PACKAGE-MIGRATION-PLAN-2025.md`**: New migration planning document
+
+---
+
 ## [0.5.6] - 2025-12-16 - Schema & Audit Consolidation
 
 ### 🗃️ SCHEMA CONSOLIDATION
