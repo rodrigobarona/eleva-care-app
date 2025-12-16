@@ -8,7 +8,7 @@ import {
 } from '@/lib/integrations/betterstack/heartbeat';
 import { isVerifiedQStashRequest } from '@/lib/integrations/qstash/utils';
 import { createUpcomingPayoutNotification } from '@/lib/notifications/payment';
-import { getUserByClerkId } from '@/lib/utils/server/users';
+import { getUserByWorkosId } from '@/lib/utils/server/users';
 import { addDays, differenceInDays } from 'date-fns';
 import { and, eq, isNull } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
@@ -110,7 +110,7 @@ export async function GET(request: Request) {
     for (const transfer of pendingTransfers) {
       try {
         // Get the expert's country to determine payout delay
-        const expert = await getUserByClerkId(transfer.expertClerkUserId);
+        const expert = await getUserByWorkosId(transfer.expertClerkUserId);
         if (!expert || !expert.country) {
           console.log(
             `Expert ${transfer.expertClerkUserId} not found or has no country set, skipping notification`,

@@ -15,7 +15,7 @@ import { getBaseUrl, getServerStripe } from './client';
  * - Sets stripeIdentityVerificationLastChecked to current timestamp
  *
  * @param userId - Database user ID
- * @param workosUserId - Clerk user ID for authentication
+ * @param workosUserId - WorkOS user ID for authentication
  * @param email - User's email address
  * @returns Response object with success status and session details or error information
  */
@@ -186,7 +186,7 @@ async function createAccountLink(
  * - Creates a Stripe Connect account if one doesn't exist
  * - Updates the user record in the database with Connect account ID and status
  *
- * @param workosUserId - Clerk user ID for authentication
+ * @param workosUserId - WorkOS user ID for authentication
  * @param email - User's email address
  * @param country - Two-letter country code
  * @returns Response object with success status and account details or error information

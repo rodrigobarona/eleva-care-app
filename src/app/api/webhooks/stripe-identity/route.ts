@@ -104,7 +104,7 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
     // If no user found by verification ID, check metadata for workosUserId
     if (!user && session.metadata && session.metadata.workosUserId) {
       const workosUserId = session.metadata.workosUserId as string;
-      console.log('Looking up user by Clerk ID from metadata:', workosUserId);
+      console.log('Looking up user by WorkOS ID from metadata:', workosUserId);
 
       user = await db.query.UsersTable.findFirst({
         where: eq(UsersTable.workosUserId, workosUserId),
