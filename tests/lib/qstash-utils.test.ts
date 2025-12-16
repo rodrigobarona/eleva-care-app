@@ -268,9 +268,8 @@ describe('isVerifiedQStashRequest', () => {
       const currentTime = 1700000000000;
       Date.now = vi.fn(() => currentTime);
 
-      // Token from 1 hour in the future (this would make now - tokenTime negative)
-      // The check is `now - tokenTime > 1800`, so future timestamps pass that check
-      // but they still need valid signatures
+      // Token from 1 hour in the future (beyond the 60-second clock skew tolerance)
+      // Should be rejected to prevent replay attacks with pre-generated future tokens
       const futureTimestamp = Math.floor(currentTime / 1000) + 3600;
       const verificationToken = createVerificationToken(futureTimestamp, TEST_SIGNING_KEY);
 
@@ -279,10 +278,42 @@ describe('isVerifiedQStashRequest', () => {
         'x-internal-qstash-verification': verificationToken,
       });
 
-      // Future timestamps actually pass the time check (now - future = negative < 1800)
-      // So this should succeed if signature is valid
+      const result = await isVerifiedQStashRequest(headers);
+      expect(result).toBe(false);
+    });
+
+    it('should accept token with timestamp slightly in the future (within clock skew tolerance)', async () => {
+      const currentTime = 1700000000000;
+      Date.now = vi.fn(() => currentTime);
+
+      // Token from 30 seconds in the future (within the 60-second clock skew tolerance)
+      const futureTimestamp = Math.floor(currentTime / 1000) + 30;
+      const verificationToken = createVerificationToken(futureTimestamp, TEST_SIGNING_KEY);
+
+      const headers = createHeaders({
+        'x-qstash-request': 'true',
+        'x-internal-qstash-verification': verificationToken,
+      });
+
       const result = await isVerifiedQStashRequest(headers);
       expect(result).toBe(true);
+    });
+
+    it('should return false when token timestamp exceeds clock skew tolerance', async () => {
+      const currentTime = 1700000000000;
+      Date.now = vi.fn(() => currentTime);
+
+      // Token from 90 seconds in the future (exceeds 60-second tolerance)
+      const futureTimestamp = Math.floor(currentTime / 1000) + 90;
+      const verificationToken = createVerificationToken(futureTimestamp, TEST_SIGNING_KEY);
+
+      const headers = createHeaders({
+        'x-qstash-request': 'true',
+        'x-internal-qstash-verification': verificationToken,
+      });
+
+      const result = await isVerifiedQStashRequest(headers);
+      expect(result).toBe(false);
     });
   });
 
