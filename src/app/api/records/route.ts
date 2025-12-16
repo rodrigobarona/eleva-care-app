@@ -166,17 +166,22 @@ export async function GET(request: NextRequest) {
     // Log individual audit events per record for HIPAA/GDPR compliance.
     // Each medical record access must be independently auditable to answer
     // "who accessed record X and when?" without scanning bulk operation metadata.
+    // Uses bounded concurrency (chunks of 10) to avoid overwhelming DB with up to 100 concurrent writes.
     try {
-      await Promise.all(
-        decryptedRecords.map((record) =>
-          logAuditEvent('MEDICAL_RECORD_VIEWED', 'medical_record', record.id, undefined, {
-            expertId: workosUserId,
-            guestEmail: record.guestEmail,
-            meetingId: record.meetingId,
-            bulkFetch: true, // Indicates this was part of a list operation
-          }),
-        ),
-      );
+      const AUDIT_BATCH_SIZE = 10;
+      for (let i = 0; i < decryptedRecords.length; i += AUDIT_BATCH_SIZE) {
+        const batch = decryptedRecords.slice(i, i + AUDIT_BATCH_SIZE);
+        await Promise.all(
+          batch.map((record) =>
+            logAuditEvent('MEDICAL_RECORD_VIEWED', 'medical_record', record.id, undefined, {
+              expertId: workosUserId,
+              guestEmail: record.guestEmail,
+              meetingId: record.meetingId,
+              bulkFetch: true, // Indicates this was part of a list operation
+            }),
+          ),
+        );
+      }
     } catch (auditError) {
       // Log but don't fail the request - audit is best-effort
       console.error('Error logging audit events for MEDICAL_RECORD_VIEWED:', auditError);

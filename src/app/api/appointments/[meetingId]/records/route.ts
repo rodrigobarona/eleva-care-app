@@ -298,19 +298,25 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
       .where(eq(RecordsTable.id, recordId))
       .returning();
 
-    // Log audit event (user context automatically extracted)
+    // Log audit event with field-level change tracking for HIPAA/21 CFR Part 11 compliance.
+    // We track WHICH fields changed (without logging actual PHI content) to satisfy
+    // audit trail requirements for medical record modifications.
     try {
       await logAuditEvent('MEDICAL_RECORD_UPDATED', 'medical_record', recordId, {
         oldValues: {
           version: oldRecord.version,
+          // Track if encrypted content existed before (not the content itself)
+          hadContent: !!oldRecord.vaultEncryptedContent,
+          hadMetadata: !!oldRecord.vaultEncryptedMetadata,
         },
         newValues: {
           version: updatedRecord.version,
           recordId: updatedRecord.id,
           meetingId: params.meetingId,
           expertId: workosUserId,
-          contentProvided: !!content,
-          metadataProvided: !!metadata,
+          // Field-level change indicators (HIPAA compliance: document what changed)
+          contentModified: !!content, // True if content was part of update payload
+          metadataModified: !!metadata, // True if metadata was part of update payload
           encryptionMethod: 'vault',
         },
       });

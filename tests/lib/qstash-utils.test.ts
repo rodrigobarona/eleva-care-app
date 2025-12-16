@@ -368,15 +368,17 @@ describe('isVerifiedQStashRequest', () => {
       });
 
       const result = await isVerifiedQStashRequest(headers);
-      // NaN - currentTime > 1800 will be false (NaN comparisons are false)
-      // So it proceeds to signature verification which will fail
+      // parseInt('not-a-number') returns NaN.
+      // The implementation explicitly checks Number.isNaN(tokenTime) and returns
+      // false immediately with a warning, before any time comparison or signature verification.
       expect(result).toBe(false);
     });
 
     it('should return false for explicitly NaN timestamp', async () => {
-      // Documents behavior: parseInt('NaN') returns NaN, and NaN comparisons
-      // always return false. The time check (now - NaN > 1800) evaluates to false,
-      // so verification proceeds to signature check which fails.
+      // parseInt('NaN') returns NaN.
+      // The implementation explicitly checks Number.isNaN(tokenTime) in utils.ts
+      // and returns false immediately with a "invalid timestamp" warning.
+      // No time comparison or signature verification occurs for NaN timestamps.
       const headers = createHeaders({
         'x-qstash-request': 'true',
         'x-internal-qstash-verification': 'NaN.abcdef123456',
