@@ -1,10 +1,9 @@
 import { db } from '@/drizzle/db';
 import { OrganizationsTable, RecordsTable, UserOrgMembershipsTable } from '@/drizzle/schema-workos';
 import { decryptForOrg } from '@/lib/integrations/workos/vault';
-import { logAuditEvent } from '@/lib/utils/server/audit';
+import { logAuditEvent } from '@/lib/utils/server/audit-workos';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 /**
@@ -118,25 +117,21 @@ export async function GET() {
       }),
     );
 
-    // Log audit event
-    const headersList = await headers();
+    // Log audit event (new API: automatically gets user context, IP, and user-agent)
     try {
       await logAuditEvent(
-        workosUserId,
-        'READ_MEDICAL_RECORDS_FOR_MEETING',
+        'MEDICAL_RECORD_VIEWED',
         'medical_record',
         workosUserId, // Using expert's workosUserId as the resource identifier for this bulk action
-        null,
+        undefined,
         {
           expertId: workosUserId,
           recordsFetched: decryptedRecords.length,
           recordIds: decryptedRecords.map((r) => r.id),
         },
-        headersList.get('x-forwarded-for') ?? 'Unknown',
-        headersList.get('user-agent') ?? 'Unknown',
       );
     } catch (auditError) {
-      console.error('Error logging audit event for READ_MEDICAL_RECORDS_FOR_MEETING:', auditError);
+      console.error('Error logging audit event for MEDICAL_RECORD_VIEWED:', auditError);
     }
 
     return NextResponse.json({ records: decryptedRecords });
