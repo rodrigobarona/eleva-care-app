@@ -8,8 +8,8 @@
 ## Quick Reference
 
 ```bash
-# Run all unit/integration tests
-bun test
+# Run all unit/integration tests (uses Vitest)
+bun run test
 
 # Run with coverage report
 bun run test:coverage
@@ -17,9 +17,11 @@ bun run test:coverage
 # Run in watch mode
 bun run test:watch
 
-# Run E2E tests
+# Run E2E tests (uses Playwright)
 bun run test:e2e
 ```
+
+> **Note**: Use `bun run test` (which runs Vitest), not `bun test` (Bun's built-in runner).
 
 ---
 
@@ -142,19 +144,19 @@ The setup file provides mocks for:
 
 ```bash
 # Run a single test file
-bun test tests/server/actions/meetings.test.ts
+bun run test tests/server/actions/meetings.test.ts
 
 # Run tests matching a pattern
-bun test --grep "createMeeting"
+bun run test -- --grep "createMeeting"
 
 # Run tests in a directory
-bun test tests/lib/
+bun run test tests/lib/
 
 # Run with verbose output
-bun test --reporter=verbose
+bun run test -- --reporter=verbose
 
 # Run failed tests only
-bun test --failed
+bun run test -- --failed
 ```
 
 ---
