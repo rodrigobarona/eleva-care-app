@@ -73,5 +73,5 @@ export const meetingActionSchema = z.object({
     .optional(), // Aligned with potential Stripe statuses and internal DB enum
   stripeAmount: z.number().optional(),
   stripeApplicationFeeAmount: z.number().optional(),
-  locale: z.string().optional().default('en'),
+  locale: z.string().default('en'),
 });

@@ -60,11 +60,10 @@ export const userLifecycleWorkflow = workflow(
       firstName: z.string().optional(),
       lastName: z.string().optional(),
       email: z.string().email().optional(),
-      locale: z.string().optional().default('en'),
-      userSegment: z.enum(['patient', 'expert', 'admin']).optional().default('patient'),
+      locale: z.string().default('en'),
+      userSegment: z.enum(['patient', 'expert', 'admin']).default('patient'),
       templateVariant: z
         .enum(['default', 'urgent', 'reminder', 'minimal', 'branded'])
-        .optional()
         .default('default'),
     }),
     tags: ['user-lifecycle'],
@@ -147,8 +146,8 @@ export const securityAuthWorkflow = workflow(
       timestamp: z.string().optional(),
       actionUrl: z.string().optional(),
       message: z.string().optional(),
-      locale: z.string().optional().default('en'),
-      userSegment: z.enum(['patient', 'expert', 'admin']).optional().default('patient'),
+      locale: z.string().default('en'),
+      userSegment: z.enum(['patient', 'expert', 'admin']).default('patient'),
       country: z.string().optional(),
     }),
     tags: ['security'],
@@ -260,7 +259,7 @@ export const paymentWorkflow = workflow(
         .enum(['success', 'failed', 'pending', 'confirmed', 'multibanco-reminder'])
         .optional(),
       amount: z.string(),
-      currency: z.string().optional().default('EUR'),
+      currency: z.string().default('EUR'),
       transactionId: z.string().optional(),
       customerName: z.string(),
       message: z.string().optional(),
@@ -279,11 +278,10 @@ export const paymentWorkflow = workflow(
           duration: z.string().optional(),
         })
         .optional(),
-      locale: z.string().optional().default('en'),
-      userSegment: z.enum(['patient', 'expert', 'admin']).optional().default('patient'),
+      locale: z.string().default('en'),
+      userSegment: z.enum(['patient', 'expert', 'admin']).default('patient'),
       templateVariant: z
         .enum(['default', 'urgent', 'reminder', 'minimal', 'branded'])
-        .optional()
         .default('default'),
     }),
     tags: ['payments'],
@@ -364,16 +362,15 @@ export const expertManagementWorkflow = workflow(
       expertName: z.string(),
       message: z.string().optional(),
       amount: z.string().optional(),
-      currency: z.string().optional().default('EUR'),
+      currency: z.string().default('EUR'),
       payoutDate: z.string().optional(),
       payoutMethod: z.string().optional(),
       transactionId: z.string().optional(),
       actionUrl: z.string().optional(),
       actionText: z.string().optional(),
-      locale: z.string().optional().default('en'),
+      locale: z.string().default('en'),
       templateVariant: z
         .enum(['default', 'urgent', 'reminder', 'minimal', 'branded'])
-        .optional()
         .default('default'),
     }),
     tags: ['expert-management'],
@@ -483,18 +480,17 @@ export const appointmentWorkflow = workflow(
       serviceName: z.string().optional(),
       appointmentDate: z.string(),
       appointmentTime: z.string(),
-      timezone: z.string().optional().default('UTC'),
-      appointmentDuration: z.string().optional().default('60 minutes'),
+      timezone: z.string().default('UTC'),
+      appointmentDuration: z.string().default('60 minutes'),
       meetingUrl: z.string().optional(),
       timeUntilAppointment: z.string().optional(),
       notes: z.string().optional(),
       message: z.string().optional(),
       appointmentId: z.string().optional(),
-      locale: z.string().optional().default('en'),
-      userSegment: z.enum(['patient', 'expert', 'admin']).optional().default('patient'),
+      locale: z.string().default('en'),
+      userSegment: z.enum(['patient', 'expert', 'admin']).default('patient'),
       templateVariant: z
         .enum(['default', 'urgent', 'reminder', 'minimal', 'branded'])
-        .optional()
         .default('default'),
     }),
     tags: ['appointments'],

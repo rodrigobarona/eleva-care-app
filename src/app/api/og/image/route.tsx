@@ -67,7 +67,7 @@ const genericSchema = z.object({
   imageType: z.literal('generic'),
   title: z.string(),
   description: z.string(),
-  variant: z.enum(['primary', 'secondary', 'accent']).optional().default('primary'),
+  variant: z.enum(['primary', 'secondary', 'accent']).default('primary'),
 });
 
 const eventSchema = z.object({
