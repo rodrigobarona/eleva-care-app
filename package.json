@@ -3,7 +3,7 @@
   "version": "0.3.1",
   "private": true,
   "engines": {
-    "node": ">=24.0.0"
+    "node": "24.x"
   },
   "scripts": {
     "// ========== DEVELOPMENT ==========": "",
@@ -12,13 +12,14 @@
     "dev:next": "bun --bun next dev --port 3000",
     "dev:only": "bun --bun next dev --port 3000",
     "// ========== BUILD & PRODUCTION ==========": "",
-    "build": "bun --bun next build",
-    "build:force": "NEXT_SKIP_TYPESCRIPT_CHECK=1 bun --bun next build",
+    "build": "next build",
+    "build:bun": "bun --bun next build",
+    "build:force": "NEXT_SKIP_TYPESCRIPT_CHECK=1 next build",
     "build:analyze": "cross-env ANALYZE=true bun run build",
     "build:debug": "NODE_OPTIONS='--inspect' bun run build",
     "build:profile": "bun run build --profile",
     "build:memory": "bun run build --experimental-debug-memory-usage",
-    "start": "bun --bun next start",
+    "start": "next start",
     "postbuild": "[ -n \"$VERCEL\" ] && bun scripts/utilities/update-qstash-schedules.ts || echo 'QStash setup skipped (local build)'",
     "// ========== CODE QUALITY ==========": "",
     "lint": "eslint .",
@@ -244,10 +245,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "prismjs": "^1.30.0",
-    "prettier": "3.6.2",
-    "botid": {
-      "next": "$next"
-    }
+    "prettier": "3.6.2"
   },
   "lint-staged": {
     "*.{ts,tsx}": [
