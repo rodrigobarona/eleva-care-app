@@ -76,9 +76,9 @@ export function WidgetShowcase({ widgets }: WidgetShowcaseProps) {
 
   // Render the appropriate widget component
   const renderWidget = (widget: Widget) => {
-    // authToken must be a function that returns a Promise<string>
+    // authToken is the widget token string (WorkOS widgets v1.6+)
     const commonProps = {
-      authToken: async () => widget.token,
+      authToken: widget.token,
     };
 
     switch (widget.component) {
