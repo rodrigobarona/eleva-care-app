@@ -342,6 +342,19 @@ describe('isVerifiedQStashRequest', () => {
       expect(result).toBe(false);
     });
 
+    it('should return false for explicitly NaN timestamp', async () => {
+      // Documents behavior: parseInt('NaN') returns NaN, and NaN comparisons
+      // always return false. The time check (now - NaN > 1800) evaluates to false,
+      // so verification proceeds to signature check which fails.
+      const headers = createHeaders({
+        'x-qstash-request': 'true',
+        'x-internal-qstash-verification': 'NaN.abcdef123456',
+      });
+
+      const result = await isVerifiedQStashRequest(headers);
+      expect(result).toBe(false);
+    });
+
     it('should return false for token with invalid hex signature', async () => {
       const currentTime = 1700000000000;
       Date.now = vi.fn(() => currentTime);

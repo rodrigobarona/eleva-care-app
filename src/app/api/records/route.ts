@@ -1,5 +1,6 @@
 import { db } from '@/drizzle/db';
 import { OrganizationsTable, RecordsTable } from '@/drizzle/schema';
+import { logSecurityError } from '@/lib/constants/security';
 import { decryptForOrg } from '@/lib/integrations/workos/vault';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
@@ -197,6 +198,7 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching records:', error);
+    logSecurityError(error, 'MEDICAL_RECORD_VIEWED', 'medical_record', 'bulk_fetch');
     return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
   }
 }

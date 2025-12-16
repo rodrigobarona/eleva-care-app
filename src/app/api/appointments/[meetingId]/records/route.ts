@@ -1,5 +1,6 @@
 import { db } from '@/drizzle/db';
 import { OrganizationsTable, RecordsTable } from '@/drizzle/schema';
+import { logSecurityError } from '@/lib/constants/security';
 import { decryptForOrg, encryptForOrg } from '@/lib/integrations/workos/vault';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
@@ -118,30 +119,7 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
     return NextResponse.json({ success: true, recordId: record.id });
   } catch (error) {
     console.error('Error creating record:', error);
-
-    // Log security-sensitive failures via console (auth context may not be available)
-    const isSecuritySensitive =
-      error instanceof Error &&
-      (error.message.includes('unauthorized') ||
-        error.message.includes('Unauthorized') ||
-        error.message.includes('permission') ||
-        error.message.includes('access denied') ||
-        error.message.includes('forbidden') ||
-        error.message.includes('Vault'));
-
-    console.error(
-      '[AUDIT - ERROR]',
-      JSON.stringify({
-        action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_CREATED',
-        status: 'failed',
-        resourceType: 'medical_record',
-        resourceId: params.meetingId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        isSecuritySensitive,
-        timestamp: new Date().toISOString(),
-      }),
-    );
-
+    logSecurityError(error, 'MEDICAL_RECORD_CREATED', 'medical_record', params.meetingId);
     return NextResponse.json({ error: 'Failed to create record' }, { status: 500 });
   }
 }
@@ -219,7 +197,11 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
           // Log internally but don't expose failure details to client
           console.error(
             '[SECURITY] Failed to decrypt record:',
-            JSON.stringify({ recordId: record.id, meetingId: params.meetingId, error: decryptError instanceof Error ? decryptError.message : 'Unknown' }),
+            JSON.stringify({
+              recordId: record.id,
+              meetingId: params.meetingId,
+              error: decryptError instanceof Error ? decryptError.message : 'Unknown',
+            }),
           );
           return null;
         }
@@ -256,31 +238,7 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
     });
   } catch (error) {
     console.error('Error fetching records:', error);
-
-    // Log security-sensitive failures via console (auth context may not be available)
-    const isSecuritySensitive =
-      error instanceof Error &&
-      (error.message.includes('unauthorized') ||
-        error.message.includes('Unauthorized') ||
-        error.message.includes('permission') ||
-        error.message.includes('access denied') ||
-        error.message.includes('forbidden') ||
-        error.message.includes('decrypt') ||
-        error.message.includes('Vault'));
-
-    console.error(
-      '[AUDIT - ERROR]',
-      JSON.stringify({
-        action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_VIEWED',
-        status: 'failed',
-        resourceType: 'medical_record',
-        resourceId: params.meetingId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        isSecuritySensitive,
-        timestamp: new Date().toISOString(),
-      }),
-    );
-
+    logSecurityError(error, 'MEDICAL_RECORD_VIEWED', 'medical_record', params.meetingId);
     return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
   }
 }
@@ -363,32 +321,7 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
     return NextResponse.json({ success: true, recordId: updatedRecord.id });
   } catch (error) {
     console.error('Error updating record:', error);
-
-    // Log security-sensitive failures via console (auth context may not be available)
-    const isSecuritySensitive =
-      error instanceof Error &&
-      (error.message.includes('unauthorized') ||
-        error.message.includes('Unauthorized') ||
-        error.message.includes('permission') ||
-        error.message.includes('access denied') ||
-        error.message.includes('forbidden') ||
-        error.message.includes('encrypt') ||
-        error.message.includes('decrypt') ||
-        error.message.includes('Vault'));
-
-    console.error(
-      '[AUDIT - ERROR]',
-      JSON.stringify({
-        action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_UPDATED',
-        status: 'failed',
-        resourceType: 'medical_record',
-        resourceId: params.meetingId,
-        error: error instanceof Error ? error.message : 'Unknown error',
-        isSecuritySensitive,
-        timestamp: new Date().toISOString(),
-      }),
-    );
-
+    logSecurityError(error, 'MEDICAL_RECORD_UPDATED', 'medical_record', params.meetingId);
     return NextResponse.json({ error: 'Failed to update record' }, { status: 500 });
   }
 }
