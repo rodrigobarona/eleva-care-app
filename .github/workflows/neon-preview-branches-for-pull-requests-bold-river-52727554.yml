@@ -222,17 +222,18 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3'
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 🔍 Validate Database URL
         run: |
@@ -256,16 +257,16 @@ jobs:
           fi
           echo "✅ DATABASE_URL is set: ${DATABASE_URL:0:30}..."
           echo "📝 Generating migrations..."
-          pnpm generate
+          bun run db:generate
           echo "🚀 Running migrations..."
-          pnpm migrate
+          bun run db:migrate
         env:
           DATABASE_URL: ${{ needs.create_neon_branch.outputs.db_url_with_pooler }}
 
       - name: 🌱 Seed preview database
         run: |
           # Run any seeding scripts for preview environment
-          # pnpm db:seed
+          # bun run db:seed
           echo "Database migrated and ready for testing"
         env:
           DATABASE_URL: ${{ needs.create_neon_branch.outputs.db_url_with_pooler }}
@@ -282,21 +283,22 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3'
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 🧪 Run integration tests with real database
         if: matrix.test-type == 'integration'
-        run: pnpm test:integration --coverage
+        run: bun run test:integration --coverage
         env:
           DATABASE_URL: ${{ needs.create_neon_branch.outputs.db_url_with_pooler }}
           NODE_ENV: test
@@ -308,7 +310,7 @@ jobs:
         if: matrix.test-type == 'webhook-integration'
         run: |
           # Run a subset of webhook tests that can work with real database
-          pnpm test tests/api/webhooks/ --testPathIgnorePatterns="mocked" --coverage
+          bun run test tests/api/webhooks/ --testPathIgnorePatterns="mocked" --coverage
         env:
           DATABASE_URL: ${{ needs.create_neon_branch.outputs.db_url_with_pooler }}
           NODE_ENV: test

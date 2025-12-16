@@ -1,23 +1,24 @@
 # Test Coverage Report
 
-> **Last Updated**: December 2024  
+> **Last Updated**: December 2025  
 > **Framework**: Vitest 4.x + Playwright 1.x  
+> **Runtime**: Bun (local) / Node.js 24.x (CI/Vercel)  
 > **Total Tests**: 243 unit/integration + 5 E2E suites
 
 ## Quick Reference
 
 ```bash
 # Run all unit/integration tests
-pnpm test
+bun test
 
 # Run with coverage report
-pnpm test:coverage
+bun run test:coverage
 
 # Run in watch mode
-pnpm test:watch
+bun run test:watch
 
 # Run E2E tests
-pnpm test:e2e
+bun run test:e2e
 ```
 
 ---
@@ -141,19 +142,19 @@ The setup file provides mocks for:
 
 ```bash
 # Run a single test file
-pnpm test tests/server/actions/meetings.test.ts
+bun test tests/server/actions/meetings.test.ts
 
 # Run tests matching a pattern
-pnpm test --grep "createMeeting"
+bun test --grep "createMeeting"
 
 # Run tests in a directory
-pnpm test tests/lib/
+bun test tests/lib/
 
 # Run with verbose output
-pnpm test --reporter=verbose
+bun test --reporter=verbose
 
 # Run failed tests only
-pnpm test --failed
+bun test --failed
 ```
 
 ---
@@ -163,7 +164,7 @@ pnpm test --failed
 Generate coverage reports:
 
 ```bash
-pnpm test:coverage
+bun run test:coverage
 ```
 
 Coverage output locations:
@@ -208,13 +209,17 @@ jobs:
   unit-tests:
     runs-on: ubuntu-latest
     steps:
-      - run: pnpm test
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bun test
       
   e2e-tests:
     runs-on: ubuntu-latest
     steps:
-      - run: npx playwright install --with-deps
-      - run: pnpm test:e2e
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - run: bunx playwright install --with-deps
+      - run: bun run test:e2e
 ```
 
 ---
