@@ -1,28 +1,31 @@
 import { db } from '@/drizzle/db';
-import { OrganizationsTable, RecordsTable, UserOrgMembershipsTable } from '@/drizzle/schema';
+import { OrganizationsTable, RecordsTable } from '@/drizzle/schema';
 import { decryptForOrg } from '@/lib/integrations/workos/vault';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import { eq, inArray } from 'drizzle-orm';
-import { NextResponse } from 'next/server';
+import { count, eq, inArray } from 'drizzle-orm';
+import { type NextRequest, NextResponse } from 'next/server';
+
+/** Maximum records per page to prevent excessive memory/decryption costs */
+const MAX_PAGE_SIZE = 100;
+/** Default page size if not specified */
+const DEFAULT_PAGE_SIZE = 50;
 
 /**
- * Get WorkOS organization ID for the current user
- *
- * Uses a single JOIN query for better performance.
- *
- * @param workosUserId - The WorkOS user ID
- * @returns WorkOS org ID (format: org_xxx) or null if not found
+ * Decrypted record shape returned to clients.
+ * Failed decryptions are filtered out (not returned with error placeholders).
  */
-async function getUserWorkosOrgId(workosUserId: string): Promise<string | null> {
-  const result = await db
-    .select({ workosOrgId: OrganizationsTable.workosOrgId })
-    .from(UserOrgMembershipsTable)
-    .innerJoin(OrganizationsTable, eq(UserOrgMembershipsTable.orgId, OrganizationsTable.id))
-    .where(eq(UserOrgMembershipsTable.workosUserId, workosUserId))
-    .limit(1);
-
-  return result[0]?.workosOrgId || null;
+interface DecryptedRecord {
+  id: string;
+  orgId: string;
+  meetingId: string;
+  expertId: string;
+  guestEmail: string;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+  lastModifiedAt: Date | null;
+  version: number;
 }
 
 /**
@@ -42,7 +45,7 @@ async function getWorkosOrgIdMap(internalOrgIds: string[]): Promise<Map<string, 
   return new Map(orgs.map((o) => [o.id, o.workosOrgId]));
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const { user } = await withAuth();
     const workosUserId = user?.id;
@@ -50,34 +53,64 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get all records for this expert
+    // Parse pagination params with bounds checking
+    const url = new URL(request.url);
+    const limit = Math.min(
+      Math.max(parseInt(url.searchParams.get('limit') || String(DEFAULT_PAGE_SIZE), 10) || DEFAULT_PAGE_SIZE, 1),
+      MAX_PAGE_SIZE,
+    );
+    const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0);
+
+    // Get total count for pagination metadata (single count query)
+    const [{ totalCount }] = await db
+      .select({ totalCount: count() })
+      .from(RecordsTable)
+      .where(eq(RecordsTable.expertId, workosUserId));
+
+    // Get paginated records for this expert
     const records = await db.query.RecordsTable.findMany({
       where: eq(RecordsTable.expertId, workosUserId),
       orderBy: (fields, { desc }) => [desc(fields.createdAt)],
+      limit,
+      offset,
     });
 
-    // Get user's default WorkOS org ID for decryption
-    const userWorkosOrgId = await getUserWorkosOrgId(workosUserId);
+    // Partition records: those with orgId (can decrypt) vs those without (legacy/invalid)
+    // Records MUST have an orgId for decryption - we don't fall back to arbitrary user org
+    // as that could decrypt with wrong keys for multi-org users.
+    const recordsWithOrg = records.filter((r) => r.orgId !== null);
+    const recordsWithoutOrg = records.filter((r) => r.orgId === null);
+
+    // Log security warning for records missing required orgId
+    if (recordsWithoutOrg.length > 0) {
+      console.error(
+        '[SECURITY] Records missing required orgId - cannot decrypt:',
+        JSON.stringify({
+          count: recordsWithoutOrg.length,
+          recordIds: recordsWithoutOrg.map((r) => r.id),
+          expertId: workosUserId,
+        }),
+      );
+    }
 
     // Batch fetch all org mappings in one query to avoid N+1
-    const uniqueOrgIds = [...new Set(records.map((r) => r.orgId).filter(Boolean))] as string[];
+    const uniqueOrgIds = [...new Set(recordsWithOrg.map((r) => r.orgId))] as string[];
     const orgIdMap = await getWorkosOrgIdMap(uniqueOrgIds);
 
     // Decrypt the records using WorkOS Vault
-    // Each record may have its own orgId, so we decrypt per-record
-    const decryptedRecords = await Promise.all(
-      records.map(async (record) => {
-        // Use record's org if available, otherwise fall back to user's org
-        const workosOrgId = record.orgId ? (orgIdMap.get(record.orgId) ?? null) : userWorkosOrgId;
+    // Failed decryptions are filtered out (not returned with error placeholders)
+    // to avoid information leakage about internal failure modes.
+    const decryptionResults = await Promise.all(
+      recordsWithOrg.map(async (record) => {
+        const workosOrgId = orgIdMap.get(record.orgId!);
 
+        // Organization mapping not found - data integrity issue
         if (!workosOrgId) {
-          console.error('No organization found for record:', record.id);
-          return {
-            ...record,
-            content: '[Decryption Error: Organization not found]',
-            metadata: null,
-            decryptionError: true,
-          };
+          console.error(
+            '[SECURITY] Organization mapping not found for record:',
+            JSON.stringify({ recordId: record.id, orgId: record.orgId }),
+          );
+          return null;
         }
 
         try {
@@ -97,41 +130,71 @@ export async function GET() {
               )
             : null;
 
-          return {
-            ...record,
+          // Return typed decrypted record (omit encrypted fields)
+          const decryptedRecord: DecryptedRecord = {
+            id: record.id,
+            orgId: record.orgId!,
+            meetingId: record.meetingId,
+            expertId: record.expertId,
+            guestEmail: record.guestEmail,
             content,
             metadata,
+            createdAt: record.createdAt,
+            lastModifiedAt: record.lastModifiedAt,
+            version: record.version,
           };
+
+          return decryptedRecord;
         } catch (decryptError) {
-          console.error('Failed to decrypt record:', record.id, decryptError);
-          return {
-            ...record,
-            content: '[Decryption Error]',
-            metadata: null,
-            decryptionError: true,
-          };
+          // Log internally but don't expose failure details to client
+          console.error(
+            '[SECURITY] Failed to decrypt record:',
+            JSON.stringify({ recordId: record.id, error: decryptError instanceof Error ? decryptError.message : 'Unknown' }),
+          );
+          return null;
         }
       }),
     );
 
-    // Log audit event (new API: automatically gets user context, IP, and user-agent)
+    // Filter out failed decryptions (null values)
+    const decryptedRecords = decryptionResults.filter((r): r is DecryptedRecord => r !== null);
+
+    // Calculate failure counts for metadata (don't expose which records failed)
+    const failedCount = records.length - decryptedRecords.length;
+
+    // Log individual audit events per record for HIPAA/GDPR compliance.
+    // Each medical record access must be independently auditable to answer
+    // "who accessed record X and when?" without scanning bulk operation metadata.
     try {
-      await logAuditEvent(
-        'MEDICAL_RECORD_VIEWED',
-        'medical_record',
-        workosUserId, // Using expert's workosUserId as the resource identifier for this bulk action
-        undefined,
-        {
-          expertId: workosUserId,
-          recordsFetched: decryptedRecords.length,
-          recordIds: decryptedRecords.map((r) => r.id),
-        },
+      await Promise.all(
+        decryptedRecords.map((record) =>
+          logAuditEvent('MEDICAL_RECORD_VIEWED', 'medical_record', record.id, undefined, {
+            expertId: workosUserId,
+            guestEmail: record.guestEmail,
+            meetingId: record.meetingId,
+            bulkFetch: true, // Indicates this was part of a list operation
+          }),
+        ),
       );
     } catch (auditError) {
-      console.error('Error logging audit event for MEDICAL_RECORD_VIEWED:', auditError);
+      // Log but don't fail the request - audit is best-effort
+      console.error('Error logging audit events for MEDICAL_RECORD_VIEWED:', auditError);
     }
 
-    return NextResponse.json({ records: decryptedRecords });
+    // Return records with pagination metadata
+    // meta.failed indicates some records couldn't be decrypted (client may want to retry or report)
+    const hasMore = offset + decryptedRecords.length < totalCount;
+    return NextResponse.json({
+      records: decryptedRecords,
+      meta: {
+        total: totalCount,
+        returned: decryptedRecords.length,
+        failed: failedCount,
+        limit,
+        offset,
+        hasMore,
+      },
+    });
   } catch (error) {
     console.error('Error fetching records:', error);
     return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });

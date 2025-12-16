@@ -7,6 +7,23 @@ import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 /**
+ * Decrypted record shape returned to clients.
+ * Failed decryptions are filtered out (not returned with error placeholders).
+ */
+interface DecryptedRecord {
+  id: string;
+  orgId: string | null;
+  meetingId: string;
+  expertId: string;
+  guestEmail: string;
+  content: string;
+  metadata: Record<string, unknown> | null;
+  createdAt: Date;
+  lastModifiedAt: Date | null;
+  version: number;
+}
+
+/**
  * Get WorkOS organization ID for Vault encryption
  *
  * Looks up the WorkOS org ID from the internal UUID to use with Vault API.
@@ -161,8 +178,10 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
       orderBy: (fields, { desc }) => [desc(fields.createdAt)],
     });
 
-    // Decrypt the records using WorkOS Vault with graceful error handling
-    const decryptedRecords = await Promise.all(
+    // Decrypt the records using WorkOS Vault
+    // Failed decryptions are filtered out (not returned with error placeholders)
+    // to avoid information leakage about internal failure modes.
+    const decryptionResults = await Promise.all(
       records.map(async (record) => {
         try {
           const content = await decryptForOrg(workosOrgId, record.vaultEncryptedContent, {
@@ -181,22 +200,35 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
               )
             : null;
 
-          return {
-            ...record,
+          // Return typed decrypted record (omit encrypted fields)
+          const decryptedRecord: DecryptedRecord = {
+            id: record.id,
+            orgId: record.orgId,
+            meetingId: record.meetingId,
+            expertId: record.expertId,
+            guestEmail: record.guestEmail,
             content,
             metadata,
+            createdAt: record.createdAt,
+            lastModifiedAt: record.lastModifiedAt,
+            version: record.version,
           };
+
+          return decryptedRecord;
         } catch (decryptError) {
-          console.error('Failed to decrypt record:', record.id, decryptError);
-          return {
-            ...record,
-            content: '[Decryption Error]',
-            metadata: null,
-            decryptionError: true,
-          };
+          // Log internally but don't expose failure details to client
+          console.error(
+            '[SECURITY] Failed to decrypt record:',
+            JSON.stringify({ recordId: record.id, meetingId: params.meetingId, error: decryptError instanceof Error ? decryptError.message : 'Unknown' }),
+          );
+          return null;
         }
       }),
     );
+
+    // Filter out failed decryptions (null values)
+    const decryptedRecords = decryptionResults.filter((r): r is DecryptedRecord => r !== null);
+    const failedCount = records.length - decryptedRecords.length;
 
     // Log audit event (user context automatically extracted)
     try {
@@ -205,12 +237,23 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
         expertId: workosUserId,
         recordsFetched: decryptedRecords.length,
         recordIds: decryptedRecords.map((r) => r.id),
+        // Include failure stats in audit (internal only)
+        totalRecords: records.length,
+        failedDecryptions: failedCount,
       });
     } catch (auditError) {
       console.error('Error logging audit event for MEDICAL_RECORD_VIEWED:', auditError);
     }
 
-    return NextResponse.json({ records: decryptedRecords });
+    // Return records with metadata about the response
+    return NextResponse.json({
+      records: decryptedRecords,
+      meta: {
+        total: records.length,
+        returned: decryptedRecords.length,
+        failed: failedCount,
+      },
+    });
   } catch (error) {
     console.error('Error fetching records:', error);
 
