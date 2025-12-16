@@ -38,7 +38,7 @@
  * ```
  */
 import { db } from '@/drizzle/db';
-import { AuditLogsTable } from '@/drizzle/schema-workos';
+import { AuditLogsTable } from '@/drizzle/schema';
 import type { AuditEventType, AuditResourceType } from '@/types/audit';
 
 /**

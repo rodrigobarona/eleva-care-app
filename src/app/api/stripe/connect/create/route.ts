@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { UsersTable } from '@/drizzle/schema';
 import { createConnectAccountWithVerifiedIdentity } from '@/lib/integrations/stripe/identity';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';

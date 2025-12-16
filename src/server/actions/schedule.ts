@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { ScheduleAvailabilitiesTable, SchedulesTable } from '@/drizzle/schema-workos';
+import { ScheduleAvailabilitiesTable, SchedulesTable } from '@/drizzle/schema';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { scheduleFormSchema } from '@/schema/schedule';
 import { markStepComplete } from '@/server/actions/expert-setup';

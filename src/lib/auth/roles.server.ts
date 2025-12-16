@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { RolesTable } from '@/drizzle/schema-workos';
+import { RolesTable } from '@/drizzle/schema';
 import {
   ADMIN_ROLES,
   ROLE_ADMIN,

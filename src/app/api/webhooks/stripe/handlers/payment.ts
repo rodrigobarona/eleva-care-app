@@ -10,7 +10,7 @@ import {
   SchedulingSettingsTable,
   SlotReservationsTable,
   UsersTable,
-} from '@/drizzle/schema-workos';
+} from '@/drizzle/schema';
 import MultibancoBookingPendingTemplate from '@/emails/payments/multibanco-booking-pending';
 import {
   NOTIFICATION_TYPE_ACCOUNT_UPDATE,

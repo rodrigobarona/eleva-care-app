@@ -1,7 +1,7 @@
 import { ExpertForm } from '@/components/features/forms/ExpertForm';
 import { ProfilePublishToggle } from '@/components/features/profile/ProfilePublishToggle';
 import { db } from '@/drizzle/db';
-import { ProfilesTable } from '@/drizzle/schema-workos';
+import { ProfilesTable } from '@/drizzle/schema';
 import { isUserExpert } from '@/lib/integrations/workos/roles';
 import type { profileFormSchema } from '@/schema/profile';
 import { markStepComplete } from '@/server/actions/expert-setup';

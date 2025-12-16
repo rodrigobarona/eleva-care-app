@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { OrganizationsTable, UserOrgMembershipsTable, UsersTable } from '@/drizzle/schema-workos';
+import { OrganizationsTable, UserOrgMembershipsTable, UsersTable } from '@/drizzle/schema';
 import { workos } from '@/lib/integrations/workos/client';
 import { eq } from 'drizzle-orm';
 

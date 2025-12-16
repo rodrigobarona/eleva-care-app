@@ -1,7 +1,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { EventsTable, MeetingsTable } from '@/drizzle/schema-workos';
+import { EventsTable, MeetingsTable } from '@/drizzle/schema';
 import { getServerStripe } from '@/lib/integrations/stripe';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { eventFormSchema } from '@/schema/events';

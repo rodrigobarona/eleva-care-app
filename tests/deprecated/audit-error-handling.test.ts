@@ -1,4 +1,7 @@
-import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { db } from '@/drizzle/db';
+// Import after mocks are set up
+import { logAuditEvent } from '@/lib/utils/server/audit';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Audit Error Handling Tests
@@ -24,13 +27,9 @@ vi.mock('@/drizzle/db', () => ({
 }));
 
 // Mock the schema
-vi.mock('@/drizzle/schema-workos', () => ({
+vi.mock('@/drizzle/schema', () => ({
   AuditLogsTable: { _: 'audit_logs_table_mock' },
 }));
-
-// Import after mocks are set up
-import { logAuditEvent } from '@/lib/utils/server/audit';
-import { db } from '@/drizzle/db';
 
 describe('Audit Error Handling', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;

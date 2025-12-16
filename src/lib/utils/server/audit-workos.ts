@@ -25,8 +25,8 @@
 
 'use server';
 
-import type { AuditEventAction, AuditResourceType } from '@/drizzle/schema-workos';
-import { AuditLogsTable } from '@/drizzle/schema-workos';
+import type { AuditEventAction, AuditResourceType } from '@/drizzle/schema';
+import { AuditLogsTable } from '@/drizzle/schema';
 import { getOrgScopedDb } from '@/lib/integrations/neon/rls-client';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { desc, eq, gte, lte } from 'drizzle-orm';

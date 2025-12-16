@@ -1,6 +1,6 @@
 import { getMinimumPayoutDelay, STRIPE_CONNECT_SUPPORTED_COUNTRIES } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { UsersTable } from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 import type Stripe from 'stripe';
 

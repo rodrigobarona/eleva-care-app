@@ -2,7 +2,7 @@
 
 import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
-import { MeetingsTable } from '@/drizzle/schema-workos';
+import { MeetingsTable } from '@/drizzle/schema';
 import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import { createOrGetGuestUser } from '@/lib/integrations/workos/guest-users';
 import { logAuditEvent } from '@/lib/utils/server/audit';

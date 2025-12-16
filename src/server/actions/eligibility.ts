@@ -19,7 +19,7 @@ import {
   TransactionCommissionsTable,
   UserOrgMembershipsTable,
   UsersTable,
-} from '@/drizzle/schema-workos';
+} from '@/drizzle/schema';
 import { and, eq } from 'drizzle-orm';
 
 /**

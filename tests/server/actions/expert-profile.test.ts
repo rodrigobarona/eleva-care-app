@@ -1,4 +1,6 @@
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+// Import the function we're testing after all mocks are set up
+import { toggleProfilePublication } from '@/server/actions/expert-profile';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
  * Tests for expert-profile.ts
@@ -91,7 +93,7 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 // Mock schema
-vi.mock('@/drizzle/schema-workos', () => ({
+vi.mock('@/drizzle/schema', () => ({
   ProfilesTable: {
     workosUserId: 'workosUserId',
   },
@@ -109,9 +111,6 @@ vi.mock('@/lib/utils/server', () => ({
 vi.mock('@/lib/utils/server/audit', () => ({
   logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));
-
-// Import the function we're testing after all mocks are set up
-import { toggleProfilePublication } from '@/server/actions/expert-profile';
 
 describe('toggleProfilePublication', () => {
   beforeEach(() => {

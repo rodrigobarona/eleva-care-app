@@ -5,7 +5,7 @@ import {
   STRIPE_CONFIG,
 } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { EventsTable, MeetingsTable, SlotReservationsTable } from '@/drizzle/schema-workos';
+import { EventsTable, MeetingsTable, SlotReservationsTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_PENDING } from '@/lib/constants/payment-transfers';
 import { getOrCreateStripeCustomer } from '@/lib/integrations/stripe';
 import { FormCache, IdempotencyCache, RateLimitCache } from '@/lib/redis/manager';

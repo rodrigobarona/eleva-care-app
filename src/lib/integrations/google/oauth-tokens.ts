@@ -23,7 +23,7 @@
 'use server';
 
 import { db } from '@/drizzle/db';
-import { UserOrgMembershipsTable, UsersTable } from '@/drizzle/schema-workos';
+import { UserOrgMembershipsTable, UsersTable } from '@/drizzle/schema';
 import { vaultDecrypt, vaultEncrypt } from '@/lib/utils/encryption-vault';
 import { eq } from 'drizzle-orm';
 import { google } from 'googleapis';

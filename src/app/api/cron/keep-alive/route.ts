@@ -1,6 +1,6 @@
 import { auditDb } from '@/drizzle/auditDb';
 import { db } from '@/drizzle/db';
-import { ProfilesTable } from '@/drizzle/schema-workos';
+import { ProfilesTable } from '@/drizzle/schema';
 import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
 import { cleanupPaymentRateLimitCache } from '@/lib/redis/cleanup';
 import { redisManager } from '@/lib/redis/manager';

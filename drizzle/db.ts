@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 
-import * as schema from './schema-workos';
+import * as schema from './schema';
 
 /**
  * Validates and retrieves the main database URL.

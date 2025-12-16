@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { EventsTable, ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
+import { EventsTable, ProfilesTable, UsersTable } from '@/drizzle/schema';
 import { locales } from '@/lib/i18n/routing';
 import { and, eq, isNotNull } from 'drizzle-orm';
 import { MetadataRoute } from 'next';

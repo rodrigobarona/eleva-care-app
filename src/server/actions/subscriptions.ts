@@ -23,7 +23,7 @@ import {
   SubscriptionPlansTable,
   UserOrgMembershipsTable,
   UsersTable,
-} from '@/drizzle/schema-workos';
+} from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';

@@ -2,7 +2,7 @@
 
 import { PRACTITIONER_AGREEMENT_CONFIG } from '@/config/legal-agreements';
 import { db } from '@/drizzle/db';
-import { ProfilesTable } from '@/drizzle/schema-workos';
+import { ProfilesTable } from '@/drizzle/schema';
 import { hasRole } from '@/lib/auth/roles.server';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { getRequestMetadata } from '@/lib/utils/server/server-utils';

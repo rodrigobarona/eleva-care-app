@@ -1,6 +1,6 @@
 'use client';
 
-import type { EventsTable } from '@/drizzle/schema-workos';
+import type { EventsTable } from '@/drizzle/schema';
 import type { InferSelectModel } from 'drizzle-orm';
 
 import { EventForm } from './EventForm';

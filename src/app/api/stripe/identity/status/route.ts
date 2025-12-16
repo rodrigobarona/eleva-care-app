@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { UsersTable } from '@/drizzle/schema';
 import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';

@@ -1,6 +1,6 @@
 import { getMinimumPayoutDelay, STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { EventsTable, UsersTable } from '@/drizzle/schema-workos';
+import { EventsTable, UsersTable } from '@/drizzle/schema';
 import { CustomerCache } from '@/lib/redis/manager';
 import { eq } from 'drizzle-orm';
 import Stripe from 'stripe';

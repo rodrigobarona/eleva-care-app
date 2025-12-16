@@ -12,7 +12,7 @@
  * - Cached for request duration
  */
 import { db } from '@/drizzle/db';
-import { UserOrgMembershipsTable, UsersTable } from '@/drizzle/schema-workos';
+import { UserOrgMembershipsTable, UsersTable } from '@/drizzle/schema';
 import type { ApplicationRole, OrganizationRole, Role } from '@/types/roles';
 import { getRoleLevel, isExpertRole } from '@/types/roles';
 import { eq } from 'drizzle-orm';

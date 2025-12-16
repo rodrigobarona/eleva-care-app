@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { UsersTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextRequest, NextResponse } from 'next/server';

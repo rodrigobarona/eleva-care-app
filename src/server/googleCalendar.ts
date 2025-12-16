@@ -31,7 +31,7 @@
  * @module GoogleCalendarService
  */
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { UsersTable } from '@/drizzle/schema';
 import { createShortMeetLink } from '@/lib/integrations/dub/client';
 import { getGoogleOAuthClient } from '@/lib/integrations/google/oauth-tokens';
 import { generateAppointmentEmail, sendEmail } from '@/lib/integrations/novu/email';

@@ -1,6 +1,6 @@
 import { STRIPE_CONFIG } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { UsersTable } from '@/drizzle/schema-workos';
+import { UsersTable } from '@/drizzle/schema';
 import { getIdentityVerificationStatus } from '@/lib/integrations/stripe/identity';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';

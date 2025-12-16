@@ -1,7 +1,7 @@
 import { ENV_CONFIG } from '@/config/env';
 import { PAYOUT_DELAY_DAYS } from '@/config/stripe';
 import { db } from '@/drizzle/db';
-import { PaymentTransfersTable } from '@/drizzle/schema-workos';
+import { PaymentTransfersTable } from '@/drizzle/schema';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,

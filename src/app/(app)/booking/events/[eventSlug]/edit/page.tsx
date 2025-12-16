@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { EventsTable } from '@/drizzle/schema-workos';
+import { EventsTable } from '@/drizzle/schema';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { and, eq } from 'drizzle-orm';
 import dynamic from 'next/dynamic';

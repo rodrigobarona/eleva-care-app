@@ -1,9 +1,9 @@
-import { vi } from 'vitest';
 import { db } from '@/drizzle/db';
-import { PaymentTransfersTable } from '@/drizzle/schema-workos';
+import { PaymentTransfersTable } from '@/drizzle/schema';
 import { PAYMENT_TRANSFER_STATUS_COMPLETED } from '@/lib/constants/payment-transfers';
 import { checkExistingTransfer } from '@/lib/integrations/stripe/transfer-utils';
 import Stripe from 'stripe';
+import { vi } from 'vitest';
 
 // Mock the dependencies
 vi.mock('@/drizzle/db', () => ({
@@ -11,7 +11,7 @@ vi.mock('@/drizzle/db', () => ({
     update: vi.fn(),
   },
 }));
-vi.mock('@/drizzle/schema-workos', () => ({
+vi.mock('@/drizzle/schema', () => ({
   PaymentTransfersTable: {
     id: 'id',
   },

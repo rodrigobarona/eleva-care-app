@@ -1,5 +1,5 @@
 import { db } from '@/drizzle/db';
-import { ProfilesTable } from '@/drizzle/schema-workos';
+import { ProfilesTable } from '@/drizzle/schema';
 import { profileFormSchema } from '@/schema/profile';
 import { markStepComplete } from '@/server/actions/expert-setup';
 import { del } from '@vercel/blob';

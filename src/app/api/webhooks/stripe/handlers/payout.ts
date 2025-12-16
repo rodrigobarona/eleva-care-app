@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { db } from '@/drizzle/db';
-import { ProfilesTable, UsersTable } from '@/drizzle/schema-workos';
+import { ProfilesTable, UsersTable } from '@/drizzle/schema';
 import { triggerWorkflow } from '@/lib/integrations/novu/client';
 import { addDays, format } from 'date-fns';
 import { eq } from 'drizzle-orm';

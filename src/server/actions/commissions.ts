@@ -61,7 +61,7 @@ import {
   SubscriptionPlansTable,
   TransactionCommissionsTable,
   UsersTable,
-} from '@/drizzle/schema-workos';
+} from '@/drizzle/schema';
 import { eq } from 'drizzle-orm';
 
 import { getCurrentCommissionRate } from './subscriptions';

@@ -4,16 +4,16 @@ overview: Rename schema files, consolidate audit logging, and preserve the legac
 todos:
   - id: rename-schemas
     content: Rename schema files (schema.ts -> schema-clerk-legacy.ts, schema-workos.ts -> schema.ts)
-    status: pending
+    status: completed
   - id: update-db-import
     content: Update drizzle/db.ts import path
-    status: pending
+    status: completed
   - id: update-81-imports
     content: Update 81 files importing from schema-workos to schema
-    status: pending
+    status: completed
   - id: consolidate-audit
     content: Replace audit.ts with new unified API (no backward compatibility)
-    status: pending
+    status: in_progress
   - id: update-audit-callers
     content: Update 6 files to use new audit API and AuditEventAction types
     status: pending

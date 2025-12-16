@@ -1,6 +1,6 @@
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
-import { SlotReservationsTable } from '@/drizzle/schema-workos';
+import { SlotReservationsTable } from '@/drizzle/schema';
 import {
   sendHeartbeatFailure,
   sendHeartbeatSuccess,

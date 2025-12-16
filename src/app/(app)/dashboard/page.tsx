@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { db } from '@/drizzle/db';
-import { ProfilesTable } from '@/drizzle/schema-workos';
+import { ProfilesTable } from '@/drizzle/schema';
 import { isUserExpert } from '@/lib/integrations/workos/roles';
 import { checkExpertSetupStatus } from '@/server/actions/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';
