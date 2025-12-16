@@ -7,6 +7,12 @@ This directory contains documentation for third-party integrations, external lib
 - `01-react-cookie-manager.md` - Cookie consent management integration
 - `02-stripe-recommendations.md` - Stripe payment processing recommendations
 - `03-svix-cli.md` - Svix webhook management CLI tools
+- `04-toconline-integration.md` - TOConline ERP API integration for invoicing
+
+## Portuguese Legal Invoicing
+
+- `PORTUGUESE-INVOICING-REQUIREMENTS.md` - VAT rules and compliance requirements
+- `STRIPE-TOCONLINE-FLOW.md` - Payment and invoicing flow architecture
 
 ## Integration Categories
 
@@ -14,6 +20,7 @@ This directory contains documentation for third-party integrations, external lib
 
 - **Stripe**: Payment processing, subscriptions, Connect marketplace
 - **Stripe Identity**: Identity verification for experts
+- **TOConline**: ERP integration for Portuguese legal invoicing (planned)
 
 ### Communication & Notifications
 

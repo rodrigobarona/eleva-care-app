@@ -32,6 +32,25 @@ Sentry.init({
   // Enable logs to be sent to Sentry
   enableLogs: true,
 
+  // Distributed tracing: Propagate traces to your own API routes
+  // External services (Stripe, WorkOS, etc.) are excluded to avoid CORS issues
+  tracePropagationTargets: [
+    'localhost',
+    /^https:\/\/eleva\.care\/api/,
+    /^https:\/\/.*\.vercel\.app\/api/,
+  ],
+
+  // Filter out common noise errors that don't need tracking
+  ignoreErrors: [
+    // Network errors that are typically transient
+    'ECONNRESET',
+    'ETIMEDOUT',
+    'ENOTFOUND',
+    // Next.js internal errors
+    'NEXT_NOT_FOUND',
+    'NEXT_REDIRECT',
+  ],
+
   integrations: [
     // Console logging integration: Sends console logs to Sentry
     Sentry.consoleLoggingIntegration({

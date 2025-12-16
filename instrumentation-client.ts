@@ -45,6 +45,32 @@ Sentry.init({
   // Enable logs to be sent to Sentry
   enableLogs: true,
 
+  // Distributed tracing: Propagate traces to your own API routes only
+  // External services are excluded to avoid CORS issues and unnecessary trace context
+  tracePropagationTargets: [
+    'localhost',
+    /^https:\/\/eleva\.care\/api/,
+    /^https:\/\/.*\.vercel\.app\/api/,
+  ],
+
+  // Filter out common browser errors that don't need tracking
+  ignoreErrors: [
+    // Browser extensions and third-party scripts
+    /^Script error\.?$/,
+    /^Javascript error: Script error\.? on line 0$/,
+    // Network errors
+    'Network request failed',
+    'Failed to fetch',
+    'Load failed',
+    'NetworkError',
+    // User-initiated navigation
+    'AbortError',
+    'ResizeObserver loop',
+    // Chrome extensions
+    /^chrome-extension:\/\//,
+    /^moz-extension:\/\//,
+  ],
+
   integrations: [
     // Session Replay: Records user sessions for debugging
     // Captures video-like reproductions of user interactions

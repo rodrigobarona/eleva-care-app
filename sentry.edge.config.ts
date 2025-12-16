@@ -31,4 +31,17 @@ Sentry.init({
 
   // Enable logs to be sent to Sentry
   enableLogs: true,
+
+  // Distributed tracing: Propagate traces to your own API routes
+  tracePropagationTargets: [
+    'localhost',
+    /^https:\/\/eleva\.care\/api/,
+    /^https:\/\/.*\.vercel\.app\/api/,
+  ],
+
+  // Filter out common noise errors
+  ignoreErrors: [
+    'NEXT_NOT_FOUND',
+    'NEXT_REDIRECT',
+  ],
 });
