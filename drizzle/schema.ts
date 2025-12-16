@@ -791,6 +791,13 @@ export const SlotReservationsTable = pgTable(
     paymentIntentIdIndex: index('slot_reservations_payment_intent_id_idx').on(
       table.stripePaymentIntentId,
     ),
+    // Unique constraint to prevent duplicate active reservations for the same slot
+    // Enforces that only one guest can reserve a specific time slot for a given event
+    activeSlotReservationUnique: unique('slot_reservations_active_slot_unique').on(
+      table.eventId,
+      table.startTime,
+      table.guestEmail,
+    ),
   }),
 );
 
