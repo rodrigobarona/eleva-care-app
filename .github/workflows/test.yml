@@ -259,7 +259,6 @@ jobs:
           CI: true
           # Build environment variables
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          AUDIT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/audit_db
           WORKOS_API_KEY: sk_test_fake_workos_key
           WORKOS_CLIENT_ID: client_fake_id
           STRIPE_SECRET_KEY: sk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
@@ -306,7 +305,6 @@ jobs:
           NODE_ENV: production
           # Database connection (required for build-time route evaluation)
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          AUDIT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/audit_db
           # WorkOS keys (required for auth)
           WORKOS_API_KEY: sk_test_fake_workos_key
           WORKOS_CLIENT_ID: client_fake_id
@@ -330,7 +328,6 @@ jobs:
           NODE_ENV: production
           # Runtime environment variables
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
-          AUDIT_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/audit_db
           WORKOS_API_KEY: sk_test_fake_workos_key
           WORKOS_CLIENT_ID: client_fake_id
           STRIPE_SECRET_KEY: sk_test_placeholder_for_ci_only_not_a_real_stripe_key_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX

@@ -54,7 +54,12 @@ export async function checkNeonDatabase(): Promise<ServiceHealthResult> {
 }
 
 /**
- * Check Sentry SDK initialization and connectivity
+ * Check Sentry SDK initialization and configuration
+ *
+ * Note: This only verifies local SDK state (client initialization, DSN configured).
+ * It does NOT make network calls to Sentry servers. This is intentional to avoid
+ * Sentry outages affecting the health check status of our application.
+ * A "healthy" result means the SDK is properly configured to send events.
  */
 export async function checkSentry(): Promise<ServiceHealthResult> {
   const startTime = Date.now();

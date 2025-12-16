@@ -198,9 +198,9 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
                 console.log(`Sync attempt ${attempt} failed: ${result.message}`);
                 lastError = new Error(result.message);
 
-                // Wait before retrying (exponential backoff)
+                // Wait before retrying (linear backoff)
                 if (attempt < 3) {
-                  const delay = attempt * 1000; // 1s, 2s, 3s
+                  const delay = attempt * 1000; // 1s, 2s
                   await new Promise((resolve) => setTimeout(resolve, delay));
                 }
               }
@@ -208,9 +208,9 @@ async function handleVerificationSessionEvent(event: Stripe.Event) {
               console.error(`Error in sync attempt ${attempt}:`, syncError);
               lastError = syncError instanceof Error ? syncError : new Error('Unknown error');
 
-              // Wait before retrying (exponential backoff)
+              // Wait before retrying (linear backoff)
               if (attempt < 3) {
-                const delay = attempt * 1000;
+                const delay = attempt * 1000; // 1s, 2s
                 await new Promise((resolve) => setTimeout(resolve, delay));
               }
             }
