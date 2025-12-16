@@ -26,13 +26,15 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       node-version: ${{ steps.setup.outputs.node-version }}
-      pnpm-version: ${{ steps.pnpm-version.outputs.version }}
+      bun-version: ${{ steps.bun-version.outputs.version }}
     steps:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: 🔧 Setup Node.js
         id: setup
@@ -41,9 +43,9 @@ jobs:
           node-version: '24'
           # No cache in setup job - it's only used for version detection
 
-      - name: 📦 Get PNPM version
-        id: pnpm-version
-        run: echo "version=$(pnpm --version)" >> $GITHUB_OUTPUT
+      - name: 📦 Get Bun version
+        id: bun-version
+        run: echo "version=$(bun --version)" >> $GITHUB_OUTPUT
 
   lint:
     name: 🔍 Lint & Format Check
@@ -53,23 +55,24 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ needs.setup.outputs.node-version }}
-          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 🔍 Run ESLint
-        run: pnpm lint
+        run: bun run lint
 
       - name: 💄 Check Prettier formatting
-        run: pnpm format:check
+        run: bun run format:check
 
   type-check:
     name: 📝 Type Check
@@ -79,20 +82,21 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ needs.setup.outputs.node-version }}
-          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 📝 Run TypeScript check
-        run: npx tsc --noEmit
+        run: bunx tsc --noEmit
 
   unit-tests:
     name: 🧪 Unit Tests (Vitest)
@@ -105,20 +109,21 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ needs.setup.outputs.node-version }}
-          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 🧪 Run unit tests (Shard ${{ matrix.shard }})
-        run: pnpm test -- --shard=${{ matrix.shard }}/3 --coverage
+        run: bun run test -- --shard=${{ matrix.shard }}/3 --coverage
 
       - name: 📊 Upload coverage reports
         uses: codecov/codecov-action@v4
@@ -138,20 +143,21 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ needs.setup.outputs.node-version }}
-          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 🪝 Run webhook tests - ${{ matrix.webhook }}
-        run: pnpm test -- tests/api/webhooks/${{ matrix.webhook }}.test.ts --coverage
+        run: bun run test -- tests/api/webhooks/${{ matrix.webhook }}.test.ts --coverage
         env:
           # Test environment variables
           STRIPE_SECRET_KEY: sk_test_fake_key_for_testing
@@ -189,27 +195,28 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ needs.setup.outputs.node-version }}
-          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 🗄️ Setup test database
         run: |
-          pnpm generate
-          pnpm exec drizzle-kit push --force
+          bun run db:generate
+          bunx drizzle-kit push --force
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
 
       - name: 🔗 Run integration tests
-        run: pnpm test:integration -- --coverage
+        run: bun run test:integration -- --coverage
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_db
           NODE_ENV: test
@@ -229,23 +236,24 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ needs.setup.outputs.node-version }}
-          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 🎭 Install Playwright Browsers
-        run: npx playwright install --with-deps chromium
+        run: bunx playwright install --with-deps chromium
 
       - name: 🎭 Run Playwright tests
-        run: pnpm test:e2e --project=chromium
+        run: bun run test:e2e --project=chromium
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           CI: true
@@ -276,20 +284,21 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ needs.setup.outputs.node-version }}
-          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 🏗️ Build application
-        run: pnpm build
+        run: bun run build
         env:
           # Build-time environment variables
           SKIP_ENV_VALIDATION: true
@@ -314,7 +323,7 @@ jobs:
 
       - name: 🧪 Test built application starts
         run: |
-          timeout 30s pnpm start &
+          timeout 30s bun run start &
           sleep 20
           curl -f http://localhost:3000/api/healthcheck || exit 1
         env:
@@ -341,20 +350,21 @@ jobs:
       - name: 📥 Checkout
         uses: actions/checkout@v4
 
-      - name: 📦 Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: 📦 Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
 
       - name: 🔧 Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ needs.setup.outputs.node-version }}
-          cache: 'pnpm'
 
       - name: 📦 Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: 🔒 Run security audit
-        run: pnpm audit --audit-level moderate || echo "⚠️ Security vulnerabilities found - please review and update dependencies"
+        run: bun pm audit || echo "⚠️ Security vulnerabilities found - please review and update dependencies"
         continue-on-error: true
 
       - name: 🔍 Initialize CodeQL
@@ -398,7 +408,8 @@ jobs:
           echo "| Security Scan | ${{ needs.security-scan.result == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 🔧 Testing Stack" >> $GITHUB_STEP_SUMMARY
-          echo "- **Unit/Integration Tests**: Vitest (migrated from Jest)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Runtime**: Bun (migrated from Node.js/pnpm)" >> $GITHUB_STEP_SUMMARY
+          echo "- **Unit/Integration Tests**: Vitest" >> $GITHUB_STEP_SUMMARY
           echo "- **E2E Tests**: Playwright (cross-browser testing)" >> $GITHUB_STEP_SUMMARY
           echo "- **Coverage**: V8 via @vitest/coverage-v8" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

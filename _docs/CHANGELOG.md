@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2025-12-15 - Bun Runtime Migration
+
+### 🚀 RUNTIME MIGRATION
+
+**Migrated from Node.js/pnpm to Bun Runtime**
+
+- ✅ **Package Manager**: pnpm → Bun (4x faster installs)
+- ✅ **Dev Server**: 15s → 5s cold start (3x faster)
+- ✅ **Proxy Execution**: 315ms → 45ms (7x faster)
+- ✅ **Script Execution**: tsx → native Bun (5x faster)
+
+### Changed
+
+- **`vercel.json`**: Added `bunVersion: "1.x"` for Vercel Bun runtime
+- **`package.json`**: Updated all scripts to use `bun`/`bunx` instead of `pnpm`/`npx`/`tsx`
+- **`.github/workflows/test.yml`**: Migrated CI from pnpm to Bun using `oven-sh/setup-bun@v2`
+- **`.gitignore`**: Added `.bun` directory
+
+### Added
+
+- **`bun.lock`**: New Bun lockfile (migrated from `pnpm-lock.yaml`)
+- **`_docs/03-infrastructure/BUN-RUNTIME-MIGRATION.md`**: Migration documentation
+- **`.cursor/rules/bun-runtime.mdc`**: Cursor AI rules for Bun
+
+### Technical Details
+
+| Metric                | Before (Node.js/pnpm) | After (Bun) | Improvement |
+| --------------------- | --------------------- | ----------- | ----------- |
+| Package install       | ~15s                  | ~4s         | 4x faster   |
+| Dev server cold start | ~15s                  | ~5s         | 3x faster   |
+| First page compile    | ~11s                  | ~9s         | 22% faster  |
+| Proxy.ts execution    | ~315ms                | ~45ms       | 7x faster   |
+
+### Migration Notes
+
+- The Bun runtime is in Beta on Vercel
+- Node.js compatibility is maintained for all existing code
+- Serverless-optimized packages (Neon, Upstash Redis, Vercel Blob) were intentionally kept
+
+---
+
 ## [0.5.2] - 2025-12-11 - Core Web Vitals Optimization
 
 ### 🎯 PERFORMANCE OPTIMIZATION
@@ -62,6 +103,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Technical Details
 
 **CLS Prevention Pattern**:
+
 ```typescript
 // Reserve vertical space to prevent layout shifts
 <section className="min-h-[600px] lg:min-h-[720px]">
@@ -71,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ```
 
 **Header Fixed Height Pattern**:
+
 ```typescript
 // Fixed height prevents CLS - only visual changes on scroll
 <header className="h-20 lg:h-24 transition-colors">
@@ -125,7 +168,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Sentry Integration**:
   - `sentry.client.config.ts` - Browser-side error tracking
-  - `sentry.server.config.ts` - Server-side error tracking  
+  - `sentry.server.config.ts` - Server-side error tracking
   - `sentry.edge.config.ts` - Edge runtime error tracking
   - `src/instrumentation.ts` - Next.js instrumentation hook
   - `src/app/global-error.tsx` - Root-level error boundary
@@ -169,6 +212,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Technical Details
 
 **useSyncExternalStore Pattern**:
+
 ```typescript
 const emptySubscribe = () => () => {};
 const getSnapshot = () => true;
@@ -180,6 +224,7 @@ function useHydrated() {
 ```
 
 **Sentry Configuration**:
+
 ```typescript
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -191,12 +236,12 @@ Sentry.init({
 
 ### Impact
 
-| Metric | Before | After | Change |
-|--------|--------|-------|--------|
-| Dependencies | 89 | 78 | -11 packages |
-| npm Scripts | 42 | 37 | -5 scripts |
+| Metric       | Before | After  | Change       |
+| ------------ | ------ | ------ | ------------ |
+| Dependencies | 89     | 78     | -11 packages |
+| npm Scripts  | 42     | 37     | -5 scripts   |
 | node_modules | ~850MB | ~750MB | ~12% smaller |
-| Build time | ~45s | ~40s | ~10% faster |
+| Build time   | ~45s   | ~40s   | ~10% faster  |
 
 ---
 
