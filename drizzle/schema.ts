@@ -1240,6 +1240,12 @@ export type AuditEventAction =
   | 'MEDICAL_RECORD_UPDATED'
   | 'MEDICAL_RECORD_DELETED'
   | 'MEDICAL_RECORDS_EXPORTED'
+  // Events (Expert service offerings)
+  | 'EVENT_CREATED'
+  | 'EVENT_UPDATED'
+  | 'EVENT_DELETED'
+  | 'EVENT_ACTIVATED'
+  | 'EVENT_DEACTIVATED'
   // Appointments
   | 'APPOINTMENT_CREATED'
   | 'APPOINTMENT_VIEWED'
@@ -1292,6 +1298,7 @@ export type AuditEventAction =
 
 export type AuditResourceType =
   | 'medical_record'
+  | 'event'
   | 'appointment'
   | 'payment'
   | 'prescription'

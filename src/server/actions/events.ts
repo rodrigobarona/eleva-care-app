@@ -73,8 +73,8 @@ export async function createEvent(
     }
 
     // Log the event creation (user context automatically extracted)
-    await logAuditEvent('PROFILE_UPDATED', 'profile', insertedEvent.id, {
-      newValues: { ...data, eventCreated: true },
+    await logAuditEvent('EVENT_CREATED', 'event', insertedEvent.id, {
+      newValues: { ...data },
     });
 
     // If the event is marked as active, mark the events step as complete
@@ -144,7 +144,7 @@ export async function updateEvent(
   }
 
   // Log the event update (user context automatically extracted)
-  await logAuditEvent('PROFILE_UPDATED', 'profile', updatedEvent.id, {
+  await logAuditEvent('EVENT_UPDATED', 'event', updatedEvent.id, {
     oldValues: oldEvent as Record<string, unknown>,
     newValues: { ...data },
   });
@@ -221,14 +221,13 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
 
     // Log the event deletion (user context automatically extracted)
     await logAuditEvent(
-      'PROFILE_UPDATED',
-      'profile',
+      'EVENT_DELETED',
+      'event',
       deletedEvent.id,
       {
         oldValues: oldEvent as Record<string, unknown>,
-        newValues: { deleted: true, reason: 'User requested deletion' },
       },
-      { eventDeleted: true },
+      { reason: 'User requested deletion' },
     );
 
     revalidatePath('/booking/events');
@@ -311,7 +310,7 @@ export async function updateEventActiveState(
       .where(and(eq(EventsTable.id, id), eq(EventsTable.workosUserId, userId)));
 
     // Log the update action (user context automatically extracted)
-    await logAuditEvent('PROFILE_UPDATED', 'profile', id, {
+    await logAuditEvent(isActive ? 'EVENT_ACTIVATED' : 'EVENT_DEACTIVATED', 'event', id, {
       oldValues: { isActive: event.isActive },
       newValues: { isActive },
     });

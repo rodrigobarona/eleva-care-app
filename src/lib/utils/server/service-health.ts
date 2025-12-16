@@ -184,6 +184,7 @@ export async function checkWorkOS(): Promise<ServiceHealthResult> {
         Authorization: `Bearer ${ENV_CONFIG.WORKOS_API_KEY}`,
         'Content-Type': 'application/json',
       },
+      signal: AbortSignal.timeout(5000), // 5s timeout to prevent hanging health checks
     });
 
     const responseTime = Date.now() - startTime;

@@ -50,10 +50,7 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
     const workosOrgId = await getWorkosOrgId(meeting.orgId);
     if (!workosOrgId) {
       console.error('No organization found for meeting:', params.meetingId);
-      return NextResponse.json(
-        { error: 'Organization not found for encryption' },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: 'Organization not found for encryption' }, { status: 500 });
     }
 
     // Encrypt the content and metadata using WorkOS Vault
@@ -85,22 +82,17 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
 
     // Log audit event (user context automatically extracted)
     try {
-      await logAuditEvent(
-        'MEDICAL_RECORD_CREATED',
-        'medical_record',
-        record.id,
-        {
-          newValues: {
-            recordId: record.id,
-            meetingId: params.meetingId,
-            expertId: workosUserId,
-            guestEmail: meeting.guestEmail,
-            contentProvided: !!content,
-            metadataProvided: !!metadata,
-            encryptionMethod: 'vault',
-          },
+      await logAuditEvent('MEDICAL_RECORD_CREATED', 'medical_record', record.id, {
+        newValues: {
+          recordId: record.id,
+          meetingId: params.meetingId,
+          expertId: workosUserId,
+          guestEmail: meeting.guestEmail,
+          contentProvided: !!content,
+          metadataProvided: !!metadata,
+          encryptionMethod: 'vault',
         },
-      );
+      });
     } catch (auditError) {
       console.error('Error logging audit event for MEDICAL_RECORD_CREATED:', auditError);
       // Do not fail the request if audit logging fails
@@ -120,15 +112,18 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
         error.message.includes('forbidden') ||
         error.message.includes('Vault'));
 
-    console.error('[AUDIT - ERROR]', JSON.stringify({
-      action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_CREATED',
-      status: 'failed',
-      resourceType: 'medical_record',
-      resourceId: params.meetingId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      isSecuritySensitive,
-      timestamp: new Date().toISOString(),
-    }));
+    console.error(
+      '[AUDIT - ERROR]',
+      JSON.stringify({
+        action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_CREATED',
+        status: 'failed',
+        resourceType: 'medical_record',
+        resourceId: params.meetingId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        isSecuritySensitive,
+        timestamp: new Date().toISOString(),
+      }),
+    );
 
     return NextResponse.json({ error: 'Failed to create record' }, { status: 500 });
   }
@@ -157,10 +152,7 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
     const workosOrgId = await getWorkosOrgId(meeting.orgId);
     if (!workosOrgId) {
       console.error('No organization found for meeting:', params.meetingId);
-      return NextResponse.json(
-        { error: 'Organization not found for decryption' },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: 'Organization not found for decryption' }, { status: 500 });
     }
 
     // Get all records for this meeting
@@ -169,47 +161,51 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
       orderBy: (fields, { desc }) => [desc(fields.createdAt)],
     });
 
-    // Decrypt the records using WorkOS Vault
+    // Decrypt the records using WorkOS Vault with graceful error handling
     const decryptedRecords = await Promise.all(
       records.map(async (record) => {
-        const content = await decryptForOrg(workosOrgId, record.vaultEncryptedContent, {
-          userId: workosUserId,
-          dataType: 'medical_record',
-          recordId: record.id,
-        });
+        try {
+          const content = await decryptForOrg(workosOrgId, record.vaultEncryptedContent, {
+            userId: workosUserId,
+            dataType: 'medical_record',
+            recordId: record.id,
+          });
 
-        const metadata = record.vaultEncryptedMetadata
-          ? JSON.parse(
-              await decryptForOrg(workosOrgId, record.vaultEncryptedMetadata, {
-                userId: workosUserId,
-                dataType: 'medical_record',
-                recordId: record.id,
-              }),
-            )
-          : null;
+          const metadata = record.vaultEncryptedMetadata
+            ? JSON.parse(
+                await decryptForOrg(workosOrgId, record.vaultEncryptedMetadata, {
+                  userId: workosUserId,
+                  dataType: 'medical_record',
+                  recordId: record.id,
+                }),
+              )
+            : null;
 
-        return {
-          ...record,
-          content,
-          metadata,
-        };
+          return {
+            ...record,
+            content,
+            metadata,
+          };
+        } catch (decryptError) {
+          console.error('Failed to decrypt record:', record.id, decryptError);
+          return {
+            ...record,
+            content: '[Decryption Error]',
+            metadata: null,
+            decryptionError: true,
+          };
+        }
       }),
     );
 
     // Log audit event (user context automatically extracted)
     try {
-      await logAuditEvent(
-        'MEDICAL_RECORD_VIEWED',
-        'medical_record',
-        params.meetingId,
-        undefined,
-        {
-          meetingId: params.meetingId,
-          expertId: workosUserId,
-          recordsFetched: decryptedRecords.length,
-          recordIds: decryptedRecords.map((r) => r.id),
-        },
-      );
+      await logAuditEvent('MEDICAL_RECORD_VIEWED', 'medical_record', params.meetingId, undefined, {
+        meetingId: params.meetingId,
+        expertId: workosUserId,
+        recordsFetched: decryptedRecords.length,
+        recordIds: decryptedRecords.map((r) => r.id),
+      });
     } catch (auditError) {
       console.error('Error logging audit event for MEDICAL_RECORD_VIEWED:', auditError);
     }
@@ -229,15 +225,18 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
         error.message.includes('decrypt') ||
         error.message.includes('Vault'));
 
-    console.error('[AUDIT - ERROR]', JSON.stringify({
-      action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_VIEWED',
-      status: 'failed',
-      resourceType: 'medical_record',
-      resourceId: params.meetingId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      isSecuritySensitive,
-      timestamp: new Date().toISOString(),
-    }));
+    console.error(
+      '[AUDIT - ERROR]',
+      JSON.stringify({
+        action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_VIEWED',
+        status: 'failed',
+        resourceType: 'medical_record',
+        resourceId: params.meetingId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        isSecuritySensitive,
+        timestamp: new Date().toISOString(),
+      }),
+    );
 
     return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
   }
@@ -268,10 +267,7 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
     const workosOrgId = await getWorkosOrgId(oldRecord.orgId);
     if (!workosOrgId) {
       console.error('No organization found for record:', recordId);
-      return NextResponse.json(
-        { error: 'Organization not found for encryption' },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: 'Organization not found for encryption' }, { status: 500 });
     }
 
     // Encrypt the updated content and metadata using WorkOS Vault
@@ -303,25 +299,20 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
 
     // Log audit event (user context automatically extracted)
     try {
-      await logAuditEvent(
-        'MEDICAL_RECORD_UPDATED',
-        'medical_record',
-        recordId,
-        {
-          oldValues: {
-            version: oldRecord.version,
-          },
-          newValues: {
-            version: updatedRecord.version,
-            recordId: updatedRecord.id,
-            meetingId: params.meetingId,
-            expertId: workosUserId,
-            contentProvided: !!content,
-            metadataProvided: !!metadata,
-            encryptionMethod: 'vault',
-          },
+      await logAuditEvent('MEDICAL_RECORD_UPDATED', 'medical_record', recordId, {
+        oldValues: {
+          version: oldRecord.version,
         },
-      );
+        newValues: {
+          version: updatedRecord.version,
+          recordId: updatedRecord.id,
+          meetingId: params.meetingId,
+          expertId: workosUserId,
+          contentProvided: !!content,
+          metadataProvided: !!metadata,
+          encryptionMethod: 'vault',
+        },
+      });
     } catch (auditError) {
       console.error('Error logging audit event for MEDICAL_RECORD_UPDATED:', auditError);
     }
@@ -342,15 +333,18 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
         error.message.includes('decrypt') ||
         error.message.includes('Vault'));
 
-    console.error('[AUDIT - ERROR]', JSON.stringify({
-      action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_UPDATED',
-      status: 'failed',
-      resourceType: 'medical_record',
-      resourceId: params.meetingId,
-      error: error instanceof Error ? error.message : 'Unknown error',
-      isSecuritySensitive,
-      timestamp: new Date().toISOString(),
-    }));
+    console.error(
+      '[AUDIT - ERROR]',
+      JSON.stringify({
+        action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_UPDATED',
+        status: 'failed',
+        resourceType: 'medical_record',
+        resourceId: params.meetingId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        isSecuritySensitive,
+        timestamp: new Date().toISOString(),
+      }),
+    );
 
     return NextResponse.json({ error: 'Failed to update record' }, { status: 500 });
   }

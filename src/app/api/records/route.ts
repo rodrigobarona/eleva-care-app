@@ -3,50 +3,43 @@ import { OrganizationsTable, RecordsTable, UserOrgMembershipsTable } from '@/dri
 import { decryptForOrg } from '@/lib/integrations/workos/vault';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 /**
  * Get WorkOS organization ID for the current user
  *
- * Looks up the user's primary organization and returns the WorkOS org ID.
+ * Uses a single JOIN query for better performance.
  *
  * @param workosUserId - The WorkOS user ID
  * @returns WorkOS org ID (format: org_xxx) or null if not found
  */
 async function getUserWorkosOrgId(workosUserId: string): Promise<string | null> {
-  // Get user's primary organization membership
-  const membership = await db.query.UserOrgMembershipsTable.findFirst({
-    where: eq(UserOrgMembershipsTable.workosUserId, workosUserId),
-    columns: { orgId: true },
-  });
+  const result = await db
+    .select({ workosOrgId: OrganizationsTable.workosOrgId })
+    .from(UserOrgMembershipsTable)
+    .innerJoin(OrganizationsTable, eq(UserOrgMembershipsTable.orgId, OrganizationsTable.id))
+    .where(eq(UserOrgMembershipsTable.workosUserId, workosUserId))
+    .limit(1);
 
-  if (!membership?.orgId) return null;
-
-  // Get the WorkOS org ID
-  const org = await db.query.OrganizationsTable.findFirst({
-    where: eq(OrganizationsTable.id, membership.orgId),
-    columns: { workosOrgId: true },
-  });
-
-  return org?.workosOrgId || null;
+  return result[0]?.workosOrgId || null;
 }
 
 /**
- * Get WorkOS organization ID from internal UUID
+ * Batch fetch WorkOS organization IDs from internal UUIDs
  *
- * @param internalOrgId - Internal UUID from database
- * @returns WorkOS org ID (format: org_xxx) or null if not found
+ * @param internalOrgIds - Array of internal UUIDs from database
+ * @returns Map of internal org ID to WorkOS org ID
  */
-async function getWorkosOrgId(internalOrgId: string | null): Promise<string | null> {
-  if (!internalOrgId) return null;
+async function getWorkosOrgIdMap(internalOrgIds: string[]): Promise<Map<string, string>> {
+  if (internalOrgIds.length === 0) return new Map();
 
-  const org = await db.query.OrganizationsTable.findFirst({
-    where: eq(OrganizationsTable.id, internalOrgId),
-    columns: { workosOrgId: true },
-  });
+  const orgs = await db
+    .select({ id: OrganizationsTable.id, workosOrgId: OrganizationsTable.workosOrgId })
+    .from(OrganizationsTable)
+    .where(inArray(OrganizationsTable.id, internalOrgIds));
 
-  return org?.workosOrgId || null;
+  return new Map(orgs.map((o) => [o.id, o.workosOrgId]));
 }
 
 export async function GET() {
@@ -66,12 +59,16 @@ export async function GET() {
     // Get user's default WorkOS org ID for decryption
     const userWorkosOrgId = await getUserWorkosOrgId(workosUserId);
 
+    // Batch fetch all org mappings in one query to avoid N+1
+    const uniqueOrgIds = [...new Set(records.map((r) => r.orgId).filter(Boolean))] as string[];
+    const orgIdMap = await getWorkosOrgIdMap(uniqueOrgIds);
+
     // Decrypt the records using WorkOS Vault
     // Each record may have its own orgId, so we decrypt per-record
     const decryptedRecords = await Promise.all(
       records.map(async (record) => {
         // Use record's org if available, otherwise fall back to user's org
-        const workosOrgId = record.orgId ? await getWorkosOrgId(record.orgId) : userWorkosOrgId;
+        const workosOrgId = record.orgId ? (orgIdMap.get(record.orgId) ?? null) : userWorkosOrgId;
 
         if (!workosOrgId) {
           console.error('No organization found for record:', record.id);
