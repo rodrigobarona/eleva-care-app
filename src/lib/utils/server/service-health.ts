@@ -4,6 +4,7 @@
  * Provides health check functions for all external services used by Eleva Care.
  * Compatible with Better Stack status page monitoring.
  */
+import * as Sentry from '@sentry/nextjs';
 import { ENV_CONFIG } from '@/config/env';
 import { db } from '@/drizzle/db';
 import { qstashHealthCheck } from '@/lib/integrations/qstash/config';
@@ -53,34 +54,59 @@ export async function checkNeonDatabase(): Promise<ServiceHealthResult> {
 }
 
 /**
- * Check Neon audit database connectivity
- * Note: Audit logs are now stored in the main database with RLS protection
- * This function checks the main database's audit logs table
+ * Check Sentry SDK initialization and connectivity
  */
-export async function checkAuditDatabase(): Promise<ServiceHealthResult> {
+export async function checkSentry(): Promise<ServiceHealthResult> {
   const startTime = Date.now();
   const timestamp = new Date().toISOString();
 
   try {
-    // Audit logs are now in the main database, protected by RLS
-    await db.execute(sql`SELECT 1 as health_check`);
+    const client = Sentry.getClient();
+
+    if (!client) {
+      return {
+        service: 'sentry',
+        status: 'down',
+        responseTime: 0,
+        message: 'Sentry client not initialized',
+        error: 'Sentry SDK not configured',
+        timestamp,
+      };
+    }
+
+    // Check if DSN is configured
+    const dsn = client.getDsn();
+    if (!dsn) {
+      return {
+        service: 'sentry',
+        status: 'degraded',
+        responseTime: Date.now() - startTime,
+        message: 'Sentry initialized but DSN not configured',
+        timestamp,
+      };
+    }
+
     const responseTime = Date.now() - startTime;
 
     return {
-      service: 'audit-database',
+      service: 'sentry',
       status: 'healthy',
       responseTime,
-      message: `Audit database connection successful (${responseTime}ms) - unified with main DB`,
+      message: `Sentry SDK initialized (${responseTime}ms)`,
+      details: {
+        hasDsn: true,
+        environment: process.env.NODE_ENV,
+      },
       timestamp,
     };
   } catch (error) {
     const responseTime = Date.now() - startTime;
     return {
-      service: 'audit-database',
+      service: 'sentry',
       status: 'down',
       responseTime,
-      message: 'Audit database connection failed',
-      error: error instanceof Error ? error.message : 'Unknown database error',
+      message: 'Sentry health check failed',
+      error: error instanceof Error ? error.message : 'Unknown Sentry error',
       timestamp,
     };
   }
@@ -503,11 +529,11 @@ export async function checkAllServices(): Promise<{
   const timestamp = new Date().toISOString();
 
   // Run all health checks in parallel
-  const [vercel, neonDb, auditDb, stripe, workos, redis, qstash, resend, posthog, novu] =
+  const [vercel, neonDb, sentry, stripe, workos, redis, qstash, resend, posthog, novu] =
     await Promise.all([
       checkVercel(),
       checkNeonDatabase(),
-      checkAuditDatabase(),
+      checkSentry(),
       checkStripe(),
       checkWorkOS(),
       checkRedis(),
@@ -517,7 +543,7 @@ export async function checkAllServices(): Promise<{
       checkNovu(),
     ]);
 
-  const services = [vercel, neonDb, auditDb, stripe, workos, redis, qstash, resend, posthog, novu];
+  const services = [vercel, neonDb, sentry, stripe, workos, redis, qstash, resend, posthog, novu];
 
   // Calculate summary
   const summary = {
@@ -552,7 +578,7 @@ export function getServiceHealthCheck(
   const serviceMap: Record<string, () => Promise<ServiceHealthResult>> = {
     vercel: checkVercel,
     'neon-database': checkNeonDatabase,
-    'audit-database': checkAuditDatabase,
+    sentry: checkSentry,
     stripe: checkStripe,
     workos: checkWorkOS,
     'upstash-redis': checkRedis,
@@ -572,7 +598,7 @@ export function getAvailableServices(): string[] {
   return [
     'vercel',
     'neon-database',
-    'audit-database',
+    'sentry',
     'stripe',
     'workos',
     'upstash-redis',
