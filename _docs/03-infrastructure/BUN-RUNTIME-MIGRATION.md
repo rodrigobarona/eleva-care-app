@@ -1,85 +1,162 @@
 # Bun Runtime Migration
 
-> **Status**: Implemented (Phase 1, 2 & 3 - Crypto)
+> **Status**: Implemented (Hybrid Approach)
 > **Date**: December 2025
-> **Version**: Bun 1.3.4
+> **Version**: Bun 1.3.4 (local) / Node.js 24.x (Vercel)
 
 ## Overview
 
-The eleva-care-app has migrated from Node.js/pnpm to the Bun runtime for improved performance, faster builds, and better developer experience. Bun is an all-in-one JavaScript runtime built with Zig that provides significant performance improvements over Node.js.
+The eleva-care-app uses a **hybrid runtime approach** that combines the best of both worlds:
+
+- **🐰 Bun** for local development (fast installs, excellent DX, native TypeScript)
+- **🟢 Node.js 24.x** for Vercel production (stability, full npm compatibility)
+
+This approach was chosen because:
+
+1. **Production Stability**: Bun on Vercel is still in Beta status
+2. **Full npm Compatibility**: Some npm features (like nested overrides) are not supported by Bun
+3. **Healthcare Requirements**: For a healthcare platform, production stability is paramount
+4. **Best Developer Experience**: Bun's speed benefits are most impactful during development
+
+## Hybrid Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Runtime Architecture                          │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  Local Development (Bun 1.3.4)                          │    │
+│  │  • bun dev / bun dev:full / bun dev:only               │    │
+│  │  • bun install (4x faster than npm/pnpm)               │    │
+│  │  • Native TypeScript execution                          │    │
+│  │  • Bun.CryptoHasher for HMAC operations                │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  Vercel Production (Node.js 24.x)                       │    │
+│  │  • next build / next start                              │    │
+│  │  • Full npm overrides support                           │    │
+│  │  • Stable, battle-tested runtime                        │    │
+│  │  • node:crypto fallback for crypto operations           │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+│  ┌─────────────────────────────────────────────────────────┐    │
+│  │  GitHub Actions CI (Bun + Node.js)                      │    │
+│  │  • bun install for fast dependency installation         │    │
+│  │  • Tests run in Node.js environment                     │    │
+│  └─────────────────────────────────────────────────────────┘    │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## What Changed
 
 ### Runtime Configuration
 
-| Component         | Before         | After                             |
-| ----------------- | -------------- | --------------------------------- |
-| Runtime           | Node.js 24+    | Bun 1.3.4 (with Node.js fallback) |
-| Package Manager   | pnpm 9.2.0     | Bun                               |
-| Script Execution  | tsx            | Bun (native TypeScript)           |
-| Package Execution | npx            | bunx                              |
-| Lockfile          | pnpm-lock.yaml | bun.lock                          |
+| Component         | Before (Full Bun)      | After (Hybrid)                    |
+| ----------------- | ---------------------- | --------------------------------- |
+| Local Runtime     | Bun 1.3.4              | Bun 1.3.4                         |
+| Vercel Runtime    | Bun 1.x (Beta)         | Node.js 24.x (Stable)             |
+| Package Manager   | Bun                    | Bun                               |
+| Build Script      | `bun --bun next build` | `next build`                      |
+| Start Script      | `bun --bun next start` | `next start`                      |
+| Dev Script        | `bun --bun next dev`   | `bun --bun next dev` (unchanged)  |
 
 ### Files Modified
 
-| File                         | Changes                                          |
-| ---------------------------- | ------------------------------------------------ |
-| `vercel.json`                | Added `bunVersion: "1.x"` for Vercel Bun runtime |
-| `package.json`               | Updated all scripts to use `bun`/`bunx`          |
-| `.github/workflows/test.yml` | Migrated CI to use `oven-sh/setup-bun@v2`        |
-| `.gitignore`                 | Added `.bun` directory                           |
+| File                         | Changes                                           |
+| ---------------------------- | ------------------------------------------------- |
+| `vercel.json`                | Removed `bunVersion: "1.x"` (uses Node.js now)    |
+| `package.json`               | Updated `engines` to `"node": "24.x"`             |
+| `package.json`               | Changed `build` to `next build` (Node.js)         |
+| `package.json`               | Changed `start` to `next start` (Node.js)         |
+| `package.json`               | Added `build:bun` for local Bun builds            |
+| `package.json`               | Removed nested `botid` override (Bun limitation)  |
+| `.github/workflows/test.yml` | Uses `oven-sh/setup-bun@v2` for installs          |
 
 ## Performance Improvements
 
-| Metric                       | Node.js/pnpm | Bun    | Improvement    |
-| ---------------------------- | ------------ | ------ | -------------- |
-| Package install              | ~15s         | ~4s    | **4x faster**  |
-| Dev server cold start        | ~15s         | ~5s    | **3x faster**  |
-| First page compile           | ~11s         | ~9s    | **22% faster** |
-| Proxy.ts execution           | ~315ms       | ~45ms  | **7x faster**  |
-| Script execution (tsx → bun) | ~500ms       | ~100ms | **5x faster**  |
+| Metric                       | Node.js/pnpm | Bun (Local) | Improvement    |
+| ---------------------------- | ------------ | ----------- | -------------- |
+| Package install              | ~15s         | ~4s         | **4x faster**  |
+| Dev server cold start        | ~15s         | ~5s         | **3x faster**  |
+| First page compile           | ~11s         | ~9s         | **22% faster** |
+| Proxy.ts execution           | ~315ms       | ~45ms       | **7x faster**  |
+| Script execution (tsx → bun) | ~500ms       | ~100ms      | **5x faster**  |
 
 ## Configuration
 
-### Vercel Deployment
+### Vercel Deployment (Node.js 24.x)
 
 ```json
 // vercel.json
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "bunVersion": "1.x",
-  "crons": [...]
+  "crons": [
+    {
+      "path": "/api/cron/keep-alive",
+      "schedule": "0 6 * * *"
+    }
+  ]
 }
 ```
 
-Vercel automatically manages minor and patch versions. The Bun runtime is in Beta on Vercel.
+**Note:** No `bunVersion` is specified, so Vercel uses Node.js based on the `engines` field in `package.json`.
 
-### Package.json Scripts
-
-Key script patterns:
+### Package.json Configuration
 
 ```json
 {
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
-    // Next.js with Bun runtime
+    // Development (Bun runtime for speed)
+    "dev": "concurrently ... \"bun run dev:next\" ...",
     "dev:next": "bun --bun next dev --port 3000",
-    "build": "bun --bun next build",
-    "start": "bun --bun next start",
+    "dev:only": "bun --bun next dev --port 3000",
 
-    // Native TypeScript execution (no tsx needed)
+    // Production (Node.js for stability)
+    "build": "next build",
+    "start": "next start",
+
+    // Optional: Local Bun build
+    "build:bun": "bun --bun next build",
+
+    // Scripts still use Bun for speed
     "postbuild": "bun scripts/utilities/update-qstash-schedules.ts",
-
-    // Package execution
     "qstash:dev": "bunx @upstash/qstash-cli@latest dev"
+  },
+  "overrides": {
+    "punycode": "^2.3.1",
+    "@types/react": "19.0.10",
+    "@types/react-dom": "19.0.4",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "prismjs": "^1.30.0",
+    "prettier": "3.6.2"
+    // Note: No nested overrides (not supported by Bun)
   }
 }
 ```
 
-The `--bun` flag forces Bun to use its runtime even when scripts have Node.js shebangs.
+### Why We Removed `bunVersion` from Vercel
+
+1. **Beta Status**: Bun runtime on Vercel is still in Beta
+2. **Nested Overrides**: Bun doesn't support npm's nested override syntax:
+   ```json
+   // ❌ Not supported by Bun
+   "botid": {
+     "next": "$next"
+   }
+   ```
+3. **Middleware Limitation**: Bun on Vercel requires middleware to explicitly set `runtime: "nodejs"`
+4. **Healthcare Stability**: Production stability is critical for healthcare applications
 
 ### Optional: bunfig.toml
 
-For advanced configuration, create a `bunfig.toml` in the project root:
+For advanced local configuration, create a `bunfig.toml` in the project root:
 
 ```toml
 # bunfig.toml (optional)
@@ -98,7 +175,7 @@ NODE_ENV = "test"
 
 ## Development Commands
 
-### Daily Development
+### Daily Development (Uses Bun)
 
 ```bash
 # Start development server (Next.js + video sync)
@@ -125,7 +202,20 @@ bun run db:migrate
 bun run db:studio
 ```
 
-### Package Management
+### Build Commands
+
+```bash
+# Production build (uses Node.js - same as Vercel)
+bun run build
+
+# Local Bun build (for testing)
+bun run build:bun
+
+# Analyze bundle
+bun run build:analyze
+```
+
+### Package Management (Uses Bun)
 
 ```bash
 # Install dependencies (generates bun.lock)
@@ -156,7 +246,7 @@ bun scripts/utilities/update-qstash-schedules.ts
 # Run package binaries
 bunx drizzle-kit studio
 
-# Run with specific flags
+# Run with specific flags (local dev only)
 bun --bun next build
 ```
 
@@ -176,7 +266,7 @@ These dependencies are specifically optimized for serverless/edge environments a
 
 ### GitHub Actions
 
-The workflow uses `oven-sh/setup-bun@v2`:
+The workflow uses `oven-sh/setup-bun@v2` for fast dependency installation:
 
 ```yaml
 - name: 📦 Setup Bun
@@ -186,11 +276,20 @@ The workflow uses `oven-sh/setup-bun@v2`:
 
 - name: 📦 Install dependencies
   run: bun install --frozen-lockfile
+
+# Tests run in the default Node.js environment
+- name: 🧪 Run tests
+  run: bun test
 ```
 
 ### Vercel
 
-No additional configuration needed. Vercel detects `bunVersion` in `vercel.json` and uses the Bun runtime automatically.
+Vercel detects `"node": "24.x"` in `package.json` and uses Node.js 24.x automatically. No additional configuration needed.
+
+**Build Process on Vercel:**
+1. Vercel detects Bun lockfile (`bun.lock`) and uses Bun for installation
+2. Build runs with Node.js 24.x (no `bunVersion` in vercel.json)
+3. Serverless functions run on Node.js runtime
 
 ## Troubleshooting
 
@@ -225,6 +324,18 @@ Or use the `dev` command without QStash:
 bun dev  # Runs Next.js + video sync only
 ```
 
+### Build Differences Between Local and Production
+
+If you notice differences between local builds and Vercel builds:
+
+```bash
+# Test with Node.js build locally (mirrors Vercel)
+bun run build
+
+# Test with Bun build locally
+bun run build:bun
+```
+
 ## Encryption & Crypto Architecture
 
 ### Overview
@@ -246,11 +357,11 @@ The application uses a layered encryption architecture optimized for both securi
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                  │
 │  ┌─────────────────────────────────────────────────────────┐    │
-│  │  Bun.CryptoHasher - HMAC Signatures                     │    │
+│  │  Crypto Operations (Runtime-Aware)                      │    │
+│  │  • Local: Bun.CryptoHasher (native performance)         │    │
+│  │  • Vercel: node:crypto (full compatibility)             │    │
 │  │  • QStash request verification                          │    │
-│  │  • Internal token generation                            │    │
 │  │  • Novu subscriber authentication                       │    │
-│  │  • Native Bun performance                               │    │
 │  └─────────────────────────────────────────────────────────┘    │
 │                                                                  │
 └─────────────────────────────────────────────────────────────────┘
@@ -284,27 +395,27 @@ const decrypted = await decryptForOrg(orgId, encrypted, context);
 - **Audit logging**: All operations logged for compliance
 - **HIPAA/GDPR ready**: SOC 2 Type II certified infrastructure
 
-### Bun.CryptoHasher (HMAC Operations) ✅ IMPLEMENTED
+### Runtime-Aware Crypto Operations
 
-All HMAC signature operations now use Bun's native `CryptoHasher`:
+The codebase includes crypto utilities that work in both Bun and Node.js:
 
 ```typescript
-// Timing-safe comparison (still uses node:crypto)
-import { timingSafeEqual } from 'node:crypto';
+// Runtime detection
+const isBunRuntime = typeof Bun !== 'undefined';
 
-// QStash signature verification
-// src/lib/integrations/qstash/utils.ts
-const hasher = new Bun.CryptoHasher('sha256', currentKey);
-hasher.update(timestamp);
-const expectedSignature = hasher.digest('hex');
-
-const isValid = timingSafeEqual(
-  Buffer.from(signature, 'hex'),
-  Buffer.from(expectedSignature, 'hex'),
-);
+if (isBunRuntime) {
+  // Use Bun.CryptoHasher for better performance
+  const hasher = new Bun.CryptoHasher('sha256', key);
+  hasher.update(data);
+  return hasher.digest('hex');
+} else {
+  // Fall back to node:crypto
+  const { createHmac } = await import('node:crypto');
+  return createHmac('sha256', key).update(data).digest('hex');
+}
 ```
 
-**Files Using Bun.CryptoHasher:**
+**Files Using Crypto Operations:**
 
 | File                                        | Usage                     |
 | ------------------------------------------- | ------------------------- |
@@ -329,7 +440,7 @@ This provides full TypeScript support for:
 
 ### Healthcheck Runtime Detection
 
-The healthcheck endpoint now reports runtime information:
+The healthcheck endpoint reports runtime information:
 
 ```typescript
 // src/app/api/healthcheck/route.ts
@@ -339,9 +450,9 @@ const runtimeVersion = isBunRuntime ? Bun.version : process.version;
 
 // Response includes:
 {
-  "runtime": "bun",
-  "runtimeVersion": "1.3.4",
-  "isBun": true,
+  "runtime": "node",  // On Vercel
+  "runtimeVersion": "24.0.0",
+  "isBun": false,
   // ... other health data
 }
 ```
@@ -350,7 +461,7 @@ const runtimeVersion = isBunRuntime ? Bun.version : process.version;
 
 - **Production Monitoring**: Better Stack, PostHog track runtime info
 - **Debugging**: Easy identification of runtime environment
-- **Fallback Detection**: Know if Node.js fallback is active
+- **Verification**: Confirm hybrid approach is working correctly
 
 ## Future Improvements (Phase 4+)
 
@@ -370,6 +481,28 @@ Expected improvement: 14-23x faster test execution.
 
 **Note:** We chose to keep Vitest for now due to its mature ecosystem and Jest compatibility.
 
+### Full Bun on Vercel (When Stable)
+
+When Bun on Vercel exits Beta and supports all npm features:
+
+```json
+// vercel.json (future)
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "bunVersion": "1.x"
+}
+```
+
+```json
+// package.json (future)
+{
+  "scripts": {
+    "build": "bun --bun next build",
+    "start": "bun --bun next start"
+  }
+}
+```
+
 ### Password Hashing (Not Needed)
 
 Bun provides built-in password hashing:
@@ -386,5 +519,7 @@ const isValid = await Bun.password.verify(password, hash);
 
 - [Bun Documentation](https://bun.sh/docs)
 - [Bun on Vercel](https://vercel.com/docs/functions/runtimes/bun)
+- [Vercel Node.js Versions](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)
 - [Bun GitHub](https://github.com/oven-sh/bun)
 - [Migration Guide: npm to Bun](https://bun.sh/docs/guides/install/from-npm-install-to-bun-install)
+- [Bun Overrides Documentation](https://bun.sh/docs/pm/overrides)
