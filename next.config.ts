@@ -146,22 +146,30 @@ export default withNextVideo(
     // Upload a larger set of source maps for prettier stack traces (increases build time)
     widenClientFileUpload: true,
 
-    // Automatically tree-shake Sentry logger statements to reduce bundle size
-    disableLogger: true,
-
     // Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
     // This can increase your server load as well as your hosting bill.
     // Note: Check that the configured route will not match with your Next.js middleware,
     // otherwise reporting of client-side errors will fail.
     tunnelRoute: '/monitoring',
 
-    // Capture React component names for better debugging in Session Replay
-    reactComponentAnnotation: {
-      enabled: true,
-    },
+    // Webpack-specific Sentry configuration (moved from root level in SDK v10+)
+    webpack: {
+      // Automatically tree-shake Sentry logger statements to reduce bundle size
+      // (Replaces deprecated `disableLogger` option)
+      treeshake: {
+        removeDebugLogging: true,
+      },
 
-    // Automatically create Cron Monitors in Sentry for Vercel cron jobs
-    // Note: Currently only supports Pages Router
-    automaticVercelMonitors: true,
+      // Capture React component names for better debugging in Session Replay
+      // (Replaces deprecated `reactComponentAnnotation` option)
+      reactComponentAnnotation: {
+        enabled: true,
+      },
+
+      // Automatically create Cron Monitors in Sentry for Vercel cron jobs
+      // Note: Currently only supports Pages Router
+      // (Replaces deprecated `automaticVercelMonitors` option)
+      automaticVercelMonitors: true,
+    },
   }),
 );
