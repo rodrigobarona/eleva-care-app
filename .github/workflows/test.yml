@@ -364,7 +364,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: 🔒 Run security audit
-        run: bun pm audit || echo "⚠️ Security vulnerabilities found - please review and update dependencies"
+        run: bun audit || echo "⚠️ Security vulnerabilities found - please review and update dependencies"
         continue-on-error: true
 
       - name: 🔍 Initialize CodeQL
