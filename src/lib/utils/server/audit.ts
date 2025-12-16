@@ -36,8 +36,72 @@ import type { AuditEventAction, AuditResourceType } from '@/drizzle/schema';
 import { AuditLogsTable } from '@/drizzle/schema';
 import { getOrgScopedDb } from '@/lib/integrations/neon/rls-client';
 import { withAuth } from '@workos-inc/authkit-nextjs';
-import { desc, eq, gte, lte } from 'drizzle-orm';
+import { desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import { headers } from 'next/headers';
+
+/**
+ * Unified Audit Logging System
+ *
+ * Compliance: HIPAA, GDPR, SOC2
+ * - Append-only logs (immutable)
+ * - RLS ensures org-scoped access
+ * - Automatic user/IP/userAgent capture
+ *
+ * @example
+ * ```typescript
+ * // Log with automatic context extraction
+ * await logAuditEvent('MEDICAL_RECORD_VIEWED', 'medical_record', 'rec_123');
+ *
+ * // Log with changes
+ * await logAuditEvent(
+ *   'APPOINTMENT_UPDATED',
+ *   'appointment',
+ *   'apt_456',
+ *   { oldValues: { status: 'pending' }, newValues: { status: 'confirmed' } }
+ * );
+ *
+ * // Log with metadata
+ * await logAuditEvent(
+ *   'PAYMENT_COMPLETED',
+ *   'payment',
+ *   'pay_789',
+ *   undefined,
+ *   { amount: 5000, currency: 'EUR' }
+ * );
+ * ```
+ */
+
+/**
+ * Unified Audit Logging System
+ *
+ * Compliance: HIPAA, GDPR, SOC2
+ * - Append-only logs (immutable)
+ * - RLS ensures org-scoped access
+ * - Automatic user/IP/userAgent capture
+ *
+ * @example
+ * ```typescript
+ * // Log with automatic context extraction
+ * await logAuditEvent('MEDICAL_RECORD_VIEWED', 'medical_record', 'rec_123');
+ *
+ * // Log with changes
+ * await logAuditEvent(
+ *   'APPOINTMENT_UPDATED',
+ *   'appointment',
+ *   'apt_456',
+ *   { oldValues: { status: 'pending' }, newValues: { status: 'confirmed' } }
+ * );
+ *
+ * // Log with metadata
+ * await logAuditEvent(
+ *   'PAYMENT_COMPLETED',
+ *   'payment',
+ *   'pay_789',
+ *   undefined,
+ *   { amount: 5000, currency: 'EUR' }
+ * );
+ * ```
+ */
 
 /**
  * Unified Audit Logging System
@@ -161,9 +225,10 @@ export async function logAuditEvent(
     const db = await getOrgScopedDb();
 
     // Insert audit log - RLS automatically scopes by org!
+    // Note: orgId is temporarily nullable during Clerk → WorkOS migration (Phase 5)
     await db.insert(AuditLogsTable).values({
       workosUserId: user.id,
-      orgId: organizationId!,
+      orgId: organizationId ?? null,
       action,
       resourceType,
       resourceId,
@@ -237,6 +302,16 @@ export async function getAuditLogs(filters?: {
 
   if (filters?.workosUserId) {
     query = query.where(eq(AuditLogsTable.workosUserId, filters.workosUserId)) as typeof query;
+  }
+
+  if (filters?.actions && filters.actions.length > 0) {
+    query = query.where(inArray(AuditLogsTable.action, filters.actions)) as typeof query;
+  }
+
+  if (filters?.resourceTypes && filters.resourceTypes.length > 0) {
+    query = query.where(
+      inArray(AuditLogsTable.resourceType, filters.resourceTypes),
+    ) as typeof query;
   }
 
   // Order by most recent first
