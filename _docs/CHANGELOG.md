@@ -5,6 +5,65 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2025-12-16 - Schema & Audit Consolidation
+
+### 🗃️ SCHEMA CONSOLIDATION
+
+**Schema Renaming Complete**
+
+- ✅ **Renamed**: `schema-workos.ts` → `schema.ts` (now the primary schema)
+- ✅ **Renamed**: `schema.ts` → `schema-clerk-legacy.ts` (preserved for migration scripts)
+- ✅ **Updated**: All 81+ imports updated to use `@/drizzle/schema`
+
+### 📝 AUDIT LOGGING CONSOLIDATION
+
+**Unified Audit System**
+
+- ✅ **New API**: Single `logAuditEvent()` with automatic context extraction
+- ✅ **RLS Protection**: Audit logs now use Row-Level Security for org isolation
+- ✅ **HIPAA Compliant**: Append-only, immutable audit trail
+- ✅ **Automatic Context**: User ID, IP address, and user-agent extracted from session
+
+**Files Removed**
+
+- `drizzle/auditDb.ts` - Legacy separate audit database connection
+- `drizzle/auditSchema.ts` - Legacy Clerk-based audit schema
+- `src/types/audit.ts` - Legacy audit types (now in schema.ts)
+- `src/lib/utils/server/audit-workos.ts` - Merged into audit.ts
+- `tests/deprecated/audit-*.test.ts` - Deprecated audit tests
+
+### 🔧 SERVICE HEALTH UPDATES
+
+- ✅ **Replaced**: `checkClerk()` → `checkWorkOS()` in service-health.ts
+- ✅ **Unified**: Audit database health check now uses main database
+- ✅ **Removed**: `src/lib/cache/clerk-cache-keys.ts` (dead code)
+
+### 📄 PRIVACY POLICY UPDATES
+
+- ✅ **Updated**: 4 privacy policy MDX files (Clerk → WorkOS)
+
+### Changed
+
+- **`src/lib/utils/server/audit.ts`**: New unified audit API with automatic context
+- **`src/lib/utils/server/service-health.ts`**: WorkOS health check, unified audit DB
+- **`src/server/actions/events.ts`**: Updated to new audit API
+- **`src/server/actions/meetings.ts`**: Updated to new audit API
+- **`src/server/actions/schedule.ts`**: Updated to new audit API
+- **`src/server/actions/expert-profile.ts`**: Updated to new audit API
+- **`src/app/api/webhooks/stripe/handlers/payment.ts`**: Webhook audit logging
+- **`src/app/api/appointments/[meetingId]/records/route.ts`**: Updated audit API
+- **`src/app/api/records/route.ts`**: Updated audit API
+- **`src/content/privacy/*.mdx`**: Updated data processor list
+
+### Removed
+
+- Legacy audit database connection and schema
+- Legacy audit types
+- Deprecated audit test files
+- Clerk cache keys utility
+
+---
+
 ## [0.5.5] - 2025-12-16 - WorkOS Vault Migration Complete
 
 ### 🔐 ENCRYPTION ARCHITECTURE CLEANUP

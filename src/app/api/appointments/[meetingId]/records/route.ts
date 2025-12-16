@@ -1,10 +1,9 @@
 import { db } from '@/drizzle/db';
-import { OrganizationsTable, RecordsTable } from '@/drizzle/schema-workos';
+import { OrganizationsTable, RecordsTable } from '@/drizzle/schema';
 import { decryptForOrg, encryptForOrg } from '@/lib/integrations/workos/vault';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
-import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 /**
@@ -84,29 +83,26 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
       })
       .returning();
 
-    // Log audit event
-    const headersList = await headers();
+    // Log audit event (user context automatically extracted)
     try {
       await logAuditEvent(
-        workosUserId,
-        'CREATE_MEDICAL_RECORD',
+        'MEDICAL_RECORD_CREATED',
         'medical_record',
         record.id,
-        null,
         {
-          recordId: record.id,
-          meetingId: params.meetingId,
-          expertId: workosUserId,
-          guestEmail: meeting.guestEmail,
-          contentProvided: !!content,
-          metadataProvided: !!metadata,
-          encryptionMethod: 'vault',
+          newValues: {
+            recordId: record.id,
+            meetingId: params.meetingId,
+            expertId: workosUserId,
+            guestEmail: meeting.guestEmail,
+            contentProvided: !!content,
+            metadataProvided: !!metadata,
+            encryptionMethod: 'vault',
+          },
         },
-        headersList.get('x-forwarded-for') ?? 'Unknown',
-        headersList.get('user-agent') ?? 'Unknown',
       );
     } catch (auditError) {
-      console.error('Error logging audit event for CREATE_MEDICAL_RECORD:', auditError);
+      console.error('Error logging audit event for MEDICAL_RECORD_CREATED:', auditError);
       // Do not fail the request if audit logging fails
     }
 
@@ -114,43 +110,25 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
   } catch (error) {
     console.error('Error creating record:', error);
 
-    // Log security-sensitive failures and errors
-    const headersList = await headers();
-    try {
-      const { user } = await withAuth();
-      const workosUserId = user?.id;
-      const isSecuritySensitive =
-        error instanceof Error &&
-        (error.message.includes('unauthorized') ||
-          error.message.includes('Unauthorized') ||
-          error.message.includes('permission') ||
-          error.message.includes('access denied') ||
-          error.message.includes('forbidden') ||
-          error.message.includes('Vault'));
+    // Log security-sensitive failures via console (auth context may not be available)
+    const isSecuritySensitive =
+      error instanceof Error &&
+      (error.message.includes('unauthorized') ||
+        error.message.includes('Unauthorized') ||
+        error.message.includes('permission') ||
+        error.message.includes('access denied') ||
+        error.message.includes('forbidden') ||
+        error.message.includes('Vault'));
 
-      const auditAction = isSecuritySensitive
-        ? 'FAILED_CREATE_MEDICAL_RECORD_UNAUTHORIZED'
-        : 'FAILED_CREATE_MEDICAL_RECORD';
-
-      await logAuditEvent(
-        workosUserId || 'unknown',
-        auditAction,
-        'medical_record',
-        params.meetingId,
-        null,
-        {
-          meetingId: params.meetingId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
-          isSecuritySensitive,
-          timestamp: new Date().toISOString(),
-        },
-        headersList.get('x-forwarded-for') ?? 'Unknown',
-        headersList.get('user-agent') ?? 'Unknown',
-      );
-    } catch (auditError) {
-      console.error('Error logging audit event for failed record creation:', auditError);
-    }
+    console.error('[AUDIT - ERROR]', JSON.stringify({
+      action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_CREATED',
+      status: 'failed',
+      resourceType: 'medical_record',
+      resourceId: params.meetingId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      isSecuritySensitive,
+      timestamp: new Date().toISOString(),
+    }));
 
     return NextResponse.json({ error: 'Failed to create record' }, { status: 500 });
   }
@@ -218,70 +196,48 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
       }),
     );
 
-    // Log audit event
-    const headersList = await headers();
+    // Log audit event (user context automatically extracted)
     try {
       await logAuditEvent(
-        workosUserId,
-        'READ_MEDICAL_RECORDS_FOR_MEETING',
+        'MEDICAL_RECORD_VIEWED',
         'medical_record',
         params.meetingId,
-        null,
+        undefined,
         {
           meetingId: params.meetingId,
           expertId: workosUserId,
           recordsFetched: decryptedRecords.length,
           recordIds: decryptedRecords.map((r) => r.id),
         },
-        headersList.get('x-forwarded-for') ?? 'Unknown',
-        headersList.get('user-agent') ?? 'Unknown',
       );
     } catch (auditError) {
-      console.error('Error logging audit event for READ_MEDICAL_RECORDS_FOR_MEETING:', auditError);
+      console.error('Error logging audit event for MEDICAL_RECORD_VIEWED:', auditError);
     }
 
     return NextResponse.json({ records: decryptedRecords });
   } catch (error) {
     console.error('Error fetching records:', error);
 
-    // Log security-sensitive failures and errors
-    const headersList = await headers();
-    try {
-      const { user } = await withAuth();
-      const workosUserId = user?.id;
-      const isSecuritySensitive =
-        error instanceof Error &&
-        (error.message.includes('unauthorized') ||
-          error.message.includes('Unauthorized') ||
-          error.message.includes('permission') ||
-          error.message.includes('access denied') ||
-          error.message.includes('forbidden') ||
-          error.message.includes('decrypt') ||
-          error.message.includes('Vault'));
+    // Log security-sensitive failures via console (auth context may not be available)
+    const isSecuritySensitive =
+      error instanceof Error &&
+      (error.message.includes('unauthorized') ||
+        error.message.includes('Unauthorized') ||
+        error.message.includes('permission') ||
+        error.message.includes('access denied') ||
+        error.message.includes('forbidden') ||
+        error.message.includes('decrypt') ||
+        error.message.includes('Vault'));
 
-      const auditAction = isSecuritySensitive
-        ? 'FAILED_READ_MEDICAL_RECORDS_UNAUTHORIZED'
-        : 'FAILED_READ_MEDICAL_RECORDS';
-
-      await logAuditEvent(
-        workosUserId || 'unknown',
-        auditAction,
-        'medical_record',
-        params.meetingId,
-        null,
-        {
-          meetingId: params.meetingId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
-          isSecuritySensitive,
-          timestamp: new Date().toISOString(),
-        },
-        headersList.get('x-forwarded-for') ?? 'Unknown',
-        headersList.get('user-agent') ?? 'Unknown',
-      );
-    } catch (auditError) {
-      console.error('Error logging audit event for failed records fetch:', auditError);
-    }
+    console.error('[AUDIT - ERROR]', JSON.stringify({
+      action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_VIEWED',
+      status: 'failed',
+      resourceType: 'medical_record',
+      resourceId: params.meetingId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      isSecuritySensitive,
+      timestamp: new Date().toISOString(),
+    }));
 
     return NextResponse.json({ error: 'Failed to fetch records' }, { status: 500 });
   }
@@ -345,78 +301,56 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
       .where(eq(RecordsTable.id, recordId))
       .returning();
 
-    // Log audit event
-    const headersList = await headers();
+    // Log audit event (user context automatically extracted)
     try {
       await logAuditEvent(
-        workosUserId,
-        'UPDATE_MEDICAL_RECORD',
+        'MEDICAL_RECORD_UPDATED',
         'medical_record',
         recordId,
         {
-          oldVersion: oldRecord.version,
-          contentChanged: true, // With Vault, encrypted content is always different due to unique DEKs
-          metadataChanged: !!metadata,
+          oldValues: {
+            version: oldRecord.version,
+          },
+          newValues: {
+            version: updatedRecord.version,
+            recordId: updatedRecord.id,
+            meetingId: params.meetingId,
+            expertId: workosUserId,
+            contentProvided: !!content,
+            metadataProvided: !!metadata,
+            encryptionMethod: 'vault',
+          },
         },
-        {
-          newVersion: updatedRecord.version,
-          recordId: updatedRecord.id,
-          meetingId: params.meetingId,
-          expertId: workosUserId,
-          contentProvided: !!content,
-          metadataProvided: !!metadata,
-          encryptionMethod: 'vault',
-        },
-        headersList.get('x-forwarded-for') ?? 'Unknown',
-        headersList.get('user-agent') ?? 'Unknown',
       );
     } catch (auditError) {
-      console.error('Error logging audit event for UPDATE_MEDICAL_RECORD:', auditError);
+      console.error('Error logging audit event for MEDICAL_RECORD_UPDATED:', auditError);
     }
 
     return NextResponse.json({ success: true, recordId: updatedRecord.id });
   } catch (error) {
     console.error('Error updating record:', error);
 
-    // Log security-sensitive failures and errors
-    const headersList = await headers();
-    try {
-      const { user } = await withAuth();
-      const workosUserId = user?.id;
-      const isSecuritySensitive =
-        error instanceof Error &&
-        (error.message.includes('unauthorized') ||
-          error.message.includes('Unauthorized') ||
-          error.message.includes('permission') ||
-          error.message.includes('access denied') ||
-          error.message.includes('forbidden') ||
-          error.message.includes('encrypt') ||
-          error.message.includes('decrypt') ||
-          error.message.includes('Vault'));
+    // Log security-sensitive failures via console (auth context may not be available)
+    const isSecuritySensitive =
+      error instanceof Error &&
+      (error.message.includes('unauthorized') ||
+        error.message.includes('Unauthorized') ||
+        error.message.includes('permission') ||
+        error.message.includes('access denied') ||
+        error.message.includes('forbidden') ||
+        error.message.includes('encrypt') ||
+        error.message.includes('decrypt') ||
+        error.message.includes('Vault'));
 
-      const auditAction = isSecuritySensitive
-        ? 'FAILED_UPDATE_MEDICAL_RECORD_UNAUTHORIZED'
-        : 'FAILED_UPDATE_MEDICAL_RECORD';
-
-      await logAuditEvent(
-        workosUserId || 'unknown',
-        auditAction,
-        'medical_record',
-        params.meetingId,
-        null,
-        {
-          meetingId: params.meetingId,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          errorType: error instanceof Error ? error.constructor.name : 'Unknown',
-          isSecuritySensitive,
-          timestamp: new Date().toISOString(),
-        },
-        headersList.get('x-forwarded-for') ?? 'Unknown',
-        headersList.get('user-agent') ?? 'Unknown',
-      );
-    } catch (auditError) {
-      console.error('Error logging audit event for failed record update:', auditError);
-    }
+    console.error('[AUDIT - ERROR]', JSON.stringify({
+      action: isSecuritySensitive ? 'SECURITY_ALERT_TRIGGERED' : 'MEDICAL_RECORD_UPDATED',
+      status: 'failed',
+      resourceType: 'medical_record',
+      resourceId: params.meetingId,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      isSecuritySensitive,
+      timestamp: new Date().toISOString(),
+    }));
 
     return NextResponse.json({ error: 'Failed to update record' }, { status: 500 });
   }

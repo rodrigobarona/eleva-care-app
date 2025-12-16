@@ -16,7 +16,7 @@
  * @see docs/09-integrations/IMPLEMENTATION-COMPLETE.md - Implementation guide
  */
 import { storeGoogleTokens } from '@/lib/integrations/google/oauth-tokens';
-import { logAuditEvent } from '@/lib/utils/server/audit-workos';
+import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { NextRequest, NextResponse } from 'next/server';
 

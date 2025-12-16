@@ -11,7 +11,6 @@ import { meetingActionSchema } from '@/schema/meetings';
 import GoogleCalendarService, { createCalendarEvent } from '@/server/googleCalendar';
 import { addMinutes } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { headers } from 'next/headers';
 import type { z } from 'zod';
 
 /**
@@ -488,21 +487,20 @@ export async function createMeeting(unsafeData: z.infer<typeof meetingActionSche
             hasMeetUrl: !!meetingUrl,
           });
 
-      // Step 9: Log audit event
+      // Step 9: Log audit event (user context automatically extracted)
       await logAuditEvent(
-        data.workosUserId,
-        'MEETING_CREATED',
-        'meeting',
-        data.eventId,
-        null,
+        'APPOINTMENT_CREATED',
+        'appointment',
+        meeting.id,
         {
-          ...data,
-          endTime: endTimeUTC,
-          meetingUrl: meetingUrl,
-          calendarEventCreated: shouldCreateCalendarEvent,
+          newValues: {
+            ...data,
+            endTime: endTimeUTC,
+            meetingUrl: meetingUrl,
+            calendarEventCreated: shouldCreateCalendarEvent,
+          },
         },
-        (await headers()).get('x-forwarded-for') ?? 'Unknown',
-        (await headers()).get('user-agent') ?? 'Unknown',
+        { eventId: data.eventId },
       );
 
       // Step 10: Fetch expert's timezone and trigger Novu workflow for expert notification

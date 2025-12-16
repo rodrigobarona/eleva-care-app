@@ -6,12 +6,10 @@ import { getServerStripe } from '@/lib/integrations/stripe';
 import { logAuditEvent } from '@/lib/utils/server/audit';
 import { eventFormSchema } from '@/schema/events';
 import { checkExpertSetupStatus, markStepComplete } from '@/server/actions/expert-setup';
-import { EVENT_CREATED, EVENT_DELETED, EVENT_UPDATED } from '@/types/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { checkBotId } from 'botid/server';
 import { and, count, eq } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { z } from 'zod';
 
@@ -56,10 +54,6 @@ export async function createEvent(
 
   const { user } = await withAuth();
   const userId = user?.id;
-  const headersList = await headers();
-
-  const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
-  const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
   const { success, data } = eventFormSchema.safeParse(unsafeData);
 
@@ -78,17 +72,10 @@ export async function createEvent(
       return { error: true, message: 'Failed to create event' };
     }
 
-    // Log the event creation
-    await logAuditEvent(
-      insertedEvent.userId,
-      EVENT_CREATED,
-      'event',
-      insertedEvent.id,
-      null,
-      { ...data },
-      ipAddress,
-      userAgent,
-    );
+    // Log the event creation (user context automatically extracted)
+    await logAuditEvent('PROFILE_UPDATED', 'profile', insertedEvent.id, {
+      newValues: { ...data, eventCreated: true },
+    });
 
     // If the event is marked as active, mark the events step as complete
     if (data.isActive) {
@@ -127,10 +114,6 @@ export async function updateEvent(
 ): Promise<{ error: boolean } | undefined> {
   const { user } = await withAuth();
   const userId = user?.id;
-  const headersList = await headers();
-
-  const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
-  const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
   const { success, data } = eventFormSchema.safeParse(unsafeData);
 
@@ -160,16 +143,11 @@ export async function updateEvent(
     return { error: true };
   }
 
-  await logAuditEvent(
-    updatedEvent.userId,
-    EVENT_UPDATED,
-    'event',
-    updatedEvent.id,
-    oldEvent, // Pass the old values here
-    { ...data }, // New values
-    ipAddress,
-    userAgent,
-  );
+  // Log the event update (user context automatically extracted)
+  await logAuditEvent('PROFILE_UPDATED', 'profile', updatedEvent.id, {
+    oldValues: oldEvent as Record<string, unknown>,
+    newValues: { ...data },
+  });
 
   // If the event is active, mark the events step as complete
   if (data.isActive) {
@@ -201,10 +179,6 @@ export async function updateEvent(
 export async function deleteEvent(id: string): Promise<{ error: boolean } | undefined> {
   const { user } = await withAuth();
   const userId = user?.id;
-  const headersList = await headers();
-
-  const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
-  const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
   if (userId == null) {
     return { error: true };
@@ -245,15 +219,16 @@ export async function deleteEvent(id: string): Promise<{ error: boolean } | unde
       return { error: true };
     }
 
+    // Log the event deletion (user context automatically extracted)
     await logAuditEvent(
-      deletedEvent.userId,
-      EVENT_DELETED,
-      'event',
+      'PROFILE_UPDATED',
+      'profile',
       deletedEvent.id,
-      oldEvent,
-      { reason: 'User requested deletion' },
-      ipAddress,
-      userAgent,
+      {
+        oldValues: oldEvent as Record<string, unknown>,
+        newValues: { deleted: true, reason: 'User requested deletion' },
+      },
+      { eventDeleted: true },
     );
 
     revalidatePath('/booking/events');
@@ -314,10 +289,6 @@ export async function updateEventActiveState(
 ): Promise<{ error: boolean } | undefined> {
   const { user } = await withAuth();
   const userId = user?.id;
-  const headersList = await headers();
-
-  const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
-  const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
   if (!user || !userId) {
     return { error: true };
@@ -339,17 +310,11 @@ export async function updateEventActiveState(
       .set({ isActive })
       .where(and(eq(EventsTable.id, id), eq(EventsTable.workosUserId, userId)));
 
-    // Log the update action
-    await logAuditEvent(
-      userId,
-      EVENT_UPDATED,
-      'event',
-      id,
-      event,
-      { isActive },
-      ipAddress,
-      userAgent,
-    );
+    // Log the update action (user context automatically extracted)
+    await logAuditEvent('PROFILE_UPDATED', 'profile', id, {
+      oldValues: { isActive: event.isActive },
+      newValues: { isActive },
+    });
 
     // If the event is being activated, mark the events step as complete
     if (isActive) {

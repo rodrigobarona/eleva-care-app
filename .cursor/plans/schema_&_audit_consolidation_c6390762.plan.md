@@ -13,43 +13,43 @@ todos:
     status: completed
   - id: consolidate-audit
     content: Replace audit.ts with new unified API (no backward compatibility)
-    status: in_progress
+    status: completed
   - id: update-audit-callers
     content: Update 6 files to use new audit API and AuditEventAction types
-    status: pending
+    status: completed
   - id: delete-audit-legacy
     content: Delete legacy audit files (auditDb.ts, auditSchema.ts, types/audit.ts, audit-workos.ts)
-    status: pending
+    status: completed
   - id: cleanup-deprecated-tests
     content: Delete deprecated audit tests (tests/deprecated/audit-*.test.ts)
-    status: pending
+    status: completed
   - id: verify-build
     content: Run bun run build and verify no TypeScript errors
-    status: pending
+    status: completed
   - id: verify-tests
     content: Run bun test and verify all 243 tests pass
-    status: pending
+    status: completed
   - id: document-migration-script
     content: Document migration script requirements (DEFERRED until RBAC + org-level complete)
-    status: pending
+    status: cancelled
   - id: delete-clerk-cache-keys
     content: DELETE src/lib/cache/clerk-cache-keys.ts (dead code, not used anywhere)
-    status: pending
+    status: completed
   - id: update-service-health
     content: Replace checkClerk() with checkWorkOS() in service-health.ts
-    status: pending
+    status: completed
   - id: update-privacy-mdx
     content: Update 4 privacy policy MDX files (Clerk -> WorkOS)
-    status: pending
+    status: completed
   - id: cleanup-clerk-refs
     content: Review remaining Clerk references in docs/comments
-    status: pending
+    status: completed
   - id: delete-legacy-schema
     content: DELETE schema-clerk-legacy.ts (FUTURE - keep for migration script)
-    status: pending
+    status: cancelled
   - id: update-docs
     content: Update drizzle/README.md and CHANGELOG.md
-    status: pending
+    status: completed
 ---
 
 # Schema Renaming & Audit Logging Consolidation

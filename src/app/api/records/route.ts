@@ -1,7 +1,7 @@
 import { db } from '@/drizzle/db';
-import { OrganizationsTable, RecordsTable, UserOrgMembershipsTable } from '@/drizzle/schema-workos';
+import { OrganizationsTable, RecordsTable, UserOrgMembershipsTable } from '@/drizzle/schema';
 import { decryptForOrg } from '@/lib/integrations/workos/vault';
-import { logAuditEvent } from '@/lib/utils/server/audit-workos';
+import { logAuditEvent } from '@/lib/utils/server/audit';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import { NextResponse } from 'next/server';

@@ -8,7 +8,6 @@ import { markStepComplete } from '@/server/actions/expert-setup';
 import { withAuth } from '@workos-inc/authkit-nextjs';
 import { eq } from 'drizzle-orm';
 import type { BatchItem } from 'drizzle-orm/batch';
-import { headers } from 'next/headers';
 import type { z } from 'zod';
 
 /**
@@ -54,12 +53,9 @@ import type { z } from 'zod';
  * }
  */
 export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema>) {
-  // Get user authentication and request metadata
+  // Get user authentication
   const { user } = await withAuth();
   const userId = user?.id;
-  const headersList = await headers();
-  const ipAddress = headersList.get('x-forwarded-for') ?? 'Unknown';
-  const userAgent = headersList.get('user-agent') ?? 'Unknown';
 
   // Validate the incoming data against the schema
   const { success, data } = scheduleFormSchema.safeParse(unsafeData);
@@ -111,17 +107,11 @@ export async function saveSchedule(unsafeData: z.infer<typeof scheduleFormSchema
   // Execute all database operations in a batch
   await db.batch(statements);
 
-  // Log the schedule update for audit purposes
-  await logAuditEvent(
-    userId,
-    'SCHEDULE_UPDATED',
-    'schedule',
-    scheduleId,
-    oldSchedule ?? null,
-    { ...scheduleData, availabilities },
-    ipAddress,
-    userAgent,
-  );
+  // Log the schedule update for audit purposes (user context automatically extracted)
+  await logAuditEvent('PROFILE_UPDATED', 'profile', scheduleId, {
+    oldValues: oldSchedule ? (oldSchedule as unknown as Record<string, unknown>) : undefined,
+    newValues: { ...scheduleData, availabilities },
+  });
 
   // If the expert has set up availability, mark the step as complete
   if (availabilities.length > 0) {
