@@ -64,11 +64,38 @@ export async function POST(request: Request, props: { params: Promise<{ meetingI
       return NextResponse.json({ error: 'Meeting not found or unauthorized' }, { status: 404 });
     }
 
+    // Check for legacy meetings without org context (created before org-scoping Phase 5)
+    // These cannot create encrypted records until migrated to an organization
+    if (!meeting.orgId) {
+      console.warn(
+        '[LEGACY] Meeting missing orgId - cannot create encrypted record:',
+        params.meetingId,
+      );
+      return NextResponse.json(
+        {
+          error: 'Legacy meeting requires migration',
+          code: 'LEGACY_MEETING_NO_ORG',
+          message:
+            'This meeting was created before organization-scoped encryption was implemented. ' +
+            'Please contact support to migrate this meeting to your organization.',
+          meetingId: params.meetingId,
+        },
+        { status: 400 },
+      );
+    }
+
     // Get WorkOS org ID for Vault encryption
     const workosOrgId = await getWorkosOrgId(meeting.orgId);
     if (!workosOrgId) {
-      console.error('No organization found for meeting:', params.meetingId);
-      return NextResponse.json({ error: 'Organization not found for encryption' }, { status: 500 });
+      // This indicates a data integrity issue: meeting has orgId but org doesn't exist
+      console.error('[DATA_INTEGRITY] Organization not found for meeting:', {
+        meetingId: params.meetingId,
+        orgId: meeting.orgId,
+      });
+      return NextResponse.json(
+        { error: 'Organization configuration error', code: 'ORG_NOT_FOUND' },
+        { status: 500 },
+      );
     }
 
     // Encrypt the content and metadata using WorkOS Vault
@@ -143,11 +170,34 @@ export async function GET(request: Request, props: { params: Promise<{ meetingId
       return NextResponse.json({ error: 'Meeting not found or unauthorized' }, { status: 404 });
     }
 
+    // Check for legacy meetings without org context (created before org-scoping Phase 5)
+    if (!meeting.orgId) {
+      console.warn('[LEGACY] Meeting missing orgId - cannot decrypt records:', params.meetingId);
+      return NextResponse.json(
+        {
+          error: 'Legacy meeting requires migration',
+          code: 'LEGACY_MEETING_NO_ORG',
+          message:
+            'This meeting was created before organization-scoped encryption was implemented. ' +
+            'Please contact support to migrate this meeting to your organization.',
+          meetingId: params.meetingId,
+        },
+        { status: 400 },
+      );
+    }
+
     // Get WorkOS org ID for Vault decryption
     const workosOrgId = await getWorkosOrgId(meeting.orgId);
     if (!workosOrgId) {
-      console.error('No organization found for meeting:', params.meetingId);
-      return NextResponse.json({ error: 'Organization not found for decryption' }, { status: 500 });
+      // This indicates a data integrity issue: meeting has orgId but org doesn't exist
+      console.error('[DATA_INTEGRITY] Organization not found for meeting:', {
+        meetingId: params.meetingId,
+        orgId: meeting.orgId,
+      });
+      return NextResponse.json(
+        { error: 'Organization configuration error', code: 'ORG_NOT_FOUND' },
+        { status: 500 },
+      );
     }
 
     // Get all records for this meeting
@@ -264,11 +314,35 @@ export async function PUT(request: Request, props: { params: Promise<{ meetingId
       return NextResponse.json({ error: 'Record not found or unauthorized' }, { status: 404 });
     }
 
+    // Check for legacy records without org context (created before org-scoping Phase 5)
+    // These cannot be updated with encryption until migrated to an organization
+    if (!oldRecord.orgId) {
+      console.warn('[LEGACY] Record missing orgId - cannot update with encryption:', recordId);
+      return NextResponse.json(
+        {
+          error: 'Legacy record requires migration',
+          code: 'LEGACY_RECORD_NO_ORG',
+          message:
+            'This record was created before organization-scoped encryption was implemented. ' +
+            'Please contact support to migrate this record to your organization.',
+          recordId,
+        },
+        { status: 400 },
+      );
+    }
+
     // Get WorkOS org ID for Vault encryption
     const workosOrgId = await getWorkosOrgId(oldRecord.orgId);
     if (!workosOrgId) {
-      console.error('No organization found for record:', recordId);
-      return NextResponse.json({ error: 'Organization not found for encryption' }, { status: 500 });
+      // This indicates a data integrity issue: record has orgId but org doesn't exist
+      console.error('[DATA_INTEGRITY] Organization not found for record:', {
+        recordId,
+        orgId: oldRecord.orgId,
+      });
+      return NextResponse.json(
+        { error: 'Organization configuration error', code: 'ORG_NOT_FOUND' },
+        { status: 500 },
+      );
     }
 
     // Encrypt the updated content and metadata using WorkOS Vault
